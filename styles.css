@@ -946,9 +946,15 @@ label {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin: 24px 0;
+}
+@media (max-width: 760px) {
+  .filters { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 420px) {
+  .filters { grid-template-columns: 1fr; }
 }
 
 .advanced-search {
@@ -2413,3 +2419,200 @@ body.theme-light .theme-toggle-dot {
   color: var(--gold);
 }
 .vtab-hidden { display: none !important; }
+
+/* ── LIGHT THEME — fix hardcoded light text ─────────────────
+   These selectors hardcode white/cream colors that become
+   invisible on the light background. Force them to theme vars. */
+body.theme-light .dash-title,
+body.theme-light .welcome-card > strong,
+body.theme-light .welcome-card nav a,
+body.theme-light .mini-stats strong,
+body.theme-light .luxury-hero h1:not(.motion-title),
+body.theme-light h1, body.theme-light h2, body.theme-light h3,
+body.theme-light .tool-card h3,
+body.theme-light .credit-meta strong,
+body.theme-light .hero-stat strong,
+body.theme-light .bar-names strong,
+body.theme-light .ai-output,
+body.theme-light pre,
+body.theme-light td, body.theme-light th {
+  color: var(--text);
+}
+body.theme-light .luxury-hero p:not(.eyebrow),
+body.theme-light .credit-card p,
+body.theme-light p {
+  color: var(--muted);
+}
+body.theme-light .badge,
+body.theme-light [class*="chip"] {
+  color: var(--gold-2);
+}
+/* SVG icons that hardcode white fill */
+body.theme-light svg[fill="#ffffff"],
+body.theme-light .view-btn svg {
+  fill: currentColor;
+}
+/* Inputs/textareas readable in light mode */
+body.theme-light input,
+body.theme-light textarea,
+body.theme-light select {
+  background: rgba(255,255,255,0.7);
+  color: var(--text);
+}
+body.theme-light .ai-output,
+body.theme-light pre {
+  background: rgba(255,255,255,0.6);
+}
+
+/* Tool count + free-toggle as a clear switch */
+.tool-count {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+}
+.toggle-row {
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 42px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid var(--line);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.toggle-row input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.toggle-row input[type="checkbox"]:checked {
+  background: var(--gold);
+}
+.toggle-row input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
+
+/* ── AE-STYLE TIMELINE STRIP ────────────────────────────── */
+.vs-timeline {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.vs-timeline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.vs-play-btn {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(216,183,106,0.14);
+  color: var(--gold);
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.vs-play-btn:hover { background: rgba(216,183,106,0.26); }
+.vs-timecode {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+.vs-timeline-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+.vs-track-area {
+  position: relative;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.vs-tracks { display: flex; flex-direction: column; gap: 6px; }
+.vs-track {
+  display: flex;
+  align-items: center;
+  height: 30px;
+}
+.vs-track-label {
+  width: 64px;
+  flex-shrink: 0;
+  padding-left: 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.vs-track-lane {
+  flex: 1;
+  height: 100%;
+  margin-right: 12px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 5px;
+  position: relative;
+}
+.vs-clip {
+  position: absolute;
+  inset: 3px 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0c0a06;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0.4;            /* dim until that layer has content */
+  transition: opacity 0.2s;
+}
+.vs-clip.is-active { opacity: 1; }
+.vs-clip-media { background: linear-gradient(90deg,#d8b76a,#fff0b8); }
+.vs-clip-text  { background: linear-gradient(90deg,#7a9cff,#b9c8ff); }
+.vs-clip-logo  { background: linear-gradient(90deg,#6fce9f,#bdeccf); }
+.vs-clip-music { background: linear-gradient(90deg,#c98fe0,#e6c4f0); }
+/* playhead */
+.vs-playhead {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 76px;
+  width: 2px;
+  background: #ff5a5a;
+  pointer-events: none;
+}
+.vs-playhead-grip {
+  position: absolute;
+  top: -1px; left: 50%;
+  transform: translateX(-50%);
+  width: 13px; height: 11px;
+  background: #ff5a5a;
+  border-radius: 2px 2px 4px 4px;
+}
+
+/* Inline helper note inside a studio panel */
+.vstudio-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
