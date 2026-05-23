@@ -1,60 +1,57 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar | AI tool search, live charts, captions, and jobs</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
-    <meta
-      name="description"
-      content="A free static MVP for discovering real AI tools, comparing pricing, planning AI careers, and creating simple video templates."
-    />
+    <meta name="description" content="Discover real AI tools, compare live model benchmarks, generate captions, and find AI jobs." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css?v=luxury-hero-1" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=v3" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
 
+    <!-- HEADER with motion ticker -->
     <div class="shell">
       <header class="topbar">
         <a class="brand" href="#top" aria-label="AI Radar">
           <img class="brand-logo" src="logo.svg" alt="" />
           <span>AI Radar</span>
         </a>
-
         <nav class="nav" aria-label="Primary navigation">
           <a href="#tools" data-i18n="navTools">Tools</a>
           <a href="#performance" data-i18n="navPerformance">Live charts</a>
           <a href="#mediaCaption" data-i18n="navMedia">Caption AI</a>
           <a href="#intelligence" data-i18n="navIntelligence">Prompt lab</a>
           <a href="#jobs" data-i18n="navJobs">AI jobs</a>
-          <a href="#register" data-i18n="navRegister">Register</a>
         </nav>
-
         <div class="header-actions">
           <label class="sr-only" for="languageSelect">Language</label>
           <select id="languageSelect" class="language-select" aria-label="Language">
             <option value="en">English</option>
-            <option value="fa">ÙØ§Ø±Ø³ÛŒ</option>
+            <option value="fa">فارسی</option>
           </select>
           <a class="button primary" href="#tools" data-i18n="startButton">Start</a>
         </div>
       </header>
 
+      <!-- AI MODELS TICKER -->
+      <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+        <div class="models-ticker" id="modelsTicker"></div>
+      </div>
+
       <main id="top">
+
+        <!-- HERO — compact -->
         <section class="hero luxury-hero">
           <div class="luxury-hero-inner">
-            <p class="eyebrow" data-i18n="heroEyebrow">Free static MVP</p>
-            <h1 data-i18n="heroTitle">Find real AI tools, compare market signals, generate captions, and search AI jobs.</h1>
-            <p data-i18n="heroText">
-              Search AI tools, compare model benchmarks, create media captions, improve prompts, and open targeted AI job searches from one polished workspace.
-            </p>
+            <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
+            <h1 data-i18n="heroTitle">Find. Compare. Create.</h1>
+            <p data-i18n="heroText">Real AI tools, live model benchmarks, Claude-powered captions and prompts — one workspace.</p>
             <div class="hero-actions">
               <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
               <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
@@ -62,6 +59,7 @@
           </div>
         </section>
 
+        <!-- TOOLS -->
         <section id="tools" class="panel">
           <div class="section-head">
             <div>
@@ -73,74 +71,59 @@
               <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
             </div>
           </div>
-
           <div class="filters" aria-label="Tool filters">
-            <label>
-              <span data-i18n="categoryLabel">Category</span>
-              <select id="categoryFilter"></select>
-            </label>
-            <label>
-              <span data-i18n="budgetLabel">Budget</span>
-              <select id="budgetFilter"></select>
-            </label>
-            <label>
-              <span data-i18n="sortLabel">Sort</span>
-              <select id="sortFilter"></select>
-            </label>
+            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
+            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
+            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
           </div>
-
           <div class="advanced-search">
-            <label>
-              <span data-i18n="modelTypeLabel">Model type</span>
-              <select id="modelTypeFilter"></select>
-            </label>
-            <label>
-              <span data-i18n="minScoreLabel">Minimum score</span>
-              <input id="minScoreFilter" type="range" min="0" max="100" value="0" />
-            </label>
-            <label class="toggle-row">
-              <input id="freeOnlyToggle" type="checkbox" />
-              <span data-i18n="freeOnlyLabel">Only tools with a free option</span>
-            </label>
+            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
+            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
+            <label class="toggle-row"><input id="freeOnlyToggle" type="checkbox" /><span data-i18n="freeOnlyLabel">Only tools with a free option</span></label>
           </div>
-
           <div id="toolGrid" class="tool-grid"></div>
         </section>
 
+        <!-- LIVE PERFORMANCE CHART -->
         <section id="performance" class="panel performance-panel">
           <div class="section-head">
             <div>
-              <p class="eyebrow" data-i18n="performanceEyebrow">Artificial Analysis snapshot</p>
-              <h2 data-i18n="performanceTitle">Best and worst model performance</h2>
-              <p data-i18n="performanceText">Model performance snapshot attributed to Artificial Analysis. Full live data requires an API or server-side refresh.</p>
+              <p class="eyebrow" data-i18n="performanceEyebrow">Live Model Benchmark</p>
+              <h2 data-i18n="performanceTitle">Real-time AI model comparison</h2>
+              <p data-i18n="performanceText">Live data from Artificial Analysis — auto-refreshes every 60 seconds.</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> Live</span>
+              <button id="refreshChartBtn" class="button ghost" type="button">↻ Refresh</button>
             </div>
           </div>
-          <div class="source-note">
-            <a href="https://artificialanalysis.ai/models" target="_blank" rel="noopener">Source: artificialanalysis.ai/models</a>
+          <div class="chart-tabs">
+            <button class="chart-tab active" data-metric="intelligence">Intelligence</button>
+            <button class="chart-tab" data-metric="speed">Speed (tok/s)</button>
+            <button class="chart-tab" data-metric="cost">Cost ($/M tok)</button>
           </div>
           <div id="performanceChart" class="performance-chart"></div>
+          <div class="source-note"><a href="https://artificialanalysis.ai/models" target="_blank" rel="noopener">Source: artificialanalysis.ai/models</a> — <span id="lastRefreshed"></span></div>
         </section>
 
+        <!-- COMPARE -->
         <section id="compare" class="compare panel">
           <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="compareEyebrow">Compare</p>
-              <h2 data-i18n="compareTitle">Compare selected tools</h2>
-            </div>
+            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
             <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
           </div>
           <div id="compareTable" class="compare-table"></div>
         </section>
 
+        <!-- CAPTION AI -->
         <section id="mediaCaption" class="panel media-caption">
           <div class="section-head">
             <div>
-              <p class="eyebrow" data-i18n="mediaEyebrow">Media caption generator</p>
-              <h2 data-i18n="mediaTitle">Upload an image or video and generate captions</h2>
-              <p data-i18n="mediaText">Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.</p>
+              <p class="eyebrow">Caption AI — Powered by Claude</p>
+              <h2 data-i18n="mediaTitle">Upload an image → caption, hooks, hashtags &amp; image prompt</h2>
+              <p data-i18n="mediaText">Claude reads your image and writes a fully tailored caption — not a template.</p>
             </div>
           </div>
-
           <div class="media-layout">
             <div class="studio-controls">
               <label class="upload-box">
@@ -148,81 +131,78 @@
                 <input id="mediaUpload" type="file" accept="image/*,video/*" />
               </label>
               <div class="control-grid">
-                <label>
-                  <span data-i18n="mediaGoalLabel">Goal</span>
-                  <input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" />
-                </label>
-                <label>
-                  <span data-i18n="platformLabel">Platform</span>
+                <label><span data-i18n="mediaGoalLabel">Goal</span><input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" /></label>
+                <label><span data-i18n="platformLabel">Platform</span>
                   <select id="platformSelect">
-                    <option>Instagram Reels</option>
-                    <option>TikTok</option>
-                    <option>YouTube Shorts</option>
-                    <option>LinkedIn</option>
-                    <option>X</option>
+                    <option>Instagram Reels</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option><option>X</option>
                   </select>
                 </label>
-                <label>
-                  <span data-i18n="toneLabel">Tone</span>
+                <label><span data-i18n="toneLabel">Tone</span>
                   <select id="toneSelect">
-                    <option>Luxury</option>
-                    <option>Professional</option>
-                    <option>Viral</option>
-                    <option>Minimal</option>
-                    <option>Educational</option>
+                    <option>Luxury</option><option>Professional</option><option>Viral</option><option>Minimal</option><option>Educational</option>
                   </select>
                 </label>
               </div>
-              <button id="generateCaptionButton" class="button primary" type="button" data-i18n="generateCaption">Generate caption</button>
+              <button id="generateCaptionButton" class="button primary ai-btn" type="button">
+                <span class="ai-btn-icon">✦</span> Generate with Claude AI
+              </button>
+              <p class="ai-note">Claude reads your image and writes a fully tailored caption — not a template.</p>
             </div>
-
             <div class="media-output">
               <div id="mediaPreview" class="media-preview">
                 <div class="preview-placeholder" data-i18n="mediaPlaceholder">Upload media to preview it here</div>
               </div>
               <div class="caption-actions">
-                <button id="copyCaptionButton" class="button ghost gold" type="button" data-i18n="copyCaption">Copy caption</button>
-                <button id="copyMediaJsonButton" class="button ghost" type="button" data-i18n="copyJson">Copy JSON</button>
+                <button id="copyCaptionButton" class="button ghost gold" type="button">Copy caption</button>
+                <button id="copyMediaJsonButton" class="button ghost" type="button">Copy JSON</button>
               </div>
-              <pre id="captionOutput"></pre>
-              <pre id="mediaJsonOutput"></pre>
+              <pre id="captionOutput" class="ai-output"></pre>
+              <pre id="mediaJsonOutput" class="ai-output json-out"></pre>
             </div>
           </div>
         </section>
 
+        <!-- PROMPT LAB -->
         <section id="intelligence" class="panel intelligence">
           <div class="section-head">
             <div>
-              <p class="eyebrow" data-i18n="intelEyebrow">AI writing utilities</p>
-              <h2 data-i18n="intelTitle">Improve prompts and convert text to JSON</h2>
+              <p class="eyebrow">Prompt Lab — Powered by Claude AI</p>
+              <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
             </div>
           </div>
           <div class="intel-layout">
             <form id="promptForm" class="utility-card">
               <label>
-                <span data-i18n="simplePromptLabel">Simple prompt</span>
-                <textarea id="simplePromptInput" rows="7" placeholder="Write a prompt..."></textarea>
+                <span>Describe what you want to create</span>
+                <textarea id="simplePromptInput" rows="7" placeholder="e.g. A cinematic portrait of a real estate agent in front of a luxury villa at golden hour..."></textarea>
               </label>
-              <button class="button primary" type="submit" data-i18n="enhancePrompt">Enhance prompt</button>
+              <button class="button primary ai-btn" type="submit">
+                <span class="ai-btn-icon">✦</span> Generate Professional Prompt
+              </button>
+              <p class="ai-note">Returns prompt for Midjourney/Flux/Runway + negative prompt + JSON parameters.</p>
               <div class="output-box">
-                <button id="copyPromptButton" class="copy-mini" type="button" data-i18n="copyPrompt">Copy prompt</button>
-                <pre id="advancedPromptOutput"></pre>
+                <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
+                <pre id="advancedPromptOutput" class="ai-output"></pre>
               </div>
             </form>
             <form id="jsonForm" class="utility-card">
               <label>
-                <span data-i18n="textJsonLabel">Text to JSON</span>
-                <textarea id="textJsonInput" rows="7" placeholder="Name: AI Radar&#10;Category: Tools"></textarea>
+                <span>Describe any data, product, or idea</span>
+                <textarea id="textJsonInput" rows="7" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
               </label>
-              <button class="button primary" type="submit" data-i18n="convertJson">Convert to JSON</button>
+              <button class="button primary ai-btn" type="submit">
+                <span class="ai-btn-icon">✦</span> Convert to Smart JSON
+              </button>
+              <p class="ai-note">Claude intelligently structures any text into clean, nested JSON.</p>
               <div class="output-box">
-                <button id="copyJsonButton" class="copy-mini" type="button" data-i18n="copyJson">Copy JSON</button>
-                <pre id="jsonOutput"></pre>
+                <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
+                <pre id="jsonOutput" class="ai-output"></pre>
               </div>
             </form>
           </div>
         </section>
 
+        <!-- JOBS -->
         <section id="jobs" class="jobs">
           <div class="section-head">
             <div>
@@ -232,71 +212,24 @@
           </div>
           <div class="job-layout">
             <form id="jobForm" class="job-card">
-              <label>
-                <span data-i18n="skillsLabel">Your skills</span>
-                <textarea
-                  id="skillsInput"
-                  rows="5"
-                  placeholder="Python, Prompt Engineering, Photoshop, React, Excel"
-                ></textarea>
-              </label>
-              <label>
-                <span data-i18n="jobTitleLabel">Target role</span>
-                <input id="jobTitleInput" type="text" placeholder="AI video editor, prompt engineer..." />
-              </label>
-              <label>
-                <span data-i18n="jobLocationLabel">Location</span>
-                <input id="jobLocationInput" type="text" placeholder="Remote, Toronto, Dubai..." />
-              </label>
+              <label><span data-i18n="skillsLabel">Your skills</span><textarea id="skillsInput" rows="5" placeholder="Python, Prompt Engineering, Photoshop, React, Excel"></textarea></label>
+              <label><span data-i18n="jobTitleLabel">Target role</span><input id="jobTitleInput" type="text" placeholder="AI video editor, prompt engineer..." /></label>
+              <label><span data-i18n="jobLocationLabel">Location</span><input id="jobLocationInput" type="text" placeholder="Remote, Toronto, Dubai..." /></label>
               <button class="button primary" type="submit" data-i18n="skillsButton">Suggest path</button>
             </form>
             <div id="jobResult" class="job-result"></div>
           </div>
           <div class="job-board panel-sub">
             <div class="section-head compact">
-              <div>
-                <h3 data-i18n="jobBoardTitle">Live job source board</h3>
-                <p id="jobTicker"></p>
-              </div>
+              <div><h3 data-i18n="jobBoardTitle">Live job source board</h3><p id="jobTicker"></p></div>
             </div>
             <div id="jobSources" class="source-links"></div>
           </div>
         </section>
 
-        <section id="register" class="panel register-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="registerEyebrow">Account</p>
-              <h2 data-i18n="registerTitle">Create a local test account</h2>
-              <p data-i18n="registerText">This demo stores registration data in your browser only. A real launch needs authentication on a backend.</p>
-            </div>
-          </div>
-          <form id="registerForm" class="register-form">
-            <label>
-              <span data-i18n="nameLabel">Name</span>
-              <input id="registerName" type="text" required />
-            </label>
-            <label>
-              <span data-i18n="emailLabel">Email</span>
-              <input id="registerEmail" type="email" required />
-            </label>
-            <label>
-              <span data-i18n="roleLabel">Main goal</span>
-              <select id="registerGoal">
-                <option>Find AI tools</option>
-                <option>Build video templates</option>
-                <option>Find AI jobs</option>
-              </select>
-            </label>
-            <button class="button primary" type="submit" data-i18n="registerButton">Register</button>
-          </form>
-          <p id="registerStatus" class="studio-status" aria-live="polite"></p>
-        </section>
       </main>
     </div>
 
-    <script src="app.js?v=luxury-hero-1"></script>
+    <script src="app.js?v=v3"></script>
   </body>
 </html>
-
-
