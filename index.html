@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v6" />
+    <link rel="stylesheet" href="styles.css?v=v9" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -47,11 +47,16 @@
 
       <main id="top">
 
-        <!-- HERO — compact -->
+        <!-- HERO — title inline with motion -->
         <section class="hero luxury-hero">
           <div class="luxury-hero-inner">
             <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-            <h1 data-i18n="heroTitle">Find. Compare. Create.</h1>
+            <div class="hero-title-row">
+              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
+              <div class="hero-motion" aria-hidden="true">
+                <canvas id="heroMotionCanvas"></canvas>
+              </div>
+            </div>
             <p data-i18n="heroText">Real AI tools, live model benchmarks, Claude-powered captions and prompts — one workspace.</p>
             <div class="hero-actions">
               <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
@@ -90,8 +95,8 @@
           <div class="section-head">
             <div>
               <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
-              <h2 data-i18n="performanceTitle">Live AI tools trend — 3D chart</h2>
-              <p data-i18n="performanceText">Interactive 3D benchmark of every tool in the finder — drag to rotate, auto-refreshes every 15 seconds. Tools you add to Compare are highlighted.</p>
+              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
+              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
             </div>
             <div style="display:flex;gap:10px;align-items:center;">
               <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> Live</span>
@@ -167,28 +172,85 @@
         <section id="videoStudio" class="panel video-studio">
           <div class="section-head">
             <div>
-              <p class="eyebrow" data-i18n="studioEyebrow">Video template studio</p>
-              <h2 data-i18n="studioTitle">Create a luxurious, minimal video</h2>
-              <p data-i18n="studioText">Pick a template, drop in your video, add animated text, preview it live, and export a real .webm file — all free in your browser.</p>
+              <p class="eyebrow" data-i18n="studioEyebrow">Advanced video studio</p>
+              <h2 data-i18n="studioTitle">Create a complete, luxurious video</h2>
+              <p data-i18n="studioText">Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.</p>
             </div>
           </div>
           <div class="vstudio-layout">
             <div class="vstudio-controls">
+
               <div class="vstudio-block">
-                <span class="vstudio-label" data-i18n="vTemplateLabel">1 · Choose a template</span>
+                <span class="vstudio-label" data-i18n="vTemplateLabel">1 · Template</span>
                 <div id="templatePicker" class="template-picker"></div>
               </div>
+
               <div class="vstudio-block">
-                <span class="vstudio-label" data-i18n="vUploadLabel">2 · Add your video</span>
+                <span class="vstudio-label" data-i18n="vUploadLabel">2 · Media</span>
                 <label class="upload-box">
-                  <span data-i18n="vUploadHint">Upload a video clip (.mp4, .webm, .mov)</span>
-                  <input id="vsUpload" type="file" accept="video/*" />
+                  <span data-i18n="vUploadHint">Upload a video or image (mp4, webm, mov, jpg, png)</span>
+                  <input id="vsUpload" type="file" accept="video/*,image/*" />
+                </label>
+                <label class="upload-box small">
+                  <span data-i18n="vMusicHint">Optional: background music (mp3, wav)</span>
+                  <input id="vsMusic" type="file" accept="audio/*" />
                 </label>
               </div>
+
               <div class="vstudio-block">
-                <span class="vstudio-label" data-i18n="vTextLabel">3 · Add text</span>
+                <span class="vstudio-label" data-i18n="vFormatLabel">3 · Format</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
+                    <select id="vsAspect">
+                      <option value="original">Original</option>
+                      <option value="16:9">16:9 — Landscape</option>
+                      <option value="9:16">9:16 — Reels / TikTok</option>
+                      <option value="1:1">1:1 — Square</option>
+                      <option value="4:5">4:5 — Portrait</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vDurationLabel">Duration (s)</span>
+                    <input id="vsDuration" type="number" min="2" max="60" value="6" />
+                  </label>
+                </div>
+                <div class="control-grid">
+                  <label><span data-i18n="vFilterLabel">Filter / grade</span>
+                    <select id="vsFilter">
+                      <option value="none">None</option>
+                      <option value="cinematic">Cinematic</option>
+                      <option value="warm">Warm</option>
+                      <option value="cool">Cool</option>
+                      <option value="mono">Black &amp; white</option>
+                      <option value="vivid">Vivid</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
+                    <select id="vsSpeed">
+                      <option value="0.5">0.5×</option>
+                      <option value="1" selected>1×</option>
+                      <option value="1.5">1.5×</option>
+                      <option value="2">2×</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="control-grid">
+                  <label><span data-i18n="vTransitionLabel">Transition in</span>
+                    <select id="vsTransition">
+                      <option value="fade">Fade</option>
+                      <option value="zoom">Zoom in</option>
+                      <option value="slide">Slide up</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
+                </div>
+              </div>
+
+              <div class="vstudio-block">
+                <span class="vstudio-label" data-i18n="vTextLabel">4 · Text layers</span>
                 <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
                 <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
                 <div class="control-grid">
                   <label><span data-i18n="vTextPosLabel">Text position</span>
                     <select id="vsTextPos">
@@ -197,20 +259,52 @@
                       <option value="top">Top</option>
                     </select>
                   </label>
-                  <label><span data-i18n="vDurationLabel">Duration (seconds)</span>
-                    <input id="vsDuration" type="number" min="2" max="30" value="6" />
+                  <label><span data-i18n="vTextSizeLabel">Text size</span>
+                    <select id="vsTextSize">
+                      <option value="0.8">Small</option>
+                      <option value="1" selected>Medium</option>
+                      <option value="1.3">Large</option>
+                    </select>
                   </label>
                 </div>
               </div>
+
+              <div class="vstudio-block">
+                <span class="vstudio-label" data-i18n="vLogoLabel">5 · Logo &amp; cards</span>
+                <label class="upload-box small">
+                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
+                  <input id="vsLogo" type="file" accept="image/*" />
+                </label>
+                <label><span data-i18n="vLogoPosLabel">Logo position</span>
+                  <select id="vsLogoPos">
+                    <option value="tl">Top left</option>
+                    <option value="tr">Top right</option>
+                    <option value="bl">Bottom left</option>
+                    <option value="br">Bottom right</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vIntroLabel">Intro card text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
+                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
+              </div>
+
               <div class="vstudio-actions">
                 <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
-                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export .webm</button>
+                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
               </div>
               <p id="vsStatus" class="ai-note"></p>
             </div>
+
             <div class="vstudio-stage">
+              <div class="vs-stage-bar">
+                <span data-i18n="vPreviewLabel">Preview</span>
+                <label class="vs-size-control">
+                  <span data-i18n="vPreviewSizeLabel">Preview size</span>
+                  <input id="vsPreviewSize" type="range" min="40" max="100" value="100" />
+                  <em id="vsPreviewSizeVal">100%</em>
+                </label>
+              </div>
               <div id="vsPreview" class="vs-preview">
-                <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload a video to preview it here</div>
+                <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
               </div>
             </div>
           </div>
@@ -225,12 +319,12 @@
             </div>
           </div>
           <div class="intel-layout">
-            <form id="promptForm" class="utility-card">
+            <div id="promptForm" class="utility-card">
               <label>
                 <span>Describe what you want to create</span>
                 <textarea id="simplePromptInput" rows="7" placeholder="e.g. A cinematic portrait of a real estate agent in front of a luxury villa at golden hour..."></textarea>
               </label>
-              <button class="button primary ai-btn" type="submit">
+              <button id="promptGenBtn" class="button primary ai-btn" type="button">
                 <span class="ai-btn-icon">✦</span> Generate Professional Prompt
               </button>
               <p class="ai-note">Returns prompt for Midjourney/Flux/Runway + negative prompt + JSON parameters.</p>
@@ -238,13 +332,13 @@
                 <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
                 <pre id="advancedPromptOutput" class="ai-output"></pre>
               </div>
-            </form>
-            <form id="jsonForm" class="utility-card">
+            </div>
+            <div id="jsonForm" class="utility-card">
               <label>
                 <span>Describe any data, product, or idea</span>
                 <textarea id="textJsonInput" rows="7" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
               </label>
-              <button class="button primary ai-btn" type="submit">
+              <button id="jsonGenBtn" class="button primary ai-btn" type="button">
                 <span class="ai-btn-icon">✦</span> Convert to Smart JSON
               </button>
               <p class="ai-note">Claude intelligently structures any text into clean, nested JSON.</p>
@@ -252,7 +346,7 @@
                 <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
                 <pre id="jsonOutput" class="ai-output"></pre>
               </div>
-            </form>
+            </div>
           </div>
         </section>
 
@@ -265,12 +359,12 @@
             </div>
           </div>
           <div class="job-layout">
-            <form id="jobForm" class="job-card">
+            <div id="jobForm" class="job-card">
               <label><span data-i18n="skillsLabel">Your skills</span><textarea id="skillsInput" rows="5" placeholder="Python, Prompt Engineering, Photoshop, React, Excel"></textarea></label>
               <label><span data-i18n="jobTitleLabel">Target role</span><input id="jobTitleInput" type="text" placeholder="AI video editor, prompt engineer..." /></label>
               <label><span data-i18n="jobLocationLabel">Location</span><input id="jobLocationInput" type="text" placeholder="Remote, Toronto, Dubai..." /></label>
-              <button class="button primary" type="submit" data-i18n="skillsButton">Suggest path</button>
-            </form>
+              <button id="jobSuggestBtn" class="button primary" type="button" data-i18n="skillsButton">Suggest path</button>
+            </div>
             <div id="jobResult" class="job-result"></div>
           </div>
           <div class="job-board panel-sub">
@@ -285,7 +379,6 @@
     </div>
 
     <script src="https://js.puter.com/v2/"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="app.js?v=v6"></script>
+    <script src="app.js?v=v9"></script>
   </body>
 </html>
