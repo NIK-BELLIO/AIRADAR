@@ -50,7 +50,7 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background: #070605;
+  background: var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
 }
@@ -469,7 +469,7 @@ body[dir="rtl"] .panel-chip {
   border: 1px solid rgba(216, 183, 106, 0.42);
   border-radius: 999px;
   background: #18150f;
-  color: #fff0b8;
+  color: var(--gold-2);
   font-size: 12px;
   font-weight: 900;
 }
@@ -522,7 +522,7 @@ body[dir="rtl"] .panel-chip {
 
 .dash-title {
   margin-bottom: 12px;
-  color: #ffffff;
+  color: var(--text);
   font-size: 12px;
   font-weight: 800;
 }
@@ -555,7 +555,7 @@ body[dir="rtl"] .panel-chip {
   inset: 0;
   display: grid;
   place-items: center;
-  color: #ffffff;
+  color: var(--text);
   font-size: 16px;
 }
 
@@ -580,7 +580,7 @@ body[dir="rtl"] .panel-chip {
 .dash-score-card strong {
   display: block;
   margin-top: 10px;
-  color: #ffffff;
+  color: var(--text);
   font-size: 44px;
   line-height: 1;
 }
@@ -603,7 +603,7 @@ body[dir="rtl"] .panel-chip {
 
 .luxury-hero h1 {
   margin: 14px 0 22px;
-  color: #fffaf0;
+  color: var(--text);
   font-family: Prata, Georgia, serif;
   font-size: clamp(44px, 5vw, 78px);
   font-weight: 400;
@@ -612,7 +612,7 @@ body[dir="rtl"] .panel-chip {
 
 .luxury-hero p:not(.eyebrow) {
   max-width: 560px;
-  color: #c8c0ad;
+  color: var(--muted);
   font-size: 16px;
   line-height: 1.85;
 }
@@ -696,7 +696,7 @@ body[dir="rtl"] .panel-chip {
 
 .luxury-hero p:not(.eyebrow) {
   max-width: 760px;
-  color: #c8c0ad;
+  color: var(--muted);
   font-size: 17px;
   line-height: 1.9;
 }
@@ -748,7 +748,7 @@ body[dir="rtl"] .panel-chip {
 }
 
 .welcome-card > strong {
-  color: #ffffff;
+  color: var(--text);
   text-align: center;
   font-size: 20px;
 }
@@ -763,7 +763,7 @@ body[dir="rtl"] .panel-chip {
 }
 
 .welcome-card nav a {
-  color: #ffffff;
+  color: var(--text);
   text-align: center;
   font-size: 12px;
   font-weight: 800;
@@ -837,7 +837,7 @@ body[dir="rtl"] .panel-chip {
 }
 
 .mini-stats strong {
-  color: #ffffff;
+  color: var(--text);
   font-size: 26px;
 }
 
@@ -871,7 +871,7 @@ textarea {
 select option,
 select optgroup {
   background-color: #16130d;
-  color: #f8fbff;
+  color: var(--text);
 }
 body.theme-light select option,
 body.theme-light select optgroup {
@@ -2353,31 +2353,60 @@ body.theme-light .theme-toggle-dot {
 .tool-grid.is-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .tool-grid.is-list .tool-card {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
+  gap: 14px;
+  padding: 10px 14px;
+  min-height: 0;
 }
+/* hide the bulky bits in list mode */
 .tool-grid.is-list .tool-card > p,
 .tool-grid.is-list .tool-card .tags {
   display: none;
 }
-.tool-grid.is-list .tool-top {
+.tool-grid.is-list .tool-card .tool-top {
+  display: contents;       /* let logo + name flow into the row */
+}
+.tool-grid.is-list .tool-card .tool-top > .tool-top {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
-.tool-grid.is-list .tool-actions {
+.tool-grid.is-list .tool-card h3 {
+  font-size: 15px;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-grid.is-list .tool-card .logo {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.tool-grid.is-list .tool-card .price {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.tool-grid.is-list .tool-card .tool-actions {
+  margin: 0;
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+.tool-grid.is-list .tool-card .tool-actions .button {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 @media (max-width: 640px) {
   .tool-grid.is-list .tool-card {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
     gap: 8px;
   }
 }
@@ -2615,4 +2644,33 @@ body.theme-light pre {
   font-size: 12px;
   line-height: 1.6;
   color: var(--muted);
+}
+
+/* Price / Free badges */
+.price-free {
+  color: #6fce9f !important;
+  font-weight: 700;
+}
+.price-paid {
+  color: var(--muted);
+}
+
+/* Timeline undo/redo buttons */
+.vs-tool-btn {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.vs-tool-btn:hover:not(:disabled) {
+  background: rgba(216,183,106,0.16);
+  color: var(--gold);
+}
+.vs-tool-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
 }
