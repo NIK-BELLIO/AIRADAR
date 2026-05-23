@@ -75,7 +75,6 @@ const i18n = {
     sortLabel: "Sort",
     modelTypeLabel: "Model type",
     minScoreLabel: "Minimum score",
-    freeOnlyLabel: "Only tools with a free option",
     compareEyebrow: "Compare",
     compareTitle: "Compare selected tools",
     clearCompare: "Clear",
@@ -245,7 +244,6 @@ const i18n = {
     sortLabel: "مرتب‌سازی",
     modelTypeLabel: "نوع مدل",
     minScoreLabel: "حداقل امتیاز",
-    freeOnlyLabel: "فقط ابزارهایی با گزینه رایگان",
     compareEyebrow: "مقایسه",
     compareTitle: "مقایسه ابزارهای انتخاب‌شده",
     clearCompare: "پاک کردن",
@@ -911,7 +909,6 @@ const state = {
   sort: "score",
   modelType: "all",
   minScore: 0,
-  freeOnly: false,
   viewMode: localStorage.getItem("toolViewMode") || "grid",
   compare: JSON.parse(localStorage.getItem("compareTools") || "[]"),
   uploadedAssets: [],
@@ -958,15 +955,12 @@ function formatPrice(price) {
   return state.lang === "fa" ? `از حدود $${price}` : `From about $${price}`;
 }
 
-// When the "free option" filter is on, every visible tool has a free
-// tier — so show a clean "Free" badge instead of a price.
+// Price badge — green "Free" for free tools, muted price otherwise.
 function priceBadge(tool) {
-  if (state.freeOnly) return state.lang === "fa" ? "رایگان" : "Free";
   return formatPrice(tool.price);
 }
 function priceBadgeClass(tool) {
-  const isFree = state.freeOnly || tool.price === 0;
-  return isFree ? "price-free" : "price-paid";
+  return tool.price === 0 ? "price-free" : "price-paid";
 }
 
 function uniqueCategories() {
@@ -1013,7 +1007,6 @@ function renderControls() {
     .join("");
   $("#modelTypeFilter").value = state.modelType;
   $("#minScoreFilter").value = state.minScore;
-  $("#freeOnlyToggle").checked = state.freeOnly;
 
   if ($("#motionSelect")) {
     $("#motionSelect").innerHTML = motions
@@ -1057,7 +1050,6 @@ function filteredTools() {
         (state.category === "all" || tool.category.en === state.category) &&
         (state.modelType === "all" || tool.modelType === state.modelType) &&
         tool.score >= state.minScore &&
-        (!state.freeOnly || tool.plan === "free" || tool.plan === "freemium") &&
         passesBudget(tool)
       );
     })
@@ -1095,7 +1087,7 @@ function setToolView(mode) {
 function jumpToTool(name) {
   // reset filters so the target is guaranteed visible
   state.query = ""; state.category = "all"; state.budget = "all";
-  state.modelType = "all"; state.minScore = 0; state.freeOnly = false;
+  state.modelType = "all"; state.minScore = 0;
   const searchInput = $("#searchInput");
   if (searchInput) searchInput.value = "";
   renderControls();
@@ -3193,7 +3185,6 @@ function bindEvents() {
   });
   on("#modelTypeFilter", "change", (event) => { state.modelType = event.target.value; renderTools(); });
   on("#minScoreFilter", "input", (event) => { state.minScore = Number(event.target.value) || 0; renderTools(); });
-  on("#freeOnlyToggle", "change", (event) => { state.freeOnly = event.target.checked; renderTools(); });
 
   on("#mediaUpload", "change", (event) => previewUploadedMedia(event.target.files[0]));
   on("#generateCaptionButton", "click", generateMediaCaption);
