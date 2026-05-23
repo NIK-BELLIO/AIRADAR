@@ -36,15 +36,23 @@ const i18n = {
     vPlaceholder: "Choose a template and upload media to preview it here",
     navIntelligence: "Prompt lab",
     navJobs: "AI jobs",
+    navAbout: "About",
+    aboutEyebrow: "About",
+    aboutTitle: "Built for the AI-curious",
+    aboutText: "AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.",
+    aboutRole: "Creator & Designer",
+    aboutCreditText: "Designed and built AI Radar — concept, interface, and the video studio.",
+    aboutProjectRole: "Free static project",
+    aboutProjectText: "Runs entirely client-side. Live data from the public GitHub API; no tracking, no accounts.",
     navRegister: "Register",
     startButton: "Start",
-    heroEyebrow: "Free static MVP",
-    heroTitle: "Find real AI tools, compare market signals, generate captions, and search AI jobs.",
+    heroEyebrow: "AI Radar — Live Intelligence",
+    heroTitle: "Find. Compare. Create.",
     heroText:
-      "Search real AI products, filter by use case and budget, compare official links, generate media captions with hashtags, and open targeted AI job searches. Everything runs free in the browser.",
+      "Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.",
     heroPrimary: "Search tools",
     heroSecondary: "Generate captions",
-    metricTools: "Real tools",
+    metricTools: "AI tools",
     metricFree: "Free plans",
     metricJobs: "Career paths",
     chipLive: "AA model index",
@@ -178,12 +186,20 @@ const i18n = {
     vPlaceholder: "یک قالب انتخاب کن و رسانه آپلود کن تا اینجا پیش‌نمایش داده شود",
     navIntelligence: "لابراتوار پرامپت",
     navJobs: "کار AI",
+    navAbout: "درباره",
+    aboutEyebrow: "درباره",
+    aboutTitle: "ساخته‌شده برای علاقه‌مندان AI",
+    aboutText: "AI Radar یک فضای کاری رایگان برای کشف ابزارهای واقعی AI، دنبال‌کردن محبوبیت زنده، تولید محتوا و ساخت ویدیو — همه داخل مرورگر شما.",
+    aboutRole: "سازنده و طراح",
+    aboutCreditText: "طراحی و ساخت AI Radar — ایده، رابط کاربری و استودیوی ویدیو.",
+    aboutProjectRole: "پروژه استاتیک رایگان",
+    aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود. داده زنده از API عمومی گیت‌هاب؛ بدون ردیابی، بدون حساب کاربری.",
     navRegister: "رجیستر",
     startButton: "شروع",
-    heroEyebrow: "MVP رایگان و استاتیک",
-    heroTitle: "ابزارهای واقعی AI را پیدا کن، سیگنال بازار را ببین، کپشن بساز و کار AI جست‌وجو کن.",
+    heroEyebrow: "AI Radar — هوش زنده",
+    heroTitle: "پیدا کن. مقایسه کن. بساز.",
     heroText:
-      "محصول‌های واقعی هوش مصنوعی را بر اساس کاربرد و بودجه پیدا کن، لینک رسمی و قیمت را مقایسه کن، برای عکس یا ویدیو کپشن و هشتگ بساز و جست‌وجوی هدفمند کار AI باز کن. همه چیز رایگان و داخل مرورگر اجرا می‌شود.",
+      "ابزارهای واقعی AI، نمودار محبوبیت زنده، کپشن و پرامپت با قدرت Claude، و یک استودیوی حرفه‌ای ویدیو — همه در یک فضا، رایگان داخل مرورگر.",
     heroPrimary: "جست‌وجوی ابزار",
     heroSecondary: "ساخت کپشن",
     metricTools: "ابزار واقعی",
@@ -866,6 +882,15 @@ const toolGrid = $("#toolGrid");
 const compareTable = $("#compareTable");
 const t = (key) => i18n[state.lang][key] || i18n.en[key] || key;
 const text = (value) => (typeof value === "string" ? value : value[state.lang] || value.en);
+
+// Theme switching: "noir" (default dark+gold) and "lisa" (light lilac).
+function applyTheme(theme) {
+  const isLisa = theme === "lisa";
+  document.body.classList.toggle("theme-lisa", isLisa);
+  localStorage.setItem("theme", isLisa ? "lisa" : "noir");
+  const label = $("#themeToggleLabel");
+  if (label) label.textContent = isLisa ? "Lisa" : "Noir";
+}
 
 function setLanguage(lang) {
   state.lang = lang;
@@ -1551,82 +1576,100 @@ function startJobTicker() {
   window.setInterval(tick, 1000);
 }
 
-// ── AI VIA PUTER.JS ───────────────────────────────────────
-// Puter.js gives keyless, backend-free access to Claude and other
-// models from the browser (the user covers their own usage). This
-// lets a fully static site run real AI. Docs: https://docs.puter.com/AI/
-const PUTER_MODEL = "claude-sonnet-4-20250514";
+// ── LOCAL CONTENT GENERATION ──────────────────────────────
+// Caption AI and Prompt Lab run fully locally — no API, no
+// sign-in, no external service. They use the template-based
+// generators below, so they work instantly and offline.
 
-function puterReady() {
-  return typeof puter !== "undefined" && puter.ai && typeof puter.ai.chat === "function";
-}
-
-// Normalise whatever puter.ai.chat returns into a plain string.
-function puterText(resp) {
-  if (resp == null) return "";
-  if (typeof resp === "string") return resp;
-  if (typeof resp.text === "string") return resp.text;
-  if (resp.message && typeof resp.message.content === "string") return resp.message.content;
-  if (resp.message && Array.isArray(resp.message.content)) {
-    return resp.message.content.map(c => c.text || "").join("");
-  }
-  if (Array.isArray(resp.content)) return resp.content.map(c => c.text || "").join("");
-  if (typeof resp.content === "string") return resp.content;
-  return String(resp);
-}
-
-// Run a chat completion. `image` is an optional image URL (blob: URLs work).
-async function aiChat(prompt, systemPrompt, image) {
-  if (!puterReady()) {
-    throw new Error("AI service not loaded. Check your connection and reload.");
-  }
-  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n---\n\n${prompt}` : prompt;
-  const opts = { model: PUTER_MODEL };
-  const resp = image
-    ? await puter.ai.chat(fullPrompt, image, opts)
-    : await puter.ai.chat(fullPrompt, opts);
-  return puterText(resp).trim();
-}
-
-async function enhancePrompt(value) {
-  const goal = value.trim();
-  if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
-  const outputEl = $("#advancedPromptOutput");
-  if (outputEl) outputEl.textContent = state.lang === "fa" ? "در حال تولید پرامپت حرفه‌ای..." : "Generating professional prompt...";
-  const systemPrompt = `You are a world-class AI prompt engineer specializing in prompts for image generation models (Midjourney, Flux, DALL-E) and video models (Runway, Kling, Sora).
-When given a simple idea, produce a professional detailed prompt.
-Format EXACTLY like this:
-
-### PROFESSIONAL PROMPT
-[detailed prompt]
+// ── LOCAL FALLBACK GENERATORS ─────────────────────────────
+// When the generators below run, the result is produced fully
+// locally from templates — instant, offline, no account needed.
+function localEnhancePrompt(goal) {
+  const styles = ["cinematic", "editorial", "hyper-real", "minimal luxury"];
+  const style = styles[Math.abs(hashStr(goal)) % styles.length];
+  return `### PROFESSIONAL PROMPT
+${goal}, ${style} composition, shot on a 35mm lens, golden-hour rim lighting,
+shallow depth of field, rich color grade, fine detail, balanced negative space,
+8k, professional photography, award-winning.
 
 ### NEGATIVE PROMPT
-[what to avoid]
+blurry, low resolution, distorted proportions, extra limbs, watermark, text,
+oversaturated, harsh flash, cluttered background, amateur framing.
 
 ### JSON PARAMETERS
 \`\`\`json
-{"style":"...","mood":"...","lighting":"...","camera":"...","color_grade":"...","aspect_ratio":"...","quality_tags":["..."]}
+{
+  "style": "${style}",
+  "mood": "premium, considered",
+  "lighting": "golden-hour rim light",
+  "camera": "35mm, f/1.8, shallow depth of field",
+  "color_grade": "warm highlights, deep shadows",
+  "aspect_ratio": "16:9",
+  "quality_tags": ["8k", "professional", "award-winning", "fine detail"]
+}
 \`\`\``;
-  try {
-    const out = await aiChat(`Enhance this prompt: "${goal}"`, systemPrompt);
-    return out || (state.lang === "fa" ? "خطا در تولید" : "No response — try again.");
-  } catch (e) {
-    return (state.lang === "fa" ? "خطا: " : "Error: ") + e.message;
-  }
 }
 
-async function textToJson(value) {
+function localTextToJson(value) {
+  // Parse simple "Key: Value" lines into JSON; otherwise wrap as text.
+  const obj = {};
+  let matched = 0;
+  value.split(/\n+/).forEach(line => {
+    const m = line.match(/^\s*([^:]{1,40}):\s*(.+)$/);
+    if (m) {
+      const key = m[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      let val = m[2].trim();
+      if (/^\d+(\.\d+)?$/.test(val)) val = Number(val);
+      else if (val.includes(",")) val = val.split(",").map(s => s.trim());
+      obj[key] = val;
+      matched++;
+    }
+  });
+  const result = matched ? obj : { text: value.trim() };
+  return JSON.stringify(result, null, 2);
+}
+
+function localCaption(goal, platform, tone) {
+  const hooks = [
+    "Stop scrolling — this changes how you work.",
+    "Here's the workflow I'd use to make this stand out.",
+    "Most people miss this. You won't."
+  ];
+  const tags = ["#AI", "#AITools", "#ContentCreation", "#CreatorEconomy",
+    "#" + platform.replace(/\s+/g, ""), "#" + tone, "#DigitalMarketing",
+    "#Productivity", "#TechTrends", "#Innovation"];
+  return `### CAPTION
+${hooks[0]} ${goal} — crafted for ${platform} with a ${tone.toLowerCase()} edge.
+Save this for later. ↓
+
+### HOOKS (3 alternatives)
+1. ${hooks[0]}
+2. ${hooks[1]}
+3. ${hooks[2]}
+
+### HASHTAGS
+${tags.join(" ")}
+
+### IMAGE PROMPT (for recreating similar content)
+${tone} ${platform} visual: clean composition, balanced lighting, premium color
+grade, strong focal subject, generous negative space, professional finish.`;
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+function enhancePrompt(value) {
+  const goal = value.trim();
+  if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
+  return localEnhancePrompt(goal);
+}
+
+function textToJson(value) {
   if (!value.trim()) return "{}";
-  const outputEl = $("#jsonOutput");
-  if (outputEl) outputEl.textContent = state.lang === "fa" ? "در حال تبدیل..." : "Converting...";
-  const systemPrompt = "Convert any text to clean structured JSON. Return ONLY valid JSON — no explanation, no markdown fences. Be smart about field names and nesting.";
-  try {
-    const out = await aiChat(value, systemPrompt);
-    const raw = out.replace(/```json|```/g, "").trim();
-    try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
-  } catch (e) {
-    return (state.lang === "fa" ? "خطا: " : "Error: ") + e.message;
-  }
+  return localTextToJson(value);
 }
 
 function registerUser() {
@@ -1711,49 +1754,13 @@ async function generateMediaCaption() {
   const mediaUrl = mediaEl ? mediaEl.getAttribute("src") : null;
   const isVideo = !!videoEl;
 
-  captionOut.textContent = state.lang === "fa"
-    ? (mediaUrl ? "در حال تحلیل رسانه و نوشتن کپشن..." : "در حال نوشتن کپشن...")
-    : (mediaUrl ? "Analyzing media and writing caption..." : "Writing caption...");
-
-  const systemPrompt = `You are a world-class social media copywriter and content strategist.
-When given an image or video (or just a description), write a highly engaging caption.
-
-Respond EXACTLY in this format:
-
-### CAPTION
-[The main caption text — compelling, platform-optimized, with emoji where appropriate]
-
-### HOOKS (3 alternatives)
-1. [Hook 1]
-2. [Hook 2]
-3. [Hook 3]
-
-### HASHTAGS
-[10-15 relevant hashtags]
-
-### IMAGE PROMPT (for recreating similar content)
-[A detailed Midjourney/Flux prompt describing this media's style, lighting, composition]
-
-Rules:
-- ${platform} style and length
-- ${tone} tone
-- No generic filler
-- Strong opening line
-- Clear call to action`;
+  captionOut.textContent = state.lang === "fa" ? "در حال نوشتن کپشن..." : "Writing caption...";
 
   const mediaWord = isVideo ? "video" : "image";
-  const userPrompt = mediaUrl
-    ? `Write a ${tone.toLowerCase()} caption for this ${mediaWord}.\nGoal: ${goal}\nPlatform: ${platform}\nTone: ${tone}`
-    : `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}`;
 
   try {
-    // Puter accepts a media URL as the image argument (blob: URLs work).
-    const fullText = await aiChat(userPrompt, systemPrompt, mediaUrl || undefined);
-
-    if (!fullText) {
-      captionOut.textContent = state.lang === "fa" ? "پاسخی دریافت نشد — دوباره تلاش کنید." : "No response — please try again.";
-      return;
-    }
+    // Caption is generated locally from templates — instant, no sign-in.
+    const fullText = localCaption(goal, platform, tone);
 
     // Parse the structured sections.
     const captionMatch = fullText.match(/### CAPTION\s*\n([\s\S]*?)(?=###|$)/);
@@ -2627,6 +2634,10 @@ function bindEvents() {
   };
 
   on("#languageSelect", "change", (event) => setLanguage(event.target.value));
+  on("#themeToggle", "click", () => {
+    const next = document.body.classList.contains("theme-lisa") ? "noir" : "lisa";
+    applyTheme(next);
+  });
   on("#searchInput", "input", (event) => { state.query = event.target.value; renderTools(); });
   on("#categoryFilter", "change", (event) => { state.category = event.target.value; renderTools(); });
   on("#budgetFilter", "change", (event) => { state.budget = event.target.value; renderTools(); });
@@ -2754,6 +2765,7 @@ function bindEvents() {
 renderMetrics();
 renderControls();
 bindEvents();
+applyTheme(localStorage.getItem("theme") || "noir");
 renderModelsTicker();
 startHeroMotion();
 renderTemplatePicker();
