@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v9" />
+    <link rel="stylesheet" href="styles.css?v=v11" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -29,8 +29,13 @@
           <a href="#videoStudio" data-i18n="navStudio">Video studio</a>
           <a href="#intelligence" data-i18n="navIntelligence">Prompt lab</a>
           <a href="#jobs" data-i18n="navJobs">AI jobs</a>
+          <a href="#about" data-i18n="navAbout">About</a>
         </nav>
         <div class="header-actions">
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="Theme" title="Switch theme">
+            <span class="theme-toggle-dot"></span>
+            <span id="themeToggleLabel">Noir</span>
+          </button>
           <label class="sr-only" for="languageSelect">Language</label>
           <select id="languageSelect" class="language-select" aria-label="Language">
             <option value="en">English</option>
@@ -47,20 +52,36 @@
 
       <main id="top">
 
-        <!-- HERO — title inline with motion -->
+        <!-- HERO -->
         <section class="hero luxury-hero">
-          <div class="luxury-hero-inner">
-            <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-            <div class="hero-title-row">
+          <div class="luxury-hero-grid">
+            <div class="luxury-hero-copy">
+              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
               <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
+              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
+              <div class="hero-actions">
+                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
+                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
+              </div>
+            </div>
+            <div class="luxury-hero-visual">
               <div class="hero-motion" aria-hidden="true">
                 <canvas id="heroMotionCanvas"></canvas>
               </div>
-            </div>
-            <p data-i18n="heroText">Real AI tools, live model benchmarks, Claude-powered captions and prompts — one workspace.</p>
-            <div class="hero-actions">
-              <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
-              <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
+              <div class="hero-stats">
+                <div class="hero-stat">
+                  <strong id="metricTools">30</strong>
+                  <span data-i18n="metricTools">AI tools</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricFree">—</strong>
+                  <span data-i18n="metricFree">Free plans</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricJobs">—</strong>
+                  <span data-i18n="metricJobs">Career paths</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -125,9 +146,9 @@
         <section id="mediaCaption" class="panel media-caption">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Caption AI — Powered by Claude</p>
+              <p class="eyebrow">Caption AI — Instant caption studio</p>
               <h2 data-i18n="mediaTitle">Upload an image → caption, hooks, hashtags &amp; image prompt</h2>
-              <p data-i18n="mediaText">Claude reads your image and writes a fully tailored caption — not a template.</p>
+              <p data-i18n="mediaText">Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.</p>
             </div>
           </div>
           <div class="media-layout">
@@ -152,7 +173,7 @@
               <button id="generateCaptionButton" class="button primary ai-btn" type="button">
                 <span class="ai-btn-icon">✦</span> Generate with Claude AI
               </button>
-              <p class="ai-note">Claude reads your image and writes a fully tailored caption — not a template.</p>
+              <p class="ai-note">Generates a caption, hooks, hashtags and an image prompt instantly in your browser — no sign-in, no upload of your media.</p>
             </div>
             <div class="media-output">
               <div id="mediaPreview" class="media-preview">
@@ -314,7 +335,7 @@
         <section id="intelligence" class="panel intelligence">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Prompt Lab — Powered by Claude AI</p>
+              <p class="eyebrow">Prompt Lab — Prompt & JSON tools</p>
               <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
             </div>
           </div>
@@ -327,7 +348,7 @@
               <button id="promptGenBtn" class="button primary ai-btn" type="button">
                 <span class="ai-btn-icon">✦</span> Generate Professional Prompt
               </button>
-              <p class="ai-note">Returns prompt for Midjourney/Flux/Runway + negative prompt + JSON parameters.</p>
+              <p class="ai-note">Returns a Midjourney/Flux/Runway prompt + negative prompt + JSON parameters, generated instantly in your browser.</p>
               <div class="output-box">
                 <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
                 <pre id="advancedPromptOutput" class="ai-output"></pre>
@@ -341,7 +362,7 @@
               <button id="jsonGenBtn" class="button primary ai-btn" type="button">
                 <span class="ai-btn-icon">✦</span> Convert to Smart JSON
               </button>
-              <p class="ai-note">Claude intelligently structures any text into clean, nested JSON.</p>
+              <p class="ai-note">Structures any "Key: Value" text into clean JSON, instantly in your browser.</p>
               <div class="output-box">
                 <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
                 <pre id="jsonOutput" class="ai-output"></pre>
@@ -375,10 +396,38 @@
           </div>
         </section>
 
+        <!-- ABOUT / CREDITS -->
+        <section id="about" class="panel about-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="aboutEyebrow">About</p>
+              <h2 data-i18n="aboutTitle">Built for the AI-curious</h2>
+              <p data-i18n="aboutText">AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.</p>
+            </div>
+          </div>
+          <div class="about-grid">
+            <article class="credit-card">
+              <div class="credit-avatar">SP</div>
+              <div class="credit-meta">
+                <strong>Serge Pishrefah</strong>
+                <span data-i18n="aboutRole">Creator &amp; Designer</span>
+              </div>
+              <p data-i18n="aboutCreditText">Designed and built AI Radar — concept, interface, and the video studio.</p>
+            </article>
+            <article class="credit-card">
+              <div class="credit-avatar">AR</div>
+              <div class="credit-meta">
+                <strong>AI Radar</strong>
+                <span data-i18n="aboutProjectRole">Free static project</span>
+              </div>
+              <p data-i18n="aboutProjectText">Runs entirely client-side. Live data from the public GitHub API; no tracking, no accounts.</p>
+            </article>
+          </div>
+        </section>
+
       </main>
     </div>
 
-    <script src="https://js.puter.com/v2/"></script>
-    <script src="app.js?v=v9"></script>
+    <script src="app.js?v=v11"></script>
   </body>
 </html>
