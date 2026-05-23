@@ -86,7 +86,7 @@ const i18n = {
     mediaTitle: "Caption your photo or video for social media",
     mediaText: "Upload the photo or video you want to post, pick a platform, and get a ready-to-share caption with hooks and hashtags — built around your media.",
     mediaUploadLabel: "Upload image or video",
-    mediaSubjectLabel: "What's in the photo/video?",
+    mediaSubjectLabel: "What's in the photo/video? (required)",
     mediaGoalLabel: "Goal",
     platformLabel: "Platform",
     toneLabel: "Tone",
@@ -256,7 +256,7 @@ const i18n = {
     mediaTitle: "برای عکس یا ویدیوی خود کپشن شبکه اجتماعی بساز",
     mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
     mediaUploadLabel: "آپلود عکس یا ویدیو",
-    mediaSubjectLabel: "در عکس/ویدیو چه چیزی هست؟",
+    mediaSubjectLabel: "در عکس/ویدیو چه چیزی هست؟ (الزامی)",
     mediaGoalLabel: "هدف",
     platformLabel: "پلتفرم",
     toneLabel: "لحن",
@@ -1113,15 +1113,35 @@ function jumpToTool(name) {
 function renderToolCard(tool) {
   const isCompared = state.compare.includes(tool.name);
   const slug = tool.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const logoHtml = tool.logoUrl
+    ? `<img src="${tool.logoUrl}" alt="${tool.name} logo" loading="lazy" />`
+    : tool.logo || tool.name.slice(0, 2).toUpperCase();
+
+  // ---- LIST MODE: a single compact row ----
+  if (state.viewMode === "list") {
+    return `
+    <article class="tool-row" data-tool-card="${tool.name}" id="tool-${slug}">
+      <span class="logo">${logoHtml}</span>
+      <div class="tool-row-main">
+        <h3>${tool.name}</h3>
+        <span class="tag">${text(tool.category)}</span>
+      </div>
+      <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
+      <div class="tool-row-actions">
+        <button class="button ghost" type="button" data-compare="${tool.name}">
+          ${isCompared ? t("removeCompare") : t("addCompare")}
+        </button>
+        <a class="mini-link" href="${tool.url}" target="_blank" rel="noopener">${t("officialLink")}</a>
+      </div>
+    </article>`;
+  }
+
+  // ---- GRID MODE: the full card ----
   return `
     <article class="tool-card" data-tool-card="${tool.name}" id="tool-${slug}">
       <div class="tool-top">
         <div class="tool-top">
-          <span class="logo">${
-            tool.logoUrl
-              ? `<img src="${tool.logoUrl}" alt="${tool.name} logo" loading="lazy" />`
-              : tool.logo || tool.name.slice(0, 2).toUpperCase()
-          }</span>
+          <span class="logo">${logoHtml}</span>
           <div>
             <h3>${tool.name}</h3>
             <span class="tag">${text(tool.category)}</span>
@@ -1961,6 +1981,15 @@ async function generateMediaCaption() {
     captionOut.textContent = state.lang === "fa"
       ? "اول یک عکس یا ویدیو آپلود کن — کپشن بر اساس همان ساخته می‌شود."
       : "Upload a photo or video first — the caption is built from it.";
+    btn.disabled = false;
+    return;
+  }
+
+  // We can't see inside the image, so the subject describes it.
+  if (!subject) {
+    captionOut.textContent = state.lang === "fa"
+      ? "در کادر «در عکس/ویدیو چه چیزی هست؟» موضوع را بنویس (مثلاً: گربه روی لبه پنجره) تا کپشن دقیقاً درباره همان ساخته شود."
+      : "Type what's in the photo (e.g. \"a cat on a windowsill\") in the subject box — the caption is built around exactly that.";
     btn.disabled = false;
     return;
   }
