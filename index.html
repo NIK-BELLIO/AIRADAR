@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Radar | AI tool search, live charts, captions, and jobs</title>
+    <title>AI Radar | AI tool search, live charts, and captions</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
-    <meta name="description" content="Discover real AI tools, compare live model benchmarks, generate captions, and find AI jobs." />
+    <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v14" />
+    <link rel="stylesheet" href="styles.css?v=v17" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -28,7 +28,6 @@
           <a href="#mediaCaption" data-i18n="navMedia">Caption AI</a>
           <a href="#videoStudio" data-i18n="navStudio">Video studio</a>
           <a href="#intelligence" data-i18n="navIntelligence">Prompt lab</a>
-          <a href="#jobs" data-i18n="navJobs">AI jobs</a>
           <a href="#about" data-i18n="navAbout">About</a>
         </nav>
         <div class="header-actions">
@@ -129,6 +128,7 @@
             <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
             <label class="toggle-row"><input id="freeOnlyToggle" type="checkbox" /><span data-i18n="freeOnlyLabel">Only tools with a free option</span></label>
           </div>
+          <p id="toolCount" class="tool-count"></p>
           <div id="toolGrid" class="tool-grid"></div>
         </section>
 
@@ -317,6 +317,7 @@
                     </select>
                   </label>
                 </div>
+                <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
@@ -356,6 +357,36 @@
               <div id="vsPreview" class="vs-preview">
                 <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
               </div>
+
+              <!-- AE-style timeline strip -->
+              <div class="vs-timeline" id="vsTimeline">
+                <div class="vs-timeline-toolbar">
+                  <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
+                  <span id="vsTimecode" class="vs-timecode">0.0s / 6.0s</span>
+                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag the playhead to scrub</span>
+                </div>
+                <div class="vs-track-area" id="vsTrackArea">
+                  <div class="vs-tracks">
+                    <div class="vs-track">
+                      <span class="vs-track-label" data-i18n="vTrackMedia">Media</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-media" id="vsClipMedia">Media</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label" data-i18n="vTrackText">Text</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-text" id="vsClipText">Text</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label" data-i18n="vTrackLogo">Logo</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-logo" id="vsClipLogo">Logo</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label" data-i18n="vTrackMusic">Music</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-music" id="vsClipMusic">Music</div></div>
+                    </div>
+                  </div>
+                  <div class="vs-playhead" id="vsPlayhead"><div class="vs-playhead-grip"></div></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -372,7 +403,7 @@
             <div id="promptForm" class="utility-card">
               <label>
                 <span data-i18n="promptDescLabel">Describe what you want to create</span>
-                <textarea id="simplePromptInput" rows="6" placeholder="e.g. A cinematic portrait of a real estate agent in front of a luxury villa at golden hour..."></textarea>
+                <input id="simplePromptInput" type="text" placeholder="Type one word, e.g. ocean — or a short idea" />
               </label>
               <label>
                 <span data-i18n="promptStyleLabel">Style</span>
@@ -411,30 +442,6 @@
           </div>
         </section>
 
-        <!-- JOBS -->
-        <section id="jobs" class="jobs">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="jobsEyebrow">AI career helper</p>
-              <h2 data-i18n="jobsTitle">Find a practical AI work direction</h2>
-            </div>
-          </div>
-          <div class="job-layout">
-            <div id="jobForm" class="job-card">
-              <label><span data-i18n="skillsLabel">Your skills</span><textarea id="skillsInput" rows="5" placeholder="Python, Prompt Engineering, Photoshop, React, Excel"></textarea></label>
-              <label><span data-i18n="jobTitleLabel">Target role</span><input id="jobTitleInput" type="text" placeholder="AI video editor, prompt engineer..." /></label>
-              <label><span data-i18n="jobLocationLabel">Location</span><input id="jobLocationInput" type="text" placeholder="Remote, Toronto, Dubai..." /></label>
-              <button id="jobSuggestBtn" class="button primary" type="button" data-i18n="skillsButton">Suggest path</button>
-            </div>
-            <div id="jobResult" class="job-result"></div>
-          </div>
-          <div class="job-board panel-sub">
-            <div class="section-head compact">
-              <div><h3 data-i18n="jobBoardTitle">Live job source board</h3><p id="jobTicker"></p></div>
-            </div>
-            <div id="jobSources" class="source-links"></div>
-          </div>
-        </section>
 
         <!-- ABOUT / CREDITS -->
         <section id="about" class="panel about-panel">
@@ -447,9 +454,9 @@
           </div>
           <div class="about-grid">
             <article class="credit-card">
-              <div class="credit-avatar">SP</div>
+              <div class="credit-avatar">SA</div>
               <div class="credit-meta">
-                <strong>Serge Pishrefah</strong>
+                <strong>Shayan Alinia</strong>
                 <span data-i18n="aboutRole">Creator &amp; Designer</span>
               </div>
               <p data-i18n="aboutCreditText">Designed and built AI Radar — concept, interface, and the video studio.</p>
@@ -468,6 +475,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v14"></script>
+    <script src="app.js?v=v17"></script>
   </body>
 </html>
