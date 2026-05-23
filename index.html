@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v11" />
+    <link rel="stylesheet" href="styles.css?v=v14" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -34,7 +34,7 @@
         <div class="header-actions">
           <button id="themeToggle" class="theme-toggle" type="button" aria-label="Theme" title="Switch theme">
             <span class="theme-toggle-dot"></span>
-            <span id="themeToggleLabel">Noir</span>
+            <span id="themeToggleLabel">Dark</span>
           </button>
           <label class="sr-only" for="languageSelect">Language</label>
           <select id="languageSelect" class="language-select" aria-label="Language">
@@ -96,9 +96,30 @@
             <div class="search-wrap">
               <label class="sr-only" for="searchInput">Search tools</label>
               <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
+              <div class="view-toggle" role="group" aria-label="View mode">
+                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="1" width="6" height="6" rx="1"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                  </svg>
+                </button>
+                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
+                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="7" width="9" height="2" rx="1"/>
+                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <div class="filters" aria-label="Tool filters">
+            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
             <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
             <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
             <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
@@ -201,12 +222,20 @@
           <div class="vstudio-layout">
             <div class="vstudio-controls">
 
-              <div class="vstudio-block">
+              <div class="vtab-bar" role="tablist">
+                <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
+                <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
+                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format</button>
+                <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
+                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
+              </div>
+
+              <div class="vstudio-block" data-vtab-panel="template">
                 <span class="vstudio-label" data-i18n="vTemplateLabel">1 · Template</span>
                 <div id="templatePicker" class="template-picker"></div>
               </div>
 
-              <div class="vstudio-block">
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="media">
                 <span class="vstudio-label" data-i18n="vUploadLabel">2 · Media</span>
                 <label class="upload-box">
                   <span data-i18n="vUploadHint">Upload a video or image (mp4, webm, mov, jpg, png)</span>
@@ -218,7 +247,7 @@
                 </label>
               </div>
 
-              <div class="vstudio-block">
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
                 <span class="vstudio-label" data-i18n="vFormatLabel">3 · Format</span>
                 <div class="control-grid">
                   <label><span data-i18n="vAspectLabel">Aspect ratio</span>
@@ -267,7 +296,7 @@
                 </div>
               </div>
 
-              <div class="vstudio-block">
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="text">
                 <span class="vstudio-label" data-i18n="vTextLabel">4 · Text layers</span>
                 <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
                 <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
@@ -290,7 +319,7 @@
                 </div>
               </div>
 
-              <div class="vstudio-block">
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
                 <span class="vstudio-label" data-i18n="vLogoLabel">5 · Logo &amp; cards</span>
                 <label class="upload-box small">
                   <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
@@ -342,13 +371,24 @@
           <div class="intel-layout">
             <div id="promptForm" class="utility-card">
               <label>
-                <span>Describe what you want to create</span>
-                <textarea id="simplePromptInput" rows="7" placeholder="e.g. A cinematic portrait of a real estate agent in front of a luxury villa at golden hour..."></textarea>
+                <span data-i18n="promptDescLabel">Describe what you want to create</span>
+                <textarea id="simplePromptInput" rows="6" placeholder="e.g. A cinematic portrait of a real estate agent in front of a luxury villa at golden hour..."></textarea>
+              </label>
+              <label>
+                <span data-i18n="promptStyleLabel">Style</span>
+                <select id="promptStyleSelect">
+                  <option value="cinematic">Cinematic</option>
+                  <option value="editorial">Editorial</option>
+                  <option value="hyperreal">Hyper-real</option>
+                  <option value="minimal">Minimal luxury</option>
+                  <option value="render3d">3D render</option>
+                  <option value="anime">Anime / illustration</option>
+                </select>
               </label>
               <button id="promptGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> Generate Professional Prompt
+                <span class="ai-btn-icon">✦</span> <span data-i18n="promptGenBtn">Generate prompt</span>
               </button>
-              <p class="ai-note">Returns a Midjourney/Flux/Runway prompt + negative prompt + JSON parameters, generated instantly in your browser.</p>
+              <p class="ai-note" data-i18n="promptNote">Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.</p>
               <div class="output-box">
                 <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
                 <pre id="advancedPromptOutput" class="ai-output"></pre>
@@ -356,13 +396,13 @@
             </div>
             <div id="jsonForm" class="utility-card">
               <label>
-                <span>Describe any data, product, or idea</span>
-                <textarea id="textJsonInput" rows="7" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
+                <span data-i18n="jsonDescLabel">Describe any data, product, or idea</span>
+                <textarea id="textJsonInput" rows="6" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
               </label>
               <button id="jsonGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> Convert to Smart JSON
+                <span class="ai-btn-icon">✦</span> <span data-i18n="jsonGenBtn">Generate JSON</span>
               </button>
-              <p class="ai-note">Structures any "Key: Value" text into clean JSON, instantly in your browser.</p>
+              <p class="ai-note" data-i18n="jsonNote">Outputs only clean, valid JSON — no explanation, no extra text.</p>
               <div class="output-box">
                 <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
                 <pre id="jsonOutput" class="ai-output"></pre>
@@ -428,6 +468,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v11"></script>
+    <script src="app.js?v=v14"></script>
   </body>
 </html>
