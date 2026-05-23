@@ -18,25 +18,25 @@
   --shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
 }
 
-/* ── LISA THEME — soft light lilac mode ─────────────────── */
-body.theme-lisa {
+/* ── LIGHT THEME ─────────────────── */
+body.theme-light {
   color-scheme: light;
-  --bg: #f6f3fb;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-2: rgba(244, 240, 251, 0.95);
-  --line: rgba(60, 40, 90, 0.14);
-  --text: #2a2240;
-  --muted: #6f6690;
-  --gold: #8b6fc7;
-  --gold-2: #b79be6;
-  --bronze: #c9b8e8;
-  --ivory: #3a2f55;
-  --green: #8b6fc7;
-  --amber: #b79be6;
-  --rose: #8b6fc7;
-  --shadow: 0 24px 70px rgba(90, 60, 140, 0.18);
+  --bg: #faf8f3;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-2: rgba(248, 244, 236, 0.96);
+  --line: rgba(40, 32, 20, 0.14);
+  --text: #221c12;
+  --muted: #6b6353;
+  --gold: #a8842f;
+  --gold-2: #8a6a22;
+  --bronze: #c8b585;
+  --ivory: #2a2418;
+  --green: #a8842f;
+  --amber: #b8923a;
+  --rose: #7a5fc0;
+  --shadow: 0 24px 70px rgba(60, 48, 24, 0.16);
 }
-body.theme-lisa .ambient { opacity: 0.35; }
+body.theme-light .ambient { opacity: 0.25; }
 
 * {
   box-sizing: border-box;
@@ -866,6 +866,19 @@ textarea {
   outline: none;
 }
 
+/* Open dropdown list — explicit colors so options are never
+   rendered with white text on a white background. */
+select option,
+select optgroup {
+  background-color: #16130d;
+  color: #f8fbff;
+}
+body.theme-light select option,
+body.theme-light select optgroup {
+  background-color: #ffffff;
+  color: #221c12;
+}
+
 input,
 select {
   min-height: 46px;
@@ -953,11 +966,21 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
 }
 
-.toggle-row input {
-  width: 18px;
-  min-height: 18px;
+.toggle-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.toggle-row span {
+  color: var(--text);
 }
 
 .tool-grid {
@@ -2242,7 +2265,7 @@ h1[data-i18n="heroTitle"] {
   background: linear-gradient(135deg, #070605 50%, #d8b76a 50%);
   border: 1px solid var(--line);
 }
-body.theme-lisa .theme-toggle-dot {
+body.theme-light .theme-toggle-dot {
   background: linear-gradient(135deg, #f6f3fb 50%, #8b6fc7 50%);
 }
 
@@ -2292,3 +2315,101 @@ body.theme-lisa .theme-toggle-dot {
   line-height: 1.7;
   color: var(--muted);
 }
+
+/* ── TOOL FINDER — view toggle & list mode ──────────────── */
+.view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.view-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+.view-btn svg { fill: currentColor; }
+.view-btn:hover { color: var(--text); }
+.view-btn.active {
+  background: rgba(216,183,106,0.16);
+  color: var(--gold);
+}
+
+/* List view: tools render as full-width rows */
+.tool-grid.is-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tool-grid.is-list .tool-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+.tool-grid.is-list .tool-card > p,
+.tool-grid.is-list .tool-card .tags {
+  display: none;
+}
+.tool-grid.is-list .tool-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.tool-grid.is-list .tool-actions {
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .tool-grid.is-list .tool-card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* Jump-to highlight flash */
+@keyframes toolCardFlash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(216,183,106,0); }
+  30%      { box-shadow: 0 0 0 3px rgba(216,183,106,0.55), 0 0 30px rgba(216,183,106,0.3); }
+}
+.tool-card-flash {
+  animation: toolCardFlash 1.6s ease;
+  border-color: var(--gold) !important;
+}
+
+/* ── VIDEO STUDIO — category tabs ───────────────────────── */
+.vtab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.vtab {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.vtab:hover { color: var(--text); }
+.vtab.active {
+  background: rgba(216,183,106,0.14);
+  border-color: rgba(216,183,106,0.4);
+  color: var(--gold);
+}
+.vtab-hidden { display: none !important; }
