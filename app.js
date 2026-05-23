@@ -7,6 +7,11 @@ const i18n = {
     studioEyebrow: "Advanced video studio",
     studioTitle: "Create a complete, luxurious video",
     studioText: "Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.",
+    vTabTemplate: "Template",
+    vTabMedia: "Media",
+    vTabFormat: "Format",
+    vTabText: "Text",
+    vTabLogo: "Logo & cards",
     vTemplateLabel: "1 \u00b7 Template",
     vUploadLabel: "2 \u00b7 Media",
     vUploadHint: "Upload a video or image (mp4, webm, mov, jpg, png)",
@@ -58,6 +63,7 @@ const i18n = {
     chipLive: "AA model index",
     toolsEyebrow: "Tool finder",
     toolsTitle: "Curated real AI tools",
+    jumpToLabel: "Jump to tool",
     categoryLabel: "Category",
     budgetLabel: "Budget",
     sortLabel: "Sort",
@@ -71,8 +77,8 @@ const i18n = {
     performanceTitle: "Live AI tools trend",
     performanceText: "A live chart of real GitHub popularity for every AI tool in the finder. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
     mediaEyebrow: "Media caption generator",
-    mediaTitle: "Upload an image or video and generate captions",
-    mediaText: "Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.",
+    mediaTitle: "Caption your photo or video for social media",
+    mediaText: "Upload the photo or video you want to post, pick a platform, and get a ready-to-share caption with hooks and hashtags — built around your media.",
     mediaUploadLabel: "Upload image or video",
     mediaGoalLabel: "Goal",
     platformLabel: "Platform",
@@ -105,7 +111,14 @@ const i18n = {
     jobLocationLabel: "Location",
     skillsButton: "Suggest path",
     intelEyebrow: "AI utilities",
-    intelTitle: "Improve prompts and convert text to JSON",
+    intelTitle: "Generate clean prompts and JSON",
+    promptDescLabel: "Describe what you want to create",
+    promptStyleLabel: "Style",
+    promptGenBtn: "Generate prompt",
+    promptNote: "Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.",
+    jsonDescLabel: "Describe any data, product, or idea",
+    jsonGenBtn: "Generate JSON",
+    jsonNote: "Outputs only clean, valid JSON — no explanation, no extra text.",
     simplePromptLabel: "Simple prompt",
     enhancePrompt: "Enhance prompt",
     textJsonLabel: "Text to JSON",
@@ -157,6 +170,11 @@ const i18n = {
     studioEyebrow: "استودیوی پیشرفته ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
     studioText: "یک قالب انتخاب کن، رسانه‌ات را اضافه کن، متن متحرک بگذار، نسبت تصویر، ترانزیشن، فیلتر و موسیقی تنظیم کن — سپس فایل ویدیوی واقعی خروجی بگیر. همه رایگان داخل مرورگر.",
+    vTabTemplate: "قالب",
+    vTabMedia: "رسانه",
+    vTabFormat: "فرمت",
+    vTabText: "متن",
+    vTabLogo: "لوگو و کارت",
     vTemplateLabel: "۱ · قالب",
     vUploadLabel: "۲ · رسانه",
     vUploadHint: "ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
@@ -208,6 +226,7 @@ const i18n = {
     chipLive: "شاخص مدل AA",
     toolsEyebrow: "Tool finder",
     toolsTitle: "ابزارهای واقعی انتخاب‌شده",
+    jumpToLabel: "پرش به ابزار",
     categoryLabel: "دسته",
     budgetLabel: "بودجه",
     sortLabel: "مرتب‌سازی",
@@ -221,7 +240,7 @@ const i18n = {
     performanceTitle: "ترند زنده ابزارهای AI",
     performanceText: "نمودار زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
     mediaEyebrow: "تولید کپشن رسانه",
-    mediaTitle: "عکس یا ویدیو آپلود کن و کپشن بگیر",
+    mediaTitle: "برای عکس یا ویدیوی خود کپشن شبکه اجتماعی بساز",
     mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
     mediaUploadLabel: "آپلود عکس یا ویدیو",
     mediaGoalLabel: "هدف",
@@ -255,7 +274,14 @@ const i18n = {
     jobLocationLabel: "لوکیشن",
     skillsButton: "پیشنهاد مسیر",
     intelEyebrow: "ابزارهای AI",
-    intelTitle: "بهبود پرامپت و تبدیل متن به JSON",
+    intelTitle: "تولید پرامپت و JSON تمیز",
+    promptDescLabel: "آنچه می‌خواهی بسازی را توصیف کن",
+    promptStyleLabel: "سبک",
+    promptGenBtn: "تولید پرامپت",
+    promptNote: "یک پرامپت آماده در سبک انتخاب‌شده تولید می‌کند — فقط پرامپت، بدون چیز اضافه.",
+    jsonDescLabel: "هر داده، محصول یا ایده را توصیف کن",
+    jsonGenBtn: "تولید JSON",
+    jsonNote: "فقط JSON تمیز و معتبر خروجی می‌دهد — بدون توضیح و متن اضافه.",
     simplePromptLabel: "پرامپت ساده",
     enhancePrompt: "تبدیل به پرامپت پیشرفته",
     textJsonLabel: "متن به JSON",
@@ -872,6 +898,7 @@ const state = {
   modelType: "all",
   minScore: 0,
   freeOnly: false,
+  viewMode: localStorage.getItem("toolViewMode") || "grid",
   compare: JSON.parse(localStorage.getItem("compareTools") || "[]"),
   uploadedAssets: [],
   slides: JSON.parse(localStorage.getItem("videoSlides") || "[]")
@@ -883,13 +910,15 @@ const compareTable = $("#compareTable");
 const t = (key) => i18n[state.lang][key] || i18n.en[key] || key;
 const text = (value) => (typeof value === "string" ? value : value[state.lang] || value.en);
 
-// Theme switching: "noir" (default dark+gold) and "lisa" (light lilac).
+// Theme switching: "dark" (default) and "light".
 function applyTheme(theme) {
-  const isLisa = theme === "lisa";
-  document.body.classList.toggle("theme-lisa", isLisa);
-  localStorage.setItem("theme", isLisa ? "lisa" : "noir");
+  const isLight = theme === "light";
+  document.body.classList.toggle("theme-light", isLight);
+  localStorage.setItem("theme", isLight ? "light" : "dark");
   const label = $("#themeToggleLabel");
-  if (label) label.textContent = isLisa ? "Lisa" : "Noir";
+  if (label) label.textContent = isLight
+    ? (state.lang === "fa" ? "روشن" : "Light")
+    : (state.lang === "fa" ? "تیره" : "Dark");
 }
 
 function setLanguage(lang) {
@@ -968,6 +997,15 @@ function renderControls() {
       .map((motion) => `<option value="${motion.id}">${motion[state.lang]}</option>`)
       .join("");
   }
+
+  // Jump-to dropdown — every tool, alphabetical.
+  const jumpTo = $("#jumpToTool");
+  if (jumpTo) {
+    const sorted = [...tools].sort((a, b) => a.name.localeCompare(b.name));
+    jumpTo.innerHTML =
+      `<option value="">${state.lang === "fa" ? "— انتخاب ابزار —" : "— Select a tool —"}</option>` +
+      sorted.map((tool) => `<option value="${tool.name}">${tool.name}</option>`).join("");
+  }
 }
 
 function passesBudget(tool) {
@@ -1009,13 +1047,44 @@ function filteredTools() {
 
 function renderTools() {
   const items = filteredTools();
+  toolGrid.className = state.viewMode === "list" ? "tool-grid is-list" : "tool-grid";
   toolGrid.innerHTML = items.length ? items.map(renderToolCard).join("") : `<p class="empty">${t("noTools")}</p>`;
+}
+
+function setToolView(mode) {
+  state.viewMode = mode;
+  localStorage.setItem("toolViewMode", mode);
+  const g = $("#viewGrid"), l = $("#viewList");
+  if (g) g.classList.toggle("active", mode === "grid");
+  if (l) l.classList.toggle("active", mode === "list");
+  renderTools();
+}
+
+// Jump to a specific tool: clear filters that might hide it,
+// re-render, then scroll to and briefly highlight its card.
+function jumpToTool(name) {
+  // reset filters so the target is guaranteed visible
+  state.query = ""; state.category = "all"; state.budget = "all";
+  state.modelType = "all"; state.minScore = 0; state.freeOnly = false;
+  const searchInput = $("#searchInput");
+  if (searchInput) searchInput.value = "";
+  renderControls();
+  renderTools();
+  // wait for DOM, then scroll + flash
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`[data-tool-card="${CSS.escape(name)}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("tool-card-flash");
+    setTimeout(() => card.classList.remove("tool-card-flash"), 1600);
+  });
 }
 
 function renderToolCard(tool) {
   const isCompared = state.compare.includes(tool.name);
+  const slug = tool.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return `
-    <article class="tool-card">
+    <article class="tool-card" data-tool-card="${tool.name}" id="tool-${slug}">
       <div class="tool-top">
         <div class="tool-top">
           <span class="logo">${
@@ -1584,30 +1653,21 @@ function startJobTicker() {
 // ── LOCAL FALLBACK GENERATORS ─────────────────────────────
 // When the generators below run, the result is produced fully
 // locally from templates — instant, offline, no account needed.
-function localEnhancePrompt(goal) {
-  const styles = ["cinematic", "editorial", "hyper-real", "minimal luxury"];
-  const style = styles[Math.abs(hashStr(goal)) % styles.length];
-  return `### PROFESSIONAL PROMPT
-${goal}, ${style} composition, shot on a 35mm lens, golden-hour rim lighting,
-shallow depth of field, rich color grade, fine detail, balanced negative space,
-8k, professional photography, award-winning.
+// Style presets — each appends a distinct set of descriptors.
+const promptStyles = {
+  cinematic: "cinematic composition, anamorphic lens, golden-hour rim lighting, shallow depth of field, dramatic contrast, filmic color grade, atmospheric haze, 8k, award-winning cinematography",
+  editorial: "high-fashion editorial style, studio lighting, crisp detail, bold negative space, magazine-cover framing, refined color palette, professional photography",
+  hyperreal: "hyper-realistic, ultra-detailed textures, natural lighting, true-to-life color, 50mm lens, photorealistic rendering, sharp focus, 8k",
+  minimal: "minimal luxury aesthetic, clean composition, soft diffused light, muted premium palette, generous negative space, understated elegance",
+  render3d: "3D render, octane render, physically based materials, soft global illumination, subsurface scattering, studio HDRI lighting, ultra-detailed, 8k",
+  anime: "anime illustration style, clean line art, cel shading, vibrant palette, expressive lighting, detailed background, high-quality digital painting"
+};
 
-### NEGATIVE PROMPT
-blurry, low resolution, distorted proportions, extra limbs, watermark, text,
-oversaturated, harsh flash, cluttered background, amateur framing.
-
-### JSON PARAMETERS
-\`\`\`json
-{
-  "style": "${style}",
-  "mood": "premium, considered",
-  "lighting": "golden-hour rim light",
-  "camera": "35mm, f/1.8, shallow depth of field",
-  "color_grade": "warm highlights, deep shadows",
-  "aspect_ratio": "16:9",
-  "quality_tags": ["8k", "professional", "award-winning", "fine detail"]
-}
-\`\`\``;
+// Generate ONLY the prompt text, in the chosen style. No headings,
+// no negative prompt, no JSON — just a ready-to-paste prompt.
+function localEnhancePrompt(goal, style) {
+  const descriptors = promptStyles[style] || promptStyles.cinematic;
+  return `${goal}, ${descriptors}.`;
 }
 
 function localTextToJson(value) {
@@ -1664,7 +1724,8 @@ function hashStr(s) {
 function enhancePrompt(value) {
   const goal = value.trim();
   if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
-  return localEnhancePrompt(goal);
+  const style = $("#promptStyleSelect")?.value || "cinematic";
+  return localEnhancePrompt(goal, style);
 }
 
 function textToJson(value) {
@@ -1878,54 +1939,147 @@ function startHeroMotion() {
   size();
   window.addEventListener("resize", size);
 
-  const orbs = Array.from({ length: 6 }, () => ({
-    x: Math.random(), y: Math.random(),
-    r: 0.18 + Math.random() * 0.32,
-    dx: (Math.random() - 0.5) * 0.0009,
-    dy: (Math.random() - 0.5) * 0.0009,
-    hue: ["#d8b76a", "#fff0b8", "#8f6f33", "#f4c96a"][Math.floor(Math.random() * 4)]
+  // "Search" animation: a radar sweep reveals result dots, while a
+  // mock search bar types a query — visually conveys discovery.
+  const queries = ["AI tools", "image models", "video AI", "coding AI", "free plans"];
+  const resultDots = Array.from({ length: 9 }, () => ({
+    a: Math.random() * Math.PI * 2,          // angle on the radar
+    r: 0.25 + Math.random() * 0.6,            // radius (0-1)
+    found: 0                                  // 0..1 reveal progress
   }));
 
   let t = 0;
   function frame() {
-    const r = canvas.getBoundingClientRect();
-    const W = r.width, H = r.height;
-    t += 0.006;
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    t += 0.016;
 
-    const base = ctx.createLinearGradient(0, 0, W, H);
-    base.addColorStop(0, "#0c0a06");
-    base.addColorStop(1, "#161109");
-    ctx.fillStyle = base;
+    // background
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "#0c0a06");
+    g.addColorStop(1, "#161109");
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.globalCompositeOperation = "lighter";
-    orbs.forEach((o, i) => {
-      o.x += o.dx; o.y += o.dy;
-      if (o.x < -0.3 || o.x > 1.3) o.dx *= -1;
-      if (o.y < -0.3 || o.y > 1.3) o.dy *= -1;
-      const px = (o.x + Math.sin(t + i) * 0.05) * W;
-      const py = (o.y + Math.cos(t * 0.8 + i) * 0.05) * H;
-      const rad = o.r * Math.min(W, H) * (1.4 + Math.sin(t * 1.3 + i) * 0.2);
-      const g = ctx.createRadialGradient(px, py, 0, px, py, rad);
-      g.addColorStop(0, o.hue + "88");
-      g.addColorStop(1, o.hue + "00");
-      ctx.fillStyle = g;
+    // radar centred in the lower portion
+    const cx = W * 0.5, cy = H * 0.58;
+    const maxR = Math.min(W, H) * 0.42;
+
+    // concentric rings
+    ctx.strokeStyle = "rgba(216,183,106,0.18)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
       ctx.beginPath();
-      ctx.arc(px, py, rad, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.globalCompositeOperation = "source-over";
+      ctx.arc(cx, cy, maxR * (i / 3), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // cross hairs
+    ctx.beginPath();
+    ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy);
+    ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR);
+    ctx.stroke();
 
-    const sweepX = ((t * 0.3) % 1.4 - 0.2) * W;
-    const sweep = ctx.createLinearGradient(sweepX - 40, 0, sweepX + 40, 0);
-    sweep.addColorStop(0, "rgba(255,240,184,0)");
-    sweep.addColorStop(0.5, "rgba(255,240,184,0.14)");
-    sweep.addColorStop(1, "rgba(255,240,184,0)");
-    ctx.fillStyle = sweep;
-    ctx.fillRect(0, 0, W, H);
+    // sweeping beam
+    const sweep = t * 1.4;
+    const beam = ctx.createConicGradient
+      ? ctx.createConicGradient(sweep, cx, cy)
+      : null;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, maxR, sweep - 0.6, sweep);
+    ctx.closePath();
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    grad.addColorStop(0, "rgba(255,240,184,0.42)");
+    grad.addColorStop(1, "rgba(255,240,184,0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    // leading edge line
+    ctx.strokeStyle = "rgba(255,240,184,0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(sweep) * maxR, cy + Math.sin(sweep) * maxR);
+    ctx.stroke();
+
+    // result dots — light up when the beam passes over them
+    resultDots.forEach(d => {
+      const norm = ((sweep - d.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      if (norm < 0.14) d.found = 1;            // beam just hit it
+      d.found *= 0.985;                         // slow fade
+      const px = cx + Math.cos(d.a) * d.r * maxR;
+      const py = cy + Math.sin(d.a) * d.r * maxR;
+      const base = 0.22;
+      ctx.beginPath();
+      ctx.arc(px, py, 2 + d.found * 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,240,184,${base + d.found * 0.78})`;
+      ctx.fill();
+      if (d.found > 0.3) {
+        ctx.beginPath();
+        ctx.arc(px, py, 4 + d.found * 9, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(216,183,106,${d.found * 0.4})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // mock search bar at the top — types a query letter by letter
+    const barY = H * 0.13, barH = 26, barX = W * 0.12, barW = W * 0.76;
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    roundRect(ctx, barX, barY, barW, barH, 13);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(216,183,106,0.3)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, barX, barY, barW, barH, 13);
+    ctx.stroke();
+
+    // magnifier icon
+    const mx = barX + 16, my = barY + barH / 2;
+    ctx.strokeStyle = "#d8b76a";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(mx, my - 1, 4.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + 3.4, my + 2.4);
+    ctx.lineTo(mx + 7, my + 6);
+    ctx.stroke();
+
+    // typed query text (cycles through the list)
+    const cycle = 3.4;                         // seconds per query
+    const qi = Math.floor(t / cycle) % queries.length;
+    const q = queries[qi];
+    const phase = (t % cycle) / cycle;
+    const shown = phase < 0.7
+      ? Math.floor((phase / 0.7) * q.length)
+      : q.length;
+    const typed = q.slice(0, shown);
+    ctx.fillStyle = "#fff0b8";
+    ctx.font = "600 13px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(typed, barX + 32, my + 1);
+    // blinking caret
+    if (Math.floor(t * 2) % 2 === 0 && phase < 0.85) {
+      const cw = ctx.measureText(typed).width;
+      ctx.fillRect(barX + 33 + cw, my - 6, 1.5, 12);
+    }
 
     requestAnimationFrame(frame);
   }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
   frame();
 }
 
@@ -2635,10 +2789,17 @@ function bindEvents() {
 
   on("#languageSelect", "change", (event) => setLanguage(event.target.value));
   on("#themeToggle", "click", () => {
-    const next = document.body.classList.contains("theme-lisa") ? "noir" : "lisa";
+    const next = document.body.classList.contains("theme-light") ? "dark" : "light";
     applyTheme(next);
   });
   on("#searchInput", "input", (event) => { state.query = event.target.value; renderTools(); });
+  on("#viewGrid", "click", () => setToolView("grid"));
+  on("#viewList", "click", () => setToolView("list"));
+  on("#jumpToTool", "change", (event) => {
+    const name = event.target.value;
+    if (name) jumpToTool(name);
+    event.target.value = "";
+  });
   on("#categoryFilter", "change", (event) => { state.category = event.target.value; renderTools(); });
   on("#budgetFilter", "change", (event) => { state.budget = event.target.value; renderTools(); });
   on("#sortFilter", "change", (event) => { state.sort = event.target.value; renderTools(); });
@@ -2718,6 +2879,16 @@ function bindEvents() {
       if (card) setVideoTemplate(card.dataset.template);
     });
   }
+  // Category tabs — show one control panel at a time.
+  document.querySelectorAll(".vtab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.vtab;
+      document.querySelectorAll(".vtab").forEach(t =>
+        t.classList.toggle("active", t === tab));
+      document.querySelectorAll("[data-vtab-panel]").forEach(p =>
+        p.classList.toggle("vtab-hidden", p.dataset.vtabPanel !== target));
+    });
+  });
   on("#vsUpload", "change", (e) => loadStudioMedia(e.target.files[0]));
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
   on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
@@ -2765,7 +2936,8 @@ function bindEvents() {
 renderMetrics();
 renderControls();
 bindEvents();
-applyTheme(localStorage.getItem("theme") || "noir");
+setToolView(state.viewMode);
+applyTheme(localStorage.getItem("theme") || "dark");
 renderModelsTicker();
 startHeroMotion();
 renderTemplatePicker();
