@@ -6,7 +6,7 @@ const i18n = {
     navStudio: "Video studio",
     studioEyebrow: "Advanced video studio",
     studioTitle: "Create a complete, luxurious video",
-    studioText: "Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.",
+    studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
     vTabTemplate: "Template",
     vTabMedia: "Media",
     vTabFormat: "Format",
@@ -30,6 +30,7 @@ const i18n = {
     vCtaLabel: "Call to action",
     vTextPosLabel: "Text position",
     vTextSizeLabel: "Text size",
+    vTextAutoNote: "Text sits on an automatic dark panel, so it stays readable on any photo or video.",
     vLogoLabel: "5 \u00b7 Logo & cards",
     vLogoPosLabel: "Logo position",
     vIntroLabel: "Intro card text",
@@ -37,6 +38,11 @@ const i18n = {
     vPreviewBtn: "Preview",
     vExportBtn: "Export video",
     vPreviewLabel: "Preview",
+    vTimelineHint: "Drag the playhead to scrub",
+    vTrackMedia: "Media",
+    vTrackText: "Text",
+    vTrackLogo: "Logo",
+    vTrackMusic: "Music",
     vPreviewSizeLabel: "Preview size",
     vPlaceholder: "Choose a template and upload media to preview it here",
     navIntelligence: "Prompt lab",
@@ -169,7 +175,7 @@ const i18n = {
     navStudio: "استودیوی ویدیو",
     studioEyebrow: "استودیوی پیشرفته ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
-    studioText: "یک قالب انتخاب کن، رسانه‌ات را اضافه کن، متن متحرک بگذار، نسبت تصویر، ترانزیشن، فیلتر و موسیقی تنظیم کن — سپس فایل ویدیوی واقعی خروجی بگیر. همه رایگان داخل مرورگر.",
+    studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
     vTabTemplate: "قالب",
     vTabMedia: "رسانه",
     vTabFormat: "فرمت",
@@ -193,6 +199,7 @@ const i18n = {
     vCtaLabel: "دعوت به اقدام",
     vTextPosLabel: "موقعیت متن",
     vTextSizeLabel: "اندازه متن",
+    vTextAutoNote: "متن روی یک پنل تیره خودکار قرار می‌گیرد تا روی هر عکس یا ویدیویی خوانا بماند.",
     vLogoLabel: "۵ · لوگو و کارت‌ها",
     vLogoPosLabel: "موقعیت لوگو",
     vIntroLabel: "متن کارت اینترو",
@@ -200,6 +207,11 @@ const i18n = {
     vPreviewBtn: "پیش‌نمایش",
     vExportBtn: "خروجی ویدیو",
     vPreviewLabel: "پیش‌نمایش",
+    vTimelineHint: "برای جابه‌جایی، نشانگر را بکش",
+    vTrackMedia: "رسانه",
+    vTrackText: "متن",
+    vTrackLogo: "لوگو",
+    vTrackMusic: "موسیقی",
     vPreviewSizeLabel: "اندازه پیش‌نمایش",
     vPlaceholder: "یک قالب انتخاب کن و رسانه آپلود کن تا اینجا پیش‌نمایش داده شود",
     navIntelligence: "لابراتوار پرامپت",
@@ -937,8 +949,6 @@ function setLanguage(lang) {
   renderTools();
   renderCompare();
   render3DChart();
-  renderJobAdvice($("#skillsInput").value);
-  if ($("#jobSources")) renderJobSources();
 }
 
 function formatPrice(price) {
@@ -1049,6 +1059,13 @@ function renderTools() {
   const items = filteredTools();
   toolGrid.className = state.viewMode === "list" ? "tool-grid is-list" : "tool-grid";
   toolGrid.innerHTML = items.length ? items.map(renderToolCard).join("") : `<p class="empty">${t("noTools")}</p>`;
+  // visible count so filters are obviously taking effect
+  const countEl = $("#toolCount");
+  if (countEl) {
+    countEl.textContent = state.lang === "fa"
+      ? `${items.length} از ${tools.length} ابزار`
+      : `${items.length} of ${tools.length} tools`;
+  }
 }
 
 function setToolView(mode) {
@@ -1689,18 +1706,38 @@ function localTextToJson(value) {
   return JSON.stringify(result, null, 2);
 }
 
-function localCaption(goal, platform, tone) {
+// Build a caption that reflects the actual uploaded media —
+// its type (photo/video), shape, and dominant color mood.
+function localCaption(goal, platform, tone, media) {
+  const m = media || {};
+  const kind = m.type === "video" ? "video" : m.type === "image" ? "photo" : "post";
+  const mood = m.mood || "balanced";
+  const shape = m.shape || "";
+  const colorWord = m.colorWord || "";
+
   const hooks = [
-    "Stop scrolling — this changes how you work.",
-    "Here's the workflow I'd use to make this stand out.",
-    "Most people miss this. You won't."
+    kind === "video"
+      ? "Press play — this is worth 10 seconds."
+      : "Stop scrolling. Look at this for a second.",
+    `The ${mood} ${colorWord} tones here? Not an accident.`,
+    "Here's how I'd make this work for you."
   ];
-  const tags = ["#AI", "#AITools", "#ContentCreation", "#CreatorEconomy",
-    "#" + platform.replace(/\s+/g, ""), "#" + tone, "#DigitalMarketing",
-    "#Productivity", "#TechTrends", "#Innovation"];
+  const subject = goal && goal !== "Promote this media"
+    ? goal
+    : `this ${kind}`;
+
+  const caption =
+`This ${kind} — ${colorWord ? colorWord + ", " : ""}${mood} and made for ${platform}.
+${subject}. ${shape ? "Shot " + shape + ". " : ""}Tap save before you forget. ↓`;
+
+  const tags = ["#" + platform.replace(/\s+/g, ""), "#" + tone,
+    kind === "video" ? "#Reels" : "#PhotoOfTheDay",
+    colorWord ? "#" + colorWord.replace(/\s+/g, "") : "#Aesthetic",
+    "#ContentCreation", "#CreatorEconomy", "#" + mood,
+    "#SocialMedia", "#Viral", "#" + kind];
+
   return `### CAPTION
-${hooks[0]} ${goal} — crafted for ${platform} with a ${tone.toLowerCase()} edge.
-Save this for later. ↓
+${caption}
 
 ### HOOKS (3 alternatives)
 1. ${hooks[0]}
@@ -1711,8 +1748,37 @@ Save this for later. ↓
 ${tags.join(" ")}
 
 ### IMAGE PROMPT (for recreating similar content)
-${tone} ${platform} visual: clean composition, balanced lighting, premium color
-grade, strong focal subject, generous negative space, professional finish.`;
+${tone} ${platform} ${kind}: ${colorWord || "balanced"} color palette, ${mood} mood,
+${shape || "balanced framing"}, clean composition, strong focal subject, professional finish.`;
+}
+
+// Sample an image's dominant color and describe it in words.
+function analyzeImageColors(imgEl) {
+  try {
+    const c = document.createElement("canvas");
+    const w = 32, h = 32;
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+    }
+    r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const light = (max + min) / 2;
+    let colorWord = "neutral", mood = "balanced";
+    if (max - min < 30) {
+      colorWord = light > 170 ? "bright" : light < 80 ? "dark" : "muted";
+      mood = light > 170 ? "airy" : light < 80 ? "moody" : "calm";
+    } else if (r >= g && r >= b) { colorWord = "warm"; mood = "vibrant"; }
+    else if (b >= r && b >= g) { colorWord = "cool"; mood = "serene"; }
+    else { colorWord = "fresh"; mood = "lively"; }
+    return { colorWord, mood, light };
+  } catch {
+    return { colorWord: "", mood: "balanced", light: 128 };
+  }
 }
 
 function hashStr(s) {
@@ -1815,13 +1881,39 @@ async function generateMediaCaption() {
   const mediaUrl = mediaEl ? mediaEl.getAttribute("src") : null;
   const isVideo = !!videoEl;
 
+  // The caption is built FROM the uploaded photo/video — require one.
+  if (!mediaUrl) {
+    captionOut.textContent = state.lang === "fa"
+      ? "اول یک عکس یا ویدیو آپلود کن — کپشن بر اساس همان ساخته می‌شود."
+      : "Upload a photo or video first — the caption is built from it.";
+    btn.disabled = false;
+    return;
+  }
+
   captionOut.textContent = state.lang === "fa" ? "در حال نوشتن کپشن..." : "Writing caption...";
 
   const mediaWord = isVideo ? "video" : "image";
 
+  // Build a media profile: type, shape, and (for images) color mood.
+  const mediaInfo = { type: mediaWord };
+  if (imgEl) {
+    const w = imgEl.naturalWidth || 1, h = imgEl.naturalHeight || 1;
+    mediaInfo.shape = w > h * 1.2 ? "wide / landscape"
+      : h > w * 1.2 ? "tall / portrait" : "square";
+    const colors = analyzeImageColors(imgEl);
+    mediaInfo.colorWord = colors.colorWord;
+    mediaInfo.mood = colors.mood;
+  } else if (videoEl) {
+    const w = videoEl.videoWidth || 1, h = videoEl.videoHeight || 1;
+    mediaInfo.shape = w > h * 1.2 ? "wide / landscape"
+      : h > w * 1.2 ? "tall / portrait" : "square";
+    mediaInfo.mood = "dynamic";
+    mediaInfo.colorWord = "";
+  }
+
   try {
-    // Caption is generated locally from templates — instant, no sign-in.
-    const fullText = localCaption(goal, platform, tone);
+    // Caption is generated locally, built from the uploaded media.
+    const fullText = localCaption(goal, platform, tone, mediaInfo);
 
     // Parse the structured sections.
     const captionMatch = fullText.match(/### CAPTION\s*\n([\s\S]*?)(?=###|$)/);
@@ -2338,6 +2430,7 @@ const vstudio = {
   logoEl: null,         // <img> logo overlay
   rafId: null,
   startTime: 0,
+  playing: false,
   rendering: false
 };
 
@@ -2407,6 +2500,7 @@ function loadStudioMedia(file) {
       vstudio.mediaEl = video;
       buildPreviewCanvas();
       drawStudioFrame(0);
+      refreshTimelineClips();
       vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد." : "Video loaded. Hit Preview.");
     });
     video.addEventListener("error", () => {
@@ -2418,6 +2512,7 @@ function loadStudioMedia(file) {
       vstudio.mediaEl = img;
       buildPreviewCanvas();
       drawStudioFrame(0);
+      refreshTimelineClips();
       vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد." : "Image loaded. Hit Preview.");
     };
     img.onerror = () => {
@@ -2434,6 +2529,7 @@ function loadStudioMusic(file) {
   const audio = new Audio(vstudio.musicUrl);
   audio.loop = true;
   vstudio.musicEl = audio;
+  refreshTimelineClips();
   vsStatus(state.lang === "fa" ? "موسیقی اضافه شد." : "Music added.");
 }
 
@@ -2445,6 +2541,7 @@ function loadStudioLogo(file) {
   img.onload = () => {
     vstudio.logoEl = img;
     if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+    refreshTimelineClips();
     vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
   };
   img.onerror = () => {
@@ -2566,7 +2663,7 @@ function drawStudioFrame(elapsed) {
     ctx.restore();
   }
 
-  // ----- text layers -----
+  // ----- text layers (with a readable backing plate) -----
   const headline = (vsVal("#vsHeadline", "") || "").trim();
   const sub = (vsVal("#vsSub", "") || "").trim();
   const cta = (vsVal("#vsCta", "") || "").trim();
@@ -2582,16 +2679,57 @@ function drawStudioFrame(elapsed) {
     let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
     baseY += (1 - tEase) * 26;
 
+    // text colour comes from the template
+    const fill = tpl.text, accentFill = tpl.accent;
+
+    // measure the text block to size the backing plate
+    const hlSize = Math.round(W * 0.058 * sizeMul);
+    const subSize = Math.round(W * 0.026 * sizeMul);
+    const ctaSize = Math.round(W * 0.022 * sizeMul);
+    ctx.font = `600 ${hlSize}px ${tpl.headlineFont}`;
+    let blockW = headline ? ctx.measureText(headline).width : 0;
+    if (sub) { ctx.font = `400 ${subSize}px Inter, sans-serif`;
+      blockW = Math.max(blockW, ctx.measureText(sub).width); }
+    if (cta) { ctx.font = `600 ${ctaSize}px Inter, sans-serif`;
+      blockW = Math.max(blockW, ctx.measureText(cta).width); }
+    const lineGap = headline ? W * 0.056 : 0;
+    const blockTop = baseY - hlSize * 0.7;
+    const blockBottom = baseY + (sub ? lineGap : 0) + (cta ? W * 0.05 : 0) + subSize;
+    const blockH = blockBottom - blockTop;
+
+    // readable plate behind text — ALWAYS on so text
+    // never disappears into a bright photo.
+    if (blockW > 0) {
+      const padX = W * 0.05, padY = H * 0.04;
+      ctx.save();
+      ctx.globalAlpha = tEase * 0.55;
+      ctx.fillStyle = "rgba(0,0,0,0.85)";
+      const px = W / 2 - blockW / 2 - padX;
+      const py = blockTop - padY;
+      const pw = blockW + padX * 2;
+      const ph = blockH + padY * 2;
+      const r = Math.min(pw, ph) * 0.12;
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.arcTo(px + pw, py, px + pw, py + ph, r);
+      ctx.arcTo(px + pw, py + ph, px, py + ph, r);
+      ctx.arcTo(px, py + ph, px, py, r);
+      ctx.arcTo(px, py, px + pw, py, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // strong shadow as a second safety net for readability
     if (headline) {
-      const fs = Math.round(W * 0.058 * sizeMul);
-      ctx.font = `600 ${fs}px ${tpl.headlineFont}`;
-      ctx.fillStyle = tpl.text;
-      ctx.shadowColor = "rgba(0,0,0,0.55)";
-      ctx.shadowBlur = 18;
+      ctx.font = `600 ${hlSize}px ${tpl.headlineFont}`;
+      ctx.fillStyle = fill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 20;
       ctx.fillText(headline, W / 2, baseY);
       ctx.shadowBlur = 0;
       const lw = W * 0.12 * tEase;
-      ctx.strokeStyle = tpl.accent;
+      ctx.strokeStyle = accentFill;
       ctx.lineWidth = Math.max(1, W * 0.002);
       ctx.beginPath();
       ctx.moveTo(W / 2 - lw / 2, baseY + W * 0.022);
@@ -2599,16 +2737,20 @@ function drawStudioFrame(elapsed) {
       ctx.stroke();
     }
     if (sub) {
-      const fs = Math.round(W * 0.026 * sizeMul);
-      ctx.font = `400 ${fs}px Inter, sans-serif`;
-      ctx.fillStyle = tpl.accent;
-      ctx.fillText(sub, W / 2, baseY + (headline ? W * 0.056 : 0));
+      ctx.font = `400 ${subSize}px Inter, sans-serif`;
+      ctx.fillStyle = accentFill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 14;
+      ctx.fillText(sub, W / 2, baseY + lineGap);
+      ctx.shadowBlur = 0;
     }
     if (cta) {
-      const fs = Math.round(W * 0.022 * sizeMul);
-      ctx.font = `600 ${fs}px Inter, sans-serif`;
-      ctx.fillStyle = tpl.text;
-      ctx.fillText(cta, W / 2, baseY + (headline ? W * 0.056 : 0) + (sub ? W * 0.05 : W * 0.04));
+      ctx.font = `600 ${ctaSize}px Inter, sans-serif`;
+      ctx.fillStyle = fill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 14;
+      ctx.fillText(cta, W / 2, baseY + lineGap + (sub ? W * 0.05 : W * 0.04));
+      ctx.shadowBlur = 0;
     }
     ctx.restore();
   }
@@ -2683,15 +2825,77 @@ function previewStudioVideo() {
   const loop = () => {
     const elapsed = (performance.now() - vstudio.startTime) / 1000;
     drawStudioFrame(elapsed);
+    updateTimeline(elapsed, duration);
     if (elapsed < duration) {
       vstudio.rafId = requestAnimationFrame(loop);
     } else {
       if (vstudio.isVideo) media.pause();
       if (vstudio.musicEl) vstudio.musicEl.pause();
       drawStudioFrame(duration);
+      updateTimeline(duration, duration);
+      setPlayBtn(false);
     }
   };
+  setPlayBtn(true);
   loop();
+}
+
+// ── TIMELINE STRIP ────────────────────────────────────────
+// Reflects playback position and lets the user scrub.
+function updateTimeline(elapsed, duration) {
+  const area = $("#vsTrackArea");
+  const head = $("#vsPlayhead");
+  const tc = $("#vsTimecode");
+  if (!area || !head) return;
+  const labelW = 76, laneRight = 12;
+  const usable = area.clientWidth - labelW - laneRight;
+  const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
+  head.style.left = (labelW + usable * ratio) + "px";
+  if (tc) tc.textContent = `${elapsed.toFixed(1)}s / ${duration.toFixed(1)}s`;
+}
+
+function setPlayBtn(playing) {
+  const b = $("#vsPlayBtn");
+  if (b) b.textContent = playing ? "❚❚" : "▶";
+  vstudio.playing = playing;
+}
+
+// Refresh which timeline clips look "active" based on real content.
+function refreshTimelineClips() {
+  const set = (id, has) => {
+    const el = $(id);
+    if (el) el.classList.toggle("is-active", !!has);
+  };
+  set("#vsClipMedia", vstudio.mediaEl);
+  const hasText = ["#vsHeadline", "#vsSub", "#vsCta", "#vsIntro", "#vsOutro"]
+    .some(s => (vsVal(s, "") || "").trim());
+  set("#vsClipText", hasText);
+  set("#vsClipLogo", vstudio.logoEl);
+  set("#vsClipMusic", vstudio.musicEl);
+}
+
+// Scrub: jump preview to a position when the track area is clicked/dragged.
+function scrubTimeline(clientX) {
+  const area = $("#vsTrackArea");
+  if (!area || !vstudio.mediaEl) return;
+  const rect = area.getBoundingClientRect();
+  const labelW = 76, laneRight = 12;
+  const usable = rect.width - labelW - laneRight;
+  let ratio = (clientX - rect.left - labelW) / usable;
+  ratio = Math.max(0, Math.min(1, ratio));
+  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const elapsed = ratio * duration;
+  // pause any running playback while scrubbing
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  if (vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause();
+      vstudio.mediaEl.currentTime = Math.min(
+        vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
+  }
+  setPlayBtn(false);
+  buildPreviewCanvas();
+  drawStudioFrame(elapsed);
+  updateTimeline(elapsed, duration);
 }
 
 // Export the composited result as a real .webm video file.
@@ -2825,11 +3029,6 @@ function bindEvents() {
   on("#copyCaptionButton", "click", () => copyTextFrom("#captionOutput"));
   on("#copyMediaJsonButton", "click", () => copyTextFrom("#mediaJsonOutput"));
 
-  on("#jobSuggestBtn", "click", () => {
-    renderJobAdvice($("#skillsInput").value);
-    renderJobSources();
-  });
-
   on("#promptGenBtn", "click", async () => {
     const btn = $("#promptGenBtn");
     btn.disabled = true;
@@ -2903,8 +3102,10 @@ function bindEvents() {
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
   const vsRefresh = () => {
+    refreshTimelineClips();
     if (!vstudio.mediaEl || vstudio.rendering) return;
     drawStudioFrame(0);
+    updateTimeline(0, Math.max(2, Number(vsVal("#vsDuration", 6))));
   };
   const vsRefreshAspect = () => {
     if (!vstudio.mediaEl || vstudio.rendering) return;
@@ -2916,6 +3117,33 @@ function bindEvents() {
     on(sel, "change", vsRefresh);
   });
   on("#vsAspect", "change", vsRefreshAspect);
+
+  // Timeline: play/pause button + scrubbing by dragging the track area.
+  on("#vsPlayBtn", "click", () => {
+    if (vstudio.playing) {
+      if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+      if (vstudio.isVideo && vstudio.mediaEl) vstudio.mediaEl.pause();
+      if (vstudio.musicEl) vstudio.musicEl.pause();
+      setPlayBtn(false);
+    } else {
+      previewStudioVideo();
+    }
+  });
+  const trackArea = $("#vsTrackArea");
+  if (trackArea) {
+    let dragging = false;
+    const down = (e) => { dragging = true;
+      scrubTimeline((e.touches ? e.touches[0] : e).clientX); };
+    const move = (e) => { if (dragging)
+      scrubTimeline((e.touches ? e.touches[0] : e).clientX); };
+    const up = () => { dragging = false; };
+    trackArea.addEventListener("mousedown", down);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    trackArea.addEventListener("touchstart", down, { passive: true });
+    window.addEventListener("touchmove", move, { passive: true });
+    window.addEventListener("touchend", up);
+  }
 
   // Copy on every ai-output: click to copy
   document.addEventListener("click", (e) => {
@@ -2943,8 +3171,6 @@ startHeroMotion();
 renderTemplatePicker();
 fetchLiveChartData();
 setLanguage(state.lang);
-renderJobSources();
-startJobTicker();
 
 // Render the live chart once the page is ready.
 window.addEventListener("load", () => renderLiveChart());
