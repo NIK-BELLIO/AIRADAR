@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v17" />
+    <link rel="stylesheet" href="styles.css?v=v18" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -179,6 +179,7 @@
                 <input id="mediaUpload" type="file" accept="image/*,video/*" />
               </label>
               <div class="control-grid">
+                <label><span data-i18n="mediaSubjectLabel">What's in the photo/video?</span><input id="mediaSubjectInput" type="text" placeholder="e.g. a cat on a windowsill" /></label>
                 <label><span data-i18n="mediaGoalLabel">Goal</span><input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" /></label>
                 <label><span data-i18n="platformLabel">Platform</span>
                   <select id="platformSelect">
@@ -361,6 +362,8 @@
               <!-- AE-style timeline strip -->
               <div class="vs-timeline" id="vsTimeline">
                 <div class="vs-timeline-toolbar">
+                  <button id="vsUndoBtn" class="vs-tool-btn" type="button" aria-label="Undo" title="Undo">↶</button>
+                  <button id="vsRedoBtn" class="vs-tool-btn" type="button" aria-label="Redo" title="Redo">↷</button>
                   <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
                   <span id="vsTimecode" class="vs-timecode">0.0s / 6.0s</span>
                   <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag the playhead to scrub</span>
@@ -475,6 +478,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v17"></script>
+    <script src="app.js?v=v18"></script>
   </body>
 </html>
