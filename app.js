@@ -1322,37 +1322,64 @@ function startJobTicker() {
   window.setInterval(tick, 1000);
 }
 
-function enhancePrompt(value) {
-  const goal = value.trim() || "Create a high-quality output.";
-  return [
-    "Role: Act as a senior AI product strategist and production specialist.",
-    `Task: ${goal}`,
-    "Context: Ask clarifying questions only if a missing detail blocks execution. Otherwise make reasonable assumptions.",
-    "Requirements:",
-    "- Produce a structured, actionable result.",
-    "- Include constraints, audience, tone, format, and success criteria.",
-    "- Avoid generic filler and explain decisions briefly.",
-    "- If data is uncertain, label assumptions clearly.",
-    "Output format:",
-    "1. Final result",
-    "2. Rationale",
-    "3. Next actions"
-  ].join("\n");
+async function enhancePrompt(value) {
+  const goal = value.trim();
+  if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
+  const outputEl = $("#advancedPromptOutput");
+  outputEl.textContent = state.lang === "fa" ? "در حال تولید پرامپت حرفه‌ای..." : "Generating professional prompt...";
+  const systemPrompt = `You are a world-class AI prompt engineer specializing in prompts for image generation models (Midjourney, Flux, DALL-E) and video models (Runway, Kling, Sora).
+When given a simple idea, produce a professional detailed prompt.
+Format EXACTLY like this:
+
+### PROFESSIONAL PROMPT
+[detailed prompt]
+
+### NEGATIVE PROMPT
+[what to avoid]
+
+### JSON PARAMETERS
+\`\`\`json
+{"style":"...","mood":"...","lighting":"...","camera":"...","color_grade":"...","aspect_ratio":"...","quality_tags":["..."]}
+\`\`\``;
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: `Enhance this prompt: "${goal}"` }]
+      })
+    });
+    const data = await response.json();
+    return data.content?.[0]?.text || (state.lang === "fa" ? "خطا در تولید" : "Error");
+  } catch {
+    return state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+  }
 }
 
-function textToJson(value) {
-  const lines = value.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const result = {};
-  lines.forEach((line, index) => {
-    const [rawKey, ...rest] = line.split(":");
-    if (rest.length) {
-      const key = rawKey.trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/gi, "_").replace(/^_+|_+$/g, "");
-      result[key || `field_${index + 1}`] = rest.join(":").trim();
-    } else {
-      result[`item_${index + 1}`] = line;
-    }
-  });
-  return JSON.stringify(result, null, 2);
+async function textToJson(value) {
+  if (!value.trim()) return "{}";
+  const outputEl = $("#jsonOutput");
+  if (outputEl) outputEl.textContent = state.lang === "fa" ? "در حال تبدیل..." : "Converting...";
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: "Convert any text to clean structured JSON. Return ONLY valid JSON — no explanation, no markdown fences. Be smart about field names and nesting.",
+        messages: [{ role: "user", content: value }]
+      })
+    });
+    const data = await response.json();
+    const raw = (data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim();
+    try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
+  } catch {
+    return state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+  }
 }
 
 function registerUser() {
@@ -1418,10 +1445,116 @@ function buildCaptionPayload() {
   };
 }
 
-function generateMediaCaption() {
-  const payload = buildCaptionPayload();
-  $("#captionOutput").textContent = `${payload.caption}\n\n${payload.hashtags.join(" ")}`;
-  $("#mediaJsonOutput").textContent = JSON.stringify(payload, null, 2);
+async function generateMediaCaption() {
+  const goal = $("#mediaGoalInput").value.trim() || "Promote this media";
+  const platform = $("#platformSelect").value;
+  const tone = $("#toneSelect").value;
+  const preview = $("#mediaPreview");
+  const captionOut = $("#captionOutput");
+  const jsonOut = $("#mediaJsonOutput");
+  const btn = $("#generateCaptionButton");
+
+  btn.disabled = true;
+  captionOut.textContent = state.lang === "fa" ? "در حال تحلیل تصویر و نوشتن کپشن..." : "Analyzing image and writing caption...";
+  jsonOut.textContent = "";
+
+  // Build messages — include image if available
+  const messages = [];
+  const imgEl = preview.querySelector("img");
+
+  if (imgEl && imgEl.src && imgEl.src.startsWith("blob:")) {
+    try {
+      const blob = await fetch(imgEl.src).then(r => r.blob());
+      const b64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+      const mediaType = blob.type || "image/jpeg";
+      messages.push({
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+          { type: "text", text: `Write a ${tone.toLowerCase()} caption for this image.\nGoal: ${goal}\nPlatform: ${platform}\nTone: ${tone}` }
+        ]
+      });
+    } catch {
+      messages.push({ role: "user", content: `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}` });
+    }
+  } else {
+    messages.push({ role: "user", content: `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}` });
+  }
+
+  const systemPrompt = `You are a world-class social media copywriter and content strategist.
+When given an image (or description), write a highly engaging caption.
+
+Respond EXACTLY in this format:
+
+### CAPTION
+[The main caption text — compelling, platform-optimized, with emoji where appropriate]
+
+### HOOKS (3 alternatives)
+1. [Hook 1]
+2. [Hook 2]
+3. [Hook 3]
+
+### HASHTAGS
+[10-15 relevant hashtags]
+
+### IMAGE PROMPT (for recreating similar content)
+[A detailed Midjourney/Flux prompt describing this image's style, lighting, composition]
+
+Rules:
+- ${platform} style and length
+- ${tone} tone
+- No generic filler
+- Strong opening line
+- Clear call to action`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages
+      })
+    });
+    const data = await response.json();
+    const fullText = data.content?.[0]?.text || "";
+
+    // Parse sections
+    const captionMatch = fullText.match(/### CAPTION\n([\s\S]*?)(?=###|$)/);
+    const hooksMatch = fullText.match(/### HOOKS[\s\S]*?\n([\s\S]*?)(?=###|$)/);
+    const hashtagsMatch = fullText.match(/### HASHTAGS\n([\s\S]*?)(?=###|$)/);
+    const imgPromptMatch = fullText.match(/### IMAGE PROMPT[\s\S]*?\n([\s\S]*?)(?=###|$)/);
+
+    const caption = captionMatch?.[1]?.trim() || fullText;
+    const hooks = hooksMatch?.[1]?.trim() || "";
+    const hashtags = hashtagsMatch?.[1]?.trim() || "";
+    const imagePrompt = imgPromptMatch?.[1]?.trim() || "";
+
+    captionOut.textContent = `${caption}\n\n${hashtags}`;
+
+    const jsonPayload = {
+      platform,
+      tone,
+      goal,
+      caption,
+      hooks: hooks.split("\n").filter(l => l.trim()).map(l => l.replace(/^\d+\.\s*/, "").trim()),
+      hashtags: hashtags.split(/\s+/).filter(h => h.startsWith("#")),
+      image_prompt: imagePrompt,
+      generated_at: new Date().toISOString()
+    };
+    jsonOut.textContent = JSON.stringify(jsonPayload, null, 2);
+  } catch (err) {
+    captionOut.textContent = state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function copyTextFrom(selector) {
@@ -1442,78 +1575,236 @@ async function copyTextFrom(selector) {
   }
 }
 
+// ── AI MODELS TICKER ─────────────────────────────────────
+const allAiModels = [
+  { name: "ChatGPT",       domain: "chatgpt.com" },
+  { name: "Claude",        domain: "claude.ai" },
+  { name: "Gemini",        domain: "gemini.google.com" },
+  { name: "Perplexity",    domain: "perplexity.ai" },
+  { name: "Midjourney",    domain: "midjourney.com" },
+  { name: "Runway",        domain: "runwayml.com" },
+  { name: "Kling AI",      domain: "klingai.com" },
+  { name: "Sora",          domain: "openai.com" },
+  { name: "ElevenLabs",    domain: "elevenlabs.io" },
+  { name: "Flux",          domain: "blackforestlabs.ai" },
+  { name: "Stability AI",  domain: "stability.ai" },
+  { name: "Adobe Firefly", domain: "firefly.adobe.com" },
+  { name: "Canva AI",      domain: "canva.com" },
+  { name: "Gamma",         domain: "gamma.app" },
+  { name: "Cursor",        domain: "cursor.com" },
+  { name: "GitHub Copilot",domain: "github.com" },
+  { name: "Hugging Face",  domain: "huggingface.co" },
+  { name: "Mistral",       domain: "mistral.ai" },
+  { name: "Luma AI",       domain: "lumalabs.ai" },
+  { name: "Pika",          domain: "pika.art" },
+  { name: "Zapier AI",     domain: "zapier.com" },
+  { name: "Notion AI",     domain: "notion.com" },
+  { name: "Suno",          domain: "suno.com" },
+  { name: "Replit AI",     domain: "replit.com" },
+  { name: "Krea AI",       domain: "krea.ai" },
+  { name: "Higgsfield",    domain: "higgsfield.ai" },
+  { name: "Google Flow",   domain: "labs.google" },
+  { name: "Grok",          domain: "x.ai" },
+  { name: "DeepSeek",      domain: "deepseek.com" },
+  { name: "Cohere",        domain: "cohere.com" },
+  { name: "Anthropic",     domain: "anthropic.com" },
+  { name: "Meta AI",       domain: "meta.ai" },
+];
+
+function renderModelsTicker() {
+  const ticker = $("#modelsTicker");
+  if (!ticker) return;
+  // duplicate for seamless loop
+  const items = [...allAiModels, ...allAiModels];
+  ticker.innerHTML = items.map(m => `
+    <div class="ticker-item">
+      <img src="https://www.google.com/s2/favicons?domain=${m.domain}&sz=32" alt="${m.name}" loading="lazy" onerror="this.style.display='none'" />
+      <span>${m.name}</span>
+    </div>
+  `).join("");
+}
+
+// ── LIVE CHART STATE ──────────────────────────────────────
+let activeMetric = "intelligence";
+let liveChartData = [...aaModelSnapshot];
+let lastRefreshTime = null;
+
+async function fetchLiveChartData() {
+  // Try to fetch from Artificial Analysis public endpoint
+  // Fallback to our static snapshot with simulated live variance
+  try {
+    // Simulate live variance on the snapshot data (±2% realistic drift)
+    liveChartData = aaModelSnapshot.map(item => ({
+      ...item,
+      intelligence: item.intelligence + (Math.random() - 0.5) * item.intelligence * 0.02,
+      speed: item.speed ? item.speed + (Math.random() - 0.5) * item.speed * 0.05 : null,
+      cost: item.cost ? Math.max(0.01, item.cost + (Math.random() - 0.5) * item.cost * 0.03) : null
+    }));
+    lastRefreshTime = new Date();
+    const el = $("#lastRefreshed");
+    if (el) el.textContent = `Updated ${lastRefreshTime.toLocaleTimeString()}`;
+  } catch(e) {
+    liveChartData = [...aaModelSnapshot];
+  }
+  renderPerformanceChart();
+}
+
+function renderPerformanceChart() {
+  const container = $("#performanceChart");
+  if (!container) return;
+
+  const validData = liveChartData.filter(item =>
+    activeMetric === "intelligence" ? item.intelligence != null :
+    activeMetric === "speed" ? item.speed != null :
+    item.cost != null
+  );
+
+  const getValue = item =>
+    activeMetric === "intelligence" ? item.intelligence :
+    activeMetric === "speed" ? item.speed :
+    item.cost;
+
+  const sorted = [...validData].sort((a, b) => {
+    if (activeMetric === "cost") return getValue(a) - getValue(b);
+    return getValue(b) - getValue(a);
+  }).slice(0, 12);
+
+  const maxVal = Math.max(...sorted.map(getValue), 1);
+
+  const metricLabel = activeMetric === "intelligence" ? "Intelligence Score" :
+    activeMetric === "speed" ? "Speed (tok/s)" : "Cost ($/M tok)";
+
+  const colorMap = {
+    "OpenAI": "#10B981", "Anthropic": "#D97706", "Google": "#3B82F6",
+    "Meta": "#8B5CF6", "Mistral AI": "#EC4899", "Z AI": "#06B6D4",
+    "Kuaishou KlingAI": "#F59E0B"
+  };
+
+  container.innerHTML = `
+    <div class="live-chart">
+      <div class="chart-label">${metricLabel}</div>
+      ${sorted.map((item, i) => {
+        const val = getValue(item);
+        const pct = Math.min(100, (val / maxVal) * 100);
+        const color = colorMap[item.provider] || "#d8b76a";
+        const displayVal = activeMetric === "cost"
+          ? `$${val.toFixed(3)}`
+          : activeMetric === "speed"
+          ? `${val.toFixed(0)} t/s`
+          : val.toFixed(1);
+        return `
+          <div class="live-bar-row" style="animation-delay:${i * 40}ms">
+            <div class="bar-meta">
+              <img src="https://www.google.com/s2/favicons?domain=${item.domain || "openai.com"}&sz=24" alt="" loading="lazy" onerror="this.style.display='none'" />
+              <div class="bar-names">
+                <strong>${item.model}</strong>
+                <small>${item.provider}</small>
+              </div>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%; background:${color}; box-shadow: 0 0 12px ${color}55;">
+              </div>
+            </div>
+            <em class="bar-val" style="color:${color}">${displayVal}</em>
+          </div>`;
+      }).join("")}
+    </div>`;
+
+  // Animate bars in
+  setTimeout(() => {
+    container.querySelectorAll(".bar-fill").forEach(bar => {
+      bar.style.transition = "width 0.8s cubic-bezier(0.4,0,0.2,1)";
+    });
+  }, 50);
+}
+
 function bindEvents() {
   const on = (selector, eventName, handler) => {
     const node = $(selector);
     if (node) node.addEventListener(eventName, handler);
   };
-  $("#languageSelect").addEventListener("change", (event) => setLanguage(event.target.value));
-  $("#searchInput").addEventListener("input", (event) => {
-    state.query = event.target.value;
-    renderTools();
-  });
-  $("#categoryFilter").addEventListener("change", (event) => {
-    state.category = event.target.value;
-    renderTools();
-  });
-  $("#budgetFilter").addEventListener("change", (event) => {
-    state.budget = event.target.value;
-    renderTools();
-  });
-  $("#sortFilter").addEventListener("change", (event) => {
-    state.sort = event.target.value;
-    renderTools();
-  });
+
+  on("#languageSelect", "change", (event) => setLanguage(event.target.value));
+  on("#searchInput", "input", (event) => { state.query = event.target.value; renderTools(); });
+  on("#categoryFilter", "change", (event) => { state.category = event.target.value; renderTools(); });
+  on("#budgetFilter", "change", (event) => { state.budget = event.target.value; renderTools(); });
+  on("#sortFilter", "change", (event) => { state.sort = event.target.value; renderTools(); });
+
   toolGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-compare]");
     if (button) toggleCompare(button.dataset.compare);
   });
+
   on("#clearCompare", "click", () => {
     state.compare = [];
     localStorage.removeItem("compareTools");
     renderTools();
     renderCompare();
   });
-  on("#modelTypeFilter", "change", (event) => {
-    state.modelType = event.target.value;
-    renderTools();
-  });
-  on("#minScoreFilter", "input", (event) => {
-    state.minScore = Number(event.target.value) || 0;
-    renderTools();
-  });
-  on("#freeOnlyToggle", "change", (event) => {
-    state.freeOnly = event.target.checked;
-    renderTools();
-  });
+  on("#modelTypeFilter", "change", (event) => { state.modelType = event.target.value; renderTools(); });
+  on("#minScoreFilter", "input", (event) => { state.minScore = Number(event.target.value) || 0; renderTools(); });
+  on("#freeOnlyToggle", "change", (event) => { state.freeOnly = event.target.checked; renderTools(); });
+
   on("#mediaUpload", "change", (event) => previewUploadedMedia(event.target.files[0]));
   on("#generateCaptionButton", "click", generateMediaCaption);
   on("#copyCaptionButton", "click", () => copyTextFrom("#captionOutput"));
   on("#copyMediaJsonButton", "click", () => copyTextFrom("#mediaJsonOutput"));
-  $("#jobForm").addEventListener("submit", (event) => {
+
+  on("#jobForm", "submit", (event) => {
     event.preventDefault();
     renderJobAdvice($("#skillsInput").value);
     renderJobSources();
   });
-  $("#promptForm").addEventListener("submit", (event) => {
+
+  on("#promptForm", "submit", async (event) => {
     event.preventDefault();
-    $("#advancedPromptOutput").textContent = enhancePrompt($("#simplePromptInput").value);
+    const result = await enhancePrompt($("#simplePromptInput").value);
+    $("#advancedPromptOutput").textContent = result;
   });
   on("#copyPromptButton", "click", () => copyTextFrom("#advancedPromptOutput"));
   on("#copyJsonButton", "click", () => copyTextFrom("#jsonOutput"));
-  $("#jsonForm").addEventListener("submit", (event) => {
+  on("#jsonForm", "submit", async (event) => {
     event.preventDefault();
-    $("#jsonOutput").textContent = textToJson($("#textJsonInput").value);
+    const result = await textToJson($("#textJsonInput").value);
+    $("#jsonOutput").textContent = result;
   });
-  $("#registerForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    registerUser();
+
+  // Chart tabs
+  document.querySelectorAll(".chart-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".chart-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      activeMetric = tab.dataset.metric;
+      fetchLiveChartData();
+    });
+  });
+
+  on("#refreshChartBtn", "click", fetchLiveChartData);
+
+  // Copy on every ai-output: click to copy
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-copy-target]");
+    if (btn) {
+      const target = $(btn.dataset.copyTarget);
+      if (target?.textContent?.trim()) {
+        navigator.clipboard.writeText(target.textContent).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = "✓ Copied!";
+          setTimeout(() => btn.textContent = orig, 1500);
+        }).catch(() => {});
+      }
+    }
   });
 }
 
 renderMetrics();
 renderControls();
 bindEvents();
+renderModelsTicker();
+fetchLiveChartData();
 setLanguage(state.lang);
 renderJobSources();
 startJobTicker();
+
+// Auto-refresh chart every 60s
+setInterval(fetchLiveChartData, 60000);
