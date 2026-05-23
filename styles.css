@@ -2355,60 +2355,55 @@ body.theme-light .theme-toggle-dot {
   flex-direction: column;
   gap: 8px;
 }
-.tool-grid.is-list .tool-card {
+/* Compact list row — fixed small height, no oversized cards */
+.tool-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 14px;
-  min-height: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
 }
-/* hide the bulky bits in list mode */
-.tool-grid.is-list .tool-card > p,
-.tool-grid.is-list .tool-card .tags {
-  display: none;
+.tool-row:hover { border-color: var(--gold); }
+.tool-row .logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 13px;
+  overflow: hidden;
 }
-.tool-grid.is-list .tool-card .tool-top {
-  display: contents;       /* let logo + name flow into the row */
-}
-.tool-grid.is-list .tool-card .tool-top > .tool-top {
+.tool-row .logo img { width: 100%; height: 100%; object-fit: cover; }
+.tool-row-main {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
   flex: 1;
   min-width: 0;
 }
-.tool-grid.is-list .tool-card h3 {
+.tool-row-main h3 {
   font-size: 15px;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tool-grid.is-list .tool-card .logo {
-  width: 32px;
-  height: 32px;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-.tool-grid.is-list .tool-card .price {
-  font-size: 13px;
-  flex-shrink: 0;
-}
-.tool-grid.is-list .tool-card .tool-actions {
-  margin: 0;
-  flex-shrink: 0;
+.tool-row-main .tag { flex-shrink: 0; font-size: 11px; }
+.tool-row .price { font-size: 13px; flex-shrink: 0; white-space: nowrap; }
+.tool-row-actions {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
-.tool-grid.is-list .tool-card .tool-actions .button {
-  padding: 6px 12px;
-  font-size: 12px;
-}
-@media (max-width: 640px) {
-  .tool-grid.is-list .tool-card {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+.tool-row-actions .button { padding: 6px 12px; font-size: 12px; }
+@media (max-width: 680px) {
+  .tool-row { flex-wrap: wrap; gap: 8px; }
+  .tool-row-main { flex-basis: 100%; }
 }
 
 /* Jump-to highlight flash */
