@@ -4,20 +4,36 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
-    studioEyebrow: "Video template studio",
-    studioTitle: "Create a luxurious, minimal video",
-    studioText: "Pick a template, drop in your video, add animated text, preview it live, and export a real .webm file — all free in your browser.",
-    vTemplateLabel: "1 \u00b7 Choose a template",
-    vUploadLabel: "2 \u00b7 Add your video",
-    vUploadHint: "Upload a video clip (.mp4, .webm, .mov)",
-    vTextLabel: "3 \u00b7 Add text",
+    studioEyebrow: "Advanced video studio",
+    studioTitle: "Create a complete, luxurious video",
+    studioText: "Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.",
+    vTemplateLabel: "1 \u00b7 Template",
+    vUploadLabel: "2 \u00b7 Media",
+    vUploadHint: "Upload a video or image (mp4, webm, mov, jpg, png)",
+    vMusicHint: "Optional: background music (mp3, wav)",
+    vLogoHint: "Optional: logo (transparent PNG recommended)",
+    vFormatLabel: "3 \u00b7 Format",
+    vAspectLabel: "Aspect ratio",
+    vDurationLabel: "Duration (s)",
+    vFilterLabel: "Filter / grade",
+    vSpeedLabel: "Playback speed",
+    vTransitionLabel: "Transition in",
+    vGrainLabel: "Film grain",
+    vTextLabel: "4 \u00b7 Text layers",
     vHeadlineLabel: "Headline",
     vSubLabel: "Subtext",
+    vCtaLabel: "Call to action",
     vTextPosLabel: "Text position",
-    vDurationLabel: "Duration (seconds)",
+    vTextSizeLabel: "Text size",
+    vLogoLabel: "5 \u00b7 Logo & cards",
+    vLogoPosLabel: "Logo position",
+    vIntroLabel: "Intro card text",
+    vOutroLabel: "Outro card text",
     vPreviewBtn: "Preview",
-    vExportBtn: "Export .webm",
-    vPlaceholder: "Choose a template and upload a video to preview it here",
+    vExportBtn: "Export video",
+    vPreviewLabel: "Preview",
+    vPreviewSizeLabel: "Preview size",
+    vPlaceholder: "Choose a template and upload media to preview it here",
     navIntelligence: "Prompt lab",
     navJobs: "AI jobs",
     navRegister: "Register",
@@ -44,8 +60,8 @@ const i18n = {
     compareTitle: "Compare selected tools",
     clearCompare: "Clear",
     performanceEyebrow: "Live GitHub data",
-    performanceTitle: "Live AI tools trend — 3D chart",
-    performanceText: "A live 3D chart of real GitHub popularity for every AI tool in the finder — drag to rotate. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
+    performanceTitle: "Live AI tools trend",
+    performanceText: "A live chart of real GitHub popularity for every AI tool in the finder. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
     mediaEyebrow: "Media caption generator",
     mediaTitle: "Upload an image or video and generate captions",
     mediaText: "Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.",
@@ -129,21 +145,37 @@ const i18n = {
     navTools: "ابزارها",
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
-    navStudio: "\u0627\u0633\u062a\u0648\u062f\u06cc\u0648\u06cc \u0648\u06cc\u062f\u06cc\u0648",
-    studioEyebrow: "\u0627\u0633\u062a\u0648\u062f\u06cc\u0648\u06cc \u0642\u0627\u0644\u0628 \u0648\u06cc\u062f\u06cc\u0648",
-    studioTitle: "\u06cc\u06a9 \u0648\u06cc\u062f\u06cc\u0648\u06cc \u0644\u0648\u06a9\u0633 \u0648 \u0645\u06cc\u0646\u06cc\u0645\u0627\u0644 \u0628\u0633\u0627\u0632",
-    studioText: "\u06cc\u06a9 \u0642\u0627\u0644\u0628 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646\u060c \u0648\u06cc\u062f\u06cc\u0648\u062a \u0631\u0627 \u0627\u0636\u0627\u0641\u0647 \u06a9\u0646\u060c \u0645\u062a\u0646 \u0645\u062a\u062d\u0631\u06a9 \u0628\u06af\u0630\u0627\u0631\u060c \u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634 \u0628\u06af\u06cc\u0631 \u0648 \u062e\u0631\u0648\u062c\u06cc .webm \u0648\u0627\u0642\u0639\u06cc \u0628\u06af\u06cc\u0631 \u2014 \u0647\u0645\u0647 \u0631\u0627\u06cc\u06af\u0627\u0646 \u062f\u0627\u062e\u0644 \u0645\u0631\u0648\u0631\u06af\u0631.",
-    vTemplateLabel: "\u06f1 \u00b7 \u0627\u0646\u062a\u062e\u0627\u0628 \u0642\u0627\u0644\u0628",
-    vUploadLabel: "\u06f2 \u00b7 \u0627\u0641\u0632\u0648\u062f\u0646 \u0648\u06cc\u062f\u06cc\u0648",
-    vUploadHint: "\u06cc\u06a9 \u06a9\u0644\u06cc\u067e \u0648\u06cc\u062f\u06cc\u0648 \u0622\u067e\u0644\u0648\u062f \u06a9\u0646 (.mp4, .webm, .mov)",
-    vTextLabel: "\u06f3 \u00b7 \u0627\u0641\u0632\u0648\u062f\u0646 \u0645\u062a\u0646",
-    vHeadlineLabel: "\u062a\u06cc\u062a\u0631",
-    vSubLabel: "\u0632\u06cc\u0631\u0646\u0648\u06cc\u0633",
-    vTextPosLabel: "\u0645\u0648\u0642\u0639\u06cc\u062a \u0645\u062a\u0646",
-    vDurationLabel: "\u0645\u062f\u062a (\u062b\u0627\u0646\u06cc\u0647)",
-    vPreviewBtn: "\u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634",
-    vExportBtn: "\u062e\u0631\u0648\u062c\u06cc .webm",
-    vPlaceholder: "\u06cc\u06a9 \u0642\u0627\u0644\u0628 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646 \u0648 \u0648\u06cc\u062f\u06cc\u0648 \u0622\u067e\u0644\u0648\u062f \u06a9\u0646 \u062a\u0627 \u0627\u06cc\u0646\u062c\u0627 \u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634 \u062f\u0627\u062f\u0647 \u0634\u0648\u062f",
+    navStudio: "استودیوی ویدیو",
+    studioEyebrow: "استودیوی پیشرفته ویدیو",
+    studioTitle: "یک ویدیوی کامل و لوکس بساز",
+    studioText: "یک قالب انتخاب کن، رسانه‌ات را اضافه کن، متن متحرک بگذار، نسبت تصویر، ترانزیشن، فیلتر و موسیقی تنظیم کن — سپس فایل ویدیوی واقعی خروجی بگیر. همه رایگان داخل مرورگر.",
+    vTemplateLabel: "۱ · قالب",
+    vUploadLabel: "۲ · رسانه",
+    vUploadHint: "ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
+    vMusicHint: "اختیاری: موسیقی پس‌زمینه (mp3, wav)",
+    vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
+    vFormatLabel: "۳ · فرمت",
+    vAspectLabel: "نسبت تصویر",
+    vDurationLabel: "مدت (ثانیه)",
+    vFilterLabel: "فیلتر / گرید",
+    vSpeedLabel: "سرعت پخش",
+    vTransitionLabel: "ترانزیشن ورودی",
+    vGrainLabel: "دانه‌دانه فیلم",
+    vTextLabel: "۴ · لایه‌های متن",
+    vHeadlineLabel: "تیتر",
+    vSubLabel: "زیرنویس",
+    vCtaLabel: "دعوت به اقدام",
+    vTextPosLabel: "موقعیت متن",
+    vTextSizeLabel: "اندازه متن",
+    vLogoLabel: "۵ · لوگو و کارت‌ها",
+    vLogoPosLabel: "موقعیت لوگو",
+    vIntroLabel: "متن کارت اینترو",
+    vOutroLabel: "متن کارت اوترو",
+    vPreviewBtn: "پیش‌نمایش",
+    vExportBtn: "خروجی ویدیو",
+    vPreviewLabel: "پیش‌نمایش",
+    vPreviewSizeLabel: "اندازه پیش‌نمایش",
+    vPlaceholder: "یک قالب انتخاب کن و رسانه آپلود کن تا اینجا پیش‌نمایش داده شود",
     navIntelligence: "لابراتوار پرامپت",
     navJobs: "کار AI",
     navRegister: "رجیستر",
@@ -170,8 +202,8 @@ const i18n = {
     compareTitle: "مقایسه ابزارهای انتخاب‌شده",
     clearCompare: "پاک کردن",
     performanceEyebrow: "داده زنده گیت‌هاب",
-    performanceTitle: "ترند زنده ابزارهای AI — نمودار سه‌بعدی",
-    performanceText: "نمودار سه‌بعدی زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب — برای چرخش درگ کن. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
+    performanceTitle: "ترند زنده ابزارهای AI",
+    performanceText: "نمودار زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
     mediaEyebrow: "تولید کپشن رسانه",
     mediaTitle: "عکس یا ویدیو آپلود کن و کپشن بگیر",
     mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
@@ -548,6 +580,146 @@ tools.push(
     tags: ["coding", "deploy", "browser"],
     modelType: "coding",
     logo: "RP"
+  },
+  {
+    name: "Grok",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Conversational AI from xAI with real-time knowledge, reasoning, and image generation.", fa: "هوش مصنوعی گفتگومحور xAI با دانش لحظه‌ای، استدلال و تولید تصویر." },
+    price: 0,
+    pricing: { en: "Free with X account + paid Premium tiers", fa: "رایگان با حساب X + پلن‌های پولی Premium" },
+    plan: "freemium",
+    score: 90,
+    jobs: ["AI Researcher", "Conversation Designer"],
+    url: "https://x.ai",
+    tags: ["llm", "realtime", "reasoning"],
+    modelType: "multimodal",
+    logo: "GK"
+  },
+  {
+    name: "DeepSeek",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Open-weight reasoning and coding models with strong performance at low cost.", fa: "مدل‌های متن‌باز استدلال و کدنویسی با عملکرد قوی و هزینه پایین." },
+    price: 0,
+    pricing: { en: "Free chat + low-cost API", fa: "چت رایگان + API کم‌هزینه" },
+    plan: "freemium",
+    score: 91,
+    jobs: ["ML Engineer", "AI Developer"],
+    url: "https://www.deepseek.com",
+    tags: ["llm", "open source", "coding"],
+    modelType: "text",
+    logo: "DS"
+  },
+  {
+    name: "Cohere",
+    category: { en: "Models and datasets", fa: "مدل و دیتاست" },
+    useCase: { en: "Enterprise LLMs for search, retrieval-augmented generation, and business workflows.", fa: "مدل‌های زبانی سازمانی برای سرچ، RAG و جریان‌های کاری کسب‌وکار." },
+    price: 0,
+    pricing: { en: "Free trial tier + usage-based API", fa: "نسخه آزمایشی رایگان + API مصرف‌محور" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Enterprise AI Engineer", "Search Specialist"],
+    url: "https://cohere.com",
+    tags: ["llm", "enterprise", "RAG"],
+    modelType: "text",
+    logo: "CO"
+  },
+  {
+    name: "Meta AI",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Meta's assistant built on Llama models for chat, image generation, and creative tasks.", fa: "دستیار Meta بر پایه مدل‌های Llama برای چت، تولید تصویر و کارهای خلاقانه." },
+    price: 0,
+    pricing: { en: "Free across Meta apps", fa: "رایگان در اپ‌های Meta" },
+    plan: "free",
+    score: 87,
+    jobs: ["AI Content Creator", "Conversation Designer"],
+    url: "https://www.meta.ai",
+    tags: ["llm", "open source", "social"],
+    modelType: "multimodal",
+    logo: "M"
+  },
+  {
+    name: "Sora",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "OpenAI's text-to-video model for cinematic, realistic AI video generation.", fa: "مدل متن‌به‌ویدیو OpenAI برای تولید ویدیوی سینمایی و واقع‌گرایانه." },
+    price: 20,
+    pricing: { en: "Included with ChatGPT Plus/Pro plans", fa: "همراه پلن‌های ChatGPT Plus/Pro" },
+    plan: "paid",
+    score: 88,
+    jobs: ["AI Video Creator", "Motion Designer"],
+    url: "https://openai.com/sora",
+    tags: ["video", "cinematic", "generation"],
+    modelType: "video",
+    logo: "SO"
+  },
+  {
+    name: "Flux",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "High-fidelity open image generation models from Black Forest Labs.", fa: "مدل‌های متن‌باز تولید تصویر باکیفیت از Black Forest Labs." },
+    price: 0,
+    pricing: { en: "Free open models + paid API access", fa: "مدل‌های متن‌باز رایگان + دسترسی API پولی" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["AI Image Artist", "ML Engineer"],
+    url: "https://blackforestlabs.ai",
+    tags: ["image", "open source", "generation"],
+    modelType: "image",
+    logo: "FX"
+  },
+  {
+    name: "Stability AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "Creators of Stable Diffusion — open models for image, video, and audio generation.", fa: "سازنده Stable Diffusion — مدل‌های متن‌باز برای تولید تصویر، ویدیو و صدا." },
+    price: 0,
+    pricing: { en: "Free open models + paid membership", fa: "مدل‌های متن‌باز رایگان + اشتراک پولی" },
+    plan: "freemium",
+    score: 85,
+    jobs: ["AI Image Artist", "Generative ML Engineer"],
+    url: "https://stability.ai",
+    tags: ["image", "open source", "diffusion"],
+    modelType: "image",
+    logo: "ST"
+  },
+  {
+    name: "Krea AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "Real-time AI image generation and editing with live canvas and enhancement tools.", fa: "تولید و ویرایش تصویر AI به‌صورت لحظه‌ای با بوم زنده و ابزار بهبود." },
+    price: 10,
+    pricing: { en: "Free daily credits + paid plans", fa: "اعتبار رایگان روزانه + پلن‌های پولی" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["AI Designer", "Visual Creator"],
+    url: "https://www.krea.ai",
+    tags: ["image", "realtime", "editing"],
+    modelType: "image",
+    logo: "KR"
+  },
+  {
+    name: "Higgsfield",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI video generation focused on cinematic camera motion and social-ready clips.", fa: "تولید ویدیوی AI با تمرکز بر حرکت سینمایی دوربین و کلیپ‌های شبکه اجتماعی." },
+    price: 15,
+    pricing: { en: "Free credits + paid plans", fa: "اعتبار رایگان + پلن‌های پولی" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["AI Video Creator", "Social Content Producer"],
+    url: "https://higgsfield.ai",
+    tags: ["video", "motion", "social"],
+    modelType: "video",
+    logo: "HF"
+  },
+  {
+    name: "Google Flow",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "Google's AI filmmaking tool built on Veo for generating and editing video scenes.", fa: "ابزار فیلم‌سازی AI گوگل بر پایه Veo برای تولید و ویرایش صحنه‌های ویدیو." },
+    price: 20,
+    pricing: { en: "Included with Google AI paid plans", fa: "همراه پلن‌های پولی Google AI" },
+    plan: "paid",
+    score: 83,
+    jobs: ["AI Filmmaker", "Motion Designer"],
+    url: "https://labs.google/flow",
+    tags: ["video", "google", "filmmaking"],
+    modelType: "video",
+    logo: "GF"
   }
 );
 
@@ -578,7 +750,17 @@ const toolRepos = {
   "Mistral Le Chat": "mistralai/mistral-src",
   "Luma AI":         "lumalabs/luma-api-examples",
   "Pika":            "pika-org/pikascript",
-  "Replit AI":       "replit/replit-ai-python"
+  "Replit AI":       "replit/replit-ai-python",
+  "Grok":            "xai-org/grok-1",
+  "DeepSeek":        "deepseek-ai/DeepSeek-V3",
+  "Cohere":          "cohere-ai/cohere-python",
+  "Meta AI":         "meta-llama/llama-models",
+  "Sora":            "openai/openai-cookbook",
+  "Flux":            "black-forest-labs/flux",
+  "Stability AI":    "Stability-AI/generative-models",
+  "Krea AI":         "krea-ai/open-prompts",
+  "Higgsfield":      "higgsfield-ai/higgsfield",
+  "Google Flow":     "google-deepmind/veo"
 };
 
 tools.forEach((tool) => {
@@ -1625,38 +1807,37 @@ async function copyTextFrom(selector) {
 
 // ── AI MODELS TICKER ─────────────────────────────────────
 const allAiModels = [
-  { name: "ChatGPT",       domain: "chatgpt.com" },
-  { name: "Claude",        domain: "claude.ai" },
-  { name: "Gemini",        domain: "gemini.google.com" },
-  { name: "Perplexity",    domain: "perplexity.ai" },
-  { name: "Midjourney",    domain: "midjourney.com" },
-  { name: "Runway",        domain: "runwayml.com" },
-  { name: "Kling AI",      domain: "klingai.com" },
-  { name: "Sora",          domain: "openai.com" },
-  { name: "ElevenLabs",    domain: "elevenlabs.io" },
-  { name: "Flux",          domain: "blackforestlabs.ai" },
-  { name: "Stability AI",  domain: "stability.ai" },
-  { name: "Adobe Firefly", domain: "firefly.adobe.com" },
-  { name: "Canva AI",      domain: "canva.com" },
-  { name: "Gamma",         domain: "gamma.app" },
-  { name: "Cursor",        domain: "cursor.com" },
-  { name: "GitHub Copilot",domain: "github.com" },
-  { name: "Hugging Face",  domain: "huggingface.co" },
-  { name: "Mistral",       domain: "mistral.ai" },
-  { name: "Luma AI",       domain: "lumalabs.ai" },
-  { name: "Pika",          domain: "pika.art" },
-  { name: "Zapier AI",     domain: "zapier.com" },
-  { name: "Notion AI",     domain: "notion.com" },
-  { name: "Suno",          domain: "suno.com" },
-  { name: "Replit AI",     domain: "replit.com" },
-  { name: "Krea AI",       domain: "krea.ai" },
-  { name: "Higgsfield",    domain: "higgsfield.ai" },
-  { name: "Google Flow",   domain: "labs.google" },
-  { name: "Grok",          domain: "x.ai" },
-  { name: "DeepSeek",      domain: "deepseek.com" },
-  { name: "Cohere",        domain: "cohere.com" },
-  { name: "Anthropic",     domain: "anthropic.com" },
-  { name: "Meta AI",       domain: "meta.ai" },
+  { name: "ChatGPT",        domain: "chatgpt.com" },
+  { name: "Claude",         domain: "claude.ai" },
+  { name: "Gemini",         domain: "gemini.google.com" },
+  { name: "Grok",           domain: "x.ai" },
+  { name: "DeepSeek",       domain: "deepseek.com" },
+  { name: "Perplexity",     domain: "perplexity.ai" },
+  { name: "Mistral Le Chat",domain: "mistral.ai" },
+  { name: "Cohere",         domain: "cohere.com" },
+  { name: "Meta AI",        domain: "meta.ai" },
+  { name: "Midjourney",     domain: "midjourney.com" },
+  { name: "Flux",           domain: "blackforestlabs.ai" },
+  { name: "Stability AI",   domain: "stability.ai" },
+  { name: "Adobe Firefly",  domain: "firefly.adobe.com" },
+  { name: "Krea AI",        domain: "krea.ai" },
+  { name: "Runway",         domain: "runwayml.com" },
+  { name: "Sora",           domain: "openai.com" },
+  { name: "Kling AI",       domain: "klingai.com" },
+  { name: "Luma AI",        domain: "lumalabs.ai" },
+  { name: "Pika",           domain: "pika.art" },
+  { name: "Higgsfield",     domain: "higgsfield.ai" },
+  { name: "Google Flow",    domain: "labs.google" },
+  { name: "ElevenLabs",     domain: "elevenlabs.io" },
+  { name: "Suno",           domain: "suno.com" },
+  { name: "Canva AI",       domain: "canva.com" },
+  { name: "Gamma",          domain: "gamma.app" },
+  { name: "Cursor",         domain: "cursor.com" },
+  { name: "GitHub Copilot", domain: "github.com" },
+  { name: "Replit AI",      domain: "replit.com" },
+  { name: "Hugging Face",   domain: "huggingface.co" },
+  { name: "Zapier AI",      domain: "zapier.com" },
+  { name: "Notion AI",      domain: "notion.com" },
 ];
 
 function renderModelsTicker() {
@@ -1670,6 +1851,75 @@ function renderModelsTicker() {
       <span>${m.name}</span>
     </div>
   `).join("");
+}
+
+// ── HERO MOTION GRAPHIC ───────────────────────────────────
+// A lightweight canvas "motion picture" — drifting light orbs and
+// a scanning sweep — that sits inline beside the hero title.
+function startHeroMotion() {
+  const canvas = $("#heroMotionCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  function size() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, r.width * dpr);
+    canvas.height = Math.max(1, r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size();
+  window.addEventListener("resize", size);
+
+  const orbs = Array.from({ length: 6 }, () => ({
+    x: Math.random(), y: Math.random(),
+    r: 0.18 + Math.random() * 0.32,
+    dx: (Math.random() - 0.5) * 0.0009,
+    dy: (Math.random() - 0.5) * 0.0009,
+    hue: ["#d8b76a", "#fff0b8", "#8f6f33", "#f4c96a"][Math.floor(Math.random() * 4)]
+  }));
+
+  let t = 0;
+  function frame() {
+    const r = canvas.getBoundingClientRect();
+    const W = r.width, H = r.height;
+    t += 0.006;
+
+    const base = ctx.createLinearGradient(0, 0, W, H);
+    base.addColorStop(0, "#0c0a06");
+    base.addColorStop(1, "#161109");
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.globalCompositeOperation = "lighter";
+    orbs.forEach((o, i) => {
+      o.x += o.dx; o.y += o.dy;
+      if (o.x < -0.3 || o.x > 1.3) o.dx *= -1;
+      if (o.y < -0.3 || o.y > 1.3) o.dy *= -1;
+      const px = (o.x + Math.sin(t + i) * 0.05) * W;
+      const py = (o.y + Math.cos(t * 0.8 + i) * 0.05) * H;
+      const rad = o.r * Math.min(W, H) * (1.4 + Math.sin(t * 1.3 + i) * 0.2);
+      const g = ctx.createRadialGradient(px, py, 0, px, py, rad);
+      g.addColorStop(0, o.hue + "88");
+      g.addColorStop(1, o.hue + "00");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(px, py, rad, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalCompositeOperation = "source-over";
+
+    const sweepX = ((t * 0.3) % 1.4 - 0.2) * W;
+    const sweep = ctx.createLinearGradient(sweepX - 40, 0, sweepX + 40, 0);
+    sweep.addColorStop(0, "rgba(255,240,184,0)");
+    sweep.addColorStop(0.5, "rgba(255,240,184,0.14)");
+    sweep.addColorStop(1, "rgba(255,240,184,0)");
+    ctx.fillStyle = sweep;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
 }
 
 // ── LIVE GITHUB DATA ──────────────────────────────────────
@@ -1806,158 +2056,38 @@ async function fetchLiveChartData() {
   isFetchingLive = false;
 }
 
-// ── LIVE 3D CHART (Three.js / WebGL) ──────────────────────
-let chart3D = null; // holds renderer/scene/camera/bars
-
+// ── LIVE CHART (flat bar chart, real GitHub data) ─────────
 function render3DChart() {
+  // (name kept for compatibility with existing callers)
+  renderLiveChart();
+}
+
+function metricValueOf(item) {
+  const v = activeMetric === "stars" ? item.stars
+    : activeMetric === "forks" ? item.forks
+    : item.activity;
+  return v == null ? 0 : v;
+}
+
+function formatMetricValue(v) {
+  if (v == null) return "—";
+  if (activeMetric === "activity") return `${v}/100`;
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  return String(Math.round(v));
+}
+
+function renderLiveChart() {
   const container = $("#performanceChart");
   if (!container) return;
-  if (typeof THREE === "undefined") {
-    // library not loaded yet — show a graceful flat fallback
-    renderFlatFallback(container);
-    return;
-  }
 
-  const getValue = item => {
-    const v = activeMetric === "stars" ? item.stars
-      : activeMetric === "forks" ? item.forks
-      : item.activity;
-    return v == null ? 0 : v;
-  };
-
-  // all metrics here are "higher is better"
   const sorted = [...liveChartData]
-    .filter(item => getValue(item) > 0)
-    .sort((a, b) => getValue(b) - getValue(a))
+    .filter(item => metricValueOf(item) > 0)
+    .sort((a, b) => metricValueOf(b) - metricValueOf(a))
     .slice(0, 12);
-
-  const maxVal = Math.max(...sorted.map(getValue), 1);
+  const maxVal = Math.max(...sorted.map(metricValueOf), 1);
   const compared = new Set(state.compare);
 
-  // ----- one-time scene setup -----
-  if (!chart3D || chart3D.container !== container) {
-    container.innerHTML = "";
-    const width = container.clientWidth || 900;
-    const height = 420;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 9, 20);
-    camera.lookAt(0, 1.5, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(width, height);
-    container.appendChild(renderer.domElement);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xfff0b8, 1.1);
-    key.position.set(8, 16, 12);
-    scene.add(key);
-    const rim = new THREE.DirectionalLight(0x8d62ff, 0.5);
-    rim.position.set(-10, 6, -8);
-    scene.add(rim);
-
-    // ground grid
-    const grid = new THREE.GridHelper(26, 26, 0x6a5a33, 0x2a2418);
-    grid.position.y = 0;
-    scene.add(grid);
-
-    const barsGroup = new THREE.Group();
-    scene.add(barsGroup);
-
-    chart3D = { container, scene, camera, renderer, barsGroup, width, height,
-                rotation: 0, dragging: false, lastX: 0, manual: false };
-
-    // drag to rotate
-    const dom = renderer.domElement;
-    dom.style.cursor = "grab";
-    dom.addEventListener("pointerdown", e => {
-      chart3D.dragging = true; chart3D.manual = true;
-      chart3D.lastX = e.clientX; dom.style.cursor = "grabbing";
-    });
-    window.addEventListener("pointerup", () => {
-      if (chart3D) { chart3D.dragging = false;
-        if (chart3D.renderer) chart3D.renderer.domElement.style.cursor = "grab"; }
-    });
-    window.addEventListener("pointermove", e => {
-      if (chart3D && chart3D.dragging) {
-        chart3D.rotation += (e.clientX - chart3D.lastX) * 0.01;
-        chart3D.lastX = e.clientX;
-      }
-    });
-
-    // keep it sized to the container
-    window.addEventListener("resize", () => {
-      if (!chart3D) return;
-      const w = container.clientWidth || 900;
-      chart3D.width = w;
-      chart3D.camera.aspect = w / chart3D.height;
-      chart3D.camera.updateProjectionMatrix();
-      chart3D.renderer.setSize(w, chart3D.height);
-    });
-
-    // animation loop
-    const animate = () => {
-      if (!chart3D) return;
-      requestAnimationFrame(animate);
-      if (!chart3D.manual) chart3D.rotation += 0.0025; // gentle auto-spin
-      chart3D.barsGroup.rotation.y = chart3D.rotation;
-      // ease bars toward their target height
-      chart3D.barsGroup.children.forEach(node => {
-        if (node.userData.targetH == null) return;
-        const cur = node.scale.y;
-        const target = node.userData.targetH;
-        node.scale.y += (target - cur) * 0.12;
-        node.position.y = node.scale.y / 2;
-      });
-      chart3D.renderer.render(chart3D.scene, chart3D.camera);
-    };
-    animate();
-  }
-
-  // ----- (re)build bars -----
-  const { barsGroup } = chart3D;
-  while (barsGroup.children.length) barsGroup.remove(barsGroup.children[0]);
-
-  const n = sorted.length;
-  const spacing = 2.2;
-  const startX = -((n - 1) * spacing) / 2;
-
-  sorted.forEach((item, i) => {
-    const val = getValue(item);
-    const norm = Math.max(0.04, val / maxVal);
-    const targetH = norm * 9; // world-units tall
-    const isCompared = compared.has(item.name);
-
-    const baseColor = isCompared ? 0xfff0b8 : 0xd8b76a;
-    const geo = new THREE.BoxGeometry(1.4, 1, 1.4);
-    const mat = new THREE.MeshStandardMaterial({
-      color: baseColor,
-      metalness: 0.45,
-      roughness: 0.3,
-      emissive: isCompared ? 0x8d62ff : 0x000000,
-      emissiveIntensity: isCompared ? 0.35 : 0
-    });
-    const bar = new THREE.Mesh(geo, mat);
-    bar.position.x = startX + i * spacing;
-    bar.scale.y = 0.05;            // grow in
-    bar.position.y = 0.025;
-    bar.userData.targetH = targetH;
-    barsGroup.add(bar);
-
-    // tool-name label above the bar
-    const sprite = makeLabelSprite(item.name, isCompared);
-    sprite.position.set(startX + i * spacing, targetH + 1.4, 0);
-    barsGroup.add(sprite);
-
-    // live value label just under the name
-    const valSprite = makeLabelSprite(formatMetricValue(val), isCompared, true);
-    valSprite.position.set(startX + i * spacing, targetH + 0.75, 0);
-    barsGroup.add(valSprite);
-  });
-
-  // header / metric label
+  // header label
   let label = $("#chart3DLabel");
   if (!label) {
     label = document.createElement("div");
@@ -1974,109 +2104,77 @@ function render3DChart() {
   label.textContent = sorted.length
     ? `${metricText}${comparedNote}`
     : `${metricText} — loading live data from GitHub…`;
-}
 
-// Format a metric value for display (e.g. 48213 -> "48.2k").
-function formatMetricValue(v) {
-  if (v == null) return "—";
-  if (activeMetric === "activity") return `${v}/100`;
-  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
-  return String(Math.round(v));
-}
-
-// Build a text label that floats above a 3D bar.
-function makeLabelSprite(textStr, highlighted, isValue) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256; canvas.height = 64;
-  const ctx = canvas.getContext("2d");
-  ctx.font = isValue ? "700 34px Inter, sans-serif" : "600 30px Inter, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = isValue
-    ? (highlighted ? "#fff0b8" : "#d8b76a")
-    : (highlighted ? "#fff0b8" : "#f8fbff");
-  ctx.fillText(textStr, 128, 34);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(isValue ? 2.6 : 3.4, isValue ? 0.65 : 0.85, 1);
-  return sprite;
-}
-
-// Flat HTML fallback if WebGL / Three.js is unavailable.
-function renderFlatFallback(container) {
-  const getValue = item => {
-    const v = activeMetric === "stars" ? item.stars
-      : activeMetric === "forks" ? item.forks
-      : item.activity;
-    return v == null ? 0 : v;
-  };
-  const sorted = [...liveChartData]
-    .filter(item => getValue(item) > 0)
-    .sort((a, b) => getValue(b) - getValue(a))
-    .slice(0, 12);
-  const maxVal = Math.max(...sorted.map(getValue), 1);
-  const compared = new Set(state.compare);
   if (!sorted.length) {
     container.innerHTML = `<div class="live-chart"><p class="empty">Loading live data from GitHub…</p></div>`;
     return;
   }
+
   container.innerHTML = `<div class="live-chart">
     ${sorted.map((item, i) => {
-      const val = getValue(item);
+      const val = metricValueOf(item);
       const pct = Math.min(100, (val / maxVal) * 100);
       const hot = compared.has(item.name);
       const color = hot ? "#fff0b8" : "#d8b76a";
       const disp = formatMetricValue(val);
-      return `<div class="live-bar-row" style="animation-delay:${i*40}ms">
-        <div class="bar-meta"><div class="bar-names"><strong>${item.name}</strong></div></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 12px ${color}55;"></div></div>
+      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="animation-delay:${i*45}ms">
+        <div class="bar-meta">
+          <img src="https://www.google.com/s2/favicons?domain=${item.domain || "github.com"}&sz=32" alt="" loading="lazy" onerror="this.style.display='none'" />
+          <div class="bar-names"><strong>${item.name}</strong></div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 14px ${color}55;"></div></div>
         <em class="bar-val" style="color:${color}">${disp}</em>
       </div>`;
     }).join("")}
   </div>`;
 }
 
-// ── VIDEO TEMPLATE STUDIO ─────────────────────────────────
-// Pick a luxury/minimal template, add a video, overlay animated
-// text, preview live on a <canvas>, and export a real .webm via
-// MediaRecorder. Fully local — no uploads, no API.
+
+// ── ADVANCED VIDEO STUDIO ─────────────────────────────────
+// Pick a template, add a video OR image, layer animated text,
+// choose aspect ratio / filter / transition / speed / music,
+// add intro & outro cards, preview at any size, and export a
+// real .webm. Fully local — no uploads, no API.
 const videoTemplates = [
   {
     id: "noir",
     name: { en: "Noir Luxe", fa: "نوآر لوکس" },
-    desc: { en: "Deep blacks, gold serif type, slow fade", fa: "مشکی عمیق، تایپ طلایی، فید آرام" },
+    desc: { en: "Deep blacks, gold serif type", fa: "مشکی عمیق، تایپ طلایی" },
     bg: "#070605", accent: "#d8b76a", text: "#fff0b8",
-    headlineFont: "Prata, serif", vignette: 0.55, grain: true
+    headlineFont: "Prata, serif", vignette: 0.55
   },
   {
     id: "ivory",
     name: { en: "Ivory Minimal", fa: "مینیمال عاجی" },
     desc: { en: "Bright, airy, thin sans type", fa: "روشن، تمیز، تایپ نازک" },
     bg: "#f4f1ea", accent: "#1a1a1a", text: "#1a1a1a",
-    headlineFont: "Inter, sans-serif", vignette: 0.12, grain: false
+    headlineFont: "Inter, sans-serif", vignette: 0.12
   },
   {
     id: "editorial",
     name: { en: "Editorial", fa: "ادیتوریال" },
     desc: { en: "Magazine framing, bold contrast", fa: "قاب مجله‌ای، کنتراست بالا" },
     bg: "#0c0b09", accent: "#ffffff", text: "#ffffff",
-    headlineFont: "Prata, serif", vignette: 0.4, grain: false
+    headlineFont: "Prata, serif", vignette: 0.4
   },
   {
     id: "warm",
     name: { en: "Warm Glow", fa: "درخشش گرم" },
     desc: { en: "Amber wash, soft and inviting", fa: "تم کهربایی، نرم و دلنشین" },
     bg: "#140d05", accent: "#f4c96a", text: "#ffe9c2",
-    headlineFont: "Prata, serif", vignette: 0.45, grain: true
+    headlineFont: "Prata, serif", vignette: 0.45
   }
 ];
 
 const vstudio = {
   templateId: "noir",
-  videoUrl: null,
-  videoEl: null,       // hidden <video> used as the canvas source
+  mediaUrl: null,
+  mediaEl: null,        // <video> or <img>
+  isVideo: false,
+  musicUrl: null,
+  musicEl: null,
+  logoUrl: null,
+  logoEl: null,         // <img> logo overlay
   rafId: null,
   startTime: 0,
   rendering: false
@@ -2085,10 +2183,13 @@ const vstudio = {
 function vsTemplate() {
   return videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
 }
-
 function vsStatus(msg) {
   const el = $("#vsStatus");
   if (el) el.textContent = msg || "";
+}
+function vsVal(id, fallback) {
+  const el = $(id);
+  return el ? el.value : fallback;
 }
 
 function renderTemplatePicker() {
@@ -2108,126 +2209,264 @@ function renderTemplatePicker() {
 function setVideoTemplate(id) {
   vstudio.templateId = id;
   renderTemplatePicker();
-  // re-render a static preview frame if a video is loaded
-  if (vstudio.videoEl) drawVideoFrame(0);
+  if (vstudio.mediaEl) drawStudioFrame(0);
 }
 
-function loadStudioVideo(file) {
+// Compute the canvas size from the chosen aspect ratio.
+function vsCanvasSize() {
+  const aspect = vsVal("#vsAspect", "original");
+  const m = vstudio.mediaEl;
+  let mw = (m && (m.videoWidth || m.naturalWidth)) || 1280;
+  let mh = (m && (m.videoHeight || m.naturalHeight)) || 720;
+  if (aspect === "original") {
+    const scale = mw > 1280 ? 1280 / mw : 1;
+    return { w: Math.round(mw * scale), h: Math.round(mh * scale) };
+  }
+  const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
+  const [aw, ah] = map[aspect] || [16, 9];
+  const base = 1080;
+  return aw >= ah
+    ? { w: base, h: Math.round(base * ah / aw) }
+    : { w: Math.round(base * aw / ah), h: base };
+}
+
+function loadStudioMedia(file) {
   if (!file) return;
-  if (vstudio.videoUrl) URL.revokeObjectURL(vstudio.videoUrl);
-  vstudio.videoUrl = URL.createObjectURL(file);
+  if (vstudio.mediaUrl) URL.revokeObjectURL(vstudio.mediaUrl);
+  vstudio.mediaUrl = URL.createObjectURL(file);
+  vstudio.isVideo = file.type.startsWith("video/");
 
-  const video = document.createElement("video");
-  video.src = vstudio.videoUrl;
-  video.muted = true;
-  video.playsInline = true;
-  video.crossOrigin = "anonymous";
-  video.addEventListener("loadedmetadata", () => {
-    vstudio.videoEl = video;
-    buildPreviewCanvas(video.videoWidth || 1280, video.videoHeight || 720);
-    drawVideoFrame(0);
-    vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد. روی پیش‌نمایش بزن." : "Video loaded. Hit Preview to play it.");
-  });
-  video.addEventListener("error", () => {
-    vsStatus(state.lang === "fa" ? "بارگذاری ویدیو ناموفق بود." : "Could not load that video file.");
-  });
+  if (vstudio.isVideo) {
+    const video = document.createElement("video");
+    video.src = vstudio.mediaUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = false;
+    video.addEventListener("loadedmetadata", () => {
+      vstudio.mediaEl = video;
+      buildPreviewCanvas();
+      drawStudioFrame(0);
+      vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد." : "Video loaded. Hit Preview.");
+    });
+    video.addEventListener("error", () => {
+      vsStatus(state.lang === "fa" ? "بارگذاری ویدیو ناموفق بود." : "Could not load that video.");
+    });
+  } else {
+    const img = new Image();
+    img.onload = () => {
+      vstudio.mediaEl = img;
+      buildPreviewCanvas();
+      drawStudioFrame(0);
+      vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد." : "Image loaded. Hit Preview.");
+    };
+    img.onerror = () => {
+      vsStatus(state.lang === "fa" ? "بارگذاری تصویر ناموفق بود." : "Could not load that image.");
+    };
+    img.src = vstudio.mediaUrl;
+  }
 }
 
-function buildPreviewCanvas(w, h) {
+function loadStudioMusic(file) {
+  if (!file) return;
+  if (vstudio.musicUrl) URL.revokeObjectURL(vstudio.musicUrl);
+  vstudio.musicUrl = URL.createObjectURL(file);
+  const audio = new Audio(vstudio.musicUrl);
+  audio.loop = true;
+  vstudio.musicEl = audio;
+  vsStatus(state.lang === "fa" ? "موسیقی اضافه شد." : "Music added.");
+}
+
+function loadStudioLogo(file) {
+  if (!file) return;
+  if (vstudio.logoUrl) URL.revokeObjectURL(vstudio.logoUrl);
+  vstudio.logoUrl = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    vstudio.logoEl = img;
+    if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+    vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
+  };
+  img.onerror = () => {
+    vsStatus(state.lang === "fa" ? "بارگذاری لوگو ناموفق بود." : "Could not load that logo.");
+  };
+  img.src = vstudio.logoUrl;
+}
+
+function buildPreviewCanvas() {
   const stage = $("#vsPreview");
   if (!stage) return;
-  // cap canvas resolution for performance, keep aspect ratio
-  const maxW = 1280;
-  const scale = w > maxW ? maxW / w : 1;
-  const cw = Math.round(w * scale);
-  const ch = Math.round(h * scale);
-  stage.innerHTML = `<canvas id="vsCanvas" width="${cw}" height="${ch}"></canvas>`;
+  const { w, h } = vsCanvasSize();
+  stage.innerHTML = `<canvas id="vsCanvas" width="${w}" height="${h}"></canvas>`;
+  applyPreviewSize();
 }
 
-// Draw one composited frame: video + template styling + text.
-function drawVideoFrame(elapsed) {
+// Manual preview-size control (40%–100% of the stage width).
+function applyPreviewSize() {
   const canvas = $("#vsCanvas");
-  const video = vstudio.videoEl;
-  if (!canvas || !video) return;
+  const slider = $("#vsPreviewSize");
+  const valEl = $("#vsPreviewSizeVal");
+  if (!canvas) return;
+  const pct = slider ? Number(slider.value) : 100;
+  canvas.style.width = pct + "%";
+  canvas.style.height = "auto";
+  if (valEl) valEl.textContent = pct + "%";
+}
+
+// CSS-style filter string for the chosen grade.
+function vsFilterString() {
+  switch (vsVal("#vsFilter", "none")) {
+    case "cinematic": return "contrast(1.15) saturate(0.9) brightness(0.95)";
+    case "warm":      return "saturate(1.15) sepia(0.25) brightness(1.03)";
+    case "cool":      return "saturate(1.1) hue-rotate(-12deg) brightness(1.02)";
+    case "mono":      return "grayscale(1) contrast(1.1)";
+    case "vivid":     return "saturate(1.5) contrast(1.1)";
+    default:          return "none";
+  }
+}
+
+// Draw a single composited frame at time `elapsed` (seconds).
+function drawStudioFrame(elapsed) {
+  const canvas = $("#vsCanvas");
+  const media = vstudio.mediaEl;
+  if (!canvas || !media) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const tpl = vsTemplate();
-  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
+  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
   const progress = Math.min(1, elapsed / duration);
+
+  const introText = (vsVal("#vsIntro", "") || "").trim();
+  const outroText = (vsVal("#vsOutro", "") || "").trim();
+  const introDur = introText ? 1.1 : 0;
+  const outroDur = outroText ? 1.1 : 0;
 
   // background
   ctx.fillStyle = tpl.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // video frame, contained with a slow gentle zoom (1.0 -> 1.06)
-  const zoom = 1 + progress * 0.06;
-  const vw = video.videoWidth || W, vh = video.videoHeight || H;
-  const fit = Math.min(W / vw, H / vh) * zoom;
-  const dw = vw * fit, dh = vh * fit;
+  // ----- intro card -----
+  if (introText && elapsed < introDur) {
+    const k = elapsed / introDur;
+    drawCard(ctx, W, H, tpl, introText, 1 - Math.abs(k - 0.5) * 2);
+    return;
+  }
+  // ----- outro card -----
+  if (outroText && elapsed > duration - outroDur) {
+    const k = (elapsed - (duration - outroDur)) / outroDur;
+    drawCard(ctx, W, H, tpl, outroText, 1 - Math.abs(k - 0.5) * 2);
+    return;
+  }
+
+  // ----- main media stage -----
+  const mw = media.videoWidth || media.naturalWidth || W;
+  const mh = media.videoHeight || media.naturalHeight || H;
+
+  // transition in
+  const trans = vsVal("#vsTransition", "fade");
+  const local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
+  const intro = Math.min(1, (elapsed - introDur) / 0.9);
+  const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
+
+  let zoom = 1 + local * 0.06;            // gentle drift
+  let offX = 0, offY = 0, alpha = 1;
+  if (trans === "zoom") zoom *= (1.18 - 0.18 * ease);
+  if (trans === "slide") offY = (1 - ease) * H * 0.12;
+  if (trans === "fade")  alpha = ease;
+
+  const fit = Math.min(W / mw, H / mh) * zoom;
+  const dw = mw * fit, dh = mh * fit;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.filter = vsFilterString();
   try {
-    ctx.drawImage(video, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.drawImage(media, (W - dw) / 2 + offX, (H - dh) / 2 + offY, dw, dh);
   } catch {}
+  ctx.restore();
+  ctx.filter = "none";
 
   // vignette
   if (tpl.vignette > 0) {
-    const grad = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
-    grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, `rgba(0,0,0,${tpl.vignette})`);
-    ctx.fillStyle = grad;
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, `rgba(0,0,0,${tpl.vignette})`);
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
 
-  // optional film grain
-  if (tpl.grain) {
+  // film grain
+  if ($("#vsGrain") && $("#vsGrain").checked) {
     ctx.save();
     ctx.globalAlpha = 0.05;
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 700; i++) {
       ctx.fillStyle = Math.random() > 0.5 ? "#fff" : "#000";
       ctx.fillRect(Math.random() * W, Math.random() * H, 1.5, 1.5);
     }
     ctx.restore();
   }
 
-  // text overlay (fades + rises in over first 1.2s)
-  const headline = ($("#vsHeadline")?.value || "").trim();
-  const sub = ($("#vsSub")?.value || "").trim();
-  const pos = $("#vsTextPos")?.value || "center";
-  const intro = Math.min(1, elapsed / 1.2);
-  const ease = 1 - Math.pow(1 - intro, 3);
+  // ----- text layers -----
+  const headline = (vsVal("#vsHeadline", "") || "").trim();
+  const sub = (vsVal("#vsSub", "") || "").trim();
+  const cta = (vsVal("#vsCta", "") || "").trim();
+  const pos = vsVal("#vsTextPos", "center");
+  const sizeMul = Number(vsVal("#vsTextSize", 1));
+  const textIntro = Math.min(1, (elapsed - introDur) / 1.2);
+  const tEase = 1 - Math.pow(1 - Math.max(0, textIntro), 3);
 
-  if (headline || sub) {
+  if (headline || sub || cta) {
     ctx.save();
-    ctx.globalAlpha = ease;
+    ctx.globalAlpha = tEase;
     ctx.textAlign = "center";
-
-    let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.78 : H * 0.5;
-    baseY += (1 - ease) * 24; // rise-up
+    let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
+    baseY += (1 - tEase) * 26;
 
     if (headline) {
-      const size = Math.round(W * 0.058);
-      ctx.font = `600 ${size}px ${tpl.headlineFont}`;
+      const fs = Math.round(W * 0.058 * sizeMul);
+      ctx.font = `600 ${fs}px ${tpl.headlineFont}`;
       ctx.fillStyle = tpl.text;
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
       ctx.shadowBlur = 18;
       ctx.fillText(headline, W / 2, baseY);
       ctx.shadowBlur = 0;
-    }
-    if (sub) {
-      const size = Math.round(W * 0.026);
-      ctx.font = `400 ${size}px Inter, sans-serif`;
-      ctx.fillStyle = tpl.accent;
-      ctx.fillText(sub, W / 2, baseY + (headline ? W * 0.05 : 0));
-    }
-    // a thin accent line under the text
-    if (headline) {
-      const lineW = W * 0.12 * ease;
+      const lw = W * 0.12 * tEase;
       ctx.strokeStyle = tpl.accent;
       ctx.lineWidth = Math.max(1, W * 0.002);
       ctx.beginPath();
-      ctx.moveTo(W / 2 - lineW / 2, baseY + W * 0.018);
-      ctx.lineTo(W / 2 + lineW / 2, baseY + W * 0.018);
+      ctx.moveTo(W / 2 - lw / 2, baseY + W * 0.022);
+      ctx.lineTo(W / 2 + lw / 2, baseY + W * 0.022);
       ctx.stroke();
     }
+    if (sub) {
+      const fs = Math.round(W * 0.026 * sizeMul);
+      ctx.font = `400 ${fs}px Inter, sans-serif`;
+      ctx.fillStyle = tpl.accent;
+      ctx.fillText(sub, W / 2, baseY + (headline ? W * 0.056 : 0));
+    }
+    if (cta) {
+      const fs = Math.round(W * 0.022 * sizeMul);
+      ctx.font = `600 ${fs}px Inter, sans-serif`;
+      ctx.fillStyle = tpl.text;
+      ctx.fillText(cta, W / 2, baseY + (headline ? W * 0.056 : 0) + (sub ? W * 0.05 : W * 0.04));
+    }
+    ctx.restore();
+  }
+
+  // logo overlay
+  if (vstudio.logoEl) {
+    const logo = vstudio.logoEl;
+    const lw0 = logo.naturalWidth || 1, lh0 = logo.naturalHeight || 1;
+    const targetW = W * 0.16;
+    const lw = targetW, lh = targetW * (lh0 / lw0);
+    const pad = W * 0.035;
+    const pos = vsVal("#vsLogoPos", "tl");
+    let lx = pad, ly = pad;
+    if (pos === "tr") { lx = W - lw - pad; ly = pad; }
+    if (pos === "bl") { lx = pad; ly = H - lh - pad; }
+    if (pos === "br") { lx = W - lw - pad; ly = H - lh - pad; }
+    ctx.save();
+    ctx.globalAlpha = 0.92 * tEase + 0.08;
+    try { ctx.drawImage(logo, lx, ly, lw, lh); } catch {}
     ctx.restore();
   }
 
@@ -2236,28 +2475,59 @@ function drawVideoFrame(elapsed) {
   ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
 }
 
+// Draw a centred intro/outro card.
+function drawCard(ctx, W, H, tpl, txt, alpha) {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.fillStyle = tpl.text;
+  ctx.textAlign = "center";
+  ctx.font = `600 ${Math.round(W * 0.05)}px ${tpl.headlineFont}`;
+  ctx.fillText(txt, W / 2, H / 2);
+  const lw = W * 0.1 * Math.max(0, alpha);
+  ctx.strokeStyle = tpl.accent;
+  ctx.lineWidth = Math.max(1, W * 0.002);
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - lw / 2, H / 2 + W * 0.04);
+  ctx.lineTo(W / 2 + lw / 2, H / 2 + W * 0.04);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function vsPlaybackRate() {
+  return Number(vsVal("#vsSpeed", 1)) || 1;
+}
+
 function previewStudioVideo() {
-  const video = vstudio.videoEl;
-  if (!video) {
-    vsStatus(state.lang === "fa" ? "اول یک ویدیو آپلود کن." : "Upload a video first.");
+  const media = vstudio.mediaEl;
+  if (!media) {
+    vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
     return;
   }
   if (vstudio.rendering) return;
-  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
+  // rebuild canvas in case aspect ratio changed
+  buildPreviewCanvas();
+  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
-  video.currentTime = 0;
-  video.play().catch(() => {});
+  if (vstudio.isVideo) {
+    media.currentTime = 0;
+    media.playbackRate = vsPlaybackRate();
+    media.play().catch(() => {});
+  }
+  if (vstudio.musicEl) {
+    try { vstudio.musicEl.currentTime = 0; vstudio.musicEl.play().catch(() => {}); } catch {}
+  }
   vstudio.startTime = performance.now();
 
   const loop = () => {
     const elapsed = (performance.now() - vstudio.startTime) / 1000;
-    drawVideoFrame(elapsed);
+    drawStudioFrame(elapsed);
     if (elapsed < duration) {
       vstudio.rafId = requestAnimationFrame(loop);
     } else {
-      video.pause();
-      drawVideoFrame(duration);
+      if (vstudio.isVideo) media.pause();
+      if (vstudio.musicEl) vstudio.musicEl.pause();
+      drawStudioFrame(duration);
     }
   };
   loop();
@@ -2266,9 +2536,9 @@ function previewStudioVideo() {
 // Export the composited result as a real .webm video file.
 async function exportStudioVideo() {
   const canvas = $("#vsCanvas");
-  const video = vstudio.videoEl;
-  if (!canvas || !video) {
-    vsStatus(state.lang === "fa" ? "اول یک ویدیو آپلود کن." : "Upload a video first.");
+  const media = vstudio.mediaEl;
+  if (!canvas || !media) {
+    vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
     return;
   }
   if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
@@ -2277,10 +2547,26 @@ async function exportStudioVideo() {
   }
   if (vstudio.rendering) return;
   vstudio.rendering = true;
-  vsStatus(state.lang === "fa" ? "در حال رندر ویدیو... این تب را باز نگه دار." : "Rendering video… keep this tab open.");
+  vsStatus(state.lang === "fa" ? "در حال رندر... این تب را باز نگه دار." : "Rendering… keep this tab open.");
 
-  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
-  const stream = canvas.captureStream(30);
+  buildPreviewCanvas();
+  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const canvasStream = canvas.captureStream(30);
+
+  // mix in music audio if present
+  let tracks = [...canvasStream.getVideoTracks()];
+  let audioCtx = null;
+  if (vstudio.musicEl) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = audioCtx.createMediaElementSource(vstudio.musicEl);
+      const dest = audioCtx.createMediaStreamDestination();
+      src.connect(dest);
+      src.connect(audioCtx.destination);
+      tracks = tracks.concat(dest.stream.getAudioTracks());
+    } catch {}
+  }
+  const stream = new MediaStream(tracks);
   const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
     ? "video/webm;codecs=vp9" : "video/webm";
   const recorder = new MediaRecorder(stream, { mimeType: mime });
@@ -2301,19 +2587,26 @@ async function exportStudioVideo() {
   });
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
-  video.currentTime = 0;
-  await video.play().catch(() => {});
+  if (vstudio.isVideo) {
+    media.currentTime = 0;
+    media.playbackRate = vsPlaybackRate();
+    await media.play().catch(() => {});
+  }
+  if (vstudio.musicEl) {
+    try { vstudio.musicEl.currentTime = 0; await vstudio.musicEl.play().catch(() => {}); } catch {}
+  }
   recorder.start();
   vstudio.startTime = performance.now();
 
   await new Promise(resolve => {
     const loop = () => {
       const elapsed = (performance.now() - vstudio.startTime) / 1000;
-      drawVideoFrame(elapsed);
+      drawStudioFrame(elapsed);
       if (elapsed < duration) {
         vstudio.rafId = requestAnimationFrame(loop);
       } else {
-        video.pause();
+        if (vstudio.isVideo) media.pause();
+        if (vstudio.musicEl) vstudio.musicEl.pause();
         recorder.stop();
         resolve();
       }
@@ -2322,6 +2615,7 @@ async function exportStudioVideo() {
   });
 
   await done;
+  if (audioCtx) { try { audioCtx.close(); } catch {} }
   vstudio.rendering = false;
   vsStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
 }
@@ -2359,23 +2653,36 @@ function bindEvents() {
   on("#copyCaptionButton", "click", () => copyTextFrom("#captionOutput"));
   on("#copyMediaJsonButton", "click", () => copyTextFrom("#mediaJsonOutput"));
 
-  on("#jobForm", "submit", (event) => {
-    event.preventDefault();
+  on("#jobSuggestBtn", "click", () => {
     renderJobAdvice($("#skillsInput").value);
     renderJobSources();
   });
 
-  on("#promptForm", "submit", async (event) => {
-    event.preventDefault();
-    const result = await enhancePrompt($("#simplePromptInput").value);
-    $("#advancedPromptOutput").textContent = result;
+  on("#promptGenBtn", "click", async () => {
+    const btn = $("#promptGenBtn");
+    btn.disabled = true;
+    try {
+      const result = await enhancePrompt($("#simplePromptInput").value);
+      $("#advancedPromptOutput").textContent = result;
+    } catch (e) {
+      $("#advancedPromptOutput").textContent = "Error: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
   });
   on("#copyPromptButton", "click", () => copyTextFrom("#advancedPromptOutput"));
   on("#copyJsonButton", "click", () => copyTextFrom("#jsonOutput"));
-  on("#jsonForm", "submit", async (event) => {
-    event.preventDefault();
-    const result = await textToJson($("#textJsonInput").value);
-    $("#jsonOutput").textContent = result;
+  on("#jsonGenBtn", "click", async () => {
+    const btn = $("#jsonGenBtn");
+    btn.disabled = true;
+    try {
+      const result = await textToJson($("#textJsonInput").value);
+      $("#jsonOutput").textContent = result;
+    } catch (e) {
+      $("#jsonOutput").textContent = "Error: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // Chart tabs — switching metric only re-renders cached data
@@ -2392,7 +2699,7 @@ function bindEvents() {
   // Refresh button does a real new fetch from GitHub.
   on("#refreshChartBtn", "click", fetchLiveChartData);
 
-  // Video Template Studio
+  // Advanced Video Studio
   const picker = $("#templatePicker");
   if (picker) {
     picker.addEventListener("click", (e) => {
@@ -2400,14 +2707,33 @@ function bindEvents() {
       if (card) setVideoTemplate(card.dataset.template);
     });
   }
-  on("#vsUpload", "change", (e) => loadStudioVideo(e.target.files[0]));
+  on("#vsUpload", "change", (e) => loadStudioMedia(e.target.files[0]));
+  on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
+  on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
-  // live-update the static preview frame as text/settings change
-  ["#vsHeadline", "#vsSub", "#vsTextPos", "#vsDuration"].forEach(sel => {
-    on(sel, "input", () => { if (vstudio.videoEl && !vstudio.rendering) drawVideoFrame(0); });
-    on(sel, "change", () => { if (vstudio.videoEl && !vstudio.rendering) drawVideoFrame(0); });
+  on("#vsPreviewSize", "input", applyPreviewSize);
+
+  // Live-update the static preview frame when any setting changes.
+  const vsLiveControls = [
+    "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+    "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
+    "#vsIntro", "#vsOutro", "#vsLogoPos"
+  ];
+  const vsRefresh = () => {
+    if (!vstudio.mediaEl || vstudio.rendering) return;
+    drawStudioFrame(0);
+  };
+  const vsRefreshAspect = () => {
+    if (!vstudio.mediaEl || vstudio.rendering) return;
+    buildPreviewCanvas();
+    drawStudioFrame(0);
+  };
+  vsLiveControls.forEach(sel => {
+    on(sel, "input", vsRefresh);
+    on(sel, "change", vsRefresh);
   });
+  on("#vsAspect", "change", vsRefreshAspect);
 
   // Copy on every ai-output: click to copy
   document.addEventListener("click", (e) => {
@@ -2429,14 +2755,15 @@ renderMetrics();
 renderControls();
 bindEvents();
 renderModelsTicker();
+startHeroMotion();
 renderTemplatePicker();
 fetchLiveChartData();
 setLanguage(state.lang);
 renderJobSources();
 startJobTicker();
 
-// Once the Three.js library has loaded, (re)render as a real 3D chart.
-window.addEventListener("load", () => render3DChart());
+// Render the live chart once the page is ready.
+window.addEventListener("load", () => renderLiveChart());
 
 // Auto-refresh from the GitHub API every 5 minutes.
 // (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
