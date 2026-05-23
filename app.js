@@ -86,6 +86,7 @@ const i18n = {
     mediaTitle: "Caption your photo or video for social media",
     mediaText: "Upload the photo or video you want to post, pick a platform, and get a ready-to-share caption with hooks and hashtags — built around your media.",
     mediaUploadLabel: "Upload image or video",
+    mediaSubjectLabel: "What's in the photo/video?",
     mediaGoalLabel: "Goal",
     platformLabel: "Platform",
     toneLabel: "Tone",
@@ -255,6 +256,7 @@ const i18n = {
     mediaTitle: "برای عکس یا ویدیوی خود کپشن شبکه اجتماعی بساز",
     mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
     mediaUploadLabel: "آپلود عکس یا ویدیو",
+    mediaSubjectLabel: "در عکس/ویدیو چه چیزی هست؟",
     mediaGoalLabel: "هدف",
     platformLabel: "پلتفرم",
     toneLabel: "لحن",
@@ -956,6 +958,17 @@ function formatPrice(price) {
   return state.lang === "fa" ? `از حدود $${price}` : `From about $${price}`;
 }
 
+// When the "free option" filter is on, every visible tool has a free
+// tier — so show a clean "Free" badge instead of a price.
+function priceBadge(tool) {
+  if (state.freeOnly) return state.lang === "fa" ? "رایگان" : "Free";
+  return formatPrice(tool.price);
+}
+function priceBadgeClass(tool) {
+  const isFree = state.freeOnly || tool.price === 0;
+  return isFree ? "price-free" : "price-paid";
+}
+
 function uniqueCategories() {
   const map = new Map();
   tools.forEach((tool) => map.set(text(tool.category), tool.category.en));
@@ -1114,7 +1127,7 @@ function renderToolCard(tool) {
             <span class="tag">${text(tool.category)}</span>
           </div>
         </div>
-        <span class="price">${formatPrice(tool.price)}</span>
+        <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
       </div>
       <p>${text(tool.useCase)}</p>
       <div class="tags">
@@ -1684,7 +1697,43 @@ const promptStyles = {
 // no negative prompt, no JSON — just a ready-to-paste prompt.
 function localEnhancePrompt(goal, style) {
   const descriptors = promptStyles[style] || promptStyles.cinematic;
-  return `${goal}, ${descriptors}.`;
+  const subject = goal.trim();
+  // A professional prompt: subject first, then scene + technical specs.
+  return `${cap(subject)}, ${descriptors}, intricate detail, balanced composition, ` +
+    `professional color grading, masterpiece quality, highly detailed, sharp focus.`;
+}
+
+// Build a professional structured JSON prompt from a word or short idea.
+function localPromptJson(goal, style) {
+  const subject = (goal || "").trim() || "subject";
+  const styleMap = {
+    cinematic: { lighting: "golden-hour rim light", lens: "anamorphic 35mm",
+      grade: "filmic, teal-orange", mood: "dramatic, atmospheric" },
+    editorial: { lighting: "studio softbox", lens: "85mm portrait",
+      grade: "clean, refined", mood: "polished, high-fashion" },
+    hyperreal: { lighting: "natural daylight", lens: "50mm prime",
+      grade: "true-to-life", mood: "lifelike, crisp" },
+    minimal: { lighting: "soft diffused", lens: "50mm",
+      grade: "muted premium palette", mood: "calm, understated" },
+    render3d: { lighting: "studio HDRI", lens: "virtual 40mm",
+      grade: "physically based", mood: "clean, polished CGI" },
+    anime: { lighting: "expressive cel light", lens: "illustrative",
+      grade: "vibrant", mood: "stylized, energetic" }
+  };
+  const s = styleMap[style] || styleMap.cinematic;
+  return JSON.stringify({
+    subject: subject,
+    style: style || "cinematic",
+    prompt: `${cap(subject)}, ${promptStyles[style] || promptStyles.cinematic}`,
+    lighting: s.lighting,
+    camera: s.lens,
+    color_grade: s.grade,
+    mood: s.mood,
+    composition: "balanced, strong focal subject, generous negative space",
+    quality: ["8k", "ultra-detailed", "sharp focus", "professional"],
+    negative_prompt: "blurry, low resolution, distorted, watermark, text, extra limbs",
+    aspect_ratio: "16:9"
+  }, null, 2);
 }
 
 function localTextToJson(value) {
@@ -1708,33 +1757,45 @@ function localTextToJson(value) {
 
 // Build a caption that reflects the actual uploaded media —
 // its type (photo/video), shape, and dominant color mood.
-function localCaption(goal, platform, tone, media) {
+function localCaption(goal, platform, tone, media, subject) {
   const m = media || {};
   const kind = m.type === "video" ? "video" : m.type === "image" ? "photo" : "post";
   const mood = m.mood || "balanced";
   const shape = m.shape || "";
   const colorWord = m.colorWord || "";
+  const subj = (subject || "").trim();
 
-  const hooks = [
-    kind === "video"
-      ? "Press play — this is worth 10 seconds."
-      : "Stop scrolling. Look at this for a second.",
+  // Subject-led hooks when the user told us what's in the media.
+  const hooks = subj ? [
+    `That ${subj}? Worth a second look.`,
+    `${cap(subj)} — caught at exactly the right moment.`,
+    `Tell me this ${subj} doesn't stop your scroll.`
+  ] : [
+    kind === "video" ? "Press play — this is worth 10 seconds."
+                      : "Stop scrolling. Look at this for a second.",
     `The ${mood} ${colorWord} tones here? Not an accident.`,
     "Here's how I'd make this work for you."
   ];
-  const subject = goal && goal !== "Promote this media"
-    ? goal
-    : `this ${kind}`;
 
-  const caption =
-`This ${kind} — ${colorWord ? colorWord + ", " : ""}${mood} and made for ${platform}.
-${subject}. ${shape ? "Shot " + shape + ". " : ""}Tap save before you forget. ↓`;
+  // Caption sentence built from the actual scene + subject.
+  const sceneBits = [colorWord, mood].filter(Boolean).join(", ");
+  const caption = subj
+    ? `${cap(subj)} — ${sceneBits ? sceneBits + ", " : ""}framed for ${platform}.${
+        shape ? " Shot " + shape + "." : ""} ${goal && goal !== "Promote this media"
+        ? goal + "." : "Save this one."} ↓`
+    : `This ${kind} — ${sceneBits ? sceneBits + ", " : ""}made for ${platform}. ${
+        goal && goal !== "Promote this media" ? goal + "." : "Tap save before you forget."} ↓`;
 
-  const tags = ["#" + platform.replace(/\s+/g, ""), "#" + tone,
+  // Hashtags include subject-derived tags.
+  const subjTags = subj
+    ? subj.split(/\s+/).filter(w => w.length > 2).slice(0, 2)
+        .map(w => "#" + w.replace(/[^a-zA-Z0-9]/g, ""))
+    : [];
+  const tags = [...subjTags, "#" + platform.replace(/\s+/g, ""), "#" + tone,
     kind === "video" ? "#Reels" : "#PhotoOfTheDay",
     colorWord ? "#" + colorWord.replace(/\s+/g, "") : "#Aesthetic",
-    "#ContentCreation", "#CreatorEconomy", "#" + mood,
-    "#SocialMedia", "#Viral", "#" + kind];
+    "#ContentCreation", "#" + mood, "#SocialMedia", "#" + kind]
+    .filter((v, i, a) => a.indexOf(v) === i);
 
   return `### CAPTION
 ${caption}
@@ -1748,8 +1809,14 @@ ${caption}
 ${tags.join(" ")}
 
 ### IMAGE PROMPT (for recreating similar content)
-${tone} ${platform} ${kind}: ${colorWord || "balanced"} color palette, ${mood} mood,
-${shape || "balanced framing"}, clean composition, strong focal subject, professional finish.`;
+${subj ? cap(subj) + ", " : ""}${tone.toLowerCase()} ${kind}, ${colorWord || "balanced"} color palette,
+${mood} mood, ${shape || "balanced framing"}, clean composition, strong focal subject,
+professional lighting, high detail, 8k.`;
+}
+
+// Capitalize the first letter of a phrase.
+function cap(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 // Sample an image's dominant color and describe it in words.
@@ -1795,8 +1862,15 @@ function enhancePrompt(value) {
 }
 
 function textToJson(value) {
-  if (!value.trim()) return "{}";
-  return localTextToJson(value);
+  const v = value.trim();
+  if (!v) return "{}";
+  // If it looks like Key: Value data, structure it as-is.
+  if (/^[^:\n]{1,40}:.+/m.test(v) && v.includes(":")) {
+    return localTextToJson(v);
+  }
+  // Otherwise treat it as a creative idea → professional prompt JSON.
+  const style = $("#promptStyleSelect")?.value || "cinematic";
+  return localPromptJson(v, style);
 }
 
 function registerUser() {
@@ -1864,6 +1938,7 @@ function buildCaptionPayload() {
 
 async function generateMediaCaption() {
   const goal = $("#mediaGoalInput").value.trim() || "Promote this media";
+  const subject = ($("#mediaSubjectInput")?.value || "").trim();
   const platform = $("#platformSelect").value;
   const tone = $("#toneSelect").value;
   const preview = $("#mediaPreview");
@@ -1913,7 +1988,7 @@ async function generateMediaCaption() {
 
   try {
     // Caption is generated locally, built from the uploaded media.
-    const fullText = localCaption(goal, platform, tone, mediaInfo);
+    const fullText = localCaption(goal, platform, tone, mediaInfo, subject);
 
     // Parse the structured sections.
     const captionMatch = fullText.match(/### CAPTION\s*\n([\s\S]*?)(?=###|$)/);
@@ -2861,6 +2936,73 @@ function setPlayBtn(playing) {
 }
 
 // Refresh which timeline clips look "active" based on real content.
+// ── STUDIO UNDO / REDO ────────────────────────────────────
+// Snapshots every studio control so changes can be reverted.
+const VS_CONTROLS = [
+  "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+  "#vsLogoPos", "#vsIntro", "#vsOutro"
+];
+const vsHistory = { stack: [], index: -1, suspended: false };
+
+function vsSnapshot() {
+  const snap = { templateId: vstudio.templateId };
+  VS_CONTROLS.forEach(sel => {
+    const el = $(sel);
+    if (el) snap[sel] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  const grain = $("#vsGrain");
+  if (grain) snap["#vsGrain"] = grain.checked;
+  return snap;
+}
+
+function vsPushHistory() {
+  if (vsHistory.suspended) return;
+  const snap = vsSnapshot();
+  // drop any redo branch, then push
+  vsHistory.stack = vsHistory.stack.slice(0, vsHistory.index + 1);
+  vsHistory.stack.push(snap);
+  if (vsHistory.stack.length > 50) vsHistory.stack.shift();
+  vsHistory.index = vsHistory.stack.length - 1;
+  vsUpdateUndoButtons();
+}
+
+function vsApplySnapshot(snap) {
+  vsHistory.suspended = true;
+  if (snap.templateId) setVideoTemplate(snap.templateId);
+  Object.keys(snap).forEach(sel => {
+    if (sel === "templateId") return;
+    const el = $(sel);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = snap[sel];
+    else el.value = snap[sel];
+  });
+  vsHistory.suspended = false;
+  if (vstudio.mediaEl && !vstudio.rendering) {
+    buildPreviewCanvas();
+    drawStudioFrame(0);
+  }
+  refreshTimelineClips();
+}
+
+function vsUndo() {
+  if (vsHistory.index <= 0) return;
+  vsHistory.index--;
+  vsApplySnapshot(vsHistory.stack[vsHistory.index]);
+  vsUpdateUndoButtons();
+}
+function vsRedo() {
+  if (vsHistory.index >= vsHistory.stack.length - 1) return;
+  vsHistory.index++;
+  vsApplySnapshot(vsHistory.stack[vsHistory.index]);
+  vsUpdateUndoButtons();
+}
+function vsUpdateUndoButtons() {
+  const u = $("#vsUndoBtn"), r = $("#vsRedoBtn");
+  if (u) u.disabled = vsHistory.index <= 0;
+  if (r) r.disabled = vsHistory.index >= vsHistory.stack.length - 1;
+}
+
 function refreshTimelineClips() {
   const set = (id, has) => {
     const el = $(id);
@@ -3075,7 +3217,7 @@ function bindEvents() {
   if (picker) {
     picker.addEventListener("click", (e) => {
       const card = e.target.closest("[data-template]");
-      if (card) setVideoTemplate(card.dataset.template);
+      if (card) { setVideoTemplate(card.dataset.template); vsPushHistory(); }
     });
   }
   // Category tabs — show one control panel at a time.
@@ -3117,6 +3259,16 @@ function bindEvents() {
     on(sel, "change", vsRefresh);
   });
   on("#vsAspect", "change", vsRefreshAspect);
+
+  // Undo / redo: snapshot studio state after each settled change.
+  VS_CONTROLS.concat(["#vsGrain"]).forEach(sel => {
+    on(sel, "change", () => vsPushHistory());
+  });
+  on("#vsUndoBtn", "click", vsUndo);
+  on("#vsRedoBtn", "click", vsRedo);
+  // capture the initial state as the first history entry
+  vsPushHistory();
+  vsUpdateUndoButtons();
 
   // Timeline: play/pause button + scrubbing by dragging the track area.
   on("#vsPlayBtn", "click", () => {
