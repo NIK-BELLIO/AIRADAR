@@ -3,6 +3,21 @@ const i18n = {
     navTools: "Tools",
     navPerformance: "Live charts",
     navMedia: "Caption AI",
+    navStudio: "Video studio",
+    studioEyebrow: "Video template studio",
+    studioTitle: "Create a luxurious, minimal video",
+    studioText: "Pick a template, drop in your video, add animated text, preview it live, and export a real .webm file — all free in your browser.",
+    vTemplateLabel: "1 \u00b7 Choose a template",
+    vUploadLabel: "2 \u00b7 Add your video",
+    vUploadHint: "Upload a video clip (.mp4, .webm, .mov)",
+    vTextLabel: "3 \u00b7 Add text",
+    vHeadlineLabel: "Headline",
+    vSubLabel: "Subtext",
+    vTextPosLabel: "Text position",
+    vDurationLabel: "Duration (seconds)",
+    vPreviewBtn: "Preview",
+    vExportBtn: "Export .webm",
+    vPlaceholder: "Choose a template and upload a video to preview it here",
     navIntelligence: "Prompt lab",
     navJobs: "AI jobs",
     navRegister: "Register",
@@ -28,9 +43,9 @@ const i18n = {
     compareEyebrow: "Compare",
     compareTitle: "Compare selected tools",
     clearCompare: "Clear",
-    performanceEyebrow: "Artificial Analysis snapshot",
-    performanceTitle: "Best and worst model performance",
-    performanceText: "Model performance snapshot attributed to Artificial Analysis. Full live data requires an API or server-side refresh.",
+    performanceEyebrow: "Live GitHub data",
+    performanceTitle: "Live AI tools trend — 3D chart",
+    performanceText: "A live 3D chart of real GitHub popularity for every AI tool in the finder — drag to rotate. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
     mediaEyebrow: "Media caption generator",
     mediaTitle: "Upload an image or video and generate captions",
     mediaText: "Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.",
@@ -113,7 +128,22 @@ const i18n = {
   fa: {
     navTools: "ابزارها",
     navPerformance: "چارت زنده",
-    navMedia: "کپشن AI",
+    navMedia: "\u06a9\u067e\u0634\u0646 AI",
+    navStudio: "\u0627\u0633\u062a\u0648\u062f\u06cc\u0648\u06cc \u0648\u06cc\u062f\u06cc\u0648",
+    studioEyebrow: "\u0627\u0633\u062a\u0648\u062f\u06cc\u0648\u06cc \u0642\u0627\u0644\u0628 \u0648\u06cc\u062f\u06cc\u0648",
+    studioTitle: "\u06cc\u06a9 \u0648\u06cc\u062f\u06cc\u0648\u06cc \u0644\u0648\u06a9\u0633 \u0648 \u0645\u06cc\u0646\u06cc\u0645\u0627\u0644 \u0628\u0633\u0627\u0632",
+    studioText: "\u06cc\u06a9 \u0642\u0627\u0644\u0628 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646\u060c \u0648\u06cc\u062f\u06cc\u0648\u062a \u0631\u0627 \u0627\u0636\u0627\u0641\u0647 \u06a9\u0646\u060c \u0645\u062a\u0646 \u0645\u062a\u062d\u0631\u06a9 \u0628\u06af\u0630\u0627\u0631\u060c \u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634 \u0628\u06af\u06cc\u0631 \u0648 \u062e\u0631\u0648\u062c\u06cc .webm \u0648\u0627\u0642\u0639\u06cc \u0628\u06af\u06cc\u0631 \u2014 \u0647\u0645\u0647 \u0631\u0627\u06cc\u06af\u0627\u0646 \u062f\u0627\u062e\u0644 \u0645\u0631\u0648\u0631\u06af\u0631.",
+    vTemplateLabel: "\u06f1 \u00b7 \u0627\u0646\u062a\u062e\u0627\u0628 \u0642\u0627\u0644\u0628",
+    vUploadLabel: "\u06f2 \u00b7 \u0627\u0641\u0632\u0648\u062f\u0646 \u0648\u06cc\u062f\u06cc\u0648",
+    vUploadHint: "\u06cc\u06a9 \u06a9\u0644\u06cc\u067e \u0648\u06cc\u062f\u06cc\u0648 \u0622\u067e\u0644\u0648\u062f \u06a9\u0646 (.mp4, .webm, .mov)",
+    vTextLabel: "\u06f3 \u00b7 \u0627\u0641\u0632\u0648\u062f\u0646 \u0645\u062a\u0646",
+    vHeadlineLabel: "\u062a\u06cc\u062a\u0631",
+    vSubLabel: "\u0632\u06cc\u0631\u0646\u0648\u06cc\u0633",
+    vTextPosLabel: "\u0645\u0648\u0642\u0639\u06cc\u062a \u0645\u062a\u0646",
+    vDurationLabel: "\u0645\u062f\u062a (\u062b\u0627\u0646\u06cc\u0647)",
+    vPreviewBtn: "\u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634",
+    vExportBtn: "\u062e\u0631\u0648\u062c\u06cc .webm",
+    vPlaceholder: "\u06cc\u06a9 \u0642\u0627\u0644\u0628 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646 \u0648 \u0648\u06cc\u062f\u06cc\u0648 \u0622\u067e\u0644\u0648\u062f \u06a9\u0646 \u062a\u0627 \u0627\u06cc\u0646\u062c\u0627 \u067e\u06cc\u0634\u200c\u0646\u0645\u0627\u06cc\u0634 \u062f\u0627\u062f\u0647 \u0634\u0648\u062f",
     navIntelligence: "لابراتوار پرامپت",
     navJobs: "کار AI",
     navRegister: "رجیستر",
@@ -139,9 +169,9 @@ const i18n = {
     compareEyebrow: "مقایسه",
     compareTitle: "مقایسه ابزارهای انتخاب‌شده",
     clearCompare: "پاک کردن",
-    performanceEyebrow: "داده Artificial Analysis",
-    performanceTitle: "بهترین و ضعیف‌ترین عملکرد مدل‌ها",
-    performanceText: "نمای snapshot با ارجاع به Artificial Analysis. داده live کامل نیاز به API یا refresh سمت سرور دارد.",
+    performanceEyebrow: "داده زنده گیت‌هاب",
+    performanceTitle: "ترند زنده ابزارهای AI — نمودار سه‌بعدی",
+    performanceText: "نمودار سه‌بعدی زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب — برای چرخش درگ کن. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
     mediaEyebrow: "تولید کپشن رسانه",
     mediaTitle: "عکس یا ویدیو آپلود کن و کپشن بگیر",
     mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
@@ -521,12 +551,44 @@ tools.push(
   }
 );
 
+// ── GITHUB REPO MAP ───────────────────────────────────────
+// Each tool is mapped to a representative public GitHub repo.
+// Open-source tools use their own repo; closed-source products
+// (ChatGPT, Claude, etc.) use their official public SDK/org repo
+// — a real, live signal of developer interest in that ecosystem.
+// The live 3D chart and the comparison table both read the star
+// counts fetched from these repos, so the two stay aligned.
+const toolRepos = {
+  "ChatGPT":         "openai/openai-python",
+  "Claude":          "anthropics/anthropic-sdk-python",
+  "Perplexity":      "ppl-ai/api-cookbook",
+  "Cursor":          "getcursor/cursor",
+  "GitHub Copilot":  "github/copilot.vim",
+  "Canva AI":        "canva-sdks/canva-apps-sdk-starter-kit",
+  "Runway":          "runwayml/sdk-node",
+  "ElevenLabs":      "elevenlabs/elevenlabs-python",
+  "Hugging Face":    "huggingface/transformers",
+  "Gamma":           "gamma-app/gamma-cli",
+  "Zapier AI":       "zapier/zapier-platform",
+  "Notion AI":       "makenotion/notion-sdk-js",
+  "Gemini":          "google-gemini/cookbook",
+  "Midjourney":      "midjourney/docs",
+  "Adobe Firefly":   "AdobeDocs/firefly-services",
+  "Suno":            "suno-ai/bark",
+  "Mistral Le Chat": "mistralai/mistral-src",
+  "Luma AI":         "lumalabs/luma-api-examples",
+  "Pika":            "pika-org/pikascript",
+  "Replit AI":       "replit/replit-ai-python"
+};
+
 tools.forEach((tool) => {
   tool.logo ||= tool.name.slice(0, 2).toUpperCase();
   try {
     tool.logoUrl ||= `https://www.google.com/s2/favicons?domain=${new URL(tool.url).hostname}&sz=64`;
+    tool.domain ||= new URL(tool.url).hostname;
   } catch {
     tool.logoUrl ||= "";
+    tool.domain ||= "";
   }
   tool.modelType ||= tool.category.en.toLowerCase().includes("coding")
     ? "coding"
@@ -537,6 +599,13 @@ tools.forEach((tool) => {
         : tool.category.en.toLowerCase().includes("audio")
           ? "audio"
           : "text";
+  // GitHub repo + live-metric placeholders (filled by fetchLiveChartData)
+  tool.repo = toolRepos[tool.name] || null;
+  tool.stars = null;        // live: stargazers_count
+  tool.forks = null;        // live: forks_count
+  tool.issues = null;       // live: open_issues_count
+  tool.pushedAt = null;     // live: pushed_at (ISO date of last push)
+  tool.activityDays = null; // derived: days since last push
 });
 
 const aaModelSnapshot = [
@@ -631,8 +700,7 @@ function setLanguage(lang) {
   renderControls();
   renderTools();
   renderCompare();
-  renderPerformanceChart();
-  renderHeroLiveChart();
+  render3DChart();
   renderJobAdvice($("#skillsInput").value);
   if ($("#jobSources")) renderJobSources();
 }
@@ -777,32 +845,57 @@ function renderCompare() {
     return;
   }
 
+  // pull the latest live GitHub numbers so the table matches the 3D chart
+  const liveByName = {};
+  liveChartData.forEach((d) => { liveByName[d.name] = d; });
+
+  const fa = state.lang === "fa";
+  const colStars    = fa ? "ستاره‌های گیت‌هاب" : "GitHub Stars";
+  const colForks    = fa ? "فورک" : "Forks";
+  const colActivity = fa ? "آخرین فعالیت" : "Last Activity";
+
+  const fmtStars = (v) => v == null ? "—" : v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v);
+  const fmtActivity = (days) => {
+    if (days == null) return "—";
+    if (days <= 0) return fa ? "امروز" : "today";
+    if (days === 1) return fa ? "۱ روز پیش" : "1 day ago";
+    if (days < 30) return fa ? `${days} روز پیش` : `${days} days ago`;
+    const m = Math.round(days / 30);
+    return fa ? `${m} ماه پیش` : `${m} mo ago`;
+  };
+
   compareTable.innerHTML = `
     <table>
       <thead>
         <tr>
           <th>${t("tableTool")}</th>
           <th>${t("tableCategory")}</th>
+          <th>${colStars}</th>
+          <th>${colForks}</th>
+          <th>${colActivity}</th>
           <th>${t("tablePrice")}</th>
-          <th>${t("tableUse")}</th>
-          <th>${t("tableJobs")}</th>
           <th>${t("tableLink")}</th>
         </tr>
       </thead>
       <tbody>
         ${selected
-          .map(
-            (tool) => `
+          .map((tool) => {
+            const live = liveByName[tool.name] || tool;
+            const repoLink = tool.repo
+              ? `<a class="mini-link" href="https://github.com/${tool.repo}" target="_blank" rel="noopener">${fmtStars(live.stars)}</a>`
+              : "—";
+            return `
               <tr>
                 <td>${tool.name}</td>
                 <td>${text(tool.category)}</td>
+                <td><strong>★ ${fmtStars(live.stars)}</strong></td>
+                <td>${live.forks == null ? "—" : fmtStars(live.forks)}</td>
+                <td>${fmtActivity(live.activityDays ?? tool.activityDays)}</td>
                 <td>${text(tool.pricing)}</td>
-                <td>${text(tool.useCase)}</td>
-                <td>${tool.jobs.join(", ")}</td>
                 <td><a class="mini-link" href="${tool.url}" target="_blank" rel="noopener">${t("open")}</a></td>
               </tr>
-            `
-          )
+            `;
+          })
           .join("")}
       </tbody>
     </table>
@@ -818,53 +911,6 @@ function renderMetrics() {
   if (metricJobs) metricJobs.textContent = jobRoles.length;
 }
 
-function renderPerformanceChart() {
-  const container = $("#performanceChart");
-  if (!container) return;
-  const ranked = [...aaModelSnapshot].sort((a, b) => b.intelligence - a.intelligence);
-  const best = ranked.slice(0, 8);
-  const lowest = ranked.slice(-8).reverse();
-  const maxScore = Math.max(...aaModelSnapshot.map((item) => item.intelligence), 1);
-  const renderBars = (items, mode) => `
-    <div class="performance-group">
-      <h3>${mode === "best" ? (state.lang === "fa" ? "بالاترین امتیازها" : "Highest scores") : (state.lang === "fa" ? "پایین‌ترین امتیازها" : "Lowest scores")}</h3>
-      ${items
-        .map(
-          (item) => `
-            <div class="performance-row">
-              <span class="logo small"><img src="https://www.google.com/s2/favicons?domain=${item.domain}&sz=64" alt="" loading="lazy" /></span>
-              <strong>${item.model}<small>${item.provider}</small></strong>
-              <div class="score-track"><span style="width:${Math.min(100, (item.intelligence / maxScore) * 100)}%"></span></div>
-              <em>${item.intelligence}${item.metric ? `<small>${item.metric}</small>` : ""}</em>
-            </div>
-          `
-        )
-        .join("")}
-    </div>
-  `;
-  container.innerHTML = renderBars(best, "best") + renderBars(lowest, "worst");
-}
-
-function renderHeroLiveChart() {
-  const container = $("#heroLiveChart");
-  if (!container) return;
-  const top = [...aaModelSnapshot].sort((a, b) => b.intelligence - a.intelligence).slice(0, 5);
-  $("#topAaScore").textContent = top[0]?.intelligence || "0";
-  const maxScore = Math.max(...aaModelSnapshot.map((item) => item.intelligence), 1);
-  container.innerHTML = top
-    .map(
-      (item, index) => `
-        <div class="hero-live-row">
-          <span>${index + 1}</span>
-          <strong>${item.model}</strong>
-          <div class="score-track"><span style="width:${Math.min(100, (item.intelligence / maxScore) * 100)}%"></span></div>
-          <em>${item.intelligence}</em>
-        </div>
-      `
-    )
-    .join("");
-}
-
 function toggleCompare(name) {
   state.compare = state.compare.includes(name)
     ? state.compare.filter((item) => item !== name)
@@ -872,6 +918,7 @@ function toggleCompare(name) {
   localStorage.setItem("compareTools", JSON.stringify(state.compare));
   renderTools();
   renderCompare();
+  render3DChart();
 }
 
 function saveSlides() {
@@ -1322,11 +1369,48 @@ function startJobTicker() {
   window.setInterval(tick, 1000);
 }
 
+// ── AI VIA PUTER.JS ───────────────────────────────────────
+// Puter.js gives keyless, backend-free access to Claude and other
+// models from the browser (the user covers their own usage). This
+// lets a fully static site run real AI. Docs: https://docs.puter.com/AI/
+const PUTER_MODEL = "claude-sonnet-4-20250514";
+
+function puterReady() {
+  return typeof puter !== "undefined" && puter.ai && typeof puter.ai.chat === "function";
+}
+
+// Normalise whatever puter.ai.chat returns into a plain string.
+function puterText(resp) {
+  if (resp == null) return "";
+  if (typeof resp === "string") return resp;
+  if (typeof resp.text === "string") return resp.text;
+  if (resp.message && typeof resp.message.content === "string") return resp.message.content;
+  if (resp.message && Array.isArray(resp.message.content)) {
+    return resp.message.content.map(c => c.text || "").join("");
+  }
+  if (Array.isArray(resp.content)) return resp.content.map(c => c.text || "").join("");
+  if (typeof resp.content === "string") return resp.content;
+  return String(resp);
+}
+
+// Run a chat completion. `image` is an optional image URL (blob: URLs work).
+async function aiChat(prompt, systemPrompt, image) {
+  if (!puterReady()) {
+    throw new Error("AI service not loaded. Check your connection and reload.");
+  }
+  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n---\n\n${prompt}` : prompt;
+  const opts = { model: PUTER_MODEL };
+  const resp = image
+    ? await puter.ai.chat(fullPrompt, image, opts)
+    : await puter.ai.chat(fullPrompt, opts);
+  return puterText(resp).trim();
+}
+
 async function enhancePrompt(value) {
   const goal = value.trim();
   if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
   const outputEl = $("#advancedPromptOutput");
-  outputEl.textContent = state.lang === "fa" ? "در حال تولید پرامپت حرفه‌ای..." : "Generating professional prompt...";
+  if (outputEl) outputEl.textContent = state.lang === "fa" ? "در حال تولید پرامپت حرفه‌ای..." : "Generating professional prompt...";
   const systemPrompt = `You are a world-class AI prompt engineer specializing in prompts for image generation models (Midjourney, Flux, DALL-E) and video models (Runway, Kling, Sora).
 When given a simple idea, produce a professional detailed prompt.
 Format EXACTLY like this:
@@ -1342,20 +1426,10 @@ Format EXACTLY like this:
 {"style":"...","mood":"...","lighting":"...","camera":"...","color_grade":"...","aspect_ratio":"...","quality_tags":["..."]}
 \`\`\``;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: `Enhance this prompt: "${goal}"` }]
-      })
-    });
-    const data = await response.json();
-    return data.content?.[0]?.text || (state.lang === "fa" ? "خطا در تولید" : "Error");
-  } catch {
-    return state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+    const out = await aiChat(`Enhance this prompt: "${goal}"`, systemPrompt);
+    return out || (state.lang === "fa" ? "خطا در تولید" : "No response — try again.");
+  } catch (e) {
+    return (state.lang === "fa" ? "خطا: " : "Error: ") + e.message;
   }
 }
 
@@ -1363,22 +1437,13 @@ async function textToJson(value) {
   if (!value.trim()) return "{}";
   const outputEl = $("#jsonOutput");
   if (outputEl) outputEl.textContent = state.lang === "fa" ? "در حال تبدیل..." : "Converting...";
+  const systemPrompt = "Convert any text to clean structured JSON. Return ONLY valid JSON — no explanation, no markdown fences. Be smart about field names and nesting.";
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: "Convert any text to clean structured JSON. Return ONLY valid JSON — no explanation, no markdown fences. Be smart about field names and nesting.",
-        messages: [{ role: "user", content: value }]
-      })
-    });
-    const data = await response.json();
-    const raw = (data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim();
+    const out = await aiChat(value, systemPrompt);
+    const raw = out.replace(/```json|```/g, "").trim();
     try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; }
-  } catch {
-    return state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+  } catch (e) {
+    return (state.lang === "fa" ? "خطا: " : "Error: ") + e.message;
   }
 }
 
@@ -1455,39 +1520,21 @@ async function generateMediaCaption() {
   const btn = $("#generateCaptionButton");
 
   btn.disabled = true;
-  captionOut.textContent = state.lang === "fa" ? "در حال تحلیل تصویر و نوشتن کپشن..." : "Analyzing image and writing caption...";
   jsonOut.textContent = "";
 
-  // Build messages — include image if available
-  const messages = [];
+  // Detect uploaded media — works for both image and video.
   const imgEl = preview.querySelector("img");
+  const videoEl = preview.querySelector("video");
+  const mediaEl = imgEl || videoEl;
+  const mediaUrl = mediaEl ? mediaEl.getAttribute("src") : null;
+  const isVideo = !!videoEl;
 
-  if (imgEl && imgEl.src && imgEl.src.startsWith("blob:")) {
-    try {
-      const blob = await fetch(imgEl.src).then(r => r.blob());
-      const b64 = await new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result.split(",")[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(blob);
-      });
-      const mediaType = blob.type || "image/jpeg";
-      messages.push({
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
-          { type: "text", text: `Write a ${tone.toLowerCase()} caption for this image.\nGoal: ${goal}\nPlatform: ${platform}\nTone: ${tone}` }
-        ]
-      });
-    } catch {
-      messages.push({ role: "user", content: `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}` });
-    }
-  } else {
-    messages.push({ role: "user", content: `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}` });
-  }
+  captionOut.textContent = state.lang === "fa"
+    ? (mediaUrl ? "در حال تحلیل رسانه و نوشتن کپشن..." : "در حال نوشتن کپشن...")
+    : (mediaUrl ? "Analyzing media and writing caption..." : "Writing caption...");
 
   const systemPrompt = `You are a world-class social media copywriter and content strategist.
-When given an image (or description), write a highly engaging caption.
+When given an image or video (or just a description), write a highly engaging caption.
 
 Respond EXACTLY in this format:
 
@@ -1503,7 +1550,7 @@ Respond EXACTLY in this format:
 [10-15 relevant hashtags]
 
 ### IMAGE PROMPT (for recreating similar content)
-[A detailed Midjourney/Flux prompt describing this image's style, lighting, composition]
+[A detailed Midjourney/Flux prompt describing this media's style, lighting, composition]
 
 Rules:
 - ${platform} style and length
@@ -1512,24 +1559,24 @@ Rules:
 - Strong opening line
 - Clear call to action`;
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages
-      })
-    });
-    const data = await response.json();
-    const fullText = data.content?.[0]?.text || "";
+  const mediaWord = isVideo ? "video" : "image";
+  const userPrompt = mediaUrl
+    ? `Write a ${tone.toLowerCase()} caption for this ${mediaWord}.\nGoal: ${goal}\nPlatform: ${platform}\nTone: ${tone}`
+    : `Write a ${tone.toLowerCase()} caption for ${platform}.\nGoal: ${goal}\nTone: ${tone}`;
 
-    // Parse sections
-    const captionMatch = fullText.match(/### CAPTION\n([\s\S]*?)(?=###|$)/);
+  try {
+    // Puter accepts a media URL as the image argument (blob: URLs work).
+    const fullText = await aiChat(userPrompt, systemPrompt, mediaUrl || undefined);
+
+    if (!fullText) {
+      captionOut.textContent = state.lang === "fa" ? "پاسخی دریافت نشد — دوباره تلاش کنید." : "No response — please try again.";
+      return;
+    }
+
+    // Parse the structured sections.
+    const captionMatch = fullText.match(/### CAPTION\s*\n([\s\S]*?)(?=###|$)/);
     const hooksMatch = fullText.match(/### HOOKS[\s\S]*?\n([\s\S]*?)(?=###|$)/);
-    const hashtagsMatch = fullText.match(/### HASHTAGS\n([\s\S]*?)(?=###|$)/);
+    const hashtagsMatch = fullText.match(/### HASHTAGS\s*\n([\s\S]*?)(?=###|$)/);
     const imgPromptMatch = fullText.match(/### IMAGE PROMPT[\s\S]*?\n([\s\S]*?)(?=###|$)/);
 
     const caption = captionMatch?.[1]?.trim() || fullText;
@@ -1537,12 +1584,13 @@ Rules:
     const hashtags = hashtagsMatch?.[1]?.trim() || "";
     const imagePrompt = imgPromptMatch?.[1]?.trim() || "";
 
-    captionOut.textContent = `${caption}\n\n${hashtags}`;
+    captionOut.textContent = hashtags ? `${caption}\n\n${hashtags}` : caption;
 
     const jsonPayload = {
       platform,
       tone,
       goal,
+      media_type: mediaUrl ? mediaWord : "none",
       caption,
       hooks: hooks.split("\n").filter(l => l.trim()).map(l => l.replace(/^\d+\.\s*/, "").trim()),
       hashtags: hashtags.split(/\s+/).filter(h => h.startsWith("#")),
@@ -1551,7 +1599,7 @@ Rules:
     };
     jsonOut.textContent = JSON.stringify(jsonPayload, null, 2);
   } catch (err) {
-    captionOut.textContent = state.lang === "fa" ? "خطا در اتصال به API" : "API connection error";
+    captionOut.textContent = (state.lang === "fa" ? "خطا: " : "Error: ") + err.message;
   } finally {
     btn.disabled = false;
   }
@@ -1624,98 +1672,658 @@ function renderModelsTicker() {
   `).join("");
 }
 
-// ── LIVE CHART STATE ──────────────────────────────────────
-let activeMetric = "intelligence";
-let liveChartData = [...aaModelSnapshot];
+// ── LIVE GITHUB DATA ──────────────────────────────────────
+// liveChartData is derived from the SAME `tools` array used by the
+// comparison section, so both sections always show the same AIs.
+// Metrics come from the public GitHub REST API (no key required —
+// api.github.com supports CORS for unauthenticated public reads).
+// Unauthenticated limit is 60 req/hr per IP, so we refresh slowly
+// and cache the last good result in localStorage.
+let activeMetric = "stars";          // stars | forks | activity
+let liveChartData = [];
 let lastRefreshTime = null;
+let isFetchingLive = false;
 
-async function fetchLiveChartData() {
-  // Try to fetch from Artificial Analysis public endpoint
-  // Fallback to our static snapshot with simulated live variance
-  try {
-    // Simulate live variance on the snapshot data (±2% realistic drift)
-    liveChartData = aaModelSnapshot.map(item => ({
-      ...item,
-      intelligence: item.intelligence + (Math.random() - 0.5) * item.intelligence * 0.02,
-      speed: item.speed ? item.speed + (Math.random() - 0.5) * item.speed * 0.05 : null,
-      cost: item.cost ? Math.max(0.01, item.cost + (Math.random() - 0.5) * item.cost * 0.03) : null
-    }));
-    lastRefreshTime = new Date();
-    const el = $("#lastRefreshed");
-    if (el) el.textContent = `Updated ${lastRefreshTime.toLocaleTimeString()}`;
-  } catch(e) {
-    liveChartData = [...aaModelSnapshot];
+const GH_CACHE_KEY = "ghLiveCache_v1";
+
+// seed liveChartData from any cached values so the chart isn't empty
+(function seedFromCache() {
+  let cached = {};
+  try { cached = JSON.parse(localStorage.getItem(GH_CACHE_KEY) || "{}"); } catch {}
+  tools.forEach(t => {
+    const c = cached[t.name];
+    if (c) {
+      t.stars = c.stars; t.forks = c.forks; t.issues = c.issues;
+      t.pushedAt = c.pushedAt; t.activityDays = c.activityDays;
+    }
+  });
+  rebuildLiveChartData();
+  if (cached.__time) {
+    lastRefreshTime = new Date(cached.__time);
   }
-  renderPerformanceChart();
+})();
+
+function rebuildLiveChartData() {
+  liveChartData = tools.map(t => ({
+    name: t.name,
+    provider: t.name,
+    model: t.name,
+    domain: t.domain,
+    repo: t.repo,
+    stars: t.stars,
+    forks: t.forks,
+    issues: t.issues,
+    pushedAt: t.pushedAt,
+    // "activity" score: higher = pushed more recently (0–100)
+    activity: t.activityDays == null ? null
+      : Math.max(0, Math.round(100 - Math.min(100, t.activityDays * 2)))
+  }));
 }
 
-function renderPerformanceChart() {
+function setRefreshLabel(text) {
+  const el = $("#lastRefreshed");
+  if (el) el.textContent = text;
+}
+
+// Fetch one repo's public stats from the GitHub REST API.
+async function fetchRepoStats(repo) {
+  const res = await fetch(`https://api.github.com/repos/${repo}`, {
+    headers: { "Accept": "application/vnd.github+json" }
+  });
+  if (res.status === 403) throw new Error("rate-limited");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  const pushed = d.pushed_at ? new Date(d.pushed_at) : null;
+  return {
+    stars: d.stargazers_count ?? 0,
+    forks: d.forks_count ?? 0,
+    issues: d.open_issues_count ?? 0,
+    pushedAt: d.pushed_at || null,
+    activityDays: pushed
+      ? Math.round((Date.now() - pushed.getTime()) / 86400000)
+      : null
+  };
+}
+
+// Fetch live GitHub data for every tool, with graceful fallback.
+async function fetchLiveChartData() {
+  if (isFetchingLive) return;
+  isFetchingLive = true;
+  setRefreshLabel("Fetching live GitHub data…");
+
+  const withRepos = tools.filter(t => t.repo);
+  let okCount = 0, rateLimited = false;
+
+  // sequential with a small gap — friendly to the 60 req/hr limit
+  for (const tool of withRepos) {
+    try {
+      const stats = await fetchRepoStats(tool.repo);
+      tool.stars = stats.stars;
+      tool.forks = stats.forks;
+      tool.issues = stats.issues;
+      tool.pushedAt = stats.pushedAt;
+      tool.activityDays = stats.activityDays;
+      okCount++;
+    } catch (e) {
+      if (String(e.message).includes("rate-limited")) { rateLimited = true; break; }
+      // leave this tool's cached/previous values in place
+    }
+    rebuildLiveChartData();
+    render3DChart();
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  if (okCount > 0) {
+    lastRefreshTime = new Date();
+    // cache last good result
+    const cache = { __time: lastRefreshTime.toISOString() };
+    tools.forEach(t => {
+      if (t.stars != null) {
+        cache[t.name] = {
+          stars: t.stars, forks: t.forks, issues: t.issues,
+          pushedAt: t.pushedAt, activityDays: t.activityDays
+        };
+      }
+    });
+    try { localStorage.setItem(GH_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  }
+
+  rebuildLiveChartData();
+  render3DChart();
+  if (state.compare.length) renderCompare();
+
+  if (rateLimited) {
+    setRefreshLabel(
+      lastRefreshTime
+        ? `GitHub rate limit hit — showing cached data from ${lastRefreshTime.toLocaleTimeString()}`
+        : "GitHub rate limit hit — try again in a few minutes"
+    );
+  } else if (okCount > 0) {
+    setRefreshLabel(`Live · updated ${lastRefreshTime.toLocaleTimeString()} · ${okCount}/${withRepos.length} repos`);
+  } else {
+    setRefreshLabel("Could not reach GitHub — check your connection");
+  }
+  isFetchingLive = false;
+}
+
+// ── LIVE 3D CHART (Three.js / WebGL) ──────────────────────
+let chart3D = null; // holds renderer/scene/camera/bars
+
+function render3DChart() {
   const container = $("#performanceChart");
   if (!container) return;
+  if (typeof THREE === "undefined") {
+    // library not loaded yet — show a graceful flat fallback
+    renderFlatFallback(container);
+    return;
+  }
 
-  const validData = liveChartData.filter(item =>
-    activeMetric === "intelligence" ? item.intelligence != null :
-    activeMetric === "speed" ? item.speed != null :
-    item.cost != null
-  );
-
-  const getValue = item =>
-    activeMetric === "intelligence" ? item.intelligence :
-    activeMetric === "speed" ? item.speed :
-    item.cost;
-
-  const sorted = [...validData].sort((a, b) => {
-    if (activeMetric === "cost") return getValue(a) - getValue(b);
-    return getValue(b) - getValue(a);
-  }).slice(0, 12);
-
-  const maxVal = Math.max(...sorted.map(getValue), 1);
-
-  const metricLabel = activeMetric === "intelligence" ? "Intelligence Score" :
-    activeMetric === "speed" ? "Speed (tok/s)" : "Cost ($/M tok)";
-
-  const colorMap = {
-    "OpenAI": "#10B981", "Anthropic": "#D97706", "Google": "#3B82F6",
-    "Meta": "#8B5CF6", "Mistral AI": "#EC4899", "Z AI": "#06B6D4",
-    "Kuaishou KlingAI": "#F59E0B"
+  const getValue = item => {
+    const v = activeMetric === "stars" ? item.stars
+      : activeMetric === "forks" ? item.forks
+      : item.activity;
+    return v == null ? 0 : v;
   };
 
-  container.innerHTML = `
-    <div class="live-chart">
-      <div class="chart-label">${metricLabel}</div>
-      ${sorted.map((item, i) => {
-        const val = getValue(item);
-        const pct = Math.min(100, (val / maxVal) * 100);
-        const color = colorMap[item.provider] || "#d8b76a";
-        const displayVal = activeMetric === "cost"
-          ? `$${val.toFixed(3)}`
-          : activeMetric === "speed"
-          ? `${val.toFixed(0)} t/s`
-          : val.toFixed(1);
-        return `
-          <div class="live-bar-row" style="animation-delay:${i * 40}ms">
-            <div class="bar-meta">
-              <img src="https://www.google.com/s2/favicons?domain=${item.domain || "openai.com"}&sz=24" alt="" loading="lazy" onerror="this.style.display='none'" />
-              <div class="bar-names">
-                <strong>${item.model}</strong>
-                <small>${item.provider}</small>
-              </div>
-            </div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width:${pct}%; background:${color}; box-shadow: 0 0 12px ${color}55;">
-              </div>
-            </div>
-            <em class="bar-val" style="color:${color}">${displayVal}</em>
-          </div>`;
-      }).join("")}
-    </div>`;
+  // all metrics here are "higher is better"
+  const sorted = [...liveChartData]
+    .filter(item => getValue(item) > 0)
+    .sort((a, b) => getValue(b) - getValue(a))
+    .slice(0, 12);
 
-  // Animate bars in
-  setTimeout(() => {
-    container.querySelectorAll(".bar-fill").forEach(bar => {
-      bar.style.transition = "width 0.8s cubic-bezier(0.4,0,0.2,1)";
+  const maxVal = Math.max(...sorted.map(getValue), 1);
+  const compared = new Set(state.compare);
+
+  // ----- one-time scene setup -----
+  if (!chart3D || chart3D.container !== container) {
+    container.innerHTML = "";
+    const width = container.clientWidth || 900;
+    const height = 420;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 9, 20);
+    camera.lookAt(0, 1.5, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xfff0b8, 1.1);
+    key.position.set(8, 16, 12);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8d62ff, 0.5);
+    rim.position.set(-10, 6, -8);
+    scene.add(rim);
+
+    // ground grid
+    const grid = new THREE.GridHelper(26, 26, 0x6a5a33, 0x2a2418);
+    grid.position.y = 0;
+    scene.add(grid);
+
+    const barsGroup = new THREE.Group();
+    scene.add(barsGroup);
+
+    chart3D = { container, scene, camera, renderer, barsGroup, width, height,
+                rotation: 0, dragging: false, lastX: 0, manual: false };
+
+    // drag to rotate
+    const dom = renderer.domElement;
+    dom.style.cursor = "grab";
+    dom.addEventListener("pointerdown", e => {
+      chart3D.dragging = true; chart3D.manual = true;
+      chart3D.lastX = e.clientX; dom.style.cursor = "grabbing";
     });
-  }, 50);
+    window.addEventListener("pointerup", () => {
+      if (chart3D) { chart3D.dragging = false;
+        if (chart3D.renderer) chart3D.renderer.domElement.style.cursor = "grab"; }
+    });
+    window.addEventListener("pointermove", e => {
+      if (chart3D && chart3D.dragging) {
+        chart3D.rotation += (e.clientX - chart3D.lastX) * 0.01;
+        chart3D.lastX = e.clientX;
+      }
+    });
+
+    // keep it sized to the container
+    window.addEventListener("resize", () => {
+      if (!chart3D) return;
+      const w = container.clientWidth || 900;
+      chart3D.width = w;
+      chart3D.camera.aspect = w / chart3D.height;
+      chart3D.camera.updateProjectionMatrix();
+      chart3D.renderer.setSize(w, chart3D.height);
+    });
+
+    // animation loop
+    const animate = () => {
+      if (!chart3D) return;
+      requestAnimationFrame(animate);
+      if (!chart3D.manual) chart3D.rotation += 0.0025; // gentle auto-spin
+      chart3D.barsGroup.rotation.y = chart3D.rotation;
+      // ease bars toward their target height
+      chart3D.barsGroup.children.forEach(node => {
+        if (node.userData.targetH == null) return;
+        const cur = node.scale.y;
+        const target = node.userData.targetH;
+        node.scale.y += (target - cur) * 0.12;
+        node.position.y = node.scale.y / 2;
+      });
+      chart3D.renderer.render(chart3D.scene, chart3D.camera);
+    };
+    animate();
+  }
+
+  // ----- (re)build bars -----
+  const { barsGroup } = chart3D;
+  while (barsGroup.children.length) barsGroup.remove(barsGroup.children[0]);
+
+  const n = sorted.length;
+  const spacing = 2.2;
+  const startX = -((n - 1) * spacing) / 2;
+
+  sorted.forEach((item, i) => {
+    const val = getValue(item);
+    const norm = Math.max(0.04, val / maxVal);
+    const targetH = norm * 9; // world-units tall
+    const isCompared = compared.has(item.name);
+
+    const baseColor = isCompared ? 0xfff0b8 : 0xd8b76a;
+    const geo = new THREE.BoxGeometry(1.4, 1, 1.4);
+    const mat = new THREE.MeshStandardMaterial({
+      color: baseColor,
+      metalness: 0.45,
+      roughness: 0.3,
+      emissive: isCompared ? 0x8d62ff : 0x000000,
+      emissiveIntensity: isCompared ? 0.35 : 0
+    });
+    const bar = new THREE.Mesh(geo, mat);
+    bar.position.x = startX + i * spacing;
+    bar.scale.y = 0.05;            // grow in
+    bar.position.y = 0.025;
+    bar.userData.targetH = targetH;
+    barsGroup.add(bar);
+
+    // tool-name label above the bar
+    const sprite = makeLabelSprite(item.name, isCompared);
+    sprite.position.set(startX + i * spacing, targetH + 1.4, 0);
+    barsGroup.add(sprite);
+
+    // live value label just under the name
+    const valSprite = makeLabelSprite(formatMetricValue(val), isCompared, true);
+    valSprite.position.set(startX + i * spacing, targetH + 0.75, 0);
+    barsGroup.add(valSprite);
+  });
+
+  // header / metric label
+  let label = $("#chart3DLabel");
+  if (!label) {
+    label = document.createElement("div");
+    label.id = "chart3DLabel";
+    label.className = "chart-label";
+    container.parentElement.insertBefore(label, container);
+  }
+  const metricText = activeMetric === "stars" ? "Live GitHub stars"
+    : activeMetric === "forks" ? "Live GitHub forks"
+    : "Development activity (recent commits)";
+  const comparedNote = state.compare.length
+    ? ` — highlighted: ${state.compare.join(", ")}`
+    : " — add tools in the Compare section to highlight them here";
+  label.textContent = sorted.length
+    ? `${metricText}${comparedNote}`
+    : `${metricText} — loading live data from GitHub…`;
+}
+
+// Format a metric value for display (e.g. 48213 -> "48.2k").
+function formatMetricValue(v) {
+  if (v == null) return "—";
+  if (activeMetric === "activity") return `${v}/100`;
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  return String(Math.round(v));
+}
+
+// Build a text label that floats above a 3D bar.
+function makeLabelSprite(textStr, highlighted, isValue) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.font = isValue ? "700 34px Inter, sans-serif" : "600 30px Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = isValue
+    ? (highlighted ? "#fff0b8" : "#d8b76a")
+    : (highlighted ? "#fff0b8" : "#f8fbff");
+  ctx.fillText(textStr, 128, 34);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(isValue ? 2.6 : 3.4, isValue ? 0.65 : 0.85, 1);
+  return sprite;
+}
+
+// Flat HTML fallback if WebGL / Three.js is unavailable.
+function renderFlatFallback(container) {
+  const getValue = item => {
+    const v = activeMetric === "stars" ? item.stars
+      : activeMetric === "forks" ? item.forks
+      : item.activity;
+    return v == null ? 0 : v;
+  };
+  const sorted = [...liveChartData]
+    .filter(item => getValue(item) > 0)
+    .sort((a, b) => getValue(b) - getValue(a))
+    .slice(0, 12);
+  const maxVal = Math.max(...sorted.map(getValue), 1);
+  const compared = new Set(state.compare);
+  if (!sorted.length) {
+    container.innerHTML = `<div class="live-chart"><p class="empty">Loading live data from GitHub…</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="live-chart">
+    ${sorted.map((item, i) => {
+      const val = getValue(item);
+      const pct = Math.min(100, (val / maxVal) * 100);
+      const hot = compared.has(item.name);
+      const color = hot ? "#fff0b8" : "#d8b76a";
+      const disp = formatMetricValue(val);
+      return `<div class="live-bar-row" style="animation-delay:${i*40}ms">
+        <div class="bar-meta"><div class="bar-names"><strong>${item.name}</strong></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 12px ${color}55;"></div></div>
+        <em class="bar-val" style="color:${color}">${disp}</em>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── VIDEO TEMPLATE STUDIO ─────────────────────────────────
+// Pick a luxury/minimal template, add a video, overlay animated
+// text, preview live on a <canvas>, and export a real .webm via
+// MediaRecorder. Fully local — no uploads, no API.
+const videoTemplates = [
+  {
+    id: "noir",
+    name: { en: "Noir Luxe", fa: "نوآر لوکس" },
+    desc: { en: "Deep blacks, gold serif type, slow fade", fa: "مشکی عمیق، تایپ طلایی، فید آرام" },
+    bg: "#070605", accent: "#d8b76a", text: "#fff0b8",
+    headlineFont: "Prata, serif", vignette: 0.55, grain: true
+  },
+  {
+    id: "ivory",
+    name: { en: "Ivory Minimal", fa: "مینیمال عاجی" },
+    desc: { en: "Bright, airy, thin sans type", fa: "روشن، تمیز، تایپ نازک" },
+    bg: "#f4f1ea", accent: "#1a1a1a", text: "#1a1a1a",
+    headlineFont: "Inter, sans-serif", vignette: 0.12, grain: false
+  },
+  {
+    id: "editorial",
+    name: { en: "Editorial", fa: "ادیتوریال" },
+    desc: { en: "Magazine framing, bold contrast", fa: "قاب مجله‌ای، کنتراست بالا" },
+    bg: "#0c0b09", accent: "#ffffff", text: "#ffffff",
+    headlineFont: "Prata, serif", vignette: 0.4, grain: false
+  },
+  {
+    id: "warm",
+    name: { en: "Warm Glow", fa: "درخشش گرم" },
+    desc: { en: "Amber wash, soft and inviting", fa: "تم کهربایی، نرم و دلنشین" },
+    bg: "#140d05", accent: "#f4c96a", text: "#ffe9c2",
+    headlineFont: "Prata, serif", vignette: 0.45, grain: true
+  }
+];
+
+const vstudio = {
+  templateId: "noir",
+  videoUrl: null,
+  videoEl: null,       // hidden <video> used as the canvas source
+  rafId: null,
+  startTime: 0,
+  rendering: false
+};
+
+function vsTemplate() {
+  return videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+}
+
+function vsStatus(msg) {
+  const el = $("#vsStatus");
+  if (el) el.textContent = msg || "";
+}
+
+function renderTemplatePicker() {
+  const wrap = $("#templatePicker");
+  if (!wrap) return;
+  wrap.innerHTML = videoTemplates.map(tpl => `
+    <button type="button" class="template-card ${tpl.id === vstudio.templateId ? "selected" : ""}" data-template="${tpl.id}">
+      <span class="template-swatch" style="background:${tpl.bg};border-color:${tpl.accent}">
+        <span style="background:${tpl.accent}"></span>
+      </span>
+      <strong>${text(tpl.name)}</strong>
+      <small>${text(tpl.desc)}</small>
+    </button>
+  `).join("");
+}
+
+function setVideoTemplate(id) {
+  vstudio.templateId = id;
+  renderTemplatePicker();
+  // re-render a static preview frame if a video is loaded
+  if (vstudio.videoEl) drawVideoFrame(0);
+}
+
+function loadStudioVideo(file) {
+  if (!file) return;
+  if (vstudio.videoUrl) URL.revokeObjectURL(vstudio.videoUrl);
+  vstudio.videoUrl = URL.createObjectURL(file);
+
+  const video = document.createElement("video");
+  video.src = vstudio.videoUrl;
+  video.muted = true;
+  video.playsInline = true;
+  video.crossOrigin = "anonymous";
+  video.addEventListener("loadedmetadata", () => {
+    vstudio.videoEl = video;
+    buildPreviewCanvas(video.videoWidth || 1280, video.videoHeight || 720);
+    drawVideoFrame(0);
+    vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد. روی پیش‌نمایش بزن." : "Video loaded. Hit Preview to play it.");
+  });
+  video.addEventListener("error", () => {
+    vsStatus(state.lang === "fa" ? "بارگذاری ویدیو ناموفق بود." : "Could not load that video file.");
+  });
+}
+
+function buildPreviewCanvas(w, h) {
+  const stage = $("#vsPreview");
+  if (!stage) return;
+  // cap canvas resolution for performance, keep aspect ratio
+  const maxW = 1280;
+  const scale = w > maxW ? maxW / w : 1;
+  const cw = Math.round(w * scale);
+  const ch = Math.round(h * scale);
+  stage.innerHTML = `<canvas id="vsCanvas" width="${cw}" height="${ch}"></canvas>`;
+}
+
+// Draw one composited frame: video + template styling + text.
+function drawVideoFrame(elapsed) {
+  const canvas = $("#vsCanvas");
+  const video = vstudio.videoEl;
+  if (!canvas || !video) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const tpl = vsTemplate();
+  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
+  const progress = Math.min(1, elapsed / duration);
+
+  // background
+  ctx.fillStyle = tpl.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // video frame, contained with a slow gentle zoom (1.0 -> 1.06)
+  const zoom = 1 + progress * 0.06;
+  const vw = video.videoWidth || W, vh = video.videoHeight || H;
+  const fit = Math.min(W / vw, H / vh) * zoom;
+  const dw = vw * fit, dh = vh * fit;
+  try {
+    ctx.drawImage(video, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } catch {}
+
+  // vignette
+  if (tpl.vignette > 0) {
+    const grad = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, `rgba(0,0,0,${tpl.vignette})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // optional film grain
+  if (tpl.grain) {
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    for (let i = 0; i < 600; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? "#fff" : "#000";
+      ctx.fillRect(Math.random() * W, Math.random() * H, 1.5, 1.5);
+    }
+    ctx.restore();
+  }
+
+  // text overlay (fades + rises in over first 1.2s)
+  const headline = ($("#vsHeadline")?.value || "").trim();
+  const sub = ($("#vsSub")?.value || "").trim();
+  const pos = $("#vsTextPos")?.value || "center";
+  const intro = Math.min(1, elapsed / 1.2);
+  const ease = 1 - Math.pow(1 - intro, 3);
+
+  if (headline || sub) {
+    ctx.save();
+    ctx.globalAlpha = ease;
+    ctx.textAlign = "center";
+
+    let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.78 : H * 0.5;
+    baseY += (1 - ease) * 24; // rise-up
+
+    if (headline) {
+      const size = Math.round(W * 0.058);
+      ctx.font = `600 ${size}px ${tpl.headlineFont}`;
+      ctx.fillStyle = tpl.text;
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 18;
+      ctx.fillText(headline, W / 2, baseY);
+      ctx.shadowBlur = 0;
+    }
+    if (sub) {
+      const size = Math.round(W * 0.026);
+      ctx.font = `400 ${size}px Inter, sans-serif`;
+      ctx.fillStyle = tpl.accent;
+      ctx.fillText(sub, W / 2, baseY + (headline ? W * 0.05 : 0));
+    }
+    // a thin accent line under the text
+    if (headline) {
+      const lineW = W * 0.12 * ease;
+      ctx.strokeStyle = tpl.accent;
+      ctx.lineWidth = Math.max(1, W * 0.002);
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - lineW / 2, baseY + W * 0.018);
+      ctx.lineTo(W / 2 + lineW / 2, baseY + W * 0.018);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // progress bar
+  ctx.fillStyle = tpl.accent;
+  ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
+}
+
+function previewStudioVideo() {
+  const video = vstudio.videoEl;
+  if (!video) {
+    vsStatus(state.lang === "fa" ? "اول یک ویدیو آپلود کن." : "Upload a video first.");
+    return;
+  }
+  if (vstudio.rendering) return;
+  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
+
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  video.currentTime = 0;
+  video.play().catch(() => {});
+  vstudio.startTime = performance.now();
+
+  const loop = () => {
+    const elapsed = (performance.now() - vstudio.startTime) / 1000;
+    drawVideoFrame(elapsed);
+    if (elapsed < duration) {
+      vstudio.rafId = requestAnimationFrame(loop);
+    } else {
+      video.pause();
+      drawVideoFrame(duration);
+    }
+  };
+  loop();
+}
+
+// Export the composited result as a real .webm video file.
+async function exportStudioVideo() {
+  const canvas = $("#vsCanvas");
+  const video = vstudio.videoEl;
+  if (!canvas || !video) {
+    vsStatus(state.lang === "fa" ? "اول یک ویدیو آپلود کن." : "Upload a video first.");
+    return;
+  }
+  if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
+    vsStatus(state.lang === "fa" ? "مرورگر شما خروجی ویدیو را پشتیبانی نمی‌کند." : "Your browser does not support video export.");
+    return;
+  }
+  if (vstudio.rendering) return;
+  vstudio.rendering = true;
+  vsStatus(state.lang === "fa" ? "در حال رندر ویدیو... این تب را باز نگه دار." : "Rendering video… keep this tab open.");
+
+  const duration = Math.max(2, Number($("#vsDuration")?.value) || 6);
+  const stream = canvas.captureStream(30);
+  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+    ? "video/webm;codecs=vp9" : "video/webm";
+  const recorder = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+  const done = new Promise(resolve => {
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ai-radar-${vstudio.templateId}-video.webm`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      resolve();
+    };
+  });
+
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  video.currentTime = 0;
+  await video.play().catch(() => {});
+  recorder.start();
+  vstudio.startTime = performance.now();
+
+  await new Promise(resolve => {
+    const loop = () => {
+      const elapsed = (performance.now() - vstudio.startTime) / 1000;
+      drawVideoFrame(elapsed);
+      if (elapsed < duration) {
+        vstudio.rafId = requestAnimationFrame(loop);
+      } else {
+        video.pause();
+        recorder.stop();
+        resolve();
+      }
+    };
+    loop();
+  });
+
+  await done;
+  vstudio.rendering = false;
+  vsStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
 }
 
 function bindEvents() {
@@ -1740,6 +2348,7 @@ function bindEvents() {
     localStorage.removeItem("compareTools");
     renderTools();
     renderCompare();
+    render3DChart();
   });
   on("#modelTypeFilter", "change", (event) => { state.modelType = event.target.value; renderTools(); });
   on("#minScoreFilter", "input", (event) => { state.minScore = Number(event.target.value) || 0; renderTools(); });
@@ -1769,17 +2378,36 @@ function bindEvents() {
     $("#jsonOutput").textContent = result;
   });
 
-  // Chart tabs
+  // Chart tabs — switching metric only re-renders cached data
+  // (it does NOT re-fetch, to respect GitHub's rate limit).
   document.querySelectorAll(".chart-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".chart-tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       activeMetric = tab.dataset.metric;
-      fetchLiveChartData();
+      render3DChart();
     });
   });
 
+  // Refresh button does a real new fetch from GitHub.
   on("#refreshChartBtn", "click", fetchLiveChartData);
+
+  // Video Template Studio
+  const picker = $("#templatePicker");
+  if (picker) {
+    picker.addEventListener("click", (e) => {
+      const card = e.target.closest("[data-template]");
+      if (card) setVideoTemplate(card.dataset.template);
+    });
+  }
+  on("#vsUpload", "change", (e) => loadStudioVideo(e.target.files[0]));
+  on("#vsPreviewBtn", "click", previewStudioVideo);
+  on("#vsExportBtn", "click", exportStudioVideo);
+  // live-update the static preview frame as text/settings change
+  ["#vsHeadline", "#vsSub", "#vsTextPos", "#vsDuration"].forEach(sel => {
+    on(sel, "input", () => { if (vstudio.videoEl && !vstudio.rendering) drawVideoFrame(0); });
+    on(sel, "change", () => { if (vstudio.videoEl && !vstudio.rendering) drawVideoFrame(0); });
+  });
 
   // Copy on every ai-output: click to copy
   document.addEventListener("click", (e) => {
@@ -1801,10 +2429,16 @@ renderMetrics();
 renderControls();
 bindEvents();
 renderModelsTicker();
+renderTemplatePicker();
 fetchLiveChartData();
 setLanguage(state.lang);
 renderJobSources();
 startJobTicker();
 
-// Auto-refresh chart every 60s
-setInterval(fetchLiveChartData, 60000);
+// Once the Three.js library has loaded, (re)render as a real 3D chart.
+window.addEventListener("load", () => render3DChart());
+
+// Auto-refresh from the GitHub API every 5 minutes.
+// (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
+// repos per refresh, a 5-minute interval stays well within budget.)
+setInterval(fetchLiveChartData, 5 * 60 * 1000);
