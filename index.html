@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v25" />
+    <link rel="stylesheet" href="styles.css?v=v26" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -225,20 +225,20 @@
               <div class="vtab-bar" role="tablist">
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
                 <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
-                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format</button>
                 <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
-                <button class="vtab" type="button" data-vtab="info" data-i18n="vTabInfo">Infographic</button>
                 <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
+                <button class="vtab" type="button" data-vtab="info" data-i18n="vTabInfo">Infographic</button>
+                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
               </div>
 
               <div class="vstudio-block" data-vtab-panel="template">
-                <span class="vstudio-label" data-i18n="vTemplateLabel">1 · Template</span>
+                <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
                 <div id="templatePicker" class="template-picker"></div>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="media">
-                <span class="vstudio-label" data-i18n="vUploadLabel">2 · Media</span>
+                <span class="vstudio-label" data-i18n="vUploadLabel">Media</span>
                 <label class="upload-box">
                   <span data-i18n="vUploadHint">Upload a video or image (mp4, webm, mov, jpg, png)</span>
                   <input id="vsUpload" type="file" accept="video/*,image/*" />
@@ -250,7 +250,7 @@
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
-                <span class="vstudio-label" data-i18n="vFormatLabel">3 · Format</span>
+                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
                 <div class="control-grid">
                   <label><span data-i18n="vAspectLabel">Aspect ratio</span>
                     <select id="vsAspect">
@@ -384,11 +384,22 @@
               <div class="vstudio-block vtab-hidden" data-vtab-panel="info">
                 <span class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</span>
                 <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                <label class="toggle-row"><input id="vsInfoButterfly" type="checkbox" /><span data-i18n="vInfoButterflyLabel">Butterfly animation</span></label>
-                <label><span data-i18n="vInfoTitleLabel">Infographic title</span><input id="vsInfoTitle" type="text" placeholder="2026 AI Market" /></label>
-                <p class="vstudio-note" data-i18n="vInfoHint">Enter up to 4 stats as "Label : Value" — one per line.</p>
-                <label><span data-i18n="vInfoStatsLabel">Stats (one per line)</span>
-                  <textarea id="vsInfoStats" rows="4" placeholder="Users : 4.2M&#10;Growth : +180%&#10;Tools tracked : 30&#10;Free plans : 25"></textarea>
+                <p class="vstudio-note" data-i18n="vInfoHint">Type a topic and generate a professional infographic — or paste your own JSON below.</p>
+                <label><span data-i18n="vInfoPromptLabel">Topic / prompt</span>
+                  <input id="vsInfoPrompt" type="text" placeholder="e.g. 2026 AI market growth" />
+                </label>
+                <button id="vsInfoGenBtn" class="button primary ai-btn" type="button">
+                  <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoGenBtn">Generate infographic</span>
+                </button>
+                <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
+                  <textarea id="vsInfoJson" rows="9" spellcheck="false" placeholder='{
+  "title": "2026 AI Market",
+  "subtitle": "Key metrics",
+  "stats": [
+    { "label": "Users", "value": "4.2M", "num": 4.2 },
+    { "label": "Growth", "value": "+180%", "num": 180 }
+  ]
+}'></textarea>
                 </label>
                 <div class="control-grid">
                   <label><span data-i18n="vInfoStyleLabel">Chart style</span>
@@ -396,6 +407,7 @@
                       <option value="bars">Animated bars</option>
                       <option value="counters">Counting numbers</option>
                       <option value="cards">Stat cards</option>
+                      <option value="donut">Donut ring</option>
                     </select>
                   </label>
                   <label><span data-i18n="vInfoPosLabel">Position</span>
@@ -409,7 +421,7 @@
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="text">
-                <span class="vstudio-label" data-i18n="vTextLabel">4 · Text layers</span>
+                <span class="vstudio-label" data-i18n="vTextLabel">Text layers</span>
                 <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
                 <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
                 <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
@@ -433,7 +445,7 @@
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
-                <span class="vstudio-label" data-i18n="vLogoLabel">5 · Logo &amp; cards</span>
+                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
                 <label class="upload-box small">
                   <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
                   <input id="vsLogo" type="file" accept="image/*" />
@@ -589,6 +601,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v25"></script>
+    <script src="app.js?v=v26"></script>
   </body>
 </html>
