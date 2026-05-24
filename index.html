@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v20" />
+    <link rel="stylesheet" href="styles.css?v=v21" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -226,6 +226,7 @@
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
                 <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
                 <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format</button>
+                <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
                 <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
               </div>
@@ -294,6 +295,50 @@
                   </label>
                   <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
                 </div>
+              </div>
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="motion">
+                <span class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vCamMotionLabel">Camera motion</span>
+                    <select id="vsMotion">
+                      <option value="kenburns-in">Ken Burns — zoom in</option>
+                      <option value="kenburns-out">Ken Burns — zoom out</option>
+                      <option value="pan-right">Pan right</option>
+                      <option value="pan-left">Pan left</option>
+                      <option value="pan-up">Pan up</option>
+                      <option value="pan-down">Pan down</option>
+                      <option value="parallax">Parallax drift</option>
+                      <option value="pulse">Pulse</option>
+                      <option value="sway">Sway</option>
+                      <option value="shake">Shake</option>
+                      <option value="none">None (static)</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vTextAnimLabel">Text animation</span>
+                    <select id="vsTextAnim">
+                      <option value="fade-up">Fade up</option>
+                      <option value="fade-down">Fade down</option>
+                      <option value="fade">Fade in</option>
+                      <option value="slide-left">Slide from left</option>
+                      <option value="slide-right">Slide from right</option>
+                      <option value="pop">Pop / scale</option>
+                      <option value="typewriter">Typewriter</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vOverlayLabel">Overlay element</span>
+                    <select id="vsOverlay">
+                      <option value="none">None</option>
+                      <option value="lightleak">Light leak</option>
+                      <option value="bokeh">Bokeh lights</option>
+                      <option value="particles">Sparkle particles</option>
+                      <option value="snow">Snow</option>
+                      <option value="gradient">Cinematic bars</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="text">
@@ -477,6 +522,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v20"></script>
+    <script src="app.js?v=v21"></script>
   </body>
 </html>
