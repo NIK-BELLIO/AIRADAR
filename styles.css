@@ -2674,3 +2674,95 @@ body.theme-light pre {
   opacity: 0.32;
   cursor: not-allowed;
 }
+
+/* File input field inside the studio panels */
+.file-field {
+  display: grid;
+  gap: 6px;
+}
+.file-field input[type="file"] {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px;
+  min-height: auto;
+}
+
+/* ── MULTI-SLIDE SEQUENCE ───────────────────────────────── */
+.vs-slide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+.vs-slide-empty {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 12px;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.vs-slide-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.vs-slide-row:hover { border-color: var(--gold); }
+.vs-slide-row.active {
+  border-color: var(--gold);
+  background: rgba(216,183,106,0.12);
+}
+.vs-slide-num {
+  width: 22px; height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+.vs-slide-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vs-slide-info em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+  margin-left: 6px;
+}
+.vs-slide-del {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+.vs-slide-del:hover { background: rgba(255,90,90,0.2); color: #ff8888; }
+.vs-add-slide {
+  display: inline-flex;
+  cursor: pointer;
+}
+.vs-slide-editor {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
