@@ -14,6 +14,7 @@ const i18n = {
     vTabInfo: "Infographic",
     vInfoLabel: "Infographic builder",
     vInfoOnLabel: "Show infographic overlay",
+    vInfoButterflyLabel: "Butterfly animation",
     vInfoTitleLabel: "Infographic title",
     vInfoHint: "Enter up to 4 stats as \"Label : Value\" — one per line.",
     vInfoStatsLabel: "Stats (one per line)",
@@ -38,6 +39,10 @@ const i18n = {
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
     vGrainLabel: "Film grain",
+    vExportLabel: "Export settings",
+    vExportSizeLabel: "Download size",
+    vExportQualityLabel: "Download quality",
+    vExportInfo: "Higher size and quality look better but make a larger file.",
     vTextLabel: "4 \u00b7 Text layers",
     vHeadlineLabel: "Headline",
     vSubLabel: "Subtext",
@@ -197,6 +202,7 @@ const i18n = {
     vTabInfo: "اینفوگرافیک",
     vInfoLabel: "سازنده اینفوگرافیک",
     vInfoOnLabel: "نمایش اینفوگرافیک",
+    vInfoButterflyLabel: "انیمیشن پروانه",
     vInfoTitleLabel: "عنوان اینفوگرافیک",
     vInfoHint: "تا ۴ آمار را به شکل «برچسب : مقدار» وارد کن — هر کدام در یک خط.",
     vInfoStatsLabel: "آمارها (هر خط یکی)",
@@ -221,6 +227,10 @@ const i18n = {
     vSpeedLabel: "سرعت پخش",
     vTransitionLabel: "ترانزیشن ورودی",
     vGrainLabel: "دانه‌دانه فیلم",
+    vExportLabel: "تنظیمات خروجی",
+    vExportSizeLabel: "اندازه دانلود",
+    vExportQualityLabel: "کیفیت دانلود",
+    vExportInfo: "اندازه و کیفیت بالاتر بهتر دیده می‌شود اما فایل بزرگ‌تری می‌سازد.",
     vTextLabel: "۴ · لایه‌های متن",
     vHeadlineLabel: "تیتر",
     vSubLabel: "زیرنویس",
@@ -2540,6 +2550,41 @@ const videoTemplates = [
     desc: { en: "Amber wash, soft and inviting", fa: "تم کهربایی، نرم و دلنشین" },
     bg: "#140d05", accent: "#f4c96a", text: "#ffe9c2",
     headlineFont: "Prata, serif", vignette: 0.45
+  },
+  {
+    id: "neon",
+    name: { en: "Neon Night", fa: "شب نئونی" },
+    desc: { en: "Electric magenta and cyan glow", fa: "درخشش سرخابی و فیروزه‌ای" },
+    bg: "#0a0612", accent: "#ff3df0", text: "#7df9ff",
+    headlineFont: "Inter, sans-serif", vignette: 0.5
+  },
+  {
+    id: "ocean",
+    name: { en: "Ocean Deep", fa: "اعماق اقیانوس" },
+    desc: { en: "Cool teal gradient, calm and clean", fa: "گرادیان فیروزه‌ای، آرام و تمیز" },
+    bg: "#03171c", accent: "#4fd1c5", text: "#e6fffb",
+    headlineFont: "Prata, serif", vignette: 0.35
+  },
+  {
+    id: "sunset",
+    name: { en: "Sunset Pop", fa: "پاپ غروب" },
+    desc: { en: "Bold coral and purple, energetic", fa: "مرجانی و بنفش پررنگ و پرانرژی" },
+    bg: "#1a0a14", accent: "#ff7e5f", text: "#ffe4d6",
+    headlineFont: "Inter, sans-serif", vignette: 0.4
+  },
+  {
+    id: "mono",
+    name: { en: "Mono Press", fa: "تک‌رنگ مطبوعاتی" },
+    desc: { en: "Stark black & white, editorial", fa: "سیاه و سفید، مطبوعاتی" },
+    bg: "#111111", accent: "#ffffff", text: "#f0f0f0",
+    headlineFont: "Prata, serif", vignette: 0.3
+  },
+  {
+    id: "forest",
+    name: { en: "Forest Calm", fa: "آرامش جنگل" },
+    desc: { en: "Deep green, organic and grounded", fa: "سبز عمیق، طبیعی و آرام" },
+    bg: "#0a140d", accent: "#9ccc8f", text: "#e8f3e4",
+    headlineFont: "Prata, serif", vignette: 0.42
   }
 ];
 
@@ -2556,7 +2601,10 @@ const vstudio = {
   startTime: 0,
   playing: false,
   looping: false,
-  rendering: false
+  rendering: false,
+  textDX: 0,            // text drag offset X (fraction of width)
+  textDY: 0,            // text drag offset Y (fraction of height)
+  textBox: null         // last drawn text bounds, for hit-testing
 };
 
 function vsTemplate() {
@@ -2592,22 +2640,28 @@ function setVideoTemplate(id) {
 }
 
 // Compute the canvas size from the chosen aspect ratio.
-function vsCanvasSize() {
+function vsCanvasSize(targetLongEdge) {
   const aspect = vsVal("#vsAspect", "original");
   const m = vstudio.mediaEl;
   let mw = (m && (m.videoWidth || m.naturalWidth)) || 1920;
   let mh = (m && (m.videoHeight || m.naturalHeight)) || 1080;
   // round to even numbers — required by most video codecs
   const even = (n) => Math.round(n / 2) * 2;
+  // long edge: export uses the chosen size; preview caps at 1920
+  const cap = targetLongEdge || 1920;
   if (aspect === "original") {
-    // allow up to 1920px on the long edge (full HD)
     const longEdge = Math.max(mw, mh);
-    const scale = longEdge > 1920 ? 1920 / longEdge : 1;
+    let scale;
+    if (targetLongEdge) {
+      scale = targetLongEdge / longEdge;        // export: scale to exact target
+    } else {
+      scale = longEdge > 1920 ? 1920 / longEdge : 1;  // preview: only cap
+    }
     return { w: even(mw * scale), h: even(mh * scale) };
   }
   const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
   const [aw, ah] = map[aspect] || [16, 9];
-  const base = 1920;
+  const base = cap;
   return aw >= ah
     ? { w: even(base), h: even(base * ah / aw) }
     : { w: even(base * aw / ah), h: even(base) };
@@ -2624,7 +2678,7 @@ function loadStudioMedia(file) {
     video.src = vstudio.mediaUrl;
     video.muted = true;
     video.playsInline = true;
-    video.loop = false;
+    video.loop = true;   // loop so it fills the chosen duration without freezing
     video.addEventListener("loadedmetadata", () => {
       vstudio.mediaEl = video;
       buildPreviewCanvas();
@@ -2679,12 +2733,76 @@ function loadStudioLogo(file) {
   img.src = vstudio.logoUrl;
 }
 
-function buildPreviewCanvas() {
+function buildPreviewCanvas(exportLongEdge) {
   const stage = $("#vsPreview");
   if (!stage) return;
-  const { w, h } = vsCanvasSize();
+  const { w, h } = vsCanvasSize(exportLongEdge);
   stage.innerHTML = `<canvas id="vsCanvas" width="${w}" height="${h}"></canvas>`;
   applyPreviewSize();
+  setupTextDrag();
+}
+
+// Make the headline/sub/cta block draggable directly on the canvas.
+function setupTextDrag() {
+  const canvas = $("#vsCanvas");
+  if (!canvas) return;
+  let dragging = false, startX = 0, startY = 0, baseDX = 0, baseDY = 0;
+
+  // convert a pointer event to canvas-pixel coordinates
+  const toCanvas = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return {
+      x: (p.clientX - r.left) / r.width * canvas.width,
+      y: (p.clientY - r.top) / r.height * canvas.height
+    };
+  };
+  const hitText = (pt) => {
+    const b = vstudio.textBox;
+    if (!b) return false;
+    const pad = canvas.width * 0.04;
+    return pt.x >= b.x - pad && pt.x <= b.x + b.w + pad &&
+           pt.y >= b.y - pad && pt.y <= b.y + b.h + pad;
+  };
+  const down = (e) => {
+    const pt = toCanvas(e);
+    if (!hitText(pt)) return;
+    dragging = true;
+    startX = pt.x; startY = pt.y;
+    baseDX = vstudio.textDX; baseDY = vstudio.textDY;
+    canvas.style.cursor = "grabbing";
+    e.preventDefault();
+  };
+  const move = (e) => {
+    const pt = toCanvas(e);
+    if (!dragging) {
+      // hover feedback
+      canvas.style.cursor = hitText(pt) ? "grab" : "default";
+      return;
+    }
+    vstudio.textDX = baseDX + (pt.x - startX) / canvas.width;
+    vstudio.textDY = baseDY + (pt.y - startY) / canvas.height;
+    // clamp so text stays on screen
+    vstudio.textDX = Math.max(-0.42, Math.min(0.42, vstudio.textDX));
+    vstudio.textDY = Math.max(-0.42, Math.min(0.42, vstudio.textDY));
+    // redraw immediately when the loop isn't running
+    if (!vstudio.looping && vstudio.mediaEl) drawStudioFrame(0);
+    e.preventDefault();
+  };
+  const up = () => { dragging = false; canvas.style.cursor = "default"; };
+
+  canvas.addEventListener("mousedown", down);
+  canvas.addEventListener("touchstart", down, { passive: false });
+  // window listeners attach only once across the session
+  if (!window._vsTextDragBound) {
+    window._vsTextDragBound = true;
+    window.addEventListener("mousemove", (e) => window._vsTextMove && window._vsTextMove(e));
+    window.addEventListener("mouseup", () => window._vsTextUp && window._vsTextUp());
+    window.addEventListener("touchmove", (e) => window._vsTextMove && window._vsTextMove(e), { passive: false });
+    window.addEventListener("touchend", () => window._vsTextUp && window._vsTextUp());
+  }
+  window._vsTextMove = move;
+  window._vsTextUp = up;
 }
 
 // Manual preview-size control (40%–100% of the stage width).
@@ -2819,6 +2937,63 @@ function drawInfographic(ctx, W, H, elapsed) {
       ctx.fillText(s.value, px + padX + panelW * 0.04, cardY + cardH * 0.78);
     }
   });
+  ctx.restore();
+
+  // decorative butterfly fluttering across the infographic
+  if ($("#vsInfoButterfly") && $("#vsInfoButterfly").checked) {
+    drawButterfly(ctx, W, H, elapsed, px, py, panelW, panelH);
+  }
+}
+
+// A butterfly that flies a gentle path with flapping wings.
+function drawButterfly(ctx, W, H, elapsed, px, py, panelW, panelH) {
+  // flight path: a looping figure across the panel
+  const t = elapsed * 0.6;
+  const bx = px + panelW * (0.5 + 0.42 * Math.sin(t));
+  const by = py + panelH * (0.5 + 0.36 * Math.sin(t * 1.7));
+  const size = Math.min(W, H) * 0.05;
+  // wing flap — fast oscillation
+  const flap = Math.abs(Math.sin(elapsed * 11));
+  const heading = Math.atan2(
+    Math.cos(t * 1.7) * 1.7 * panelH,
+    Math.cos(t) * panelW
+  );
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(heading + Math.PI / 2);
+  ctx.globalCompositeOperation = "screen";
+
+  const drawWing = (side) => {
+    ctx.save();
+    ctx.scale(side, 1);
+    // wing folds with the flap
+    ctx.scale(0.35 + 0.65 * flap, 1);
+    const g = ctx.createLinearGradient(0, -size, size, size);
+    g.addColorStop(0, "rgba(255,200,120,0.95)");
+    g.addColorStop(1, "rgba(216,120,200,0.85)");
+    ctx.fillStyle = g;
+    // upper wing
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size * 1.1, -size * 1.1, size * 0.9, -size * 0.2);
+    ctx.quadraticCurveTo(size * 0.7, size * 0.1, 0, 0);
+    ctx.fill();
+    // lower wing
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size * 0.8, size * 0.4, size * 0.6, size * 0.95);
+    ctx.quadraticCurveTo(size * 0.3, size * 0.7, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  };
+  drawWing(1);
+  drawWing(-1);
+  // body
+  ctx.fillStyle = "rgba(40,30,20,0.9)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.07, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -3089,6 +3264,9 @@ function drawStudioFrame(elapsed) {
     ctx.save();
     ctx.textAlign = "center";
     let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
+    // apply manual drag offset (set by dragging the text on the canvas)
+    const dragX = vstudio.textDX * W;
+    baseY += vstudio.textDY * H;
 
     // text animation preset — controls how text enters
     let textAlpha = 1, slideX = 0, scaleT = 1;
@@ -3135,6 +3313,14 @@ function drawStudioFrame(elapsed) {
     const blockBottom = baseY + (sub ? lineGap : 0) + (cta ? W * 0.05 : 0) + subSize;
     const blockH = blockBottom - blockTop;
 
+    // store the text bounds (canvas coords) so it can be dragged
+    vstudio.textBox = {
+      x: W / 2 + dragX - blockW / 2,
+      y: blockTop,
+      w: blockW,
+      h: blockH
+    };
+
     // readable plate behind text — ALWAYS on so text
     // never disappears into a bright photo.
     if (blockW > 0) {
@@ -3159,7 +3345,7 @@ function drawStudioFrame(elapsed) {
     }
 
     // apply slide / scale transform from the animation preset
-    ctx.translate(slideX, 0);
+    ctx.translate(slideX + dragX, 0);
     if (scaleT !== 1) {
       ctx.translate(W / 2, baseY);
       ctx.scale(scaleT, scaleT);
@@ -3328,8 +3514,9 @@ const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
-  "#vsInfoOn", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
-  "#vsLogoPos", "#vsIntro", "#vsOutro"
+  "#vsInfoOn", "#vsInfoButterfly", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
+  "#vsLogoPos", "#vsIntro", "#vsOutro",
+  "#vsExportSize", "#vsExportQuality"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
 
@@ -3444,11 +3631,11 @@ async function exportStudioVideo() {
   stopStudioPreview();          // pause the live loop during render
   vstudio.rendering = true;
 
-  buildPreviewCanvas();
-  canvas = $("#vsCanvas");   // fresh canvas after rebuild
+  buildPreviewCanvas(Number(vsVal("#vsExportSize", 1080)));
+  canvas = $("#vsCanvas");   // fresh canvas at export resolution
   vsStatus(state.lang === "fa"
-    ? `در حال رندر ${canvas.width}×${canvas.height} با کیفیت بالا... این تب را باز نگه دار.`
-    : `Rendering ${canvas.width}×${canvas.height} at high quality… keep this tab open.`);
+    ? `در حال رندر ${canvas.width}×${canvas.height}... این تب را باز نگه دار.`
+    : `Rendering ${canvas.width}×${canvas.height}… keep this tab open.`);
   const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
   const fps = 60;
   const canvasStream = canvas.captureStream(fps);
@@ -3474,11 +3661,14 @@ async function exportStudioVideo() {
     if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
   }
 
-  // High bitrate scaled to resolution (~0.13 bits per pixel per frame),
-  // clamped to a strong 8–40 Mbps range so the export is sharp.
+  // Bitrate scales with resolution AND the chosen quality level.
+  const qualityFactor = {
+    max: 0.22, high: 0.13, medium: 0.07, low: 0.035
+  }[vsVal("#vsExportQuality", "high")] || 0.13;
   const px = canvas.width * canvas.height;
-  let videoBitsPerSecond = Math.round(px * fps * 0.13);
-  videoBitsPerSecond = Math.min(40000000, Math.max(8000000, videoBitsPerSecond));
+  let videoBitsPerSecond = Math.round(px * fps * qualityFactor);
+  // sensible floor/ceiling so files are neither broken nor huge
+  videoBitsPerSecond = Math.min(60000000, Math.max(1500000, videoBitsPerSecond));
 
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,
@@ -3643,13 +3833,37 @@ function bindEvents() {
   on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
+  // live estimate of the exported file size
+  const updateExportInfo = () => {
+    const info = $("#vsExportInfo");
+    if (!info) return;
+    const size = Number(vsVal("#vsExportSize", 1080));
+    const qf = { max: 0.22, high: 0.13, medium: 0.07, low: 0.035 }[
+      vsVal("#vsExportQuality", "high")] || 0.13;
+    // estimate canvas pixels at the chosen size (assume 16:9-ish)
+    const px = size * (size * 16 / 9);
+    let bps = Math.min(60000000, Math.max(1500000, Math.round(px * 60 * qf)));
+    const dur = Math.max(2, Number(vsVal("#vsDuration", 6)));
+    const mb = (bps * dur) / 8 / 1024 / 1024;
+    const q = vsVal("#vsExportQuality", "high");
+    const qLabel = state.lang === "fa"
+      ? ({ max: "حداکثر", high: "بالا", medium: "متوسط", low: "کم" })[q]
+      : ({ max: "Maximum", high: "High", medium: "Medium", low: "Low" })[q];
+    info.textContent = state.lang === "fa"
+      ? `${size}p · کیفیت ${qLabel} · حدود ${mb.toFixed(1)} مگابایت`
+      : `${size}p · ${qLabel} quality · about ${mb.toFixed(1)} MB`;
+  };
+  on("#vsExportSize", "change", updateExportInfo);
+  on("#vsExportQuality", "change", updateExportInfo);
+  on("#vsDuration", "change", updateExportInfo);
+  updateExportInfo();
   on("#vsPreviewSize", "input", applyPreviewSize);
 
   // Live-update the static preview frame when any setting changes.
   const vsLiveControls = [
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
-    "#vsInfoOn", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
+    "#vsInfoOn", "#vsInfoButterfly", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
