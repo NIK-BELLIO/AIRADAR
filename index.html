@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v26" />
+    <link rel="stylesheet" href="styles.css?v=v28" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -225,6 +225,7 @@
               <div class="vtab-bar" role="tablist">
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
                 <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
+                <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
                 <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
                 <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
@@ -247,6 +248,26 @@
                   <span data-i18n="vMusicHint">Optional: background music (mp3, wav)</span>
                   <input id="vsMusic" type="file" accept="audio/*" />
                 </label>
+              </div>
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
+                <span class="vstudio-label" data-i18n="vSlidesLabel">Slide sequence</span>
+                <p class="vstudio-note" data-i18n="vSlidesHint">Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.</p>
+                <div id="vsSlideList" class="vs-slide-list"></div>
+                <div class="vs-slide-actions">
+                  <label class="button primary vs-add-slide">
+                    <span data-i18n="vAddSlide">+ Add slide (upload media)</span>
+                    <input id="vsSlideUpload" type="file" accept="video/*,image/*" hidden />
+                  </label>
+                </div>
+                <div id="vsSlideEditor" class="vs-slide-editor vtab-hidden">
+                  <label><span data-i18n="vSlideHeadline">Slide headline</span>
+                    <input id="vsSlideHeadline" type="text" placeholder="This slide's headline" />
+                  </label>
+                  <label><span data-i18n="vSlideDuration">Slide duration (s)</span>
+                    <input id="vsSlideDuration" type="number" min="1" max="30" value="4" />
+                  </label>
+                </div>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
@@ -365,9 +386,15 @@
                   <label><span data-i18n="vOverlayLabel">Overlay element</span>
                     <select id="vsOverlay">
                       <option value="none">None</option>
+                      <option value="goldframe">Gold frame (luxe)</option>
+                      <option value="shimmer">Shimmer sweep (luxe)</option>
+                      <option value="embers">Warm embers (luxe)</option>
                       <option value="lightleak">Light leak</option>
                       <option value="glow">Edge glow</option>
                       <option value="bokeh">Bokeh lights</option>
+                      <option value="minimalline">Minimal line</option>
+                      <option value="corners">Corner brackets (minimal)</option>
+                      <option value="haze">Soft haze (minimal)</option>
                       <option value="particles">Sparkle particles</option>
                       <option value="dust">Floating dust</option>
                       <option value="snow">Snow</option>
@@ -384,15 +411,13 @@
               <div class="vstudio-block vtab-hidden" data-vtab-panel="info">
                 <span class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</span>
                 <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                <p class="vstudio-note" data-i18n="vInfoHint">Type a topic and generate a professional infographic — or paste your own JSON below.</p>
-                <label><span data-i18n="vInfoPromptLabel">Topic / prompt</span>
-                  <input id="vsInfoPrompt" type="text" placeholder="e.g. 2026 AI market growth" />
+                <p class="vstudio-note" data-i18n="vInfoHint">Import a .json file with your data, or paste/edit JSON in the box below.</p>
+                <label class="file-field">
+                  <span data-i18n="vInfoImportLabel">Import JSON file</span>
+                  <input id="vsInfoFile" type="file" accept="application/json,.json" />
                 </label>
-                <button id="vsInfoGenBtn" class="button primary ai-btn" type="button">
-                  <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoGenBtn">Generate infographic</span>
-                </button>
                 <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
-                  <textarea id="vsInfoJson" rows="9" spellcheck="false" placeholder='{
+                  <textarea id="vsInfoJson" rows="10" spellcheck="false" placeholder='{
   "title": "2026 AI Market",
   "subtitle": "Key metrics",
   "stats": [
@@ -401,6 +426,7 @@
   ]
 }'></textarea>
                 </label>
+                <p class="vstudio-note" id="vsInfoJsonStatus"></p>
                 <div class="control-grid">
                   <label><span data-i18n="vInfoStyleLabel">Chart style</span>
                     <select id="vsInfoStyle">
@@ -601,6 +627,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v26"></script>
+    <script src="app.js?v=v28"></script>
   </body>
 </html>
