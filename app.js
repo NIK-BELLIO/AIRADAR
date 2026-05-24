@@ -11,6 +11,14 @@ const i18n = {
     vTabMedia: "Media",
     vTabFormat: "Format",
     vTabMotion: "Motion",
+    vTabInfo: "Infographic",
+    vInfoLabel: "Infographic builder",
+    vInfoOnLabel: "Show infographic overlay",
+    vInfoTitleLabel: "Infographic title",
+    vInfoHint: "Enter up to 4 stats as \"Label : Value\" — one per line.",
+    vInfoStatsLabel: "Stats (one per line)",
+    vInfoStyleLabel: "Chart style",
+    vInfoPosLabel: "Position",
     vMotionLabel: "Motion & elements",
     vCamMotionLabel: "Camera motion",
     vTextAnimLabel: "Text animation",
@@ -186,6 +194,14 @@ const i18n = {
     vTabMedia: "رسانه",
     vTabFormat: "فرمت",
     vTabMotion: "موشن",
+    vTabInfo: "اینفوگرافیک",
+    vInfoLabel: "سازنده اینفوگرافیک",
+    vInfoOnLabel: "نمایش اینفوگرافیک",
+    vInfoTitleLabel: "عنوان اینفوگرافیک",
+    vInfoHint: "تا ۴ آمار را به شکل «برچسب : مقدار» وارد کن — هر کدام در یک خط.",
+    vInfoStatsLabel: "آمارها (هر خط یکی)",
+    vInfoStyleLabel: "سبک نمودار",
+    vInfoPosLabel: "موقعیت",
     vMotionLabel: "موشن و المان‌ها",
     vCamMotionLabel: "حرکت دوربین",
     vTextAnimLabel: "انیمیشن متن",
@@ -2579,18 +2595,22 @@ function setVideoTemplate(id) {
 function vsCanvasSize() {
   const aspect = vsVal("#vsAspect", "original");
   const m = vstudio.mediaEl;
-  let mw = (m && (m.videoWidth || m.naturalWidth)) || 1280;
-  let mh = (m && (m.videoHeight || m.naturalHeight)) || 720;
+  let mw = (m && (m.videoWidth || m.naturalWidth)) || 1920;
+  let mh = (m && (m.videoHeight || m.naturalHeight)) || 1080;
+  // round to even numbers — required by most video codecs
+  const even = (n) => Math.round(n / 2) * 2;
   if (aspect === "original") {
-    const scale = mw > 1280 ? 1280 / mw : 1;
-    return { w: Math.round(mw * scale), h: Math.round(mh * scale) };
+    // allow up to 1920px on the long edge (full HD)
+    const longEdge = Math.max(mw, mh);
+    const scale = longEdge > 1920 ? 1920 / longEdge : 1;
+    return { w: even(mw * scale), h: even(mh * scale) };
   }
   const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
   const [aw, ah] = map[aspect] || [16, 9];
-  const base = 1080;
+  const base = 1920;
   return aw >= ah
-    ? { w: base, h: Math.round(base * ah / aw) }
-    : { w: Math.round(base * aw / ah), h: base };
+    ? { w: even(base), h: even(base * ah / aw) }
+    : { w: even(base * aw / ah), h: even(base) };
 }
 
 function loadStudioMedia(file) {
@@ -2691,6 +2711,128 @@ function vsFilterString() {
   }
 }
 
+// Parse the stats textarea into [{label, value, num}] entries.
+function vsParseStats() {
+  const raw = (vsVal("#vsInfoStats", "") || "").trim();
+  if (!raw) return [];
+  return raw.split(/\n+/).slice(0, 4).map(line => {
+    const idx = line.indexOf(":");
+    const label = idx >= 0 ? line.slice(0, idx).trim() : line.trim();
+    const value = idx >= 0 ? line.slice(idx + 1).trim() : "";
+    const num = parseFloat(value.replace(/[^0-9.]/g, "")) || 0;
+    return { label, value, num };
+  }).filter(s => s.label);
+}
+
+// Draw an animated infographic overlay (bars / counters / cards).
+function drawInfographic(ctx, W, H, elapsed) {
+  const on = $("#vsInfoOn") && $("#vsInfoOn").checked;
+  if (!on) return;
+  const stats = vsParseStats();
+  const title = (vsVal("#vsInfoTitle", "") || "").trim();
+  if (!stats.length && !title) return;
+
+  const style = vsVal("#vsInfoStyle", "bars");
+  const pos = vsVal("#vsInfoPos", "center");
+  const reveal = Math.min(1, elapsed / 1.4);
+  const ease = 1 - Math.pow(1 - reveal, 3);
+
+  const panelW = W * 0.42, panelH = H * 0.62;
+  let px = (W - panelW) / 2;
+  if (pos === "left") px = W * 0.06;
+  if (pos === "right") px = W - panelW - W * 0.06;
+  const py = (H - panelH) / 2;
+
+  ctx.save();
+  ctx.globalAlpha = ease;
+  ctx.fillStyle = "rgba(12,10,8,0.82)";
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.05);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(216,183,106,0.4)";
+  ctx.lineWidth = Math.max(1, W * 0.0015);
+  ctx.stroke();
+
+  const padX = panelW * 0.1;
+  let cy = py + panelH * 0.16;
+
+  if (title) {
+    ctx.fillStyle = "#fff0b8";
+    ctx.font = `600 ${Math.round(W * 0.03)}px Prata, serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(title, px + padX, cy);
+    cy += panelH * 0.12;
+  }
+
+  const max = Math.max(1, ...stats.map(s => s.num));
+  const rowH = (py + panelH - cy - panelH * 0.08) / Math.max(1, stats.length);
+
+  stats.forEach((s, i) => {
+    const rowReveal = Math.min(1, Math.max(0, (elapsed - 0.3 - i * 0.25) / 0.8));
+    const re = 1 - Math.pow(1 - rowReveal, 3);
+    const ry = cy + i * rowH;
+
+    if (style === "bars") {
+      ctx.fillStyle = "#d8c8a0";
+      ctx.font = `500 ${Math.round(W * 0.018)}px Inter, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillText(s.label, px + padX, ry);
+      const barW = panelW - padX * 2;
+      const barY = ry + rowH * 0.18;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      roundRectPath(ctx, px + padX, barY, barW, rowH * 0.3, rowH * 0.15);
+      ctx.fill();
+      const fillW = barW * (s.num / max) * re;
+      const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
+      grad.addColorStop(0, "#d8b76a");
+      grad.addColorStop(1, "#fff0b8");
+      ctx.fillStyle = grad;
+      roundRectPath(ctx, px + padX, barY, Math.max(rowH * 0.3, fillW), rowH * 0.3, rowH * 0.15);
+      ctx.fill();
+      ctx.fillStyle = "#fff0b8";
+      ctx.textAlign = "right";
+      ctx.font = `600 ${Math.round(W * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(s.value, px + padX + barW, ry);
+    } else if (style === "counters") {
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#fff0b8";
+      ctx.font = `700 ${Math.round(W * 0.04)}px Prata, serif`;
+      const shown = s.num
+        ? Math.round(s.num * re).toLocaleString() +
+          s.value.replace(/[0-9.,]/g, "")
+        : s.value;
+      ctx.fillText(shown, px + padX, ry + rowH * 0.4);
+      ctx.fillStyle = "#c8b890";
+      ctx.font = `400 ${Math.round(W * 0.018)}px Inter, sans-serif`;
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.66);
+    } else {
+      const cardY = ry + rowH * 0.1;
+      const cardH = rowH * 0.78;
+      ctx.fillStyle = "rgba(216,183,106,0.12)";
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.18);
+      ctx.fill();
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#c8b890";
+      ctx.font = `400 ${Math.round(W * 0.016)}px Inter, sans-serif`;
+      ctx.fillText(s.label, px + padX + panelW * 0.04, cardY + cardH * 0.4);
+      ctx.fillStyle = "#fff0b8";
+      ctx.font = `700 ${Math.round(W * 0.026)}px Prata, serif`;
+      ctx.fillText(s.value, px + padX + panelW * 0.04, cardY + cardH * 0.78);
+    }
+  });
+  ctx.restore();
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 // Draw a single composited frame at time `elapsed` (seconds).
 // Animated overlay elements drawn on top of the media.
 function drawStudioOverlay(ctx, W, H, elapsed, kind) {
@@ -2756,6 +2898,50 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
     bot.addColorStop(1, "rgba(0,0,0,0.55)");
     ctx.fillStyle = bot;
     ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  } else if (kind === "rain") {
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = "rgba(180,200,230,0.5)";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 70; i++) {
+      const seed = i * 41.3;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W;
+      const y = ((elapsed * 600 + seed * 50) % (H + 60)) - 30;
+      ctx.beginPath();
+      ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 18);
+      ctx.stroke();
+    }
+  } else if (kind === "dust") {
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 40; i++) {
+      const seed = i * 67.9;
+      const x = (Math.sin(seed + elapsed * 0.3) * 0.5 + 0.5) * W;
+      const y = (Math.cos(seed * 1.7 + elapsed * 0.4) * 0.5 + 0.5) * H;
+      ctx.globalAlpha = 0.3 + 0.4 * (Math.sin(elapsed * 2 + seed) * 0.5 + 0.5);
+      ctx.fillStyle = "rgba(255,250,235,0.8)";
+      ctx.beginPath(); ctx.arc(x, y, 1.4, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "scanlines") {
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = "#000";
+    for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 2);
+  } else if (kind === "glow") {
+    // pulsing edge glow
+    const pulse = 0.3 + 0.2 * Math.sin(elapsed * 2);
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35,
+                                       W/2, H/2, Math.max(W,H)*0.7);
+    g.addColorStop(0, "rgba(216,183,106,0)");
+    g.addColorStop(1, `rgba(216,183,106,${pulse})`);
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "vhs") {
+    // subtle chromatic VHS jitter bars
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 3; i++) {
+      const y = ((elapsed * 120 + i * H / 3) % H);
+      ctx.fillStyle = "rgba(120,160,255,0.06)";
+      ctx.fillRect(0, y, W, 30);
+    }
   }
   ctx.restore();
 }
@@ -2765,6 +2951,8 @@ function drawStudioFrame(elapsed) {
   const media = vstudio.mediaEl;
   if (!canvas || !media) return;
   const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const W = canvas.width, H = canvas.height;
   const tpl = vsTemplate();
   const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
@@ -2823,6 +3011,19 @@ function drawStudioFrame(elapsed) {
                           offY = (Math.random() - 0.5) * H * 0.012; break;
     case "pulse":         zoom = 1.06 + Math.sin(elapsed * 4) * 0.03; break;
     case "sway":          zoom = 1.1; rot = Math.sin(lc * TAU) * 0.03; break;
+    case "zoom-pan":      zoom = 1.0 + lc * 0.2; offX = (0.5 - lc) * W * 0.1; break;
+    case "diagonal":      zoom = 1.14; offX = (lc - 0.5) * W * 0.12;
+                          offY = (lc - 0.5) * H * 0.12; break;
+    case "spin-in":       zoom = 0.7 + lc * 0.35; rot = (1 - lc) * 0.4; break;
+    case "breathe":       zoom = 1.05 + Math.sin(elapsed * 1.6) * 0.04; break;
+    case "drift-up":      zoom = 1.12; offY = (0.5 - lc) * H * 0.22; break;
+    case "punch-in":      zoom = lc < 0.12 ? 1 + lc * 1.5 : 1.18; break;
+    case "handheld":      zoom = 1.1;
+                          offX = Math.sin(elapsed * 5.5) * W * 0.006 +
+                                 Math.sin(elapsed * 2.3) * W * 0.004;
+                          offY = Math.cos(elapsed * 4.7) * H * 0.006;
+                          rot = Math.sin(elapsed * 1.9) * 0.006; break;
+    case "vertigo":       zoom = 1.0 + Math.sin(lc * Math.PI) * 0.22; break;
     default:              zoom = 1.0 + lc * 0.06;
   }
 
@@ -2871,6 +3072,9 @@ function drawStudioFrame(elapsed) {
   // ----- overlay element (light leak / bokeh / particles) -----
   drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
 
+  // ----- infographic overlay -----
+  drawInfographic(ctx, W, H, elapsed);
+
   // ----- text layers (with a readable backing plate) -----
   const headline = (vsVal("#vsHeadline", "") || "").trim();
   const sub = (vsVal("#vsSub", "") || "").trim();
@@ -2899,6 +3103,16 @@ function drawStudioFrame(elapsed) {
                         scaleT = 0.6 + 0.4 * (1 - Math.pow(1 - rawT, 2)) +
                                  Math.sin(rawT * Math.PI) * 0.08; break;
       case "typewriter": textAlpha = 1; break;  // handled per-letter below
+      case "zoom-in":   textAlpha = tEase;
+                        scaleT = 1.4 - 0.4 * tEase; break;
+      case "zoom-out":  textAlpha = tEase;
+                        scaleT = 0.6 + 0.4 * tEase; break;
+      case "bounce":    textAlpha = tEase;
+                        baseY += (1 - tEase) * 40 *
+                          Math.cos(rawT * Math.PI * 2.5) * (1 - rawT); break;
+      case "rise":      textAlpha = tEase; baseY += (1 - tEase) * 70; break;
+      case "blur-in":   textAlpha = tEase * tEase; break;
+      case "drop":      textAlpha = tEase; baseY -= (1 - tEase) * 70; break;
       default:          textAlpha = tEase; baseY += (1 - tEase) * 30;
     }
     ctx.globalAlpha = textAlpha;
@@ -3114,6 +3328,7 @@ const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
+  "#vsInfoOn", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
   "#vsLogoPos", "#vsIntro", "#vsOutro"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
@@ -3215,7 +3430,7 @@ function scrubTimeline(clientX) {
 
 // Export the composited result as a real .webm video file.
 async function exportStudioVideo() {
-  const canvas = $("#vsCanvas");
+  let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
   if (!canvas || !media) {
     vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
@@ -3228,11 +3443,15 @@ async function exportStudioVideo() {
   if (vstudio.rendering) return;
   stopStudioPreview();          // pause the live loop during render
   vstudio.rendering = true;
-  vsStatus(state.lang === "fa" ? "در حال رندر... این تب را باز نگه دار." : "Rendering… keep this tab open.");
 
   buildPreviewCanvas();
+  canvas = $("#vsCanvas");   // fresh canvas after rebuild
+  vsStatus(state.lang === "fa"
+    ? `در حال رندر ${canvas.width}×${canvas.height} با کیفیت بالا... این تب را باز نگه دار.`
+    : `Rendering ${canvas.width}×${canvas.height} at high quality… keep this tab open.`);
   const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
-  const canvasStream = canvas.captureStream(30);
+  const fps = 60;
+  const canvasStream = canvas.captureStream(fps);
 
   // mix in music audio if present
   let tracks = [...canvasStream.getVideoTracks()];
@@ -3248,9 +3467,24 @@ async function exportStudioVideo() {
     } catch {}
   }
   const stream = new MediaStream(tracks);
-  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9" : "video/webm";
-  const recorder = new MediaRecorder(stream, { mimeType: mime });
+
+  // Pick the best available codec — VP9 first, then VP8/webm.
+  let mime = "video/webm";
+  for (const t of ["video/webm;codecs=vp9", "video/webm;codecs=vp8"]) {
+    if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+  }
+
+  // High bitrate scaled to resolution (~0.13 bits per pixel per frame),
+  // clamped to a strong 8–40 Mbps range so the export is sharp.
+  const px = canvas.width * canvas.height;
+  let videoBitsPerSecond = Math.round(px * fps * 0.13);
+  videoBitsPerSecond = Math.min(40000000, Math.max(8000000, videoBitsPerSecond));
+
+  const recorder = new MediaRecorder(stream, {
+    mimeType: mime,
+    videoBitsPerSecond,
+    audioBitsPerSecond: 192000
+  });
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
@@ -3276,7 +3510,7 @@ async function exportStudioVideo() {
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = 0; await vstudio.musicEl.play().catch(() => {}); } catch {}
   }
-  recorder.start();
+  recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
 
   await new Promise(resolve => {
@@ -3415,6 +3649,7 @@ function bindEvents() {
   const vsLiveControls = [
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
+    "#vsInfoOn", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
