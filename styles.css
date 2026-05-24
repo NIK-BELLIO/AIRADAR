@@ -2422,13 +2422,22 @@ body.theme-light .theme-toggle-dot {
 /* ── VIDEO STUDIO — category tabs ───────────────────────── */
 .vtab-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   margin-bottom: 4px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.vtab-bar::-webkit-scrollbar { height: 6px; }
+.vtab-bar::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
 }
 .vtab {
+  flex-shrink: 0;
   padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2437,6 +2446,7 @@ body.theme-light .theme-toggle-dot {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.18s;
 }
 .vtab:hover { color: var(--text); }
