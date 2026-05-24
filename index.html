@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v21" />
+    <link rel="stylesheet" href="styles.css?v=v23" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -227,6 +227,7 @@
                 <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
                 <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format</button>
                 <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
+                <button class="vtab" type="button" data-vtab="info" data-i18n="vTabInfo">Infographic</button>
                 <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
               </div>
@@ -304,13 +305,21 @@
                     <select id="vsMotion">
                       <option value="kenburns-in">Ken Burns — zoom in</option>
                       <option value="kenburns-out">Ken Burns — zoom out</option>
+                      <option value="punch-in">Punch in</option>
+                      <option value="zoom-pan">Zoom + pan</option>
                       <option value="pan-right">Pan right</option>
                       <option value="pan-left">Pan left</option>
                       <option value="pan-up">Pan up</option>
                       <option value="pan-down">Pan down</option>
+                      <option value="diagonal">Diagonal drift</option>
+                      <option value="drift-up">Slow drift up</option>
                       <option value="parallax">Parallax drift</option>
+                      <option value="vertigo">Vertigo (dolly zoom)</option>
+                      <option value="spin-in">Spin in</option>
                       <option value="pulse">Pulse</option>
+                      <option value="breathe">Breathe</option>
                       <option value="sway">Sway</option>
+                      <option value="handheld">Handheld</option>
                       <option value="shake">Shake</option>
                       <option value="none">None (static)</option>
                     </select>
@@ -320,9 +329,15 @@
                       <option value="fade-up">Fade up</option>
                       <option value="fade-down">Fade down</option>
                       <option value="fade">Fade in</option>
+                      <option value="rise">Rise up</option>
+                      <option value="drop">Drop down</option>
                       <option value="slide-left">Slide from left</option>
                       <option value="slide-right">Slide from right</option>
                       <option value="pop">Pop / scale</option>
+                      <option value="bounce">Bounce</option>
+                      <option value="zoom-in">Zoom in</option>
+                      <option value="zoom-out">Zoom out</option>
+                      <option value="blur-in">Blur in</option>
                       <option value="typewriter">Typewriter</option>
                       <option value="none">None</option>
                     </select>
@@ -331,14 +346,45 @@
                     <select id="vsOverlay">
                       <option value="none">None</option>
                       <option value="lightleak">Light leak</option>
+                      <option value="glow">Edge glow</option>
                       <option value="bokeh">Bokeh lights</option>
                       <option value="particles">Sparkle particles</option>
+                      <option value="dust">Floating dust</option>
                       <option value="snow">Snow</option>
+                      <option value="rain">Rain</option>
                       <option value="gradient">Cinematic bars</option>
+                      <option value="scanlines">Scanlines</option>
+                      <option value="vhs">VHS jitter</option>
                     </select>
                   </label>
                 </div>
                 <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
+              </div>
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="info">
+                <span class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</span>
+                <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
+                <label><span data-i18n="vInfoTitleLabel">Infographic title</span><input id="vsInfoTitle" type="text" placeholder="2026 AI Market" /></label>
+                <p class="vstudio-note" data-i18n="vInfoHint">Enter up to 4 stats as "Label : Value" — one per line.</p>
+                <label><span data-i18n="vInfoStatsLabel">Stats (one per line)</span>
+                  <textarea id="vsInfoStats" rows="4" placeholder="Users : 4.2M&#10;Growth : +180%&#10;Tools tracked : 30&#10;Free plans : 25"></textarea>
+                </label>
+                <div class="control-grid">
+                  <label><span data-i18n="vInfoStyleLabel">Chart style</span>
+                    <select id="vsInfoStyle">
+                      <option value="bars">Animated bars</option>
+                      <option value="counters">Counting numbers</option>
+                      <option value="cards">Stat cards</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vInfoPosLabel">Position</span>
+                    <select id="vsInfoPos">
+                      <option value="center">Center</option>
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </label>
+                </div>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="text">
@@ -522,6 +568,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v21"></script>
+    <script src="app.js?v=v23"></script>
   </body>
 </html>
