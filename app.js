@@ -10,6 +10,12 @@ const i18n = {
     vTabTemplate: "Template",
     vTabMedia: "Media",
     vTabFormat: "Format",
+    vTabMotion: "Motion",
+    vMotionLabel: "Motion & elements",
+    vCamMotionLabel: "Camera motion",
+    vTextAnimLabel: "Text animation",
+    vOverlayLabel: "Overlay element",
+    vMotionNote: "Every change updates the live preview instantly — no need to press Preview.",
     vTabText: "Text",
     vTabLogo: "Logo & cards",
     vTemplateLabel: "1 \u00b7 Template",
@@ -179,6 +185,12 @@ const i18n = {
     vTabTemplate: "قالب",
     vTabMedia: "رسانه",
     vTabFormat: "فرمت",
+    vTabMotion: "موشن",
+    vMotionLabel: "موشن و المان‌ها",
+    vCamMotionLabel: "حرکت دوربین",
+    vTextAnimLabel: "انیمیشن متن",
+    vOverlayLabel: "المان رویی",
+    vMotionNote: "هر تغییری فوراً پیش‌نمایش زنده را به‌روز می‌کند — نیازی به زدن پیش‌نمایش نیست.",
     vTabText: "متن",
     vTabLogo: "لوگو و کارت",
     vTemplateLabel: "۱ · قالب",
@@ -2527,6 +2539,7 @@ const vstudio = {
   rafId: null,
   startTime: 0,
   playing: false,
+  looping: false,
   rendering: false
 };
 
@@ -2595,9 +2608,9 @@ function loadStudioMedia(file) {
     video.addEventListener("loadedmetadata", () => {
       vstudio.mediaEl = video;
       buildPreviewCanvas();
-      drawStudioFrame(0);
       refreshTimelineClips();
-      vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد." : "Video loaded. Hit Preview.");
+      previewStudioVideo();   // start the live looping preview
+      vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد — پیش‌نمایش زنده فعال است." : "Video loaded — live preview is running.");
     });
     video.addEventListener("error", () => {
       vsStatus(state.lang === "fa" ? "بارگذاری ویدیو ناموفق بود." : "Could not load that video.");
@@ -2607,9 +2620,9 @@ function loadStudioMedia(file) {
     img.onload = () => {
       vstudio.mediaEl = img;
       buildPreviewCanvas();
-      drawStudioFrame(0);
       refreshTimelineClips();
-      vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد." : "Image loaded. Hit Preview.");
+      previewStudioVideo();   // start the live looping preview
+      vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد — پیش‌نمایش زنده فعال است." : "Image loaded — live preview is running.");
     };
     img.onerror = () => {
       vsStatus(state.lang === "fa" ? "بارگذاری تصویر ناموفق بود." : "Could not load that image.");
@@ -2679,6 +2692,74 @@ function vsFilterString() {
 }
 
 // Draw a single composited frame at time `elapsed` (seconds).
+// Animated overlay elements drawn on top of the media.
+function drawStudioOverlay(ctx, W, H, elapsed, kind) {
+  if (!kind || kind === "none") return;
+  ctx.save();
+  if (kind === "lightleak") {
+    // drifting warm light leak
+    const x = W * (0.2 + 0.6 * (0.5 + 0.5 * Math.sin(elapsed * 0.6)));
+    const g = ctx.createRadialGradient(x, H * 0.2, 0, x, H * 0.2, W * 0.6);
+    g.addColorStop(0, "rgba(255,180,90,0.35)");
+    g.addColorStop(1, "rgba(255,180,90,0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "bokeh") {
+    // soft floating circles
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 14; i++) {
+      const seed = i * 99.7;
+      const x = ((Math.sin(seed) * 0.5 + 0.5) * W);
+      const y = ((elapsed * 16 + seed * 30) % (H + 120)) - 60;
+      const r = 14 + (i % 5) * 12;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(255,240,200,0.5)");
+      g.addColorStop(1, "rgba(255,240,200,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "particles") {
+    // rising sparkles
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 50; i++) {
+      const seed = i * 53.3;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed + seed) * 14;
+      const y = H - ((elapsed * 40 + seed * 40) % (H + 40));
+      const s = 1 + (i % 3);
+      ctx.globalAlpha = 0.4 + 0.5 * (Math.sin(elapsed * 3 + seed) * 0.5 + 0.5);
+      ctx.fillRect(x, y, s, s);
+    }
+  } else if (kind === "snow") {
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    for (let i = 0; i < 60; i++) {
+      const seed = i * 47.1;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed * 0.8 + seed) * 24;
+      const y = ((elapsed * 30 + seed * 30) % (H + 30));
+      const r = 1.5 + (i % 3);
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "gradient") {
+    // cinematic top/bottom gradient bars
+    const top = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+    top.addColorStop(0, "rgba(0,0,0,0.55)");
+    top.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = top;
+    ctx.fillRect(0, 0, W, H * 0.3);
+    const bot = ctx.createLinearGradient(0, H * 0.7, 0, H);
+    bot.addColorStop(0, "rgba(0,0,0,0)");
+    bot.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = bot;
+    ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  }
+  ctx.restore();
+}
+
 function drawStudioFrame(elapsed) {
   const canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -2718,13 +2799,36 @@ function drawStudioFrame(elapsed) {
   // transition in
   const trans = vsVal("#vsTransition", "fade");
   const local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
+  const lc = Math.max(0, Math.min(1, local));
   const intro = Math.min(1, (elapsed - introDur) / 0.9);
   const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
 
-  let zoom = 1 + local * 0.06;            // gentle drift
-  let offX = 0, offY = 0, alpha = 1;
+  let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
+
+  // ----- camera motion preset -----
+  const motion = vsVal("#vsMotion", "kenburns-in");
+  const TAU = Math.PI * 2;
+  switch (motion) {
+    case "none":          zoom = 1; break;
+    case "kenburns-in":   zoom = 1.0 + lc * 0.18; break;
+    case "kenburns-out":  zoom = 1.18 - lc * 0.18; break;
+    case "pan-right":     zoom = 1.14; offX = (0.5 - lc) * W * 0.16; break;
+    case "pan-left":      zoom = 1.14; offX = (lc - 0.5) * W * 0.16; break;
+    case "pan-up":        zoom = 1.14; offY = (lc - 0.5) * H * 0.16; break;
+    case "pan-down":      zoom = 1.14; offY = (0.5 - lc) * H * 0.16; break;
+    case "parallax":      zoom = 1.12 + Math.sin(lc * Math.PI) * 0.05;
+                          offX = Math.sin(lc * TAU) * W * 0.04; break;
+    case "shake":         zoom = 1.08;
+                          offX = (Math.random() - 0.5) * W * 0.012;
+                          offY = (Math.random() - 0.5) * H * 0.012; break;
+    case "pulse":         zoom = 1.06 + Math.sin(elapsed * 4) * 0.03; break;
+    case "sway":          zoom = 1.1; rot = Math.sin(lc * TAU) * 0.03; break;
+    default:              zoom = 1.0 + lc * 0.06;
+  }
+
+  // transitions layer on top of motion
   if (trans === "zoom") zoom *= (1.18 - 0.18 * ease);
-  if (trans === "slide") offY = (1 - ease) * H * 0.12;
+  if (trans === "slide") offY += (1 - ease) * H * 0.12;
   if (trans === "fade")  alpha = ease;
 
   const fit = Math.min(W / mw, H / mh) * zoom;
@@ -2733,6 +2837,11 @@ function drawStudioFrame(elapsed) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.filter = vsFilterString();
+  if (rot !== 0) {
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(rot);
+    ctx.translate(-W / 2, -H / 2);
+  }
   try {
     ctx.drawImage(media, (W - dw) / 2 + offX, (H - dh) / 2 + offY, dw, dh);
   } catch {}
@@ -2759,21 +2868,40 @@ function drawStudioFrame(elapsed) {
     ctx.restore();
   }
 
+  // ----- overlay element (light leak / bokeh / particles) -----
+  drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+
   // ----- text layers (with a readable backing plate) -----
   const headline = (vsVal("#vsHeadline", "") || "").trim();
   const sub = (vsVal("#vsSub", "") || "").trim();
   const cta = (vsVal("#vsCta", "") || "").trim();
   const pos = vsVal("#vsTextPos", "center");
   const sizeMul = Number(vsVal("#vsTextSize", 1));
-  const textIntro = Math.min(1, (elapsed - introDur) / 1.2);
-  const tEase = 1 - Math.pow(1 - Math.max(0, textIntro), 3);
+  const textAnim = vsVal("#vsTextAnim", "fade-up");
+  const rawT = Math.min(1, Math.max(0, (elapsed - introDur) / 1.2));
+  const tEase = 1 - Math.pow(1 - rawT, 3);
 
   if (headline || sub || cta) {
     ctx.save();
-    ctx.globalAlpha = tEase;
     ctx.textAlign = "center";
     let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
-    baseY += (1 - tEase) * 26;
+
+    // text animation preset — controls how text enters
+    let textAlpha = 1, slideX = 0, scaleT = 1;
+    switch (textAnim) {
+      case "none":      textAlpha = 1; break;
+      case "fade":      textAlpha = tEase; break;
+      case "fade-up":   textAlpha = tEase; baseY += (1 - tEase) * 30; break;
+      case "fade-down": textAlpha = tEase; baseY -= (1 - tEase) * 30; break;
+      case "slide-left":  textAlpha = tEase; slideX = (1 - tEase) * W * 0.3; break;
+      case "slide-right": textAlpha = tEase; slideX = -(1 - tEase) * W * 0.3; break;
+      case "pop":       textAlpha = tEase;
+                        scaleT = 0.6 + 0.4 * (1 - Math.pow(1 - rawT, 2)) +
+                                 Math.sin(rawT * Math.PI) * 0.08; break;
+      case "typewriter": textAlpha = 1; break;  // handled per-letter below
+      default:          textAlpha = tEase; baseY += (1 - tEase) * 30;
+    }
+    ctx.globalAlpha = textAlpha;
 
     // text colour comes from the template
     const fill = tpl.text, accentFill = tpl.accent;
@@ -2816,13 +2944,25 @@ function drawStudioFrame(elapsed) {
       ctx.restore();
     }
 
+    // apply slide / scale transform from the animation preset
+    ctx.translate(slideX, 0);
+    if (scaleT !== 1) {
+      ctx.translate(W / 2, baseY);
+      ctx.scale(scaleT, scaleT);
+      ctx.translate(-W / 2, -baseY);
+    }
+
     // strong shadow as a second safety net for readability
     if (headline) {
       ctx.font = `600 ${hlSize}px ${tpl.headlineFont}`;
       ctx.fillStyle = fill;
       ctx.shadowColor = "rgba(0,0,0,0.7)";
       ctx.shadowBlur = 20;
-      ctx.fillText(headline, W / 2, baseY);
+      // typewriter reveals the headline letter by letter
+      const shownHeadline = textAnim === "typewriter"
+        ? headline.slice(0, Math.ceil(rawT * headline.length))
+        : headline;
+      ctx.fillText(shownHeadline, W / 2, baseY);
       ctx.shadowBlur = 0;
       const lw = W * 0.12 * tEase;
       ctx.strokeStyle = accentFill;
@@ -2903,9 +3043,7 @@ function previewStudioVideo() {
     return;
   }
   if (vstudio.rendering) return;
-  // rebuild canvas in case aspect ratio changed
   buildPreviewCanvas();
-  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
   if (vstudio.isVideo) {
@@ -2917,23 +3055,36 @@ function previewStudioVideo() {
     try { vstudio.musicEl.currentTime = 0; vstudio.musicEl.play().catch(() => {}); } catch {}
   }
   vstudio.startTime = performance.now();
+  vstudio.looping = true;
 
+  // Continuous loop — restarts at the end so the preview is always live.
   const loop = () => {
-    const elapsed = (performance.now() - vstudio.startTime) / 1000;
+    if (!vstudio.looping) return;
+    // duration is read every frame, so changing it updates instantly
+    const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+    let elapsed = (performance.now() - vstudio.startTime) / 1000;
+    if (elapsed >= duration) {
+      // loop back to the start
+      elapsed = 0;
+      vstudio.startTime = performance.now();
+      if (vstudio.isVideo) { try { media.currentTime = 0; media.play().catch(()=>{}); } catch {} }
+      if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
+    }
     drawStudioFrame(elapsed);
     updateTimeline(elapsed, duration);
-    if (elapsed < duration) {
-      vstudio.rafId = requestAnimationFrame(loop);
-    } else {
-      if (vstudio.isVideo) media.pause();
-      if (vstudio.musicEl) vstudio.musicEl.pause();
-      drawStudioFrame(duration);
-      updateTimeline(duration, duration);
-      setPlayBtn(false);
-    }
+    vstudio.rafId = requestAnimationFrame(loop);
   };
   setPlayBtn(true);
   loop();
+}
+
+// Stop the continuous preview loop.
+function stopStudioPreview() {
+  vstudio.looping = false;
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  if (vstudio.isVideo && vstudio.mediaEl) { try { vstudio.mediaEl.pause(); } catch {} }
+  if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
+  setPlayBtn(false);
 }
 
 // ── TIMELINE STRIP ────────────────────────────────────────
@@ -2962,6 +3113,7 @@ function setPlayBtn(playing) {
 const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+  "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsLogoPos", "#vsIntro", "#vsOutro"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
@@ -3074,6 +3226,7 @@ async function exportStudioVideo() {
     return;
   }
   if (vstudio.rendering) return;
+  stopStudioPreview();          // pause the live loop during render
   vstudio.rendering = true;
   vsStatus(state.lang === "fa" ? "در حال رندر... این تب را باز نگه دار." : "Rendering… keep this tab open.");
 
@@ -3146,6 +3299,7 @@ async function exportStudioVideo() {
   if (audioCtx) { try { audioCtx.close(); } catch {} }
   vstudio.rendering = false;
   vsStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
+  previewStudioVideo();         // resume the live looping preview
 }
 
 function bindEvents() {
@@ -3260,19 +3414,24 @@ function bindEvents() {
   // Live-update the static preview frame when any setting changes.
   const vsLiveControls = [
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+    "#vsMotion", "#vsTextAnim", "#vsOverlay",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
   const vsRefresh = () => {
     refreshTimelineClips();
     if (!vstudio.mediaEl || vstudio.rendering) return;
-    drawStudioFrame(0);
-    updateTimeline(0, Math.max(2, Number(vsVal("#vsDuration", 6))));
+    // if the live loop is running it already redraws every frame;
+    // only draw a static frame when the loop is stopped.
+    if (!vstudio.looping) {
+      drawStudioFrame(0);
+      updateTimeline(0, Math.max(2, Number(vsVal("#vsDuration", 6))));
+    }
   };
   const vsRefreshAspect = () => {
     if (!vstudio.mediaEl || vstudio.rendering) return;
     buildPreviewCanvas();
-    drawStudioFrame(0);
+    if (!vstudio.looping) drawStudioFrame(0);
   };
   vsLiveControls.forEach(sel => {
     on(sel, "input", vsRefresh);
@@ -3293,10 +3452,7 @@ function bindEvents() {
   // Timeline: play/pause button + scrubbing by dragging the track area.
   on("#vsPlayBtn", "click", () => {
     if (vstudio.playing) {
-      if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
-      if (vstudio.isVideo && vstudio.mediaEl) vstudio.mediaEl.pause();
-      if (vstudio.musicEl) vstudio.musicEl.pause();
-      setPlayBtn(false);
+      stopStudioPreview();
     } else {
       previewStudioVideo();
     }
