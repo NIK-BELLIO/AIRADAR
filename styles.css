@@ -2422,19 +2422,11 @@ body.theme-light .theme-toggle-dot {
 /* ── VIDEO STUDIO — category tabs ───────────────────────── */
 .vtab-bar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 4px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-}
-.vtab-bar::-webkit-scrollbar { height: 6px; }
-.vtab-bar::-webkit-scrollbar-thumb {
-  background: var(--line);
-  border-radius: 3px;
 }
 .vtab {
   flex-shrink: 0;
