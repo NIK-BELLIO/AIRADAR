@@ -9,15 +9,15 @@ const i18n = {
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
     vTabTemplate: "Template",
     vTabMedia: "Media",
-    vTabFormat: "Format",
+    vTabFormat: "Format & export",
     vTabMotion: "Motion",
     vTabInfo: "Infographic",
     vInfoLabel: "Infographic builder",
     vInfoOnLabel: "Show infographic overlay",
-    vInfoButterflyLabel: "Butterfly animation",
-    vInfoTitleLabel: "Infographic title",
-    vInfoHint: "Enter up to 4 stats as \"Label : Value\" — one per line.",
-    vInfoStatsLabel: "Stats (one per line)",
+    vInfoHint: "Type a topic and generate a professional infographic — or paste your own JSON below.",
+    vInfoPromptLabel: "Topic / prompt",
+    vInfoGenBtn: "Generate infographic",
+    vInfoJsonLabel: "Infographic data (JSON)",
     vInfoStyleLabel: "Chart style",
     vInfoPosLabel: "Position",
     vMotionLabel: "Motion & elements",
@@ -27,12 +27,12 @@ const i18n = {
     vMotionNote: "Every change updates the live preview instantly — no need to press Preview.",
     vTabText: "Text",
     vTabLogo: "Logo & cards",
-    vTemplateLabel: "1 \u00b7 Template",
-    vUploadLabel: "2 \u00b7 Media",
+    vTemplateLabel: "Template",
+    vUploadLabel: "Media",
     vUploadHint: "Upload a video or image (mp4, webm, mov, jpg, png)",
     vMusicHint: "Optional: background music (mp3, wav)",
     vLogoHint: "Optional: logo (transparent PNG recommended)",
-    vFormatLabel: "3 \u00b7 Format",
+    vFormatLabel: "Format & export",
     vAspectLabel: "Aspect ratio",
     vDurationLabel: "Duration (s)",
     vFilterLabel: "Filter / grade",
@@ -43,14 +43,14 @@ const i18n = {
     vExportSizeLabel: "Download size",
     vExportQualityLabel: "Download quality",
     vExportInfo: "Higher size and quality look better but make a larger file.",
-    vTextLabel: "4 \u00b7 Text layers",
+    vTextLabel: "Text layers",
     vHeadlineLabel: "Headline",
     vSubLabel: "Subtext",
     vCtaLabel: "Call to action",
     vTextPosLabel: "Text position",
     vTextSizeLabel: "Text size",
     vTextAutoNote: "Text sits on an automatic dark panel, so it stays readable on any photo or video.",
-    vLogoLabel: "5 \u00b7 Logo & cards",
+    vLogoLabel: "Logo & cards",
     vLogoPosLabel: "Logo position",
     vIntroLabel: "Intro card text",
     vOutroLabel: "Outro card text",
@@ -197,15 +197,15 @@ const i18n = {
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
     vTabTemplate: "قالب",
     vTabMedia: "رسانه",
-    vTabFormat: "فرمت",
+    vTabFormat: "فرمت و خروجی",
     vTabMotion: "موشن",
     vTabInfo: "اینفوگرافیک",
     vInfoLabel: "سازنده اینفوگرافیک",
     vInfoOnLabel: "نمایش اینفوگرافیک",
-    vInfoButterflyLabel: "انیمیشن پروانه",
-    vInfoTitleLabel: "عنوان اینفوگرافیک",
-    vInfoHint: "تا ۴ آمار را به شکل «برچسب : مقدار» وارد کن — هر کدام در یک خط.",
-    vInfoStatsLabel: "آمارها (هر خط یکی)",
+    vInfoHint: "یک موضوع بنویس و اینفوگرافیک حرفه‌ای بساز — یا JSON خودت را پایین وارد کن.",
+    vInfoPromptLabel: "موضوع / پرامپت",
+    vInfoGenBtn: "ساخت اینفوگرافیک",
+    vInfoJsonLabel: "داده اینفوگرافیک (JSON)",
     vInfoStyleLabel: "سبک نمودار",
     vInfoPosLabel: "موقعیت",
     vMotionLabel: "موشن و المان‌ها",
@@ -215,12 +215,12 @@ const i18n = {
     vMotionNote: "هر تغییری فوراً پیش‌نمایش زنده را به‌روز می‌کند — نیازی به زدن پیش‌نمایش نیست.",
     vTabText: "متن",
     vTabLogo: "لوگو و کارت",
-    vTemplateLabel: "۱ · قالب",
-    vUploadLabel: "۲ · رسانه",
+    vTemplateLabel: "قالب",
+    vUploadLabel: "رسانه",
     vUploadHint: "ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
     vMusicHint: "اختیاری: موسیقی پس‌زمینه (mp3, wav)",
     vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
-    vFormatLabel: "۳ · فرمت",
+    vFormatLabel: "فرمت و خروجی",
     vAspectLabel: "نسبت تصویر",
     vDurationLabel: "مدت (ثانیه)",
     vFilterLabel: "فیلتر / گرید",
@@ -231,7 +231,7 @@ const i18n = {
     vExportSizeLabel: "اندازه دانلود",
     vExportQualityLabel: "کیفیت دانلود",
     vExportInfo: "اندازه و کیفیت بالاتر بهتر دیده می‌شود اما فایل بزرگ‌تری می‌سازد.",
-    vTextLabel: "۴ · لایه‌های متن",
+    vTextLabel: "لایه‌های متن",
     vHeadlineLabel: "تیتر",
     vSubLabel: "زیرنویس",
     vCtaLabel: "دعوت به اقدام",
@@ -2604,7 +2604,8 @@ const vstudio = {
   rendering: false,
   textDX: 0,            // text drag offset X (fraction of width)
   textDY: 0,            // text drag offset Y (fraction of height)
-  textBox: null         // last drawn text bounds, for hit-testing
+  textBox: null,        // last drawn text bounds, for hit-testing
+  position: 0           // current playback position (seconds), survives pause
 };
 
 function vsTemplate() {
@@ -2683,7 +2684,7 @@ function loadStudioMedia(file) {
       vstudio.mediaEl = video;
       buildPreviewCanvas();
       refreshTimelineClips();
-      previewStudioVideo();   // start the live looping preview
+      previewStudioVideo(true);   // start the live looping preview
       vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد — پیش‌نمایش زنده فعال است." : "Video loaded — live preview is running.");
     });
     video.addEventListener("error", () => {
@@ -2695,7 +2696,7 @@ function loadStudioMedia(file) {
       vstudio.mediaEl = img;
       buildPreviewCanvas();
       refreshTimelineClips();
-      previewStudioVideo();   // start the live looping preview
+      previewStudioVideo(true);   // start the live looping preview
       vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد — پیش‌نمایش زنده فعال است." : "Image loaded — live preview is running.");
     };
     img.onerror = () => {
@@ -2830,119 +2831,209 @@ function vsFilterString() {
 }
 
 // Parse the stats textarea into [{label, value, num}] entries.
-function vsParseStats() {
-  const raw = (vsVal("#vsInfoStats", "") || "").trim();
-  if (!raw) return [];
-  return raw.split(/\n+/).slice(0, 4).map(line => {
-    const idx = line.indexOf(":");
-    const label = idx >= 0 ? line.slice(0, idx).trim() : line.trim();
-    const value = idx >= 0 ? line.slice(idx + 1).trim() : "";
-    const num = parseFloat(value.replace(/[^0-9.]/g, "")) || 0;
-    return { label, value, num };
-  }).filter(s => s.label);
+// Read infographic data from the JSON textarea.
+function vsInfoData() {
+  const raw = (vsVal("#vsInfoJson", "") || "").trim();
+  if (!raw) return null;
+  try {
+    const d = JSON.parse(raw);
+    const stats = (d.stats || []).slice(0, 6).map(s => ({
+      label: String(s.label || ""),
+      value: String(s.value != null ? s.value : ""),
+      num: typeof s.num === "number" ? s.num
+           : parseFloat(String(s.value || "").replace(/[^0-9.]/g, "")) || 0
+    })).filter(s => s.label);
+    return { title: d.title || "", subtitle: d.subtitle || "", stats };
+  } catch { return null; }
 }
 
-// Draw an animated infographic overlay (bars / counters / cards).
+// Build professional infographic JSON from a short topic prompt.
+function vsInfoFromPrompt(prompt) {
+  const topic = (prompt || "").trim() || "Market Overview";
+  let seed = 0;
+  for (let i = 0; i < topic.length; i++) seed = (seed * 31 + topic.charCodeAt(i)) | 0;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const labels = ["Total users", "Annual growth", "Market share", "Revenue",
+    "Adoption rate", "Engagement", "Retention", "Satisfaction"];
+  const used = [];
+  while (used.length < 4) { const l = pick(labels); if (!used.includes(l)) used.push(l); }
+  const stats = used.map(label => {
+    if (/growth|rate|share|retention|adoption/i.test(label)) {
+      const n = Math.round(20 + rnd() * 160);
+      return { label, value: "+" + n + "%", num: n };
+    }
+    if (/revenue/i.test(label)) {
+      const n = (1 + rnd() * 18).toFixed(1);
+      return { label, value: "$" + n + "B", num: parseFloat(n) };
+    }
+    if (/satisfaction|engagement/i.test(label)) {
+      const n = Math.round(60 + rnd() * 38);
+      return { label, value: n + "/100", num: n };
+    }
+    const n = (1 + rnd() * 9).toFixed(1);
+    return { label, value: n + "M", num: parseFloat(n) };
+  });
+  return { title: cap(topic), subtitle: "Key metrics at a glance", stats };
+}
+
+// Draw a professional animated infographic overlay.
 function drawInfographic(ctx, W, H, elapsed) {
   const on = $("#vsInfoOn") && $("#vsInfoOn").checked;
   if (!on) return;
-  const stats = vsParseStats();
-  const title = (vsVal("#vsInfoTitle", "") || "").trim();
-  if (!stats.length && !title) return;
+  const data = vsInfoData();
+  if (!data || (!data.stats.length && !data.title)) return;
 
+  const stats = data.stats;
   const style = vsVal("#vsInfoStyle", "bars");
   const pos = vsVal("#vsInfoPos", "center");
-  const reveal = Math.min(1, elapsed / 1.4);
+  const reveal = Math.min(1, elapsed / 1.2);
   const ease = 1 - Math.pow(1 - reveal, 3);
 
-  const panelW = W * 0.42, panelH = H * 0.62;
+  const panelW = W * 0.46, panelH = H * 0.7;
   let px = (W - panelW) / 2;
-  if (pos === "left") px = W * 0.06;
-  if (pos === "right") px = W - panelW - W * 0.06;
+  if (pos === "left") px = W * 0.05;
+  if (pos === "right") px = W - panelW - W * 0.05;
   const py = (H - panelH) / 2;
 
   ctx.save();
   ctx.globalAlpha = ease;
-  ctx.fillStyle = "rgba(12,10,8,0.82)";
-  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.05);
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = W * 0.03;
+  ctx.shadowOffsetY = H * 0.012;
+  const pg = ctx.createLinearGradient(0, py, 0, py + panelH);
+  pg.addColorStop(0, "rgba(20,18,14,0.94)");
+  pg.addColorStop(1, "rgba(10,9,7,0.94)");
+  ctx.fillStyle = pg;
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.fill();
-  ctx.strokeStyle = "rgba(216,183,106,0.4)";
-  ctx.lineWidth = Math.max(1, W * 0.0015);
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(216,183,106,0.45)";
+  ctx.lineWidth = Math.max(1, W * 0.0012);
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.stroke();
+  const accentW = panelW * 0.14 * ease;
+  ctx.fillStyle = "#d8b76a";
+  ctx.fillRect(px + panelW * 0.09, py + panelH * 0.085, accentW, H * 0.006);
 
-  const padX = panelW * 0.1;
-  let cy = py + panelH * 0.16;
+  const padX = panelW * 0.09;
+  let cy = py + panelH * 0.17;
 
-  if (title) {
-    ctx.fillStyle = "#fff0b8";
-    ctx.font = `600 ${Math.round(W * 0.03)}px Prata, serif`;
+  if (data.title) {
+    ctx.fillStyle = "#fff3cc";
+    ctx.font = `600 ${Math.round(W * 0.032)}px Prata, serif`;
     ctx.textAlign = "left";
-    ctx.fillText(title, px + padX, cy);
-    cy += panelH * 0.12;
+    ctx.fillText(data.title, px + padX, cy);
+    cy += panelH * 0.065;
+  }
+  if (data.subtitle) {
+    ctx.fillStyle = "rgba(200,184,144,0.85)";
+    ctx.font = `400 ${Math.round(W * 0.0155)}px Inter, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
+    cy += panelH * 0.07;
   }
 
   const max = Math.max(1, ...stats.map(s => s.num));
-  const rowH = (py + panelH - cy - panelH * 0.08) / Math.max(1, stats.length);
+  const areaH = py + panelH - cy - panelH * 0.07;
+  const rowH = areaH / Math.max(1, stats.length);
 
   stats.forEach((s, i) => {
-    const rowReveal = Math.min(1, Math.max(0, (elapsed - 0.3 - i * 0.25) / 0.8));
+    const rowReveal = Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.18) / 0.7));
     const re = 1 - Math.pow(1 - rowReveal, 3);
     const ry = cy + i * rowH;
 
     if (style === "bars") {
-      ctx.fillStyle = "#d8c8a0";
-      ctx.font = `500 ${Math.round(W * 0.018)}px Inter, sans-serif`;
+      ctx.fillStyle = "#e8dcc0";
+      ctx.font = `500 ${Math.round(W * 0.017)}px Inter, sans-serif`;
       ctx.textAlign = "left";
-      ctx.fillText(s.label, px + padX, ry);
-      const barW = panelW - padX * 2;
-      const barY = ry + rowH * 0.18;
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      roundRectPath(ctx, px + padX, barY, barW, rowH * 0.3, rowH * 0.15);
-      ctx.fill();
-      const fillW = barW * (s.num / max) * re;
-      const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
-      grad.addColorStop(0, "#d8b76a");
-      grad.addColorStop(1, "#fff0b8");
-      ctx.fillStyle = grad;
-      roundRectPath(ctx, px + padX, barY, Math.max(rowH * 0.3, fillW), rowH * 0.3, rowH * 0.15);
-      ctx.fill();
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
       ctx.fillStyle = "#fff0b8";
       ctx.textAlign = "right";
-      ctx.font = `600 ${Math.round(W * 0.02)}px Inter, sans-serif`;
-      ctx.fillText(s.value, px + padX + barW, ry);
+      ctx.font = `700 ${Math.round(W * 0.021)}px Inter, sans-serif`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
+      const barW = panelW - padX * 2;
+      const barY = ry + rowH * 0.45;
+      const barH = rowH * 0.22;
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
+      ctx.fill();
+      const fillW = Math.max(barH, barW * (s.num / max) * re);
+      const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
+      grad.addColorStop(0, "#b98f3e");
+      grad.addColorStop(1, "#ffe9a8");
+      ctx.fillStyle = grad;
+      roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
+      ctx.fill();
     } else if (style === "counters") {
       ctx.textAlign = "left";
       ctx.fillStyle = "#fff0b8";
-      ctx.font = `700 ${Math.round(W * 0.04)}px Prata, serif`;
+      ctx.font = `700 ${Math.round(W * 0.042)}px Prata, serif`;
+      const suffix = s.value.replace(/[0-9.,]/g, "");
       const shown = s.num
-        ? Math.round(s.num * re).toLocaleString() +
-          s.value.replace(/[0-9.,]/g, "")
+        ? Math.round(s.num * re).toLocaleString() + suffix
         : s.value;
-      ctx.fillText(shown, px + padX, ry + rowH * 0.4);
-      ctx.fillStyle = "#c8b890";
-      ctx.font = `400 ${Math.round(W * 0.018)}px Inter, sans-serif`;
-      ctx.fillText(s.label, px + padX, ry + rowH * 0.66);
-    } else {
-      const cardY = ry + rowH * 0.1;
-      const cardH = rowH * 0.78;
-      ctx.fillStyle = "rgba(216,183,106,0.12)";
-      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.18);
-      ctx.fill();
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#c8b890";
+      ctx.fillText(shown, px + padX, ry + rowH * 0.46);
+      ctx.fillStyle = "rgba(200,184,144,0.9)";
       ctx.font = `400 ${Math.round(W * 0.016)}px Inter, sans-serif`;
-      ctx.fillText(s.label, px + padX + panelW * 0.04, cardY + cardH * 0.4);
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.72);
+      ctx.strokeStyle = "rgba(216,183,106,0.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px + padX, ry + rowH * 0.92);
+      ctx.lineTo(px + panelW - padX, ry + rowH * 0.92);
+      ctx.stroke();
+    } else if (style === "donut") {
+      const n = stats.length;
+      const slotW = (panelW - padX * 2) / n;
+      const cxx = px + padX + slotW * (i + 0.5);
+      const cyy = cy + areaH * 0.42;
+      const rad = Math.min(slotW, areaH) * 0.32;
+      ctx.lineWidth = rad * 0.34;
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.arc(cxx, cyy, rad, 0, Math.PI * 2);
+      ctx.stroke();
+      const frac = (s.num / max) * re;
+      ctx.strokeStyle = "#e9c878";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(cxx, cyy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+      ctx.stroke();
+      ctx.lineCap = "butt";
       ctx.fillStyle = "#fff0b8";
-      ctx.font = `700 ${Math.round(W * 0.026)}px Prata, serif`;
-      ctx.fillText(s.value, px + padX + panelW * 0.04, cardY + cardH * 0.78);
+      ctx.textAlign = "center";
+      ctx.font = `700 ${Math.round(W * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(s.value, cxx, cyy + W * 0.007);
+      ctx.fillStyle = "rgba(200,184,144,0.9)";
+      ctx.font = `400 ${Math.round(W * 0.013)}px Inter, sans-serif`;
+      ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.12);
+    } else {
+      const cardY = ry + rowH * 0.12;
+      const cardH = rowH * 0.76;
+      const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+      cg.addColorStop(0, "rgba(216,183,106,0.16)");
+      cg.addColorStop(1, "rgba(216,183,106,0.05)");
+      ctx.fillStyle = cg;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(216,183,106,0.22)";
+      ctx.lineWidth = 1;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
+      ctx.stroke();
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(200,184,144,0.9)";
+      ctx.font = `400 ${Math.round(W * 0.015)}px Inter, sans-serif`;
+      ctx.fillText(s.label.toUpperCase(), px + padX + panelW * 0.045, cardY + cardH * 0.4);
+      ctx.fillStyle = "#fff0b8";
+      ctx.font = `700 ${Math.round(W * 0.03)}px Prata, serif`;
+      ctx.fillText(s.value, px + padX + panelW * 0.045, cardY + cardH * 0.78);
     }
   });
   ctx.restore();
-
-  // decorative butterfly fluttering across the infographic
-  if ($("#vsInfoButterfly") && $("#vsInfoButterfly").checked) {
-    drawButterfly(ctx, W, H, elapsed, px, py, panelW, panelH);
-  }
 }
 
 // A butterfly that flies a gentle path with flapping wings.
@@ -3233,13 +3324,16 @@ function drawStudioFrame(elapsed) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // film grain
+  // film grain — visible textured noise across the frame
   if ($("#vsGrain") && $("#vsGrain").checked) {
     ctx.save();
-    ctx.globalAlpha = 0.05;
-    for (let i = 0; i < 700; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? "#fff" : "#000";
-      ctx.fillRect(Math.random() * W, Math.random() * H, 1.5, 1.5);
+    const count = Math.round((W * H) / 1400);   // scales with resolution
+    for (let i = 0; i < count; i++) {
+      const shade = Math.random();
+      ctx.globalAlpha = 0.06 + Math.random() * 0.12;
+      ctx.fillStyle = shade > 0.5 ? "#ffffff" : "#000000";
+      const s = 1 + Math.random() * 1.5;
+      ctx.fillRect(Math.random() * W, Math.random() * H, s, s);
     }
     ctx.restore();
   }
@@ -3436,7 +3530,7 @@ function vsPlaybackRate() {
   return Number(vsVal("#vsSpeed", 1)) || 1;
 }
 
-function previewStudioVideo() {
+function previewStudioVideo(fromStart) {
   const media = vstudio.mediaEl;
   if (!media) {
     vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
@@ -3446,30 +3540,37 @@ function previewStudioVideo() {
   buildPreviewCanvas();
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+
+  // resume from the saved position unless an explicit restart is asked
+  let startElapsed = fromStart ? 0 : (vstudio.position || 0);
+  const duration0 = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  if (startElapsed >= duration0) startElapsed = 0;
+
   if (vstudio.isVideo) {
-    media.currentTime = 0;
+    try { media.currentTime = startElapsed % (media.duration || duration0); } catch {}
     media.playbackRate = vsPlaybackRate();
     media.play().catch(() => {});
   }
   if (vstudio.musicEl) {
-    try { vstudio.musicEl.currentTime = 0; vstudio.musicEl.play().catch(() => {}); } catch {}
+    try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
   }
-  vstudio.startTime = performance.now();
+  // startTime is offset so (now - startTime) == startElapsed
+  vstudio.startTime = performance.now() - startElapsed * 1000;
   vstudio.looping = true;
 
-  // Continuous loop — restarts at the end so the preview is always live.
   const loop = () => {
     if (!vstudio.looping) return;
-    // duration is read every frame, so changing it updates instantly
+    // duration is read every frame so changes take effect smoothly
     const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
     let elapsed = (performance.now() - vstudio.startTime) / 1000;
     if (elapsed >= duration) {
-      // loop back to the start
+      // loop cleanly back to the start
       elapsed = 0;
       vstudio.startTime = performance.now();
       if (vstudio.isVideo) { try { media.currentTime = 0; media.play().catch(()=>{}); } catch {} }
       if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
     }
+    vstudio.position = elapsed;          // remember where we are
     drawStudioFrame(elapsed);
     updateTimeline(elapsed, duration);
     vstudio.rafId = requestAnimationFrame(loop);
@@ -3478,7 +3579,7 @@ function previewStudioVideo() {
   loop();
 }
 
-// Stop the continuous preview loop.
+// Stop the continuous preview loop — keeps the current position.
 function stopStudioPreview() {
   vstudio.looping = false;
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
@@ -3514,7 +3615,7 @@ const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
-  "#vsInfoOn", "#vsInfoButterfly", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
   "#vsLogoPos", "#vsIntro", "#vsOutro",
   "#vsExportSize", "#vsExportQuality"
 ];
@@ -3610,6 +3711,7 @@ function scrubTimeline(clientX) {
         vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
   }
   setPlayBtn(false);
+  vstudio.position = elapsed;           // remember the scrubbed position
   buildPreviewCanvas();
   drawStudioFrame(elapsed);
   updateTimeline(elapsed, duration);
@@ -3833,6 +3935,17 @@ function bindEvents() {
   on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
+  // Infographic: generate professional JSON from a topic prompt
+  on("#vsInfoGenBtn", "click", () => {
+    const prompt = vsVal("#vsInfoPrompt", "");
+    const data = vsInfoFromPrompt(prompt);
+    const json = $("#vsInfoJson");
+    if (json) json.value = JSON.stringify(data, null, 2);
+    const onBox = $("#vsInfoOn");
+    if (onBox) onBox.checked = true;       // auto-enable the overlay
+    if (vstudio.mediaEl && !vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    vsPushHistory();
+  });
   // live estimate of the exported file size
   const updateExportInfo = () => {
     const info = $("#vsExportInfo");
@@ -3863,7 +3976,7 @@ function bindEvents() {
   const vsLiveControls = [
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
-    "#vsInfoOn", "#vsInfoButterfly", "#vsInfoTitle", "#vsInfoStats", "#vsInfoStyle", "#vsInfoPos",
+    "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
