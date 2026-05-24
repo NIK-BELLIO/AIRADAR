@@ -9,14 +9,19 @@ const i18n = {
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
     vTabTemplate: "Template",
     vTabMedia: "Media",
+    vTabSlides: "Slides",
+    vSlidesLabel: "Slide sequence",
+    vSlidesHint: "Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.",
+    vAddSlide: "+ Add slide (upload media)",
+    vSlideHeadline: "Slide headline",
+    vSlideDuration: "Slide duration (s)",
     vTabFormat: "Format & export",
     vTabMotion: "Motion",
     vTabInfo: "Infographic",
     vInfoLabel: "Infographic builder",
     vInfoOnLabel: "Show infographic overlay",
-    vInfoHint: "Type a topic and generate a professional infographic — or paste your own JSON below.",
-    vInfoPromptLabel: "Topic / prompt",
-    vInfoGenBtn: "Generate infographic",
+    vInfoHint: "Import a .json file with your data, or paste/edit JSON in the box below.",
+    vInfoImportLabel: "Import JSON file",
     vInfoJsonLabel: "Infographic data (JSON)",
     vInfoStyleLabel: "Chart style",
     vInfoPosLabel: "Position",
@@ -197,14 +202,19 @@ const i18n = {
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
     vTabTemplate: "قالب",
     vTabMedia: "رسانه",
+    vTabSlides: "اسلایدها",
+    vSlidesLabel: "دنباله اسلاید",
+    vSlidesHint: "چند اسلاید اضافه کن — هرکدام با رسانه، عنوان و مدت خودش. پشت سر هم به‌صورت یک ویدیو پخش می‌شوند.",
+    vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
+    vSlideHeadline: "عنوان اسلاید",
+    vSlideDuration: "مدت اسلاید (ثانیه)",
     vTabFormat: "فرمت و خروجی",
     vTabMotion: "موشن",
     vTabInfo: "اینفوگرافیک",
     vInfoLabel: "سازنده اینفوگرافیک",
     vInfoOnLabel: "نمایش اینفوگرافیک",
-    vInfoHint: "یک موضوع بنویس و اینفوگرافیک حرفه‌ای بساز — یا JSON خودت را پایین وارد کن.",
-    vInfoPromptLabel: "موضوع / پرامپت",
-    vInfoGenBtn: "ساخت اینفوگرافیک",
+    vInfoHint: "یک فایل .json با داده‌هایت وارد کن، یا JSON را در کادر زیر بنویس/ویرایش کن.",
+    vInfoImportLabel: "وارد کردن فایل JSON",
     vInfoJsonLabel: "داده اینفوگرافیک (JSON)",
     vInfoStyleLabel: "سبک نمودار",
     vInfoPosLabel: "موقعیت",
@@ -2605,7 +2615,9 @@ const vstudio = {
   textDX: 0,            // text drag offset X (fraction of width)
   textDY: 0,            // text drag offset Y (fraction of height)
   textBox: null,        // last drawn text bounds, for hit-testing
-  position: 0           // current playback position (seconds), survives pause
+  position: 0,          // current playback position (seconds), survives pause
+  slides: [],           // multi-slide sequence; each: {mediaEl,isVideo,headline,duration}
+  activeSlide: 0        // index of the slide being edited
 };
 
 function vsTemplate() {
@@ -2666,6 +2678,113 @@ function vsCanvasSize(targetLongEdge) {
   return aw >= ah
     ? { w: even(base), h: even(base * ah / aw) }
     : { w: even(base * aw / ah), h: even(base) };
+}
+
+// ── MULTI-SLIDE SEQUENCE ──────────────────────────────────
+// Each slide carries its own media element, headline and duration.
+// When slides exist, the preview/export plays through them in order.
+
+// Load a media file and add it as a new slide.
+function addStudioSlide(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const isVideo = file.type.startsWith("video/");
+  const slide = {
+    url, isVideo, mediaEl: null, ready: false,
+    headline: "", duration: 4
+  };
+  if (isVideo) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.playsInline = true; v.loop = true;
+    v.addEventListener("loadedmetadata", () => {
+      slide.mediaEl = v; slide.ready = true; renderSlideList();
+      if (vstudio.slides.length === 1) selectSlide(0);
+    });
+    v.addEventListener("error", () => vsStatus("Could not load that video."));
+  } else {
+    const img = new Image();
+    img.onload = () => {
+      slide.mediaEl = img; slide.ready = true; renderSlideList();
+      if (vstudio.slides.length === 1) selectSlide(0);
+    };
+    img.onerror = () => vsStatus("Could not load that image.");
+    img.src = url;
+  }
+  vstudio.slides.push(slide);
+  renderSlideList();
+  vsStatus(state.lang === "fa"
+    ? `اسلاید ${vstudio.slides.length} اضافه شد.`
+    : `Slide ${vstudio.slides.length} added.`);
+}
+
+// Remove a slide by index.
+function removeStudioSlide(i) {
+  const s = vstudio.slides[i];
+  if (s && s.url) { try { URL.revokeObjectURL(s.url); } catch {} }
+  vstudio.slides.splice(i, 1);
+  if (vstudio.activeSlide >= vstudio.slides.length) {
+    vstudio.activeSlide = Math.max(0, vstudio.slides.length - 1);
+  }
+  renderSlideList();
+  if (vstudio.slides.length) selectSlide(vstudio.activeSlide);
+  else { const ed = $("#vsSlideEditor"); if (ed) ed.classList.add("vtab-hidden"); }
+}
+
+// Select a slide for editing.
+function selectSlide(i) {
+  vstudio.activeSlide = i;
+  const s = vstudio.slides[i];
+  const ed = $("#vsSlideEditor");
+  if (!s || !ed) return;
+  ed.classList.remove("vtab-hidden");
+  const hl = $("#vsSlideHeadline"), du = $("#vsSlideDuration");
+  if (hl) hl.value = s.headline || "";
+  if (du) du.value = s.duration || 4;
+  renderSlideList();
+}
+
+// Render the slide list with thumbnails and controls.
+function renderSlideList() {
+  const list = $("#vsSlideList");
+  if (!list) return;
+  if (!vstudio.slides.length) {
+    list.innerHTML = `<p class="vs-slide-empty">${
+      state.lang === "fa" ? "هنوز اسلایدی اضافه نشده." : "No slides yet."}</p>`;
+    return;
+  }
+  list.innerHTML = vstudio.slides.map((s, i) => `
+    <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
+      <span class="vs-slide-num">${i + 1}</span>
+      <span class="vs-slide-info">
+        ${s.isVideo ? "🎬" : "🖼"} ${s.headline
+          ? escapeHtml(s.headline)
+          : (state.lang === "fa" ? "بدون عنوان" : "Untitled")}
+        <em>${s.duration}s</em>
+      </span>
+      <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
+    </div>`).join("");
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// Total duration of all slides (used by preview/export when slides exist).
+function slidesTotalDuration() {
+  return vstudio.slides.reduce((sum, s) => sum + (Number(s.duration) || 4), 0);
+}
+
+// Which slide is active at a given elapsed time, and its local progress.
+function slideAtTime(elapsed) {
+  let t = elapsed;
+  for (let i = 0; i < vstudio.slides.length; i++) {
+    const d = Number(vstudio.slides[i].duration) || 4;
+    if (t < d) return { index: i, local: t, dur: d };
+    t -= d;
+  }
+  const last = vstudio.slides.length - 1;
+  return { index: last, local: 0, dur: vstudio.slides[last]?.duration || 4 };
 }
 
 function loadStudioMedia(file) {
@@ -2878,11 +2997,48 @@ function vsInfoFromPrompt(prompt) {
 }
 
 // Draw a professional animated infographic overlay.
-function drawInfographic(ctx, W, H, elapsed) {
+// Brightness (0-255) of a hex colour — used to pick light/dark styling.
+function vsHexLuma(hex) {
+  const h = String(hex || "#000").replace("#", "");
+  const n = h.length === 3
+    ? h.split("").map(c => c + c).join("")
+    : h.padEnd(6, "0");
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+// hex colour -> rgba string with the given alpha.
+function vsHexA(hex, a) {
+  const h = String(hex || "#000").replace("#", "");
+  const n = h.length === 3
+    ? h.split("").map(c => c + c).join("")
+    : h.padEnd(6, "0");
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawInfographic(ctx, W, H, elapsed, tpl) {
   const on = $("#vsInfoOn") && $("#vsInfoOn").checked;
   if (!on) return;
   const data = vsInfoData();
   if (!data || (!data.stats.length && !data.title)) return;
+
+  // colours follow the chosen template so the infographic matches it
+  tpl = tpl || vsTemplate();
+  const isLight = vsHexLuma(tpl.bg) > 140;
+  const ig = {
+    panelTop:   isLight ? "rgba(255,255,255,0.95)" : "rgba(22,20,16,0.95)",
+    panelBot:   isLight ? "rgba(244,241,234,0.95)" : "rgba(10,9,7,0.95)",
+    border:     vsHexA(tpl.accent, 0.45),
+    accent:     tpl.accent,
+    title:      tpl.text,
+    label:      isLight ? "rgba(40,36,28,0.85)" : "rgba(220,210,185,0.9)",
+    value:      tpl.accent,
+    track:      isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+  };
 
   const stats = data.stats;
   const style = vsVal("#vsInfoStyle", "bars");
@@ -2904,33 +3060,33 @@ function drawInfographic(ctx, W, H, elapsed) {
   ctx.shadowBlur = W * 0.03;
   ctx.shadowOffsetY = H * 0.012;
   const pg = ctx.createLinearGradient(0, py, 0, py + panelH);
-  pg.addColorStop(0, "rgba(20,18,14,0.94)");
-  pg.addColorStop(1, "rgba(10,9,7,0.94)");
+  pg.addColorStop(0, ig.panelTop);
+  pg.addColorStop(1, ig.panelBot);
   ctx.fillStyle = pg;
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.fill();
   ctx.restore();
 
-  ctx.strokeStyle = "rgba(216,183,106,0.45)";
+  ctx.strokeStyle = ig.border;
   ctx.lineWidth = Math.max(1, W * 0.0012);
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.stroke();
   const accentW = panelW * 0.14 * ease;
-  ctx.fillStyle = "#d8b76a";
+  ctx.fillStyle = ig.accent;
   ctx.fillRect(px + panelW * 0.09, py + panelH * 0.085, accentW, H * 0.006);
 
   const padX = panelW * 0.09;
   let cy = py + panelH * 0.17;
 
   if (data.title) {
-    ctx.fillStyle = "#fff3cc";
+    ctx.fillStyle = ig.title;
     ctx.font = `600 ${Math.round(W * 0.032)}px Prata, serif`;
     ctx.textAlign = "left";
     ctx.fillText(data.title, px + padX, cy);
     cy += panelH * 0.065;
   }
   if (data.subtitle) {
-    ctx.fillStyle = "rgba(200,184,144,0.85)";
+    ctx.fillStyle = ig.label;
     ctx.font = `400 ${Math.round(W * 0.0155)}px Inter, sans-serif`;
     ctx.textAlign = "left";
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
@@ -2947,40 +3103,40 @@ function drawInfographic(ctx, W, H, elapsed) {
     const ry = cy + i * rowH;
 
     if (style === "bars") {
-      ctx.fillStyle = "#e8dcc0";
+      ctx.fillStyle = ig.label;
       ctx.font = `500 ${Math.round(W * 0.017)}px Inter, sans-serif`;
       ctx.textAlign = "left";
       ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
-      ctx.fillStyle = "#fff0b8";
+      ctx.fillStyle = ig.value;
       ctx.textAlign = "right";
       ctx.font = `700 ${Math.round(W * 0.021)}px Inter, sans-serif`;
       ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
       const barW = panelW - padX * 2;
       const barY = ry + rowH * 0.45;
       const barH = rowH * 0.22;
-      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      ctx.fillStyle = ig.track;
       roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
       ctx.fill();
       const fillW = Math.max(barH, barW * (s.num / max) * re);
       const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
-      grad.addColorStop(0, "#b98f3e");
-      grad.addColorStop(1, "#ffe9a8");
+      grad.addColorStop(0, vsHexA(ig.accent, 0.65));
+      grad.addColorStop(1, ig.accent);
       ctx.fillStyle = grad;
       roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
       ctx.fill();
     } else if (style === "counters") {
       ctx.textAlign = "left";
-      ctx.fillStyle = "#fff0b8";
+      ctx.fillStyle = ig.value;
       ctx.font = `700 ${Math.round(W * 0.042)}px Prata, serif`;
       const suffix = s.value.replace(/[0-9.,]/g, "");
       const shown = s.num
         ? Math.round(s.num * re).toLocaleString() + suffix
         : s.value;
       ctx.fillText(shown, px + padX, ry + rowH * 0.46);
-      ctx.fillStyle = "rgba(200,184,144,0.9)";
+      ctx.fillStyle = ig.label;
       ctx.font = `400 ${Math.round(W * 0.016)}px Inter, sans-serif`;
       ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.72);
-      ctx.strokeStyle = "rgba(216,183,106,0.18)";
+      ctx.strokeStyle = vsHexA(ig.accent, 0.2);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(px + padX, ry + rowH * 0.92);
@@ -2998,37 +3154,37 @@ function drawInfographic(ctx, W, H, elapsed) {
       ctx.arc(cxx, cyy, rad, 0, Math.PI * 2);
       ctx.stroke();
       const frac = (s.num / max) * re;
-      ctx.strokeStyle = "#e9c878";
+      ctx.strokeStyle = ig.accent;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.arc(cxx, cyy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
       ctx.stroke();
       ctx.lineCap = "butt";
-      ctx.fillStyle = "#fff0b8";
+      ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
       ctx.font = `700 ${Math.round(W * 0.02)}px Inter, sans-serif`;
       ctx.fillText(s.value, cxx, cyy + W * 0.007);
-      ctx.fillStyle = "rgba(200,184,144,0.9)";
+      ctx.fillStyle = ig.label;
       ctx.font = `400 ${Math.round(W * 0.013)}px Inter, sans-serif`;
       ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.12);
     } else {
       const cardY = ry + rowH * 0.12;
       const cardH = rowH * 0.76;
       const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
-      cg.addColorStop(0, "rgba(216,183,106,0.16)");
-      cg.addColorStop(1, "rgba(216,183,106,0.05)");
+      cg.addColorStop(0, vsHexA(ig.accent, 0.16));
+      cg.addColorStop(1, vsHexA(ig.accent, 0.05));
       ctx.fillStyle = cg;
       roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
       ctx.fill();
-      ctx.strokeStyle = "rgba(216,183,106,0.22)";
+      ctx.strokeStyle = vsHexA(ig.accent, 0.24);
       ctx.lineWidth = 1;
       roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
       ctx.stroke();
       ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(200,184,144,0.9)";
+      ctx.fillStyle = ig.label;
       ctx.font = `400 ${Math.round(W * 0.015)}px Inter, sans-serif`;
       ctx.fillText(s.label.toUpperCase(), px + padX + panelW * 0.045, cardY + cardH * 0.4);
-      ctx.fillStyle = "#fff0b8";
+      ctx.fillStyle = ig.value;
       ctx.font = `700 ${Math.round(W * 0.03)}px Prata, serif`;
       ctx.fillText(s.value, px + padX + panelW * 0.045, cardY + cardH * 0.78);
     }
@@ -3208,20 +3364,113 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
       ctx.fillStyle = "rgba(120,160,255,0.06)";
       ctx.fillRect(0, y, W, 30);
     }
+  } else if (kind === "goldframe") {
+    // luxurious thin gold border frame
+    const m = Math.min(W, H) * 0.045;
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "rgba(216,183,106,0.9)");
+    g.addColorStop(0.5, "rgba(255,240,184,0.95)");
+    g.addColorStop(1, "rgba(216,183,106,0.9)");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = Math.max(1.5, W * 0.0022);
+    ctx.strokeRect(m, m, W - m * 2, H - m * 2);
+    // corner ticks
+    ctx.lineWidth = Math.max(1, W * 0.0016);
+    const t = Math.min(W, H) * 0.04;
+    [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]
+      .forEach(([x, y, sx, sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + sx * t, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * t);
+        ctx.stroke();
+      });
+  } else if (kind === "shimmer") {
+    // a luxurious diagonal light sweep
+    const p = (elapsed * 0.4) % 1.4 - 0.2;
+    const cx = W * p;
+    const g = ctx.createLinearGradient(cx - W * 0.2, 0, cx + W * 0.2, H);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(0.5, "rgba(255,250,235,0.22)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "minimalline") {
+    // minimal: a thin centred horizontal rule that draws in
+    const grow = Math.min(1, elapsed / 1.2);
+    const lw = W * 0.4 * (1 - Math.pow(1 - grow, 3));
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = Math.max(1, W * 0.0014);
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - lw / 2, H * 0.5);
+    ctx.lineTo(W / 2 + lw / 2, H * 0.5);
+    ctx.stroke();
+  } else if (kind === "corners") {
+    // minimal corner brackets
+    const m = Math.min(W, H) * 0.07;
+    const t = Math.min(W, H) * 0.06;
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = Math.max(1, W * 0.0016);
+    [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]
+      .forEach(([x, y, sx, sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + sx * t, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * t);
+        ctx.stroke();
+      });
+  } else if (kind === "embers") {
+    // luxurious slow-rising warm embers
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 30; i++) {
+      const seed = i * 73.2;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed * 0.7 + seed) * 18;
+      const y = H - ((elapsed * 22 + seed * 40) % (H + 40));
+      const r = 1.2 + (i % 3);
+      const a = 0.3 + 0.4 * (Math.sin(elapsed * 2 + seed) * 0.5 + 0.5);
+      const gg = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+      gg.addColorStop(0, `rgba(255,200,120,${a})`);
+      gg.addColorStop(1, "rgba(255,200,120,0)");
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "haze") {
+    // minimal soft haze vignette pulse
+    const pulse = 0.16 + 0.06 * Math.sin(elapsed * 1.4);
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.2,
+                                       W/2, H/2, Math.max(W,H)*0.7);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(1, `rgba(255,255,255,${pulse})`);
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
   }
   ctx.restore();
 }
 
 function drawStudioFrame(elapsed) {
   const canvas = $("#vsCanvas");
-  const media = vstudio.mediaEl;
-  if (!canvas || !media) return;
+  if (!canvas) return;
+
+  // When slides exist, pick the slide active at this time.
+  let media = vstudio.mediaEl;
+  let slideHeadline = null;
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    const slide = vstudio.slides[at.index];
+    if (slide && slide.ready) {
+      media = slide.mediaEl;
+      slideHeadline = slide.headline || "";
+    }
+  }
+  if (!media) return;
+
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   const W = canvas.width, H = canvas.height;
   const tpl = vsTemplate();
-  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const duration = vstudio.slides.length
+    ? slidesTotalDuration()
+    : Math.max(2, Number(vsVal("#vsDuration", 6)));
   const progress = Math.min(1, elapsed / duration);
 
   const introText = (vsVal("#vsIntro", "") || "").trim();
@@ -3342,10 +3591,12 @@ function drawStudioFrame(elapsed) {
   drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
 
   // ----- infographic overlay -----
-  drawInfographic(ctx, W, H, elapsed);
+  drawInfographic(ctx, W, H, elapsed, tpl);
 
   // ----- text layers (with a readable backing plate) -----
-  const headline = (vsVal("#vsHeadline", "") || "").trim();
+  const headline = slideHeadline !== null
+    ? slideHeadline
+    : (vsVal("#vsHeadline", "") || "").trim();
   const sub = (vsVal("#vsSub", "") || "").trim();
   const cta = (vsVal("#vsCta", "") || "").trim();
   const pos = vsVal("#vsTextPos", "center");
@@ -3530,9 +3781,18 @@ function vsPlaybackRate() {
   return Number(vsVal("#vsSpeed", 1)) || 1;
 }
 
+// The effective video duration — sum of slides, or the single duration field.
+function studioDuration() {
+  return vstudio.slides.length
+    ? slidesTotalDuration()
+    : Math.max(2, Number(vsVal("#vsDuration", 6)));
+}
+
 function previewStudioVideo(fromStart) {
+  // works with either a single media OR a slide sequence
+  const hasSlides = vstudio.slides.some(s => s.ready);
   const media = vstudio.mediaEl;
-  if (!media) {
+  if (!media && !hasSlides) {
     vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
     return;
   }
@@ -3543,10 +3803,10 @@ function previewStudioVideo(fromStart) {
 
   // resume from the saved position unless an explicit restart is asked
   let startElapsed = fromStart ? 0 : (vstudio.position || 0);
-  const duration0 = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const duration0 = studioDuration();
   if (startElapsed >= duration0) startElapsed = 0;
 
-  if (vstudio.isVideo) {
+  if (vstudio.isVideo && media) {
     try { media.currentTime = startElapsed % (media.duration || duration0); } catch {}
     media.playbackRate = vsPlaybackRate();
     media.play().catch(() => {});
@@ -3561,7 +3821,7 @@ function previewStudioVideo(fromStart) {
   const loop = () => {
     if (!vstudio.looping) return;
     // duration is read every frame so changes take effect smoothly
-    const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+    const duration = studioDuration();
     let elapsed = (performance.now() - vstudio.startTime) / 1000;
     if (elapsed >= duration) {
       // loop cleanly back to the start
@@ -3569,6 +3829,15 @@ function previewStudioVideo(fromStart) {
       vstudio.startTime = performance.now();
       if (vstudio.isVideo) { try { media.currentTime = 0; media.play().catch(()=>{}); } catch {} }
       if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
+    }
+    // keep the active slide's video playing (others paused)
+    if (vstudio.slides.length) {
+      const at = slideAtTime(elapsed);
+      vstudio.slides.forEach((s, i) => {
+        if (!s.ready || !s.isVideo || !s.mediaEl) return;
+        if (i === at.index) { if (s.mediaEl.paused) s.mediaEl.play().catch(()=>{}); }
+        else if (!s.mediaEl.paused) s.mediaEl.pause();
+      });
     }
     vstudio.position = elapsed;          // remember where we are
     drawStudioFrame(elapsed);
@@ -3701,7 +3970,7 @@ function scrubTimeline(clientX) {
   const usable = rect.width - labelW - laneRight;
   let ratio = (clientX - rect.left - labelW) / usable;
   ratio = Math.max(0, Math.min(1, ratio));
-  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const duration = studioDuration();
   const elapsed = ratio * duration;
   // pause any running playback while scrubbing
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
@@ -3721,7 +3990,8 @@ function scrubTimeline(clientX) {
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
-  if (!canvas || !media) {
+  const hasSlides = vstudio.slides.some(s => s.ready);
+  if (!canvas || (!media && !hasSlides)) {
     vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
     return;
   }
@@ -3738,7 +4008,7 @@ async function exportStudioVideo() {
   vsStatus(state.lang === "fa"
     ? `در حال رندر ${canvas.width}×${canvas.height}... این تب را باز نگه دار.`
     : `Rendering ${canvas.width}×${canvas.height}… keep this tab open.`);
-  const duration = Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const duration = studioDuration();
   const fps = 60;
   const canvasStream = canvas.captureStream(fps);
 
@@ -3794,7 +4064,7 @@ async function exportStudioVideo() {
   });
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
-  if (vstudio.isVideo) {
+  if (vstudio.isVideo && media) {
     media.currentTime = 0;
     media.playbackRate = vsPlaybackRate();
     await media.play().catch(() => {});
@@ -3804,6 +4074,12 @@ async function exportStudioVideo() {
   }
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
+  // start all slide videos so they have motion during render
+  vstudio.slides.forEach(s => {
+    if (s.ready && s.isVideo && s.mediaEl) {
+      try { s.mediaEl.currentTime = 0; s.mediaEl.play().catch(()=>{}); } catch {}
+    }
+  });
 
   await new Promise(resolve => {
     const loop = () => {
@@ -3812,8 +4088,11 @@ async function exportStudioVideo() {
       if (elapsed < duration) {
         vstudio.rafId = requestAnimationFrame(loop);
       } else {
-        if (vstudio.isVideo) media.pause();
+        if (vstudio.isVideo && media) media.pause();
         if (vstudio.musicEl) vstudio.musicEl.pause();
+        vstudio.slides.forEach(s => {
+          if (s.ready && s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
+        });
         recorder.stop();
         resolve();
       }
@@ -3931,20 +4210,65 @@ function bindEvents() {
     });
   });
   on("#vsUpload", "change", (e) => loadStudioMedia(e.target.files[0]));
+  // ----- multi-slide sequence wiring -----
+  on("#vsSlideUpload", "change", (e) => {
+    if (e.target.files[0]) {
+      addStudioSlide(e.target.files[0]);
+      e.target.value = "";
+      vsPushHistory();
+    }
+  });
+  const slideList = $("#vsSlideList");
+  if (slideList) {
+    slideList.addEventListener("click", (e) => {
+      const del = e.target.closest("[data-del]");
+      if (del) { removeStudioSlide(Number(del.dataset.del)); vsPushHistory(); return; }
+      const row = e.target.closest("[data-slide]");
+      if (row) selectSlide(Number(row.dataset.slide));
+    });
+  }
+  on("#vsSlideHeadline", "input", (e) => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (s) { s.headline = e.target.value; renderSlideList();
+      if (!vstudio.looping && vstudio.slides.length) drawStudioFrame(vstudio.position || 0); }
+  });
+  on("#vsSlideDuration", "input", (e) => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (s) { s.duration = Math.max(1, Math.min(30, Number(e.target.value) || 4));
+      renderSlideList(); }
+  });
+  renderSlideList();
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
   on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
-  // Infographic: generate professional JSON from a topic prompt
-  on("#vsInfoGenBtn", "click", () => {
-    const prompt = vsVal("#vsInfoPrompt", "");
-    const data = vsInfoFromPrompt(prompt);
-    const json = $("#vsInfoJson");
-    if (json) json.value = JSON.stringify(data, null, 2);
-    const onBox = $("#vsInfoOn");
-    if (onBox) onBox.checked = true;       // auto-enable the overlay
-    if (vstudio.mediaEl && !vstudio.looping) drawStudioFrame(vstudio.position || 0);
-    vsPushHistory();
+  // Infographic: import a JSON file into the data box
+  on("#vsInfoFile", "change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    const status = $("#vsInfoJsonStatus");
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      try {
+        // validate it parses, then pretty-print into the box
+        const parsed = JSON.parse(text);
+        const json = $("#vsInfoJson");
+        if (json) json.value = JSON.stringify(parsed, null, 2);
+        const onBox = $("#vsInfoOn");
+        if (onBox) onBox.checked = true;     // auto-enable the overlay
+        if (status) status.textContent = state.lang === "fa"
+          ? "فایل JSON با موفقیت وارد شد."
+          : "JSON file imported successfully.";
+        if (vstudio.mediaEl && !vstudio.looping) drawStudioFrame(vstudio.position || 0);
+        vsPushHistory();
+      } catch (err) {
+        if (status) status.textContent = state.lang === "fa"
+          ? "فایل JSON معتبر نیست."
+          : "That file is not valid JSON.";
+      }
+    };
+    reader.readAsText(file);
   });
   // live estimate of the exported file size
   const updateExportInfo = () => {
