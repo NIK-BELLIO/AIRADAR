@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v44" />
+    <link rel="stylesheet" href="styles.css?v=v47" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
   </head>
@@ -422,6 +422,18 @@
                             <option value="right">Right</option>
                           </select>
                         </label>
+                        <label><span data-i18n="vInfoMotionLabel">Entrance motion</span>
+                          <select id="vsInfoMotion">
+                            <option value="fade">Fade in</option>
+                            <option value="rise">Rise up</option>
+                            <option value="drop">Drop down</option>
+                            <option value="slide-left">Slide from left</option>
+                            <option value="slide-right">Slide from right</option>
+                            <option value="pop">Pop / scale</option>
+                            <option value="zoom-in">Zoom in</option>
+                            <option value="none">None</option>
+                          </select>
+                        </label>
                       </div>
 
                       <details class="vs-info-advanced">
@@ -482,6 +494,16 @@
                           </select>
                         </label>
                       </div>
+                      <label><span data-i18n="vNewsMotionLabel">Entrance motion</span>
+                        <select id="vsNewsMotion">
+                          <option value="slide-up">Slide up</option>
+                          <option value="slide-left">Slide from left</option>
+                          <option value="slide-right">Slide from right</option>
+                          <option value="fade">Fade in</option>
+                          <option value="pop">Pop / scale</option>
+                          <option value="none">None</option>
+                        </select>
+                      </label>
                       <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
                     </div>
                   </details>
@@ -718,6 +740,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v44"></script>
+    <script src="app.js?v=v47"></script>
   </body>
 </html>
