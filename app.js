@@ -5361,10 +5361,29 @@ function bindEvents() {
     const next = document.body.classList.contains("theme-light") ? "dark" : "light";
     applyTheme(next);
   });
-  // collapsible sidebar nav — toggle the icon-only rail
+  // collapsible sidebar — desktop collapse to icon rail
   on("#navCollapseBtn", "click", () => {
-    const nav = $("#sidebarNav");
-    if (nav) nav.classList.toggle("collapsed");
+    const sb = $("#appSidebar");
+    if (sb) sb.classList.toggle("collapsed");
+  });
+  // mobile drawer — open / close the off-canvas sidebar
+  const openSidebar = () => {
+    const sb = $("#appSidebar"), bd = $("#sidebarBackdrop");
+    if (sb) sb.classList.add("open");
+    if (bd) bd.classList.add("show");
+  };
+  const closeSidebar = () => {
+    const sb = $("#appSidebar"), bd = $("#sidebarBackdrop");
+    if (sb) sb.classList.remove("open");
+    if (bd) bd.classList.remove("show");
+  };
+  on("#sidebarOpenBtn", "click", openSidebar);
+  on("#sidebarBackdrop", "click", closeSidebar);
+  // tapping a nav link closes the mobile drawer
+  document.querySelectorAll(".sidebar-nav a").forEach(a => {
+    a.addEventListener("click", () => {
+      if (window.innerWidth <= 980) closeSidebar();
+    });
   });
   // highlight the nav link for the section currently in view
   const navLinks = Array.from(document.querySelectorAll(".sidebar-nav a"));
