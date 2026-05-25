@@ -15,7 +15,8 @@ const i18n = {
     vAddSlide: "+ Add slide (upload media)",
     vSlideHeadline: "Slide headline",
     vSlideDuration: "Slide duration (s)",
-    vSlideSettingsNote: "The Motion, Text, Infographic and News tabs all edit the slide selected above. Each slide keeps its own settings — switch slides to edit another.",
+    vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
+    vSlideSectionsLabel: "Scene settings",
     vTabFormat: "Format & export",
     vTabMotion: "Motion",
     vTabInfo: "Infographic",
@@ -50,7 +51,7 @@ const i18n = {
     vLogoHint: "Optional: logo (transparent PNG recommended)",
     vFormatLabel: "Format & export",
     vAspectLabel: "Aspect ratio",
-    vDurationLabel: "Duration (s)",
+    vDurationLabel: "Duration (seconds, up to 600)",
     vFilterLabel: "Filter / grade",
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
@@ -219,7 +220,8 @@ const i18n = {
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
     vSlideHeadline: "عنوان اسلاید",
     vSlideDuration: "مدت اسلاید (ثانیه)",
-    vSlideSettingsNote: "تب‌های موشن، متن، اینفوگرافیک و اخبار همگی اسلاید انتخاب‌شده بالا را ویرایش می‌کنند. هر اسلاید تنظیمات خودش را دارد — برای ویرایش اسلاید دیگر، آن را انتخاب کن.",
+    vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
+    vSlideSectionsLabel: "تنظیمات صحنه",
     vTabFormat: "فرمت و خروجی",
     vTabMotion: "موشن",
     vTabInfo: "اینفوگرافیک",
@@ -254,7 +256,7 @@ const i18n = {
     vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
     vFormatLabel: "فرمت و خروجی",
     vAspectLabel: "نسبت تصویر",
-    vDurationLabel: "مدت (ثانیه)",
+    vDurationLabel: "مدت (ثانیه، تا ۶۰۰)",
     vFilterLabel: "فیلتر / گرید",
     vSpeedLabel: "سرعت پخش",
     vTransitionLabel: "ترانزیشن ورودی",
@@ -2637,6 +2639,10 @@ const vstudio = {
   textDX: 0,            // text drag offset X (fraction of width)
   textDY: 0,            // text drag offset Y (fraction of height)
   textBox: null,        // last drawn text bounds, for hit-testing
+  infoDX: 0, infoDY: 0, // infographic drag offset
+  infoBox: null,        // last drawn infographic bounds
+  newsDX: 0, newsDY: 0, // news banner drag offset
+  newsBox: null,        // last drawn news bounds
   position: 0,          // current playback position (seconds), survives pause
   slides: [],           // multi-slide sequence; each: {mediaEl,isVideo,headline,duration}
   activeSlide: 0        // index of the slide being edited
@@ -2915,7 +2921,8 @@ function buildPreviewCanvas(exportLongEdge) {
 function setupTextDrag() {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
-  let dragging = false, startX = 0, startY = 0, baseDX = 0, baseDY = 0;
+  let dragging = null;   // which element: 'text' | 'info' | 'news'
+  let startX = 0, startY = 0, baseDX = 0, baseDY = 0;
 
   // convert a pointer event to canvas-pixel coordinates
   const toCanvas = (e) => {
@@ -2926,44 +2933,60 @@ function setupTextDrag() {
       y: (p.clientY - r.top) / r.height * canvas.height
     };
   };
-  const hitText = (pt) => {
-    const b = vstudio.textBox;
+  // is a point inside a recorded bounding box (with padding)?
+  const inBox = (pt, b) => {
     if (!b) return false;
-    const pad = canvas.width * 0.04;
+    const pad = canvas.width * 0.03;
     return pt.x >= b.x - pad && pt.x <= b.x + b.w + pad &&
            pt.y >= b.y - pad && pt.y <= b.y + b.h + pad;
   };
+  // which draggable element is under the pointer? (news/info on top of text)
+  const pick = (pt) => {
+    if (inBox(pt, vstudio.newsBox)) return "news";
+    if (inBox(pt, vstudio.infoBox)) return "info";
+    if (inBox(pt, vstudio.textBox)) return "text";
+    return null;
+  };
+  const offsetsFor = (kind) => {
+    if (kind === "news") return ["newsDX", "newsDY"];
+    if (kind === "info") return ["infoDX", "infoDY"];
+    return ["textDX", "textDY"];
+  };
+
   const down = (e) => {
     const pt = toCanvas(e);
-    if (!hitText(pt)) return;
-    dragging = true;
+    const kind = pick(pt);
+    if (!kind) return;
+    dragging = kind;
+    const [kx, ky] = offsetsFor(kind);
     startX = pt.x; startY = pt.y;
-    baseDX = vstudio.textDX; baseDY = vstudio.textDY;
+    baseDX = vstudio[kx]; baseDY = vstudio[ky];
     canvas.style.cursor = "grabbing";
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
   };
   const move = (e) => {
     const pt = toCanvas(e);
     if (!dragging) {
-      // hover feedback
-      canvas.style.cursor = hitText(pt) ? "grab" : "default";
+      canvas.style.cursor = pick(pt) ? "grab" : "default";
       return;
     }
-    vstudio.textDX = baseDX + (pt.x - startX) / canvas.width;
-    vstudio.textDY = baseDY + (pt.y - startY) / canvas.height;
-    // clamp so text stays on screen
-    vstudio.textDX = Math.max(-0.42, Math.min(0.42, vstudio.textDX));
-    vstudio.textDY = Math.max(-0.42, Math.min(0.42, vstudio.textDY));
-    // redraw at the CURRENT position (not 0) so the frame never jumps
+    const [kx, ky] = offsetsFor(dragging);
+    let dx = baseDX + (pt.x - startX) / canvas.width;
+    let dy = baseDY + (pt.y - startY) / canvas.height;
+    vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
+    vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
+    // redraw at the CURRENT position so the frame never jumps
     if (!vstudio.looping) {
-      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
       if (hasContent) drawStudioFrame(vstudio.position || 0);
     }
     if (e.cancelable) e.preventDefault();
   };
   const up = () => {
     if (dragging && vstudio.slides.length) vsSaveActiveSlide();
-    dragging = false;
+    dragging = null;
     canvas.style.cursor = "default";
   };
 
@@ -3026,9 +3049,13 @@ function vsCaptureSettings() {
     if (!el) return;
     out[sel] = el.type === "checkbox" ? el.checked : el.value;
   });
-  // text drag offsets travel with the slide too
+  // drag offsets for all movable elements travel with the slide
   out._textDX = vstudio.textDX;
   out._textDY = vstudio.textDY;
+  out._infoDX = vstudio.infoDX;
+  out._infoDY = vstudio.infoDY;
+  out._newsDX = vstudio.newsDX;
+  out._newsDY = vstudio.newsDY;
   return out;
 }
 
@@ -3043,6 +3070,10 @@ function vsApplySettings(s) {
   });
   vstudio.textDX = s._textDX || 0;
   vstudio.textDY = s._textDY || 0;
+  vstudio.infoDX = s._infoDX || 0;
+  vstudio.infoDY = s._infoDY || 0;
+  vstudio.newsDX = s._newsDX || 0;
+  vstudio.newsDY = s._newsDY || 0;
 }
 
 // Save the current control state into the active slide.
@@ -3166,11 +3197,11 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   // when reading from a slide's saved settings, onVal is a real boolean
   const isOn = (typeof onVal === "boolean") ? onVal
              : ($("#vsNewsOn") && $("#vsNewsOn").checked);
-  if (!isOn) return;
+  if (!isOn) { vstudio.newsBox = null; return; }
   const kicker = String(val("#vsNewsKicker", "") || "").trim();
   const headline = String(val("#vsNewsHeadline", "") || "").trim();
   const source = String(val("#vsNewsSource", "") || "").trim();
-  if (!kicker && !headline && !source) return;
+  if (!kicker && !headline && !source) { vstudio.newsBox = null; return; }
 
   const style = val("#vsNewsStyle", "lowerthird");
   const accentKey = val("#vsNewsAccent", "red");
@@ -3185,7 +3216,15 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   // slide-in animation
   const slide = 1 - Math.pow(1 - Math.min(1, elapsed / 0.7), 3);
 
+  // manual drag offset for the whole banner
+  const ndx = vstudio.newsDX * W, ndy = vstudio.newsDY * H;
+  // record an approximate hit-box (banner sits in the lower area)
+  vstudio.newsBox = {
+    x: ndx, y: H * 0.62 + ndy, w: W, h: H * 0.34
+  };
+
   ctx.save();
+  ctx.translate(ndx, ndy);
   ctx.textBaseline = "alphabetic";
 
   if (style === "ticker") {
@@ -3319,9 +3358,9 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const onVal = val("#vsInfoOn", false);
   const on = (typeof onVal === "boolean") ? onVal
            : ($("#vsInfoOn") && $("#vsInfoOn").checked);
-  if (!on) return;
+  if (!on) { vstudio.infoBox = null; return; }
   const data = vsInfoData(val);
-  if (!data || (!data.stats.length && !data.title)) return;
+  if (!data || (!data.stats.length && !data.title)) { vstudio.infoBox = null; return; }
 
   // colours follow the chosen template so the infographic matches it
   tpl = tpl || vsTemplate();
@@ -3347,7 +3386,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   let px = (W - panelW) / 2;
   if (pos === "left") px = W * 0.05;
   if (pos === "right") px = W - panelW - W * 0.05;
-  const py = (H - panelH) / 2;
+  let py = (H - panelH) / 2;
+  // apply manual drag offset
+  px += vstudio.infoDX * W;
+  py += vstudio.infoDY * H;
+  // record bounds so the infographic can be dragged
+  vstudio.infoBox = { x: px, y: py, w: panelW, h: panelH };
 
   ctx.save();
   ctx.globalAlpha = ease;
@@ -3763,7 +3807,29 @@ function drawStudioFrame(elapsed) {
       dsSettings = (at.index === vstudio.activeSlide) ? null : slide.settings;
     }
   }
-  if (!media) return;
+  // Decide whether we can render at all. Normally media is required, but the
+  // infographic (and news banner) can stand on their own coloured background.
+  const infoOnEl = $("#vsInfoOn");
+  const newsOnEl = $("#vsNewsOn");
+  const standaloneOverlay =
+    (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
+  if (!media && !standaloneOverlay) return;
+
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  const W = canvas.width, H = canvas.height;
+  const tpl = vsTemplate();
+
+  // when there is no media, paint a template-coloured backdrop so the
+  // infographic / news banner has something to sit on.
+  if (!media) {
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0, tpl.bg);
+    bgGrad.addColorStop(1, vsHexLuma(tpl.bg) > 140 ? "#ffffff" : "#000000");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // resolver: read a per-slide control value (saved settings or live control)
   const dsVal = (sel, fallback) => {
@@ -3771,11 +3837,6 @@ function drawStudioFrame(elapsed) {
     return vsVal(sel, fallback);
   };
 
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  const W = canvas.width, H = canvas.height;
-  const tpl = vsTemplate();
   const duration = vstudio.slides.length
     ? slidesTotalDuration()
     : Math.max(2, Number(vsVal("#vsDuration", 6)));
@@ -3804,6 +3865,7 @@ function drawStudioFrame(elapsed) {
   }
 
   // ----- main media stage -----
+  if (media) {
   const mw = media.videoWidth || media.naturalWidth || W;
   const mh = media.videoHeight || media.naturalHeight || H;
 
@@ -3871,6 +3933,7 @@ function drawStudioFrame(elapsed) {
   } catch {}
   ctx.restore();
   ctx.filter = "none";
+  }
 
   // vignette
   if (tpl.vignette > 0) {
@@ -3978,13 +4041,14 @@ function drawStudioFrame(elapsed) {
     };
 
     // readable plate behind text — ALWAYS on so text
-    // never disappears into a bright photo.
+    // never disappears into a bright photo. It tracks the drag offset
+    // so the box moves together with the text.
     if (blockW > 0) {
       const padX = W * 0.05, padY = H * 0.04;
       ctx.save();
       ctx.globalAlpha = tEase * 0.55;
       ctx.fillStyle = "rgba(0,0,0,0.85)";
-      const px = W / 2 - blockW / 2 - padX;
+      const px = W / 2 + dragX - blockW / 2 - padX;
       const py = blockTop - padY;
       const pw = blockW + padX * 2;
       const ph = blockH + padY * 2;
@@ -4000,7 +4064,9 @@ function drawStudioFrame(elapsed) {
       ctx.restore();
     }
 
-    // apply slide / scale transform from the animation preset
+    // apply slide / scale transform from the animation preset.
+    // The plate above already includes dragX; the text is drawn at W/2 and
+    // gets its horizontal drag from this translate.
     ctx.translate(slideX + dragX, 0);
     if (scaleT !== 1) {
       ctx.translate(W / 2, baseY);
@@ -4128,11 +4194,15 @@ function studioDuration() {
 }
 
 function previewStudioVideo(fromStart) {
-  // works with either a single media OR a slide sequence
+  // works with media, a slide sequence, OR a standalone infographic/news
   const hasSlides = vstudio.slides.some(s => s.ready);
   const media = vstudio.mediaEl;
-  if (!media && !hasSlides) {
-    vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
+  const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+  const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+  if (!media && !hasSlides && !infoOn && !newsOn) {
+    vsStatus(state.lang === "fa"
+      ? "اول رسانه آپلود کن یا اینفوگرافیک را روشن کن."
+      : "Upload media, or turn on the infographic / news banner.");
     return;
   }
   if (vstudio.rendering) return;
@@ -4330,8 +4400,12 @@ async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
   const hasSlides = vstudio.slides.some(s => s.ready);
-  if (!canvas || (!media && !hasSlides)) {
-    vsStatus(state.lang === "fa" ? "اول رسانه آپلود کن." : "Upload media first.");
+  const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+  const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+  if (!canvas || (!media && !hasSlides && !infoOn && !newsOn)) {
+    vsStatus(state.lang === "fa"
+      ? "اول رسانه آپلود کن یا اینفوگرافیک را روشن کن."
+      : "Upload media, or turn on the infographic / news banner.");
     return;
   }
   if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
@@ -4619,15 +4693,18 @@ function bindEvents() {
     // estimate canvas pixels at the chosen size (assume 16:9-ish)
     const px = size * (size * 16 / 9);
     let bps = Math.min(60000000, Math.max(1500000, Math.round(px * 60 * qf)));
-    const dur = Math.max(2, Number(vsVal("#vsDuration", 6)));
+    const dur = studioDuration();
     const mb = (bps * dur) / 8 / 1024 / 1024;
     const q = vsVal("#vsExportQuality", "high");
     const qLabel = state.lang === "fa"
       ? ({ max: "حداکثر", high: "بالا", medium: "متوسط", low: "کم" })[q]
       : ({ max: "Maximum", high: "High", medium: "Medium", low: "Low" })[q];
+    // human-readable length: "1m 30s" or "45s"
+    const mins = Math.floor(dur / 60), secs = Math.round(dur % 60);
+    const lenStr = mins ? `${mins}m ${secs}s` : `${secs}s`;
     info.textContent = state.lang === "fa"
-      ? `${size}p · کیفیت ${qLabel} · حدود ${mb.toFixed(1)} مگابایت`
-      : `${size}p · ${qLabel} quality · about ${mb.toFixed(1)} MB`;
+      ? `${size}p · ${lenStr} · کیفیت ${qLabel} · حدود ${mb.toFixed(1)} مگابایت`
+      : `${size}p · ${lenStr} · ${qLabel} quality · about ${mb.toFixed(1)} MB`;
   };
   on("#vsExportSize", "change", updateExportInfo);
   on("#vsExportQuality", "change", updateExportInfo);
@@ -4648,8 +4725,13 @@ function bindEvents() {
     refreshTimelineClips();
     // when slides exist, persist the edit into the active slide
     if (vstudio.slides.length) vsSaveActiveSlide();
-    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+    const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+    const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+                       || infoOn || newsOn;
     if (!hasContent || vstudio.rendering) return;
+    // make sure a canvas exists even when no media was ever loaded
+    if (!$("#vsCanvas")) buildPreviewCanvas();
     // if the live loop is running it already redraws every frame;
     // only draw a static frame when the loop is stopped.
     if (!vstudio.looping) {
