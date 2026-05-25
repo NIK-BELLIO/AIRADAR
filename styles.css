@@ -310,6 +310,7 @@ li {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  flex-wrap: wrap;
 }
 
 .hero-actions {
@@ -852,7 +853,16 @@ body[dir="rtl"] .panel-chip {
 }
 
 .search-wrap {
-  width: min(420px, 100%);
+  width: min(460px, 100%);
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.search-wrap #searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
 }
 
 input,
@@ -1651,6 +1661,9 @@ body[dir="rtl"] .chart-overlay {
     grid-template-columns: 1fr;
     flex-direction: column;
   }
+  .section-head .search-wrap {
+    width: 100%;
+  }
 
   .chart-dashboard {
     grid-template-columns: 1fr 1fr;
@@ -2330,8 +2343,9 @@ body.theme-light .theme-toggle-dot {
 /* ── TOOL FINDER — view toggle & list mode ──────────────── */
 .view-toggle {
   display: inline-flex;
+  flex: 0 0 auto;
+  align-items: stretch;
   gap: 2px;
-  margin-left: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
@@ -2339,8 +2353,8 @@ body.theme-light .theme-toggle-dot {
 .view-btn {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   background: rgba(255,255,255,0.04);
   border: none;
   cursor: pointer;
