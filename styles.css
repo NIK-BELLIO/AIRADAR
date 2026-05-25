@@ -2770,3 +2770,15 @@ body.theme-light pre {
 /* Infographic JSON validation status */
 .vs-err { color: #e8806a !important; }
 .vs-ok  { color: #6fae6f !important; }
+
+/* Active-slide indicator inside the slide editor */
+.vs-active-tag {
+  margin: 0 0 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(216,183,106,0.14);
+  border: 1px solid rgba(216,183,106,0.35);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 600;
+}
