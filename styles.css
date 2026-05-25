@@ -2917,3 +2917,54 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   cursor: progress;
 }
 .vs-ai-btn .ai-btn-icon { font-size: 13px; }
+
+/* ── Collapsible tool category groups ──────────────────────── */
+.tool-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tool-group {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.tool-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-weight: 700;
+  font-size: 16px;
+}
+.tool-group-head::-webkit-details-marker { display: none; }
+.tool-group-head::after {
+  content: "▾";
+  color: var(--gold);
+  font-size: 13px;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+.tool-group:not([open]) .tool-group-head::after {
+  transform: rotate(-90deg);
+}
+.tool-group-head:hover { color: var(--gold); }
+.tool-group-name { letter-spacing: 0.01em; }
+.tool-group-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(216,183,106,0.14);
+  border: 1px solid rgba(216,183,106,0.3);
+  border-radius: 99px;
+  padding: 2px 10px;
+}
+.tool-group > .tool-grid,
+.tool-group > .tool-grid.is-list {
+  padding: 4px 18px 20px;
+}
