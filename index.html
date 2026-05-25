@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v51" />
+    <link rel="stylesheet" href="styles.css?v=v53" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
   </head>
@@ -401,6 +401,10 @@
                       <label><span data-i18n="vInfoFormSubtitle">Subtitle (optional)</span>
                         <input id="vsInfoSubtitle" type="text" maxlength="48" placeholder="Key metrics" />
                       </label>
+                      <label><span data-i18n="vInfoFormSource">Data source (recommended)</span>
+                        <input id="vsInfoSource" type="text" maxlength="60" placeholder="e.g. World Bank, 2025" />
+                      </label>
+                      <p class="vstudio-note" data-i18n="vInfoSourceNote">Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.</p>
 
                       <span class="vstudio-label vs-stat-head" data-i18n="vInfoStatsHead">Stats</span>
                       <div id="vsInfoRows" class="vs-info-rows"></div>
@@ -740,6 +744,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v51"></script>
+    <script src="app.js?v=v53"></script>
   </body>
 </html>
