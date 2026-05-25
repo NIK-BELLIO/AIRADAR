@@ -9,7 +9,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v38" />
+    <link rel="stylesheet" href="styles.css?v=v41" />
+    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
+    <script src="https://js.puter.com/v2/"></script>
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -381,15 +383,29 @@
                     <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
                     <div class="vs-section-body">
                       <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                      <p class="vstudio-note" data-i18n="vInfoHint">Import a .json file with your data, or paste/edit JSON in the box below.</p>
-                      <label class="file-field">
-                        <span data-i18n="vInfoImportLabel">Import JSON file</span>
-                        <input id="vsInfoFile" type="file" accept="application/json,.json" />
+                      <p class="vstudio-note" data-i18n="vInfoHint">Type your title and stats below — the infographic builds itself as you write. No JSON needed.</p>
+
+                      <div class="vs-ai-block">
+                        <span class="vstudio-label" data-i18n="vInfoAiLabel">✦ Generate with AI</span>
+                        <p class="vstudio-note" data-i18n="vInfoAiHint">Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.</p>
+                        <textarea id="vsInfoAiText" rows="3" placeholder="e.g. The 2026 housing market: prices up 8.4%, mortgage rates around 6.2%, 1.2M homes for sale, average 34 days on market."></textarea>
+                        <button id="vsInfoAiBtn" class="button primary vs-ai-btn" type="button">
+                          <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoAiBtn">Generate infographic</span>
+                        </button>
+                        <p class="vstudio-note" id="vsInfoAiStatus"></p>
+                      </div>
+
+                      <label><span data-i18n="vInfoFormTitle">Title</span>
+                        <input id="vsInfoTitle" type="text" maxlength="48" placeholder="Housing Market 2026" />
                       </label>
-                      <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
-                        <textarea id="vsInfoJson" rows="8" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M", "num": 4.2 } ] }'></textarea>
+                      <label><span data-i18n="vInfoFormSubtitle">Subtitle (optional)</span>
+                        <input id="vsInfoSubtitle" type="text" maxlength="48" placeholder="Key metrics" />
                       </label>
-                      <p class="vstudio-note" id="vsInfoJsonStatus"></p>
+
+                      <span class="vstudio-label vs-stat-head" data-i18n="vInfoStatsHead">Stats</span>
+                      <div id="vsInfoRows" class="vs-info-rows"></div>
+                      <button id="vsInfoAddRow" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoAddRow">+ Add a stat</button>
+
                       <div class="control-grid">
                         <label><span data-i18n="vInfoStyleLabel">Chart style</span>
                           <select id="vsInfoStyle">
@@ -407,6 +423,21 @@
                           </select>
                         </label>
                       </div>
+
+                      <details class="vs-info-advanced">
+                        <summary data-i18n="vInfoAdvanced">Advanced — edit raw JSON / import file</summary>
+                        <div class="vs-info-adv-body">
+                          <label class="file-field">
+                            <span data-i18n="vInfoImportLabel">Import JSON file</span>
+                            <input id="vsInfoFile" type="file" accept="application/json,.json" />
+                          </label>
+                          <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
+                            <textarea id="vsInfoJson" rows="7" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M" } ] }'></textarea>
+                          </label>
+                          <p class="vstudio-note" id="vsInfoJsonStatus"></p>
+                          <button id="vsInfoSyncBtn" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoSyncBtn">Load this JSON into the form</button>
+                        </div>
+                      </details>
                     </div>
                   </details>
 
@@ -415,6 +446,16 @@
                     <div class="vs-section-body">
                       <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
                       <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
+
+                      <div class="vs-ai-block">
+                        <span class="vstudio-label" data-i18n="vNewsAiLabel">✦ Summarize with AI</span>
+                        <p class="vstudio-note" data-i18n="vNewsAiHint">Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.</p>
+                        <textarea id="vsNewsAiText" rows="4" placeholder="Paste the news article text or your notes here…"></textarea>
+                        <button id="vsNewsAiBtn" class="button primary vs-ai-btn" type="button">
+                          <span class="ai-btn-icon">✦</span> <span data-i18n="vNewsAiBtn">Summarize into banner</span>
+                        </button>
+                        <p class="vstudio-note" id="vsNewsAiStatus"></p>
+                      </div>
                       <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
                         <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
                       </label>
@@ -676,6 +717,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v38"></script>
+    <script src="app.js?v=v41"></script>
   </body>
 </html>
