@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v28" />
+    <link rel="stylesheet" href="styles.css?v=v30" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -229,6 +229,7 @@
                 <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
                 <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
+                <button class="vtab" type="button" data-vtab="news" data-i18n="vTabNews">News</button>
                 <button class="vtab" type="button" data-vtab="info" data-i18n="vTabInfo">Infographic</button>
                 <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
               </div>
@@ -488,6 +489,39 @@
                 <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
               </div>
 
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="news">
+                <span class="vstudio-label" data-i18n="vNewsLabel">News banner</span>
+                <p class="vstudio-note" data-i18n="vNewsHint">Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.</p>
+                <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
+                <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
+                  <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
+                </label>
+                <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
+                  <input id="vsNewsHeadline" type="text" maxlength="120" placeholder="Type the news headline here" />
+                </label>
+                <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
+                  <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
+                </label>
+                <div class="control-grid">
+                  <label><span data-i18n="vNewsStyleLabel">Banner style</span>
+                    <select id="vsNewsStyle">
+                      <option value="lowerthird">Lower third</option>
+                      <option value="ticker">Bottom ticker</option>
+                      <option value="fullbar">Full lower bar</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
+                    <select id="vsNewsAccent">
+                      <option value="red">Breaking red</option>
+                      <option value="blue">News blue</option>
+                      <option value="gold">Studio gold</option>
+                      <option value="mono">Mono / dark</option>
+                    </select>
+                  </label>
+                </div>
+                <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
+              </div>
+
               <div class="vstudio-actions">
                 <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
                 <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
@@ -627,6 +661,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v28"></script>
+    <script src="app.js?v=v30"></script>
   </body>
 </html>
