@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v36" />
+    <link rel="stylesheet" href="styles.css?v=v37" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -224,7 +224,6 @@
 
               <div class="vtab-bar" role="tablist">
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
-                <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
                 <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
                 <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
@@ -235,203 +234,218 @@
                 <div id="templatePicker" class="template-picker"></div>
               </div>
 
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="media">
-                <span class="vstudio-label" data-i18n="vUploadLabel">Media &amp; music</span>
-                <p class="vstudio-note" data-i18n="vMediaModeNote">Two ways to add footage: upload one clip here for a quick single-scene video, or use the Slides tab to build a multi-scene sequence. Music below applies to the whole video either way.</p>
-                <label class="upload-box">
-                  <span data-i18n="vUploadHint">Single clip — upload one video or image (mp4, webm, mov, jpg, png)</span>
-                  <input id="vsUpload" type="file" accept="video/*,image/*" />
-                </label>
-                <label class="upload-box small">
-                  <span data-i18n="vMusicHint">Optional: background music (mp3, wav) — applies to the whole video</span>
-                  <input id="vsMusic" type="file" accept="audio/*" />
-                </label>
-              </div>
-
               <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
-                <span class="vstudio-label" data-i18n="vSlidesLabel">Slide sequence</span>
-                <p class="vstudio-note" data-i18n="vSlidesHint">Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.</p>
+                <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
+                <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
+
                 <div id="vsSlideList" class="vs-slide-list"></div>
                 <div class="vs-slide-actions">
                   <label class="button primary vs-add-slide">
-                    <span data-i18n="vAddSlide">+ Add slide (upload media)</span>
+                    <span data-i18n="vAddSlide">+ Add scene (upload media)</span>
                     <input id="vsSlideUpload" type="file" accept="video/*,image/*" hidden />
                   </label>
                 </div>
-                <div id="vsSlideEditor" class="vs-slide-editor vtab-hidden">
-                  <p id="vsActiveSlideTag" class="vs-active-tag"></p>
-                  <label><span data-i18n="vSlideHeadline">Slide headline</span>
-                    <input id="vsSlideHeadline" type="text" placeholder="This slide's headline" />
-                  </label>
-                  <label><span data-i18n="vSlideDuration">Slide duration (s)</span>
-                    <input id="vsSlideDuration" type="number" min="1" max="30" value="4" />
-                  </label>
-                  <p class="vstudio-note" data-i18n="vSlideSettingsNote">All the settings below belong to the slide selected above. Add a new slide to give it its own separate settings.</p>
-                </div>
 
-                <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This slide's settings</span>
-                <details class="vs-slide-section" open>
-                <summary class="vstudio-label" data-i18n="vTextLabel">Text layers</summary>
-                <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                <div class="control-grid">
-                  <label><span data-i18n="vTextPosLabel">Text position</span>
-                    <select id="vsTextPos">
-                      <option value="center">Center</option>
-                      <option value="bottom">Bottom</option>
-                      <option value="top">Top</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vTextSizeLabel">Text size</span>
-                    <select id="vsTextSize">
-                      <option value="0.8">Small</option>
-                      <option value="1" selected>Medium</option>
-                      <option value="1.3">Large</option>
-                    </select>
-                  </label>
+                <details class="vs-slide-section">
+                  <summary class="vstudio-label" data-i18n="vQuickClipLabel">Quick mode — single clip</summary>
+                  <div class="vs-section-body">
+                    <p class="vstudio-note" data-i18n="vQuickClipHint">Just one clip and no scenes? Upload a single video or image here instead of adding scenes.</p>
+                    <label class="upload-box">
+                      <span data-i18n="vUploadHint">Upload one video or image (mp4, webm, mov, jpg, png)</span>
+                      <input id="vsUpload" type="file" accept="video/*,image/*" />
+                    </label>
+                  </div>
                 </details>
-                <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
-                </div>
-                <details class="vs-slide-section" open>
-                <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
-                <div class="control-grid">
-                  <label><span data-i18n="vCamMotionLabel">Camera motion</span>
-                    <select id="vsMotion">
-                      <option value="kenburns-in">Ken Burns — zoom in</option>
-                      <option value="kenburns-out">Ken Burns — zoom out</option>
-                      <option value="punch-in">Punch in</option>
-                      <option value="zoom-pan">Zoom + pan</option>
-                      <option value="pan-right">Pan right</option>
-                      <option value="pan-left">Pan left</option>
-                      <option value="pan-up">Pan up</option>
-                      <option value="pan-down">Pan down</option>
-                      <option value="diagonal">Diagonal drift</option>
-                      <option value="drift-up">Slow drift up</option>
-                      <option value="parallax">Parallax drift</option>
-                      <option value="vertigo">Vertigo (dolly zoom)</option>
-                      <option value="spin-in">Spin in</option>
-                      <option value="pulse">Pulse</option>
-                      <option value="breathe">Breathe</option>
-                      <option value="sway">Sway</option>
-                      <option value="handheld">Handheld</option>
-                      <option value="shake">Shake</option>
-                      <option value="none">None (static)</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vTextAnimLabel">Text animation</span>
-                    <select id="vsTextAnim">
-                      <option value="fade-up">Fade up</option>
-                      <option value="fade-down">Fade down</option>
-                      <option value="fade">Fade in</option>
-                      <option value="rise">Rise up</option>
-                      <option value="drop">Drop down</option>
-                      <option value="slide-left">Slide from left</option>
-                      <option value="slide-right">Slide from right</option>
-                      <option value="pop">Pop / scale</option>
-                      <option value="bounce">Bounce</option>
-                      <option value="zoom-in">Zoom in</option>
-                      <option value="zoom-out">Zoom out</option>
-                      <option value="blur-in">Blur in</option>
-                      <option value="typewriter">Typewriter</option>
-                      <option value="none">None</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vOverlayLabel">Overlay element</span>
-                    <select id="vsOverlay">
-                      <option value="none">None</option>
-                      <option value="goldframe">Gold frame (luxe)</option>
-                      <option value="shimmer">Shimmer sweep (luxe)</option>
-                      <option value="embers">Warm embers (luxe)</option>
-                      <option value="lightleak">Light leak</option>
-                      <option value="glow">Edge glow</option>
-                      <option value="bokeh">Bokeh lights</option>
-                      <option value="minimalline">Minimal line</option>
-                      <option value="corners">Corner brackets (minimal)</option>
-                      <option value="haze">Soft haze (minimal)</option>
-                      <option value="particles">Sparkle particles</option>
-                      <option value="dust">Floating dust</option>
-                      <option value="snow">Snow</option>
-                      <option value="rain">Rain</option>
-                      <option value="gradient">Cinematic bars</option>
-                      <option value="scanlines">Scanlines</option>
-                      <option value="vhs">VHS jitter</option>
-                    </select>
-                  </label>
+
+                <details class="vs-slide-section">
+                  <summary class="vstudio-label" data-i18n="vMusicLabel">Background music</summary>
+                  <div class="vs-section-body">
+                    <label class="upload-box small">
+                      <span data-i18n="vMusicHint">Optional: background music (mp3, wav) — applies to the whole video</span>
+                      <input id="vsMusic" type="file" accept="audio/*" />
+                    </label>
+                  </div>
                 </details>
-                <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
-                </div>
-                <details class="vs-slide-section" open>
-                <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
-                <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                <p class="vstudio-note" data-i18n="vInfoHint">Import a .json file with your data, or paste/edit JSON in the box below.</p>
-                <label class="file-field">
-                  <span data-i18n="vInfoImportLabel">Import JSON file</span>
-                  <input id="vsInfoFile" type="file" accept="application/json,.json" />
-                </label>
-                <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
-                  <textarea id="vsInfoJson" rows="10" spellcheck="false" placeholder='{
-  "title": "2026 AI Market",
-  "subtitle": "Key metrics",
-  "stats": [
-    { "label": "Users", "value": "4.2M", "num": 4.2 },
-    { "label": "Growth", "value": "+180%", "num": 180 }
-  ]
-}'></textarea>
-                </label>
-                <p class="vstudio-note" id="vsInfoJsonStatus"></p>
-                <div class="control-grid">
-                  <label><span data-i18n="vInfoStyleLabel">Chart style</span>
-                    <select id="vsInfoStyle">
-                      <option value="bars">Animated bars</option>
-                      <option value="counters">Counting numbers</option>
-                      <option value="cards">Stat cards</option>
-                      <option value="donut">Donut ring</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vInfoPosLabel">Position</span>
-                    <select id="vsInfoPos">
-                      <option value="center">Center</option>
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                    </select>
-                  </label>
-                </details>
-                </div>
-                <details class="vs-slide-section" open>
-                <summary class="vstudio-label" data-i18n="vNewsLabel">News banner</summary>
-                <p class="vstudio-note" data-i18n="vNewsHint">Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.</p>
-                <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
-                <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
-                  <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
-                </label>
-                <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
-                  <input id="vsNewsHeadline" type="text" maxlength="120" placeholder="Type the news headline here" />
-                </label>
-                <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
-                  <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
-                </label>
-                <div class="control-grid">
-                  <label><span data-i18n="vNewsStyleLabel">Banner style</span>
-                    <select id="vsNewsStyle">
-                      <option value="lowerthird">Lower third</option>
-                      <option value="ticker">Bottom ticker</option>
-                      <option value="fullbar">Full lower bar</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
-                    <select id="vsNewsAccent">
-                      <option value="red">Breaking red</option>
-                      <option value="blue">News blue</option>
-                      <option value="gold">Studio gold</option>
-                      <option value="mono">Mono / dark</option>
-                    </select>
-                  </label>
-                </details>
-                <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
+
+                <div id="vsSlideEditor" class="vs-slide-editor">
+                  <div id="vsSlideOnlyFields" class="vtab-hidden">
+                    <p id="vsActiveSlideTag" class="vs-active-tag"></p>
+                    <label><span data-i18n="vSlideHeadline">Scene headline</span>
+                      <input id="vsSlideHeadline" type="text" placeholder="This scene's headline" />
+                    </label>
+                    <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
+                      <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
+                    </label>
+                  </div>
+
+                  <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This scene's settings</span>
+
+                  <details class="vs-slide-section" open>
+                    <summary class="vstudio-label" data-i18n="vTextLabel">Text layers</summary>
+                    <div class="vs-section-body">
+                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
+                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
+                      <div class="control-grid">
+                        <label><span data-i18n="vTextPosLabel">Text position</span>
+                          <select id="vsTextPos">
+                            <option value="center">Center</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vTextSizeLabel">Text size</span>
+                          <select id="vsTextSize">
+                            <option value="0.8">Small</option>
+                            <option value="1" selected>Medium</option>
+                            <option value="1.3">Large</option>
+                          </select>
+                        </label>
+                      </div>
+                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
+                    <div class="vs-section-body">
+                      <div class="control-grid">
+                        <label><span data-i18n="vCamMotionLabel">Camera motion</span>
+                          <select id="vsMotion">
+                            <option value="kenburns-in">Ken Burns — zoom in</option>
+                            <option value="kenburns-out">Ken Burns — zoom out</option>
+                            <option value="punch-in">Punch in</option>
+                            <option value="zoom-pan">Zoom + pan</option>
+                            <option value="pan-right">Pan right</option>
+                            <option value="pan-left">Pan left</option>
+                            <option value="pan-up">Pan up</option>
+                            <option value="pan-down">Pan down</option>
+                            <option value="diagonal">Diagonal drift</option>
+                            <option value="drift-up">Slow drift up</option>
+                            <option value="parallax">Parallax drift</option>
+                            <option value="vertigo">Vertigo (dolly zoom)</option>
+                            <option value="spin-in">Spin in</option>
+                            <option value="pulse">Pulse</option>
+                            <option value="breathe">Breathe</option>
+                            <option value="sway">Sway</option>
+                            <option value="handheld">Handheld</option>
+                            <option value="shake">Shake</option>
+                            <option value="none">None (static)</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vTextAnimLabel">Text animation</span>
+                          <select id="vsTextAnim">
+                            <option value="fade-up">Fade up</option>
+                            <option value="fade-down">Fade down</option>
+                            <option value="fade">Fade in</option>
+                            <option value="rise">Rise up</option>
+                            <option value="drop">Drop down</option>
+                            <option value="slide-left">Slide from left</option>
+                            <option value="slide-right">Slide from right</option>
+                            <option value="pop">Pop / scale</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="zoom-in">Zoom in</option>
+                            <option value="zoom-out">Zoom out</option>
+                            <option value="blur-in">Blur in</option>
+                            <option value="typewriter">Typewriter</option>
+                            <option value="none">None</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vOverlayLabel">Overlay element</span>
+                          <select id="vsOverlay">
+                            <option value="none">None</option>
+                            <option value="goldframe">Gold frame (luxe)</option>
+                            <option value="shimmer">Shimmer sweep (luxe)</option>
+                            <option value="embers">Warm embers (luxe)</option>
+                            <option value="lightleak">Light leak</option>
+                            <option value="glow">Edge glow</option>
+                            <option value="bokeh">Bokeh lights</option>
+                            <option value="minimalline">Minimal line</option>
+                            <option value="corners">Corner brackets (minimal)</option>
+                            <option value="haze">Soft haze (minimal)</option>
+                            <option value="particles">Sparkle particles</option>
+                            <option value="dust">Floating dust</option>
+                            <option value="snow">Snow</option>
+                            <option value="rain">Rain</option>
+                            <option value="gradient">Cinematic bars</option>
+                            <option value="scanlines">Scanlines</option>
+                            <option value="vhs">VHS jitter</option>
+                          </select>
+                        </label>
+                      </div>
+                      <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
+                    <div class="vs-section-body">
+                      <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
+                      <p class="vstudio-note" data-i18n="vInfoHint">Import a .json file with your data, or paste/edit JSON in the box below.</p>
+                      <label class="file-field">
+                        <span data-i18n="vInfoImportLabel">Import JSON file</span>
+                        <input id="vsInfoFile" type="file" accept="application/json,.json" />
+                      </label>
+                      <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
+                        <textarea id="vsInfoJson" rows="8" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M", "num": 4.2 } ] }'></textarea>
+                      </label>
+                      <p class="vstudio-note" id="vsInfoJsonStatus"></p>
+                      <div class="control-grid">
+                        <label><span data-i18n="vInfoStyleLabel">Chart style</span>
+                          <select id="vsInfoStyle">
+                            <option value="bars">Animated bars</option>
+                            <option value="counters">Counting numbers</option>
+                            <option value="cards">Stat cards</option>
+                            <option value="donut">Donut ring</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vInfoPosLabel">Position</span>
+                          <select id="vsInfoPos">
+                            <option value="center">Center</option>
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vNewsLabel">News banner</summary>
+                    <div class="vs-section-body">
+                      <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
+                      <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
+                      <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
+                        <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
+                      </label>
+                      <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
+                        <input id="vsNewsHeadline" type="text" maxlength="120" placeholder="Type the news headline here" />
+                      </label>
+                      <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
+                        <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
+                      </label>
+                      <div class="control-grid">
+                        <label><span data-i18n="vNewsStyleLabel">Banner style</span>
+                          <select id="vsNewsStyle">
+                            <option value="lowerthird">Lower third</option>
+                            <option value="ticker">Bottom ticker</option>
+                            <option value="fullbar">Full lower bar</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
+                          <select id="vsNewsAccent">
+                            <option value="red">Breaking red</option>
+                            <option value="blue">News blue</option>
+                            <option value="gold">Studio gold</option>
+                            <option value="mono">Mono / dark</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
+                    </div>
+                  </details>
                 </div>
               </div>
-
               <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
                 <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
                 <div class="control-grid">
@@ -662,6 +676,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v36"></script>
+    <script src="app.js?v=v37"></script>
   </body>
 </html>
