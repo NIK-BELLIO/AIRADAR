@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v31" />
+    <link rel="stylesheet" href="styles.css?v=v35" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -226,11 +226,7 @@
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
                 <button class="vtab" type="button" data-vtab="media" data-i18n="vTabMedia">Media</button>
                 <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
-                <button class="vtab" type="button" data-vtab="motion" data-i18n="vTabMotion">Motion</button>
-                <button class="vtab" type="button" data-vtab="text" data-i18n="vTabText">Text</button>
                 <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
-                <button class="vtab" type="button" data-vtab="news" data-i18n="vTabNews">News</button>
-                <button class="vtab" type="button" data-vtab="info" data-i18n="vTabInfo">Infographic</button>
                 <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
               </div>
 
@@ -269,80 +265,34 @@
                   <label><span data-i18n="vSlideDuration">Slide duration (s)</span>
                     <input id="vsSlideDuration" type="number" min="1" max="30" value="4" />
                   </label>
-                  <p class="vstudio-note" data-i18n="vSlideSettingsNote">The Motion, Text, Infographic and News tabs all edit the slide selected above. Each slide keeps its own settings — switch slides to edit another.</p>
+                  <p class="vstudio-note" data-i18n="vSlideSettingsNote">All the settings below belong to the slide selected above. Add a new slide to give it its own separate settings.</p>
                 </div>
-              </div>
 
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
-                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
+                <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This slide's settings</span>
+                <div class="vs-slide-section">
+                <span class="vstudio-label" data-i18n="vTextLabel">Text layers</span>
+                <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
+                <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
                 <div class="control-grid">
-                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
-                    <select id="vsAspect">
-                      <option value="original">Original</option>
-                      <option value="16:9">16:9 — Landscape</option>
-                      <option value="9:16">9:16 — Reels / TikTok</option>
-                      <option value="1:1">1:1 — Square</option>
-                      <option value="4:5">4:5 — Portrait</option>
+                  <label><span data-i18n="vTextPosLabel">Text position</span>
+                    <select id="vsTextPos">
+                      <option value="center">Center</option>
+                      <option value="bottom">Bottom</option>
+                      <option value="top">Top</option>
                     </select>
                   </label>
-                  <label><span data-i18n="vDurationLabel">Duration (s)</span>
-                    <input id="vsDuration" type="number" min="2" max="60" value="6" />
-                  </label>
-                </div>
-                <div class="control-grid">
-                  <label><span data-i18n="vFilterLabel">Filter / grade</span>
-                    <select id="vsFilter">
-                      <option value="none">None</option>
-                      <option value="cinematic">Cinematic</option>
-                      <option value="warm">Warm</option>
-                      <option value="cool">Cool</option>
-                      <option value="mono">Black &amp; white</option>
-                      <option value="vivid">Vivid</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
-                    <select id="vsSpeed">
-                      <option value="0.5">0.5×</option>
-                      <option value="1" selected>1×</option>
-                      <option value="1.5">1.5×</option>
-                      <option value="2">2×</option>
+                  <label><span data-i18n="vTextSizeLabel">Text size</span>
+                    <select id="vsTextSize">
+                      <option value="0.8">Small</option>
+                      <option value="1" selected>Medium</option>
+                      <option value="1.3">Large</option>
                     </select>
                   </label>
                 </div>
-                <div class="control-grid">
-                  <label><span data-i18n="vTransitionLabel">Transition in</span>
-                    <select id="vsTransition">
-                      <option value="fade">Fade</option>
-                      <option value="zoom">Zoom in</option>
-                      <option value="slide">Slide up</option>
-                      <option value="none">None</option>
-                    </select>
-                  </label>
-                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
+                <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
                 </div>
-                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vExportSizeLabel">Download size</span>
-                    <select id="vsExportSize">
-                      <option value="2160">4K — 2160p</option>
-                      <option value="1080" selected>Full HD — 1080p</option>
-                      <option value="720">HD — 720p</option>
-                      <option value="480">SD — 480p</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
-                    <select id="vsExportQuality">
-                      <option value="max">Maximum</option>
-                      <option value="high" selected>High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low (small file)</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="motion">
+                <div class="vs-slide-section">
                 <span class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</span>
                 <div class="control-grid">
                   <label><span data-i18n="vCamMotionLabel">Camera motion</span>
@@ -409,9 +359,8 @@
                   </label>
                 </div>
                 <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="info">
+                </div>
+                <div class="vs-slide-section">
                 <span class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</span>
                 <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
                 <p class="vstudio-note" data-i18n="vInfoHint">Import a .json file with your data, or paste/edit JSON in the box below.</p>
@@ -447,51 +396,8 @@
                     </select>
                   </label>
                 </div>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="text">
-                <span class="vstudio-label" data-i18n="vTextLabel">Text layers</span>
-                <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                <div class="control-grid">
-                  <label><span data-i18n="vTextPosLabel">Text position</span>
-                    <select id="vsTextPos">
-                      <option value="center">Center</option>
-                      <option value="bottom">Bottom</option>
-                      <option value="top">Top</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vTextSizeLabel">Text size</span>
-                    <select id="vsTextSize">
-                      <option value="0.8">Small</option>
-                      <option value="1" selected>Medium</option>
-                      <option value="1.3">Large</option>
-                    </select>
-                  </label>
                 </div>
-                <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
-                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
-                <label class="upload-box small">
-                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
-                  <input id="vsLogo" type="file" accept="image/*" />
-                </label>
-                <label><span data-i18n="vLogoPosLabel">Logo position</span>
-                  <select id="vsLogoPos">
-                    <option value="tl">Top left</option>
-                    <option value="tr">Top right</option>
-                    <option value="bl">Bottom left</option>
-                    <option value="br">Bottom right</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vIntroLabel">Intro card text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
-                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="news">
+                <div class="vs-slide-section">
                 <span class="vstudio-label" data-i18n="vNewsLabel">News banner</span>
                 <p class="vstudio-note" data-i18n="vNewsHint">Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.</p>
                 <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
@@ -522,7 +428,99 @@
                   </label>
                 </div>
                 <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
+                </div>
               </div>
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
+                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
+                    <select id="vsAspect">
+                      <option value="original">Original</option>
+                      <option value="16:9">16:9 — Landscape</option>
+                      <option value="9:16">9:16 — Reels / TikTok</option>
+                      <option value="1:1">1:1 — Square</option>
+                      <option value="4:5">4:5 — Portrait</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vDurationLabel">Duration (seconds)</span>
+                    <input id="vsDuration" type="number" min="2" max="600" step="1" value="6" />
+                  </label>
+                </div>
+                <div class="control-grid">
+                  <label><span data-i18n="vFilterLabel">Filter / grade</span>
+                    <select id="vsFilter">
+                      <option value="none">None</option>
+                      <option value="cinematic">Cinematic</option>
+                      <option value="warm">Warm</option>
+                      <option value="cool">Cool</option>
+                      <option value="mono">Black &amp; white</option>
+                      <option value="vivid">Vivid</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
+                    <select id="vsSpeed">
+                      <option value="0.5">0.5×</option>
+                      <option value="1" selected>1×</option>
+                      <option value="1.5">1.5×</option>
+                      <option value="2">2×</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="control-grid">
+                  <label><span data-i18n="vTransitionLabel">Transition in</span>
+                    <select id="vsTransition">
+                      <option value="fade">Fade</option>
+                      <option value="zoom">Zoom in</option>
+                      <option value="slide">Slide up</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
+                </div>
+                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vExportSizeLabel">Download size</span>
+                    <select id="vsExportSize">
+                      <option value="2160">4K — 2160p</option>
+                      <option value="1080" selected>Full HD — 1080p</option>
+                      <option value="720">HD — 720p</option>
+                      <option value="480">SD — 480p</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
+                    <select id="vsExportQuality">
+                      <option value="max">Maximum</option>
+                      <option value="high" selected>High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low (small file)</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
+              </div>
+
+
+
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
+                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
+                <label class="upload-box small">
+                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
+                  <input id="vsLogo" type="file" accept="image/*" />
+                </label>
+                <label><span data-i18n="vLogoPosLabel">Logo position</span>
+                  <select id="vsLogoPos">
+                    <option value="tl">Top left</option>
+                    <option value="tr">Top right</option>
+                    <option value="bl">Bottom left</option>
+                    <option value="br">Bottom right</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vIntroLabel">Intro card text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
+                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
+              </div>
+
 
               <div class="vstudio-actions">
                 <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
@@ -663,6 +661,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v31"></script>
+    <script src="app.js?v=v35"></script>
   </body>
 </html>
