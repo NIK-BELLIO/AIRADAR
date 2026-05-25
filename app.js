@@ -46,7 +46,10 @@ const i18n = {
     vNewsClockLabel: "Show live clock",
     vTemplateLabel: "Template",
     vUploadLabel: "Media & music",
-    vUploadHint: "Single clip — upload one video or image (mp4, webm, mov, jpg, png)",
+    vUploadHint: "Upload one video or image (mp4, webm, mov, jpg, png)",
+    vQuickClipLabel: "Quick mode — single clip",
+    vQuickClipHint: "Just one clip and no scenes? Upload a single video or image here instead of adding scenes.",
+    vMusicLabel: "Background music",
     vMusicHint: "Optional: background music (mp3, wav) — applies to the whole video",
     vMediaModeNote: "Two ways to add footage: upload one clip here for a quick single-scene video, or use the Slides tab to build a multi-scene sequence. Music below applies to the whole video either way.",
     vLogoHint: "Optional: logo (transparent PNG recommended)",
@@ -252,7 +255,10 @@ const i18n = {
     vNewsClockLabel: "نمایش ساعت زنده",
     vTemplateLabel: "قالب",
     vUploadLabel: "رسانه و موسیقی",
-    vUploadHint: "تک‌کلیپ — یک ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
+    vUploadHint: "یک ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
+    vQuickClipLabel: "حالت سریع — تک‌کلیپ",
+    vQuickClipHint: "فقط یک کلیپ و بدون صحنه؟ به‌جای افزودن صحنه، یک ویدیو یا تصویر اینجا آپلود کن.",
+    vMusicLabel: "موسیقی پس‌زمینه",
     vMusicHint: "اختیاری: موسیقی پس‌زمینه (mp3, wav) — روی کل ویدیو اعمال می‌شود",
     vMediaModeNote: "دو راه برای افزودن فیلم: یک کلیپ اینجا آپلود کن برای ویدیوی تک‌صحنه، یا از تب اسلایدها برای ساخت دنباله چندصحنه‌ای استفاده کن. موسیقی زیر روی کل ویدیو اعمال می‌شود.",
     vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
@@ -2761,7 +2767,7 @@ function removeStudioSlide(i) {
   }
   renderSlideList();
   if (vstudio.slides.length) selectSlide(vstudio.activeSlide);
-  else { const ed = $("#vsSlideEditor"); if (ed) ed.classList.add("vtab-hidden"); }
+  else { const f = $("#vsSlideOnlyFields"); if (f) f.classList.add("vtab-hidden"); }
 }
 
 // Select a slide for editing.
@@ -2770,9 +2776,9 @@ function selectSlide(i) {
   if (vstudio.activeSlide !== i) vsSaveActiveSlide();
   vstudio.activeSlide = i;
   const s = vstudio.slides[i];
-  const ed = $("#vsSlideEditor");
-  if (!s || !ed) return;
-  ed.classList.remove("vtab-hidden");
+  const fields = $("#vsSlideOnlyFields");
+  if (!s) return;
+  if (fields) fields.classList.remove("vtab-hidden");
   const hl = $("#vsSlideHeadline"), du = $("#vsSlideDuration");
   if (hl) hl.value = s.headline || "";
   if (du) du.value = s.duration || 4;
