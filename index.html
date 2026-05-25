@@ -9,12 +9,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v56" />
+    <link rel="stylesheet" href="styles.css?v=v57" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
-    <!-- ffmpeg.wasm — in-browser MP4 conversion (loaded on first MP4 export) -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
+         (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -813,6 +813,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v56"></script>
+    <script src="app.js?v=v57"></script>
   </body>
 </html>
