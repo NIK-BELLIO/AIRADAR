@@ -2918,15 +2918,31 @@ const vstudio = {
   rendering: false,
   textDX: 0,            // text drag offset X (fraction of width)
   textDY: 0,            // text drag offset Y (fraction of height)
+  textScale: 1,         // text manual scale (resize)
   textBox: null,        // last drawn text bounds, for hit-testing
   infoDX: 0, infoDY: 0, // infographic drag offset
+  infoScale: 1,         // infographic manual scale
   infoBox: null,        // last drawn infographic bounds
   newsDX: 0, newsDY: 0, // news banner drag offset
+  newsScale: 1,         // news banner manual scale
   newsBox: null,        // last drawn news bounds
   position: 0,          // current playback position (seconds), survives pause
   slides: [],           // multi-slide sequence; each: {mediaEl,isVideo,headline,duration}
   activeSlide: 0        // index of the slide being edited
 };
+
+// Professional easing — a refined ease-out with a subtle settle, the kind
+// of motion used in polished motion-graphics rather than a plain linear feed.
+function vsEasePro(t) {
+  t = Math.max(0, Math.min(1, t));
+  // ease-out-back-ish: quick start, gentle overshoot, soft settle
+  const c1 = 1.2, c3 = c1 + 1;
+  const back = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  // blend the back-ease with a clean cubic ease-out so it never overshoots
+  // hard — gives a smooth, expensive-looking arrival
+  const cubic = 1 - Math.pow(1 - t, 3);
+  return cubic * 0.65 + back * 0.35;
+}
 
 function vsTemplate() {
   return videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
@@ -3249,6 +3265,29 @@ function setupTextDrag() {
     if (kind === "info") return ["infoDX", "infoDY"];
     return ["textDX", "textDY"];
   };
+  const scaleKeyFor = (kind) => {
+    if (kind === "news") return "newsScale";
+    if (kind === "info") return "infoScale";
+    return "textScale";
+  };
+
+  // Scroll wheel over an element resizes it — manual scaling, real time.
+  const wheel = (e) => {
+    const pt = toCanvas(e);
+    const kind = pick(pt);
+    if (!kind) return;          // not over an element — let the page scroll
+    e.preventDefault();
+    const sk = scaleKeyFor(kind);
+    const step = e.deltaY < 0 ? 1.06 : 1 / 1.06;
+    vstudio[sk] = Math.max(0.3, Math.min(3, (vstudio[sk] || 1) * step));
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+  };
 
   const down = (e) => {
     const pt = toCanvas(e);
@@ -3289,6 +3328,7 @@ function setupTextDrag() {
 
   canvas.addEventListener("mousedown", down);
   canvas.addEventListener("touchstart", down, { passive: false });
+  canvas.addEventListener("wheel", wheel, { passive: false });
   // window listeners attach only once across the session
   if (!window._vsTextDragBound) {
     window._vsTextDragBound = true;
@@ -3349,10 +3389,13 @@ function vsCaptureSettings() {
   // drag offsets for all movable elements travel with the slide
   out._textDX = vstudio.textDX;
   out._textDY = vstudio.textDY;
+  out._textScale = vstudio.textScale;
   out._infoDX = vstudio.infoDX;
   out._infoDY = vstudio.infoDY;
+  out._infoScale = vstudio.infoScale;
   out._newsDX = vstudio.newsDX;
   out._newsDY = vstudio.newsDY;
+  out._newsScale = vstudio.newsScale;
   return out;
 }
 
@@ -3367,10 +3410,13 @@ function vsApplySettings(s) {
   });
   vstudio.textDX = s._textDX || 0;
   vstudio.textDY = s._textDY || 0;
+  vstudio.textScale = s._textScale || 1;
   vstudio.infoDX = s._infoDX || 0;
   vstudio.infoDY = s._infoDY || 0;
+  vstudio.infoScale = s._infoScale || 1;
   vstudio.newsDX = s._newsDX || 0;
   vstudio.newsDY = s._newsDY || 0;
+  vstudio.newsScale = s._newsScale || 1;
 }
 
 // Save the current control state into the active slide.
@@ -3524,7 +3570,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   const slideRaw = vstudio.looping
     ? Math.min(1, elapsed / 0.7)
     : 1;
-  const slideEase = 1 - Math.pow(1 - slideRaw, 3);
+  const slideEase = vsEasePro(slideRaw);
 
   // chosen entrance motion preset
   const newsMotion = val("#vsNewsMotion", "slide-up");
@@ -3555,10 +3601,12 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
 
   ctx.save();
   ctx.globalAlpha = nMAlpha;
-  // motion transform pivots around the lower-centre of the frame
+  // motion transform pivots around the lower-centre; combine entrance
+  // motion scale with the user's manual resize scale.
   const npivX = W / 2, npivY = H * 0.85;
+  const newsTotalScale = nMScale * (vstudio.newsScale || 1);
   ctx.translate(npivX + ndx + nMDX, npivY + ndy + nMDY);
-  ctx.scale(nMScale, nMScale);
+  ctx.scale(newsTotalScale, newsTotalScale);
   ctx.translate(-npivX, -npivY);
   ctx.textBaseline = "alphabetic";
 
@@ -3756,7 +3804,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const reveal = vstudio.looping
     ? Math.min(1, elapsed / 1.2)
     : 1;
-  const ease = 1 - Math.pow(1 - reveal, 3);
+  const ease = vsEasePro(reveal);
 
   const panelW = W * 0.46, panelH = H * 0.7;
   let px = (W - panelW) / 2;
@@ -3784,10 +3832,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
 
   ctx.save();
   ctx.globalAlpha = mAlpha;
-  // pivot the scale/offset around the panel centre
+  // pivot the scale/offset around the panel centre; combine the entrance
+  // motion scale with the user's manual resize scale.
   const pivX = px + panelW / 2, pivY = py + panelH / 2;
+  const infoTotalScale = mScale * (vstudio.infoScale || 1);
   ctx.translate(pivX + mDX, pivY + mDY);
-  ctx.scale(mScale, mScale);
+  ctx.scale(infoTotalScale, infoTotalScale);
   ctx.translate(-pivX, -pivY);
 
   ctx.save();
@@ -4240,24 +4290,36 @@ function drawStudioFrame(elapsed) {
   if (!media && !standaloneOverlay) return;
 
   // ── TIME-STRETCH (After Effects style time-remap) ──────────
-  // Drive the video's currentTime directly so the whole clip is mapped
-  // smoothly across the whole duration — slow motion if the duration is
-  // longer than the clip, sped up if shorter. Never freezes, never repeats.
+  // The video plays continuously via playbackRate so it never freezes.
+  // playbackRate is set so the whole clip spans the whole duration:
+  // duration longer than clip -> rate < 1 (slow motion);
+  // duration shorter -> rate > 1 (sped up).
   if (media && media.tagName === "VIDEO" &&
       isFinite(media.duration) && media.duration > 0) {
-    let clipT;
+    let span, clipLen = media.duration, targetT;
     if (vstudio.slides.length) {
-      // within a slide: map local time across this slide's set duration
-      clipT = dsDur > 0 ? (dsLocal / dsDur) * media.duration : 0;
+      span = dsDur > 0 ? dsDur : clipLen;
+      targetT = dsDur > 0 ? (dsLocal / dsDur) * clipLen : 0;
     } else {
-      // single video: map elapsed across the whole project duration
-      const total = Math.max(0.01, studioDuration());
-      clipT = (Math.min(elapsed, total) / total) * media.duration;
+      span = Math.max(0.01, studioDuration());
+      targetT = (Math.min(elapsed, span) / span) * clipLen;
     }
-    clipT = Math.max(0, Math.min(media.duration - 0.001, clipT));
-    // only seek when the gap is real — avoids stutter from tiny diffs
-    if (Math.abs(media.currentTime - clipT) > 0.03) {
-      try { media.currentTime = clipT; } catch {}
+    // desired playback rate to fit the clip into the span
+    let rate = clipLen / span;
+    // browsers clamp playbackRate to roughly [0.0625, 16]
+    rate = Math.max(0.0625, Math.min(16, rate));
+    if (media.playbackRate !== rate) {
+      try { media.playbackRate = rate; } catch {}
+    }
+    // if the video has drifted from where it should be (e.g. after a
+    // pause, a scrub, or rate clamping) nudge it back with ONE seek —
+    // not every frame, so the browser can finish the seek and not freeze.
+    if (Math.abs(media.currentTime - targetT) > 0.4) {
+      try { media.currentTime = targetT; } catch {}
+    }
+    // make sure it is actually playing during the live loop / render
+    if ((vstudio.looping || vstudio.rendering) && media.paused) {
+      media.play().catch(() => {});
     }
   }
 
@@ -4420,13 +4482,14 @@ function drawStudioFrame(elapsed) {
   const sub = (dsVal("#vsSub", "") || "").trim();
   const cta = (dsVal("#vsCta", "") || "").trim();
   const pos = dsVal("#vsTextPos", "center");
-  const sizeMul = Number(dsVal("#vsTextSize", 1));
+  // text size = the dropdown choice × the user's manual resize scale
+  const sizeMul = Number(dsVal("#vsTextSize", 1)) * (vstudio.textScale || 1);
   const textAnim = dsVal("#vsTextAnim", "fade-up");
   // text reveal while playing; fully shown when the preview is paused/stopped
   const rawT = vstudio.looping
     ? Math.min(1, Math.max(0, (elapsed - introDur) / 1.2))
     : 1;
-  const tEase = 1 - Math.pow(1 - rawT, 3);
+  const tEase = vsEasePro(rawT);
 
   if (headline || sub || cta) {
     ctx.save();
@@ -4665,9 +4728,14 @@ function previewStudioVideo(fromStart) {
   if (startElapsed >= duration0) startElapsed = 0;
 
   if (vstudio.isVideo && media) {
-    // do NOT call play() — drawStudioFrame drives currentTime directly
-    // (time-stretch). Just make sure it is paused so it doesn't fight us.
-    try { media.pause(); } catch {}
+    // play the video — drawStudioFrame sets playbackRate for time-stretch
+    try {
+      const span = Math.max(0.01, duration0);
+      const startT = isFinite(media.duration)
+        ? (Math.min(startElapsed, span) / span) * media.duration : 0;
+      media.currentTime = startT;
+      media.play().catch(() => {});
+    } catch {}
   }
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
@@ -4688,11 +4756,15 @@ function previewStudioVideo(fromStart) {
       vstudio.startTime = performance.now();
       if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
     }
-    // all slide videos stay paused — drawStudioFrame seeks the active
-    // one directly (time-stretch), so playback can't fight the seeking.
+    // only the slide visible at this moment plays; the others pause.
+    // drawStudioFrame sets the playing one's playbackRate (time-stretch).
     if (vstudio.slides.length) {
-      vstudio.slides.forEach(s => {
-        if (s.ready && s.isVideo && s.mediaEl && !s.mediaEl.paused) {
+      const at = slideAtTime(elapsed);
+      vstudio.slides.forEach((s, i) => {
+        if (!s.ready || !s.isVideo || !s.mediaEl) return;
+        if (i === at.index) {
+          if (s.mediaEl.paused) s.mediaEl.play().catch(() => {});
+        } else if (!s.mediaEl.paused) {
           try { s.mediaEl.pause(); } catch {}
         }
       });
@@ -4948,18 +5020,19 @@ async function exportStudioVideo() {
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
   if (vstudio.isVideo && media) {
-    // keep paused — drawStudioFrame drives currentTime (time-stretch)
-    try { media.pause(); media.currentTime = 0; } catch {}
+    // play — drawStudioFrame sets playbackRate for time-stretch
+    try { media.currentTime = 0; media.play().catch(() => {}); } catch {}
   }
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = 0; await vstudio.musicEl.play().catch(() => {}); } catch {}
   }
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
-  // slide videos stay paused too — they are seeked frame-by-frame
+  // slide videos: start them so they have motion; drawStudioFrame
+  // sets the active slide's playbackRate for time-stretch.
   vstudio.slides.forEach(s => {
     if (s.ready && s.isVideo && s.mediaEl) {
-      try { s.mediaEl.pause(); s.mediaEl.currentTime = 0; } catch {}
+      try { s.mediaEl.currentTime = 0; s.mediaEl.play().catch(() => {}); } catch {}
     }
   });
 
