@@ -2766,3 +2766,7 @@ body.theme-light pre {
   display: grid;
   gap: 10px;
 }
+
+/* Infographic JSON validation status */
+.vs-err { color: #e8806a !important; }
+.vs-ok  { color: #6fae6f !important; }
