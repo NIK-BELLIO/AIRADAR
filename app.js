@@ -3425,15 +3425,20 @@ function setupTextDrag() {
   window._vsTextUp = up;
 }
 
-// Manual preview-size control (40%–100% of the stage width).
+// Manual preview-size control (40%–100% of the available preview box).
 function applyPreviewSize() {
   const canvas = $("#vsCanvas");
   const slider = $("#vsPreviewSize");
   const valEl = $("#vsPreviewSizeVal");
   if (!canvas) return;
   const pct = slider ? Number(slider.value) : 100;
-  canvas.style.width = pct + "%";
+  // cap BOTH dimensions so the canvas always fits inside the preview
+  // box at any aspect ratio — never force an explicit width that
+  // would overflow on portrait videos.
+  canvas.style.width = "auto";
   canvas.style.height = "auto";
+  canvas.style.maxWidth = pct + "%";
+  canvas.style.maxHeight = pct + "%";
   if (valEl) valEl.textContent = pct + "%";
 }
 
