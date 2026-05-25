@@ -3221,8 +3221,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   };
   const ac = accents[accentKey] || accents.red;
 
-  // slide-in animation
-  const slide = 1 - Math.pow(1 - Math.min(1, elapsed / 0.7), 3);
+  // slide-in animation while playing; fully shown when preview is paused
+  const slide = vstudio.looping
+    ? 1 - Math.pow(1 - Math.min(1, elapsed / 0.7), 3)
+    : 1;
 
   // manual drag offset for the whole banner
   const ndx = vstudio.newsDX * W, ndy = vstudio.newsDY * H;
@@ -3387,7 +3389,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const stats = data.stats;
   const style = val("#vsInfoStyle", "bars");
   const pos = val("#vsInfoPos", "center");
-  const reveal = Math.min(1, elapsed / 1.2);
+  // reveal animation while playing; when the preview is paused/stopped,
+  // show the infographic fully (otherwise it is invisible at elapsed 0).
+  const reveal = vstudio.looping
+    ? Math.min(1, elapsed / 1.2)
+    : 1;
   const ease = 1 - Math.pow(1 - reveal, 3);
 
   const panelW = W * 0.46, panelH = H * 0.7;
@@ -3447,7 +3453,9 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const rowH = areaH / Math.max(1, stats.length);
 
   stats.forEach((s, i) => {
-    const rowReveal = Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.18) / 0.7));
+    const rowReveal = vstudio.looping
+      ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.18) / 0.7))
+      : 1;
     const re = 1 - Math.pow(1 - rowReveal, 3);
     const ry = cy + i * rowH;
 
@@ -3984,7 +3992,10 @@ function drawStudioFrame(elapsed) {
   const pos = dsVal("#vsTextPos", "center");
   const sizeMul = Number(dsVal("#vsTextSize", 1));
   const textAnim = dsVal("#vsTextAnim", "fade-up");
-  const rawT = Math.min(1, Math.max(0, (elapsed - introDur) / 1.2));
+  // text reveal while playing; fully shown when the preview is paused/stopped
+  const rawT = vstudio.looping
+    ? Math.min(1, Math.max(0, (elapsed - introDur) / 1.2))
+    : 1;
   const tEase = 1 - Math.pow(1 - rawT, 3);
 
   if (headline || sub || cta) {
@@ -4381,7 +4392,10 @@ function refreshTimelineClips() {
 // Scrub: jump preview to a position when the track area is clicked/dragged.
 function scrubTimeline(clientX) {
   const area = $("#vsTrackArea");
-  if (!area || !vstudio.mediaEl) return;
+  if (!area) return;
+  // works with single media OR a slide sequence
+  const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+  if (!hasContent) return;
   const rect = area.getBoundingClientRect();
   const labelW = 76, laneRight = 12;
   const usable = rect.width - labelW - laneRight;
@@ -4390,15 +4404,33 @@ function scrubTimeline(clientX) {
   const duration = studioDuration();
   const elapsed = ratio * duration;
   // pause any running playback while scrubbing
+  vstudio.looping = false;
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  // seek the single video (if any)
   if (vstudio.isVideo && vstudio.mediaEl) {
     try { vstudio.mediaEl.pause();
       vstudio.mediaEl.currentTime = Math.min(
         vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
   }
+  // seek the slide video that is active at this time (if any)
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    vstudio.slides.forEach((s, i) => {
+      if (s.ready && s.isVideo && s.mediaEl) {
+        try {
+          s.mediaEl.pause();
+          if (i === at.index) {
+            s.mediaEl.currentTime = Math.min(
+              s.mediaEl.duration || at.local, at.local);
+          }
+        } catch {}
+      }
+    });
+  }
   setPlayBtn(false);
   vstudio.position = elapsed;           // remember the scrubbed position
-  buildPreviewCanvas();
+  // canvas already exists; just redraw — no rebuild (rebuild caused jumps)
+  if (!$("#vsCanvas")) buildPreviewCanvas();
   drawStudioFrame(elapsed);
   updateTimeline(elapsed, duration);
 }
