@@ -36,6 +36,7 @@ const i18n = {
     vInfoJsonLabel: "Infographic data (JSON)",
     vInfoStyleLabel: "Chart style",
     vInfoPosLabel: "Position",
+    vInfoMotionLabel: "Entrance motion",
     vMotionLabel: "Motion & elements",
     vCamMotionLabel: "Camera motion",
     vTextAnimLabel: "Text animation",
@@ -55,6 +56,7 @@ const i18n = {
     vNewsSourceLabel: "Source / reporter",
     vNewsStyleLabel: "Banner style",
     vNewsAccentLabel: "Banner accent",
+    vNewsMotionLabel: "Entrance motion",
     vNewsClockLabel: "Show live clock",
     vTemplateLabel: "Template",
     vUploadLabel: "Media & music",
@@ -258,6 +260,7 @@ const i18n = {
     vInfoJsonLabel: "داده اینفوگرافیک (JSON)",
     vInfoStyleLabel: "سبک نمودار",
     vInfoPosLabel: "موقعیت",
+    vInfoMotionLabel: "حرکت ورود",
     vMotionLabel: "موشن و المان‌ها",
     vCamMotionLabel: "حرکت دوربین",
     vTextAnimLabel: "انیمیشن متن",
@@ -277,6 +280,7 @@ const i18n = {
     vNewsSourceLabel: "منبع / خبرنگار",
     vNewsStyleLabel: "سبک بنر",
     vNewsAccentLabel: "رنگ بنر",
+    vNewsMotionLabel: "حرکت ورود",
     vNewsClockLabel: "نمایش ساعت زنده",
     vTemplateLabel: "قالب",
     vUploadLabel: "رسانه و موسیقی",
@@ -883,7 +887,220 @@ tools.push(
   }
 );
 
-// ── GITHUB REPO MAP ───────────────────────────────────────
+// ── ADDITIONAL AI TOOLS — broader, more complete catalogue ──
+tools.push(
+  {
+    name: "Microsoft Copilot",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Microsoft's AI assistant across Windows, Edge, and Microsoft 365 apps.", fa: "دستیار AI مایکروسافت در ویندوز، Edge و اپ‌های Microsoft 365." },
+    price: 20,
+    pricing: { en: "Free + Copilot Pro about $20/mo", fa: "رایگان + Copilot Pro حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 90,
+    jobs: ["AI Productivity Specialist", "Automation Builder"],
+    url: "https://copilot.microsoft.com",
+    tags: ["writing", "office", "microsoft"],
+    modelType: "assistant",
+    logo: "MC"
+  },
+  {
+    name: "Notebook LM",
+    category: { en: "Research", fa: "تحقیق و سرچ" },
+    useCase: { en: "Google's AI research notebook that summarizes and answers questions from your own sources.", fa: "دفترچه تحقیق AI گوگل که از منابع خودت خلاصه و پاسخ می‌سازد." },
+    price: 0,
+    pricing: { en: "Free", fa: "رایگان" },
+    plan: "free",
+    score: 87,
+    jobs: ["Researcher", "Analyst"],
+    url: "https://notebooklm.google.com",
+    tags: ["research", "summary", "google"],
+    modelType: "assistant",
+    logo: "NL"
+  },
+  {
+    name: "Leonardo AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "AI image generation with fine creative control, presets, and game-asset tooling.", fa: "تولید تصویر AI با کنترل خلاقانه دقیق، پریست و ابزار ساخت اسِت بازی." },
+    price: 12,
+    pricing: { en: "Free plan + paid from about $12/mo", fa: "پلن رایگان + پولی از حدود ۱۲ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["AI Artist", "Game Asset Designer"],
+    url: "https://leonardo.ai",
+    tags: ["image", "art", "design"],
+    modelType: "image",
+    logo: "LA"
+  },
+  {
+    name: "Ideogram",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "AI image generator known for accurate text rendering inside images.", fa: "تولیدکننده تصویر AI با تخصص در نمایش دقیق متن داخل تصویر." },
+    price: 8,
+    pricing: { en: "Free plan + paid from about $8/mo", fa: "پلن رایگان + پولی از حدود ۸ دلار ماهانه" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["AI Artist", "Brand Designer"],
+    url: "https://ideogram.ai",
+    tags: ["image", "text", "design"],
+    modelType: "image",
+    logo: "ID"
+  },
+  {
+    name: "HeyGen",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI video with realistic avatars and voice for marketing and training clips.", fa: "ویدیو AI با آواتار واقع‌گرایانه و صدا برای کلیپ بازاریابی و آموزش." },
+    price: 29,
+    pricing: { en: "Free plan + paid from about $29/mo", fa: "پلن رایگان + پولی از حدود ۲۹ دلار ماهانه" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["AI Video Producer", "Content Creator"],
+    url: "https://www.heygen.com",
+    tags: ["video", "avatar", "marketing"],
+    modelType: "video",
+    logo: "HG"
+  },
+  {
+    name: "Synthesia",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI avatar video platform for corporate training and explainer content.", fa: "پلتفرم ویدیوی آواتار AI برای آموزش سازمانی و محتوای توضیحی." },
+    price: 29,
+    pricing: { en: "Paid from about $29/mo", fa: "پولی از حدود ۲۹ دلار ماهانه" },
+    plan: "paid",
+    score: 81,
+    jobs: ["AI Video Producer", "L&D Specialist"],
+    url: "https://www.synthesia.io",
+    tags: ["video", "avatar", "training"],
+    modelType: "video",
+    logo: "SY"
+  },
+  {
+    name: "Descript",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: { en: "Edit audio and video by editing the transcript — AI voices, filler removal, and more.", fa: "ویرایش صدا و ویدیو از روی متن — صدای AI، حذف کلمات اضافه و بیشتر." },
+    price: 19,
+    pricing: { en: "Free plan + paid from about $19/mo", fa: "پلن رایگان + پولی از حدود ۱۹ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Podcast Editor", "Video Editor"],
+    url: "https://www.descript.com",
+    tags: ["audio", "video", "editing"],
+    modelType: "audio",
+    logo: "DS"
+  },
+  {
+    name: "Udio",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: { en: "AI music generation that turns text prompts into full songs with vocals.", fa: "تولید موسیقی AI که پرامپت متنی را به آهنگ کامل با وکال تبدیل می‌کند." },
+    price: 10,
+    pricing: { en: "Free plan + paid from about $10/mo", fa: "پلن رایگان + پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["AI Music Producer", "Sound Designer"],
+    url: "https://www.udio.com",
+    tags: ["audio", "music", "generation"],
+    modelType: "audio",
+    logo: "UD"
+  },
+  {
+    name: "Windsurf",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "AI coding IDE with an agentic assistant that edits across your whole codebase.", fa: "محیط کدنویسی AI با دستیار agentic که در کل کدبیس ویرایش می‌کند." },
+    price: 15,
+    pricing: { en: "Free plan + paid from about $15/mo", fa: "پلن رایگان + پولی از حدود ۱۵ دلار ماهانه" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["Software Engineer", "AI Developer"],
+    url: "https://windsurf.com",
+    tags: ["coding", "ide", "agent"],
+    modelType: "coding",
+    logo: "WS"
+  },
+  {
+    name: "v0",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "Vercel's AI tool that generates React UI and full front-end code from prompts.", fa: "ابزار AI ورسل که از پرامپت، رابط React و کد فرانت‌اند تولید می‌کند." },
+    price: 20,
+    pricing: { en: "Free plan + paid from about $20/mo", fa: "پلن رایگان + پولی از حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 85,
+    jobs: ["Front-End Developer", "UI Engineer"],
+    url: "https://v0.dev",
+    tags: ["coding", "ui", "react"],
+    modelType: "coding",
+    logo: "V0"
+  },
+  {
+    name: "Lovable",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "AI app builder that turns plain descriptions into working full-stack web apps.", fa: "سازنده اپ AI که توصیف ساده را به وب‌اپ فول‌استک کاربردی تبدیل می‌کند." },
+    price: 20,
+    pricing: { en: "Free plan + paid from about $20/mo", fa: "پلن رایگان + پولی از حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["Full-Stack Developer", "Indie Maker"],
+    url: "https://lovable.dev",
+    tags: ["coding", "app", "no-code"],
+    modelType: "coding",
+    logo: "LO"
+  },
+  {
+    name: "Tability",
+    category: { en: "Productivity", fa: "بهره‌وری" },
+    useCase: { en: "AI-assisted goal and OKR tracking that drafts measurable objectives for teams.", fa: "پیگیری هدف و OKR با کمک AI که اهداف قابل‌اندازه‌گیری برای تیم می‌نویسد." },
+    price: 12,
+    pricing: { en: "Paid from about $12/mo", fa: "پولی از حدود ۱۲ دلار ماهانه" },
+    plan: "paid",
+    score: 76,
+    jobs: ["Product Manager", "Team Lead"],
+    url: "https://www.tability.io",
+    tags: ["productivity", "okr", "planning"],
+    modelType: "assistant",
+    logo: "TB"
+  },
+  {
+    name: "Fireflies",
+    category: { en: "Productivity", fa: "بهره‌وری" },
+    useCase: { en: "AI meeting assistant that records, transcribes, and summarizes calls automatically.", fa: "دستیار جلسه AI که تماس‌ها را ضبط، رونویسی و خلاصه می‌کند." },
+    price: 10,
+    pricing: { en: "Free plan + paid from about $10/mo", fa: "پلن رایگان + پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["Operations Specialist", "Project Manager"],
+    url: "https://fireflies.ai",
+    tags: ["productivity", "meetings", "transcription"],
+    modelType: "assistant",
+    logo: "FF"
+  },
+  {
+    name: "Tome",
+    category: { en: "Presentations", fa: "ارائه" },
+    useCase: { en: "AI presentation tool that builds polished decks and narratives from a prompt.", fa: "ابزار ارائه AI که از یک پرامپت، اسلاید و روایت حرفه‌ای می‌سازد." },
+    price: 16,
+    pricing: { en: "Free plan + paid from about $16/mo", fa: "پلن رایگان + پولی از حدود ۱۶ دلار ماهانه" },
+    plan: "freemium",
+    score: 78,
+    jobs: ["Presentation Designer", "Marketer"],
+    url: "https://tome.app",
+    tags: ["presentations", "decks", "design"],
+    modelType: "assistant",
+    logo: "TM"
+  },
+  {
+    name: "Jasper",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "AI writing platform for marketing copy, campaigns, and brand-consistent content.", fa: "پلتفرم نوشتن AI برای کپی بازاریابی، کمپین و محتوای هماهنگ با برند." },
+    price: 39,
+    pricing: { en: "Paid from about $39/mo", fa: "پولی از حدود ۳۹ دلار ماهانه" },
+    plan: "paid",
+    score: 79,
+    jobs: ["AI Content Specialist", "Marketing Copywriter"],
+    url: "https://www.jasper.ai",
+    tags: ["writing", "marketing", "content"],
+    modelType: "assistant",
+    logo: "JP"
+  }
+);
+
 // Each tool is mapped to a representative public GitHub repo.
 // Open-source tools use their own repo; closed-source products
 // (ChatGPT, Claude, etc.) use their official public SDK/org repo
@@ -1168,15 +1385,41 @@ function filteredTools() {
 
 function renderTools() {
   const items = filteredTools();
-  toolGrid.className = state.viewMode === "list" ? "tool-grid is-list" : "tool-grid";
-  toolGrid.innerHTML = items.length ? items.map(renderToolCard).join("") : `<p class="empty">${t("noTools")}</p>`;
-  // visible count so filters are obviously taking effect
   const countEl = $("#toolCount");
   if (countEl) {
     countEl.textContent = state.lang === "fa"
       ? `${items.length} از ${tools.length} ابزار`
       : `${items.length} of ${tools.length} tools`;
   }
+  if (!items.length) {
+    toolGrid.className = "tool-grid";
+    toolGrid.innerHTML = `<p class="empty">${t("noTools")}</p>`;
+    return;
+  }
+  // group the visible tools by category
+  const lang = state.lang === "fa" ? "fa" : "en";
+  const groups = {}; const order = [];
+  items.forEach(tool => {
+    const cat = (tool.category && tool.category[lang]) || "Other";
+    if (!groups[cat]) { groups[cat] = []; order.push(cat); }
+    groups[cat].push(tool);
+  });
+  // when a filter/search narrows the list, expand all groups;
+  // otherwise open the first group and collapse the rest.
+  const filtersActive = state.query || state.category !== "all"
+    || state.budget !== "all" || state.modelType !== "all"
+    || state.minScore > 0;
+  toolGrid.className = "tool-groups";
+  toolGrid.innerHTML = order.map((cat, i) => {
+    const cards = groups[cat].map(renderToolCard).join("");
+    const open = (filtersActive || i === 0) ? " open" : "";
+    const gridCls = state.viewMode === "list" ? "tool-grid is-list" : "tool-grid";
+    return `<details class="tool-group"${open}>` +
+      `<summary class="tool-group-head">` +
+      `<span class="tool-group-name">${escapeHtml(cat)}</span>` +
+      `<span class="tool-group-count">${groups[cat].length}</span>` +
+      `</summary><div class="${gridCls}">${cards}</div></details>`;
+  }).join("");
 }
 
 function setToolView(mode) {
@@ -1202,6 +1445,9 @@ function jumpToTool(name) {
   requestAnimationFrame(() => {
     const card = document.querySelector(`[data-tool-card="${CSS.escape(name)}"]`);
     if (!card) return;
+    // open the collapsible category group the card sits in
+    const group = card.closest("details.tool-group");
+    if (group) group.open = true;
     card.scrollIntoView({ behavior: "smooth", block: "center" });
     card.classList.add("tool-card-flash");
     setTimeout(() => card.classList.remove("tool-card-flash"), 1600);
@@ -3087,8 +3333,8 @@ const VS_SLIDE_CONTROLS = [
   "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
-  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
-  "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
+  "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
   "#vsIntro", "#vsOutro"
 ];
 
@@ -3274,10 +3520,31 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   };
   const ac = accents[accentKey] || accents.red;
 
-  // slide-in animation while playing; fully shown when preview is paused
-  const slide = vstudio.looping
-    ? 1 - Math.pow(1 - Math.min(1, elapsed / 0.7), 3)
+  // entrance progress while playing; fully shown when preview is paused
+  const slideRaw = vstudio.looping
+    ? Math.min(1, elapsed / 0.7)
     : 1;
+  const slideEase = 1 - Math.pow(1 - slideRaw, 3);
+
+  // chosen entrance motion preset
+  const newsMotion = val("#vsNewsMotion", "slide-up");
+  // `slide` keeps each style's built-in reveal; for non-slide-up presets
+  // we hold the style fully open and animate the whole banner instead.
+  const slide = (newsMotion === "slide-up" || newsMotion === "none")
+    ? (newsMotion === "none" ? 1 : slideEase)
+    : 1;
+  // whole-banner transform from the preset
+  let nMDX = 0, nMDY = 0, nMScale = 1, nMAlpha = 1;
+  switch (newsMotion) {
+    case "none":        break;
+    case "slide-up":    break;   // handled by `slide` inside each style
+    case "slide-left":  nMDX = -(1 - slideEase) * W * 0.4; break;
+    case "slide-right": nMDX = (1 - slideEase) * W * 0.4; break;
+    case "fade":        nMAlpha = slideEase; break;
+    case "pop":         nMScale = 0.7 + slideEase * 0.3;
+                        nMAlpha = slideEase; break;
+    default:            break;
+  }
 
   // manual drag offset for the whole banner
   const ndx = vstudio.newsDX * W, ndy = vstudio.newsDY * H;
@@ -3287,7 +3554,12 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   };
 
   ctx.save();
-  ctx.translate(ndx, ndy);
+  ctx.globalAlpha = nMAlpha;
+  // motion transform pivots around the lower-centre of the frame
+  const npivX = W / 2, npivY = H * 0.85;
+  ctx.translate(npivX + ndx + nMDX, npivY + ndy + nMDY);
+  ctx.scale(nMScale, nMScale);
+  ctx.translate(-npivX, -npivY);
   ctx.textBaseline = "alphabetic";
 
   if (style === "ticker") {
@@ -3344,10 +3616,31 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
       ctx.fillText(source, W * 0.06, y + barH * 0.9);
     }
   } else {
-    // lower third — kicker tab above a headline plate
-    const plateH = H * 0.12;
-    const plateY = H * 0.7;
+    // lower third — kicker tab above a headline plate that sizes to its text
     const x = -W * (1 - slide) * 0.6 + W * 0.06;
+    const plateW = W * 0.78;
+    const padX = W * 0.03;
+    const textW = plateW - padX * 2;
+    // measure how many lines the headline needs (max 3)
+    const hlSize = Math.round(H * 0.04);
+    ctx.font = `700 ${hlSize}px Prata, serif`;
+    const lineH = hlSize * 1.2;
+    // pre-count lines without drawing
+    const tmpWords = headline.split(/\s+/);
+    let tmpLine = "", lineCount = 0;
+    for (const w of tmpWords) {
+      const test = tmpLine ? tmpLine + " " + w : w;
+      if (ctx.measureText(test).width > textW && tmpLine) {
+        lineCount++; tmpLine = w;
+        if (lineCount === 3) break;
+      } else { tmpLine = test; }
+    }
+    if (tmpLine && lineCount < 3) lineCount++;
+    lineCount = Math.max(1, lineCount);
+    const srcH = source ? H * 0.04 : 0;
+    const plateH = lineH * lineCount + H * 0.05 + srcH;
+    const plateY = H * 0.86 - plateH;   // anchor near the bottom
+
     if (kicker) {
       ctx.fillStyle = ac.bar;
       ctx.font = `700 ${Math.round(H * 0.03)}px Inter, sans-serif`;
@@ -3357,20 +3650,23 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
       ctx.textAlign = "left";
       ctx.fillText(kicker.toUpperCase(), x + W * 0.025, plateY - H * 0.015);
     }
-    // headline plate
+    // headline plate (height fits the text)
     ctx.fillStyle = "rgba(10,10,12,0.9)";
-    ctx.fillRect(x, plateY, W * 0.7, plateH);
+    ctx.fillRect(x, plateY, plateW, plateH);
     ctx.fillStyle = ac.bar;
     ctx.fillRect(x, plateY, H * 0.008, plateH);
     ctx.fillStyle = "#fff";
-    ctx.font = `700 ${Math.round(H * 0.042)}px Prata, serif`;
+    ctx.font = `700 ${hlSize}px Prata, serif`;
     ctx.textAlign = "left";
-    wrapNewsText(ctx, headline, x + W * 0.03, plateY + plateH * 0.42,
-                 W * 0.63, H * 0.05, 2);
+    const lines = wrapNewsText(ctx, headline, x + padX,
+      plateY + H * 0.03 + hlSize * 0.8, textW, lineH, 3);
     if (source) {
-      ctx.fillStyle = "rgba(210,210,215,0.8)";
+      ctx.fillStyle = "rgba(210,210,215,0.85)";
       ctx.font = `400 ${Math.round(H * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(source, x + W * 0.03, plateY + plateH * 0.86);
+      // place the source BELOW the last headline line — no overlap
+      const srcY = plateY + H * 0.03 + hlSize * 0.8
+                 + lines * lineH + H * 0.012;
+      ctx.fillText(source, x + padX, srcY);
     }
   }
 
@@ -3396,7 +3692,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
 
 // Word-wrap helper for news headlines (limited number of lines).
 function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
-  if (!text) return;
+  if (!text) return 0;
   const words = text.split(/\s+/);
   let line = "", lines = [];
   for (const w of words) {
@@ -3413,6 +3709,19 @@ function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
     if (used < words.length) lines[maxLines - 1] += "…";
   }
   lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
+  return lines.length;
+}
+
+// Shrink the current ctx font until `text` fits within maxW (down to minPx).
+// Returns the px size actually used.
+function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
+  let px = startPx;
+  for (; px > minPx; px -= 1) {
+    ctx.font = `${weight} ${px}px ${family}`;
+    if (ctx.measureText(text).width <= maxW) break;
+  }
+  ctx.font = `${weight} ${px}px ${family}`;
+  return px;
 }
 
 function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
@@ -3442,8 +3751,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const stats = data.stats;
   const style = val("#vsInfoStyle", "bars");
   const pos = val("#vsInfoPos", "center");
-  // reveal animation while playing; when the preview is paused/stopped,
-  // show the infographic fully (otherwise it is invisible at elapsed 0).
+  const motion = val("#vsInfoMotion", "fade");
+  // reveal progress while playing; fully shown when preview is paused
   const reveal = vstudio.looping
     ? Math.min(1, elapsed / 1.2)
     : 1;
@@ -3460,8 +3769,26 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   // record bounds so the infographic can be dragged
   vstudio.infoBox = { x: px, y: py, w: panelW, h: panelH };
 
+  // entrance motion preset — offset / scale / alpha from `ease`
+  let mDX = 0, mDY = 0, mScale = 1, mAlpha = ease;
+  switch (motion) {
+    case "none":        mAlpha = 1; break;
+    case "rise":        mDY = (1 - ease) * H * 0.18; break;
+    case "drop":        mDY = -(1 - ease) * H * 0.18; break;
+    case "slide-left":  mDX = -(1 - ease) * W * 0.35; break;
+    case "slide-right": mDX = (1 - ease) * W * 0.35; break;
+    case "pop":         mScale = 0.6 + ease * 0.4; break;
+    case "zoom-in":     mScale = 0.2 + ease * 0.8; break;
+    default:            break;   // "fade" — alpha only
+  }
+
   ctx.save();
-  ctx.globalAlpha = ease;
+  ctx.globalAlpha = mAlpha;
+  // pivot the scale/offset around the panel centre
+  const pivX = px + panelW / 2, pivY = py + panelH / 2;
+  ctx.translate(pivX + mDX, pivY + mDY);
+  ctx.scale(mScale, mScale);
+  ctx.translate(-pivX, -pivY);
 
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
@@ -3484,19 +3811,22 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   ctx.fillRect(px + panelW * 0.09, py + panelH * 0.085, accentW, H * 0.006);
 
   const padX = panelW * 0.09;
+  const titleMaxW = panelW - padX * 2;
   let cy = py + panelH * 0.17;
 
   if (data.title) {
     ctx.fillStyle = ig.title;
-    ctx.font = `600 ${Math.round(W * 0.032)}px Prata, serif`;
     ctx.textAlign = "left";
+    vsFitFont(ctx, data.title, titleMaxW, "600", "Prata, serif",
+      Math.round(W * 0.032), Math.round(W * 0.018));
     ctx.fillText(data.title, px + padX, cy);
     cy += panelH * 0.065;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
-    ctx.font = `400 ${Math.round(W * 0.0155)}px Inter, sans-serif`;
     ctx.textAlign = "left";
+    vsFitFont(ctx, data.subtitle.toUpperCase(), titleMaxW, "400",
+      "Inter, sans-serif", Math.round(W * 0.0155), Math.round(W * 0.01));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
     cy += panelH * 0.07;
   }
@@ -3513,14 +3843,30 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     const ry = cy + i * rowH;
 
     if (style === "bars") {
+      const rowMaxW = panelW - padX * 2;
+      // label on the left — shrink to at most 55% of the row width
       ctx.fillStyle = ig.label;
-      ctx.font = `500 ${Math.round(W * 0.017)}px Inter, sans-serif`;
+      const labelPx = vsFitFont(ctx, s.label, rowMaxW * 0.55,
+        "500", "Inter, sans-serif", Math.round(W * 0.017), Math.round(W * 0.011));
       ctx.textAlign = "left";
       ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
+      const labelW = ctx.measureText(s.label).width;
+      // value on the right — shrink so it fits the remaining space
       ctx.fillStyle = ig.value;
+      const valSpace = rowMaxW - labelW - W * 0.02;
+      let valText = s.value;
+      vsFitFont(ctx, valText, valSpace,
+        "700", "Inter, sans-serif", Math.round(W * 0.021), Math.round(W * 0.012));
+      // if still too long even at min size, ellipsize it
+      if (ctx.measureText(valText).width > valSpace && valSpace > 0) {
+        while (valText.length > 1 &&
+               ctx.measureText(valText + "…").width > valSpace) {
+          valText = valText.slice(0, -1);
+        }
+        valText += "…";
+      }
       ctx.textAlign = "right";
-      ctx.font = `700 ${Math.round(W * 0.021)}px Inter, sans-serif`;
-      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
+      ctx.fillText(valText, px + panelW - padX, ry + rowH * 0.32);
       const barW = panelW - padX * 2;
       const barY = ry + rowH * 0.45;
       const barH = rowH * 0.22;
@@ -3535,16 +3881,19 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
       ctx.fill();
     } else if (style === "counters") {
+      const cMaxW = panelW - padX * 2;
       ctx.textAlign = "left";
       ctx.fillStyle = ig.value;
-      ctx.font = `700 ${Math.round(W * 0.042)}px Prata, serif`;
       const suffix = s.value.replace(/[0-9.,]/g, "");
       const shown = s.num
         ? Math.round(s.num * re).toLocaleString() + suffix
         : s.value;
+      vsFitFont(ctx, shown, cMaxW, "700", "Prata, serif",
+        Math.round(W * 0.042), Math.round(W * 0.02));
       ctx.fillText(shown, px + padX, ry + rowH * 0.46);
       ctx.fillStyle = ig.label;
-      ctx.font = `400 ${Math.round(W * 0.016)}px Inter, sans-serif`;
+      vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "400", "Inter, sans-serif",
+        Math.round(W * 0.016), Math.round(W * 0.01));
       ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.72);
       ctx.strokeStyle = vsHexA(ig.accent, 0.2);
       ctx.lineWidth = 1;
@@ -3572,10 +3921,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.lineCap = "butt";
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
-      ctx.font = `700 ${Math.round(W * 0.02)}px Inter, sans-serif`;
+      vsFitFont(ctx, s.value, rad * 1.7, "700", "Inter, sans-serif",
+        Math.round(W * 0.02), Math.round(W * 0.011));
       ctx.fillText(s.value, cxx, cyy + W * 0.007);
       ctx.fillStyle = ig.label;
-      ctx.font = `400 ${Math.round(W * 0.013)}px Inter, sans-serif`;
+      vsFitFont(ctx, s.label, slotW * 0.94, "400", "Inter, sans-serif",
+        Math.round(W * 0.013), Math.round(W * 0.009));
       ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.12);
     } else {
       const cardY = ry + rowH * 0.12;
@@ -3591,12 +3942,16 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
       ctx.stroke();
       ctx.textAlign = "left";
+      const cardTextW = (panelW - padX * 2) - panelW * 0.09;
+      const cardTextX = px + padX + panelW * 0.045;
       ctx.fillStyle = ig.label;
-      ctx.font = `400 ${Math.round(W * 0.015)}px Inter, sans-serif`;
-      ctx.fillText(s.label.toUpperCase(), px + padX + panelW * 0.045, cardY + cardH * 0.4);
+      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "400",
+        "Inter, sans-serif", Math.round(W * 0.015), Math.round(W * 0.01));
+      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.4);
       ctx.fillStyle = ig.value;
-      ctx.font = `700 ${Math.round(W * 0.03)}px Prata, serif`;
-      ctx.fillText(s.value, px + padX + panelW * 0.045, cardY + cardH * 0.78);
+      vsFitFont(ctx, s.value, cardTextW, "700", "Prata, serif",
+        Math.round(W * 0.03), Math.round(W * 0.015));
+      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.78);
     }
   });
   ctx.restore();
@@ -4387,7 +4742,7 @@ const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
-  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
   "#vsLogoPos", "#vsIntro", "#vsOutro",
   "#vsExportSize", "#vsExportQuality"
 ];
@@ -4981,8 +5336,11 @@ function bindEvents() {
         "Turn the following into infographic data. Reply with ONLY a JSON " +
         "object, no prose, in this exact shape: " +
         '{"title":"short title","subtitle":"short subtitle",' +
-        '"stats":[{"label":"short label","value":"short value like 8.4% or 1.2M"}]}. ' +
-        "Use 3 to 5 stats. Keep labels under 4 words. Source text:\n\n" + text;
+        '"stats":[{"label":"short label","value":"short value"}]}. ' +
+        "Use 3 to 5 stats. RULES: title max 5 words, subtitle max 5 words, " +
+        "each label max 3 words, each value max 2 words and ideally a " +
+        "number like 8.4% or 1.2M or $2.5B. Never put a sentence in a value. " +
+        "Source text:\n\n" + text;
       const reply = await vsAiChat(prompt);
       const data = vsExtractJson(reply);
       if (!data || !Array.isArray(data.stats) || !data.stats.length) {
@@ -5028,8 +5386,10 @@ function bindEvents() {
       const prompt =
         "Summarize the following news text for a TV-style lower-third banner. " +
         "Reply with ONLY a JSON object, no prose, in this exact shape: " +
-        '{"kicker":"1-2 word category in caps","headline":"one clear sentence under 15 words",' +
-        '"source":"short source or section name"}. News text:\n\n' + text;
+        '{"kicker":"1-2 word category in caps","headline":"headline",' +
+        '"source":"source"}. RULES: headline max 12 words, one line, no ' +
+        "trailing source name inside it; kicker max 2 words; source max 4 " +
+        "words. News text:\n\n" + text;
       const reply = await vsAiChat(prompt);
       const data = vsExtractJson(reply);
       if (!data || !data.headline) {
@@ -5089,8 +5449,8 @@ function bindEvents() {
   const vsLiveControls = [
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
-    "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
-    "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock",
+    "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
+    "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
