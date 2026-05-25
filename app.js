@@ -80,6 +80,8 @@ const i18n = {
     vExportLabel: "Export settings",
     vExportSizeLabel: "Download size",
     vExportQualityLabel: "Download quality",
+    vExportFormatLabel: "File format",
+    vExportFormatNote: "MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.",
     vExportInfo: "Higher size and quality look better but make a larger file.",
     vTextLabel: "Text layers",
     vHeadlineLabel: "Headline",
@@ -111,7 +113,23 @@ const i18n = {
     aboutRole: "Creator & Designer",
     aboutCreditText: "Designed and built AI Radar — concept, interface, and the video studio.",
     aboutProjectRole: "Free static project",
-    aboutProjectText: "Runs entirely client-side. Live data from the public GitHub API; no tracking, no accounts.",
+    aboutProjectText: "Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.",
+    aboutMissionTitle: "Why AI Radar exists",
+    aboutMissionText: "The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.",
+    aboutStatTools: "curated AI tools",
+    aboutStatFree: "free, no account",
+    aboutStatLive: "GitHub data",
+    aboutStatLiveValue: "Live",
+    aboutStatPrivacy: "tracking or ads",
+    aboutStatPrivacyValue: "Zero",
+    aboutFeat1Title: "Tool finder",
+    aboutFeat1Text: "Search and filter real AI tools by use case, price, and job — grouped and easy to scan.",
+    aboutFeat2Title: "Live trend chart",
+    aboutFeat2Text: "Popularity tracked from the public GitHub API, refreshed automatically — no guesswork.",
+    aboutFeat3Title: "Video studio",
+    aboutFeat3Text: "Build multi-scene videos with motion, infographics, and news banners — entirely in your browser.",
+    aboutFeat4Title: "Caption & prompt tools",
+    aboutFeat4Text: "Generate captions and refined prompts locally — fast, private, and free to use.",
     navRegister: "Register",
     startButton: "Start",
     heroEyebrow: "AI Radar — Live Intelligence",
@@ -306,6 +324,8 @@ const i18n = {
     vExportLabel: "تنظیمات خروجی",
     vExportSizeLabel: "اندازه دانلود",
     vExportQualityLabel: "کیفیت دانلود",
+    vExportFormatLabel: "قالب فایل",
+    vExportFormatNote: "MP4 پس از ضبط، داخل مرورگر تبدیل می‌شود. اولین خروجی MP4 یک مبدل یک‌بارمصرف (~۲۵ مگابایت) دانلود می‌کند و بیشتر طول می‌کشد؛ خروجی‌های بعدی سریع‌ترند.",
     vExportInfo: "اندازه و کیفیت بالاتر بهتر دیده می‌شود اما فایل بزرگ‌تری می‌سازد.",
     vTextLabel: "لایه‌های متن",
     vHeadlineLabel: "تیتر",
@@ -337,7 +357,23 @@ const i18n = {
     aboutRole: "سازنده و طراح",
     aboutCreditText: "طراحی و ساخت AI Radar — ایده، رابط کاربری و استودیوی ویدیو.",
     aboutProjectRole: "پروژه استاتیک رایگان",
-    aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود. داده زنده از API عمومی گیت‌هاب؛ بدون ردیابی، بدون حساب کاربری.",
+    aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود — سه فایل، بدون سرور. داده زنده از API عمومی گیت‌هاب. بدون ردیابی، بدون حساب، بدون تبلیغ.",
+    aboutMissionTitle: "چرا AI Radar وجود دارد",
+    aboutMissionText: "دنیای هوش مصنوعی سریع‌تر از آنی پیش می‌رود که کسی بتواند دنبال کند. AI Radar از میان شلوغی عبور می‌کند — جایی آرام و صادقانه برای یافتن ابزارهای واقعاً مفید، دیدن آنچه با داده زنده در حال رشد است، و ساختن کار واقعی بدون دیوار پرداخت، ثبت‌نام یا ردیابی.",
+    aboutStatTools: "ابزار هوش مصنوعی منتخب",
+    aboutStatFree: "رایگان، بدون حساب",
+    aboutStatLive: "داده گیت‌هاب",
+    aboutStatLiveValue: "زنده",
+    aboutStatPrivacy: "ردیابی یا تبلیغ",
+    aboutStatPrivacyValue: "صفر",
+    aboutFeat1Title: "یابنده ابزار",
+    aboutFeat1Text: "ابزارهای واقعی هوش مصنوعی را بر اساس کاربرد، قیمت و شغل جستجو و فیلتر کن — دسته‌بندی‌شده و خوانا.",
+    aboutFeat2Title: "نمودار روند زنده",
+    aboutFeat2Text: "محبوبیت از API عمومی گیت‌هاب دنبال می‌شود و خودکار به‌روز می‌شود — بدون حدس.",
+    aboutFeat3Title: "استودیو ویدیو",
+    aboutFeat3Text: "ویدیوهای چندصحنه‌ای با موشن، اینفوگرافیک و بنر خبری بساز — کاملاً در مرورگر.",
+    aboutFeat4Title: "ابزار کپشن و پرامپت",
+    aboutFeat4Text: "کپشن و پرامپت دقیق را به‌صورت محلی بساز — سریع، خصوصی و رایگان.",
     navRegister: "رجیستر",
     startButton: "شروع",
     heroEyebrow: "AI Radar — هوش زنده",
@@ -1141,7 +1177,21 @@ const toolRepos = {
   "Stability AI":    "Stability-AI/generative-models",
   "Krea AI":         "krea-ai/open-prompts",
   "Higgsfield":      "higgsfield-ai/higgsfield",
-  "Google Flow":     "google-deepmind/veo"
+  "Google Flow":     "google-deepmind/veo",
+  "Microsoft Copilot": "microsoft/copilot-studio-samples",
+  "Notebook LM":     "google-gemini/cookbook",
+  "Leonardo AI":     "leonardo-ai/leonardo-python-sdk",
+  "Ideogram":        "ideogram-ai/ideogram-python",
+  "HeyGen":          "HeyGen-Official/StreamingAvatarSDK",
+  "Synthesia":       "synthesia-io/docs",
+  "Descript":        "descriptinc/descript-sdk",
+  "Udio":            "udio-ai/udio-api",
+  "Windsurf":        "Exafunction/codeium",
+  "v0":              "vercel/ai",
+  "Lovable":         "lovable-dev/lovable",
+  "Fireflies":       "fireflies-ai/fireflies-api",
+  "Tome":            "tome-hq/tome",
+  "Jasper":          "jasperai/jasper-sdk"
 };
 
 tools.forEach((tool) => {
@@ -3571,7 +3621,8 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   const ac = accents[accentKey] || accents.red;
 
   // entrance progress while playing; fully shown when preview is paused
-  const slideRaw = vstudio.looping
+  // animate during BOTH live preview and export rendering
+  const slideRaw = (vstudio.looping || vstudio.rendering)
     ? Math.min(1, elapsed / 0.7)
     : 1;
   const slideEase = vsEasePro(slideRaw);
@@ -3827,7 +3878,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const pos = val("#vsInfoPos", "center");
   const motion = val("#vsInfoMotion", "fade");
   // reveal progress while playing; fully shown when preview is paused
-  const reveal = vstudio.looping
+  const reveal = (vstudio.looping || vstudio.rendering)
     ? Math.min(1, elapsed / 1.2)
     : 1;
   const ease = vsEasePro(reveal);
@@ -3960,7 +4011,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   }
 
   stats.forEach((s, i) => {
-    const rowReveal = vstudio.looping
+    const rowReveal = (vstudio.looping || vstudio.rendering)
       ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.18) / 0.7))
       : 1;
     const re = 1 - Math.pow(1 - rowReveal, 3);
@@ -4583,7 +4634,7 @@ function drawStudioFrame(elapsed) {
   // Staggered reveal (default): the backing box animates in FIRST, then
   // the text follows — so they don't arrive together. Two separate eased
   // progress values driven off one timeline.
-  const rawAll = vstudio.looping
+  const rawAll = (vstudio.looping || vstudio.rendering)
     ? Math.min(1, Math.max(0, (elapsed - introDur) / 1.5))
     : 1;
   // box uses the first 50% of the timeline; text uses the last 65%
@@ -5050,7 +5101,45 @@ function scrubTimeline(clientX) {
   updateTimeline(elapsed, duration);
 }
 
-// Export the composited result as a real .webm video file.
+// ── MP4 CONVERSION via ffmpeg.wasm ─────────────────────────
+// The browser's recorder only makes WebM; this converts it to MP4
+// entirely in the browser. The ffmpeg core is loaded once and reused.
+let _vsFfmpeg = null;
+async function vsGetFfmpeg() {
+  if (_vsFfmpeg) return _vsFfmpeg;
+  // the UMD builds expose FFmpegWASM + FFmpegUtil on window
+  const FF = window.FFmpegWASM || window.FFmpeg;
+  const UTIL = window.FFmpegUtil;
+  if (!FF || !FF.FFmpeg) {
+    throw new Error("MP4 converter library failed to load.");
+  }
+  const ffmpeg = new FF.FFmpeg();
+  const base = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+  await ffmpeg.load({
+    coreURL: await UTIL.toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await UTIL.toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm")
+  });
+  _vsFfmpeg = ffmpeg;
+  return ffmpeg;
+}
+async function vsConvertToMp4(webmBlob) {
+  const ffmpeg = await vsGetFfmpeg();
+  const UTIL = window.FFmpegUtil;
+  await ffmpeg.writeFile("in.webm", await UTIL.fetchFile(webmBlob));
+  // H.264 video + AAC audio — the universally compatible MP4 combo
+  await ffmpeg.exec([
+    "-i", "in.webm",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "192k",
+    "-movflags", "+faststart",
+    "out.mp4"
+  ]);
+  const data = await ffmpeg.readFile("out.mp4");
+  return new Blob([data.buffer], { type: "video/mp4" });
+}
+
+// Export the composited result as a real video file (MP4 or WebM).
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -5119,14 +5208,34 @@ async function exportStudioVideo() {
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
   const done = new Promise(resolve => {
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: "video/webm" });
-      const url = URL.createObjectURL(blob);
+    recorder.onstop = async () => {
+      const webmBlob = new Blob(chunks, { type: "video/webm" });
+      const format = vsVal("#vsExportFormat", "mp4");
+      let outBlob = webmBlob, ext = "webm";
+      if (format === "mp4") {
+        try {
+          vsStatus(state.lang === "fa"
+            ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
+            : "Converting to MP4… (first time takes longer)");
+          outBlob = await vsConvertToMp4(webmBlob);
+          ext = "mp4";
+        } catch (err) {
+          // conversion failed — fall back to the WebM we already have
+          vsStatus(state.lang === "fa"
+            ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد."
+            : "MP4 conversion failed — saved as WebM instead.");
+          outBlob = webmBlob; ext = "webm";
+        }
+      }
+      const url = URL.createObjectURL(outBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ai-radar-${vstudio.templateId}-video.webm`;
+      a.download = `ai-radar-${vstudio.templateId}-video.${ext}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (ext === "mp4") {
+        vsStatus(state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.");
+      }
       resolve();
     };
   });
