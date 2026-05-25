@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v30" />
+    <link rel="stylesheet" href="styles.css?v=v31" />
   </head>
   <body>
     <div class="ambient ambient-a"></div>
@@ -262,12 +262,14 @@
                   </label>
                 </div>
                 <div id="vsSlideEditor" class="vs-slide-editor vtab-hidden">
+                  <p id="vsActiveSlideTag" class="vs-active-tag"></p>
                   <label><span data-i18n="vSlideHeadline">Slide headline</span>
                     <input id="vsSlideHeadline" type="text" placeholder="This slide's headline" />
                   </label>
                   <label><span data-i18n="vSlideDuration">Slide duration (s)</span>
                     <input id="vsSlideDuration" type="number" min="1" max="30" value="4" />
                   </label>
+                  <p class="vstudio-note" data-i18n="vSlideSettingsNote">The Motion, Text, Infographic and News tabs all edit the slide selected above. Each slide keeps its own settings — switch slides to edit another.</p>
                 </div>
               </div>
 
@@ -661,6 +663,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=v30"></script>
+    <script src="app.js?v=v31"></script>
   </body>
 </html>
