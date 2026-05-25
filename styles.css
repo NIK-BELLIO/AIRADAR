@@ -105,7 +105,7 @@ textarea {
   z-index: 20;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: start;
   gap: 18px;
   margin: 18px 0 54px;
   padding: 12px;
@@ -114,6 +114,10 @@ textarea {
   background: var(--surface);
   backdrop-filter: blur(24px);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
+}
+.topbar .brand,
+.topbar .header-actions {
+  padding-top: 6px;
 }
 
 .brand {
@@ -151,7 +155,6 @@ textarea {
   border-radius: 8px;
   background: var(--surface-2);
 }
-
 .nav a {
   padding: 10px 13px;
   border-radius: 8px;
@@ -159,10 +162,90 @@ textarea {
   font-size: 14px;
   white-space: nowrap;
 }
-
 .nav a:hover {
   background: rgba(255, 255, 255, 0.09);
   color: var(--text);
+}
+
+/* ── Collapsible grouped sidebar navigation ────────────────── */
+.sidebar-nav {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px;
+  transition: max-width 0.22s ease;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+.nav-group + .nav-group {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 8px;
+}
+.nav-group-title {
+  margin: 2px 0 4px;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+}
+.sidebar-nav a.active {
+  background: rgba(216,183,106,0.14);
+  color: var(--gold);
+}
+.nav-ic {
+  flex: 0 0 auto;
+  width: 22px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--gold);
+}
+.nav-tx { white-space: nowrap; }
+.nav-collapse {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 2;
+}
+.nav-collapse:hover { color: var(--gold); }
+/* collapsed state — icon-only rail */
+.sidebar-nav.collapsed .nav-tx,
+.sidebar-nav.collapsed .nav-group-title {
+  display: none;
+}
+.sidebar-nav.collapsed a {
+  justify-content: center;
+  padding: 9px 6px;
+}
+.sidebar-nav.collapsed .nav-ic { width: auto; }
+.sidebar-nav.collapsed .nav-collapse-icon {
+  display: inline-block;
+  transform: rotate(180deg);
 }
 
 .header-actions {
@@ -1630,6 +1713,28 @@ body[dir="rtl"] .chart-overlay {
     order: 3;
     overflow-x: auto;
   }
+  /* on mobile the grouped sidebar lays out horizontally so it
+     doesn't eat a tall vertical strip; collapse button hidden */
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .sidebar-nav .nav-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 2px 0;
+  }
+  .sidebar-nav .nav-group + .nav-group {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 2px;
+  }
+  .nav-group-title { display: none; }
+  .nav-collapse { display: none; }
+  .topbar .brand,
+  .topbar .header-actions { padding-top: 0; }
 
   .hero,
   .studio-layout,
