@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v60" />
+    <link rel="stylesheet" href="styles.css?v=v61" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -22,16 +22,21 @@
 
     <!-- HEADER with motion ticker -->
     <div class="shell">
-      <header class="topbar">
-        <a class="brand" href="#top" aria-label="AI Radar">
-          <img class="brand-logo" src="logo.svg" alt="" />
-          <span>AI Radar</span>
-        </a>
-        <nav class="nav sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <!-- ── FIXED LEFT SIDEBAR ──────────────────────────── -->
+      <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="#top" aria-label="AI Radar">
+            <img class="brand-logo" src="logo.svg" alt="" />
+            <span class="brand-name">AI Radar</span>
+          </a>
           <button id="navCollapseBtn" class="nav-collapse" type="button"
             aria-label="Collapse menu" title="Collapse menu">
             <span class="nav-collapse-icon">‹</span>
           </button>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
             <a href="#tools" data-i18n="navTools"><span class="nav-ic">◎</span><span class="nav-tx">Tools</span></a>
@@ -45,26 +50,32 @@
             <a href="#intelligence" data-i18n="navIntelligence"><span class="nav-ic">⚙</span><span class="nav-tx">Prompt lab</span></a>
           </div>
         </nav>
-        <div class="header-actions">
+
+        <div class="sidebar-footer">
+          <a class="button primary sidebar-cta" href="#tools" data-i18n="startButton">Start</a>
           <button id="themeToggle" class="theme-toggle" type="button" aria-label="Theme" title="Switch theme">
             <span class="theme-toggle-dot"></span>
-            <span id="themeToggleLabel">Dark</span>
+            <span id="themeToggleLabel" class="nav-tx">Dark</span>
           </button>
           <label class="sr-only" for="languageSelect">Language</label>
           <select id="languageSelect" class="language-select" aria-label="Language">
             <option value="en">English</option>
             <option value="fa">فارسی</option>
           </select>
-          <a class="button primary" href="#tools" data-i18n="startButton">Start</a>
         </div>
-      </header>
+      </aside>
 
-      <!-- AI MODELS TICKER -->
-      <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-        <div class="models-ticker" id="modelsTicker"></div>
-      </div>
+      <!-- ── CONTENT AREA ────────────────────────────────── -->
+      <div class="content-area">
+        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
+          aria-label="Open menu" title="Menu">☰</button>
 
-      <main id="top">
+        <!-- AI MODELS TICKER -->
+        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+          <div class="models-ticker" id="modelsTicker"></div>
+        </div>
+
+        <main id="top">
 
         <!-- HERO -->
         <section class="hero luxury-hero">
@@ -821,8 +832,9 @@
         </section>
 
       </main>
+      </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v60"></script>
+    <script src="app.js?v=v61"></script>
   </body>
 </html>
