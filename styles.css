@@ -2782,3 +2782,20 @@ body.theme-light pre {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* Consolidated per-slide setting sections inside the Slides panel */
+.vs-sec-head {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 2px solid var(--gold);
+}
+.vs-slide-section {
+  margin: 10px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.vs-slide-section .vstudio-label {
+  margin-top: 0;
+}
