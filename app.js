@@ -32,6 +32,16 @@ const i18n = {
     vMotionNote: "Every change updates the live preview instantly — no need to press Preview.",
     vTabText: "Text",
     vTabLogo: "Logo & cards",
+    vTabNews: "News",
+    vNewsLabel: "News banner",
+    vNewsHint: "Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.",
+    vNewsOnLabel: "Show news banner",
+    vNewsKickerLabel: "Kicker / category",
+    vNewsHeadlineLabel: "News headline",
+    vNewsSourceLabel: "Source / reporter",
+    vNewsStyleLabel: "Banner style",
+    vNewsAccentLabel: "Banner accent",
+    vNewsClockLabel: "Show live clock",
     vTemplateLabel: "Template",
     vUploadLabel: "Media",
     vUploadHint: "Upload a video or image (mp4, webm, mov, jpg, png)",
@@ -225,6 +235,16 @@ const i18n = {
     vMotionNote: "هر تغییری فوراً پیش‌نمایش زنده را به‌روز می‌کند — نیازی به زدن پیش‌نمایش نیست.",
     vTabText: "متن",
     vTabLogo: "لوگو و کارت",
+    vTabNews: "اخبار",
+    vNewsLabel: "بنر خبری",
+    vNewsHint: "ابتدا فیلم خودت را اضافه کن، سپس جزئیات خبر را پایین بنویس — یک بنر شبیه پخش تلویزیونی روی ویدیو کشیده می‌شود.",
+    vNewsOnLabel: "نمایش بنر خبری",
+    vNewsKickerLabel: "تیتر کوتاه / دسته",
+    vNewsHeadlineLabel: "تیتر خبر",
+    vNewsSourceLabel: "منبع / خبرنگار",
+    vNewsStyleLabel: "سبک بنر",
+    vNewsAccentLabel: "رنگ بنر",
+    vNewsClockLabel: "نمایش ساعت زنده",
     vTemplateLabel: "قالب",
     vUploadLabel: "رسانه",
     vUploadHint: "ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
@@ -2687,11 +2707,15 @@ function vsCanvasSize(targetLongEdge) {
 // Load a media file and add it as a new slide.
 function addStudioSlide(file) {
   if (!file) return;
+  // save the slide currently being edited before creating a new one
+  vsSaveActiveSlide();
   const url = URL.createObjectURL(file);
   const isVideo = file.type.startsWith("video/");
   const slide = {
     url, isVideo, mediaEl: null, ready: false,
-    headline: "", duration: 4
+    headline: "", duration: 4,
+    // a fresh slide inherits the current settings as its starting point
+    settings: vsCaptureSettings()
   };
   if (isVideo) {
     const v = document.createElement("video");
@@ -2713,8 +2737,8 @@ function addStudioSlide(file) {
   vstudio.slides.push(slide);
   renderSlideList();
   vsStatus(state.lang === "fa"
-    ? `اسلاید ${vstudio.slides.length} اضافه شد.`
-    : `Slide ${vstudio.slides.length} added.`);
+    ? `اسلاید ${vstudio.slides.length} اضافه شد — تنظیمات این اسلاید مستقل است.`
+    : `Slide ${vstudio.slides.length} added — it has its own settings.`);
 }
 
 // Remove a slide by index.
@@ -2732,6 +2756,8 @@ function removeStudioSlide(i) {
 
 // Select a slide for editing.
 function selectSlide(i) {
+  // save the slide we're leaving, then switch
+  if (vstudio.activeSlide !== i) vsSaveActiveSlide();
   vstudio.activeSlide = i;
   const s = vstudio.slides[i];
   const ed = $("#vsSlideEditor");
@@ -2740,7 +2766,21 @@ function selectSlide(i) {
   const hl = $("#vsSlideHeadline"), du = $("#vsSlideDuration");
   if (hl) hl.value = s.headline || "";
   if (du) du.value = s.duration || 4;
+  // load this slide's own settings onto the controls
+  if (s.settings) {
+    vsApplySettings(s.settings);
+    syncStudioControls();          // refresh dependent UI (template chips etc.)
+  }
   renderSlideList();
+  if (!vstudio.looping && vstudio.mediaEl || vstudio.slides.length) {
+    drawStudioFrame(vstudio.position || 0);
+  }
+}
+
+// Re-sync any UI that mirrors control state (safe no-op if not needed).
+function syncStudioControls() {
+  // currently the controls are plain inputs/selects — nothing extra to sync,
+  // but this hook keeps slide-switching future-proof.
 }
 
 // Render the slide list with thumbnails and controls.
@@ -2905,11 +2945,18 @@ function setupTextDrag() {
     // clamp so text stays on screen
     vstudio.textDX = Math.max(-0.42, Math.min(0.42, vstudio.textDX));
     vstudio.textDY = Math.max(-0.42, Math.min(0.42, vstudio.textDY));
-    // redraw immediately when the loop isn't running
-    if (!vstudio.looping && vstudio.mediaEl) drawStudioFrame(0);
-    e.preventDefault();
+    // redraw at the CURRENT position (not 0) so the frame never jumps
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+    if (e.cancelable) e.preventDefault();
   };
-  const up = () => { dragging = false; canvas.style.cursor = "default"; };
+  const up = () => {
+    if (dragging && vstudio.slides.length) vsSaveActiveSlide();
+    dragging = false;
+    canvas.style.cursor = "default";
+  };
 
   canvas.addEventListener("mousedown", down);
   canvas.addEventListener("touchstart", down, { passive: false });
@@ -2951,19 +2998,99 @@ function vsFilterString() {
 
 // Parse the stats textarea into [{label, value, num}] entries.
 // Read infographic data from the JSON textarea.
+// Controls whose values are saved PER SLIDE (each slide remembers its own).
+// Aspect/duration-of-video and export settings stay global.
+const VS_SLIDE_CONTROLS = [
+  "#vsFilter", "#vsSpeed", "#vsTransition",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+  "#vsMotion", "#vsTextAnim", "#vsOverlay",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
+  "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock",
+  "#vsIntro", "#vsOutro"
+];
+
+// Read the current control values into a settings object.
+function vsCaptureSettings() {
+  const out = {};
+  VS_SLIDE_CONTROLS.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    out[sel] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  // text drag offsets travel with the slide too
+  out._textDX = vstudio.textDX;
+  out._textDY = vstudio.textDY;
+  return out;
+}
+
+// Apply a saved settings object back onto the controls.
+function vsApplySettings(s) {
+  if (!s) return;
+  VS_SLIDE_CONTROLS.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el || !(sel in s)) return;
+    if (el.type === "checkbox") el.checked = !!s[sel];
+    else el.value = s[sel];
+  });
+  vstudio.textDX = s._textDX || 0;
+  vstudio.textDY = s._textDY || 0;
+}
+
+// Save the current control state into the active slide.
+function vsSaveActiveSlide() {
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (s) s.settings = vsCaptureSettings();
+}
+
 function vsInfoData() {
   const raw = (vsVal("#vsInfoJson", "") || "").trim();
-  if (!raw) return null;
+  const status = document.querySelector("#vsInfoJsonStatus");
+  if (!raw) {
+    if (status) status.textContent = "";
+    return null;
+  }
+  let d;
   try {
-    const d = JSON.parse(raw);
-    const stats = (d.stats || []).slice(0, 6).map(s => ({
+    d = JSON.parse(raw);
+  } catch (err) {
+    // show a precise, friendly parse error instead of vanishing silently
+    if (status) {
+      status.className = "vstudio-note vs-err";
+      status.textContent = state.lang === "fa"
+        ? "JSON معتبر نیست: " + err.message
+        : "Invalid JSON: " + err.message;
+    }
+    return null;
+  }
+  if (typeof d !== "object" || d === null || Array.isArray(d)) {
+    if (status) {
+      status.className = "vstudio-note vs-err";
+      status.textContent = state.lang === "fa"
+        ? "JSON باید یک شیء با title و stats باشد."
+        : "JSON must be an object with title and stats.";
+    }
+    return null;
+  }
+  const stats = (Array.isArray(d.stats) ? d.stats : []).slice(0, 6).map(s => {
+    s = s || {};
+    const value = s.value != null ? String(s.value) : "";
+    // accept negative numbers and hyphens safely: e.g. "-12%", "−3"
+    const cleaned = value.replace(/[^0-9.\-]/g, "");
+    const parsed = parseFloat(cleaned);
+    return {
       label: String(s.label || ""),
-      value: String(s.value != null ? s.value : ""),
+      value: value,
       num: typeof s.num === "number" ? s.num
-           : parseFloat(String(s.value || "").replace(/[^0-9.]/g, "")) || 0
-    })).filter(s => s.label);
-    return { title: d.title || "", subtitle: d.subtitle || "", stats };
-  } catch { return null; }
+           : (isNaN(parsed) ? 0 : parsed)
+    };
+  }).filter(s => s.label);
+  if (status) {
+    status.className = "vstudio-note vs-ok";
+    status.textContent = state.lang === "fa"
+      ? `معتبر — ${stats.length} آمار`
+      : `Valid — ${stats.length} stat${stats.length === 1 ? "" : "s"}`;
+  }
+  return { title: d.title || "", subtitle: d.subtitle || "", stats };
 }
 
 // Build professional infographic JSON from a short topic prompt.
@@ -3018,6 +3145,162 @@ function vsHexA(hex, a) {
   const g = parseInt(n.slice(2, 4), 16);
   const b = parseInt(n.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+// Draw a broadcast-style news banner over the footage.
+function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
+  const val = dsVal || vsVal;   // per-slide resolver, or global fallback
+  const onVal = val("#vsNewsOn", false);
+  const on = onVal === true || onVal === "true" ||
+             ($("#vsNewsOn") && $("#vsNewsOn").checked && !dsVal);
+  // when reading from a slide's saved settings, onVal is a real boolean
+  const isOn = (typeof onVal === "boolean") ? onVal
+             : ($("#vsNewsOn") && $("#vsNewsOn").checked);
+  if (!isOn) return;
+  const kicker = String(val("#vsNewsKicker", "") || "").trim();
+  const headline = String(val("#vsNewsHeadline", "") || "").trim();
+  const source = String(val("#vsNewsSource", "") || "").trim();
+  if (!kicker && !headline && !source) return;
+
+  const style = val("#vsNewsStyle", "lowerthird");
+  const accentKey = val("#vsNewsAccent", "red");
+  const accents = {
+    red:  { bar: "#c0202a", text: "#ffffff" },
+    blue: { bar: "#15418c", text: "#ffffff" },
+    gold: { bar: "#d8b76a", text: "#1a1408" },
+    mono: { bar: "#1a1a1a", text: "#ffffff" }
+  };
+  const ac = accents[accentKey] || accents.red;
+
+  // slide-in animation
+  const slide = 1 - Math.pow(1 - Math.min(1, elapsed / 0.7), 3);
+
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+
+  if (style === "ticker") {
+    // thin scrolling ticker strip at the very bottom
+    const barH = H * 0.072;
+    const y = H - barH * slide;
+    ctx.fillStyle = "rgba(8,8,10,0.92)";
+    ctx.fillRect(0, y, W, barH);
+    ctx.fillStyle = ac.bar;
+    const tagW = W * 0.13;
+    ctx.fillRect(0, y, tagW, barH);
+    ctx.fillStyle = ac.text;
+    ctx.font = `700 ${Math.round(H * 0.026)}px Inter, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(kicker || "LIVE", tagW / 2, y + barH * 0.62);
+    // scrolling headline
+    ctx.fillStyle = "#fff";
+    ctx.font = `500 ${Math.round(H * 0.03)}px Inter, sans-serif`;
+    ctx.textAlign = "left";
+    const txt = headline + (source ? "    •    " + source : "");
+    const tw = ctx.measureText(txt).width || 1;
+    const scrollX = W - ((elapsed * W * 0.12) % (tw + W));
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(tagW, y, W - tagW, barH);
+    ctx.clip();
+    ctx.fillText(txt, scrollX, y + barH * 0.62);
+    ctx.fillText(txt, scrollX + tw + W * 0.5, y + barH * 0.62);
+    ctx.restore();
+  } else if (style === "fullbar") {
+    // a full-width lower bar with kicker tab + headline + source row
+    const barH = H * 0.2;
+    const y = H - barH * slide;
+    ctx.fillStyle = "rgba(10,10,12,0.9)";
+    ctx.fillRect(0, y, W, barH);
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(0, y, W, H * 0.01);
+    if (kicker) {
+      ctx.fillStyle = ac.bar;
+      const kw = Math.min(W * 0.4, ctx.measureText(kicker).width + W * 0.06);
+      ctx.fillRect(W * 0.06, y + barH * 0.16, kw, H * 0.05);
+      ctx.fillStyle = ac.text;
+      ctx.font = `700 ${Math.round(H * 0.028)}px Inter, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillText(kicker.toUpperCase(), W * 0.06 + W * 0.03, y + barH * 0.16 + H * 0.035);
+    }
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${Math.round(H * 0.05)}px Prata, serif`;
+    ctx.textAlign = "left";
+    wrapNewsText(ctx, headline, W * 0.06, y + barH * 0.56, W * 0.88, H * 0.058, 2);
+    if (source) {
+      ctx.fillStyle = "rgba(210,210,215,0.85)";
+      ctx.font = `400 ${Math.round(H * 0.024)}px Inter, sans-serif`;
+      ctx.fillText(source, W * 0.06, y + barH * 0.9);
+    }
+  } else {
+    // lower third — kicker tab above a headline plate
+    const plateH = H * 0.12;
+    const plateY = H * 0.7;
+    const x = -W * (1 - slide) * 0.6 + W * 0.06;
+    if (kicker) {
+      ctx.fillStyle = ac.bar;
+      ctx.font = `700 ${Math.round(H * 0.03)}px Inter, sans-serif`;
+      const kw = ctx.measureText(kicker.toUpperCase()).width + W * 0.05;
+      ctx.fillRect(x, plateY - H * 0.05, kw, H * 0.05);
+      ctx.fillStyle = ac.text;
+      ctx.textAlign = "left";
+      ctx.fillText(kicker.toUpperCase(), x + W * 0.025, plateY - H * 0.015);
+    }
+    // headline plate
+    ctx.fillStyle = "rgba(10,10,12,0.9)";
+    ctx.fillRect(x, plateY, W * 0.7, plateH);
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(x, plateY, H * 0.008, plateH);
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${Math.round(H * 0.042)}px Prata, serif`;
+    ctx.textAlign = "left";
+    wrapNewsText(ctx, headline, x + W * 0.03, plateY + plateH * 0.42,
+                 W * 0.63, H * 0.05, 2);
+    if (source) {
+      ctx.fillStyle = "rgba(210,210,215,0.8)";
+      ctx.font = `400 ${Math.round(H * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, x + W * 0.03, plateY + plateH * 0.86);
+    }
+  }
+
+  // optional live clock, top-right
+  const clockOn = val("#vsNewsClock", false);
+  const showClock = (typeof clockOn === "boolean") ? clockOn
+                  : ($("#vsNewsClock") && $("#vsNewsClock").checked);
+  if (showClock) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const clock = `${hh}:${mm}`;
+    ctx.fillStyle = ac.bar;
+    const cw = W * 0.1, ch = H * 0.055;
+    ctx.fillRect(W - cw - W * 0.04, H * 0.05, cw, ch);
+    ctx.fillStyle = ac.text;
+    ctx.font = `700 ${Math.round(H * 0.03)}px Inter, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(clock, W - cw / 2 - W * 0.04, H * 0.05 + ch * 0.68);
+  }
+  ctx.restore();
+}
+
+// Word-wrap helper for news headlines (limited number of lines).
+function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
+  if (!text) return;
+  const words = text.split(/\s+/);
+  let line = "", lines = [];
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line); line = w;
+      if (lines.length === maxLines - 1) break;
+    } else { line = test; }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  // if text overflowed, add an ellipsis to the last line
+  if (lines.length === maxLines) {
+    const used = lines.join(" ").split(/\s+/).length;
+    if (used < words.length) lines[maxLines - 1] += "…";
+  }
+  lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
 }
 
 function drawInfographic(ctx, W, H, elapsed, tpl) {
@@ -3453,15 +3736,26 @@ function drawStudioFrame(elapsed) {
   // When slides exist, pick the slide active at this time.
   let media = vstudio.mediaEl;
   let slideHeadline = null;
+  let dsSettings = null;          // settings of the slide being displayed
+  let dsLocal = 0, dsDur = 0;     // local time within that slide
   if (vstudio.slides.length) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
+    dsLocal = at.local; dsDur = at.dur;
     if (slide && slide.ready) {
       media = slide.mediaEl;
       slideHeadline = slide.headline || "";
+      // the active slide being edited reads LIVE controls; others read saved
+      dsSettings = (at.index === vstudio.activeSlide) ? null : slide.settings;
     }
   }
   if (!media) return;
+
+  // resolver: read a per-slide control value (saved settings or live control)
+  const dsVal = (sel, fallback) => {
+    if (dsSettings && sel in dsSettings) return dsSettings[sel];
+    return vsVal(sel, fallback);
+  };
 
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = true;
@@ -3473,8 +3767,8 @@ function drawStudioFrame(elapsed) {
     : Math.max(2, Number(vsVal("#vsDuration", 6)));
   const progress = Math.min(1, elapsed / duration);
 
-  const introText = (vsVal("#vsIntro", "") || "").trim();
-  const outroText = (vsVal("#vsOutro", "") || "").trim();
+  const introText = (dsVal("#vsIntro", "") || "").trim();
+  const outroText = (dsVal("#vsOutro", "") || "").trim();
   const introDur = introText ? 1.1 : 0;
   const outroDur = outroText ? 1.1 : 0;
 
@@ -3500,7 +3794,7 @@ function drawStudioFrame(elapsed) {
   const mh = media.videoHeight || media.naturalHeight || H;
 
   // transition in
-  const trans = vsVal("#vsTransition", "fade");
+  const trans = dsVal("#vsTransition", "fade");
   const local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
   const lc = Math.max(0, Math.min(1, local));
   const intro = Math.min(1, (elapsed - introDur) / 0.9);
@@ -3509,7 +3803,7 @@ function drawStudioFrame(elapsed) {
   let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
 
   // ----- camera motion preset -----
-  const motion = vsVal("#vsMotion", "kenburns-in");
+  const motion = dsVal("#vsMotion", "kenburns-in");
   const TAU = Math.PI * 2;
   switch (motion) {
     case "none":          zoom = 1; break;
@@ -3588,20 +3882,23 @@ function drawStudioFrame(elapsed) {
   }
 
   // ----- overlay element (light leak / bokeh / particles) -----
-  drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+  drawStudioOverlay(ctx, W, H, elapsed, dsVal("#vsOverlay", "none"));
 
   // ----- infographic overlay -----
   drawInfographic(ctx, W, H, elapsed, tpl);
+
+  // ----- news banner overlay -----
+  drawNewsBanner(ctx, W, H, elapsed, dsVal);
 
   // ----- text layers (with a readable backing plate) -----
   const headline = slideHeadline !== null
     ? slideHeadline
     : (vsVal("#vsHeadline", "") || "").trim();
-  const sub = (vsVal("#vsSub", "") || "").trim();
-  const cta = (vsVal("#vsCta", "") || "").trim();
-  const pos = vsVal("#vsTextPos", "center");
-  const sizeMul = Number(vsVal("#vsTextSize", 1));
-  const textAnim = vsVal("#vsTextAnim", "fade-up");
+  const sub = (dsVal("#vsSub", "") || "").trim();
+  const cta = (dsVal("#vsCta", "") || "").trim();
+  const pos = dsVal("#vsTextPos", "center");
+  const sizeMul = Number(dsVal("#vsTextSize", 1));
+  const textAnim = dsVal("#vsTextAnim", "fade-up");
   const rawT = Math.min(1, Math.max(0, (elapsed - introDur) / 1.2));
   const tEase = 1 - Math.pow(1 - rawT, 3);
 
@@ -3757,6 +4054,34 @@ function drawStudioFrame(elapsed) {
   // progress bar
   ctx.fillStyle = tpl.accent;
   ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
+
+  // ----- slide-to-slide transition + final slide-out -----
+  if (vstudio.slides.length) {
+    const fadeT = 0.45;   // seconds of cross-fade at each boundary
+    let cover = 0;        // 0 = clear, 1 = fully black
+    // fade IN at the start of a slide
+    if (dsLocal < fadeT) {
+      cover = Math.max(cover, 1 - dsLocal / fadeT);
+    }
+    // fade OUT at the end of a slide
+    if (dsLocal > dsDur - fadeT) {
+      cover = Math.max(cover, 1 - (dsDur - dsLocal) / fadeT);
+    }
+    // stronger slide-out fade on the very last slide (logo / end card)
+    const at = slideAtTime(elapsed);
+    const isLast = at.index === vstudio.slides.length - 1;
+    if (isLast && dsLocal > dsDur - 0.8) {
+      cover = Math.max(cover, 1 - (dsDur - dsLocal) / 0.8);
+    }
+    if (cover > 0.001) {
+      // a soft blur-ish veil: black wash + slight desaturating overlay
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, cover);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
 }
 
 // Draw a centred intro/outro card.
@@ -4301,23 +4626,28 @@ function bindEvents() {
     "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
     "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos",
+    "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsOutro", "#vsLogoPos"
   ];
   const vsRefresh = () => {
     refreshTimelineClips();
-    if (!vstudio.mediaEl || vstudio.rendering) return;
+    // when slides exist, persist the edit into the active slide
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+    if (!hasContent || vstudio.rendering) return;
     // if the live loop is running it already redraws every frame;
     // only draw a static frame when the loop is stopped.
     if (!vstudio.looping) {
-      drawStudioFrame(0);
-      updateTimeline(0, Math.max(2, Number(vsVal("#vsDuration", 6))));
+      drawStudioFrame(vstudio.position || 0);
+      updateTimeline(vstudio.position || 0, studioDuration());
     }
   };
   const vsRefreshAspect = () => {
-    if (!vstudio.mediaEl || vstudio.rendering) return;
+    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+    if (!hasContent || vstudio.rendering) return;
     buildPreviewCanvas();
-    if (!vstudio.looping) drawStudioFrame(0);
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   };
   vsLiveControls.forEach(sel => {
     on(sel, "input", vsRefresh);
