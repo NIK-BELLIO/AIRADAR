@@ -67,7 +67,8 @@ const i18n = {
     vLogoHint: "Optional: logo (transparent PNG recommended)",
     vFormatLabel: "Format & export",
     vAspectLabel: "Aspect ratio",
-    vDurationLabel: "Duration (seconds, up to 600)",
+    vDurationLabel: "Duration (seconds)",
+    vDurationNote: "Set any length you like. The clip is time-stretched to fill it — longer than the clip plays in slow motion, shorter speeds it up. It always runs once, start to finish, never freezing or repeating.",
     vFilterLabel: "Filter / grade",
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
@@ -288,7 +289,8 @@ const i18n = {
     vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
     vFormatLabel: "فرمت و خروجی",
     vAspectLabel: "نسبت تصویر",
-    vDurationLabel: "مدت (ثانیه، تا ۶۰۰)",
+    vDurationLabel: "مدت (ثانیه)",
+    vDurationNote: "هر طولی بخواهی تنظیم کن. کلیپ کش می‌آید تا آن را پر کند — بلندتر از کلیپ یعنی پخش آهسته، کوتاه‌تر یعنی سریع‌تر. همیشه یک‌بار از ابتدا تا انتها اجرا می‌شود، بدون توقف یا تکرار.",
     vFilterLabel: "فیلتر / گرید",
     vSpeedLabel: "سرعت پخش",
     vTransitionLabel: "ترانزیشن ورودی",
@@ -2759,9 +2761,14 @@ function addStudioSlide(file) {
   };
   if (isVideo) {
     const v = document.createElement("video");
-    v.src = url; v.muted = true; v.playsInline = true; v.loop = true;
+    v.src = url; v.muted = true; v.playsInline = true; v.loop = false;
     v.addEventListener("loadedmetadata", () => {
-      slide.mediaEl = v; slide.ready = true; renderSlideList();
+      slide.mediaEl = v; slide.ready = true;
+      // the scene lasts exactly as long as its clip — no looping
+      if (isFinite(v.duration) && v.duration > 0) {
+        slide.duration = Math.min(600, Math.max(1, Math.round(v.duration)));
+      }
+      renderSlideList();
       if (vstudio.slides.length === 1) selectSlide(0);
     });
     v.addEventListener("error", () => vsStatus("Could not load that video."));
@@ -2888,12 +2895,21 @@ function loadStudioMedia(file) {
     video.src = vstudio.mediaUrl;
     video.muted = true;
     video.playsInline = true;
-    video.loop = true;   // loop so it fills the chosen duration without freezing
+    video.loop = false;   // play once, beginning to end — no repeat
     video.addEventListener("loadedmetadata", () => {
       vstudio.mediaEl = video;
+      // the video length IS the project length — set the duration field
+      // to the clip's real duration so it plays fully once, no looping.
+      const dur = video.duration;
+      if (isFinite(dur) && dur > 0) {
+        const field = $("#vsDuration");
+        if (field) {
+          field.value = Math.min(600, Math.max(2, Math.round(dur)));
+        }
+      }
       buildPreviewCanvas();
       refreshTimelineClips();
-      previewStudioVideo(true);   // start the live looping preview
+      previewStudioVideo(true);   // start the live preview
       vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد — پیش‌نمایش زنده فعال است." : "Video loaded — live preview is running.");
     });
     video.addEventListener("error", () => {
@@ -3868,6 +3884,28 @@ function drawStudioFrame(elapsed) {
     (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
   if (!media && !standaloneOverlay) return;
 
+  // ── TIME-STRETCH (After Effects style time-remap) ──────────
+  // Drive the video's currentTime directly so the whole clip is mapped
+  // smoothly across the whole duration — slow motion if the duration is
+  // longer than the clip, sped up if shorter. Never freezes, never repeats.
+  if (media && media.tagName === "VIDEO" &&
+      isFinite(media.duration) && media.duration > 0) {
+    let clipT;
+    if (vstudio.slides.length) {
+      // within a slide: map local time across this slide's set duration
+      clipT = dsDur > 0 ? (dsLocal / dsDur) * media.duration : 0;
+    } else {
+      // single video: map elapsed across the whole project duration
+      const total = Math.max(0.01, studioDuration());
+      clipT = (Math.min(elapsed, total) / total) * media.duration;
+    }
+    clipT = Math.max(0, Math.min(media.duration - 0.001, clipT));
+    // only seek when the gap is real — avoids stutter from tiny diffs
+    if (Math.abs(media.currentTime - clipT) > 0.03) {
+      try { media.currentTime = clipT; } catch {}
+    }
+  }
+
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -4272,9 +4310,9 @@ function previewStudioVideo(fromStart) {
   if (startElapsed >= duration0) startElapsed = 0;
 
   if (vstudio.isVideo && media) {
-    try { media.currentTime = startElapsed % (media.duration || duration0); } catch {}
-    media.playbackRate = vsPlaybackRate();
-    media.play().catch(() => {});
+    // do NOT call play() — drawStudioFrame drives currentTime directly
+    // (time-stretch). Just make sure it is paused so it doesn't fight us.
+    try { media.pause(); } catch {}
   }
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
@@ -4289,19 +4327,19 @@ function previewStudioVideo(fromStart) {
     const duration = studioDuration();
     let elapsed = (performance.now() - vstudio.startTime) / 1000;
     if (elapsed >= duration) {
-      // loop cleanly back to the start
+      // loop the PREVIEW cleanly back to the start (preview only —
+      // the exported file still plays through exactly once)
       elapsed = 0;
       vstudio.startTime = performance.now();
-      if (vstudio.isVideo) { try { media.currentTime = 0; media.play().catch(()=>{}); } catch {} }
       if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
     }
-    // keep the active slide's video playing (others paused)
+    // all slide videos stay paused — drawStudioFrame seeks the active
+    // one directly (time-stretch), so playback can't fight the seeking.
     if (vstudio.slides.length) {
-      const at = slideAtTime(elapsed);
-      vstudio.slides.forEach((s, i) => {
-        if (!s.ready || !s.isVideo || !s.mediaEl) return;
-        if (i === at.index) { if (s.mediaEl.paused) s.mediaEl.play().catch(()=>{}); }
-        else if (!s.mediaEl.paused) s.mediaEl.pause();
+      vstudio.slides.forEach(s => {
+        if (s.ready && s.isVideo && s.mediaEl && !s.mediaEl.paused) {
+          try { s.mediaEl.pause(); } catch {}
+        }
       });
     }
     vstudio.position = elapsed;          // remember where we are
@@ -4555,19 +4593,18 @@ async function exportStudioVideo() {
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
   if (vstudio.isVideo && media) {
-    media.currentTime = 0;
-    media.playbackRate = vsPlaybackRate();
-    await media.play().catch(() => {});
+    // keep paused — drawStudioFrame drives currentTime (time-stretch)
+    try { media.pause(); media.currentTime = 0; } catch {}
   }
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = 0; await vstudio.musicEl.play().catch(() => {}); } catch {}
   }
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
-  // start all slide videos so they have motion during render
+  // slide videos stay paused too — they are seeked frame-by-frame
   vstudio.slides.forEach(s => {
     if (s.ready && s.isVideo && s.mediaEl) {
-      try { s.mediaEl.currentTime = 0; s.mediaEl.play().catch(()=>{}); } catch {}
+      try { s.mediaEl.pause(); s.mediaEl.currentTime = 0; } catch {}
     }
   });
 
@@ -4865,19 +4902,63 @@ function bindEvents() {
         ? "سرویس هوش مصنوعی در دسترس نیست. اتصال اینترنت را بررسی کن."
         : "AI service unavailable. Check your internet connection.");
     }
-    const res = await puter.ai.chat(prompt);
-    // puter may return a string or an object with message/content
+    let res;
+    try {
+      // try with an explicit model first
+      res = await puter.ai.chat(prompt, { model: "gpt-4o-mini" });
+    } catch (e1) {
+      // fall back to the default model if that model name is rejected
+      res = await puter.ai.chat(prompt);
+    }
+    return vsAiReplyToText(res);
+  }
+  // Normalise any puter.ai.chat reply shape into a plain string.
+  function vsAiReplyToText(res) {
+    if (res == null) return "";
     if (typeof res === "string") return res;
-    if (res && res.message && res.message.content) return res.message.content;
-    if (res && res.text) return res.text;
-    return String(res || "");
+    // content can be a string OR an array of {type:"text",text:"..."} blocks
+    const fromContent = (c) => {
+      if (typeof c === "string") return c;
+      if (Array.isArray(c)) {
+        return c.map(b => (typeof b === "string" ? b
+          : (b && (b.text || b.content)) || "")).join("");
+      }
+      return "";
+    };
+    if (res.message && res.message.content != null) {
+      const t = fromContent(res.message.content);
+      if (t) return t;
+    }
+    if (res.content != null) {
+      const t = fromContent(res.content);
+      if (t) return t;
+    }
+    if (typeof res.text === "string") return res.text;
+    if (res.choices && res.choices[0]) {
+      const ch = res.choices[0];
+      if (ch.message && ch.message.content != null)
+        return fromContent(ch.message.content);
+      if (typeof ch.text === "string") return ch.text;
+    }
+    // last resort: stringify so the JSON extractor still has a chance
+    try { return JSON.stringify(res); } catch { return String(res); }
   }
   // Pull the first {...} JSON object out of a model reply.
   function vsExtractJson(text) {
-    const a = text.indexOf("{"), b = text.lastIndexOf("}");
-    if (a < 0 || b <= a) return null;
-    try { return JSON.parse(text.slice(a, b + 1)); }
-    catch { return null; }
+    if (typeof text !== "string") {
+      try { text = JSON.stringify(text); } catch { return null; }
+    }
+    if (!text) return null;
+    // strip markdown code fences if the model wrapped the JSON
+    let t = text.replace(/```(?:json)?/gi, "").trim();
+    // first attempt: parse the whole thing
+    try { return JSON.parse(t); } catch {}
+    // second attempt: slice from the first { to the last }
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(t.slice(a, b + 1)); } catch {}
+    }
+    return null;
   }
 
   // Infographic: free text → title + stats, fills the form.
@@ -4905,9 +4986,10 @@ function bindEvents() {
       const reply = await vsAiChat(prompt);
       const data = vsExtractJson(reply);
       if (!data || !Array.isArray(data.stats) || !data.stats.length) {
+        console.warn("Infographic AI raw reply:", reply);
         throw new Error(state.lang === "fa"
           ? "هوش مصنوعی نتوانست آمار بسازد. متن را واضح‌تر بنویس."
-          : "AI couldn't extract stats. Try clearer text.");
+          : "AI couldn't extract stats. Try clearer text, or check the console.");
       }
       const json = $("#vsInfoJson");
       if (json) json.value = JSON.stringify(data, null, 2);
@@ -4951,9 +5033,10 @@ function bindEvents() {
       const reply = await vsAiChat(prompt);
       const data = vsExtractJson(reply);
       if (!data || !data.headline) {
+        console.warn("News AI raw reply:", reply);
         throw new Error(state.lang === "fa"
           ? "هوش مصنوعی نتوانست خلاصه کند. متن دیگری امتحان کن."
-          : "AI couldn't summarize that. Try different text.");
+          : "AI couldn't summarize that. Try different text, or check the console.");
       }
       const setV = (sel, v) => { const el = $(sel); if (el && v != null) el.value = v; };
       setV("#vsNewsKicker", String(data.kicker || "").slice(0, 28));
