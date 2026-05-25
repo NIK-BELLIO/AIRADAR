@@ -3620,9 +3620,11 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
     const tagW = W * 0.13;
     ctx.fillRect(0, y, tagW, barH);
     ctx.fillStyle = ac.text;
-    ctx.font = `700 ${Math.round(H * 0.026)}px Inter, sans-serif`;
+    const tkText = (kicker || "LIVE").toUpperCase();
+    vsFitFont(ctx, tkText, tagW - W * 0.02, "700", "Inter, sans-serif",
+      Math.round(H * 0.026), Math.round(H * 0.014));
     ctx.textAlign = "center";
-    ctx.fillText(kicker || "LIVE", tagW / 2, y + barH * 0.62);
+    ctx.fillText(tkText, tagW / 2, y + barH * 0.62);
     // scrolling headline
     ctx.fillStyle = "#fff";
     ctx.font = `500 ${Math.round(H * 0.03)}px Inter, sans-serif`;
@@ -3646,13 +3648,22 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
     ctx.fillStyle = ac.bar;
     ctx.fillRect(0, y, W, H * 0.01);
     if (kicker) {
+      const kText = kicker.toUpperCase();
+      const kMaxW = W * 0.34;
+      const kPx = vsFitFont(ctx, kText, kMaxW, "700", "Inter, sans-serif",
+        Math.round(H * 0.028), Math.round(H * 0.015));
+      const kPad = W * 0.022;
+      const kw = ctx.measureText(kText).width + kPad * 2;
+      const kh = H * 0.05;
+      const ky = y + barH * 0.16;
       ctx.fillStyle = ac.bar;
-      const kw = Math.min(W * 0.4, ctx.measureText(kicker).width + W * 0.06);
-      ctx.fillRect(W * 0.06, y + barH * 0.16, kw, H * 0.05);
+      ctx.fillRect(W * 0.06, ky, kw, kh);
       ctx.fillStyle = ac.text;
-      ctx.font = `700 ${Math.round(H * 0.028)}px Inter, sans-serif`;
+      ctx.font = `700 ${kPx}px Inter, sans-serif`;
       ctx.textAlign = "left";
-      ctx.fillText(kicker.toUpperCase(), W * 0.06 + W * 0.03, y + barH * 0.16 + H * 0.035);
+      ctx.textBaseline = "middle";
+      ctx.fillText(kText, W * 0.06 + kPad, ky + kh / 2);
+      ctx.textBaseline = "alphabetic";
     }
     ctx.fillStyle = "#fff";
     ctx.font = `700 ${Math.round(H * 0.05)}px Prata, serif`;
@@ -3690,13 +3701,24 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
     const plateY = H * 0.86 - plateH;   // anchor near the bottom
 
     if (kicker) {
+      const kText = kicker.toUpperCase();
+      // shrink the kicker text so it always fits a sane tab width
+      const kMaxW = W * 0.32;
+      const kPx = vsFitFont(ctx, kText, kMaxW, "700", "Inter, sans-serif",
+        Math.round(H * 0.03), Math.round(H * 0.016));
+      // size the red tab to the (already-fitted) text plus even padding
+      const kPad = W * 0.022;
+      const kTextW = ctx.measureText(kText).width;
+      const kw = kTextW + kPad * 2;
+      const kh = H * 0.05;
       ctx.fillStyle = ac.bar;
-      ctx.font = `700 ${Math.round(H * 0.03)}px Inter, sans-serif`;
-      const kw = ctx.measureText(kicker.toUpperCase()).width + W * 0.05;
-      ctx.fillRect(x, plateY - H * 0.05, kw, H * 0.05);
+      ctx.fillRect(x, plateY - kh, kw, kh);
       ctx.fillStyle = ac.text;
       ctx.textAlign = "left";
-      ctx.fillText(kicker.toUpperCase(), x + W * 0.025, plateY - H * 0.015);
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${kPx}px Inter, sans-serif`;
+      ctx.fillText(kText, x + kPad, plateY - kh / 2);
+      ctx.textBaseline = "alphabetic";
     }
     // headline plate (height fits the text)
     ctx.fillStyle = "rgba(10,10,12,0.9)";
@@ -4485,11 +4507,22 @@ function drawStudioFrame(elapsed) {
   // text size = the dropdown choice × the user's manual resize scale
   const sizeMul = Number(dsVal("#vsTextSize", 1)) * (vstudio.textScale || 1);
   const textAnim = dsVal("#vsTextAnim", "fade-up");
-  // text reveal while playing; fully shown when the preview is paused/stopped
-  const rawT = vstudio.looping
-    ? Math.min(1, Math.max(0, (elapsed - introDur) / 1.2))
+  // Staggered reveal (default): the backing box animates in FIRST, then
+  // the text follows — so they don't arrive together. Two separate eased
+  // progress values driven off one timeline.
+  const rawAll = vstudio.looping
+    ? Math.min(1, Math.max(0, (elapsed - introDur) / 1.5))
     : 1;
-  const tEase = vsEasePro(rawT);
+  // box uses the first 50% of the timeline; text uses the last 65%
+  // (the small overlap keeps it feeling connected, not disjointed).
+  const rawBox  = Math.min(1, rawAll / 0.5);
+  const rawText = Math.min(1, Math.max(0, (rawAll - 0.35) / 0.65));
+  // when the text preset is "none", both box and text appear instantly
+  const animOff = (textAnim === "none");
+  const boxEase  = animOff ? 1 : vsEasePro(rawBox);
+  const tEase    = animOff ? 1 : vsEasePro(rawText);
+  // rawT kept for presets that read it directly (typewriter, pop, bounce)
+  const rawT = animOff ? 1 : rawText;
 
   if (headline || sub || cta) {
     ctx.save();
@@ -4552,19 +4585,26 @@ function drawStudioFrame(elapsed) {
       h: blockH
     };
 
-    // readable plate behind text — ALWAYS on so text
-    // never disappears into a bright photo. It tracks the drag offset
-    // so the box moves together with the text.
-    if (blockW > 0) {
+    // readable plate behind text — ALWAYS on so text never disappears
+    // into a bright photo. The plate animates in on its OWN timeline
+    // (boxEase) — it arrives first, slightly ahead of the text, with a
+    // gentle scale-up so the two reveals read as separate, refined steps.
+    if (blockW > 0 && boxEase > 0.001) {
       const padX = W * 0.05, padY = H * 0.04;
       ctx.save();
-      ctx.globalAlpha = tEase * 0.55;
+      ctx.globalAlpha = boxEase * 0.55;
       ctx.fillStyle = "rgba(0,0,0,0.85)";
       const px = W / 2 + dragX - blockW / 2 - padX;
       const py = blockTop - padY;
       const pw = blockW + padX * 2;
       const ph = blockH + padY * 2;
       const r = Math.min(pw, ph) * 0.12;
+      // subtle scale-in for the plate, pivoting on its own centre
+      const bScale = 0.92 + 0.08 * boxEase;
+      const bcx = px + pw / 2, bcy = py + ph / 2;
+      ctx.translate(bcx, bcy);
+      ctx.scale(bScale, bScale);
+      ctx.translate(-bcx, -bcy);
       ctx.beginPath();
       ctx.moveTo(px + r, py);
       ctx.arcTo(px + pw, py, px + pw, py + ph, r);
