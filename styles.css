@@ -129,6 +129,13 @@ textarea {
   padding: 4px 6px 10px;
   border-bottom: 1px solid var(--line);
 }
+/* when collapsed, stack the logo and the collapse button so the
+   button is never clipped — it must always be reachable */
+.sidebar.collapsed .sidebar-top {
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 10px;
+}
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -171,11 +178,13 @@ textarea {
 .sidebar.collapsed .nav-ic { width: auto; }
 .sidebar.collapsed .sidebar-cta {
   font-size: 0;
-  padding: 10px 0;
+  padding: 11px 0;
+  border-radius: 10px;
 }
 .sidebar.collapsed .sidebar-cta::after {
   content: "▶";
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1;
 }
 .sidebar.collapsed .nav-collapse-icon {
   display: inline-block;
@@ -2411,20 +2420,26 @@ h1[data-i18n="heroTitle"] {
 .vs-preview {
   display: grid;
   place-items: center;
+  width: 100%;
   min-height: 300px;
-  max-height: 70vh;
+  height: 58vh;
+  max-height: 600px;
   border: 1px solid rgba(216,183,106,0.2);
   border-radius: 12px;
   background: var(--surface);
   overflow: hidden;
+  padding: 10px;
 }
 .vs-preview canvas {
   display: block;
+  /* fit fully INSIDE the preview box on any aspect ratio —
+     scales down to fit both width and height, never overflows */
   max-width: 100%;
-  max-height: 70vh;
+  max-height: 100%;
   width: auto;
   height: auto;
-  border-radius: 10px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 @media (max-width: 860px) {
   .vstudio-layout { grid-template-columns: 1fr; }
