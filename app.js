@@ -28,6 +28,8 @@ const i18n = {
     vInfoAiBtn: "Generate infographic",
     vInfoFormTitle: "Title",
     vInfoFormSubtitle: "Subtitle (optional)",
+    vInfoFormSource: "Data source (recommended)",
+    vInfoSourceNote: "Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.",
     vInfoStatsHead: "Stats",
     vInfoAddRow: "+ Add a stat",
     vInfoAdvanced: "Advanced — edit raw JSON / import file",
@@ -252,6 +254,8 @@ const i18n = {
     vInfoAiBtn: "ساخت اینفوگرافیک",
     vInfoFormTitle: "عنوان",
     vInfoFormSubtitle: "زیرعنوان (اختیاری)",
+    vInfoFormSource: "منبع داده (توصیه‌شده)",
+    vInfoSourceNote: "اعداد نمایش‌داده‌شده فقط به اندازه چیزی که وارد می‌کنی معتبرند. یک منبع واقعی ذکر کن تا بینندگان به داده‌ها اعتماد کنند — اعداد تولیدشده با هوش مصنوعی تخمین هستند، نه حقایق تأییدشده.",
     vInfoStatsHead: "آمارها",
     vInfoAddRow: "+ افزودن آمار",
     vInfoAdvanced: "پیشرفته — ویرایش JSON خام / وارد کردن فایل",
@@ -3828,7 +3832,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     : 1;
   const ease = vsEasePro(reveal);
 
-  const panelW = W * 0.46, panelH = H * 0.7;
+  // panel sizes itself: width is fixed, height grows with the number of
+  // stats so rows are never cramped (the old fixed 0.7H caused overlap).
+  const nStats = Math.max(1, stats.length);
+  const headH = H * (0.20 + (data.subtitle ? 0.05 : 0));
+  // each row gets a comfortable fixed slice of height
+  const rowSlice = H * (style === "bars" ? 0.125 : 0.13);
+  const panelW = W * (style === "donut" || style === "cards" ? 0.62 : 0.50);
+  const panelH = Math.min(H * 0.92,
+    headH + rowSlice * nStats + H * 0.06);
   let px = (W - panelW) / 2;
   if (pos === "left") px = W * 0.05;
   if (pos === "right") px = W - panelW - W * 0.05;
@@ -3904,8 +3916,48 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   }
 
   const max = Math.max(1, ...stats.map(s => s.num));
-  const areaH = py + panelH - cy - panelH * 0.07;
+  // stats area — leave a strip at the bottom for the source line,
+  // plus extra room under bar charts for the axis scale labels.
+  const axisReserve = style === "bars" ? H * 0.04 : 0;
+  const srcReserve = (data.source ? H * 0.05 : panelH * 0.07) + axisReserve;
+  const areaH = py + panelH - cy - srcReserve;
   const rowH = areaH / Math.max(1, stats.length);
+
+  // ── BAR CHART FRAME (drawn once, behind all bars) ──────────
+  // a proper chart needs a shared axis, scale, and gridlines —
+  // not per-row ticks. Compute a "nice" rounded axis maximum.
+  let axisMax = max, barChartX = 0, barChartW = 0;
+  if (style === "bars") {
+    // round the axis max up to a clean number (1-2-5 × 10^n)
+    const mag = Math.pow(10, Math.floor(Math.log10(max)));
+    const norm = max / mag;
+    const niceN = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    axisMax = niceN * mag;
+    barChartX = px + padX;
+    barChartW = panelW - padX * 2;
+    const topY = cy + rowH * 0.06;
+    const botY = cy + areaH - rowH * 0.06;
+    // vertical gridlines + scale labels at 0 / 25 / 50 / 75 / 100%
+    ctx.textAlign = "center";
+    ctx.font = `500 ${Math.round(W * 0.0105)}px Inter, sans-serif`;
+    for (let g = 0; g <= 4; g++) {
+      const gx = barChartX + barChartW * (g / 4);
+      ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.45 : 0.14);
+      ctx.lineWidth = g === 0 ? 1.4 : 1;
+      ctx.beginPath();
+      ctx.moveTo(gx, topY);
+      ctx.lineTo(gx, botY);
+      ctx.stroke();
+      // scale label below the axis
+      const scaleVal = axisMax * (g / 4);
+      const lbl = scaleVal >= 1000
+        ? (scaleVal / 1000).toFixed(scaleVal % 1000 ? 1 : 0) + "k"
+        : (Number.isInteger(scaleVal) ? String(scaleVal)
+           : scaleVal.toFixed(1));
+      ctx.fillStyle = vsHexA(ig.label, 0.6);
+      ctx.fillText(lbl, gx, botY + W * 0.018);
+    }
+  }
 
   stats.forEach((s, i) => {
     const rowReveal = vstudio.looping
@@ -3916,62 +3968,73 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
 
     if (style === "bars") {
       const rowMaxW = panelW - padX * 2;
-      // label on the left — shrink to at most 55% of the row width
+      // ----- label sits ON TOP of the bar (own line) -----
       ctx.fillStyle = ig.label;
-      const labelPx = vsFitFont(ctx, s.label, rowMaxW * 0.55,
-        "500", "Inter, sans-serif", Math.round(W * 0.017), Math.round(W * 0.011));
+      vsFitFont(ctx, s.label, rowMaxW * 0.78, "500",
+        "Inter, sans-serif", Math.round(W * 0.0145), Math.round(W * 0.01));
       ctx.textAlign = "left";
-      ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
-      const labelW = ctx.measureText(s.label).width;
-      // value on the right — shrink so it fits the remaining space
-      ctx.fillStyle = ig.value;
-      const valSpace = rowMaxW - labelW - W * 0.02;
-      let valText = s.value;
-      vsFitFont(ctx, valText, valSpace,
-        "700", "Inter, sans-serif", Math.round(W * 0.021), Math.round(W * 0.012));
-      // if still too long even at min size, ellipsize it
-      if (ctx.measureText(valText).width > valSpace && valSpace > 0) {
-        while (valText.length > 1 &&
-               ctx.measureText(valText + "…").width > valSpace) {
-          valText = valText.slice(0, -1);
-        }
-        valText += "…";
-      }
-      ctx.textAlign = "right";
-      ctx.fillText(valText, px + panelW - padX, ry + rowH * 0.32);
-      const barW = panelW - padX * 2;
-      const barY = ry + rowH * 0.45;
-      const barH = rowH * 0.22;
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.30);
+
+      // ----- the bar — scaled to the shared axis maximum -----
+      const barW = rowMaxW;
+      const barY = ry + rowH * 0.40;
+      const barH = rowH * 0.30;
+      // track
       ctx.fillStyle = ig.track;
       roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
       ctx.fill();
-      const fillW = Math.max(barH, barW * (s.num / max) * re);
+      // filled portion — proportion of the chart's axis maximum
+      const fillW = Math.max(barH, barW * (s.num / axisMax) * re);
       const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
       grad.addColorStop(0, vsHexA(ig.accent, 0.65));
       grad.addColorStop(1, ig.accent);
       ctx.fillStyle = grad;
       roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
       ctx.fill();
+
+      // ----- value, placed just past the bar end, never over the label -----
+      ctx.fillStyle = ig.value;
+      const valPx = vsFitFont(ctx, s.value, rowMaxW * 0.3, "700",
+        "Inter, sans-serif", Math.round(W * 0.017), Math.round(W * 0.012));
+      const valW = ctx.measureText(s.value).width;
+      if (fillW > valW + W * 0.03) {
+        ctx.textAlign = "right";
+        ctx.fillStyle = vsHexLuma(ig.accent) > 140 ? "#1a1408" : "#fff";
+        ctx.fillText(s.value, px + padX + fillW - W * 0.012,
+          barY + barH * 0.5 + valPx * 0.35);
+      } else {
+        ctx.textAlign = "left";
+        ctx.fillStyle = ig.value;
+        ctx.fillText(s.value, px + padX + fillW + W * 0.012,
+          barY + barH * 0.5 + valPx * 0.35);
+      }
     } else if (style === "counters") {
       const cMaxW = panelW - padX * 2;
-      ctx.textAlign = "left";
-      ctx.fillStyle = ig.value;
-      const suffix = s.value.replace(/[0-9.,]/g, "");
+      const suffix = s.value.replace(/[0-9.,\-]/g, "");
       const shown = s.num
         ? Math.round(s.num * re).toLocaleString() + suffix
         : s.value;
-      vsFitFont(ctx, shown, cMaxW, "700", "Prata, serif",
-        Math.round(W * 0.042), Math.round(W * 0.02));
-      ctx.fillText(shown, px + padX, ry + rowH * 0.46);
+      // big number — top portion of the row
+      ctx.textAlign = "left";
+      ctx.fillStyle = ig.value;
+      const numPx = vsFitFont(ctx, shown, cMaxW * 0.9, "700", "Prata, serif",
+        Math.round(rowH * 0.42), Math.round(rowH * 0.22));
+      ctx.fillText(shown, px + padX, ry + rowH * 0.40);
+      // label — lower portion, always BELOW the number, no overlap
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "400", "Inter, sans-serif",
-        Math.round(W * 0.016), Math.round(W * 0.01));
-      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.72);
-      ctx.strokeStyle = vsHexA(ig.accent, 0.2);
+      vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "500", "Inter, sans-serif",
+        Math.round(rowH * 0.16), Math.round(rowH * 0.1));
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.66);
+      // a small accent bar under the number adds a chart-like cue
+      ctx.fillStyle = vsHexA(ig.accent, 0.5);
+      ctx.fillRect(px + padX, ry + rowH * 0.74,
+        (panelW - padX * 2) * (s.num / max) * re, rowH * 0.05);
+      // divider
+      ctx.strokeStyle = vsHexA(ig.accent, 0.18);
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(px + padX, ry + rowH * 0.92);
-      ctx.lineTo(px + panelW - padX, ry + rowH * 0.92);
+      ctx.moveTo(px + padX, ry + rowH * 0.94);
+      ctx.lineTo(px + panelW - padX, ry + rowH * 0.94);
       ctx.stroke();
     } else if (style === "donut") {
       const n = stats.length;
@@ -4026,6 +4089,16 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.fillText(s.value, cardTextX, cardY + cardH * 0.78);
     }
   });
+
+  // ----- data source line at the bottom — honest attribution -----
+  if (data.source) {
+    ctx.textAlign = "left";
+    ctx.fillStyle = vsHexA(ig.label, 0.7);
+    const srcLabel = (state.lang === "fa" ? "منبع: " : "Source: ") + data.source;
+    vsFitFont(ctx, srcLabel, panelW - padX * 2, "400",
+      "Inter, sans-serif", Math.round(W * 0.0125), Math.round(W * 0.009));
+    ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.028);
+  }
   ctx.restore();
 }
 
@@ -5265,7 +5338,8 @@ function bindEvents() {
                      num: isNaN(n) ? 0 : n });
       }
     });
-    const data = { title: title.trim(), subtitle: subtitle.trim(), stats };
+    const data = { title: title.trim(), subtitle: subtitle.trim(),
+                   source: (vsVal("#vsInfoSource", "") || "").trim(), stats };
     const json = $("#vsInfoJson");
     if (json) json.value = JSON.stringify(data, null, 2);
     vsInfoLiveRefresh();
@@ -5300,6 +5374,7 @@ function bindEvents() {
     if (!d || typeof d !== "object") return false;
     const t = $("#vsInfoTitle"); if (t) t.value = d.title || "";
     const s = $("#vsInfoSubtitle"); if (s) s.value = d.subtitle || "";
+    const src = $("#vsInfoSource"); if (src) src.value = d.source || "";
     const rows = (Array.isArray(d.stats) ? d.stats : [])
       .map(x => ({ label: x.label || "", value: x.value != null ? String(x.value) : "" }));
     vsInfoRenderRows(rows);
@@ -5312,7 +5387,7 @@ function bindEvents() {
   window._vsInfoJsonToForm = vsInfoJsonToForm;
 
   // typing in any form field rebuilds the infographic live
-  ["#vsInfoTitle", "#vsInfoSubtitle"].forEach(sel => {
+  ["#vsInfoTitle", "#vsInfoSubtitle", "#vsInfoSource"].forEach(sel => {
     on(sel, "input", vsInfoFormToJson);
   });
   const infoRowsBox = $("#vsInfoRows");
