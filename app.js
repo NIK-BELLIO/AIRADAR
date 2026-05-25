@@ -15,6 +15,7 @@ const i18n = {
     vAddSlide: "+ Add slide (upload media)",
     vSlideHeadline: "Slide headline",
     vSlideDuration: "Slide duration (s)",
+    vSlideSettingsNote: "The Motion, Text, Infographic and News tabs all edit the slide selected above. Each slide keeps its own settings — switch slides to edit another.",
     vTabFormat: "Format & export",
     vTabMotion: "Motion",
     vTabInfo: "Infographic",
@@ -218,6 +219,7 @@ const i18n = {
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
     vSlideHeadline: "عنوان اسلاید",
     vSlideDuration: "مدت اسلاید (ثانیه)",
+    vSlideSettingsNote: "تب‌های موشن، متن، اینفوگرافیک و اخبار همگی اسلاید انتخاب‌شده بالا را ویرایش می‌کنند. هر اسلاید تنظیمات خودش را دارد — برای ویرایش اسلاید دیگر، آن را انتخاب کن.",
     vTabFormat: "فرمت و خروجی",
     vTabMotion: "موشن",
     vTabInfo: "اینفوگرافیک",
@@ -2771,6 +2773,13 @@ function selectSlide(i) {
     vsApplySettings(s.settings);
     syncStudioControls();          // refresh dependent UI (template chips etc.)
   }
+  // show which slide the other tabs are now editing
+  const tag = $("#vsActiveSlideTag");
+  if (tag) {
+    tag.textContent = state.lang === "fa"
+      ? `در حال ویرایش اسلاید ${i + 1} از ${vstudio.slides.length}`
+      : `Editing slide ${i + 1} of ${vstudio.slides.length}`;
+  }
   renderSlideList();
   if (!vstudio.looping && vstudio.mediaEl || vstudio.slides.length) {
     drawStudioFrame(vstudio.position || 0);
@@ -3042,8 +3051,9 @@ function vsSaveActiveSlide() {
   if (s) s.settings = vsCaptureSettings();
 }
 
-function vsInfoData() {
-  const raw = (vsVal("#vsInfoJson", "") || "").trim();
+function vsInfoData(val) {
+  val = val || vsVal;
+  const raw = String(val("#vsInfoJson", "") || "").trim();
   const status = document.querySelector("#vsInfoJsonStatus");
   if (!raw) {
     if (status) status.textContent = "";
@@ -3303,10 +3313,14 @@ function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
   lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
 }
 
-function drawInfographic(ctx, W, H, elapsed, tpl) {
-  const on = $("#vsInfoOn") && $("#vsInfoOn").checked;
+function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
+  const val = dsVal || vsVal;
+  // resolve the on/off toggle (boolean from slide settings, or live checkbox)
+  const onVal = val("#vsInfoOn", false);
+  const on = (typeof onVal === "boolean") ? onVal
+           : ($("#vsInfoOn") && $("#vsInfoOn").checked);
   if (!on) return;
-  const data = vsInfoData();
+  const data = vsInfoData(val);
   if (!data || (!data.stats.length && !data.title)) return;
 
   // colours follow the chosen template so the infographic matches it
@@ -3324,8 +3338,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl) {
   };
 
   const stats = data.stats;
-  const style = vsVal("#vsInfoStyle", "bars");
-  const pos = vsVal("#vsInfoPos", "center");
+  const style = val("#vsInfoStyle", "bars");
+  const pos = val("#vsInfoPos", "center");
   const reveal = Math.min(1, elapsed / 1.2);
   const ease = 1 - Math.pow(1 - reveal, 3);
 
@@ -3885,7 +3899,7 @@ function drawStudioFrame(elapsed) {
   drawStudioOverlay(ctx, W, H, elapsed, dsVal("#vsOverlay", "none"));
 
   // ----- infographic overlay -----
-  drawInfographic(ctx, W, H, elapsed, tpl);
+  drawInfographic(ctx, W, H, elapsed, tpl, dsVal);
 
   // ----- news banner overlay -----
   drawNewsBanner(ctx, W, H, elapsed, dsVal);
