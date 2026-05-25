@@ -2163,7 +2163,9 @@ h1[data-i18n="heroTitle"] {
   flex-wrap: wrap;
 }
 .vstudio-stage {
-  position: relative;
+  position: sticky;
+  top: 16px;
+  align-self: start;
 }
 .vs-preview {
   display: grid;
@@ -2799,3 +2801,39 @@ body.theme-light pre {
 .vs-slide-section .vstudio-label {
   margin-top: 0;
 }
+
+/* Collapsible per-slide setting sections */
+details.vs-slide-section {
+  margin: 10px 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+details.vs-slide-section > summary {
+  margin: 0;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+details.vs-slide-section > summary::-webkit-details-marker { display: none; }
+details.vs-slide-section > summary::after {
+  content: "▾";
+  color: var(--gold);
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+details.vs-slide-section:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+details.vs-slide-section > summary:hover { color: var(--gold); }
+details.vs-slide-section > *:not(summary) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+details.vs-slide-section > *:last-child { margin-bottom: 14px; }
