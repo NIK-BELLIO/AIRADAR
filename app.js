@@ -1,5 +1,7 @@
 const i18n = {
   en: {
+    navGroupExplore: "Explore",
+    navGroupCreate: "Create",
     navTools: "Tools",
     navPerformance: "Live charts",
     navMedia: "Caption AI",
@@ -244,6 +246,8 @@ const i18n = {
     deleteSlide: "Delete"
   },
   fa: {
+    navGroupExplore: "کاوش",
+    navGroupCreate: "ساخت",
     navTools: "ابزارها",
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
@@ -3343,6 +3347,31 @@ function setupTextDrag() {
     }
   };
 
+  // Double-click an element to toggle "fit to frame" — it grows to fill
+  // the frame nicely, or snaps back to normal size if already fitted.
+  const dbl = (e) => {
+    const pt = toCanvas(e);
+    const kind = pick(pt);
+    if (!kind) return;
+    e.preventDefault();
+    const sk = scaleKeyFor(kind);
+    const ox = offsetsFor(kind)[0], oy = offsetsFor(kind)[1];
+    const isFitted = Math.abs((vstudio[sk] || 1) - 1.6) < 0.01
+      && vstudio[ox] === 0 && vstudio[oy] === 0;
+    if (isFitted) {
+      vstudio[sk] = 1; vstudio[ox] = 0; vstudio[oy] = 0;
+    } else {
+      vstudio[sk] = 1.6; vstudio[ox] = 0; vstudio[oy] = 0;
+    }
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+  };
+
   const down = (e) => {
     const pt = toCanvas(e);
     const kind = pick(pt);
@@ -3383,6 +3412,7 @@ function setupTextDrag() {
   canvas.addEventListener("mousedown", down);
   canvas.addEventListener("touchstart", down, { passive: false });
   canvas.addEventListener("wheel", wheel, { passive: false });
+  canvas.addEventListener("dblclick", dbl);
   // window listeners attach only once across the session
   if (!window._vsTextDragBound) {
     window._vsTextDragBound = true;
@@ -3883,18 +3913,24 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     : 1;
   const ease = vsEasePro(reveal);
 
-  // panel sizes itself: width is fixed, height grows with the number of
-  // stats so rows are never cramped (the old fixed 0.7H caused overlap).
+  // ── ASPECT-SAFE SIZING ─────────────────────────────────────
+  // The panel must stay a readable card on ANY frame shape (wide,
+  // square, or tall portrait). Size everything off ONE reference unit
+  // (`U`) — the smaller frame dimension — so the infographic never
+  // gets squished when the video is portrait.
+  const U = Math.min(W, H);
   const nStats = Math.max(1, stats.length);
-  const headH = H * (0.20 + (data.subtitle ? 0.05 : 0));
-  // each row gets a comfortable fixed slice of height
-  const rowSlice = H * (style === "bars" ? 0.125 : 0.13);
-  const panelW = W * (style === "donut" || style === "cards" ? 0.62 : 0.50);
-  const panelH = Math.min(H * 0.92,
-    headH + rowSlice * nStats + H * 0.06);
+  // panel width: a comfortable card, but never wider than the frame
+  let panelW = Math.min(W * 0.9, U * (style === "donut" ? 1.15 : 0.95));
+  const headH = U * (0.22 + (data.subtitle ? 0.05 : 0));
+  const rowSlice = U * (style === "bars" ? 0.135 : 0.145);
+  let panelH = headH + rowSlice * nStats + U * 0.08;
+  // never let the panel exceed the frame
+  panelH = Math.min(panelH, H * 0.94);
+  panelW = Math.min(panelW, W * 0.92);
   let px = (W - panelW) / 2;
-  if (pos === "left") px = W * 0.05;
-  if (pos === "right") px = W - panelW - W * 0.05;
+  if (pos === "left") px = U * 0.05;
+  if (pos === "right") px = W - panelW - U * 0.05;
   let py = (H - panelH) / 2;
   // apply manual drag offset
   px += vstudio.infoDX * W;
@@ -3927,7 +3963,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
 
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = W * 0.03;
+  ctx.shadowBlur = U * 0.03;
   ctx.shadowOffsetY = H * 0.012;
   const pg = ctx.createLinearGradient(0, py, 0, py + panelH);
   pg.addColorStop(0, ig.panelTop);
@@ -3938,7 +3974,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   ctx.restore();
 
   ctx.strokeStyle = ig.border;
-  ctx.lineWidth = Math.max(1, W * 0.0012);
+  ctx.lineWidth = Math.max(1, U * 0.0012);
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.stroke();
   const accentW = panelW * 0.14 * ease;
@@ -3953,7 +3989,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.title, titleMaxW, "600", "Prata, serif",
-      Math.round(W * 0.032), Math.round(W * 0.018));
+      Math.round(U * 0.032), Math.round(U * 0.018));
     ctx.fillText(data.title, px + padX, cy);
     cy += panelH * 0.065;
   }
@@ -3961,7 +3997,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     ctx.fillStyle = ig.label;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.subtitle.toUpperCase(), titleMaxW, "400",
-      "Inter, sans-serif", Math.round(W * 0.0155), Math.round(W * 0.01));
+      "Inter, sans-serif", Math.round(U * 0.0155), Math.round(U * 0.01));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
     cy += panelH * 0.07;
   }
@@ -3990,7 +4026,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     const botY = cy + areaH - rowH * 0.06;
     // vertical gridlines + scale labels at 0 / 25 / 50 / 75 / 100%
     ctx.textAlign = "center";
-    ctx.font = `500 ${Math.round(W * 0.0105)}px Inter, sans-serif`;
+    ctx.font = `500 ${Math.round(U * 0.0105)}px Inter, sans-serif`;
     for (let g = 0; g <= 4; g++) {
       const gx = barChartX + barChartW * (g / 4);
       ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.45 : 0.14);
@@ -4006,7 +4042,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
         : (Number.isInteger(scaleVal) ? String(scaleVal)
            : scaleVal.toFixed(1));
       ctx.fillStyle = vsHexA(ig.label, 0.6);
-      ctx.fillText(lbl, gx, botY + W * 0.018);
+      ctx.fillText(lbl, gx, botY + U * 0.018);
     }
   }
 
@@ -4019,27 +4055,41 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
 
     if (style === "bars") {
       const rowMaxW = panelW - padX * 2;
-      // ----- label sits in the TOP band of the row, on its own line -----
-      // font is capped small so a tall glyph can never reach into the bar.
-      ctx.fillStyle = ig.label;
-      const lblPx = vsFitFont(ctx, s.label, rowMaxW * 0.95, "600",
-        "Inter, sans-serif",
-        Math.min(Math.round(rowH * 0.20), Math.round(W * 0.013)),
-        Math.round(W * 0.009));
-      ctx.textAlign = "left";
+      // ── ROW = three stacked, non-overlapping bands ──
+      //  band A (top ~40%): the label text
+      //  band B (mid ~38%): the bar track + fill
+      //  the value is drawn on the label line, right-aligned
       ctx.textBaseline = "alphabetic";
-      // baseline placed so the label sits fully ABOVE the bar band
-      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.26);
 
-      // ----- the bar — lives in the lower band, well clear of the label -----
+      // --- label, top band, left-aligned ---
+      const lblPx = Math.min(Math.round(rowH * 0.26), Math.round(U * 0.0135));
+      ctx.font = `600 ${lblPx}px Inter, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillStyle = ig.label;
+      // value width is reserved on the right so the label is shortened
+      const valPx = Math.min(Math.round(rowH * 0.30), Math.round(U * 0.0155));
+      ctx.font = `700 ${valPx}px Inter, sans-serif`;
+      const valW = Math.min(ctx.measureText(s.value).width, rowMaxW * 0.4);
+      // shrink the label to fit the space left of the value
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label.toUpperCase(), rowMaxW - valW - U * 0.03,
+        "600", "Inter, sans-serif", lblPx, Math.round(U * 0.009));
+      const labelBaseline = ry + rowH * 0.30;
+      ctx.fillText(s.label.toUpperCase(), px + padX, labelBaseline);
+
+      // --- value, SAME line as label, right-aligned (never on the bar) ---
+      ctx.font = `700 ${valPx}px Inter, sans-serif`;
+      ctx.fillStyle = ig.value;
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, px + panelW - padX, labelBaseline);
+
+      // --- the bar, middle band, well below the text line ---
       const barW = rowMaxW;
-      const barH = Math.min(rowH * 0.34, W * 0.028);
-      const barY = ry + rowH * 0.42;
-      // track
+      const barH = Math.min(rowH * 0.26, U * 0.022);
+      const barY = ry + rowH * 0.46;
       ctx.fillStyle = ig.track;
       roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
       ctx.fill();
-      // filled portion — proportion of the chart's axis maximum
       const fillW = Math.max(barH, barW * (s.num / axisMax) * re);
       const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
       grad.addColorStop(0, vsHexA(ig.accent, 0.65));
@@ -4047,26 +4097,6 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.fillStyle = grad;
       roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
       ctx.fill();
-
-      // ----- value — vertically centred on the bar, never near the label -----
-      const valPx = vsFitFont(ctx, s.value, rowMaxW * 0.32, "700",
-        "Inter, sans-serif",
-        Math.min(Math.round(barH * 0.92), Math.round(W * 0.016)),
-        Math.round(W * 0.011));
-      const valW = ctx.measureText(s.value).width;
-      ctx.textBaseline = "middle";
-      if (fillW > valW + W * 0.04) {
-        // enough room inside the filled bar — place it there
-        ctx.textAlign = "right";
-        ctx.fillStyle = vsHexLuma(ig.accent) > 140 ? "#1a1408" : "#fff";
-        ctx.fillText(s.value, px + padX + fillW - W * 0.014, barY + barH / 2);
-      } else {
-        // otherwise just past the bar end
-        ctx.textAlign = "left";
-        ctx.fillStyle = ig.value;
-        ctx.fillText(s.value, px + padX + fillW + W * 0.014, barY + barH / 2);
-      }
-      ctx.textBaseline = "alphabetic";
     } else if (style === "counters") {
       const cMaxW = panelW - padX * 2;
       const suffix = s.value.replace(/[0-9.,\-]/g, "");
@@ -4116,11 +4146,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
       vsFitFont(ctx, s.value, rad * 1.7, "700", "Inter, sans-serif",
-        Math.round(W * 0.02), Math.round(W * 0.011));
-      ctx.fillText(s.value, cxx, cyy + W * 0.007);
+        Math.round(U * 0.02), Math.round(U * 0.011));
+      ctx.fillText(s.value, cxx, cyy + U * 0.007);
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label, slotW * 0.94, "400", "Inter, sans-serif",
-        Math.round(W * 0.013), Math.round(W * 0.009));
+        Math.round(U * 0.013), Math.round(U * 0.009));
       ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.12);
     } else {
       const cardY = ry + rowH * 0.12;
@@ -4140,11 +4170,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       const cardTextX = px + padX + panelW * 0.045;
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "400",
-        "Inter, sans-serif", Math.round(W * 0.015), Math.round(W * 0.01));
+        "Inter, sans-serif", Math.round(U * 0.015), Math.round(U * 0.01));
       ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.4);
       ctx.fillStyle = ig.value;
       vsFitFont(ctx, s.value, cardTextW, "700", "Prata, serif",
-        Math.round(W * 0.03), Math.round(W * 0.015));
+        Math.round(U * 0.03), Math.round(U * 0.015));
       ctx.fillText(s.value, cardTextX, cardY + cardH * 0.78);
     }
   });
@@ -4155,7 +4185,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     ctx.fillStyle = vsHexA(ig.label, 0.7);
     const srcLabel = (state.lang === "fa" ? "منبع: " : "Source: ") + data.source;
     vsFitFont(ctx, srcLabel, panelW - padX * 2, "400",
-      "Inter, sans-serif", Math.round(W * 0.0125), Math.round(W * 0.009));
+      "Inter, sans-serif", Math.round(U * 0.0125), Math.round(U * 0.009));
     ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.028);
   }
   ctx.restore();
@@ -5191,10 +5221,27 @@ async function exportStudioVideo() {
   }
   const stream = new MediaStream(tracks);
 
-  // Pick the best available codec — VP9 first, then VP8/webm.
+  // Pick the recording codec. When the user wants MP4, first try to
+  // record MP4/H.264 NATIVELY — many modern Chrome builds support it,
+  // which avoids the slow, fragile ffmpeg conversion entirely.
+  const wantFormat = vsVal("#vsExportFormat", "mp4");
   let mime = "video/webm";
-  for (const t of ["video/webm;codecs=vp9", "video/webm;codecs=vp8"]) {
-    if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+  let recordedNativeMp4 = false;
+  if (wantFormat === "mp4") {
+    for (const t of [
+      "video/mp4;codecs=h264,aac", "video/mp4;codecs=h264",
+      "video/mp4;codecs=avc1", "video/mp4"
+    ]) {
+      if (MediaRecorder.isTypeSupported(t)) {
+        mime = t; recordedNativeMp4 = true; break;
+      }
+    }
+  }
+  // if MP4 not natively supported (or WebM chosen) → record WebM
+  if (!recordedNativeMp4) {
+    for (const t of ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]) {
+      if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+    }
   }
 
   // Bitrate scales with resolution AND the chosen quality level.
@@ -5216,35 +5263,45 @@ async function exportStudioVideo() {
 
   const done = new Promise(resolve => {
     recorder.onstop = async () => {
-      const webmBlob = new Blob(chunks, { type: "video/webm" });
       const format = vsVal("#vsExportFormat", "mp4");
-      let outBlob = webmBlob, ext = "webm";
-      if (format === "mp4") {
-        try {
-          vsStatus(state.lang === "fa"
-            ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
-            : "Converting to MP4… (first time takes longer)");
-          outBlob = await vsConvertToMp4(webmBlob);
-          ext = "mp4";
-        } catch (err) {
-          // conversion failed — fall back to the WebM we already have
-          console.error("MP4 conversion error:", err);
-          vsStatus((state.lang === "fa"
-            ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد. خطا: "
-            : "MP4 conversion failed — saved as WebM instead. Error: ")
-            + (err && err.message ? err.message : String(err)));
+      let outBlob, ext;
+
+      if (recordedNativeMp4) {
+        // the browser recorded MP4 directly — no conversion needed
+        outBlob = new Blob(chunks, { type: "video/mp4" });
+        ext = "mp4";
+      } else {
+        const webmBlob = new Blob(chunks, { type: "video/webm" });
+        if (format === "mp4") {
+          // browser couldn't record MP4 natively → convert with ffmpeg
+          try {
+            vsStatus(state.lang === "fa"
+              ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
+              : "Converting to MP4… (first time takes longer)");
+            outBlob = await vsConvertToMp4(webmBlob);
+            ext = "mp4";
+          } catch (err) {
+            console.error("MP4 conversion error:", err);
+            vsStatus((state.lang === "fa"
+              ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد. خطا: "
+              : "MP4 conversion failed — saved as WebM. Error: ")
+              + (err && err.message ? err.message : String(err)));
+            outBlob = webmBlob; ext = "webm";
+          }
+        } else {
           outBlob = webmBlob; ext = "webm";
         }
       }
+
       const url = URL.createObjectURL(outBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `ai-radar-${vstudio.templateId}-video.${ext}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      if (ext === "mp4") {
-        vsStatus(state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.");
-      }
+      vsStatus(ext === "mp4"
+        ? (state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.")
+        : (state.lang === "fa" ? "ویدیوی WebM ذخیره شد." : "WebM video saved."));
       resolve();
     };
   });
@@ -5304,6 +5361,30 @@ function bindEvents() {
     const next = document.body.classList.contains("theme-light") ? "dark" : "light";
     applyTheme(next);
   });
+  // collapsible sidebar nav — toggle the icon-only rail
+  on("#navCollapseBtn", "click", () => {
+    const nav = $("#sidebarNav");
+    if (nav) nav.classList.toggle("collapsed");
+  });
+  // highlight the nav link for the section currently in view
+  const navLinks = Array.from(document.querySelectorAll(".sidebar-nav a"));
+  if (navLinks.length && "IntersectionObserver" in window) {
+    const byId = {};
+    navLinks.forEach(a => { byId[a.getAttribute("href").slice(1)] = a; });
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          navLinks.forEach(a => a.classList.remove("active"));
+          const link = byId[en.target.id];
+          if (link) link.classList.add("active");
+        }
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    Object.keys(byId).forEach(id => {
+      const sec = document.getElementById(id);
+      if (sec) obs.observe(sec);
+    });
+  }
   on("#searchInput", "input", (event) => { state.query = event.target.value; renderTools(); });
   on("#viewGrid", "click", () => setToolView("grid"));
   on("#viewList", "click", () => setToolView("list"));
