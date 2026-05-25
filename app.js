@@ -4019,17 +4019,22 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
 
     if (style === "bars") {
       const rowMaxW = panelW - padX * 2;
-      // ----- label sits ON TOP of the bar (own line) -----
+      // ----- label sits in the TOP band of the row, on its own line -----
+      // font is capped small so a tall glyph can never reach into the bar.
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label, rowMaxW * 0.78, "500",
-        "Inter, sans-serif", Math.round(W * 0.0145), Math.round(W * 0.01));
+      const lblPx = vsFitFont(ctx, s.label, rowMaxW * 0.95, "600",
+        "Inter, sans-serif",
+        Math.min(Math.round(rowH * 0.20), Math.round(W * 0.013)),
+        Math.round(W * 0.009));
       ctx.textAlign = "left";
-      ctx.fillText(s.label, px + padX, ry + rowH * 0.30);
+      ctx.textBaseline = "alphabetic";
+      // baseline placed so the label sits fully ABOVE the bar band
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.26);
 
-      // ----- the bar — scaled to the shared axis maximum -----
+      // ----- the bar — lives in the lower band, well clear of the label -----
       const barW = rowMaxW;
-      const barY = ry + rowH * 0.40;
-      const barH = rowH * 0.30;
+      const barH = Math.min(rowH * 0.34, W * 0.028);
+      const barY = ry + rowH * 0.42;
       // track
       ctx.fillStyle = ig.track;
       roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
@@ -4043,22 +4048,25 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
       ctx.fill();
 
-      // ----- value, placed just past the bar end, never over the label -----
-      ctx.fillStyle = ig.value;
-      const valPx = vsFitFont(ctx, s.value, rowMaxW * 0.3, "700",
-        "Inter, sans-serif", Math.round(W * 0.017), Math.round(W * 0.012));
+      // ----- value — vertically centred on the bar, never near the label -----
+      const valPx = vsFitFont(ctx, s.value, rowMaxW * 0.32, "700",
+        "Inter, sans-serif",
+        Math.min(Math.round(barH * 0.92), Math.round(W * 0.016)),
+        Math.round(W * 0.011));
       const valW = ctx.measureText(s.value).width;
-      if (fillW > valW + W * 0.03) {
+      ctx.textBaseline = "middle";
+      if (fillW > valW + W * 0.04) {
+        // enough room inside the filled bar — place it there
         ctx.textAlign = "right";
         ctx.fillStyle = vsHexLuma(ig.accent) > 140 ? "#1a1408" : "#fff";
-        ctx.fillText(s.value, px + padX + fillW - W * 0.012,
-          barY + barH * 0.5 + valPx * 0.35);
+        ctx.fillText(s.value, px + padX + fillW - W * 0.014, barY + barH / 2);
       } else {
+        // otherwise just past the bar end
         ctx.textAlign = "left";
         ctx.fillStyle = ig.value;
-        ctx.fillText(s.value, px + padX + fillW + W * 0.012,
-          barY + barH * 0.5 + valPx * 0.35);
+        ctx.fillText(s.value, px + padX + fillW + W * 0.014, barY + barH / 2);
       }
+      ctx.textBaseline = "alphabetic";
     } else if (style === "counters") {
       const cMaxW = panelW - padX * 2;
       const suffix = s.value.replace(/[0-9.,\-]/g, "");
@@ -5101,41 +5109,40 @@ function scrubTimeline(clientX) {
   updateTimeline(elapsed, duration);
 }
 
-// ── MP4 CONVERSION via ffmpeg.wasm ─────────────────────────
+// ── MP4 CONVERSION via ffmpeg.wasm (v0.11, single-threaded) ─
 // The browser's recorder only makes WebM; this converts it to MP4
-// entirely in the browser. The ffmpeg core is loaded once and reused.
+// entirely in the browser. Works on a plain static site — no special
+// headers needed. The ffmpeg core is loaded once and reused.
 let _vsFfmpeg = null;
 async function vsGetFfmpeg() {
-  if (_vsFfmpeg) return _vsFfmpeg;
-  // the UMD builds expose FFmpegWASM + FFmpegUtil on window
-  const FF = window.FFmpegWASM || window.FFmpeg;
-  const UTIL = window.FFmpegUtil;
-  if (!FF || !FF.FFmpeg) {
+  if (_vsFfmpeg && _vsFfmpeg.isLoaded()) return _vsFfmpeg;
+  if (typeof FFmpeg === "undefined" || !FFmpeg.createFFmpeg) {
     throw new Error("MP4 converter library failed to load.");
   }
-  const ffmpeg = new FF.FFmpeg();
-  const base = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
-  await ffmpeg.load({
-    coreURL: await UTIL.toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await UTIL.toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm")
+  const ffmpeg = FFmpeg.createFFmpeg({
+    log: false,
+    corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"
   });
+  await ffmpeg.load();
   _vsFfmpeg = ffmpeg;
   return ffmpeg;
 }
 async function vsConvertToMp4(webmBlob) {
   const ffmpeg = await vsGetFfmpeg();
-  const UTIL = window.FFmpegUtil;
-  await ffmpeg.writeFile("in.webm", await UTIL.fetchFile(webmBlob));
+  const buf = new Uint8Array(await webmBlob.arrayBuffer());
+  ffmpeg.FS("writeFile", "in.webm", buf);
   // H.264 video + AAC audio — the universally compatible MP4 combo
-  await ffmpeg.exec([
+  await ffmpeg.run(
     "-i", "in.webm",
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
     "-pix_fmt", "yuv420p",
     "-c:a", "aac", "-b:a", "192k",
     "-movflags", "+faststart",
     "out.mp4"
-  ]);
-  const data = await ffmpeg.readFile("out.mp4");
+  );
+  const data = ffmpeg.FS("readFile", "out.mp4");
+  // free the in-memory files
+  try { ffmpeg.FS("unlink", "in.webm"); ffmpeg.FS("unlink", "out.mp4"); } catch {}
   return new Blob([data.buffer], { type: "video/mp4" });
 }
 
@@ -5221,9 +5228,11 @@ async function exportStudioVideo() {
           ext = "mp4";
         } catch (err) {
           // conversion failed — fall back to the WebM we already have
-          vsStatus(state.lang === "fa"
-            ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد."
-            : "MP4 conversion failed — saved as WebM instead.");
+          console.error("MP4 conversion error:", err);
+          vsStatus((state.lang === "fa"
+            ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد. خطا: "
+            : "MP4 conversion failed — saved as WebM instead. Error: ")
+            + (err && err.message ? err.message : String(err)));
           outBlob = webmBlob; ext = "webm";
         }
       }
