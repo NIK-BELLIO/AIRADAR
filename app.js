@@ -83,7 +83,7 @@ const i18n = {
     vFormatLabel: "Format & export",
     vAspectLabel: "Aspect ratio",
     vDurationLabel: "Duration (seconds)",
-    vDurationNote: "Set any length you like. The clip is time-stretched to fill it — longer than the clip plays in slow motion, shorter speeds it up. It always runs once, start to finish, never freezing or repeating.",
+    vDurationNote: "Set any length you like. A shorter time simply trims the clip — it still plays at normal speed and ends early. A longer time slows the clip down so it stretches to fill the duration.",
     vFilterLabel: "Filter / grade",
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
@@ -3536,8 +3536,7 @@ function selectSlide(i) {
     if (introEd) introEd.hidden = true;
     if (fields) fields.classList.remove("vtab-hidden");
   }
-  const hl = $("#vsSlideHeadline"), du = $("#vsSlideDuration");
-  if (hl) hl.value = s.headline || "";
+  const du = $("#vsSlideDuration");
   if (du) du.value = s.duration || 4;
   // load this slide's own settings onto the controls
   if (s.settings) {
@@ -3583,9 +3582,8 @@ function renderSlideList() {
           ? "✨ " + (s.introMain
               ? escapeHtml(s.introMain)
               : (state.lang === "fa" ? "صحنه اینترو" : "Intro scene"))
-          : (s.isVideo ? "🎬" : "🖼") + " " + (s.headline
-              ? escapeHtml(s.headline)
-              : (state.lang === "fa" ? "بدون عنوان" : "Untitled"))}
+          : (s.isVideo ? "🎬" : "🖼") + " " +
+            (state.lang === "fa" ? `صحنه ${i + 1}` : `Scene ${i + 1}`)}
         <em>${s.duration}s</em>
       </span>
       <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
@@ -4913,24 +4911,31 @@ function drawStudioFrame(elapsed) {
   if (!media && !standaloneOverlay && !introSlide) return;
 
   // ── TIME-STRETCH (After Effects style time-remap) ──────────
-  // The video plays continuously via playbackRate so it never freezes.
-  // playbackRate is set so the whole clip spans the whole duration:
-  // duration longer than clip -> rate < 1 (slow motion);
-  // duration shorter -> rate > 1 (sped up).
+  // Playback-rate handling for the duration control:
+  //  • duration SHORTER than the clip  -> keep normal speed (rate = 1);
+  //    the clip plays from the start and is simply cut off at the span.
+  //    Reducing the time never changes the speed.
+  //  • duration LONGER than the clip   -> slow the clip down (rate < 1)
+  //    so it stretches to fill the longer span. Never sped up.
   if (media && media.tagName === "VIDEO" &&
       isFinite(media.duration) && media.duration > 0) {
     let span, clipLen = media.duration, targetT;
+    const localTime = vstudio.slides.length ? dsLocal : elapsed;
     if (vstudio.slides.length) {
       span = dsDur > 0 ? dsDur : clipLen;
-      targetT = dsDur > 0 ? (dsLocal / dsDur) * clipLen : 0;
     } else {
       span = Math.max(0.01, studioDuration());
-      targetT = (Math.min(elapsed, span) / span) * clipLen;
     }
-    // desired playback rate to fit the clip into the span
-    let rate = clipLen / span;
-    // browsers clamp playbackRate to roughly [0.0625, 16]
-    rate = Math.max(0.0625, Math.min(16, rate));
+    // rate is 1 unless the span is LONGER than the clip
+    let rate = span > clipLen ? clipLen / span : 1;
+    rate = Math.max(0.0625, Math.min(1, rate));
+    // playhead position: when stretching, map the span onto the clip;
+    // when at normal speed, the playhead just follows real elapsed time
+    if (rate < 1) {
+      targetT = (Math.min(localTime, span) / span) * clipLen;
+    } else {
+      targetT = Math.min(clipLen, localTime);
+    }
     if (media.playbackRate !== rate) {
       try { media.playbackRate = rate; } catch {}
     }
@@ -6127,11 +6132,6 @@ function bindEvents() {
       if (row) selectSlide(Number(row.dataset.slide));
     });
   }
-  on("#vsSlideHeadline", "input", (e) => {
-    const s = vstudio.slides[vstudio.activeSlide];
-    if (s) { s.headline = e.target.value; renderSlideList();
-      if (!vstudio.looping && vstudio.slides.length) drawStudioFrame(vstudio.position || 0); }
-  });
   on("#vsSlideDuration", "input", (e) => {
     const s = vstudio.slides[vstudio.activeSlide];
     if (s) { s.duration = Math.max(1, Math.min(30, Number(e.target.value) || 4));
