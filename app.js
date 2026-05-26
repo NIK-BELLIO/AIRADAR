@@ -3432,13 +3432,14 @@ function applyPreviewSize() {
   const valEl = $("#vsPreviewSizeVal");
   if (!canvas) return;
   const pct = slider ? Number(slider.value) : 100;
-  // cap BOTH dimensions so the canvas always fits inside the preview
-  // box at any aspect ratio — never force an explicit width that
-  // would overflow on portrait videos.
+  // Zoom = a uniform cap on the canvas. width auto + height auto keeps
+  // the aspect ratio locked, so the media is never stretched — it just
+  // scales. maxWidth caps the on-screen width; maxHeight (in vh) caps
+  // the height so tall clips don't overflow. Both scale by the same %.
   canvas.style.width = "auto";
   canvas.style.height = "auto";
   canvas.style.maxWidth = pct + "%";
-  canvas.style.maxHeight = pct + "%";
+  canvas.style.maxHeight = (pct / 100 * 68) + "vh";
   if (valEl) valEl.textContent = pct + "%";
 }
 
@@ -4668,9 +4669,12 @@ function drawStudioFrame(elapsed) {
   drawNewsBanner(ctx, W, H, elapsed, dsVal);
 
   // ----- text layers (with a readable backing plate) -----
-  const headline = slideHeadline !== null
-    ? slideHeadline
-    : (vsVal("#vsHeadline", "") || "").trim();
+  // The "Text layers → Headline" input always works. If it is empty AND
+  // slides are in use, fall back to the active slide's own headline.
+  const typedHeadline = (dsVal("#vsHeadline", "") || "").trim();
+  const headline = typedHeadline
+    ? typedHeadline
+    : (slideHeadline !== null ? slideHeadline : "");
   const sub = (dsVal("#vsSub", "") || "").trim();
   const cta = (dsVal("#vsCta", "") || "").trim();
   const pos = dsVal("#vsTextPos", "center");
