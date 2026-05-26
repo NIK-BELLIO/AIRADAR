@@ -5158,13 +5158,15 @@ function drawStudioFrame(elapsed) {
   const animElapsed = vstudio.slides.length
     ? dsLocal
     : Math.max(0, elapsed - introDur);
+  // total entrance ~1.1s — a touch quicker so it feels responsive
   const rawAll = (vstudio.looping || vstudio.rendering)
-    ? Math.min(1, Math.max(0, animElapsed / 1.5))
+    ? Math.min(1, Math.max(0, animElapsed / 1.1))
     : 1;
-  // box uses the first 50% of the timeline; text uses the last 65%
-  // (the small overlap keeps it feeling connected, not disjointed).
-  const rawBox  = Math.min(1, rawAll / 0.5);
-  const rawText = Math.min(1, Math.max(0, (rawAll - 0.35) / 0.65));
+  // the box leads, the text follows with a gentle overlap. The text now
+  // starts at 18% (not 35%) so there's no dead pause before it moves,
+  // and both run on a smooth eased curve.
+  const rawBox  = Math.min(1, rawAll / 0.55);
+  const rawText = Math.min(1, Math.max(0, (rawAll - 0.18) / 0.82));
   // when the text preset is "none", both box and text appear instantly
   const animOff = (textAnim === "none");
   const boxEase  = animOff ? 1 : vsEasePro(rawBox);
@@ -5184,15 +5186,18 @@ function drawStudioFrame(elapsed) {
     const dragY = vstudio.textDY * H;
     ctx.translate(dragX, dragY);
 
-    // text animation preset — controls how text enters
+    // text animation preset — controls how text enters.
+    // motion distances scale with the canvas (U) so the movement is
+    // clearly visible on any frame size, portrait or landscape.
+    const U = Math.min(W, H);
     let textAlpha = 1, slideX = 0, scaleT = 1;
     switch (textAnim) {
       case "none":      textAlpha = 1; break;
       case "fade":      textAlpha = tEase; break;
-      case "fade-up":   textAlpha = tEase; baseY += (1 - tEase) * 30; break;
-      case "fade-down": textAlpha = tEase; baseY -= (1 - tEase) * 30; break;
-      case "slide-left":  textAlpha = tEase; slideX = (1 - tEase) * W * 0.3; break;
-      case "slide-right": textAlpha = tEase; slideX = -(1 - tEase) * W * 0.3; break;
+      case "fade-up":   textAlpha = tEase; baseY += (1 - tEase) * U * 0.05; break;
+      case "fade-down": textAlpha = tEase; baseY -= (1 - tEase) * U * 0.05; break;
+      case "slide-left":  textAlpha = tEase; slideX = (1 - tEase) * W * 0.32; break;
+      case "slide-right": textAlpha = tEase; slideX = -(1 - tEase) * W * 0.32; break;
       case "pop":       textAlpha = tEase;
                         scaleT = 0.6 + 0.4 * (1 - Math.pow(1 - rawT, 2)) +
                                  Math.sin(rawT * Math.PI) * 0.08; break;
@@ -5202,12 +5207,12 @@ function drawStudioFrame(elapsed) {
       case "zoom-out":  textAlpha = tEase;
                         scaleT = 0.6 + 0.4 * tEase; break;
       case "bounce":    textAlpha = tEase;
-                        baseY += (1 - tEase) * 40 *
+                        baseY += (1 - tEase) * U * 0.07 *
                           Math.cos(rawT * Math.PI * 2.5) * (1 - rawT); break;
-      case "rise":      textAlpha = tEase; baseY += (1 - tEase) * 70; break;
+      case "rise":      textAlpha = tEase; baseY += (1 - tEase) * U * 0.11; break;
       case "blur-in":   textAlpha = tEase * tEase; break;
-      case "drop":      textAlpha = tEase; baseY -= (1 - tEase) * 70; break;
-      default:          textAlpha = tEase; baseY += (1 - tEase) * 30;
+      case "drop":      textAlpha = tEase; baseY -= (1 - tEase) * U * 0.11; break;
+      default:          textAlpha = tEase; baseY += (1 - tEase) * U * 0.05;
     }
     ctx.globalAlpha = textAlpha;
 
