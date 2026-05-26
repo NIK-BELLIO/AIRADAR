@@ -4614,7 +4614,10 @@ function drawStudioFrame(elapsed) {
   if (trans === "slide") offY += (1 - ease) * H * 0.12;
   if (trans === "fade")  alpha = ease;
 
-  const fit = Math.min(W / mw, H / mh) * zoom;
+  // COVER fit — the media fills the ENTIRE frame for the chosen aspect
+  // ratio. Math.max scales so the smaller side still covers the frame;
+  // overflow is cropped. One uniform `fit` factor → never stretched.
+  const fit = Math.max(W / mw, H / mh) * zoom;
   const dw = mw * fit, dh = mh * fit;
 
   ctx.save();
@@ -5384,6 +5387,20 @@ function bindEvents() {
   };
   on("#sidebarOpenBtn", "click", openSidebar);
   on("#sidebarBackdrop", "click", closeSidebar);
+
+  // scroll-to-top button — appears once the page is scrolled down
+  const scrollBtn = $("#scrollTopBtn");
+  if (scrollBtn) {
+    const toggleScrollBtn = () => {
+      if (window.scrollY > 480) scrollBtn.classList.add("show");
+      else scrollBtn.classList.remove("show");
+    };
+    window.addEventListener("scroll", toggleScrollBtn, { passive: true });
+    toggleScrollBtn();
+    scrollBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
   // tapping a nav link closes the mobile drawer
   document.querySelectorAll(".sidebar-nav a").forEach(a => {
     a.addEventListener("click", () => {
