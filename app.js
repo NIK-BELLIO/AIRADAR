@@ -5425,7 +5425,15 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   ctx.fillStyle = tpl.text;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.font = `600 ${Math.round(U * 0.072)}px ${tpl.headlineFont}`;
+  // auto-fit: start at the ideal size, then shrink until the text fits
+  // within 84% of the frame width so a long headline never runs off.
+  const maxTextW = W * 0.84;
+  let fontPx = Math.round(U * 0.072);
+  ctx.font = `600 ${fontPx}px ${tpl.headlineFont}`;
+  while (fontPx > U * 0.028 && ctx.measureText(txt).width > maxTextW) {
+    fontPx -= 2;
+    ctx.font = `600 ${fontPx}px ${tpl.headlineFont}`;
+  }
   if (clip < 1) {
     // line-reveal: clip to a growing centred box
     const tw = ctx.measureText(txt).width;
@@ -5470,7 +5478,13 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
     ctx.globalAlpha = Math.max(0, alpha) * e2;
     ctx.fillStyle = tpl.accent;
     ctx.textAlign = "center";
-    ctx.font = `400 ${Math.round(U * 0.032)}px Inter, sans-serif`;
+    // auto-fit the secondary text too
+    let subPx = Math.round(U * 0.032);
+    ctx.font = `400 ${subPx}px Inter, sans-serif`;
+    while (subPx > U * 0.016 && ctx.measureText(subTxt).width > W * 0.84) {
+      subPx -= 1;
+      ctx.font = `400 ${subPx}px Inter, sans-serif`;
+    }
     ctx.fillText(subTxt, cx, cy + U * 0.12 + (1 - e2) * U * 0.04);
     ctx.restore();
   }
