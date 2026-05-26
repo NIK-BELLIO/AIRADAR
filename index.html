@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v67" />
+    <link rel="stylesheet" href="styles.css?v=v68" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -258,8 +258,13 @@
               </div>
 
               <div class="vstudio-block" data-vtab-panel="template">
-                <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
-                <div id="templatePicker" class="template-picker"></div>
+                <details class="vs-template-collapse" open>
+                  <summary class="vs-template-summary">
+                    <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
+                    <span class="vs-template-current" id="vsTemplateCurrent"></span>
+                  </summary>
+                  <div id="templatePicker" class="template-picker"></div>
+                </details>
               </div>
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
@@ -551,11 +556,9 @@
                       <option value="4:5">4:5 — Portrait</option>
                     </select>
                   </label>
-                  <label><span data-i18n="vDurationLabel">Duration (seconds)</span>
-                    <input id="vsDuration" type="number" min="2" max="600" step="1" value="6" />
-                  </label>
                 </div>
-                <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, this is set to the clip's real length so it plays once, start to finish — no repeating.</p>
+                <input id="vsDuration" type="hidden" value="6" />
+                <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
                 <div class="control-grid">
                   <label><span data-i18n="vFilterLabel">Filter / grade</span>
                     <select id="vsFilter">
@@ -841,6 +844,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v67"></script>
+    <script src="app.js?v=v68"></script>
   </body>
 </html>
