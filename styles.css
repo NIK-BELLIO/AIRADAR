@@ -2483,9 +2483,9 @@ h1[data-i18n="heroTitle"] {
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: 300px;
-  height: 58vh;
-  max-height: 600px;
+  /* the box hugs the canvas — height follows the media's shape,
+     so there's no wasted black space around a wide or tall clip */
+  min-height: 260px;
   border: 1px solid rgba(216,183,106,0.2);
   border-radius: 12px;
   background: var(--surface);
@@ -2494,13 +2494,12 @@ h1[data-i18n="heroTitle"] {
 }
 .vs-preview canvas {
   display: block;
-  /* fit fully INSIDE the preview box on any aspect ratio —
-     scales down to fit both width and height, never overflows */
+  /* fill available width; cap height so a tall portrait clip can't
+     push the studio off-screen. Aspect ratio always preserved. */
   max-width: 100%;
-  max-height: 100%;
+  max-height: 68vh;
   width: auto;
   height: auto;
-  object-fit: contain;
   border-radius: 8px;
 }
 @media (max-width: 860px) {
