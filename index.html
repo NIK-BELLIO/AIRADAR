@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v71" />
+    <link rel="stylesheet" href="styles.css?v=v74" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -167,6 +167,13 @@
               <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
               <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
             </div>
+          </div>
+          <div class="chart-toolbar">
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
+              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
+              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
+            </div>
             <div class="chart-live-bar">
               <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
               <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
@@ -174,11 +181,6 @@
                 <span data-i18n="refreshLabel">Refresh</span>
               </button>
             </div>
-          </div>
-          <div class="chart-tabs">
-            <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
-            <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
-            <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
           </div>
           <div id="performanceChart" class="performance-chart"></div>
           <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
@@ -299,9 +301,16 @@
                       <select id="vsIntroMotionInput">
                         <option value="fade">Fade in</option>
                         <option value="rise">Rise up</option>
-                        <option value="slide">Slide in</option>
+                        <option value="drop">Drop down</option>
+                        <option value="slide">Slide from left</option>
+                        <option value="slide-r">Slide from right</option>
                         <option value="zoom">Zoom in</option>
+                        <option value="zoom-out">Zoom out</option>
                         <option value="reveal">Line reveal</option>
+                        <option value="blur">Blur in</option>
+                        <option value="expand">Letter expand</option>
+                        <option value="tilt">Tilt in</option>
+                        <option value="glide">Glide in</option>
                       </select>
                     </label>
                   </div>
@@ -872,6 +881,44 @@
               <p data-i18n="aboutProjectText">Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.</p>
             </article>
           </div>
+
+          <div class="changelog">
+            <div class="changelog-head">
+              <h3 data-i18n="changelogTitle">Latest updates</h3>
+              <span class="version-badge">v1.7.3</span>
+            </div>
+            <ul class="changelog-list">
+              <li>
+                <span class="changelog-ver">1.7</span>
+                <div>
+                  <strong data-i18n="cl17Title">Intro scenes &amp; richer motion</strong>
+                  <p data-i18n="cl17Text">New intro scene type in the Video Studio with 8 built-in backgrounds, dual animated text, and 12 motion presets. Scene-aware motion so every slide animates correctly.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.6</span>
+                <div>
+                  <strong data-i18n="cl16Title">Full sidebar &amp; cleaner UI</strong>
+                  <p data-i18n="cl16Text">Collapsible left sidebar navigation, redesigned chart and footer controls, a back-to-top button, and tighter mobile layouts throughout.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.5</span>
+                <div>
+                  <strong data-i18n="cl15Title">MP4 export &amp; real charts</strong>
+                  <p data-i18n="cl15Text">Video Studio now exports MP4. The infographic became a proper bar chart with a labelled axis, scale, and gridlines.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.4</span>
+                <div>
+                  <strong data-i18n="cl14Title">Bigger tool catalogue</strong>
+                  <p data-i18n="cl14Text">Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.</p>
+                </div>
+              </li>
+            </ul>
+            <p class="changelog-note" data-i18n="changelogNote">AI Radar is actively maintained. This list shows the most recent notable changes.</p>
+          </div>
         </section>
 
       </main>
@@ -882,6 +929,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v71"></script>
+    <script src="app.js?v=v74"></script>
   </body>
 </html>
