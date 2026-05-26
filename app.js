@@ -4338,11 +4338,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   const style = val("#vsInfoStyle", "bars");
   const pos = val("#vsInfoPos", "center");
   const motion = val("#vsInfoMotion", "fade");
-  // reveal progress while playing; fully shown when preview is paused
-  const reveal = (vstudio.looping || vstudio.rendering)
-    ? Math.min(1, elapsed / 1.2)
-    : 1;
-  const ease = vsEasePro(reveal);
+  // reveal progress while playing; fully shown when preview is paused.
+  // The BOX animates in first (its own motion), then the CONTENT inside
+  // (title, bars, numbers) fades/rises in after — a two-stage reveal.
+  const playing = (vstudio.looping || vstudio.rendering);
+  const rawAll = playing ? Math.min(1, elapsed / 1.4) : 1;
+  const boxRaw = Math.min(1, rawAll / 0.55);                     // box: first 55%
+  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.4) / 0.6)); // content: last 60%
+  const ease = vsEasePro(boxRaw);          // drives the box entrance
+  const contentEase = vsEasePro(contentRaw); // drives the inner content
 
   // ── ASPECT-SAFE SIZING ─────────────────────────────────────
   // The panel must stay a readable card on ANY frame shape (wide,
@@ -4408,7 +4412,10 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   ctx.lineWidth = Math.max(1, U * 0.0012);
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
   ctx.stroke();
-  const accentW = panelW * 0.14 * ease;
+  // ── inner CONTENT — fades in after the box (contentEase) ──
+  ctx.save();
+  ctx.globalAlpha = mAlpha * contentEase;
+  const accentW = panelW * 0.14 * contentEase;
   ctx.fillStyle = ig.accent;
   ctx.fillRect(px + panelW * 0.09, py + panelH * 0.085, accentW, H * 0.006);
 
@@ -4478,8 +4485,9 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   }
 
   stats.forEach((s, i) => {
+    // bar rows reveal AFTER the box has animated in, staggered per row
     const rowReveal = (vstudio.looping || vstudio.rendering)
-      ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.18) / 0.7))
+      ? Math.min(1, Math.max(0, (elapsed - 0.6 - i * 0.16) / 0.6))
       : 1;
     const re = 1 - Math.pow(1 - rowReveal, 3);
     const ry = cy + i * rowH;
@@ -4619,7 +4627,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       "Inter, sans-serif", Math.round(U * 0.0125), Math.round(U * 0.009));
     ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.028);
   }
-  ctx.restore();
+  ctx.restore();   // end inner content layer
+  ctx.restore();   // end outer entrance transform
 }
 
 // A butterfly that flies a gentle path with flapping wings.
