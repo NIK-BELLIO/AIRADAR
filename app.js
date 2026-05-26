@@ -15,6 +15,13 @@ const i18n = {
     vSlidesLabel: "Slide sequence",
     vSlidesHint: "Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.",
     vAddSlide: "+ Add slide (upload media)",
+    vAddIntro: "+ Add intro scene",
+    vIntroSceneLabel: "Intro scene settings",
+    vIntroSceneHint: "Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.",
+    vIntroBgLabel: "Background",
+    vIntroMainLabel: "Main text",
+    vIntroSubInput2: "Secondary text",
+    vIntroMotion2: "Text motion",
     vSlideHeadline: "Slide headline",
     vSlideDuration: "Slide duration (s)",
     vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
@@ -94,7 +101,9 @@ const i18n = {
     vTextAutoNote: "Text sits on an automatic dark panel, so it stays readable on any photo or video.",
     vLogoLabel: "Logo & cards",
     vLogoPosLabel: "Logo position",
-    vIntroLabel: "Intro card text",
+    vIntroLabel: "Intro — main text",
+    vIntroSubLabel: "Intro — secondary text",
+    vIntroMotionLabel: "Intro text motion",
     vOutroLabel: "Outro card text",
     vPreviewBtn: "Preview",
     vExportBtn: "Export video",
@@ -157,6 +166,11 @@ const i18n = {
     clearCompare: "Clear",
     performanceEyebrow: "Live GitHub data",
     performanceTitle: "Live AI tools trend",
+    liveLabel: "Live",
+    refreshLabel: "Refresh",
+    chartTabStars: "GitHub Stars",
+    chartTabForks: "Forks",
+    chartTabActivity: "Dev Activity",
     performanceText: "A live chart of real GitHub popularity for every AI tool in the finder. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
     mediaEyebrow: "Media caption generator",
     mediaTitle: "Caption your photo or video for social media",
@@ -261,6 +275,13 @@ const i18n = {
     vSlidesLabel: "دنباله اسلاید",
     vSlidesHint: "چند اسلاید اضافه کن — هرکدام با رسانه، عنوان و مدت خودش. پشت سر هم به‌صورت یک ویدیو پخش می‌شوند.",
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
+    vAddIntro: "+ افزودن صحنه اینترو",
+    vIntroSceneLabel: "تنظیمات صحنه اینترو",
+    vIntroSceneHint: "در حال ویرایش صحنه اینتروی انتخاب‌شده — یک پس‌زمینه انتخاب کن، دو خط متن بنویس و حرکت ورود متن را انتخاب کن.",
+    vIntroBgLabel: "پس‌زمینه",
+    vIntroMainLabel: "متن اصلی",
+    vIntroSubInput2: "متن فرعی",
+    vIntroMotion2: "حرکت متن",
     vSlideHeadline: "عنوان اسلاید",
     vSlideDuration: "مدت اسلاید (ثانیه)",
     vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
@@ -340,7 +361,9 @@ const i18n = {
     vTextAutoNote: "متن روی یک پنل تیره خودکار قرار می‌گیرد تا روی هر عکس یا ویدیویی خوانا بماند.",
     vLogoLabel: "۵ · لوگو و کارت‌ها",
     vLogoPosLabel: "موقعیت لوگو",
-    vIntroLabel: "متن کارت اینترو",
+    vIntroLabel: "اینترو — متن اصلی",
+    vIntroSubLabel: "اینترو — متن فرعی",
+    vIntroMotionLabel: "حرکت متن اینترو",
     vOutroLabel: "متن کارت اوترو",
     vPreviewBtn: "پیش‌نمایش",
     vExportBtn: "خروجی ویدیو",
@@ -403,6 +426,11 @@ const i18n = {
     clearCompare: "پاک کردن",
     performanceEyebrow: "داده زنده گیت‌هاب",
     performanceTitle: "ترند زنده ابزارهای AI",
+    liveLabel: "زنده",
+    refreshLabel: "تازه‌سازی",
+    chartTabStars: "ستاره‌های گیت‌هاب",
+    chartTabForks: "فورک‌ها",
+    chartTabActivity: "فعالیت توسعه",
     performanceText: "نمودار زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
     mediaEyebrow: "تولید کپشن رسانه",
     mediaTitle: "برای عکس یا ویدیوی خود کپشن شبکه اجتماعی بساز",
@@ -2758,6 +2786,8 @@ async function fetchRepoStats(repo) {
 async function fetchLiveChartData() {
   if (isFetchingLive) return;
   isFetchingLive = true;
+  const refreshBtn = document.getElementById("refreshChartBtn");
+  if (refreshBtn) refreshBtn.classList.add("loading");
   setRefreshLabel("Fetching live GitHub data…");
 
   const withRepos = tools.filter(t => t.repo);
@@ -2813,6 +2843,7 @@ async function fetchLiveChartData() {
     setRefreshLabel("Could not reach GitHub — check your connection");
   }
   isFetchingLive = false;
+  if (refreshBtn) refreshBtn.classList.remove("loading");
 }
 
 // ── LIVE CHART (flat bar chart, real GitHub data) ─────────
@@ -2894,6 +2925,124 @@ function renderLiveChart() {
 // choose aspect ratio / filter / transition / speed / music,
 // add intro & outro cards, preview at any size, and export a
 // real .webm. Fully local — no uploads, no API.
+// ── BUILT-IN INTRO BACKGROUNDS ─────────────────────────────
+// Code-drawn backgrounds for intro scenes — crisp at any resolution.
+// Different shapes and moods, all in the minimal / luxury style.
+const introBackgrounds = [
+  { id: "noir-gradient", name: { en: "Noir Gradient", fa: "گرادیان نوآر" },
+    c1: "#0a0a0c", c2: "#1c1814", accent: "#d8b76a" },
+  { id: "gold-rings",    name: { en: "Gold Rings", fa: "حلقه‌های طلایی" },
+    c1: "#080706", c2: "#14110b", accent: "#d8b76a" },
+  { id: "diagonal",      name: { en: "Diagonal Cut", fa: "برش مورب" },
+    c1: "#0c0b14", c2: "#1a1830", accent: "#8aa6d8" },
+  { id: "spotlight",     name: { en: "Spotlight", fa: "نورافکن" },
+    c1: "#060606", c2: "#1a1a1a", accent: "#ffffff" },
+  { id: "emerald-soft",  name: { en: "Emerald Soft", fa: "زمردی ملایم" },
+    c1: "#05140e", c2: "#0d2a1e", accent: "#d8b76a" },
+  { id: "ivory-clean",   name: { en: "Ivory Clean", fa: "عاجی تمیز" },
+    c1: "#f4f1ea", c2: "#e6e0d2", accent: "#1a1a1a" },
+  { id: "wave",          name: { en: "Soft Waves", fa: "موج‌های نرم" },
+    c1: "#0a0612", c2: "#1c1430", accent: "#c8a24a" },
+  { id: "grid-lux",      name: { en: "Lux Grid", fa: "شبکه لوکس" },
+    c1: "#0b0b0d", c2: "#15151a", accent: "#d6dae0" }
+];
+
+// Draw a chosen intro background. `t` is elapsed seconds for subtle motion.
+function drawIntroBackground(ctx, W, H, bgId, t) {
+  const bg = introBackgrounds.find(b => b.id === bgId) || introBackgrounds[0];
+  const U = Math.min(W, H);
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, bg.c1);
+  g.addColorStop(1, bg.c2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  switch (bg.id) {
+    case "gold-rings": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.18;
+      for (let i = 1; i <= 5; i++) {
+        ctx.lineWidth = U * 0.004;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, U * (0.12 * i + 0.02 * Math.sin(t * 0.6 + i)), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "diagonal": {
+      ctx.fillStyle = bg.accent;
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.lineTo(W * 0.7, 0);
+      ctx.lineTo(W, 0);
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "spotlight": {
+      const r = ctx.createRadialGradient(
+        W / 2, H * 0.42, U * 0.05, W / 2, H * 0.42, U * 0.75);
+      r.addColorStop(0, "rgba(255,255,255,0.16)");
+      r.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "emerald-soft": {
+      const r = ctx.createRadialGradient(
+        W * 0.7, H * 0.3, U * 0.05, W * 0.7, H * 0.3, U * 0.9);
+      r.addColorStop(0, "rgba(216,183,106,0.14)");
+      r.addColorStop(1, "rgba(216,183,106,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "wave": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.16;
+      ctx.lineWidth = U * 0.004;
+      for (let w = 0; w < 4; w++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 12) {
+          const y = H * (0.3 + w * 0.16)
+            + Math.sin(x * 0.008 + t * 0.8 + w) * U * 0.04;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "grid-lux": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.07;
+      ctx.lineWidth = 1;
+      const step = U * 0.1;
+      for (let x = step; x < W; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = step; y < H; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      break;
+    }
+    case "ivory-clean": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.08;
+      ctx.lineWidth = U * 0.003;
+      ctx.beginPath();
+      ctx.arc(W * 0.82, H * 0.2, U * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    default: break;
+  }
+  ctx.restore();
+  return bg;
+}
+
 const videoTemplates = [
   {
     id: "noir",
@@ -3102,6 +3251,58 @@ function setVideoTemplate(id) {
   if (vstudio.mediaEl) drawStudioFrame(0);
 }
 
+// Render the background picker for the active intro slide.
+function renderIntroBgPicker(slide) {
+  const wrap = $("#vsIntroBgPicker");
+  if (!wrap || !slide) return;
+  wrap.innerHTML = introBackgrounds.map(bg => `
+    <button type="button" class="intro-bg-card ${bg.id === slide.introBg ? "selected" : ""}"
+      data-introbg="${bg.id}" title="${text(bg.name)}">
+      <span class="intro-bg-swatch"
+        style="background:linear-gradient(135deg,${bg.c1},${bg.c2});border-color:${bg.accent}"></span>
+      <small>${text(bg.name)}</small>
+    </button>
+  `).join("");
+}
+
+// Wire the intro-editor controls (called once from bindEvents).
+function bindIntroEditor() {
+  const pick = $("#vsIntroBgPicker");
+  if (pick) {
+    pick.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-introbg]");
+      if (!btn) return;
+      const s = vstudio.slides[vstudio.activeSlide];
+      if (!s || !s.isIntro) return;
+      s.introBg = btn.dataset.introbg;
+      renderIntroBgPicker(s);
+      drawStudioFrame(vstudio.position || 0);
+    });
+  }
+  const onIntroInput = () => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (!s || !s.isIntro) return;
+    const mi = $("#vsIntroMainInput"), si = $("#vsIntroSubInput"),
+          moi = $("#vsIntroMotionInput");
+    if (mi) s.introMain = mi.value;
+    if (si) s.introSub = si.value;
+    if (moi) s.introMotion = moi.value;
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
+  };
+  ["#vsIntroMainInput", "#vsIntroSubInput"].forEach(sel => {
+    const el = $(sel);
+    if (el) el.addEventListener("input", onIntroInput);
+  });
+  const moi = $("#vsIntroMotionInput");
+  if (moi) moi.addEventListener("change", onIntroInput);
+  const addBtn = $("#vsAddIntroBtn");
+  if (addBtn) addBtn.addEventListener("click", () => {
+    addIntroSlide();
+    selectSlide(vstudio.slides.length - 1);
+  });
+}
+
 // Compute the canvas size from the chosen aspect ratio.
 function vsCanvasSize(targetLongEdge) {
   const aspect = vsVal("#vsAspect", "original");
@@ -3135,6 +3336,31 @@ function vsCanvasSize(targetLongEdge) {
 // When slides exist, the preview/export plays through them in order.
 
 // Load a media file and add it as a new slide.
+// Add an INTRO scene — no uploaded media; it uses a built-in background
+// plus dual animated text. It behaves like any other slide otherwise.
+function addIntroSlide() {
+  vsSaveActiveSlide();
+  const slide = {
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true,
+    introBg: introBackgrounds[0].id,
+    introMain: "AI Radar presents",
+    introSub: "A new standard of calm",
+    introMotion: "rise",
+    headline: "", duration: 3,
+    settings: vsCaptureSettings()
+  };
+  vstudio.slides.push(slide);
+  renderSlideList();
+  // an intro scene needs a canvas even with no uploaded media
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  if (vstudio.slides.length === 1) selectSlide(0);
+  drawStudioFrame(0);
+  vsStatus(state.lang === "fa"
+    ? `صحنه اینترو اضافه شد.`
+    : `Intro scene added.`);
+}
+
 function addStudioSlide(file) {
   if (!file) return;
   // save the slide currently being edited before creating a new one
@@ -3197,7 +3423,24 @@ function selectSlide(i) {
   const s = vstudio.slides[i];
   const fields = $("#vsSlideOnlyFields");
   if (!s) return;
-  if (fields) fields.classList.remove("vtab-hidden");
+  // intro slides get their own editor; normal slides get the media fields
+  const introEd = $("#vsIntroEditor");
+  if (s.isIntro) {
+    if (introEd) {
+      introEd.hidden = false;
+      introEd.open = true;
+      renderIntroBgPicker(s);
+      const mi = $("#vsIntroMainInput"), si = $("#vsIntroSubInput"),
+            moi = $("#vsIntroMotionInput");
+      if (mi) mi.value = s.introMain || "";
+      if (si) si.value = s.introSub || "";
+      if (moi) moi.value = s.introMotion || "rise";
+    }
+    if (fields) fields.classList.add("vtab-hidden");
+  } else {
+    if (introEd) introEd.hidden = true;
+    if (fields) fields.classList.remove("vtab-hidden");
+  }
   const hl = $("#vsSlideHeadline"), du = $("#vsSlideDuration");
   if (hl) hl.value = s.headline || "";
   if (du) du.value = s.duration || 4;
@@ -3241,9 +3484,13 @@ function renderSlideList() {
     <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
       <span class="vs-slide-num">${i + 1}</span>
       <span class="vs-slide-info">
-        ${s.isVideo ? "🎬" : "🖼"} ${s.headline
-          ? escapeHtml(s.headline)
-          : (state.lang === "fa" ? "بدون عنوان" : "Untitled")}
+        ${s.isIntro
+          ? "✨ " + (s.introMain
+              ? escapeHtml(s.introMain)
+              : (state.lang === "fa" ? "صحنه اینترو" : "Intro scene"))
+          : (s.isVideo ? "🎬" : "🖼") + " " + (s.headline
+              ? escapeHtml(s.headline)
+              : (state.lang === "fa" ? "بدون عنوان" : "Untitled"))}
         <em>${s.duration}s</em>
       </span>
       <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
@@ -3533,7 +3780,7 @@ const VS_SLIDE_CONTROLS = [
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
   "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
-  "#vsIntro", "#vsOutro"
+  "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro"
 ];
 
 // Read the current control values into a settings object.
@@ -4528,24 +4775,30 @@ function drawStudioFrame(elapsed) {
   let slideHeadline = null;
   let dsSettings = null;          // settings of the slide being displayed
   let dsLocal = 0, dsDur = 0;     // local time within that slide
+  let introSlide = null;          // the active intro slide, if any
   if (vstudio.slides.length) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
     if (slide && slide.ready) {
-      media = slide.mediaEl;
-      slideHeadline = slide.headline || "";
+      if (slide.isIntro) {
+        introSlide = slide;
+      } else {
+        media = slide.mediaEl;
+        slideHeadline = slide.headline || "";
+      }
       // the active slide being edited reads LIVE controls; others read saved
       dsSettings = (at.index === vstudio.activeSlide) ? null : slide.settings;
     }
   }
+
   // Decide whether we can render at all. Normally media is required, but the
   // infographic (and news banner) can stand on their own coloured background.
   const infoOnEl = $("#vsInfoOn");
   const newsOnEl = $("#vsNewsOn");
   const standaloneOverlay =
     (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
-  if (!media && !standaloneOverlay) return;
+  if (!media && !standaloneOverlay && !introSlide) return;
 
   // ── TIME-STRETCH (After Effects style time-remap) ──────────
   // The video plays continuously via playbackRate so it never freezes.
@@ -4587,6 +4840,27 @@ function drawStudioFrame(elapsed) {
   const W = canvas.width, H = canvas.height;
   const tpl = vsTemplate();
 
+  // ── INTRO SLIDE — self-contained background + dual animated text ──
+  if (introSlide) {
+    drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
+    // entrance progress over the first ~60% of the scene; when the
+    // preview is paused/static, show the text fully so it's visible.
+    const playing = vstudio.looping || vstudio.rendering;
+    const k = !playing ? 1
+      : (dsDur > 0 ? Math.min(1, dsLocal / (dsDur * 0.6)) : 1);
+    const bg = introBackgrounds.find(b => b.id === introSlide.introBg)
+      || introBackgrounds[0];
+    const introTpl = {
+      text: bg.id === "ivory-clean" ? "#1a1a1a" : "#ffffff",
+      accent: bg.accent,
+      headlineFont: "Prata, serif"
+    };
+    drawCard(ctx, W, H, introTpl,
+      introSlide.introMain || "", 1,
+      introSlide.introSub || "", introSlide.introMotion || "rise", k);
+    return;
+  }
+
   // when there is no media, paint a template-coloured backdrop so the
   // infographic / news banner has something to sit on.
   if (!media) {
@@ -4609,24 +4883,30 @@ function drawStudioFrame(elapsed) {
   const progress = Math.min(1, elapsed / duration);
 
   const introText = (dsVal("#vsIntro", "") || "").trim();
+  const introSub = (dsVal("#vsIntroSub", "") || "").trim();
+  const introMotion = dsVal("#vsIntroMotion", "fade");
   const outroText = (dsVal("#vsOutro", "") || "").trim();
-  const introDur = introText ? 1.1 : 0;
+  const introDur = introText ? 1.6 : 0;
   const outroDur = outroText ? 1.1 : 0;
 
   // background
   ctx.fillStyle = tpl.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ----- intro card -----
+  // ----- intro card — dual text with entrance motion -----
   if (introText && elapsed < introDur) {
     const k = elapsed / introDur;
-    drawCard(ctx, W, H, tpl, introText, 1 - Math.abs(k - 0.5) * 2);
+    // fade: in over first 35%, hold, out over last 20%
+    const fade = k < 0.35 ? k / 0.35 : k > 0.8 ? (1 - k) / 0.2 : 1;
+    // entrance progress drives the motion (completes by 55% of the card)
+    const prog = Math.min(1, k / 0.55);
+    drawCard(ctx, W, H, tpl, introText, fade, introSub, introMotion, prog);
     return;
   }
   // ----- outro card -----
   if (outroText && elapsed > duration - outroDur) {
     const k = (elapsed - (duration - outroDur)) / outroDur;
-    drawCard(ctx, W, H, tpl, outroText, 1 - Math.abs(k - 0.5) * 2);
+    drawCard(ctx, W, H, tpl, outroText, 1 - Math.abs(k - 0.5) * 2, "", "fade", k * 2);
     return;
   }
 
@@ -4959,20 +5239,63 @@ function drawStudioFrame(elapsed) {
 }
 
 // Draw a centred intro/outro card.
-function drawCard(ctx, W, H, tpl, txt, alpha) {
+function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
+  // `prog` 0..1 is the entrance progress; `motion` picks the animation.
+  // `alpha` is the overall card fade (in then out).
   ctx.save();
   ctx.globalAlpha = Math.max(0, alpha);
+  const U = Math.min(W, H);
+  const cx = W / 2, cy = H / 2;
+  // eased entrance
+  const e = prog == null ? 1 : (1 - Math.pow(1 - Math.max(0, Math.min(1, prog)), 3));
+  // per-motion offset / scale for the MAIN text
+  let dx = 0, dy = 0, sc = 1, clip = 1;
+  switch (motion) {
+    case "rise":   dy = (1 - e) * U * 0.16; break;
+    case "slide":  dx = -(1 - e) * W * 0.3; break;
+    case "zoom":   sc = 0.7 + e * 0.3; break;
+    case "reveal": clip = e; break;          // wipe the text in
+    default:       break;                    // "fade" — alpha only
+  }
+
+  // main text
+  ctx.save();
+  ctx.translate(cx + dx, cy + dy);
+  ctx.scale(sc, sc);
   ctx.fillStyle = tpl.text;
   ctx.textAlign = "center";
-  ctx.font = `600 ${Math.round(W * 0.05)}px ${tpl.headlineFont}`;
-  ctx.fillText(txt, W / 2, H / 2);
-  const lw = W * 0.1 * Math.max(0, alpha);
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `600 ${Math.round(U * 0.072)}px ${tpl.headlineFont}`;
+  if (clip < 1) {
+    // line-reveal: clip to a growing centred box
+    const tw = ctx.measureText(txt).width;
+    ctx.beginPath();
+    ctx.rect(-tw / 2, -U * 0.12, tw * clip, U * 0.2);
+    ctx.clip();
+  }
+  ctx.fillText(txt, 0, 0);
+  ctx.restore();
+
+  // accent divider line
+  const lw = U * 0.14 * e;
   ctx.strokeStyle = tpl.accent;
-  ctx.lineWidth = Math.max(1, W * 0.002);
+  ctx.lineWidth = Math.max(1, U * 0.003);
   ctx.beginPath();
-  ctx.moveTo(W / 2 - lw / 2, H / 2 + W * 0.04);
-  ctx.lineTo(W / 2 + lw / 2, H / 2 + W * 0.04);
+  ctx.moveTo(cx - lw / 2, cy + U * 0.055);
+  ctx.lineTo(cx + lw / 2, cy + U * 0.055);
   ctx.stroke();
+
+  // secondary text — fades in slightly after the main text
+  if (subTxt) {
+    const e2 = 1 - Math.pow(1 - Math.max(0, Math.min(1, (prog == null ? 1 : prog) * 1.4 - 0.4)), 3);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha) * e2;
+    ctx.fillStyle = tpl.accent;
+    ctx.textAlign = "center";
+    ctx.font = `400 ${Math.round(U * 0.032)}px Inter, sans-serif`;
+    ctx.fillText(subTxt, cx, cy + U * 0.12 + (1 - e2) * U * 0.04);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -5097,7 +5420,7 @@ const VS_CONTROLS = [
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
-  "#vsLogoPos", "#vsIntro", "#vsOutro",
+  "#vsLogoPos", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
   "#vsExportSize", "#vsExportQuality"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
@@ -5166,7 +5489,7 @@ function refreshTimelineClips() {
     if (el) el.classList.toggle("is-active", !!has);
   };
   set("#vsClipMedia", vstudio.mediaEl);
-  const hasText = ["#vsHeadline", "#vsSub", "#vsCta", "#vsIntro", "#vsOutro"]
+  const hasText = ["#vsHeadline", "#vsSub", "#vsCta", "#vsIntro", "#vsIntroSub", "#vsOutro"]
     .some(s => (vsVal(s, "") || "").trim());
   set("#vsClipText", hasText);
   set("#vsClipLogo", vstudio.logoEl);
@@ -5952,7 +6275,7 @@ function bindEvents() {
     "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
     "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
-    "#vsIntro", "#vsOutro", "#vsLogoPos"
+    "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro", "#vsLogoPos"
   ];
   const vsRefresh = () => {
     refreshTimelineClips();
@@ -6042,6 +6365,7 @@ applyTheme(localStorage.getItem("theme") || "dark");
 renderModelsTicker();
 startHeroMotion();
 renderTemplatePicker();
+bindIntroEditor();
 fetchLiveChartData();
 setLanguage(state.lang);
 
