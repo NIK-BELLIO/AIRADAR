@@ -3063,6 +3063,68 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
   return bg;
 }
 
+// Animated foreground graphics for intro scenes — drawn over the
+// background to add richness and motion: floating motes, a slow light
+// sweep, and refined corner accents. `prog` 0..1 is the entrance.
+function drawIntroGraphics(ctx, W, H, bg, t, prog) {
+  const U = Math.min(W, H);
+  const e = Math.max(0, Math.min(1, prog == null ? 1 : prog));
+  ctx.save();
+
+  // 1) slow diagonal light sweep
+  const sweepX = (((t * 0.06) % 1.6) - 0.3) * W;
+  const grad = ctx.createLinearGradient(sweepX, 0, sweepX + W * 0.4, H);
+  grad.addColorStop(0, "rgba(255,255,255,0)");
+  grad.addColorStop(0.5, `rgba(255,255,255,${0.05 * e})`);
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2) floating motes — soft drifting particles
+  const motes = 18;
+  for (let i = 0; i < motes; i++) {
+    const seed = i * 137.5;
+    const px = ((Math.sin(seed) * 0.5 + 0.5) * W
+      + Math.sin(t * 0.3 + i) * U * 0.04);
+    const py = (((Math.cos(seed * 1.3) * 0.5 + 0.5) * H
+      + t * U * 0.012 * (0.5 + (i % 3) * 0.3)) % H);
+    const r = U * (0.0015 + (i % 4) * 0.0011);
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(216,183,106,${0.32 * e})`;
+    ctx.fill();
+  }
+
+  // 3) refined corner accents — thin gold L-brackets that draw in
+  const m = U * 0.08;
+  const len = U * 0.07 * e;
+  ctx.strokeStyle = bg.accent;
+  ctx.globalAlpha = 0.55 * e;
+  ctx.lineWidth = Math.max(1, U * 0.0035);
+  const corner = (cx, cy, sx, sy) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + sy * len);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx + sx * len, cy);
+    ctx.stroke();
+  };
+  corner(m, m, 1, 1);
+  corner(W - m, m, -1, 1);
+  corner(m, H - m, 1, -1);
+  corner(W - m, H - m, -1, -1);
+
+  // 4) a soft vignette to focus the centre
+  const vg = ctx.createRadialGradient(
+    W / 2, H / 2, U * 0.3, W / 2, H / 2, U * 0.85);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, `rgba(0,0,0,${bg.id === "ivory-clean" ? 0.06 : 0.34})`);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.restore();
+}
+
 const videoTemplates = [
   {
     id: "noir",
@@ -4870,6 +4932,8 @@ function drawStudioFrame(elapsed) {
       : (dsDur > 0 ? Math.min(1, dsLocal / (dsDur * 0.6)) : 1);
     const bg = introBackgrounds.find(b => b.id === introSlide.introBg)
       || introBackgrounds[0];
+    // animated graphics layer — motes, light sweep, corner accents
+    drawIntroGraphics(ctx, W, H, bg, elapsed, k);
     const introTpl = {
       text: bg.id === "ivory-clean" ? "#1a1a1a" : "#ffffff",
       accent: bg.accent,
@@ -5367,6 +5431,25 @@ function studioDuration() {
     : Math.max(2, Number(vsVal("#vsDuration", 6)));
 }
 
+// Fade the background music: a short fade-IN at the start and a
+// fade-OUT over the last ~1.5s so the scene ends gracefully.
+function vsApplyMusicFade(elapsed, duration) {
+  const m = vstudio.musicEl;
+  if (!m) return;
+  const fadeIn = 0.6;
+  const fadeOut = Math.min(1.5, duration * 0.25);
+  let vol = 1;
+  if (elapsed < fadeIn) {
+    vol = elapsed / fadeIn;
+  } else if (elapsed > duration - fadeOut) {
+    vol = Math.max(0, (duration - elapsed) / fadeOut);
+  }
+  // respect a user music-volume setting if one exists
+  const base = Number(vsVal("#vsMusicVolume", 1));
+  try { m.volume = Math.max(0, Math.min(1, vol * (isNaN(base) ? 1 : base))); }
+  catch {}
+}
+
 function previewStudioVideo(fromStart) {
   // works with media, a slide sequence, OR a standalone infographic/news
   const hasSlides = vstudio.slides.some(s => s.ready);
@@ -5433,6 +5516,7 @@ function previewStudioVideo(fromStart) {
     }
     vstudio.position = elapsed;          // remember where we are
     drawStudioFrame(elapsed);
+    vsApplyMusicFade(elapsed, duration);
     updateTimeline(elapsed, duration);
     vstudio.rafId = requestAnimationFrame(loop);
   };
@@ -5788,6 +5872,7 @@ async function exportStudioVideo() {
     const loop = () => {
       const elapsed = (performance.now() - vstudio.startTime) / 1000;
       drawStudioFrame(elapsed);
+      vsApplyMusicFade(elapsed, duration);
       if (elapsed < duration) {
         vstudio.rafId = requestAnimationFrame(loop);
       } else {
