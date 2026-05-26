@@ -2957,6 +2957,69 @@ const videoTemplates = [
     desc: { en: "Deep green, organic and grounded", fa: "سبز عمیق، طبیعی و آرام" },
     bg: "#0a140d", accent: "#9ccc8f", text: "#e8f3e4",
     headlineFont: "Prata, serif", vignette: 0.42
+  },
+  {
+    id: "platinum",
+    name: { en: "Platinum", fa: "پلاتین" },
+    desc: { en: "Cool silver on charcoal, luxury minimal", fa: "نقره‌ای سرد روی زغالی، لوکس و مینیمال" },
+    bg: "#101114", accent: "#d6dae0", text: "#f4f6f8",
+    headlineFont: "Prata, serif", vignette: 0.38
+  },
+  {
+    id: "champagne",
+    name: { en: "Champagne", fa: "شامپاین" },
+    desc: { en: "Soft cream and rose gold, elegant", fa: "کرم نرم و رزگلد، شیک" },
+    bg: "#161210", accent: "#e8c9a0", text: "#f7ead9",
+    headlineFont: "Prata, serif", vignette: 0.4
+  },
+  {
+    id: "obsidian",
+    name: { en: "Obsidian", fa: "اوبسیدین" },
+    desc: { en: "Pure black, single gold accent", fa: "مشکی خالص، تنها یک تأکید طلایی" },
+    bg: "#000000", accent: "#c8a24a", text: "#ffffff",
+    headlineFont: "Prata, serif", vignette: 0.6
+  },
+  {
+    id: "porcelain",
+    name: { en: "Porcelain", fa: "چینی" },
+    desc: { en: "Clean off-white, quiet and minimal", fa: "سفید ملایم، آرام و مینیمال" },
+    bg: "#f0ede6", accent: "#2a2a28", text: "#1c1c1a",
+    headlineFont: "Inter, sans-serif", vignette: 0.1
+  },
+  {
+    id: "midnight",
+    name: { en: "Midnight Blue", fa: "آبی نیمه‌شب" },
+    desc: { en: "Deep navy with a cool sheen", fa: "سرمه‌ای عمیق با درخشش سرد" },
+    bg: "#070b18", accent: "#8aa6d8", text: "#e6ecf8",
+    headlineFont: "Prata, serif", vignette: 0.44
+  },
+  {
+    id: "marble",
+    name: { en: "Marble", fa: "مرمر" },
+    desc: { en: "Soft grey-white, refined and airy", fa: "خاکستری-سفید نرم، ظریف و سبک" },
+    bg: "#e9e9ec", accent: "#3a3a40", text: "#222226",
+    headlineFont: "Prata, serif", vignette: 0.12
+  },
+  {
+    id: "emerald",
+    name: { en: "Emerald Luxe", fa: "زمرد لوکس" },
+    desc: { en: "Rich emerald with gold detail", fa: "زمردی غنی با جزئیات طلایی" },
+    bg: "#06140f", accent: "#d8b76a", text: "#e9f5ee",
+    headlineFont: "Prata, serif", vignette: 0.46
+  },
+  {
+    id: "sand",
+    name: { en: "Sand Minimal", fa: "مینیمال شنی" },
+    desc: { en: "Warm beige, calm and understated", fa: "بژ گرم، آرام و ساده" },
+    bg: "#e8e0d2", accent: "#5a4a36", text: "#2e271c",
+    headlineFont: "Inter, sans-serif", vignette: 0.12
+  },
+  {
+    id: "ruby",
+    name: { en: "Ruby Noir", fa: "نوآر یاقوتی" },
+    desc: { en: "Deep wine red, dramatic and bold", fa: "قرمز شرابی عمیق، دراماتیک" },
+    bg: "#140608", accent: "#e0a0a8", text: "#f7e4e6",
+    headlineFont: "Prata, serif", vignette: 0.5
   }
 ];
 
@@ -3018,14 +3081,19 @@ function renderTemplatePicker() {
   const wrap = $("#templatePicker");
   if (!wrap) return;
   wrap.innerHTML = videoTemplates.map(tpl => `
-    <button type="button" class="template-card ${tpl.id === vstudio.templateId ? "selected" : ""}" data-template="${tpl.id}">
+    <button type="button" class="template-card ${tpl.id === vstudio.templateId ? "selected" : ""}" data-template="${tpl.id}" title="${text(tpl.name)} — ${text(tpl.desc)}">
       <span class="template-swatch" style="background:${tpl.bg};border-color:${tpl.accent}">
         <span style="background:${tpl.accent}"></span>
       </span>
       <strong>${text(tpl.name)}</strong>
-      <small>${text(tpl.desc)}</small>
     </button>
   `).join("");
+  // show the active template's name on the collapsed summary
+  const cur = $("#vsTemplateCurrent");
+  if (cur) {
+    const t = videoTemplates.find(x => x.id === vstudio.templateId);
+    cur.textContent = t ? text(t.name) : "";
+  }
 }
 
 function setVideoTemplate(id) {
