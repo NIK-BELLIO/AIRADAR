@@ -4491,7 +4491,14 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   let panelW = Math.min(W * 0.9, U * (style === "donut" ? 1.15 : 0.95));
   const headH = U * (0.22 + (data.subtitle ? 0.05 : 0));
   const rowSlice = U * (style === "bars" ? 0.135 : 0.145);
-  let panelH = headH + rowSlice * nStats + U * 0.08;
+  // donuts lay out in a grid (max 3 per row), so the height is driven by
+  // the number of grid ROWS, not the raw stat count.
+  let contentRows = nStats;
+  if (style === "donut") {
+    const perRow = nStats <= 3 ? nStats : Math.ceil(nStats / 2);
+    contentRows = Math.ceil(nStats / perRow) * 2.2;  // each donut row is taller
+  }
+  let panelH = headH + rowSlice * contentRows + U * 0.08;
   // never let the panel exceed the frame
   panelH = Math.min(panelH, H * 0.94);
   panelW = Math.min(panelW, W * 0.92);
@@ -4698,10 +4705,20 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.stroke();
     } else if (style === "donut") {
       const n = stats.length;
-      const slotW = (panelW - padX * 2) / n;
-      const cxx = px + padX + slotW * (i + 0.5);
-      const cyy = cy + areaH * 0.42;
-      const rad = Math.min(slotW, areaH) * 0.32;
+      // lay donuts out in a GRID — at most 3 per row — so each one has
+      // enough width for its value and label even with 4-6 stats.
+      const perRow = n <= 3 ? n : Math.ceil(n / 2);
+      const rows = Math.ceil(n / perRow);
+      const col = i % perRow;
+      const rowIx = Math.floor(i / perRow);
+      // items on the last (possibly shorter) row are centred
+      const itemsThisRow = Math.min(perRow, n - rowIx * perRow);
+      const slotW = (panelW - padX * 2) / perRow;
+      const rowGap = (panelW - padX * 2) - slotW * itemsThisRow;
+      const cxx = px + padX + rowGap / 2 + slotW * (col + 0.5);
+      const cellH = areaH / rows;
+      const cyy = cy + cellH * (rowIx + 0.42);
+      const rad = Math.min(slotW, cellH) * 0.30;
       ctx.lineWidth = rad * 0.34;
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
       ctx.beginPath();
@@ -4714,15 +4731,19 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.arc(cxx, cyy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
       ctx.stroke();
       ctx.lineCap = "butt";
+      ctx.textBaseline = "middle";
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
-      vsFitFont(ctx, s.value, rad * 1.7, "700", "Inter, sans-serif",
-        Math.round(U * 0.034), Math.round(U * 0.022));
-      ctx.fillText(s.value, cxx, cyy + U * 0.011);
+      vsFitFont(ctx, s.value, rad * 1.6, "700", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.03, rad * 0.62)),
+        Math.round(rad * 0.34));
+      ctx.fillText(s.value, cxx, cyy);
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label, slotW * 0.98, "500", "Inter, sans-serif",
-        Math.round(U * 0.024), Math.round(U * 0.017));
-      ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.14);
+      vsFitFont(ctx, s.label, slotW * 0.96, "500", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.022, cellH * 0.13)),
+        Math.round(U * 0.013));
+      ctx.fillText(s.label, cxx, cyy + rad + cellH * 0.16);
+      ctx.textBaseline = "alphabetic";
     } else {
       const cardY = ry + rowH * 0.10;
       const cardH = rowH * 0.80;
