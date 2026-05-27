@@ -4172,7 +4172,8 @@ function vsHexA(hex, a) {
 }
 
 // Draw a broadcast-style news banner over the footage.
-function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
+function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
+  vsOff = vsOff || vstudio;
   const val = dsVal || vsVal;   // per-slide resolver, or global fallback
   const onVal = val("#vsNewsOn", false);
   const on = onVal === true || onVal === "true" ||
@@ -4223,8 +4224,8 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
     default:            break;
   }
 
-  // manual drag offset for the whole banner
-  const ndx = vstudio.newsDX * W, ndy = vstudio.newsDY * H;
+  // manual drag offset for the whole banner (per-slide)
+  const ndx = vsOff.newsDX * W, ndy = vsOff.newsDY * H;
   // record an approximate hit-box (banner sits in the lower area)
   vstudio.newsBox = {
     x: ndx, y: H * 0.62 + ndy, w: W, h: H * 0.34
@@ -4235,7 +4236,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal) {
   // motion transform pivots around the lower-centre; combine entrance
   // motion scale with the user's manual resize scale.
   const npivX = W / 2, npivY = H * 0.85;
-  const newsTotalScale = nMScale * (vstudio.newsScale || 1);
+  const newsTotalScale = nMScale * (vsOff.newsScale || 1);
   ctx.translate(npivX + ndx + nMDX, npivY + ndy + nMDY);
   ctx.scale(newsTotalScale, newsTotalScale);
   ctx.translate(-npivX, -npivY);
@@ -4442,7 +4443,8 @@ function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
   return px;
 }
 
-function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
+function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
+  vsOff = vsOff || vstudio;
   const val = dsVal || vsVal;
   // resolve the on/off toggle (boolean from slide settings, or live checkbox)
   const onVal = val("#vsInfoOn", false);
@@ -4507,8 +4509,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   if (pos === "right") px = W - panelW - U * 0.05;
   let py = (H - panelH) / 2;
   // apply manual drag offset
-  px += vstudio.infoDX * W;
-  py += vstudio.infoDY * H;
+  px += vsOff.infoDX * W;
+  py += vsOff.infoDY * H;
   // record bounds so the infographic can be dragged
   vstudio.infoBox = { x: px, y: py, w: panelW, h: panelH };
 
@@ -4530,7 +4532,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
   // pivot the scale/offset around the panel centre; combine the entrance
   // motion scale with the user's manual resize scale.
   const pivX = px + panelW / 2, pivY = py + panelH / 2;
-  const infoTotalScale = mScale * (vstudio.infoScale || 1);
+  const infoTotalScale = mScale * (vsOff.infoScale || 1);
   ctx.translate(pivX + mDX, pivY + mDY);
   ctx.scale(infoTotalScale, infoTotalScale);
   ctx.translate(-pivX, -pivY);
@@ -5072,6 +5074,25 @@ function drawStudioFrame(elapsed) {
     }
   }
 
+  // Resolve the drag offsets / scales for the slide being DISPLAYED.
+  // The active slide reads live state; any other slide reads its own
+  // saved settings — so a move on one slide never affects the others.
+  const dsOff = (key, fallback) => {
+    if (dsSettings && key in dsSettings) return dsSettings[key];
+    return fallback;
+  };
+  const vsOff = {
+    textDX: dsOff("_textDX", vstudio.textDX),
+    textDY: dsOff("_textDY", vstudio.textDY),
+    textScale: dsOff("_textScale", vstudio.textScale),
+    infoDX: dsOff("_infoDX", vstudio.infoDX),
+    infoDY: dsOff("_infoDY", vstudio.infoDY),
+    infoScale: dsOff("_infoScale", vstudio.infoScale),
+    newsDX: dsOff("_newsDX", vstudio.newsDX),
+    newsDY: dsOff("_newsDY", vstudio.newsDY),
+    newsScale: dsOff("_newsScale", vstudio.newsScale)
+  };
+
   // Decide whether we can render at all. Normally media is required, but the
   // infographic (and news banner) can stand on their own coloured background.
   const infoOnEl = $("#vsInfoOn");
@@ -5310,10 +5331,10 @@ function drawStudioFrame(elapsed) {
   const sceneTime = vstudio.slides.length ? dsLocal : elapsed;
 
   // ----- infographic overlay -----
-  drawInfographic(ctx, W, H, sceneTime, tpl, dsVal);
+  drawInfographic(ctx, W, H, sceneTime, tpl, dsVal, vsOff);
 
   // ----- news banner overlay -----
-  drawNewsBanner(ctx, W, H, sceneTime, dsVal);
+  drawNewsBanner(ctx, W, H, sceneTime, dsVal, vsOff);
 
   // ----- text layers (with a readable backing plate) -----
   // The "Text layers → Headline" input always works. If it is empty AND
@@ -5326,7 +5347,7 @@ function drawStudioFrame(elapsed) {
   const cta = (dsVal("#vsCta", "") || "").trim();
   const pos = dsVal("#vsTextPos", "center");
   // text size = the dropdown choice × the user's manual resize scale
-  const sizeMul = Number(dsVal("#vsTextSize", 1)) * (vstudio.textScale || 1);
+  const sizeMul = Number(dsVal("#vsTextSize", 1)) * (vsOff.textScale || 1);
   const textAnim = dsVal("#vsTextAnim", "fade-up");
   // Staggered reveal (default): the backing box animates in FIRST, then
   // the text follows. The timeline is per-SCENE: in a slide sequence each
@@ -5360,8 +5381,8 @@ function drawStudioFrame(elapsed) {
     // ONCE here as a transform so the backing box and the text always move
     // together as a single unit, including when the entrance animation
     // scales them.
-    const dragX = vstudio.textDX * W;
-    const dragY = vstudio.textDY * H;
+    const dragX = vsOff.textDX * W;
+    const dragY = vsOff.textDY * H;
     ctx.translate(dragX, dragY);
 
     // text animation preset — controls how text enters.
