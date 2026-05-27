@@ -4559,15 +4559,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.title, titleMaxW, "600", "Prata, serif",
-      Math.round(U * 0.032), Math.round(U * 0.018));
+      Math.round(U * 0.046), Math.round(U * 0.03));
     ctx.fillText(data.title, px + padX, cy);
-    cy += panelH * 0.065;
+    cy += panelH * 0.075;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.subtitle.toUpperCase(), titleMaxW, "400",
-      "Inter, sans-serif", Math.round(U * 0.0155), Math.round(U * 0.01));
+      "Inter, sans-serif", Math.round(U * 0.024), Math.round(U * 0.016));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
     cy += panelH * 0.07;
   }
@@ -4596,7 +4596,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
     const botY = cy + areaH - rowH * 0.06;
     // vertical gridlines + scale labels at 0 / 25 / 50 / 75 / 100%
     ctx.textAlign = "center";
-    ctx.font = `500 ${Math.round(U * 0.0105)}px Inter, sans-serif`;
+    ctx.font = `500 ${Math.round(U * 0.016)}px Inter, sans-serif`;
     for (let g = 0; g <= 4; g++) {
       const gx = barChartX + barChartW * (g / 4);
       ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.45 : 0.14);
@@ -4633,18 +4633,18 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.textBaseline = "alphabetic";
 
       // --- label, top band, left-aligned ---
-      const lblPx = Math.min(Math.round(rowH * 0.26), Math.round(U * 0.0135));
+      const lblPx = Math.min(Math.round(rowH * 0.40), Math.round(U * 0.024));
       ctx.font = `600 ${lblPx}px Inter, sans-serif`;
       ctx.textAlign = "left";
       ctx.fillStyle = ig.label;
       // value width is reserved on the right so the label is shortened
-      const valPx = Math.min(Math.round(rowH * 0.30), Math.round(U * 0.0155));
+      const valPx = Math.min(Math.round(rowH * 0.46), Math.round(U * 0.028));
       ctx.font = `700 ${valPx}px Inter, sans-serif`;
       const valW = Math.min(ctx.measureText(s.value).width, rowMaxW * 0.4);
       // shrink the label to fit the space left of the value
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), rowMaxW - valW - U * 0.03,
-        "600", "Inter, sans-serif", lblPx, Math.round(U * 0.009));
+        "600", "Inter, sans-serif", lblPx, Math.round(U * 0.016));
       const labelBaseline = ry + rowH * 0.30;
       ctx.fillText(s.label.toUpperCase(), px + padX, labelBaseline);
 
@@ -4683,7 +4683,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       // label — lower portion, always BELOW the number, no overlap
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "500", "Inter, sans-serif",
-        Math.round(rowH * 0.16), Math.round(rowH * 0.1));
+        Math.round(rowH * 0.26), Math.round(rowH * 0.17));
       ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.66);
       // a small accent bar under the number adds a chart-like cue
       ctx.fillStyle = vsHexA(ig.accent, 0.5);
@@ -5121,8 +5121,9 @@ function drawStudioFrame(elapsed) {
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
-    // overlay element (light leak / bokeh / particles) works here too
-    drawStudioOverlay(ctx, W, H, elapsed, dsVal("#vsOverlay", "none"));
+    // overlay element (light leak / bokeh / particles) works here too.
+    // Use vsVal directly — dsVal is defined later in this function.
+    drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
     return;
   }
 
