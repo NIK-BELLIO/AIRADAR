@@ -4717,12 +4717,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
       vsFitFont(ctx, s.value, rad * 1.7, "700", "Inter, sans-serif",
-        Math.round(U * 0.02), Math.round(U * 0.011));
-      ctx.fillText(s.value, cxx, cyy + U * 0.007);
+        Math.round(U * 0.034), Math.round(U * 0.022));
+      ctx.fillText(s.value, cxx, cyy + U * 0.011);
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label, slotW * 0.94, "400", "Inter, sans-serif",
-        Math.round(U * 0.013), Math.round(U * 0.009));
-      ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.12);
+      vsFitFont(ctx, s.label, slotW * 0.98, "500", "Inter, sans-serif",
+        Math.round(U * 0.024), Math.round(U * 0.017));
+      ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.14);
     } else {
       const cardY = ry + rowH * 0.12;
       const cardH = rowH * 0.76;
@@ -4740,13 +4740,13 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       const cardTextW = (panelW - padX * 2) - panelW * 0.09;
       const cardTextX = px + padX + panelW * 0.045;
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "400",
-        "Inter, sans-serif", Math.round(U * 0.015), Math.round(U * 0.01));
-      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.4);
+      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "500",
+        "Inter, sans-serif", Math.round(U * 0.026), Math.round(U * 0.018));
+      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.38);
       ctx.fillStyle = ig.value;
       vsFitFont(ctx, s.value, cardTextW, "700", "Prata, serif",
-        Math.round(U * 0.03), Math.round(U * 0.015));
-      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.78);
+        Math.round(U * 0.05), Math.round(U * 0.03));
+      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.80);
     }
   });
 
