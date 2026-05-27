@@ -3258,6 +3258,34 @@ const videoTemplates = [
     desc: { en: "Deep wine red, dramatic and bold", fa: "قرمز شرابی عمیق، دراماتیک" },
     bg: "#140608", accent: "#e0a0a8", text: "#f7e4e6",
     headlineFont: "Prata, serif", vignette: 0.5
+  },
+  {
+    id: "slate",
+    name: { en: "Slate Pro", fa: "اسلیت پرو" },
+    desc: { en: "Cool corporate grey-blue", fa: "خاکستری-آبی شرکتی" },
+    bg: "#10141a", accent: "#7fb3d5", text: "#eef3f8",
+    headlineFont: "Inter, sans-serif", vignette: 0.36
+  },
+  {
+    id: "amber",
+    name: { en: "Amber Glow", fa: "درخشش کهربایی" },
+    desc: { en: "Warm amber on deep brown", fa: "کهربایی گرم روی قهوه‌ای" },
+    bg: "#1a1206", accent: "#f0a830", text: "#fdf0d8",
+    headlineFont: "Prata, serif", vignette: 0.44
+  },
+  {
+    id: "frost",
+    name: { en: "Frost Minimal", fa: "مینیمال یخی" },
+    desc: { en: "Icy white-blue, crisp and clean", fa: "سفید-آبی یخی، تمیز" },
+    bg: "#eef2f6", accent: "#3a6a9a", text: "#16202c",
+    headlineFont: "Inter, sans-serif", vignette: 0.1
+  },
+  {
+    id: "rosegold",
+    name: { en: "Rose Gold", fa: "رزگلد" },
+    desc: { en: "Soft blush with rose-gold accent", fa: "صورتی ملایم با تأکید رزگلد" },
+    bg: "#1c1416", accent: "#e6b8a8", text: "#f8ebe6",
+    headlineFont: "Prata, serif", vignette: 0.42
   }
 ];
 
@@ -4989,6 +5017,8 @@ function drawStudioFrame(elapsed) {
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
+    // overlay element (light leak / bokeh / particles) works here too
+    drawStudioOverlay(ctx, W, H, elapsed, dsVal("#vsOverlay", "none"));
     return;
   }
 
@@ -5400,6 +5430,10 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   const e = prog == null ? 1 : (1 - Math.pow(1 - Math.max(0, Math.min(1, prog)), 3));
   // per-motion offset / scale / rotation for the MAIN text
   let dx = 0, dy = 0, sc = 1, clip = 1, blur = 0, rot = 0, spacing = 0;
+  // overshoot easing — a spring-like settle used by the cinematic presets
+  const pr = prog == null ? 1 : Math.max(0, Math.min(1, prog));
+  const overshoot = pr >= 1 ? 1
+    : 1 - Math.pow(2, -10 * pr) * Math.cos((pr * 10 - 0.75) * (2 * Math.PI) / 3);
   switch (motion) {
     case "rise":     dy = (1 - e) * U * 0.16; break;
     case "drop":     dy = -(1 - e) * U * 0.16; break;
@@ -5413,6 +5447,18 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
     case "tilt":     rot = (1 - e) * -0.12; dy = (1 - e) * U * 0.08; break;
     case "glide":    dx = -(1 - e) * W * 0.18;
                      sc = 0.92 + e * 0.08; break;
+    // ── cinematic / After-Effects style ──
+    case "spring":   sc = 0.4 + overshoot * 0.6; break;        // bouncy scale-in
+    case "swing":    rot = (1 - overshoot) * 0.35;             // pendulum settle
+                     dy = -(1 - e) * U * 0.05; break;
+    case "punch":    sc = 1 + (1 - e) * 0.6;                   // big → settle
+                     blur = (1 - e) * U * 0.02; break;
+    case "flip":     sc = Math.abs(Math.cos((1 - e) * Math.PI / 2)) * 0.4 + 0.6;
+                     break;                                    // 3D-flip feel
+    case "drift":    dx = (1 - e) * W * 0.08;                  // slow cinematic
+                     dy = (1 - e) * U * 0.04;
+                     blur = (1 - e) * U * 0.012; break;
+    case "rise-spring": dy = (1 - overshoot) * U * 0.2; break; // rise + bounce
     default:         break;                      // "fade" — alpha only
   }
 
@@ -5424,25 +5470,55 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   if (blur > 0) ctx.filter = `blur(${blur}px)`;
   ctx.fillStyle = tpl.text;
   ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  // auto-fit: start at the ideal size, then shrink until the text fits
-  // within 84% of the frame width so a long headline never runs off.
-  const maxTextW = W * 0.84;
+  ctx.textBaseline = "middle";
+  // The headline WRAPS to up to 3 lines so a long title stays readable
+  // instead of running off the frame. Font shrinks only a little; the
+  // rest of the length is handled by wrapping.
+  const maxTextW = W * 0.82;
   let fontPx = Math.round(U * 0.072);
   ctx.font = `600 ${fontPx}px ${tpl.headlineFont}`;
-  while (fontPx > U * 0.028 && ctx.measureText(txt).width > maxTextW) {
-    fontPx -= 2;
+  // helper: break text into lines that each fit maxTextW (cap at maxLines)
+  const layout = (str, maxLines) => {
+    const words = String(str).split(/\s+/).filter(Boolean);
+    const out = [];
+    let ln = "";
+    for (const w of words) {
+      const test = ln ? ln + " " + w : w;
+      if (ctx.measureText(test).width > maxTextW && ln) {
+        out.push(ln); ln = w;
+        if (out.length === maxLines) { ln = ""; break; }
+      } else { ln = test; }
+    }
+    if (ln && out.length < maxLines) out.push(ln);
+    return out;
+  };
+  let lines = layout(txt, 3);
+  // if it still needs more than 3 lines, shrink the font until 3 fit
+  while (fontPx > U * 0.022 &&
+         layout(txt, 99).length > 3) {
+    fontPx -= 1;
     ctx.font = `600 ${fontPx}px ${tpl.headlineFont}`;
+    lines = layout(txt, 3);
   }
+  // extreme case — still overflowing 3 lines: ellipsize the last line
+  if (layout(txt, 99).length > 3 && lines.length === 3) {
+    let last = lines[2];
+    while (last.length > 1 &&
+           ctx.measureText(last + "…").width > maxTextW) {
+      last = last.slice(0, -1);
+    }
+    lines[2] = last.replace(/\s+\S*$/, "") + "…";
+  }
+  const lineH = fontPx * 1.22;
+  const blockTop = -((lines.length - 1) * lineH) / 2;
   if (clip < 1) {
-    // line-reveal: clip to a growing centred box
-    const tw = ctx.measureText(txt).width;
+    const tw = maxTextW;
     ctx.beginPath();
-    ctx.rect(-tw / 2, -U * 0.12, tw * clip, U * 0.2);
+    ctx.rect(-tw / 2, blockTop - lineH, tw * clip, lineH * (lines.length + 1));
     ctx.clip();
   }
-  if (spacing > 0) {
-    // expand: draw each letter with extra tracking that closes in
+  if (spacing > 0 && lines.length === 1) {
+    // expand: draw each letter with extra tracking (single-line only)
     const chars = [...txt];
     let total = 0;
     const widths = chars.map(c => {
@@ -5451,41 +5527,73 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
     });
     let x = -total / 2;
     ctx.textAlign = "left";
-    chars.forEach((c, i) => {
-      ctx.fillText(c, x, 0);
-      x += widths[i];
-    });
+    chars.forEach((c, i) => { ctx.fillText(c, x, 0); x += widths[i]; });
     ctx.textAlign = "center";
   } else {
-    ctx.fillText(txt, 0, 0);
+    lines.forEach((ln, i) => {
+      ctx.fillText(ln, 0, blockTop + i * lineH);
+    });
   }
   ctx.filter = "none";
   ctx.restore();
+  // how far below centre the headline block reaches — used to place the
+  // divider and secondary text so they never overlap a multi-line title.
+  const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6;
 
   // accent divider line
   const lw = U * 0.14 * e;
+  const dividerY = cy + headBottom + U * 0.03;
   ctx.strokeStyle = tpl.accent;
   ctx.lineWidth = Math.max(1, U * 0.003);
   ctx.beginPath();
-  ctx.moveTo(cx - lw / 2, cy + U * 0.055);
-  ctx.lineTo(cx + lw / 2, cy + U * 0.055);
+  ctx.moveTo(cx - lw / 2, dividerY);
+  ctx.lineTo(cx + lw / 2, dividerY);
   ctx.stroke();
 
-  // secondary text — fades in slightly after the main text
+  // secondary text — fades in slightly after the main text. It also
+  // wraps to up to 2 lines so a long sub-line stays readable.
   if (subTxt) {
     const e2 = 1 - Math.pow(1 - Math.max(0, Math.min(1, (prog == null ? 1 : prog) * 1.4 - 0.4)), 3);
     ctx.save();
     ctx.globalAlpha = Math.max(0, alpha) * e2;
     ctx.fillStyle = tpl.accent;
     ctx.textAlign = "center";
-    // auto-fit the secondary text too
+    ctx.textBaseline = "middle";
     let subPx = Math.round(U * 0.032);
     ctx.font = `400 ${subPx}px Inter, sans-serif`;
-    while (subPx > U * 0.016 && ctx.measureText(subTxt).width > W * 0.84) {
+    const subLayout = () => {
+      const words = String(subTxt).split(/\s+/).filter(Boolean);
+      const out = []; let ln = "";
+      for (const w of words) {
+        const test = ln ? ln + " " + w : w;
+        if (ctx.measureText(test).width > W * 0.8 && ln) {
+          out.push(ln); ln = w;
+          if (out.length === 2) { ln = ""; break; }
+        } else { ln = test; }
+      }
+      if (ln && out.length < 2) out.push(ln);
+      return out;
+    };
+    let subLines = subLayout();
+    // shrink the subtitle font until it fits within 2 lines
+    let subGuard = 0;
+    while (subPx > U * 0.014 && subGuard++ < 30) {
+      const words = String(subTxt).split(/\s+/).filter(Boolean);
+      let count = 1, ln = "";
+      for (const w of words) {
+        const test = ln ? ln + " " + w : w;
+        if (ctx.measureText(test).width > W * 0.8 && ln) { count++; ln = w; }
+        else ln = test;
+      }
+      if (count <= 2) break;
       subPx -= 1;
       ctx.font = `400 ${subPx}px Inter, sans-serif`;
     }
-    ctx.fillText(subTxt, cx, cy + U * 0.12 + (1 - e2) * U * 0.04);
+    subLines = subLayout();
+    const subStartY = dividerY + U * 0.055 + (1 - e2) * U * 0.04;
+    subLines.forEach((ln, i) => {
+      ctx.fillText(ln, cx, subStartY + i * subPx * 1.3);
+    });
     ctx.restore();
   }
   ctx.restore();
