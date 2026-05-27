@@ -4724,8 +4724,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
         Math.round(U * 0.024), Math.round(U * 0.017));
       ctx.fillText(s.label, cxx, cyy + rad + areaH * 0.14);
     } else {
-      const cardY = ry + rowH * 0.12;
-      const cardH = rowH * 0.76;
+      const cardY = ry + rowH * 0.10;
+      const cardH = rowH * 0.80;
       const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
       cg.addColorStop(0, vsHexA(ig.accent, 0.16));
       cg.addColorStop(1, vsHexA(ig.accent, 0.05));
@@ -4737,16 +4737,24 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal) {
       roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
       ctx.stroke();
       ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
       const cardTextW = (panelW - padX * 2) - panelW * 0.09;
       const cardTextX = px + padX + panelW * 0.045;
+      // label sits in the top third, value in the lower portion — both
+      // sized relative to the CARD HEIGHT so they never overlap, however
+      // many stats there are.
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "500",
-        "Inter, sans-serif", Math.round(U * 0.026), Math.round(U * 0.018));
-      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.38);
+      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "600",
+        "Inter, sans-serif",
+        Math.round(Math.min(U * 0.022, cardH * 0.26)),
+        Math.round(cardH * 0.16));
+      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.30);
       ctx.fillStyle = ig.value;
       vsFitFont(ctx, s.value, cardTextW, "700", "Prata, serif",
-        Math.round(U * 0.05), Math.round(U * 0.03));
-      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.80);
+        Math.round(Math.min(U * 0.05, cardH * 0.46)),
+        Math.round(cardH * 0.3));
+      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.68);
+      ctx.textBaseline = "alphabetic";
     }
   });
 
