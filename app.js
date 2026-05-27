@@ -2971,7 +2971,19 @@ const introBackgrounds = [
   { id: "wave",          name: { en: "Soft Waves", fa: "موج‌های نرم" },
     c1: "#0a0612", c2: "#1c1430", accent: "#c8a24a" },
   { id: "grid-lux",      name: { en: "Lux Grid", fa: "شبکه لوکس" },
-    c1: "#0b0b0d", c2: "#15151a", accent: "#d6dae0" }
+    c1: "#0b0b0d", c2: "#15151a", accent: "#d6dae0" },
+  { id: "aurora",        name: { en: "Aurora", fa: "شفق" },
+    c1: "#04111a", c2: "#0a2230", accent: "#7fd8c8" },
+  { id: "starfield",     name: { en: "Starfield", fa: "میدان ستاره" },
+    c1: "#05060f", c2: "#0c0e1f", accent: "#cfd6ff" },
+  { id: "sunburst",      name: { en: "Sunburst", fa: "پرتو خورشید" },
+    c1: "#160a04", c2: "#2a1408", accent: "#f0a830" },
+  { id: "mesh",          name: { en: "Mesh Gradient", fa: "گرادیان توری" },
+    c1: "#0a0814", c2: "#1a1228", accent: "#c89ad8" },
+  { id: "particles",     name: { en: "Particle Field", fa: "میدان ذرات" },
+    c1: "#080a0c", c2: "#12161a", accent: "#d8b76a" },
+  { id: "marble-light",  name: { en: "Marble Light", fa: "مرمر روشن" },
+    c1: "#f2efe9", c2: "#e2ddd0", accent: "#3a3a40" }
 ];
 
 // Draw a chosen intro background. `t` is elapsed seconds for subtle motion.
@@ -3062,6 +3074,98 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
       ctx.beginPath();
       ctx.arc(W * 0.82, H * 0.2, U * 0.3, 0, Math.PI * 2);
       ctx.stroke();
+      break;
+    }
+    case "aurora": {
+      // soft flowing aurora bands
+      for (let i = 0; i < 3; i++) {
+        const yy = H * (0.3 + i * 0.2) + Math.sin(t * 0.4 + i) * U * 0.06;
+        const ag = ctx.createLinearGradient(0, yy - U * 0.2, 0, yy + U * 0.2);
+        ag.addColorStop(0, "rgba(127,216,200,0)");
+        ag.addColorStop(0.5, `rgba(127,216,200,${0.12 - i * 0.03})`);
+        ag.addColorStop(1, "rgba(127,216,200,0)");
+        ctx.fillStyle = ag;
+        ctx.fillRect(0, yy - U * 0.2, W, U * 0.4);
+      }
+      break;
+    }
+    case "starfield": {
+      for (let i = 0; i < 60; i++) {
+        const sx = (Math.sin(i * 73.1) * 0.5 + 0.5) * W;
+        const sy = (Math.cos(i * 51.7) * 0.5 + 0.5) * H;
+        const tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.5 + i));
+        ctx.globalAlpha = tw * 0.7;
+        ctx.fillStyle = bg.accent;
+        ctx.beginPath();
+        ctx.arc(sx, sy, U * 0.0016 * (1 + (i % 3)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "sunburst": {
+      // radiating rays from a corner
+      ctx.globalAlpha = 0.1;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.012;
+      for (let i = 0; i < 14; i++) {
+        const ang = (i / 14) * Math.PI * 0.6 + t * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.15, H * 0.12);
+        ctx.lineTo(W * 0.15 + Math.cos(ang) * U * 1.6,
+                   H * 0.12 + Math.sin(ang) * U * 1.6);
+        ctx.stroke();
+      }
+      const sr = ctx.createRadialGradient(
+        W * 0.15, H * 0.12, 0, W * 0.15, H * 0.12, U * 0.6);
+      sr.addColorStop(0, "rgba(240,168,48,0.22)");
+      sr.addColorStop(1, "rgba(240,168,48,0)");
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = sr;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "mesh": {
+      // soft mesh-gradient blobs
+      const blob = (bx, by, col) => {
+        const r = ctx.createRadialGradient(bx, by, 0, bx, by, U * 0.55);
+        r.addColorStop(0, col);
+        r.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = r;
+        ctx.fillRect(0, 0, W, H);
+      };
+      blob(W * (0.3 + 0.05 * Math.sin(t * 0.3)), H * 0.3,
+           "rgba(200,154,216,0.22)");
+      blob(W * 0.72, H * (0.65 + 0.05 * Math.cos(t * 0.25)),
+           "rgba(127,160,216,0.2)");
+      break;
+    }
+    case "particles": {
+      for (let i = 0; i < 40; i++) {
+        const seed = i * 97.3;
+        const px = (Math.sin(seed) * 0.5 + 0.5) * W;
+        const py = ((Math.cos(seed * 1.7) * 0.5 + 0.5) * H
+          + t * U * 0.02 * (0.5 + (i % 4) * 0.25)) % H;
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = bg.accent;
+        ctx.beginPath();
+        ctx.arc(px, py, U * (0.001 + (i % 5) * 0.0008), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "marble-light": {
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.0025;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 14) {
+          const y = H * (0.2 + i * 0.16)
+            + Math.sin(x * 0.006 + i * 1.5) * U * 0.05;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
       break;
     }
     default: break;
@@ -5235,6 +5339,9 @@ function drawStudioFrame(elapsed) {
     // clearly visible on any frame size, portrait or landscape.
     const U = Math.min(W, H);
     let textAlpha = 1, slideX = 0, scaleT = 1;
+    // overshoot easing for spring-style text animations
+    const txOver = rawT >= 1 ? 1
+      : 1 - Math.pow(2, -10 * rawT) * Math.cos((rawT * 10 - 0.75) * (2 * Math.PI) / 3);
     switch (textAnim) {
       case "none":      textAlpha = 1; break;
       case "fade":      textAlpha = tEase; break;
@@ -5256,6 +5363,27 @@ function drawStudioFrame(elapsed) {
       case "rise":      textAlpha = tEase; baseY += (1 - tEase) * U * 0.11; break;
       case "blur-in":   textAlpha = tEase * tEase; break;
       case "drop":      textAlpha = tEase; baseY -= (1 - tEase) * U * 0.11; break;
+      // ── new animations ──
+      case "spring":    textAlpha = tEase;
+                        scaleT = 0.4 + txOver * 0.6; break;
+      case "rise-spring": textAlpha = tEase;
+                        baseY += (1 - txOver) * U * 0.18; break;
+      case "swing":     textAlpha = tEase;
+                        baseY -= (1 - tEase) * U * 0.04;
+                        slideX = (1 - txOver) * W * 0.12; break;
+      case "punch":     textAlpha = tEase;
+                        scaleT = 1 + (1 - tEase) * 0.7; break;
+      case "slide-up":  textAlpha = tEase; baseY += (1 - tEase) * U * 0.22; break;
+      case "slide-down":textAlpha = tEase; baseY -= (1 - tEase) * U * 0.22; break;
+      case "flip":      textAlpha = tEase;
+                        scaleT = Math.abs(Math.cos((1 - rawT) * Math.PI / 2)) *
+                                 0.4 + 0.6; break;
+      case "glide-in":  textAlpha = tEase;
+                        slideX = -(1 - tEase) * W * 0.16;
+                        scaleT = 0.94 + tEase * 0.06; break;
+      case "drift":     textAlpha = tEase;
+                        slideX = (1 - tEase) * W * 0.06;
+                        baseY += (1 - tEase) * U * 0.03; break;
       default:          textAlpha = tEase; baseY += (1 - tEase) * U * 0.05;
     }
     ctx.globalAlpha = textAlpha;
