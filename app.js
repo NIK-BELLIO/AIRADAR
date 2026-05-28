@@ -19,7 +19,11 @@ const i18n = {
     vAddSlide: "+ Add slide (upload media)",
     vAddIntro: "+ Add intro scene",
     vAddOutro: "+ Add outro scene",
-    vAddLink: "+ Add from link",
+    vAutoLabel: "⚡ Auto-build a full video",
+    vAutoHint: "Describe your topic or paste a paragraph. This builds a complete sequence for you — an intro scene, content slides (with infographics and a news banner), and an outro — all in one click.",
+    vAutoTopic: "Topic or text",
+    vAutoBuildBtn: "Build the video",
+    vAutoAiBtn: "✦ Build with AI",
     vIntroSceneLabel: "Intro scene settings",
     vIntroSceneHint: "Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.",
     vIntroBgLabel: "Background",
@@ -130,6 +134,10 @@ const i18n = {
     aboutProjectRole: "Free static project",
     aboutProjectText: "Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.",
     changelogTitle: "Latest updates",
+    cl19Title: "Auto video builder",
+    cl19Text: "Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.",
+    cl18Title: "Outro scenes & more designs",
+    cl18Text: "Added outro scenes, 22 intro backgrounds, cinematic motion presets, clearer infographic text, per-slide element positions, and a graceful music fade-out.",
     cl17Title: "Intro scenes & richer motion",
     cl17Text: "New intro scene type in the Video Studio with 8 built-in backgrounds, dual animated text, and 12 motion presets. Scene-aware motion so every slide animates correctly.",
     cl16Title: "Full sidebar & cleaner UI",
@@ -293,7 +301,11 @@ const i18n = {
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
     vAddIntro: "+ افزودن صحنه اینترو",
     vAddOutro: "+ افزودن صحنه پایانی",
-    vAddLink: "+ افزودن از لینک",
+    vAutoLabel: "⚡ ساخت خودکار ویدیوی کامل",
+    vAutoHint: "موضوعت را توصیف کن یا یک پاراگراف بچسبان. این یک توالی کامل می‌سازد — یک صحنه اینترو، اسلایدهای محتوا (با اینفوگرافیک و نوار خبری) و یک اوترو — همه با یک کلیک.",
+    vAutoTopic: "موضوع یا متن",
+    vAutoBuildBtn: "ساخت ویدیو",
+    vAutoAiBtn: "✦ ساخت با هوش مصنوعی",
     vIntroSceneLabel: "تنظیمات صحنه اینترو",
     vIntroSceneHint: "در حال ویرایش صحنه اینتروی انتخاب‌شده — یک پس‌زمینه انتخاب کن، دو خط متن بنویس و حرکت ورود متن را انتخاب کن.",
     vIntroBgLabel: "پس‌زمینه",
@@ -404,6 +416,10 @@ const i18n = {
     aboutProjectRole: "پروژه استاتیک رایگان",
     aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود — سه فایل، بدون سرور. داده زنده از API عمومی گیت‌هاب. بدون ردیابی، بدون حساب، بدون تبلیغ.",
     changelogTitle: "آخرین به‌روزرسانی‌ها",
+    cl19Title: "سازنده خودکار ویدیو",
+    cl19Text: "یک موضوع را توصیف کن و استودیو یک ویدیوی کامل برایت می‌سازد — اینترو، اسلایدهای اینفوگرافیک و خبری، و اوترو — با یک کلیک و حالت اختیاری نگارش با هوش مصنوعی.",
+    cl18Title: "صحنه‌های پایانی و طرح‌های بیشتر",
+    cl18Text: "افزودن صحنه‌های اوترو، ۲۲ پس‌زمینه اینترو، پیش‌تنظیم‌های حرکت سینمایی، متن واضح‌تر اینفوگرافیک، موقعیت عناصر برای هر اسلاید و محو تدریجی موسیقی.",
     cl17Title: "صحنه‌های اینترو و حرکت غنی‌تر",
     cl17Text: "نوع صحنه اینتروی جدید در استودیو ویدیو با ۸ پس‌زمینه آماده، متن دوگانه متحرک و ۱۲ پیش‌تنظیم حرکت. حرکت مبتنی بر صحنه تا هر اسلاید درست انیمیت شود.",
     cl16Title: "نوار کناری کامل و رابط تمیزتر",
@@ -3659,12 +3675,10 @@ function bindIntroEditor() {
   });
   const outroBtn = $("#vsAddOutroBtn");
   if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
-  const linkBtn = $("#vsAddLinkBtn");
-  if (linkBtn) linkBtn.addEventListener("click", () => {
-    const inp = $("#vsVideoLink");
-    const url = (inp && inp.value || "").trim();
-    if (url) { addSlideFromLink(url); if (inp) inp.value = ""; }
-  });
+  const autoBtn = $("#vsAutoBuildBtn");
+  if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
+  const autoAiBtn = $("#vsAutoAiBtn");
+  if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
 }
 
 // Compute the canvas size from the chosen aspect ratio.
@@ -3727,41 +3741,186 @@ function addIntroSlide() {
 
 // An outro scene is the same kind of self-contained titled scene as an
 // intro; it just defaults to closing copy and is labelled differently.
-// Add a slide from a direct video URL. Note: this only works for direct
-// video files (.mp4/.webm) served with CORS access — not YouTube/TikTok
-// page links, which can't be embedded into a canvas from a static site.
-function addSlideFromLink(url) {
+// ── AUTO STORY BUILDER ─────────────────────────────────────
+// Build a whole multi-slide video from a topic/paragraph: an intro
+// scene, content slides (some with an infographic, some with a news
+// banner), then an outro — assembled in order, ready to preview/export.
+
+function vsAutoStatus(msg) {
+  const el = document.querySelector("#vsAutoStatus");
+  if (el) el.textContent = msg || "";
+}
+
+// Pull a few "stat-like" pairs (label + number) out of free text.
+function vsExtractStats(text) {
+  const stats = [];
+  // patterns like "$2.4M", "18K users", "34% growth", "revenue 2.4M"
+  const re = /([A-Za-z][A-Za-z \/&'-]{1,22}?)?\s*\$?\s*([\d.,]+\s*(?:%|k|m|b|bn|million|billion|thousand)?)\s*([A-Za-z][A-Za-z \/&'-]{1,22})?/gi;
+  let m, guard = 0;
+  while ((m = re.exec(text)) && guard++ < 40 && stats.length < 6) {
+    const numRaw = (m[2] || "").trim();
+    if (!/\d/.test(numRaw)) continue;
+    const label = ((m[3] || m[1] || "").trim()).replace(/\s+/g, " ");
+    if (!label || label.length < 2) continue;
+    // parse a sortable number
+    let n = parseFloat(numRaw.replace(/[^\d.]/g, "")) || 0;
+    if (/k/i.test(numRaw)) n *= 1e3;
+    if (/m|million/i.test(numRaw)) n *= 1e6;
+    if (/b|bn|billion/i.test(numRaw)) n *= 1e9;
+    // skip junk: tiny bare numbers with no unit (e.g. the "1" from "Q1")
+    const hasUnit = /[%kmb]|million|billion|thousand/i.test(numRaw);
+    if (!hasUnit && n < 2) continue;
+    stats.push({ label: label.slice(0, 22), value: numRaw.toUpperCase(), num: n });
+  }
+  return stats;
+}
+
+// Build the sequence from already-decided pieces.
+function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain }) {
+  vstudio.slides = [];
+  const bg = (i) => introBackgrounds[i % introBackgrounds.length].id;
+
+  // 1) intro scene
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
+    introBg: bg(0), introMain: title || "Presenting", introSub: subtitle || "",
+    introMotion: "rise-spring", headline: "", duration: 3,
+    settings: vsCaptureSettings()
+  });
+
+  // 2) an infographic content slide (if we have stats)
+  if (stats && stats.length) {
+    const set = vsCaptureSettings();
+    set["#vsInfoOn"] = true;
+    set["#vsInfoStyle"] = stats.length > 3 ? "cards" : "donut";
+    set["#vsInfoMotion"] = "rise";
+    set["#vsInfoJson"] = JSON.stringify({ title: title || "Key numbers",
+      subtitle: subtitle || "", stats });
+    set["#vsNewsOn"] = false;
+    vstudio.slides.push({
+      url: null, isVideo: false, mediaEl: null, ready: true,
+      isIntro: true, introBg: bg(1), introMain: "", introSub: "",
+      introMotion: "fade", headline: "", duration: 4, settings: set,
+      _standaloneInfo: true
+    });
+  }
+
+  // 3) a news-banner content slide per key point
+  (points || []).slice(0, 3).forEach((pt, i) => {
+    const set = vsCaptureSettings();
+    set["#vsNewsOn"] = true;
+    set["#vsNewsStyle"] = "lowerthird";
+    set["#vsNewsMotion"] = "slide-up";
+    set["#vsNewsKicker"] = (kicker || "UPDATE").toUpperCase().slice(0, 18);
+    set["#vsNewsHeadline"] = pt.slice(0, 120);
+    set["#vsNewsSource"] = "";
+    set["#vsInfoOn"] = false;
+    vstudio.slides.push({
+      url: null, isVideo: false, mediaEl: null, ready: true,
+      isIntro: true, introBg: bg(2 + i), introMain: "", introSub: "",
+      introMotion: "fade", headline: "", duration: 3.5, settings: set,
+      _standaloneNews: true
+    });
+  });
+
+  // 4) outro scene
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true, introBg: bg(0),
+    introMain: outroMain || "Thanks for watching", introSub: "Follow for more",
+    introMotion: "fade", headline: "", duration: 3, settings: vsCaptureSettings()
+  });
+
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  selectSlide(0);
+  drawStudioFrame(0);
+}
+
+// Non-AI builder: parse the text locally.
+function vsBuildStoryLocal(text) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  // title = first sentence / first 6 words
+  const firstSentence = (clean.split(/[.!?\n]/)[0] || clean).trim();
+  const title = firstSentence.split(/\s+/).slice(0, 6).join(" ") || "Your video";
+  const stats = vsExtractStats(clean);
+  // points = remaining sentences
+  const points = clean.split(/[.!?]/).map(s => s.trim())
+    .filter(s => s.length > 12).slice(1, 4);
+  vsAssembleStory({
+    title, subtitle: "", stats, points,
+    kicker: "HIGHLIGHT", outroMain: "Thanks for watching"
+  });
+}
+
+// Module-level AI chat for the auto-builder (mirrors the nested helper).
+async function vsAutoAiChat(prompt) {
+  if (typeof puter === "undefined" || !puter.ai || !puter.ai.chat) {
+    throw new Error("AI unavailable");
+  }
+  let res;
+  try { res = await puter.ai.chat(prompt, { model: "gpt-4o-mini" }); }
+  catch (e1) { res = await puter.ai.chat(prompt); }
+  if (res == null) return "";
+  if (typeof res === "string") return res;
+  const fromContent = (c) => {
+    if (typeof c === "string") return c;
+    if (Array.isArray(c)) return c.map(b => (typeof b === "string" ? b
+      : (b && (b.text || b.content)) || "")).join("");
+    return "";
+  };
+  if (res.message && res.message.content != null) return fromContent(res.message.content);
+  if (res.content != null) return fromContent(res.content);
+  if (res.text) return res.text;
+  return String(res);
+}
+
+async function buildAutoVideo(useAI) {
+  const inp = document.querySelector("#vsAutoTopic");
+  const text = (inp && inp.value || "").trim();
+  if (!text) {
+    vsAutoStatus(state.lang === "fa"
+      ? "اول موضوع یا متن را وارد کن." : "Enter a topic or some text first.");
+    return;
+  }
   vsSaveActiveSlide();
-  vsStatus(state.lang === "fa" ? "در حال بارگیری ویدیو…" : "Loading video…");
-  const video = document.createElement("video");
-  video.crossOrigin = "anonymous";
-  video.muted = true;
-  video.playsInline = true;
-  video.preload = "auto";
-  video.src = url;
-  const fail = (msg) => {
-    vsStatus(msg);
-  };
-  video.onloadeddata = () => {
-    const slide = {
-      url, isVideo: true, mediaEl: video, ready: true,
-      headline: "", duration: Math.min(10, Math.max(2, video.duration || 4)),
-      settings: vsCaptureSettings()
-    };
-    vstudio.slides.push(slide);
-    renderSlideList();
-    if (!$("#vsCanvas")) buildPreviewCanvas();
-    selectSlide(vstudio.slides.length - 1);
-    drawStudioFrame(0);
-    vsStatus(state.lang === "fa"
-      ? "صحنه از روی لینک اضافه شد."
-      : "Scene added from link.");
-  };
-  video.onerror = () => {
-    fail(state.lang === "fa"
-      ? "نمی‌توان این ویدیو را بارگیری کرد. فقط لینک مستقیم فایل ویدیو (mp4/webm) که دسترسی CORS دارد کار می‌کند — لینک یوتیوب/تیک‌تاک پشتیبانی نمی‌شود."
-      : "Couldn't load that video. Only direct video-file links (.mp4/.webm) that allow CORS work here — YouTube/TikTok page links aren't supported.");
-  };
+  if (!useAI) {
+    vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
+    vsBuildStoryLocal(text);
+    vsAutoStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
+      : `Built a ${vstudio.slides.length}-scene video.`);
+    return;
+  }
+  // AI path via Puter
+  vsAutoStatus(state.lang === "fa"
+    ? "هوش مصنوعی در حال نوشتن سناریو…" : "AI is scripting your video…");
+  const prompt = `You are a short-form video scriptwriter. From the input below, return ONLY compact JSON (no markdown) shaped exactly as:
+{"title":"...", "subtitle":"...", "kicker":"ONE OR TWO WORDS", "stats":[{"label":"...","value":"...","num":0}], "points":["short headline 1","short headline 2","short headline 3"], "outroMain":"..."}
+- title: punchy, <= 6 words. subtitle: <= 8 words.
+- stats: 3-5 items, value like "2.4M" or "34%", num is the numeric value.
+- points: 2-3 short news-style headlines (<= 10 words each).
+Input: """${text.slice(0, 1200)}"""`;
+  try {
+    const raw = await vsAutoAiChat(prompt);
+    const jsonStr = String(raw).replace(/```json|```/g, "").trim();
+    const data = JSON.parse(jsonStr);
+    vsAssembleStory({
+      title: data.title, subtitle: data.subtitle,
+      stats: Array.isArray(data.stats) ? data.stats : [],
+      points: Array.isArray(data.points) ? data.points : [],
+      kicker: data.kicker, outroMain: data.outroMain
+    });
+    vsAutoStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
+      : `Built a ${vstudio.slides.length}-scene video.`);
+  } catch (e) {
+    // fall back to the local builder if AI is unavailable
+    vsBuildStoryLocal(text);
+    vsAutoStatus(state.lang === "fa"
+      ? `بدون هوش مصنوعی ساخته شد (${vstudio.slides.length} صحنه).`
+      : `Built without AI (${vstudio.slides.length} scenes).`);
+  }
 }
 
 function addOutroSlide() {
@@ -5350,18 +5509,32 @@ function drawStudioFrame(elapsed) {
   // ── INTRO SLIDE — self-contained background + dual animated text ──
   if (introSlide) {
     drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
-    // entrance progress over the first ~60% of the scene; when the
-    // preview is paused/static, show the text fully so it's visible.
     const playing = vstudio.looping || vstudio.rendering;
     const k = !playing ? 1
       : (dsDur > 0 ? Math.min(1, dsLocal / (dsDur * 0.6)) : 1);
     const bg = introBackgrounds.find(b => b.id === introSlide.introBg)
       || introBackgrounds[0];
-    // animated graphics layer — motes, light sweep, corner accents
     drawIntroGraphics(ctx, W, H, bg, elapsed, k);
-    // the intro text colour follows the selected TEMPLATE so picking a
-    // template visibly restyles the intro; the divider/accent uses the
-    // template accent too, falling back to the background's accent.
+    // A content slide (auto-builder) uses the intro background as a
+    // backdrop but shows an infographic / news banner instead of a
+    // title card — so we DON'T return; we fall through to those draws.
+    if (introSlide._standaloneInfo || introSlide._standaloneNews) {
+      // local value accessor: this slide's saved settings, else live controls
+      const dsVal2 = (sel, fb) => {
+        if (dsSettings && sel in dsSettings) return dsSettings[sel];
+        // active content slide: read from its own settings object directly
+        if (introSlide.settings && sel in introSlide.settings)
+          return introSlide.settings[sel];
+        return vsVal(sel, fb);
+      };
+      const sceneTime = dsLocal;
+      if (introSlide._standaloneInfo)
+        drawInfographic(ctx, W, H, sceneTime, tpl, dsVal2, vsOff);
+      if (introSlide._standaloneNews)
+        drawNewsBanner(ctx, W, H, sceneTime, dsVal2, vsOff);
+      drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+      return;
+    }
     const introTpl = {
       text: bg.id === "ivory-clean" ? "#1a1a1a" : "#ffffff",
       accent: (tpl && tpl.accent) || bg.accent,
@@ -5370,8 +5543,6 @@ function drawStudioFrame(elapsed) {
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
-    // overlay element (light leak / bokeh / particles) works here too.
-    // Use vsVal directly — dsVal is defined later in this function.
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
     return;
   }
