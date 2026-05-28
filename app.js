@@ -32,6 +32,8 @@ const i18n = {
     vIntroMotion2: "Text motion",
     vSlideHeadline: "Slide headline",
     vSlideDuration: "Slide duration (s)",
+    vSlideFootage: "+ Add / replace footage on this slide",
+    vSlideCaption: "Caption (top label)",
     vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
     vSlideSectionsLabel: "Scene settings",
     vTabFormat: "Format & export",
@@ -314,6 +316,8 @@ const i18n = {
     vIntroMotion2: "حرکت متن",
     vSlideHeadline: "عنوان اسلاید",
     vSlideDuration: "مدت اسلاید (ثانیه)",
+    vSlideFootage: "+ افزودن / جایگزینی فوتیج این صحنه",
+    vSlideCaption: "کپشن (برچسب بالا)",
     vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
     vSlideSectionsLabel: "تنظیمات صحنه",
     vTabFormat: "فرمت و خروجی",
@@ -3965,6 +3969,46 @@ function addOutroSlide() {
   vsStatus(state.lang === "fa" ? `صحنه پایانی اضافه شد.` : `Outro scene added.`);
 }
 
+// Add or replace footage on the slide currently being edited (used for
+// the middle/content slides so they can carry real media, not just a
+// generated background). Intro/outro title scenes don't use this.
+function addFootageToActiveSlide(file) {
+  if (!file) return;
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (!s) { vsStatus("Select a slide first."); return; }
+  const url = URL.createObjectURL(file);
+  const isVideo = file.type.startsWith("video/");
+  const nm = $("#vsSlideMediaName");
+  const done = () => {
+    s.ready = true;
+    // once it has footage it's a media scene, not a generated background
+    s._standaloneInfo = s._standaloneInfo; // keep overlay flags as-is
+    renderSlideList();
+    if (nm) nm.textContent = state.lang === "fa"
+      ? "فوتیج به این صحنه اضافه شد." : "Footage added to this scene.";
+    drawStudioFrame(vstudio.position || 0);
+  };
+  s.url = url; s.isVideo = isVideo;
+  if (isVideo) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.playsInline = true; v.loop = false;
+    v.addEventListener("loadedmetadata", () => {
+      s.mediaEl = v;
+      if (isFinite(v.duration) && v.duration > 0)
+        s.duration = Math.min(600, Math.max(1, Math.round(v.duration)));
+      done();
+      const du = $("#vsSlideDuration"); if (du) du.value = s.duration;
+    });
+    v.addEventListener("error", () => vsStatus("Could not load that video."));
+  } else {
+    const img = new Image();
+    img.onload = () => { s.mediaEl = img; done(); };
+    img.onerror = () => vsStatus("Could not load that image.");
+    img.src = url;
+  }
+  vsStatus(state.lang === "fa" ? "در حال بارگیری فوتیج…" : "Loading footage…");
+}
+
 function addStudioSlide(file) {
   if (!file) return;
   // save the slide currently being edited before creating a new one
@@ -4027,9 +4071,13 @@ function selectSlide(i) {
   const s = vstudio.slides[i];
   const fields = $("#vsSlideOnlyFields");
   if (!s) return;
-  // intro slides get their own editor; normal slides get the media fields
+  // A slide is a TITLE scene (intro/outro) only if it's a plain intro
+  // with no standalone content. Content slides — even though they reuse
+  // the intro background mechanism — should be fully editable with the
+  // media/footage fields, so they're treated like normal scenes here.
+  const isTitleScene = s.isIntro && !s._standaloneInfo && !s._standaloneNews;
   const introEd = $("#vsIntroEditor");
-  if (s.isIntro) {
+  if (isTitleScene) {
     if (introEd) {
       introEd.hidden = false;
       introEd.open = true;
@@ -4044,9 +4092,16 @@ function selectSlide(i) {
   } else {
     if (introEd) introEd.hidden = true;
     if (fields) fields.classList.remove("vtab-hidden");
+    // show whether this slide already has footage
+    const nm = $("#vsSlideMediaName");
+    if (nm) nm.textContent = s.mediaEl
+      ? (state.lang === "fa" ? "این صحنه فوتیج دارد." : "This scene has footage.")
+      : (state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).");
   }
   const du = $("#vsSlideDuration");
   if (du) du.value = s.duration || 4;
+  const capInp = $("#vsSlideCaption");
+  if (capInp) capInp.value = s._caption || "";
   // load this slide's own settings onto the controls
   if (s.settings) {
     vsApplySettings(s.settings);
@@ -5656,13 +5711,30 @@ function drawStudioFrame(elapsed) {
 
   // ── INTRO SLIDE — self-contained background + dual animated text ──
   if (introSlide) {
-    drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
     const playing = vstudio.looping || vstudio.rendering;
     const k = !playing ? 1
       : (dsDur > 0 ? Math.min(1, dsLocal / (dsDur * 0.6)) : 1);
     const bg = introBackgrounds.find(b => b.id === introSlide.introBg)
       || introBackgrounds[0];
-    drawIntroGraphics(ctx, W, H, bg, elapsed, k);
+    // If this scene has real footage (a content slide the user added media
+    // to), draw the footage COVERING the frame as the backdrop; otherwise
+    // draw the code-generated intro background + graphics.
+    const hasFootage = introSlide.mediaEl &&
+      (introSlide._standaloneInfo || introSlide._standaloneNews);
+    if (hasFootage) {
+      const m = introSlide.mediaEl;
+      const mw = m.videoWidth || m.naturalWidth || W;
+      const mh = m.videoHeight || m.naturalHeight || H;
+      const scale = Math.max(W / mw, H / mh);
+      const dw = mw * scale, dh = mh * scale;
+      try { ctx.drawImage(m, (W - dw) / 2, (H - dh) / 2, dw, dh); } catch {}
+      // a soft scrim so overlaid text/graphics stay readable on footage
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
+      drawIntroGraphics(ctx, W, H, bg, elapsed, k);
+    }
     // A content slide (auto-builder) uses the intro background as a
     // backdrop but shows an infographic / news banner instead of a
     // title card — so we DON'T return; we fall through to those draws.
@@ -5680,8 +5752,9 @@ function drawStudioFrame(elapsed) {
         drawInfographic(ctx, W, H, sceneTime, tpl, dsVal2, vsOff);
       if (introSlide._standaloneNews)
         drawNewsBanner(ctx, W, H, sceneTime, dsVal2, vsOff);
-      // auto-generated caption — a small label near the top of the scene
-      if (introSlide._caption) {
+      // editable caption — a small label near the top of the scene.
+      // Empty caption draws nothing.
+      if (introSlide._caption && introSlide._caption.trim()) {
         const U = Math.min(W, H);
         const capE = !playing ? 1 : Math.min(1, k * 1.4);
         ctx.save();
@@ -6982,6 +7055,20 @@ function bindEvents() {
     const s = vstudio.slides[vstudio.activeSlide];
     if (s) { s.duration = Math.max(1, Math.min(30, Number(e.target.value) || 4));
       renderSlideList(); }
+  });
+  on("#vsSlideCaption", "input", (e) => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (s) {
+      s._caption = e.target.value;
+      renderSlideList();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    }
+  });
+  // add / replace footage on the active middle slide
+  on("#vsSlideMediaUpload", "change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) addFootageToActiveSlide(file);
+    e.target.value = "";
   });
   renderSlideList();
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
