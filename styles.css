@@ -3723,3 +3723,12 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   resize: vertical;
   font-family: inherit;
 }
+
+/* per-slide footage upload button */
+.vs-slide-footage {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
