@@ -3699,3 +3699,14 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 }
 .sidebar.collapsed .seg-tx { display: none; }
 .sidebar.collapsed .seg-btn { padding: 0; min-width: 0; }
+
+/* video-link add row in the slides panel */
+.vs-link-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.vs-link-add input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
