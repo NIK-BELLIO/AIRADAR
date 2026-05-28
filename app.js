@@ -20,8 +20,9 @@ const i18n = {
     vAddIntro: "+ Add intro scene",
     vAddOutro: "+ Add outro scene",
     vAutoLabel: "⚡ Auto-build a full video",
-    vAutoHint: "Describe your topic or paste a paragraph. This builds a complete sequence for you — an intro scene, content slides (with infographics and a news banner), and an outro — all in one click.",
-    vAutoTopic: "Topic or text",
+    vAutoHint: "Paste a news article URL (or its text). The AI reads the whole article and builds a complete video, using an infographic where there are numbers and clean text where there are none, plus an intro and outro.",
+    vAutoUrl: "Article URL (optional)",
+    vAutoTopic: "Topic or article text",
     vAutoBuildBtn: "Build the video",
     vAutoAiBtn: "✦ Build with AI",
     vIntroSceneLabel: "Intro scene settings",
@@ -304,8 +305,9 @@ const i18n = {
     vAddIntro: "+ افزودن صحنه اینترو",
     vAddOutro: "+ افزودن صحنه پایانی",
     vAutoLabel: "⚡ ساخت خودکار ویدیوی کامل",
-    vAutoHint: "موضوعت را توصیف کن یا یک پاراگراف بچسبان. این یک توالی کامل می‌سازد — یک صحنه اینترو، اسلایدهای محتوا (با اینفوگرافیک و نوار خبری) و یک اوترو — همه با یک کلیک.",
-    vAutoTopic: "موضوع یا متن",
+    vAutoHint: "لینک یک مقاله خبری (یا متن آن) را بچسبان. هوش مصنوعی کل مقاله را می‌خواند و یک ویدیوی کامل می‌سازد — هرجا عدد باشد اینفوگرافیک و هرجا نباشد متن — به‌همراه اینترو و اوترو.",
+    vAutoUrl: "لینک مقاله (اختیاری)",
+    vAutoTopic: "موضوع یا متن مقاله",
     vAutoBuildBtn: "ساخت ویدیو",
     vAutoAiBtn: "✦ ساخت با هوش مصنوعی",
     vIntroSceneLabel: "تنظیمات صحنه اینترو",
@@ -3899,14 +3901,34 @@ async function vsAutoAiChat(prompt) {
 }
 
 async function buildAutoVideo(useAI) {
+  const urlInp = document.querySelector("#vsAutoUrl");
   const inp = document.querySelector("#vsAutoTopic");
-  const text = (inp && inp.value || "").trim();
+  let text = (inp && inp.value || "").trim();
+  const url = (urlInp && urlInp.value || "").trim();
+
+  // 1) if a URL was given, TRY to fetch the article text (often blocked
+  //    by the site's CORS policy on a static site — we fall back to the
+  //    pasted text if so).
+  if (url) {
+    vsAutoStatus(state.lang === "fa" ? "در حال خواندن مقاله…" : "Reading the article…");
+    const fetched = await vsFetchArticle(url);
+    if (fetched && fetched.length > 200) {
+      text = fetched;
+    } else if (!text) {
+      vsAutoStatus(state.lang === "fa"
+        ? "نمی‌توان این لینک را خواند (سایت اجازه نمی‌دهد). لطفاً متن مقاله را در کادر زیر بچسبان."
+        : "Couldn't read that link (the site blocks it). Please paste the article text in the box below.");
+      return;
+    }
+  }
+
   if (!text) {
     vsAutoStatus(state.lang === "fa"
-      ? "اول موضوع یا متن را وارد کن." : "Enter a topic or some text first.");
+      ? "اول یک لینک یا متن مقاله وارد کن." : "Enter an article URL or some text first.");
     return;
   }
   vsSaveActiveSlide();
+
   if (!useAI) {
     vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
     vsBuildStoryLocal(text);
@@ -3915,37 +3937,141 @@ async function buildAutoVideo(useAI) {
       : `Built a ${vstudio.slides.length}-scene video.`);
     return;
   }
-  // AI path via Puter
+
+  // 2) AI path — analyze the WHOLE article and return an ordered list of
+  //    sections, each tagged as an infographic (when it has numbers) or
+  //    text (when it doesn't), so the video matches the content.
   vsAutoStatus(state.lang === "fa"
-    ? "هوش مصنوعی در حال نوشتن سناریو…" : "AI is scripting your video…");
-  const prompt = `You are a short-form video scriptwriter. From the input below, return ONLY compact JSON (no markdown) shaped exactly as:
-{"title":"...", "subtitle":"...", "kicker":"ONE OR TWO WORDS", "stats":[{"label":"...","value":"...","num":0}], "points":["short headline 1","short headline 2","short headline 3"], "captions":["2-3 word caption per content slide"], "outroMain":"..."}
-- title: punchy, <= 6 words. subtitle: <= 8 words.
-- stats: 3-5 items, value like "2.4M" or "34%", num is the numeric value.
-- points: 2-3 short news-style headlines (<= 10 words each).
-- captions: one short 2-3 word label per content slide (stats slide + each point), in order.
-Input: """${text.slice(0, 1200)}"""`;
+    ? "هوش مصنوعی در حال تحلیل کل مقاله…" : "AI is analyzing the whole article…");
+  const prompt = `You are a professional short-form video editor. Read the ENTIRE article below and turn it into a video plan. Return ONLY compact JSON (no markdown), shaped exactly:
+{"title":"<= 7 words","subtitle":"<= 9 words","kicker":"1-2 word category","sections":[{"type":"infographic","caption":"2-4 words","title":"short","stats":[{"label":"...","value":"2.4M","num":2400000}]},{"type":"text","caption":"2-4 words","headline":"one clear sentence","style":"title-center"}],"outroMain":"<= 5 words"}
+Rules:
+- Analyze the WHOLE article, not just the start. Produce 3 to 6 sections IN READING ORDER.
+- For a part that contains numbers/data/statistics, emit a "infographic" section with 2-5 stats (value like "2.4M","34%","$1.2B"; num is the numeric value).
+- For a part that is narrative/quote/context with no useful numbers, emit a "text" section with a clear headline and a style chosen from: "title-center","title-left","quote","caption".
+- kicker = the article's topic/category (e.g. "TECH","FINANCE","HEALTH").
+- Keep every headline factual to the article. Do not invent numbers.
+Article: """${text.slice(0, 4000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     const jsonStr = String(raw).replace(/```json|```/g, "").trim();
     const data = JSON.parse(jsonStr);
-    vsAssembleStory({
-      title: data.title, subtitle: data.subtitle,
-      stats: Array.isArray(data.stats) ? data.stats : [],
-      points: Array.isArray(data.points) ? data.points : [],
-      kicker: data.kicker, outroMain: data.outroMain,
-      captions: Array.isArray(data.captions) ? data.captions : []
-    });
+    if (Array.isArray(data.sections) && data.sections.length) {
+      vsAssembleFromSections(data);
+    } else {
+      // older shape fallback
+      vsAssembleStory({
+        title: data.title, subtitle: data.subtitle,
+        stats: Array.isArray(data.stats) ? data.stats : [],
+        points: Array.isArray(data.points) ? data.points : [],
+        kicker: data.kicker, outroMain: data.outroMain,
+        captions: Array.isArray(data.captions) ? data.captions : []
+      });
+    }
     vsAutoStatus(state.lang === "fa"
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
       : `Built a ${vstudio.slides.length}-scene video.`);
   } catch (e) {
-    // fall back to the local builder if AI is unavailable
     vsBuildStoryLocal(text);
     vsAutoStatus(state.lang === "fa"
       ? `بدون هوش مصنوعی ساخته شد (${vstudio.slides.length} صحنه).`
       : `Built without AI (${vstudio.slides.length} scenes).`);
   }
+}
+
+// Try to fetch an article's readable text. Direct fetch usually fails
+// cross-origin; we try a couple of public read-only proxies, and if all
+// fail we return "" so the caller falls back to pasted text.
+async function vsFetchArticle(url) {
+  const tryUrls = [
+    url,
+    "https://r.jina.ai/" + url,
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
+  ];
+  for (const u of tryUrls) {
+    try {
+      const res = await fetch(u, { mode: "cors" });
+      if (!res.ok) continue;
+      let t = await res.text();
+      // strip HTML tags to get readable text
+      t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
+           .replace(/<style[\s\S]*?<\/style>/gi, " ")
+           .replace(/<[^>]+>/g, " ")
+           .replace(/\s+/g, " ").trim();
+      if (t.length > 200) return t.slice(0, 6000);
+    } catch (e) { /* try next */ }
+  }
+  return "";
+}
+
+// Build a video from the AI's ordered "sections" (infographic vs text).
+function vsAssembleFromSections(data) {
+  vstudio.slides = [];
+  const bgPool = ["noir-gradient", "gold-rings", "aurora", "mesh", "velvet",
+    "starfield", "royal", "halo", "prism", "spotlight-duo"];
+  const bg = (i) => bgPool[i % bgPool.length];
+  const motions = ["rise-spring", "zoom", "glide", "drift", "spring"];
+  const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
+
+  // intro
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
+    introBg: bg(0), introMain: data.title || "Today's story",
+    introSub: data.subtitle || "", introMotion: "rise-spring",
+    headline: "", duration: 3.2, settings: vsCaptureSettings()
+  });
+
+  let bi = 1;
+  (data.sections || []).slice(0, 6).forEach((sec, i) => {
+    const set = vsCaptureSettings();
+    if (sec.type === "infographic" && Array.isArray(sec.stats) && sec.stats.length) {
+      set["#vsInfoOn"] = true;
+      set["#vsInfoStyle"] = sec.stats.length > 3 ? "cards" : "donut";
+      set["#vsInfoMotion"] = "rise";
+      set["#vsInfoJson"] = JSON.stringify({
+        title: sec.title || data.title || "Key numbers",
+        subtitle: "", stats: sec.stats });
+      set["#vsNewsOn"] = false;
+      vstudio.slides.push({
+        url: null, isVideo: false, mediaEl: null, ready: true,
+        isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
+        introMotion: motions[i % motions.length], headline: "",
+        duration: 4.2, settings: set, _standaloneInfo: true,
+        _caption: sec.caption || "Key numbers"
+      });
+    } else {
+      // text section
+      set["#vsNewsOn"] = true;
+      set["#vsNewsStyle"] = ["title-center", "quote", "title-left", "caption"]
+        .includes(sec.style) ? sec.style : "title-center";
+      set["#vsNewsMotion"] = "fade";
+      set["#vsNewsKicker"] = kicker;
+      set["#vsNewsHeadline"] = String(sec.headline || sec.title || "").slice(0, 200);
+      set["#vsNewsSource"] = "";
+      set["#vsInfoOn"] = false;
+      vstudio.slides.push({
+        url: null, isVideo: false, mediaEl: null, ready: true,
+        isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
+        introMotion: motions[i % motions.length], headline: "",
+        duration: 3.8, settings: set, _standaloneNews: true,
+        _caption: sec.caption || ""
+      });
+    }
+  });
+
+  // outro
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true, introBg: bg(0),
+    introMain: data.outroMain || "Thanks for watching",
+    introSub: "Follow for more", introMotion: "spring",
+    headline: "", duration: 3, settings: vsCaptureSettings()
+  });
+
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  selectSlide(0);
+  drawStudioFrame(0);
 }
 
 function addOutroSlide() {
@@ -4452,7 +4578,11 @@ function applyPreviewSize() {
 
 // CSS-style filter string for the chosen grade.
 function vsFilterString() {
-  switch (vsVal("#vsFilter", "none")) {
+  // global colour grade — always read the live control so one selection
+  // applies to the whole video (every slide), not per-slide.
+  const el = document.querySelector("#vsFilter");
+  const v = el ? el.value : "none";
+  switch (v) {
     case "cinematic": return "contrast(1.15) saturate(0.9) brightness(0.95)";
     case "warm":      return "saturate(1.15) sepia(0.25) brightness(1.03)";
     case "cool":      return "saturate(1.1) hue-rotate(-12deg) brightness(1.02)";
@@ -4467,7 +4597,7 @@ function vsFilterString() {
 // Controls whose values are saved PER SLIDE (each slide remembers its own).
 // Aspect/duration-of-video and export settings stay global.
 const VS_SLIDE_CONTROLS = [
-  "#vsFilter", "#vsSpeed", "#vsTransition",
+  "#vsSpeed", "#vsTransition",
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
@@ -4875,22 +5005,28 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     const plateW = W * 0.78;
     const padX = W * 0.03;
     const textW = plateW - padX * 2;
-    // headline font shrinks a little so long headlines still fit 3 lines
-    const hlSize = Math.round(H * 0.038);
+    // Auto-fit the headline: start at a comfortable size and shrink the
+    // font until the whole headline fits within maxLines — so LONG text
+    // is never truncated, it just uses a slightly smaller size.
+    const maxLines = 5;
+    let hlSize = Math.round(H * 0.038);
+    const minHl = Math.round(H * 0.022);
+    const countLines = (px) => {
+      ctx.font = `700 ${px}px Prata, serif`;
+      const words = headline.split(/\s+/);
+      let line = "", n = 0;
+      for (const w of words) {
+        const test = line ? line + " " + w : w;
+        if (ctx.measureText(test).width > textW && line) { n++; line = w; }
+        else line = test;
+      }
+      if (line) n++;
+      return Math.max(1, n);
+    };
+    while (hlSize > minHl && countLines(hlSize) > maxLines) hlSize -= 1;
     ctx.font = `700 ${hlSize}px Prata, serif`;
     const lineH = hlSize * 1.25;
-    // pre-count lines without drawing
-    const tmpWords = headline.split(/\s+/);
-    let tmpLine = "", lineCount = 0;
-    for (const w of tmpWords) {
-      const test = tmpLine ? tmpLine + " " + w : w;
-      if (ctx.measureText(test).width > textW && tmpLine) {
-        lineCount++; tmpLine = w;
-        if (lineCount === 3) break;
-      } else { tmpLine = test; }
-    }
-    if (tmpLine && lineCount < 3) lineCount++;
-    lineCount = Math.max(1, lineCount);
+    const lineCount = Math.min(maxLines, countLines(hlSize));
     const srcH = source ? H * 0.04 : 0;
     const plateH = lineH * lineCount + H * 0.05 + srcH;
     const plateY = H * 0.86 - plateH;   // anchor near the bottom
@@ -4902,9 +5038,9 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     if (kicker) {
       const kText = kicker.toUpperCase();
       // shrink the kicker text so it always fits a sane tab width
-      const kMaxW = W * 0.32;
+      const kMaxW = W * 0.5;
       const kPx = vsFitFont(ctx, kText, kMaxW, "700", "Inter, sans-serif",
-        Math.round(H * 0.03), Math.round(H * 0.016));
+        Math.round(H * 0.028), Math.round(H * 0.015));
       // size the red tab to the (already-fitted) text plus even padding
       const kPad = W * 0.022;
       const kTextW = ctx.measureText(kText).width;
@@ -4928,11 +5064,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.font = `700 ${hlSize}px Prata, serif`;
     ctx.textAlign = "left";
     const lines = wrapNewsText(ctx, headline, x + padX,
-      plateY + H * 0.03 + hlSize * 0.8, textW, lineH, 3);
+      plateY + H * 0.03 + hlSize * 0.8, textW, lineH, maxLines);
     if (source) {
       ctx.fillStyle = "rgba(210,210,215,0.85)";
       ctx.font = `400 ${Math.round(H * 0.022)}px Inter, sans-serif`;
-      // place the source BELOW the last headline line — no overlap
       const srcY = plateY + H * 0.03 + hlSize * 0.8
                  + lines * lineH + H * 0.012;
       ctx.fillText(source, x + padX, srcY);
@@ -5772,6 +5907,7 @@ function drawStudioFrame(elapsed) {
         ctx.restore();
       }
       drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+      vsApplyGlobalFilter(ctx, canvas, W, H);
       return;
     }
     const introTpl = {
@@ -5783,6 +5919,7 @@ function drawStudioFrame(elapsed) {
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+    vsApplyGlobalFilter(ctx, canvas, W, H);
     return;
   }
 
@@ -5896,7 +6033,6 @@ function drawStudioFrame(elapsed) {
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.filter = vsFilterString();
   if (rot !== 0) {
     ctx.translate(W / 2, H / 2);
     ctx.rotate(rot);
@@ -6178,32 +6314,82 @@ function drawStudioFrame(elapsed) {
   ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
 
   // ----- slide-to-slide transition + final slide-out -----
+  // `vsTransition` now also drives a BLUR transition between slides.
+  const transKind = vsVal("#vsTransition", "fade");
   if (vstudio.slides.length) {
-    const fadeT = 0.45;   // seconds of cross-fade at each boundary
-    let cover = 0;        // 0 = clear, 1 = fully black
-    // fade IN at the start of a slide
+    const fadeT = 0.45;   // seconds of transition at each boundary
+    let cover = 0;        // 0 = clear, 1 = fully covered
     if (dsLocal < fadeT) {
       cover = Math.max(cover, 1 - dsLocal / fadeT);
     }
-    // fade OUT at the end of a slide
     if (dsLocal > dsDur - fadeT) {
       cover = Math.max(cover, 1 - (dsDur - dsLocal) / fadeT);
     }
-    // stronger slide-out fade on the very last slide (logo / end card)
     const at = slideAtTime(elapsed);
     const isLast = at.index === vstudio.slides.length - 1;
     if (isLast && dsLocal > dsDur - 0.8) {
       cover = Math.max(cover, 1 - (dsDur - dsLocal) / 0.8);
     }
     if (cover > 0.001) {
-      // a soft blur-ish veil: black wash + slight desaturating overlay
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, cover);
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, W, H);
-      ctx.restore();
+      if (transKind === "blur") {
+        // BLUR transition — composite the frame through a blur, then a
+        // light dark wash, so slides melt into each other at the seam.
+        const px = Math.round(Math.min(1, cover) * Math.min(W, H) * 0.04);
+        if (px > 0) {
+          const tmp = vsScratchCanvas(W, H);
+          const tctx = tmp.getContext("2d");
+          tctx.clearRect(0, 0, W, H);
+          tctx.drawImage(canvas, 0, 0);
+          ctx.save();
+          ctx.filter = `blur(${px}px)`;
+          ctx.globalAlpha = Math.min(1, cover);
+          ctx.drawImage(tmp, 0, 0);
+          ctx.filter = "none";
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, cover) * 0.5;
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      } else {
+        // default: soft black wash cross-fade
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, cover);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
     }
   }
+
+  // ----- GLOBAL COLOUR FILTER — whole frame, every slide type -----
+  vsApplyGlobalFilter(ctx, canvas, W, H);
+}
+
+// A reusable offscreen canvas for full-frame compositing (filter/blur).
+let _vsScratch = null;
+function vsScratchCanvas(w, h) {
+  if (!_vsScratch) _vsScratch = document.createElement("canvas");
+  if (_vsScratch.width !== w) _vsScratch.width = w;
+  if (_vsScratch.height !== h) _vsScratch.height = h;
+  return _vsScratch;
+}
+
+// Apply the global colour grade to the whole finished frame. Called at
+// EVERY exit point of drawStudioFrame so it covers all slide types.
+function vsApplyGlobalFilter(ctx, canvas, W, H) {
+  const grade = vsFilterString();
+  if (!grade || grade === "none") return;
+  const tmp = vsScratchCanvas(W, H);
+  const tctx = tmp.getContext("2d");
+  tctx.clearRect(0, 0, W, H);
+  tctx.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.filter = grade;
+  ctx.drawImage(tmp, 0, 0);
+  ctx.filter = "none";
+  ctx.restore();
 }
 
 // Draw a centred intro/outro card.
@@ -7055,6 +7241,9 @@ function bindEvents() {
     const s = vstudio.slides[vstudio.activeSlide];
     if (s) { s.duration = Math.max(1, Math.min(30, Number(e.target.value) || 4));
       renderSlideList(); }
+  });
+  on("#vsFilter", "change", () => {
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   });
   on("#vsSlideCaption", "input", (e) => {
     const s = vstudio.slides[vstudio.activeSlide];
