@@ -3815,8 +3815,10 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, ca
   }
 
   // 3) a news-banner content slide per key point — alternating styles + motions
-  const newsStyles = ["lowerthird", "boxed", "title-left"];
-  const newsMotions = ["slide-up", "slide-left", "pop"];
+  // use the professional TEXT styles (big centered/quote/title) rather
+  // than a TV-subtitle lower-third, so content slides look cinematic
+  const newsStyles = ["title-center", "quote", "title-left", "caption"];
+  const newsMotions = ["fade", "slide-up", "pop", "fade"];
   (points || []).slice(0, 4).forEach((pt, i) => {
     const set = vsCaptureSettings();
     set["#vsNewsOn"] = true;
@@ -4100,12 +4102,25 @@ function renderSlideList() {
         ? escapeHtml(s.introMain)
         : (state.lang === "fa" ? "اینترو" : "Intro");
     } else {
-      // a numbered middle slide
+      // a numbered middle slide — show its number plus a short hint of
+      // its own content, and an icon matching the slide type.
       contentNo++;
       icon = s._standaloneInfo ? "📊"
         : s._standaloneNews ? "📰"
+        : s.isIntro ? "✨"
         : s.isVideo ? "🎬" : "🖼";
-      label = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
+      const num = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
+      // pull a short hint from whatever text the slide carries
+      let hint = s.introMain
+        || (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"]))
+        || s._caption || "";
+      if (s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
+        try { hint = JSON.parse(s.settings["#vsInfoJson"]).title || hint; } catch {}
+      }
+      hint = String(hint).trim();
+      label = hint
+        ? `${num} · ${escapeHtml(hint.slice(0, 26))}`
+        : num;
     }
     return `
     <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
