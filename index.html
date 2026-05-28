@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v96" />
+    <link rel="stylesheet" href="styles.css?v=v98" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -366,6 +366,14 @@
                 <div id="vsSlideEditor" class="vs-slide-editor">
                   <div id="vsSlideOnlyFields" class="vtab-hidden">
                     <p id="vsActiveSlideTag" class="vs-active-tag"></p>
+                    <label class="button ghost gold vs-slide-footage">
+                      <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
+                      <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
+                    </label>
+                    <p id="vsSlideMediaName" class="vstudio-note"></p>
+                    <label><span data-i18n="vSlideCaption">Caption (top label)</span>
+                      <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
+                    </label>
                     <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
                       <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
                     </label>
@@ -985,6 +993,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v96"></script>
+    <script src="app.js?v=v98"></script>
   </body>
 </html>
