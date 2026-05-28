@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v98" />
+    <link rel="stylesheet" href="styles.css?v=v100" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/"></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -281,6 +281,17 @@
                 <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
                 <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
 
+                <label class="vs-global-filter"><span data-i18n="vFilterLabel">Color filter (all slides)</span>
+                  <select id="vsFilter">
+                    <option value="none">None</option>
+                    <option value="cinematic">Cinematic</option>
+                    <option value="warm">Warm</option>
+                    <option value="cool">Cool</option>
+                    <option value="mono">Black &amp; white</option>
+                    <option value="vivid">Vivid</option>
+                  </select>
+                </label>
+
                 <div id="vsSlideList" class="vs-slide-list"></div>
                 <div class="vs-slide-actions">
                   <label class="button primary vs-add-slide">
@@ -293,9 +304,12 @@
                 <details class="vs-slide-section" id="vsAutoBuild">
                   <summary class="vstudio-label" data-i18n="vAutoLabel">⚡ Auto-build a full video</summary>
                   <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vAutoHint">Describe your topic or paste a paragraph. This builds a complete sequence for you — an intro scene, content slides (with infographics and a news banner), and an outro — all in one click.</p>
-                    <label><span data-i18n="vAutoTopic">Topic or text</span>
-                      <textarea id="vsAutoTopic" rows="3" placeholder="e.g. Our Q1 results: revenue grew to $2.4M, 18K new users, 34% growth…"></textarea>
+                    <p class="vstudio-note" data-i18n="vAutoHint">Paste a news article URL (or its text). The AI reads the whole article and builds a complete video — analyzing each part and using an infographic where there are numbers, or clean text where there aren't — plus an intro and outro.</p>
+                    <label><span data-i18n="vAutoUrl">Article URL (optional)</span>
+                      <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
+                    </label>
+                    <label><span data-i18n="vAutoTopic">Topic or article text</span>
+                      <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
                     </label>
                     <div class="vs-auto-actions">
                       <button id="vsAutoBuildBtn" class="button primary" type="button" data-i18n="vAutoBuildBtn">Build the video</button>
@@ -647,16 +661,6 @@
                 <input id="vsDuration" type="hidden" value="6" />
                 <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
                 <div class="control-grid">
-                  <label><span data-i18n="vFilterLabel">Filter / grade</span>
-                    <select id="vsFilter">
-                      <option value="none">None</option>
-                      <option value="cinematic">Cinematic</option>
-                      <option value="warm">Warm</option>
-                      <option value="cool">Cool</option>
-                      <option value="mono">Black &amp; white</option>
-                      <option value="vivid">Vivid</option>
-                    </select>
-                  </label>
                   <label><span data-i18n="vSpeedLabel">Playback speed</span>
                     <select id="vsSpeed">
                       <option value="0.5">0.5×</option>
@@ -670,6 +674,7 @@
                   <label><span data-i18n="vTransitionLabel">Transition in</span>
                     <select id="vsTransition">
                       <option value="fade">Fade</option>
+                      <option value="blur">Blur</option>
                       <option value="zoom">Zoom in</option>
                       <option value="slide">Slide up</option>
                       <option value="none">None</option>
@@ -993,6 +998,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v98"></script>
+    <script src="app.js?v=v100"></script>
   </body>
 </html>
