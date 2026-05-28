@@ -3776,19 +3776,27 @@ function vsExtractStats(text) {
 }
 
 // Build the sequence from already-decided pieces.
-function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain }) {
+function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, captions }) {
   vstudio.slides = [];
-  const bg = (i) => introBackgrounds[i % introBackgrounds.length].id;
+  // hand-picked cinematic backgrounds (not just sequential) for a polished look
+  const bgPool = ["noir-gradient", "gold-rings", "aurora", "mesh", "velvet",
+    "starfield", "royal", "halo", "prism", "spotlight-duo"];
+  const bg = (i) => bgPool[i % bgPool.length];
+  // professional, varied entrance motions for each scene
+  const introMotions = ["rise-spring", "zoom", "glide", "drift", "spring"];
+  const caps = captions || [];
 
-  // 1) intro scene
+  // 1) intro scene — cinematic spring entrance
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
     introBg: bg(0), introMain: title || "Presenting", introSub: subtitle || "",
-    introMotion: "rise-spring", headline: "", duration: 3,
+    introMotion: "rise-spring", headline: "", duration: 3.2,
     settings: vsCaptureSettings()
   });
 
-  // 2) an infographic content slide (if we have stats)
+  let bgi = 1, capi = 0;
+
+  // 2) an infographic content slide (if we have stats) — with a caption
   if (stats && stats.length) {
     const set = vsCaptureSettings();
     set["#vsInfoOn"] = true;
@@ -3799,27 +3807,32 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain }) 
     set["#vsNewsOn"] = false;
     vstudio.slides.push({
       url: null, isVideo: false, mediaEl: null, ready: true,
-      isIntro: true, introBg: bg(1), introMain: "", introSub: "",
-      introMotion: "fade", headline: "", duration: 4, settings: set,
-      _standaloneInfo: true
+      isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
+      introMotion: "fade", headline: "", duration: 4.2, settings: set,
+      _standaloneInfo: true,
+      _caption: caps[capi++] || (title ? title : "By the numbers")
     });
   }
 
-  // 3) a news-banner content slide per key point
-  (points || []).slice(0, 3).forEach((pt, i) => {
+  // 3) a news-banner content slide per key point — alternating styles + motions
+  const newsStyles = ["lowerthird", "boxed", "title-left"];
+  const newsMotions = ["slide-up", "slide-left", "pop"];
+  (points || []).slice(0, 4).forEach((pt, i) => {
     const set = vsCaptureSettings();
     set["#vsNewsOn"] = true;
-    set["#vsNewsStyle"] = "lowerthird";
-    set["#vsNewsMotion"] = "slide-up";
+    set["#vsNewsStyle"] = newsStyles[i % newsStyles.length];
+    set["#vsNewsMotion"] = newsMotions[i % newsMotions.length];
     set["#vsNewsKicker"] = (kicker || "UPDATE").toUpperCase().slice(0, 18);
     set["#vsNewsHeadline"] = pt.slice(0, 120);
     set["#vsNewsSource"] = "";
     set["#vsInfoOn"] = false;
     vstudio.slides.push({
       url: null, isVideo: false, mediaEl: null, ready: true,
-      isIntro: true, introBg: bg(2 + i), introMain: "", introSub: "",
-      introMotion: "fade", headline: "", duration: 3.5, settings: set,
-      _standaloneNews: true
+      isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
+      introMotion: introMotions[i % introMotions.length],
+      headline: "", duration: 3.6, settings: set,
+      _standaloneNews: true,
+      _caption: caps[capi++] || pt.split(/\s+/).slice(0, 4).join(" ")
     });
   });
 
@@ -3828,7 +3841,7 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain }) 
     url: null, isVideo: false, mediaEl: null, ready: true,
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: outroMain || "Thanks for watching", introSub: "Follow for more",
-    introMotion: "fade", headline: "", duration: 3, settings: vsCaptureSettings()
+    introMotion: "spring", headline: "", duration: 3, settings: vsCaptureSettings()
   });
 
   renderSlideList();
@@ -3840,16 +3853,20 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain }) 
 // Non-AI builder: parse the text locally.
 function vsBuildStoryLocal(text) {
   const clean = text.replace(/\s+/g, " ").trim();
-  // title = first sentence / first 6 words
   const firstSentence = (clean.split(/[.!?\n]/)[0] || clean).trim();
   const title = firstSentence.split(/\s+/).slice(0, 6).join(" ") || "Your video";
   const stats = vsExtractStats(clean);
-  // points = remaining sentences
   const points = clean.split(/[.!?]/).map(s => s.trim())
-    .filter(s => s.length > 12).slice(1, 4);
+    .filter(s => s.length > 12).slice(1, 5);
+  // auto-generate a short caption per content slide from its own text:
+  // the infographic caption, then one per point (first 3-4 words).
+  const captions = [];
+  if (stats.length) captions.push("Key numbers");
+  points.forEach(pt => captions.push(
+    pt.split(/\s+/).slice(0, 4).join(" ")));
   vsAssembleStory({
     title, subtitle: "", stats, points,
-    kicker: "HIGHLIGHT", outroMain: "Thanks for watching"
+    kicker: "HIGHLIGHT", outroMain: "Thanks for watching", captions
   });
 }
 
@@ -3896,10 +3913,11 @@ async function buildAutoVideo(useAI) {
   vsAutoStatus(state.lang === "fa"
     ? "هوش مصنوعی در حال نوشتن سناریو…" : "AI is scripting your video…");
   const prompt = `You are a short-form video scriptwriter. From the input below, return ONLY compact JSON (no markdown) shaped exactly as:
-{"title":"...", "subtitle":"...", "kicker":"ONE OR TWO WORDS", "stats":[{"label":"...","value":"...","num":0}], "points":["short headline 1","short headline 2","short headline 3"], "outroMain":"..."}
+{"title":"...", "subtitle":"...", "kicker":"ONE OR TWO WORDS", "stats":[{"label":"...","value":"...","num":0}], "points":["short headline 1","short headline 2","short headline 3"], "captions":["2-3 word caption per content slide"], "outroMain":"..."}
 - title: punchy, <= 6 words. subtitle: <= 8 words.
 - stats: 3-5 items, value like "2.4M" or "34%", num is the numeric value.
 - points: 2-3 short news-style headlines (<= 10 words each).
+- captions: one short 2-3 word label per content slide (stats slide + each point), in order.
 Input: """${text.slice(0, 1200)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
@@ -3909,7 +3927,8 @@ Input: """${text.slice(0, 1200)}"""`;
       title: data.title, subtitle: data.subtitle,
       stats: Array.isArray(data.stats) ? data.stats : [],
       points: Array.isArray(data.points) ? data.points : [],
-      kicker: data.kicker, outroMain: data.outroMain
+      kicker: data.kicker, outroMain: data.outroMain,
+      captions: Array.isArray(data.captions) ? data.captions : []
     });
     vsAutoStatus(state.lang === "fa"
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
@@ -4062,22 +4081,42 @@ function renderSlideList() {
       state.lang === "fa" ? "هنوز اسلایدی اضافه نشده." : "No slides yet."}</p>`;
     return;
   }
-  list.innerHTML = vstudio.slides.map((s, i) => `
+  const n = vstudio.slides.length;
+  let contentNo = 0;   // running number for the middle (content) slides
+  list.innerHTML = vstudio.slides.map((s, i) => {
+    const isFirst = i === 0;
+    const isLast = i === n - 1 && n > 1;
+    let icon, label;
+    if (s.isOutro || (isLast && s.isIntro)) {
+      // last scene (or an explicit outro) → Outro
+      icon = "🏁";
+      label = s.introMain
+        ? escapeHtml(s.introMain)
+        : (state.lang === "fa" ? "اوترو" : "Outro");
+    } else if (isFirst && s.isIntro) {
+      // first scene that's a title scene → Intro
+      icon = "✨";
+      label = s.introMain
+        ? escapeHtml(s.introMain)
+        : (state.lang === "fa" ? "اینترو" : "Intro");
+    } else {
+      // a numbered middle slide
+      contentNo++;
+      icon = s._standaloneInfo ? "📊"
+        : s._standaloneNews ? "📰"
+        : s.isVideo ? "🎬" : "🖼";
+      label = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
+    }
+    return `
     <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
       <span class="vs-slide-num">${i + 1}</span>
       <span class="vs-slide-info">
-        ${s.isIntro
-          ? (s.isOutro ? "🏁 " : "✨ ") + (s.introMain
-              ? escapeHtml(s.introMain)
-              : (s.isOutro
-                  ? (state.lang === "fa" ? "صحنه پایانی" : "Outro scene")
-                  : (state.lang === "fa" ? "صحنه اینترو" : "Intro scene")))
-          : (s.isVideo ? "🎬" : "🖼") + " " +
-            (state.lang === "fa" ? `صحنه ${i + 1}` : `Scene ${i + 1}`)}
+        ${icon} ${label}
         <em>${s.duration}s</em>
       </span>
       <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 function escapeHtml(str) {
@@ -4599,6 +4638,100 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   ctx.scale(newsTotalScale, newsTotalScale);
   ctx.translate(-npivX, -npivY);
   ctx.textBaseline = "alphabetic";
+
+  // ── TEXT-STYLE templates — headline/subtitle text, not a news bar ──
+  const textStyles = ["title-center", "title-left", "quote", "caption"];
+  if (textStyles.includes(style)) {
+    const U = Math.min(W, H);
+    const mainTxt = headline || kicker;
+    const subTxt = source;
+    const reveal = slide;                  // entrance progress 0..1
+    const e = 1 - Math.pow(1 - reveal, 3);
+    ctx.save();
+    ctx.globalAlpha = e;
+    // wrap helper
+    const wrap = (str, font, maxW, maxLines) => {
+      ctx.font = font;
+      const words = String(str).split(/\s+/).filter(Boolean);
+      const out = []; let ln = "";
+      for (const w of words) {
+        const t = ln ? ln + " " + w : w;
+        if (ctx.measureText(t).width > maxW && ln) {
+          out.push(ln); ln = w;
+          if (out.length === maxLines) { ln = ""; break; }
+        } else ln = t;
+      }
+      if (ln && out.length < maxLines) out.push(ln);
+      return out;
+    };
+    if (style === "title-center" || style === "title-left") {
+      const left = style === "title-left";
+      const cx = left ? W * 0.08 : W / 2;
+      const align = left ? "left" : "center";
+      ctx.textAlign = align;
+      const maxW = W * 0.84;
+      const mainPx = Math.round(U * 0.066);
+      const mainFont = `700 ${mainPx}px Prata, serif`;
+      const lines = wrap(mainTxt, mainFont, maxW, 3);
+      const lineH = mainPx * 1.2;
+      let yy = H * 0.46 - (lines.length - 1) * lineH / 2
+               + (1 - e) * U * 0.05;
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = U * 0.02;
+      lines.forEach((ln) => { ctx.fillText(ln, cx, yy); yy += lineH; });
+      ctx.shadowBlur = 0;
+      // accent underline
+      const lw = U * 0.12 * e;
+      ctx.fillStyle = ac.bar;
+      const ux = left ? cx : cx - lw / 2;
+      ctx.fillRect(ux, yy - lineH * 0.4, lw, U * 0.006);
+      if (subTxt) {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.font = `400 ${Math.round(U * 0.026)}px Inter, sans-serif`;
+        ctx.fillText(subTxt, cx, yy + U * 0.02);
+      }
+    } else if (style === "quote") {
+      ctx.textAlign = "center";
+      const maxW = W * 0.78;
+      const qPx = Math.round(U * 0.05);
+      const lines = wrap(mainTxt, `italic 500 ${qPx}px Prata, serif`, maxW, 4);
+      const lineH = qPx * 1.3;
+      // big quotation mark
+      ctx.fillStyle = ac.bar;
+      ctx.font = `700 ${Math.round(U * 0.14)}px Prata, serif`;
+      ctx.fillText("\u201C", W / 2, H * 0.34 - (1 - e) * U * 0.04);
+      ctx.fillStyle = "#ffffff";
+      let yy = H * 0.5 - (lines.length - 1) * lineH / 2;
+      ctx.font = `italic 500 ${qPx}px Prata, serif`;
+      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
+      if (subTxt) {
+        ctx.fillStyle = ac.bar;
+        ctx.font = `600 ${Math.round(U * 0.024)}px Inter, sans-serif`;
+        ctx.fillText("— " + subTxt, W / 2, yy + U * 0.02);
+      }
+    } else if (style === "caption") {
+      // small caption line near the bottom with a subtle scrim
+      const capPx = Math.round(U * 0.034);
+      ctx.textAlign = "center";
+      const lines = wrap(mainTxt, `600 ${capPx}px Inter, sans-serif`,
+        W * 0.86, 2);
+      const lineH = capPx * 1.25;
+      const blockH = lines.length * lineH + U * 0.04;
+      const by = H * 0.9 - blockH + (1 - e) * U * 0.04;
+      const sc = ctx.createLinearGradient(0, by - U * 0.04, 0, H);
+      sc.addColorStop(0, "rgba(0,0,0,0)");
+      sc.addColorStop(1, "rgba(0,0,0,0.55)");
+      ctx.fillStyle = sc;
+      ctx.fillRect(0, by - U * 0.04, W, H - (by - U * 0.04));
+      ctx.fillStyle = "#ffffff";
+      let yy = by + lineH * 0.7;
+      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
+    }
+    ctx.restore();
+    ctx.restore();   // close the outer banner transform
+    return;
+  }
 
   if (style === "ticker") {
     // thin scrolling ticker strip at the very bottom
@@ -5532,6 +5665,24 @@ function drawStudioFrame(elapsed) {
         drawInfographic(ctx, W, H, sceneTime, tpl, dsVal2, vsOff);
       if (introSlide._standaloneNews)
         drawNewsBanner(ctx, W, H, sceneTime, dsVal2, vsOff);
+      // auto-generated caption — a small label near the top of the scene
+      if (introSlide._caption) {
+        const U = Math.min(W, H);
+        const capE = !playing ? 1 : Math.min(1, k * 1.4);
+        ctx.save();
+        ctx.globalAlpha = capE;
+        ctx.textAlign = "center";
+        ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+        const cap = introSlide._caption.toUpperCase();
+        const cw = ctx.measureText(cap).width + U * 0.05;
+        const cxC = W / 2, cyC = H * 0.12;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        roundRectPath(ctx, cxC - cw / 2, cyC - U * 0.022, cw, U * 0.044, U * 0.022);
+        ctx.fill();
+        ctx.fillStyle = (tpl && tpl.accent) || "#d8b76a";
+        ctx.fillText(cap, cxC, cyC + U * 0.007);
+        ctx.restore();
+      }
       drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
       return;
     }
