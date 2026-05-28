@@ -3732,3 +3732,9 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   margin-bottom: 8px;
   cursor: pointer;
 }
+
+/* global colour filter control at the top of the slides panel */
+.vs-global-filter {
+  display: block;
+  margin: 4px 0 12px;
+}
