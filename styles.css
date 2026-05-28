@@ -3710,3 +3710,16 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* auto story builder */
+.vs-auto-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+#vsAutoTopic {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+}
