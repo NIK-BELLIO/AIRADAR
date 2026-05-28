@@ -18,6 +18,8 @@ const i18n = {
     vSlidesHint: "Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.",
     vAddSlide: "+ Add slide (upload media)",
     vAddIntro: "+ Add intro scene",
+    vAddOutro: "+ Add outro scene",
+    vAddLink: "+ Add from link",
     vIntroSceneLabel: "Intro scene settings",
     vIntroSceneHint: "Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.",
     vIntroBgLabel: "Background",
@@ -290,6 +292,8 @@ const i18n = {
     vSlidesHint: "چند اسلاید اضافه کن — هرکدام با رسانه، عنوان و مدت خودش. پشت سر هم به‌صورت یک ویدیو پخش می‌شوند.",
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
     vAddIntro: "+ افزودن صحنه اینترو",
+    vAddOutro: "+ افزودن صحنه پایانی",
+    vAddLink: "+ افزودن از لینک",
     vIntroSceneLabel: "تنظیمات صحنه اینترو",
     vIntroSceneHint: "در حال ویرایش صحنه اینتروی انتخاب‌شده — یک پس‌زمینه انتخاب کن، دو خط متن بنویس و حرکت ورود متن را انتخاب کن.",
     vIntroBgLabel: "پس‌زمینه",
@@ -2983,7 +2987,23 @@ const introBackgrounds = [
   { id: "particles",     name: { en: "Particle Field", fa: "میدان ذرات" },
     c1: "#080a0c", c2: "#12161a", accent: "#d8b76a" },
   { id: "marble-light",  name: { en: "Marble Light", fa: "مرمر روشن" },
-    c1: "#f2efe9", c2: "#e2ddd0", accent: "#3a3a40" }
+    c1: "#f2efe9", c2: "#e2ddd0", accent: "#3a3a40" },
+  { id: "ribbon",        name: { en: "Gold Ribbon", fa: "روبان طلایی" },
+    c1: "#0a0806", c2: "#1a1410", accent: "#d8b76a" },
+  { id: "halo",          name: { en: "Halo Glow", fa: "هاله نور" },
+    c1: "#0a0a12", c2: "#161628", accent: "#b8c4f0" },
+  { id: "prism",         name: { en: "Prism", fa: "منشور" },
+    c1: "#0c0810", c2: "#1c1424", accent: "#e0a8d0" },
+  { id: "topo",          name: { en: "Topographic", fa: "توپوگرافی" },
+    c1: "#08120e", c2: "#12241c", accent: "#88d8b0" },
+  { id: "spotlight-duo", name: { en: "Dual Spotlight", fa: "نورافکن دوگانه" },
+    c1: "#060606", c2: "#161616", accent: "#f0d8a0" },
+  { id: "velvet",        name: { en: "Velvet", fa: "مخمل" },
+    c1: "#140810", c2: "#28121f", accent: "#e0a0c0" },
+  { id: "carbon",        name: { en: "Carbon Fibre", fa: "کربن" },
+    c1: "#0c0c0e", c2: "#16161a", accent: "#9aa0a8" },
+  { id: "royal",         name: { en: "Royal Blue", fa: "آبی سلطنتی" },
+    c1: "#040818", c2: "#0a1438", accent: "#d8b76a" }
 ];
 
 // Draw a chosen intro background. `t` is elapsed seconds for subtle motion.
@@ -3166,6 +3186,115 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
         }
         ctx.stroke();
       }
+      break;
+    }
+    case "ribbon": {
+      ctx.globalAlpha = 0.5;
+      for (let i = 0; i < 3; i++) {
+        const yy = H * (0.35 + i * 0.18);
+        const rg = ctx.createLinearGradient(0, yy, W, yy);
+        rg.addColorStop(0, "rgba(216,183,106,0)");
+        rg.addColorStop(0.5, vsHexA(bg.accent, 0.3));
+        rg.addColorStop(1, "rgba(216,183,106,0)");
+        ctx.strokeStyle = rg;
+        ctx.lineWidth = U * 0.01;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 10) {
+          const y = yy + Math.sin(x * 0.005 + t * 0.5 + i * 2) * U * 0.05;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "halo": {
+      const r = ctx.createRadialGradient(
+        W / 2, H * 0.4, U * 0.1, W / 2, H * 0.4, U * 0.55);
+      r.addColorStop(0, vsHexA(bg.accent, 0.18));
+      r.addColorStop(0.7, vsHexA(bg.accent, 0.05));
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = vsHexA(bg.accent, 0.25);
+      ctx.lineWidth = U * 0.002;
+      ctx.beginPath();
+      ctx.arc(W / 2, H * 0.4, U * 0.32 + Math.sin(t) * U * 0.01, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case "prism": {
+      ctx.globalAlpha = 0.12;
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = i % 2 ? bg.accent : "#8aa6d8";
+        ctx.beginPath();
+        const ox = W * (0.1 * i) + t * 8 % W;
+        ctx.moveTo(ox, 0);
+        ctx.lineTo(ox + W * 0.12, 0);
+        ctx.lineTo(ox - W * 0.1, H);
+        ctx.lineTo(ox - W * 0.22, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    case "topo": {
+      ctx.globalAlpha = 0.14;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.0022;
+      for (let r = 1; r <= 7; r++) {
+        ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          const rr = U * (0.08 * r) + Math.sin(a * 5 + t * 0.4 + r) * U * 0.02;
+          const xx = W / 2 + Math.cos(a) * rr;
+          const yy = H * 0.42 + Math.sin(a) * rr;
+          a === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      break;
+    }
+    case "spotlight-duo": {
+      [[0.3, 0.35], [0.7, 0.5]].forEach(([fx, fy], i) => {
+        const r = ctx.createRadialGradient(
+          W * fx, H * fy, U * 0.04, W * fx, H * fy, U * 0.6);
+        r.addColorStop(0, `rgba(255,255,255,${0.12 - i * 0.03})`);
+        r.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = r;
+        ctx.fillRect(0, 0, W, H);
+      });
+      break;
+    }
+    case "velvet": {
+      const r = ctx.createRadialGradient(
+        W * 0.5, H * 0.6, U * 0.1, W * 0.5, H * 0.6, U * 0.8);
+      r.addColorStop(0, vsHexA(bg.accent, 0.16));
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "carbon": {
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = 1;
+      const step = U * 0.04;
+      for (let x = -H; x < W; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + H, H); ctx.stroke();
+      }
+      break;
+    }
+    case "royal": {
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.003;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, U * 0.36, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = U * 0.0015;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, U * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
       break;
     }
     default: break;
@@ -3528,6 +3657,14 @@ function bindIntroEditor() {
     addIntroSlide();
     selectSlide(vstudio.slides.length - 1);
   });
+  const outroBtn = $("#vsAddOutroBtn");
+  if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
+  const linkBtn = $("#vsAddLinkBtn");
+  if (linkBtn) linkBtn.addEventListener("click", () => {
+    const inp = $("#vsVideoLink");
+    const url = (inp && inp.value || "").trim();
+    if (url) { addSlideFromLink(url); if (inp) inp.value = ""; }
+  });
 }
 
 // Compute the canvas size from the chosen aspect ratio.
@@ -3586,6 +3723,66 @@ function addIntroSlide() {
   vsStatus(state.lang === "fa"
     ? `صحنه اینترو اضافه شد.`
     : `Intro scene added.`);
+}
+
+// An outro scene is the same kind of self-contained titled scene as an
+// intro; it just defaults to closing copy and is labelled differently.
+// Add a slide from a direct video URL. Note: this only works for direct
+// video files (.mp4/.webm) served with CORS access — not YouTube/TikTok
+// page links, which can't be embedded into a canvas from a static site.
+function addSlideFromLink(url) {
+  vsSaveActiveSlide();
+  vsStatus(state.lang === "fa" ? "در حال بارگیری ویدیو…" : "Loading video…");
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  const fail = (msg) => {
+    vsStatus(msg);
+  };
+  video.onloadeddata = () => {
+    const slide = {
+      url, isVideo: true, mediaEl: video, ready: true,
+      headline: "", duration: Math.min(10, Math.max(2, video.duration || 4)),
+      settings: vsCaptureSettings()
+    };
+    vstudio.slides.push(slide);
+    renderSlideList();
+    if (!$("#vsCanvas")) buildPreviewCanvas();
+    selectSlide(vstudio.slides.length - 1);
+    drawStudioFrame(0);
+    vsStatus(state.lang === "fa"
+      ? "صحنه از روی لینک اضافه شد."
+      : "Scene added from link.");
+  };
+  video.onerror = () => {
+    fail(state.lang === "fa"
+      ? "نمی‌توان این ویدیو را بارگیری کرد. فقط لینک مستقیم فایل ویدیو (mp4/webm) که دسترسی CORS دارد کار می‌کند — لینک یوتیوب/تیک‌تاک پشتیبانی نمی‌شود."
+      : "Couldn't load that video. Only direct video-file links (.mp4/.webm) that allow CORS work here — YouTube/TikTok page links aren't supported.");
+  };
+}
+
+function addOutroSlide() {
+  vsSaveActiveSlide();
+  const slide = {
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true,
+    introBg: introBackgrounds[0].id,
+    introMain: "Thanks for watching",
+    introSub: "Follow for more",
+    introMotion: "fade",
+    headline: "", duration: 3,
+    settings: vsCaptureSettings()
+  };
+  vstudio.slides.push(slide);
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  if (vstudio.slides.length === 1) selectSlide(0);
+  selectSlide(vstudio.slides.length - 1);
+  drawStudioFrame(0);
+  vsStatus(state.lang === "fa" ? `صحنه پایانی اضافه شد.` : `Outro scene added.`);
 }
 
 function addStudioSlide(file) {
@@ -3711,9 +3908,11 @@ function renderSlideList() {
       <span class="vs-slide-num">${i + 1}</span>
       <span class="vs-slide-info">
         ${s.isIntro
-          ? "✨ " + (s.introMain
+          ? (s.isOutro ? "🏁 " : "✨ ") + (s.introMain
               ? escapeHtml(s.introMain)
-              : (state.lang === "fa" ? "صحنه اینترو" : "Intro scene"))
+              : (s.isOutro
+                  ? (state.lang === "fa" ? "صحنه پایانی" : "Outro scene")
+                  : (state.lang === "fa" ? "صحنه اینترو" : "Intro scene")))
           : (s.isVideo ? "🎬" : "🖼") + " " +
             (state.lang === "fa" ? `صحنه ${i + 1}` : `Scene ${i + 1}`)}
         <em>${s.duration}s</em>
