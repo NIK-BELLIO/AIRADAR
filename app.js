@@ -8,18 +8,6 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
-    navFreeVideo: "Free AI video",
-    fvTitle: "Free AI video",
-    fvSub: "Type a prompt and generate an animated video right in your browser \u2014 free, no sign-up, no external model. Preview it and download it.",
-    fvPromptLabel: "Describe the video you want",
-    fvStyleLabel: "Visual style",
-    fvAspectLabel: "Format",
-    fvLenLabel: "Length",
-    fvGenerate: "\u2728 Generate video",
-    fvSuggest: "\u2726 Suggest style from prompt",
-    fvReplay: "\u25B6 Replay",
-    fvDownload: "\u2B07 Download video",
-    fvNote: "This makes an animated motion-graphic video from your text, rendered in your browser \u2014 completely free, no sign-up, no external model. (Photorealistic AI footage from models like Wan 2.2 needs a paid GPU service, so it isn't offered here.)",
     studioEyebrow: "Advanced video studio",
     studioTitle: "Create a complete, luxurious video",
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
@@ -305,18 +293,6 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
-    navFreeVideo: "ویدیوی رایگان",
-    fvTitle: "ویدیوی هوش مصنوعی رایگان",
-    fvSub: "یک پرامپت بنویس و همان‌جا در مرورگرت یک ویدیوی متحرک بساز \u2014 رایگان، بدون ثبت‌نام و بدون مدل خارجی. پیش‌نمایش بگیر و دانلود کن.",
-    fvPromptLabel: "ویدیوی موردنظرت را توصیف کن",
-    fvStyleLabel: "سبک تصویری",
-    fvAspectLabel: "قالب",
-    fvLenLabel: "مدت",
-    fvGenerate: "\u2728 ساخت ویدیو",
-    fvSuggest: "\u2726 پیشنهاد سبک از روی پرامپت",
-    fvReplay: "\u25B6 پخش دوباره",
-    fvDownload: "\u2B07 دانلود ویدیو",
-    fvNote: "این از روی متن تو یک ویدیوی موشن‌گرافیک متحرک می‌سازد که در مرورگرت رندر می‌شود \u2014 کاملاً رایگان، بدون ثبت‌نام و بدون مدل خارجی. (فوتیج واقع‌گرایانه با مدل‌هایی مثل Wan 2.2 به سرویس GPU پولی نیاز دارد و اینجا ارائه نمی‌شود.)",
     studioEyebrow: "استودیوی پیشرفته ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
@@ -3049,7 +3025,19 @@ const introBackgrounds = [
   { id: "carbon",        name: { en: "Carbon Fibre", fa: "کربن" },
     c1: "#0c0c0e", c2: "#16161a", accent: "#9aa0a8" },
   { id: "royal",         name: { en: "Royal Blue", fa: "آبی سلطنتی" },
-    c1: "#040818", c2: "#0a1438", accent: "#d8b76a" }
+    c1: "#040818", c2: "#0a1438", accent: "#d8b76a" },
+  { id: "cine-aurora",   name: { en: "Cinematic Aurora", fa: "شفق سینمایی" },
+    c1: "#050912", c2: "#0c1830", accent: "#5fd0c0" },
+  { id: "cine-ember",    name: { en: "Ember Glow", fa: "درخشش اخگر" },
+    c1: "#140604", c2: "#2a0c08", accent: "#ff8a4c" },
+  { id: "cine-violet",   name: { en: "Violet Depth", fa: "ژرفای بنفش" },
+    c1: "#0a0618", c2: "#1a0f38", accent: "#b88aff" },
+  { id: "cine-mesh",     name: { en: "Liquid Mesh", fa: "مش مایع" },
+    c1: "#04100e", c2: "#0a2622", accent: "#4fe0a0" },
+  { id: "cine-spotlight", name: { en: "Studio Spotlight", fa: "نورافکن استودیو" },
+    c1: "#080808", c2: "#1a1a1e", accent: "#f0d8a0" },
+  { id: "cine-wave",     name: { en: "Silk Waves", fa: "موج‌های ابریشمی" },
+    c1: "#0a0814", c2: "#181024", accent: "#e0a0c0" }
 ];
 
 // Draw a chosen intro background. `t` is elapsed seconds for subtle motion.
@@ -3341,6 +3329,123 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, U * 0.42, 0, Math.PI * 2);
       ctx.stroke();
+      break;
+    }
+    case "cine-aurora": {
+      // layered flowing aurora ribbons with soft glow + depth
+      const cols = ["95,208,192", "90,150,230", "150,120,220"];
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        const yy = H * (0.3 + i * 0.2);
+        ctx.beginPath();
+        ctx.moveTo(0, yy);
+        for (let x = 0; x <= W; x += 12) {
+          const y = yy + Math.sin(x * 0.004 + t * 0.5 + i * 1.6) * U * 0.1
+                      + Math.cos(x * 0.009 - t * 0.3) * U * 0.04;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, yy + U * 0.4);
+        ctx.lineTo(0, yy + U * 0.4);
+        ctx.closePath();
+        const rg = ctx.createLinearGradient(0, yy - U * 0.2, 0, yy + U * 0.3);
+        rg.addColorStop(0, `rgba(${cols[i]},0)`);
+        rg.addColorStop(0.5, `rgba(${cols[i]},0.22)`);
+        rg.addColorStop(1, `rgba(${cols[i]},0)`);
+        ctx.fillStyle = rg;
+        ctx.filter = `blur(${U * 0.02}px)`;
+        ctx.fill();
+        ctx.restore();
+      }
+      break;
+    }
+    case "cine-ember": {
+      // deep ember glow rising from the bottom + floating sparks
+      const r = ctx.createRadialGradient(W / 2, H * 1.05, U * 0.1,
+        W / 2, H * 1.05, U * 0.95);
+      r.addColorStop(0, "rgba(255,138,76,0.4)");
+      r.addColorStop(0.5, "rgba(200,60,30,0.14)");
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 40; i++) {
+        const seed = i * 53.7;
+        const px = (Math.sin(seed) * 0.5 + 0.5) * W;
+        const py = H - ((t * U * 0.04 * (0.4 + (i % 5) * 0.2)
+          + (Math.cos(seed) * 0.5 + 0.5) * H) % H);
+        ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(t * 1.5 + i));
+        ctx.fillStyle = i % 3 ? "#ff8a4c" : "#ffd08a";
+        ctx.beginPath();
+        ctx.arc(px, py, U * 0.0018, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case "cine-violet": {
+      // two large soft orbs with depth + slow drift
+      [["120,90,220", 0.32, 0.35, 0.5], ["180,120,255", 0.7, 0.6, 0.4]]
+        .forEach(([c, fx, fy, sz], i) => {
+          const ox = W * fx + Math.sin(t * 0.3 + i * 2) * U * 0.05;
+          const oy = H * fy + Math.cos(t * 0.25 + i) * U * 0.05;
+          const rr = ctx.createRadialGradient(ox, oy, 0, ox, oy, U * sz);
+          rr.addColorStop(0, `rgba(${c},0.3)`);
+          rr.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = rr;
+          ctx.fillRect(0, 0, W, H);
+        });
+      break;
+    }
+    case "cine-mesh": {
+      // animated liquid mesh — interpolated colour blobs
+      const blobs = [["79,224,160", 0.3, 0.3], ["40,160,200", 0.7, 0.4],
+        ["120,220,180", 0.5, 0.7]];
+      blobs.forEach(([c, fx, fy], i) => {
+        const ox = W * fx + Math.sin(t * 0.4 + i * 2.1) * U * 0.12;
+        const oy = H * fy + Math.cos(t * 0.35 + i * 1.3) * U * 0.12;
+        const rr = ctx.createRadialGradient(ox, oy, 0, ox, oy, U * 0.55);
+        rr.addColorStop(0, `rgba(${c},0.28)`);
+        rr.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = rr;
+        ctx.fillRect(0, 0, W, H);
+      });
+      break;
+    }
+    case "cine-spotlight": {
+      // moving studio spotlight cone + subtle floor glow
+      const sx = W * (0.5 + Math.sin(t * 0.3) * 0.18);
+      const r = ctx.createRadialGradient(sx, H * 0.2, U * 0.05,
+        sx, H * 0.2, U * 0.85);
+      r.addColorStop(0, "rgba(255,255,255,0.16)");
+      r.addColorStop(0.4, "rgba(240,216,160,0.06)");
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      const fl = ctx.createRadialGradient(W / 2, H * 0.95, U * 0.05,
+        W / 2, H * 0.95, U * 0.5);
+      fl.addColorStop(0, "rgba(240,216,160,0.1)");
+      fl.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = fl;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "cine-wave": {
+      // smooth silk waves with gradient sheen
+      for (let i = 0; i < 6; i++) {
+        ctx.save();
+        const yy = H * (0.15 + i * 0.14);
+        ctx.beginPath();
+        ctx.moveTo(0, yy);
+        for (let x = 0; x <= W; x += 10) {
+          const y = yy + Math.sin(x * 0.005 + t * 0.6 + i * 0.7) * U * 0.05;
+          ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `rgba(224,160,200,${0.28 - i * 0.03})`;
+        ctx.lineWidth = U * 0.006;
+        ctx.filter = `blur(${U * 0.004}px)`;
+        ctx.stroke();
+        ctx.restore();
+      }
       break;
     }
     default: break;
@@ -3709,15 +3814,6 @@ function bindIntroEditor() {
   if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
-  // Free AI video — standalone animated maker
-  const fvGen = $("#fvGenerateBtn");
-  if (fvGen) fvGen.addEventListener("click", () => fvGenerate());
-  const fvSug = $("#fvSuggestBtn");
-  if (fvSug) fvSug.addEventListener("click", () => fvSuggestStyle());
-  const fvDl = $("#fvDownloadBtn");
-  if (fvDl) fvDl.addEventListener("click", () => fvDownload());
-  const fvPlay = $("#fvPlayBtn");
-  if (fvPlay) fvPlay.addEventListener("click", () => fvPlayPreview());
 }
 
 // Compute the canvas size from the chosen aspect ratio.
@@ -3818,8 +3914,9 @@ function vsExtractStats(text) {
 function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, captions }) {
   vstudio.slides = [];
   // hand-picked cinematic backgrounds (not just sequential) for a polished look
-  const bgPool = ["noir-gradient", "gold-rings", "aurora", "mesh", "velvet",
-    "starfield", "royal", "halo", "prism", "spotlight-duo"];
+  // premium cinematic backgrounds first for a polished, modern look
+  const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
+    "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
   const bg = (i) => bgPool[i % bgPool.length];
   // professional, varied entrance motions for each scene
   const introMotions = ["rise-spring", "zoom", "glide", "drift", "spring"];
@@ -3933,314 +4030,6 @@ async function vsAutoAiChat(prompt) {
   return String(res);
 }
 
-// ── FREE AI VIDEO — standalone animated video maker ─────────
-// Generates an animated motion-graphic video from a text prompt entirely
-// in the browser (canvas + MediaRecorder). No external model, fully free.
-// This is INDEPENDENT of the Video Studio.
-
-const fvState = {
-  raf: null, recorder: null, chunks: [], blobUrl: null,
-  playing: false, startT: 0, durationMs: 8000,
-  style: "aurora", title: "", sub: "", aspect: "9:16"
-};
-
-function fvStatus(msg) {
-  const el = document.querySelector("#fvStatus");
-  if (el) el.textContent = msg || "";
-}
-
-function fvAspectDims(aspect) {
-  if (aspect === "1:1") return { w: 1080, h: 1080 };
-  if (aspect === "16:9") return { w: 1280, h: 720 };
-  return { w: 1080, h: 1920 };               // 9:16 default
-}
-
-// Pull a short on-screen title + subtitle out of the prompt.
-function fvTextsFromPrompt(prompt) {
-  const clean = prompt.replace(/\s+/g, " ").trim();
-  // quoted text becomes the title if present
-  const q = clean.match(/["“'']([^"“'']{2,60})["”'']/);
-  let title = q ? q[1] : "";
-  if (!title) {
-    // else first ~6 words
-    title = clean.split(/\s+/).slice(0, 6).join(" ");
-  }
-  // subtitle: a short remainder
-  let sub = "";
-  if (!q) {
-    const rest = clean.split(/\s+/).slice(6, 14).join(" ");
-    sub = rest;
-  }
-  return { title: title.slice(0, 60), sub: sub.slice(0, 80) };
-}
-
-// Draw one animated frame for the chosen style at time t (seconds).
-function fvDrawFrame(ctx, W, H, t, style, title, sub) {
-  const U = Math.min(W, H);
-  ctx.clearRect(0, 0, W, H);
-  // base background
-  ctx.fillStyle = "#070708";
-  ctx.fillRect(0, 0, W, H);
-
-  if (style === "aurora") {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#04111a"); g.addColorStop(1, "#0a2230");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 4; i++) {
-      const yy = H * (0.25 + i * 0.18) + Math.sin(t * 0.6 + i) * U * 0.08;
-      const ag = ctx.createLinearGradient(0, yy - U * 0.25, 0, yy + U * 0.25);
-      const hue = ["127,216,200", "120,180,230", "180,150,220", "127,216,200"][i];
-      ag.addColorStop(0, `rgba(${hue},0)`);
-      ag.addColorStop(0.5, `rgba(${hue},${0.16 - i * 0.02})`);
-      ag.addColorStop(1, `rgba(${hue},0)`);
-      ctx.fillStyle = ag; ctx.fillRect(0, yy - U * 0.25, W, U * 0.5);
-    }
-  } else if (style === "waves") {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#2a1a3a"); g.addColorStop(0.5, "#3a2a4a"); g.addColorStop(1, "#1a1226");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = 0.5;
-    for (let i = 0; i < 5; i++) {
-      ctx.strokeStyle = `rgba(240,180,140,${0.3 - i * 0.04})`;
-      ctx.lineWidth = U * 0.01;
-      ctx.beginPath();
-      for (let x = 0; x <= W; x += 8) {
-        const y = H * (0.55 + i * 0.09) + Math.sin(x * 0.006 + t * 1.4 + i) * U * 0.05;
-        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    const sun = ctx.createRadialGradient(W/2, H*0.35, 0, W/2, H*0.35, U*0.4);
-    sun.addColorStop(0, "rgba(255,200,120,0.5)"); sun.addColorStop(1, "rgba(255,200,120,0)");
-    ctx.fillStyle = sun; ctx.fillRect(0, 0, W, H);
-  } else if (style === "particles") {
-    for (let i = 0; i < 70; i++) {
-      const seed = i * 97.3;
-      const px = (Math.sin(seed) * 0.5 + 0.5) * W;
-      const py = ((Math.cos(seed * 1.7) * 0.5 + 0.5) * H + t * U * 0.05 * (0.5 + (i % 4) * 0.3)) % H;
-      ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(t * 2 + i));
-      ctx.fillStyle = ["#d8b76a", "#7fb3d5", "#ffffff"][i % 3];
-      ctx.beginPath();
-      ctx.arc(px, py, U * (0.0015 + (i % 5) * 0.001), 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  } else if (style === "gradient") {
-    const a = (Math.sin(t * 0.5) * 0.5 + 0.5);
-    const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, `hsl(${260 + a * 40}, 50%, ${12 + a * 8}%)`);
-    g.addColorStop(1, `hsl(${200 + a * 60}, 55%, ${10 + a * 6}%)`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 3; i++) {
-      const bx = W * (0.3 + 0.2 * Math.sin(t * 0.4 + i * 2));
-      const by = H * (0.4 + 0.2 * Math.cos(t * 0.3 + i));
-      const r = ctx.createRadialGradient(bx, by, 0, bx, by, U * 0.5);
-      r.addColorStop(0, `rgba(${[216,183,106][0]},${183},${106},0.12)`);
-      r.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
-    }
-  } else if (style === "grid") {
-    ctx.fillStyle = "#05060f"; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(127,200,255,0.25)";
-    ctx.lineWidth = 1.5;
-    const step = U * 0.08;
-    const off = (t * U * 0.06) % step;
-    for (let x = -off; x < W; x += step) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-    for (let y = -off; y < H; y += step) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-    const glow = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, U*0.6);
-    glow.addColorStop(0, "rgba(127,200,255,0.18)"); glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-  } else if (style === "orbits") {
-    ctx.fillStyle = "#080a14"; ctx.fillRect(0, 0, W, H);
-    ctx.translate(W/2, H/2);
-    for (let i = 1; i <= 4; i++) {
-      ctx.strokeStyle = `rgba(216,183,106,${0.5 - i*0.08})`;
-      ctx.lineWidth = U * 0.0025;
-      ctx.beginPath(); ctx.arc(0, 0, U * 0.12 * i, 0, Math.PI * 2); ctx.stroke();
-      const a = t * (1.2 - i * 0.2) + i;
-      ctx.fillStyle = "#d8b76a";
-      ctx.beginPath();
-      ctx.arc(Math.cos(a) * U * 0.12 * i, Math.sin(a) * U * 0.12 * i, U * 0.012, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  } else if (style === "sunburst") {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#1a0e04"); g.addColorStop(1, "#2a1408");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.save();
-    ctx.translate(W/2, H/2);
-    ctx.rotate(t * 0.15);
-    ctx.globalAlpha = 0.12;
-    for (let i = 0; i < 24; i++) {
-      ctx.fillStyle = "#f0a830";
-      ctx.beginPath(); ctx.moveTo(0,0);
-      const a1 = (i / 24) * Math.PI * 2, a2 = a1 + 0.08;
-      ctx.lineTo(Math.cos(a1) * U, Math.sin(a1) * U);
-      ctx.lineTo(Math.cos(a2) * U, Math.sin(a2) * U);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  // soft vignette
-  const vg = ctx.createRadialGradient(W/2, H/2, U*0.3, W/2, H/2, U*0.75);
-  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)");
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-
-  // title + subtitle with a gentle fade/rise in over the first 1.2s and
-  // out over the last 0.8s
-  const durS = fvState.durationMs / 1000;
-  const fin = Math.min(1, t / 1.2);
-  const fout = Math.min(1, Math.max(0, (durS - t) / 0.8));
-  const alpha = Math.min(fin, fout);
-  if (title) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#fff";
-    ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
-    // wrap title
-    const maxW = W * 0.84;
-    let px = Math.round(U * 0.075);
-    ctx.font = `700 ${px}px Prata, serif`;
-    const words = title.split(/\s+/); const lines = []; let ln = "";
-    for (const w of words) {
-      const test = ln ? ln + " " + w : w;
-      if (ctx.measureText(test).width > maxW && ln) { lines.push(ln); ln = w; }
-      else ln = test;
-    }
-    if (ln) lines.push(ln);
-    const lh = px * 1.2;
-    let yy = H / 2 - (lines.length - 1) * lh / 2 + (1 - fin) * U * 0.04;
-    lines.forEach(l => { ctx.fillText(l, W/2, yy); yy += lh; });
-    ctx.shadowBlur = 0;
-    // accent underline
-    ctx.fillStyle = "#d8b76a";
-    const lw = U * 0.14 * fin;
-    ctx.fillRect(W/2 - lw/2, yy - lh*0.3, lw, U*0.006);
-    if (sub) {
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = `400 ${Math.round(U*0.03)}px Inter, sans-serif`;
-      ctx.fillText(sub, W/2, yy + U*0.03);
-    }
-    ctx.restore();
-  }
-}
-
-function fvStop() {
-  if (fvState.raf) cancelAnimationFrame(fvState.raf);
-  fvState.raf = null; fvState.playing = false;
-}
-
-function fvPlayPreview() {
-  const canvas = document.querySelector("#fvCanvas");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  fvStop();
-  fvState.playing = true;
-  fvState.startT = performance.now();
-  const loop = () => {
-    const t = (performance.now() - fvState.startT) / 1000;
-    fvDrawFrame(ctx, canvas.width, canvas.height, t, fvState.style,
-      fvState.title, fvState.sub);
-    if (t * 1000 < fvState.durationMs) {
-      fvState.raf = requestAnimationFrame(loop);
-    } else {
-      fvState.playing = false;   // hold last frame
-    }
-  };
-  fvState.raf = requestAnimationFrame(loop);
-}
-
-function fvGenerate() {
-  const prompt = (document.querySelector("#fvPrompt") || {}).value || "";
-  if (!prompt.trim()) {
-    fvStatus(state.lang === "fa" ? "اول پرامپت را بنویس." : "Type a prompt first.");
-    return;
-  }
-  fvState.style = (document.querySelector("#fvStyle") || {}).value || "aurora";
-  fvState.aspect = (document.querySelector("#fvAspect") || {}).value || "9:16";
-  fvState.durationMs = (Number((document.querySelector("#fvLength") || {}).value) || 8) * 1000;
-  const txt = fvTextsFromPrompt(prompt);
-  fvState.title = txt.title; fvState.sub = txt.sub;
-
-  const dims = fvAspectDims(fvState.aspect);
-  const canvas = document.querySelector("#fvCanvas");
-  canvas.width = dims.w; canvas.height = dims.h;
-  const stage = document.querySelector("#fvStage");
-  if (stage) stage.hidden = false;
-  fvStatus(state.lang === "fa" ? "ویدیو ساخته شد. در حال پخش…" : "Video generated. Playing…");
-  fvPlayPreview();
-}
-
-// Record the animation to a downloadable video file.
-async function fvDownload() {
-  const canvas = document.querySelector("#fvCanvas");
-  if (!canvas) return;
-  fvStatus(state.lang === "fa" ? "در حال آماده‌سازی فایل…" : "Rendering the file…");
-  const ctx = canvas.getContext("2d");
-  const stream = canvas.captureStream(30);
-  let mime = "video/mp4";
-  if (!MediaRecorder.isTypeSupported(mime)) mime = "video/webm";
-  let rec;
-  try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 }); }
-  catch { rec = new MediaRecorder(stream); mime = rec.mimeType || "video/webm"; }
-  const chunks = [];
-  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-  const done = new Promise(res => { rec.onstop = res; });
-  rec.start();
-  // play the animation from the start while recording
-  const startT = performance.now();
-  await new Promise(resolve => {
-    const loop = () => {
-      const t = (performance.now() - startT) / 1000;
-      fvDrawFrame(ctx, canvas.width, canvas.height, t, fvState.style,
-        fvState.title, fvState.sub);
-      if (t * 1000 < fvState.durationMs) requestAnimationFrame(loop);
-      else resolve();
-    };
-    requestAnimationFrame(loop);
-  });
-  rec.stop();
-  await done;
-  const blob = new Blob(chunks, { type: mime });
-  const url = URL.createObjectURL(blob);
-  const ext = mime.includes("mp4") ? "mp4" : "webm";
-  const a = document.createElement("a");
-  a.href = url; a.download = `ai-radar-video.${ext}`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-  fvStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
-  fvPlayPreview();   // resume preview
-}
-
-// AI suggests the best visual style for the prompt (free, via Puter).
-async function fvSuggestStyle() {
-  const prompt = (document.querySelector("#fvPrompt") || {}).value || "";
-  if (!prompt.trim()) {
-    fvStatus(state.lang === "fa" ? "اول پرامپت را بنویس." : "Type a prompt first.");
-    return;
-  }
-  fvStatus(state.lang === "fa" ? "هوش مصنوعی در حال انتخاب سبک…" : "AI is choosing a style…");
-  const styles = ["aurora","waves","particles","gradient","grid","orbits","sunburst"];
-  const p = `From this video idea, reply with ONLY one word — the best matching visual style from this list: ${styles.join(", ")}. Idea: "${prompt.slice(0,300)}"`;
-  try {
-    const raw = await vsAutoAiChat(p);
-    const pick = String(raw).toLowerCase().match(/aurora|waves|particles|gradient|grid|orbits|sunburst/);
-    if (pick) {
-      const sel = document.querySelector("#fvStyle");
-      if (sel) sel.value = pick[0];
-      fvStatus(state.lang === "fa" ? `سبک پیشنهادی: ${pick[0]}` : `Suggested style: ${pick[0]}`);
-    } else {
-      fvStatus("");
-    }
-  } catch (e) {
-    fvStatus(state.lang === "fa" ? "هوش مصنوعی در دسترس نیست." : "AI unavailable — pick a style manually.");
-  }
-}
-
 async function buildAutoVideo(useAI) {
 
   const urlInp = document.querySelector("#vsAutoUrl");
@@ -4349,8 +4138,9 @@ async function vsFetchArticle(url) {
 // Build a video from the AI's ordered "sections" (infographic vs text).
 function vsAssembleFromSections(data) {
   vstudio.slides = [];
-  const bgPool = ["noir-gradient", "gold-rings", "aurora", "mesh", "velvet",
-    "starfield", "royal", "halo", "prism", "spotlight-duo"];
+  // premium cinematic backgrounds first for a polished, modern look
+  const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
+    "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
   const bg = (i) => bgPool[i % bgPool.length];
   const motions = ["rise-spring", "zoom", "glide", "drift", "spring"];
   const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
