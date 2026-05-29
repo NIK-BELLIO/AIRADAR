@@ -3738,3 +3738,34 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   display: block;
   margin: 4px 0 12px;
 }
+
+/* ── Free AI video section ───────────────────────────────── */
+.free-video-body {
+  max-width: 760px;
+}
+.fv-prompt-label { display: block; margin-bottom: 14px; }
+#fvPrompt {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 15px;
+}
+.fv-options {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.fv-options label { flex: 1 1 200px; }
+.fv-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.fv-note {
+  margin-top: 12px;
+  opacity: 0.75;
+  font-size: 13px;
+  line-height: 1.5;
+}
