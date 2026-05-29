@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v105" />
+    <link rel="stylesheet" href="styles.css?v=v107" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -47,7 +47,6 @@
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <a href="#mediaCaption"><span class="nav-ic">✎</span><span class="nav-tx" data-i18n="navMedia">Caption AI</span></a>
             <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video studio</span></a>
-            <a href="#freeVideo"><span class="nav-ic">✨</span><span class="nav-tx" data-i18n="navFreeVideo">Free AI video</span></a>
             <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
           </div>
         </nav>
@@ -803,59 +802,6 @@
           </div>
         </section>
 
-        <!-- FREE AI VIDEO — prompt-to-video -->
-        <section id="freeVideo" class="panel free-video">
-          <div class="section-head">
-            <h2 data-i18n="fvTitle">Free AI video</h2>
-            <p class="section-sub" data-i18n="fvSub">Type a prompt and generate an animated video right in your browser — free, no sign-up, no external model. Preview it and download it.</p>
-          </div>
-          <div class="free-video-body">
-            <label class="fv-prompt-label"><span data-i18n="fvPromptLabel">Describe the video you want</span>
-              <textarea id="fvPrompt" rows="3" placeholder="e.g. Calm ocean waves at sunset with the words 'Find your calm'"></textarea>
-            </label>
-            <div class="fv-options">
-              <label><span data-i18n="fvStyleLabel">Visual style</span>
-                <select id="fvStyle">
-                  <option value="aurora">Aurora flow</option>
-                  <option value="waves">Ocean waves</option>
-                  <option value="particles">Particle field</option>
-                  <option value="gradient">Gradient drift</option>
-                  <option value="grid">Neon grid</option>
-                  <option value="orbits">Orbits</option>
-                  <option value="sunburst">Sunburst</option>
-                </select>
-              </label>
-              <label><span data-i18n="fvAspectLabel">Format</span>
-                <select id="fvAspect">
-                  <option value="9:16">9:16 — Reels / TikTok</option>
-                  <option value="1:1">1:1 — Square</option>
-                  <option value="16:9">16:9 — Widescreen</option>
-                </select>
-              </label>
-              <label><span data-i18n="fvLenLabel">Length</span>
-                <select id="fvLength">
-                  <option value="5">5 seconds</option>
-                  <option value="8" selected>8 seconds</option>
-                  <option value="12">12 seconds</option>
-                </select>
-              </label>
-            </div>
-            <div class="fv-actions">
-              <button id="fvGenerateBtn" class="button primary" type="button" data-i18n="fvGenerate">✨ Generate video</button>
-              <button id="fvSuggestBtn" class="button ghost gold" type="button" data-i18n="fvSuggest">✦ Suggest style from prompt</button>
-            </div>
-            <p id="fvStatus" class="vstudio-note"></p>
-            <div id="fvStage" class="fv-stage" hidden>
-              <div class="fv-canvas-wrap"><canvas id="fvCanvas"></canvas></div>
-              <div class="fv-player">
-                <button id="fvPlayBtn" class="button ghost" type="button" data-i18n="fvReplay">▶ Replay</button>
-                <button id="fvDownloadBtn" class="button primary" type="button" data-i18n="fvDownload">⬇ Download video</button>
-              </div>
-            </div>
-            <p class="vstudio-note fv-note" data-i18n="fvNote">This makes an animated motion-graphic video from your text, rendered in your browser — completely free, no sign-up, no external model. (Photorealistic AI footage from models like Wan 2.2 needs a paid GPU service, so it isn't offered here.)</p>
-          </div>
-        </section>
-
         <!-- PROMPT LAB -->
         <section id="intelligence" class="panel intelligence">
           <div class="section-head">
@@ -1056,6 +1002,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v105"></script>
+    <script src="app.js?v=v107"></script>
   </body>
 </html>
