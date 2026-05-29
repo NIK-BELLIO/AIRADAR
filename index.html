@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v107" />
+    <link rel="stylesheet" href="styles.css?v=v108" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -541,6 +541,7 @@
                             <option value="counters">Counting numbers</option>
                             <option value="cards">Stat cards</option>
                             <option value="donut">Donut ring</option>
+                            <option value="pills">Progress pills</option>
                           </select>
                         </label>
                         <label><span data-i18n="vInfoPosLabel">Position</span>
@@ -621,6 +622,9 @@
                               <option value="title-left">Left title block</option>
                               <option value="quote">Quote style</option>
                               <option value="caption">Caption (bottom)</option>
+                              <option value="statement">Bold statement</option>
+                              <option value="split">Split block</option>
+                              <option value="badge">Badge headline</option>
                             </optgroup>
                           </select>
                         </label>
@@ -944,9 +948,23 @@
           <div class="changelog">
             <div class="changelog-head">
               <h3 data-i18n="changelogTitle">Latest updates</h3>
-              <span class="version-badge">v1.9.0</span>
+              <span class="version-badge">v2.1.0</span>
             </div>
             <ul class="changelog-list">
+              <li>
+                <span class="changelog-ver">2.1</span>
+                <div>
+                  <strong data-i18n="cl21Title">Cinematic design upgrade</strong>
+                  <p data-i18n="cl21Text">Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">2.0</span>
+                <div>
+                  <strong data-i18n="cl20Title">Smarter article-to-video</strong>
+                  <p data-i18n="cl20Text">Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.</p>
+                </div>
+              </li>
               <li>
                 <span class="changelog-ver">1.9</span>
                 <div>
@@ -1002,6 +1020,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v107"></script>
+    <script src="app.js?v=v108"></script>
   </body>
 </html>
