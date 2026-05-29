@@ -137,6 +137,10 @@ const i18n = {
     aboutProjectRole: "Free static project",
     aboutProjectText: "Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.",
     changelogTitle: "Latest updates",
+    cl21Title: "Cinematic design upgrade",
+    cl21Text: "Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.",
+    cl20Title: "Smarter article-to-video",
+    cl20Text: "Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.",
     cl19Title: "Auto video builder",
     cl19Text: "Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.",
     cl18Title: "Outro scenes & more designs",
@@ -422,6 +426,10 @@ const i18n = {
     aboutProjectRole: "پروژه استاتیک رایگان",
     aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود — سه فایل، بدون سرور. داده زنده از API عمومی گیت‌هاب. بدون ردیابی، بدون حساب، بدون تبلیغ.",
     changelogTitle: "آخرین به‌روزرسانی‌ها",
+    cl21Title: "ارتقای طراحی سینمایی",
+    cl21Text: "پس‌زمینه‌های متحرک پریمیوم (شفق، اخگر، مش مایع، نورافکن و بیشتر)، سبک‌های جدید اینفوگرافیک و متن (پیل پیشرفت، جمله درشت، بلوک تقسیم، نشان)، رنگ و فونت عنوان بر اساس قالب، و حرکت سریع سبک Vox در کل استودیو.",
+    cl20Title: "تبدیل هوشمندتر مقاله به ویدیو",
+    cl20Text: "لینک یا متن مقاله را بچسبان تا هوش مصنوعی کل مطلب را تحلیل کند و هرجا عدد باشد اینفوگرافیک و هرجا نباشد متن بسازد. به‌علاوه فوتیج و کپشن برای هر اسلاید، قالب‌های حرفه‌ای خبری/متنی، ترنزیشن روی همه اسلایدها و فیلتر رنگی که فوتیج را رنگ‌آمیزی می‌کند بدون محو شدن متن.",
     cl19Title: "سازنده خودکار ویدیو",
     cl19Text: "یک موضوع را توصیف کن و استودیو یک ویدیوی کامل برایت می‌سازد — اینترو، اسلایدهای اینفوگرافیک و خبری، و اوترو — با یک کلیک و حالت اختیاری نگارش با هوش مصنوعی.",
     cl18Title: "صحنه‌های پایانی و طرح‌های بیشتر",
@@ -4980,7 +4988,8 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   ctx.textBaseline = "alphabetic";
 
   // ── TEXT-STYLE templates — headline/subtitle text, not a news bar ──
-  const textStyles = ["title-center", "title-left", "quote", "caption"];
+  const textStyles = ["title-center", "title-left", "quote", "caption",
+    "statement", "split", "badge"];
   if (textStyles.includes(style)) {
     const U = Math.min(W, H);
     const mainTxt = headline || kicker;
@@ -5110,6 +5119,94 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       ctx.fillStyle = "#ffffff";
       let yy = by + lineH * 0.7;
       lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
+    } else if (style === "statement") {
+      // huge bold statement, each line scaling in with a stagger.
+      // Auto-fit the font so even long words stay inside the frame.
+      ctx.textAlign = "center";
+      const maxW = W * 0.9;
+      let px = Math.round(U * 0.092);
+      const minPx = Math.round(U * 0.045);
+      const countFit = (size) => {
+        ctx.font = `800 ${size}px Inter, sans-serif`;
+        const words = String(mainTxt).toUpperCase().split(/\s+/).filter(Boolean);
+        // longest single word must fit; also wrap to <=4 lines
+        for (const w of words)
+          if (ctx.measureText(w).width > maxW) return false;
+        return true;
+      };
+      while (px > minPx && !countFit(px)) px -= 2;
+      const lines = wrap(mainTxt.toUpperCase(), `800 ${px}px Inter, sans-serif`,
+        maxW, 4);
+      const lineH = px * 1.04;
+      const top = H / 2 - (lines.length - 1) * lineH / 2;
+      lines.forEach((ln, li) => {
+        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
+        const le3 = 1 - Math.pow(1 - le, 3);
+        ctx.save();
+        ctx.globalAlpha = le3;
+        const sc = 0.86 + le3 * 0.14;
+        ctx.translate(W / 2, top + li * lineH);
+        ctx.scale(sc, sc);
+        ctx.fillStyle = li % 2 === 1 ? ac.bar : "#ffffff";
+        ctx.font = `800 ${px}px Inter, sans-serif`;
+        ctx.fillText(ln, 0, 0);
+        ctx.restore();
+      });
+    } else if (style === "split") {
+      // kicker on a coloured block (left), headline to the right
+      const padL = W * 0.08;
+      const blkY = H * 0.4;
+      if (kicker) {
+        ctx.fillStyle = ac.bar;
+        const kPx = Math.round(U * 0.03);
+        ctx.font = `800 ${kPx}px Inter, sans-serif`;
+        const kT = kicker.toUpperCase();
+        const kw = ctx.measureText(kT).width + U * 0.05;
+        ctx.fillRect(padL, blkY - kPx, kw, kPx * 1.8);
+        ctx.fillStyle = ac.text || "#fff";
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(kT, padL + U * 0.025, blkY - kPx + kPx * 0.9);
+        ctx.textBaseline = "alphabetic";
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      const maxW = W * 0.84;
+      const px = Math.round(U * 0.062);
+      const lines = wrap(headline, `700 ${px}px Prata, serif`, maxW, 4);
+      const lineH = px * 1.16;
+      let yy = blkY + U * 0.08;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
+      ctx.font = `700 ${px}px Prata, serif`;
+      lines.forEach((ln) => { ctx.fillText(ln, padL, yy); yy += lineH; });
+      ctx.shadowBlur = 0;
+    } else if (style === "badge") {
+      // a rounded pill badge with the kicker, headline below, centered
+      ctx.textAlign = "center";
+      if (kicker) {
+        const kPx = Math.round(U * 0.024);
+        ctx.font = `700 ${kPx}px Inter, sans-serif`;
+        const kT = kicker.toUpperCase();
+        const kw = ctx.measureText(kT).width + U * 0.06;
+        const bx = W / 2 - kw / 2, byy = H * 0.4 - kPx * 1.4;
+        ctx.fillStyle = ac.bar;
+        roundRectPath(ctx, bx, byy, kw, kPx * 2.2, kPx * 1.1);
+        ctx.fill();
+        ctx.fillStyle = ac.text || "#fff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(kT, W / 2, byy + kPx * 1.1);
+        ctx.textBaseline = "alphabetic";
+      }
+      ctx.fillStyle = "#ffffff";
+      const px = Math.round(U * 0.062);
+      const lines = wrap(headline, `700 ${px}px Prata, serif`, W * 0.84, 4);
+      const lineH = px * 1.18;
+      let yy = H * 0.5;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
+      ctx.font = `700 ${px}px Prata, serif`;
+      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ac.bar;
+      ctx.fillRect(W / 2 - U * 0.07, yy, U * 0.14, U * 0.006);
     }
     ctx.restore();
     ctx.restore();   // close the outer banner transform
@@ -5630,7 +5727,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         Math.round(U * 0.013));
       ctx.fillText(s.label, cxx, cyy + rad + cellH * 0.16);
       ctx.textBaseline = "alphabetic";
-    } else {
+    } else if (style === "cards") {
       const cardY = ry + rowH * 0.10;
       const cardH = rowH * 0.80;
       const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
@@ -5662,6 +5759,42 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         Math.round(cardH * 0.3));
       ctx.fillText(s.value, cardTextX, cardY + cardH * 0.68);
       ctx.textBaseline = "alphabetic";
+    } else if (style === "pills") {
+      // a horizontal progress pill per stat: label left, value right,
+      // a thick rounded track with a gradient fill.
+      const rowMaxW = panelW - padX * 2;
+      ctx.textBaseline = "alphabetic";
+      const lblPx = Math.min(Math.round(rowH * 0.34), Math.round(U * 0.024));
+      ctx.textAlign = "left";
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${lblPx}px Inter, sans-serif`;
+      vsFitFont(ctx, s.label, rowMaxW * 0.6, "600", "Inter, sans-serif",
+        lblPx, Math.round(U * 0.016));
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
+      ctx.textAlign = "right";
+      ctx.fillStyle = ig.value;
+      ctx.font = `700 ${Math.round(rowH * 0.36)}px Prata, serif`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
+      // pill track
+      const pillH = Math.min(rowH * 0.34, U * 0.03);
+      const pillY = ry + rowH * 0.46;
+      ctx.fillStyle = ig.track;
+      roundRectPath(ctx, px + padX, pillY, rowMaxW, pillH, pillH / 2);
+      ctx.fill();
+      const fillW = Math.max(pillH, rowMaxW * (s.num / axisMax) * re);
+      const pg = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW, 0);
+      pg.addColorStop(0, vsHexA(ig.accent, 0.55));
+      pg.addColorStop(1, ig.accent);
+      ctx.fillStyle = pg;
+      roundRectPath(ctx, px + padX, pillY, fillW, pillH, pillH / 2);
+      ctx.fill();
+      // glossy dot at the end of the fill
+      ctx.fillStyle = "#fff";
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(px + padX + fillW - pillH / 2, pillY + pillH / 2, pillH * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
   });
 
@@ -6100,8 +6233,10 @@ function drawStudioFrame(elapsed) {
       vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
       return;
     }
+    // The selected TEMPLATE drives the title scene's text colour, accent
+    // and font — so picking a template visibly restyles intro/outro text.
     const introTpl = {
-      text: bg.id === "ivory-clean" ? "#1a1a1a" : "#ffffff",
+      text: (tpl && tpl.text) || "#ffffff",
       accent: (tpl && tpl.accent) || bg.accent,
       headlineFont: (tpl && tpl.headlineFont) || "Prata, serif"
     };
@@ -6633,6 +6768,24 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   ctx.globalAlpha = Math.max(0, alpha);
   const U = Math.min(W, H);
   const cx = W / 2, cy = H / 2;
+  // If the template uses DARK text, the dark intro backgrounds would hide
+  // it — so lay down a soft light panel behind the title for contrast.
+  const isDarkText = (() => {
+    const hex = String(tpl.text || "#fff").replace("#", "");
+    if (hex.length < 6) return false;
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16),
+          bl = parseInt(hex.slice(4,6),16);
+    return (0.299*r + 0.587*g + 0.114*bl) < 110;   // perceived luminance
+  })();
+  if (isDarkText) {
+    const panelH = U * 0.42, panelY = cy - panelH * 0.5;
+    const pg = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+    pg.addColorStop(0, "rgba(245,243,238,0)");
+    pg.addColorStop(0.5, "rgba(245,243,238,0.92)");
+    pg.addColorStop(1, "rgba(245,243,238,0)");
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, panelY, W, panelH);
+  }
   // eased entrance
   const e = prog == null ? 1 : (1 - Math.pow(1 - Math.max(0, Math.min(1, prog)), 3));
   // per-motion offset / scale / rotation for the MAIN text
