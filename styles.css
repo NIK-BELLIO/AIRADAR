@@ -3769,3 +3769,30 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* Free AI video — preview stage + player */
+.fv-stage {
+  margin-top: 18px;
+}
+.fv-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  background: #050506;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px;
+}
+#fvCanvas {
+  max-width: 100%;
+  max-height: 60vh;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.fv-player {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
