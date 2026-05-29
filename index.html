@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v102" />
+    <link rel="stylesheet" href="styles.css?v=v104" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -47,6 +47,7 @@
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <a href="#mediaCaption"><span class="nav-ic">✎</span><span class="nav-tx" data-i18n="navMedia">Caption AI</span></a>
             <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video studio</span></a>
+            <a href="#freeVideo"><span class="nav-ic">✨</span><span class="nav-tx" data-i18n="navFreeVideo">Free AI video</span></a>
             <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
           </div>
         </nav>
@@ -351,6 +352,7 @@
                         <option value="punch">Punch in</option>
                         <option value="flip">Flip in</option>
                         <option value="drift">Cinematic drift</option>
+                        <option value="vox">Vox style (snappy)</option>
                       </select>
                     </label>
                   </div>
@@ -472,6 +474,7 @@
                             <option value="flip">Flip in</option>
                             <option value="glide-in">Glide in</option>
                             <option value="drift">Cinematic drift</option>
+                            <option value="vox">Vox style (snappy)</option>
                             <option value="none">None</option>
                           </select>
                         </label>
@@ -557,6 +560,7 @@
                             <option value="slide-right">Slide from right</option>
                             <option value="pop">Pop / scale</option>
                             <option value="zoom-in">Zoom in</option>
+                            <option value="vox">Vox style (snappy)</option>
                             <option value="none">None</option>
                           </select>
                         </label>
@@ -637,6 +641,7 @@
                           <option value="slide-right">Slide from right</option>
                           <option value="fade">Fade in</option>
                           <option value="pop">Pop / scale</option>
+                          <option value="vox">Vox style (snappy)</option>
                           <option value="none">None</option>
                         </select>
                       </label>
@@ -795,6 +800,42 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- FREE AI VIDEO — prompt-to-video -->
+        <section id="freeVideo" class="panel free-video">
+          <div class="section-head">
+            <h2 data-i18n="fvTitle">Free AI video</h2>
+            <p class="section-sub" data-i18n="fvSub">Type a prompt and get a complete, edited video — intro, content scenes, and outro — built for you in your browser. Free, no sign-up to try the local build.</p>
+          </div>
+          <div class="free-video-body">
+            <label class="fv-prompt-label"><span data-i18n="fvPromptLabel">Describe the video you want</span>
+              <textarea id="fvPrompt" rows="4" placeholder="e.g. A 20-second video about the benefits of solar energy: lower bills, cleaner air, and that installations grew 40% last year."></textarea>
+            </label>
+            <div class="fv-options">
+              <label><span data-i18n="fvToneLabel">Tone</span>
+                <select id="fvTone">
+                  <option value="professional">Professional</option>
+                  <option value="energetic">Energetic</option>
+                  <option value="calm">Calm &amp; elegant</option>
+                  <option value="bold">Bold &amp; punchy</option>
+                </select>
+              </label>
+              <label><span data-i18n="fvAspectLabel">Format</span>
+                <select id="fvAspect">
+                  <option value="9:16">9:16 — Reels / TikTok</option>
+                  <option value="1:1">1:1 — Square</option>
+                  <option value="16:9">16:9 — Widescreen</option>
+                </select>
+              </label>
+            </div>
+            <div class="fv-actions">
+              <button id="fvBuildAiBtn" class="button primary" type="button" data-i18n="fvBuildAi">✦ Create with AI</button>
+              <button id="fvBuildLocalBtn" class="button ghost gold" type="button" data-i18n="fvBuildLocal">Quick build (no AI)</button>
+            </div>
+            <p id="fvStatus" class="vstudio-note"></p>
+            <p class="vstudio-note fv-note" data-i18n="fvNote">The AI writes a full script from your prompt, then builds the video in the Video Studio where you can fine-tune every scene and export it. Generating real AI footage isn't free, so scenes use elegant designed backgrounds, infographics, and text.</p>
           </div>
         </section>
 
@@ -998,6 +1039,6 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v102"></script>
+    <script src="app.js?v=v104"></script>
   </body>
 </html>
