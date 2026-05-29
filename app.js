@@ -4866,30 +4866,73 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     };
     if (style === "title-center" || style === "title-left") {
       const left = style === "title-left";
-      const cx = left ? W * 0.08 : W / 2;
+      const cx = left ? W * 0.1 : W / 2;
       const align = left ? "left" : "center";
       ctx.textAlign = align;
-      const maxW = W * 0.84;
-      const mainPx = Math.round(U * 0.066);
+      const maxW = W * 0.82;
+      const mainPx = Math.round(U * 0.07);
       const mainFont = `700 ${mainPx}px Prata, serif`;
-      const lines = wrap(mainTxt, mainFont, maxW, 3);
-      const lineH = mainPx * 1.2;
-      let yy = H * 0.46 - (lines.length - 1) * lineH / 2
-               + (1 - e) * U * 0.05;
+      const lines = wrap(mainTxt, mainFont, maxW, 4);
+      const lineH = mainPx * 1.18;
+      const blockH = lines.length * lineH;
+      const top = H * 0.5 - blockH / 2;
+
+      // ── kicker label above the headline (category / eyebrow) ──
+      if (kicker && headline) {
+        const kPx = Math.round(U * 0.022);
+        ctx.font = `700 ${kPx}px Inter, sans-serif`;
+        ctx.textAlign = align;
+        const kText = kicker.toUpperCase();
+        const kW = ctx.measureText(kText).width;
+        const kx = left ? cx : cx - kW / 2;
+        const ky = top - U * 0.06;
+        // small accent block before the kicker
+        ctx.fillStyle = ac.bar;
+        ctx.globalAlpha = e;
+        ctx.fillRect(kx - U * 0.03, ky - kPx * 0.7, U * 0.018, kPx);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        // letter-spaced kicker
+        ctx.save();
+        ctx.translate(kx, ky);
+        let lx = 0;
+        for (const ch of kText) {
+          ctx.fillText(ch, lx, 0);
+          lx += ctx.measureText(ch).width + U * 0.004;
+        }
+        ctx.restore();
+      }
+
+      // ── headline lines, each rising in with a slight stagger ──
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
-      ctx.shadowBlur = U * 0.02;
-      lines.forEach((ln) => { ctx.fillText(ln, cx, yy); yy += lineH; });
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur = U * 0.025;
+      ctx.font = mainFont;
+      lines.forEach((ln, li) => {
+        const le = Math.max(0, Math.min(1,
+          (reveal * (lines.length + 1) - li)));
+        const le3 = 1 - Math.pow(1 - le, 3);
+        ctx.globalAlpha = le3;
+        const yy = top + li * lineH + lineH * 0.8 + (1 - le3) * U * 0.04;
+        ctx.fillText(ln, cx, yy);
+      });
       ctx.shadowBlur = 0;
-      // accent underline
-      const lw = U * 0.12 * e;
+      ctx.globalAlpha = e;
+
+      // ── accent line(s) below the headline ──
+      const lineY = top + blockH + U * 0.04;
+      const lw = U * 0.16 * e;
       ctx.fillStyle = ac.bar;
       const ux = left ? cx : cx - lw / 2;
-      ctx.fillRect(ux, yy - lineH * 0.4, lw, U * 0.006);
+      ctx.fillRect(ux, lineY, lw, U * 0.007);
+      // a thin secondary tick for a designed look
+      ctx.globalAlpha = e * 0.5;
+      ctx.fillRect(ux + lw + U * 0.015, lineY + U * 0.002, U * 0.03, U * 0.003);
+      ctx.globalAlpha = e;
+
       if (subTxt) {
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
         ctx.font = `400 ${Math.round(U * 0.026)}px Inter, sans-serif`;
-        ctx.fillText(subTxt, cx, yy + U * 0.02);
+        ctx.fillText(subTxt, cx, lineY + U * 0.055);
       }
     } else if (style === "quote") {
       ctx.textAlign = "center";
@@ -5870,6 +5913,8 @@ function drawStudioFrame(elapsed) {
       drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
       drawIntroGraphics(ctx, W, H, bg, elapsed, k);
     }
+    // grade the background/footage only — before text/info/news draw
+    vsApplyBgFilter(ctx, canvas, W, H);
     // A content slide (auto-builder) uses the intro background as a
     // backdrop but shows an infographic / news banner instead of a
     // title card — so we DON'T return; we fall through to those draws.
@@ -5907,7 +5952,7 @@ function drawStudioFrame(elapsed) {
         ctx.restore();
       }
       drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
-      vsApplyGlobalFilter(ctx, canvas, W, H);
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
       return;
     }
     const introTpl = {
@@ -5915,11 +5960,13 @@ function drawStudioFrame(elapsed) {
       accent: (tpl && tpl.accent) || bg.accent,
       headlineFont: (tpl && tpl.headlineFont) || "Prata, serif"
     };
+    // grade the background only — before the title text is drawn
+    vsApplyBgFilter(ctx, canvas, W, H);
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
-    vsApplyGlobalFilter(ctx, canvas, W, H);
+    vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
   }
 
@@ -6044,6 +6091,8 @@ function drawStudioFrame(elapsed) {
   ctx.restore();
   ctx.filter = "none";
   }
+  // grade the footage/background only — before vignette, text, overlays
+  vsApplyBgFilter(ctx, canvas, W, H);
 
   // vignette
   if (tpl.vignette > 0) {
@@ -6313,58 +6362,94 @@ function drawStudioFrame(elapsed) {
   ctx.fillStyle = tpl.accent;
   ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
 
-  // ----- slide-to-slide transition + final slide-out -----
-  // `vsTransition` now also drives a BLUR transition between slides.
+  // ----- finish the frame: slide transition wash + global colour grade,
+  // applied at the end of the normal (media) path. Title/content slides
+  // call vsFinishFrame() before their early returns so transitions and
+  // the filter work on every slide type. -----
+  vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+}
+
+// Applies the slide-to-slide transition veil and the global colour grade
+// to the finished frame. Safe to call once per frame at any exit point.
+function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
   const transKind = vsVal("#vsTransition", "fade");
-  if (vstudio.slides.length) {
-    const fadeT = 0.45;   // seconds of transition at each boundary
-    let cover = 0;        // 0 = clear, 1 = fully covered
-    if (dsLocal < fadeT) {
-      cover = Math.max(cover, 1 - dsLocal / fadeT);
-    }
-    if (dsLocal > dsDur - fadeT) {
-      cover = Math.max(cover, 1 - (dsDur - dsLocal) / fadeT);
-    }
+  if (vstudio.slides.length && transKind !== "none") {
+    const fadeT = 0.45;
+    let cover = 0, slideOff = 0, zoom = 1;
+    if (dsLocal < fadeT) cover = Math.max(cover, 1 - dsLocal / fadeT);
+    if (dsLocal > dsDur - fadeT) cover = Math.max(cover, 1 - (dsDur - dsLocal) / fadeT);
     const at = slideAtTime(elapsed);
     const isLast = at.index === vstudio.slides.length - 1;
-    if (isLast && dsLocal > dsDur - 0.8) {
+    if (isLast && dsLocal > dsDur - 0.8)
       cover = Math.max(cover, 1 - (dsDur - dsLocal) / 0.8);
-    }
     if (cover > 0.001) {
+      const c = Math.min(1, cover);
       if (transKind === "blur") {
-        // BLUR transition — composite the frame through a blur, then a
-        // light dark wash, so slides melt into each other at the seam.
-        const px = Math.round(Math.min(1, cover) * Math.min(W, H) * 0.04);
+        const px = Math.round(c * Math.min(W, H) * 0.05);
         if (px > 0) {
           const tmp = vsScratchCanvas(W, H);
           const tctx = tmp.getContext("2d");
-          tctx.clearRect(0, 0, W, H);
-          tctx.drawImage(canvas, 0, 0);
+          tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
           ctx.save();
           ctx.filter = `blur(${px}px)`;
-          ctx.globalAlpha = Math.min(1, cover);
+          ctx.globalAlpha = c;
           ctx.drawImage(tmp, 0, 0);
           ctx.filter = "none";
           ctx.restore();
         }
+        ctx.save(); ctx.globalAlpha = c * 0.45; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      } else if (transKind === "zoom") {
+        // zoom the frame slightly while fading through black
+        const tmp = vsScratchCanvas(W, H);
+        const tctx = tmp.getContext("2d");
+        tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+        const z = 1 + c * 0.12;
         ctx.save();
-        ctx.globalAlpha = Math.min(1, cover) * 0.5;
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = c;
+        ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(tmp, 0, 0);
         ctx.restore();
+        ctx.save(); ctx.globalAlpha = c * 0.6; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      } else if (transKind === "slide") {
+        // push the frame up while fading
+        const tmp = vsScratchCanvas(W, H);
+        const tctx = tmp.getContext("2d");
+        tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+        ctx.save();
+        ctx.globalAlpha = c;
+        ctx.drawImage(tmp, 0, -c * H * 0.12);
+        ctx.restore();
+        ctx.save(); ctx.globalAlpha = c * 0.7; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
       } else {
-        // default: soft black wash cross-fade
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, cover);
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
+        // fade — soft black wash
+        ctx.save(); ctx.globalAlpha = c; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
       }
     }
   }
+  // NOTE: the colour grade is applied to the BACKGROUND/footage layer
+  // (not here) so it never washes out the text drawn on top.
+}
 
-  // ----- GLOBAL COLOUR FILTER — whole frame, every slide type -----
-  vsApplyGlobalFilter(ctx, canvas, W, H);
+// Apply the colour grade to whatever is CURRENTLY on the canvas (the
+// background/footage layer) — call this after the background is drawn but
+// BEFORE text/infographics, so the grade never washes out the text.
+function vsApplyBgFilter(ctx, canvas, W, H) {
+  const grade = vsFilterString();
+  if (!grade || grade === "none") return;
+  const tmp = vsScratchCanvas(W, H);
+  const tctx = tmp.getContext("2d");
+  tctx.clearRect(0, 0, W, H);
+  tctx.drawImage(canvas, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.filter = grade;
+  ctx.drawImage(tmp, 0, 0);
+  ctx.filter = "none";
+  ctx.restore();
 }
 
 // A reusable offscreen canvas for full-frame compositing (filter/blur).
