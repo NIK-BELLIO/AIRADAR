@@ -8,6 +8,15 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    navFreeVideo: "Free AI video",
+    fvTitle: "Free AI video",
+    fvSub: "Type a prompt and get a complete, edited video \u2014 intro, content scenes, and outro \u2014 built for you in your browser. Free, no sign-up to try the local build.",
+    fvPromptLabel: "Describe the video you want",
+    fvToneLabel: "Tone",
+    fvAspectLabel: "Format",
+    fvBuildAi: "\u2726 Create with AI",
+    fvBuildLocal: "Quick build (no AI)",
+    fvNote: "The AI writes a full script from your prompt, then builds the video in the Video Studio where you can fine-tune every scene and export it. Generating real AI footage isn't free, so scenes use elegant designed backgrounds, infographics, and text.",
     studioEyebrow: "Advanced video studio",
     studioTitle: "Create a complete, luxurious video",
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
@@ -293,6 +302,15 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    navFreeVideo: "ویدیوی رایگان",
+    fvTitle: "ویدیوی هوش مصنوعی رایگان",
+    fvSub: "یک پرامپت بنویس و یک ویدیوی کامل و تدوین‌شده بگیر \u2014 اینترو، صحنه‌های محتوا و اوترو \u2014 که در مرورگرت ساخته می‌شود. رایگان.",
+    fvPromptLabel: "ویدیوی موردنظرت را توصیف کن",
+    fvToneLabel: "لحن",
+    fvAspectLabel: "قالب",
+    fvBuildAi: "\u2726 ساخت با هوش مصنوعی",
+    fvBuildLocal: "ساخت سریع (بدون هوش مصنوعی)",
+    fvNote: "هوش مصنوعی از پرامپت تو یک سناریوی کامل می‌نویسد و ویدیو را در استودیو می‌سازد تا بتوانی هر صحنه را تنظیم و خروجی بگیری. ساخت فوتیج واقعی با هوش مصنوعی رایگان نیست، بنابراین صحنه‌ها از پس‌زمینه‌های طراحی‌شده، اینفوگرافیک و متن استفاده می‌کنند.",
     studioEyebrow: "استودیوی پیشرفته ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
@@ -3685,6 +3703,11 @@ function bindIntroEditor() {
   if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
+  // Free AI video section
+  const fvAi = $("#fvBuildAiBtn");
+  if (fvAi) fvAi.addEventListener("click", () => buildFreeVideo(true));
+  const fvLocal = $("#fvBuildLocalBtn");
+  if (fvLocal) fvLocal.addEventListener("click", () => buildFreeVideo(false));
 }
 
 // Compute the canvas size from the chosen aspect ratio.
@@ -3898,6 +3921,75 @@ async function vsAutoAiChat(prompt) {
   if (res.content != null) return fromContent(res.content);
   if (res.text) return res.text;
   return String(res);
+}
+
+// ── FREE AI VIDEO — prompt-to-video ─────────────────────────
+function fvStatus(msg) {
+  const el = document.querySelector("#fvStatus");
+  if (el) el.textContent = msg || "";
+}
+
+// Apply the chosen aspect to the studio, then jump to the Video Studio.
+function fvApplyAspectAndReveal() {
+  const asp = (document.querySelector("#fvAspect") || {}).value || "9:16";
+  const vsAsp = document.querySelector("#vsAspect");
+  if (vsAsp) {
+    vsAsp.value = asp;
+    if (typeof vsRefreshAspect === "function") vsRefreshAspect();
+  }
+  const studio = document.getElementById("videoStudio");
+  if (studio) studio.scrollIntoView({ behavior: "smooth" });
+}
+
+async function buildFreeVideo(useAI) {
+  const inp = document.querySelector("#fvPrompt");
+  const prompt = (inp && inp.value || "").trim();
+  if (!prompt) {
+    fvStatus(state.lang === "fa"
+      ? "اول توضیح ویدیو را بنویس." : "Describe your video first.");
+    return;
+  }
+  const tone = (document.querySelector("#fvTone") || {}).value || "professional";
+
+  if (!useAI) {
+    fvStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
+    vsBuildStoryLocal(prompt);
+    fvApplyAspectAndReveal();
+    fvStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد — در استودیو قابل ویرایش است.`
+      : `Built a ${vstudio.slides.length}-scene video — edit it in the Video Studio below.`);
+    return;
+  }
+
+  fvStatus(state.lang === "fa"
+    ? "هوش مصنوعی در حال نوشتن سناریو…" : "AI is scripting your video…");
+  const aiPrompt = `You are a professional short-form video creator. Turn the user's request into a complete video plan. Tone: ${tone}. Return ONLY compact JSON (no markdown), shaped exactly:
+{"title":"<= 7 words","subtitle":"<= 9 words","kicker":"1-2 word category","sections":[{"type":"infographic","caption":"2-4 words","title":"short","stats":[{"label":"...","value":"40%","num":40}]},{"type":"text","caption":"2-4 words","headline":"one clear sentence","style":"title-center"}],"outroMain":"<= 5 words"}
+Rules:
+- Produce 3 to 6 sections IN A LOGICAL ORDER that tells the story.
+- Use an "infographic" section when there are numbers/data/statistics (2-5 stats; value like "40%","2.4M","$1.2B"; num is the numeric value).
+- Use a "text" section for narrative/claims/context with no numbers; style from "title-center","title-left","quote","caption".
+- Make every line vivid and matched to the requested tone. Invent reasonable, realistic numbers ONLY if the prompt implies data; otherwise prefer text sections.
+User request: """${prompt.slice(0, 1500)}"""`;
+  try {
+    const raw = await vsAutoAiChat(aiPrompt);
+    const data = JSON.parse(String(raw).replace(/```json|```/g, "").trim());
+    if (Array.isArray(data.sections) && data.sections.length) {
+      vsAssembleFromSections(data);
+    } else {
+      vsBuildStoryLocal(prompt);
+    }
+    fvApplyAspectAndReveal();
+    fvStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد — در استودیو قابل ویرایش است.`
+      : `Built a ${vstudio.slides.length}-scene video — edit it in the Video Studio below.`);
+  } catch (e) {
+    vsBuildStoryLocal(prompt);
+    fvApplyAspectAndReveal();
+    fvStatus(state.lang === "fa"
+      ? `بدون هوش مصنوعی ساخته شد (${vstudio.slides.length} صحنه).`
+      : `Built without AI (${vstudio.slides.length} scenes). Edit it below.`);
+  }
 }
 
 async function buildAutoVideo(useAI) {
@@ -4387,6 +4479,12 @@ function loadStudioMedia(file) {
 function loadStudioMusic(file) {
   if (!file) return;
   if (vstudio.musicUrl) URL.revokeObjectURL(vstudio.musicUrl);
+  // a new music element needs a fresh audio graph (the old MediaElementSource
+  // is bound to the previous element and can't be reused)
+  if (vstudio._audioCtx) { try { vstudio._audioCtx.close(); } catch {} }
+  vstudio._audioCtx = null;
+  vstudio._musicSrc = null;
+  vstudio._musicDest = null;
   vstudio.musicUrl = URL.createObjectURL(file);
   const audio = new Audio(vstudio.musicUrl);
   audio.loop = true;
@@ -4818,6 +4916,8 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     case "fade":        nMAlpha = slideEase; break;
     case "pop":         nMScale = 0.7 + slideEase * 0.3;
                         nMAlpha = slideEase; break;
+    case "vox":         nMScale = 0.86 + slideEase * 0.14;
+                        nMAlpha = slideEase; break;
     default:            break;
   }
 
@@ -5215,11 +5315,13 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   // The BOX animates in first (its own motion), then the CONTENT inside
   // (title, bars, numbers) fades/rises in after — a two-stage reveal.
   const playing = (vstudio.looping || vstudio.rendering);
-  const rawAll = playing ? Math.min(1, elapsed / 1.4) : 1;
-  const boxRaw = Math.min(1, rawAll / 0.55);                     // box: first 55%
-  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.4) / 0.6)); // content: last 60%
-  const ease = vsEasePro(boxRaw);          // drives the box entrance
-  const contentEase = vsEasePro(contentRaw); // drives the inner content
+  const rawAll = playing ? Math.min(1, elapsed / 1.1) : 1;
+  // box settles first, content follows with a gentle overlap (not a
+  // separate hard stage) so the reveal feels smooth, not busy.
+  const boxRaw = Math.min(1, rawAll / 0.6);
+  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.3) / 0.7));
+  const ease = vsEasePro(boxRaw);
+  const contentEase = vsEasePro(contentRaw);
 
   // ── ASPECT-SAFE SIZING ─────────────────────────────────────
   // The panel must stay a readable card on ANY frame shape (wide,
@@ -5257,12 +5359,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   let mDX = 0, mDY = 0, mScale = 1, mAlpha = ease;
   switch (motion) {
     case "none":        mAlpha = 1; break;
-    case "rise":        mDY = (1 - ease) * H * 0.18; break;
-    case "drop":        mDY = -(1 - ease) * H * 0.18; break;
-    case "slide-left":  mDX = -(1 - ease) * W * 0.35; break;
-    case "slide-right": mDX = (1 - ease) * W * 0.35; break;
-    case "pop":         mScale = 0.6 + ease * 0.4; break;
-    case "zoom-in":     mScale = 0.2 + ease * 0.8; break;
+    case "rise":        mDY = (1 - ease) * H * 0.06; break;
+    case "drop":        mDY = -(1 - ease) * H * 0.06; break;
+    case "slide-left":  mDX = -(1 - ease) * W * 0.12; break;
+    case "slide-right": mDX = (1 - ease) * W * 0.12; break;
+    case "pop":         mScale = 0.86 + ease * 0.14; break;
+    case "zoom-in":     mScale = 0.7 + ease * 0.3; break;
+    case "vox":         // Vox-style snappy pop with overshoot
+                        mScale = 0.84 + vsEasePro(Math.min(1, boxRaw * 1.15)) * 0.18;
+                        mDY = (1 - ease) * H * 0.03; break;
     default:            break;   // "fade" — alpha only
   }
 
@@ -5367,7 +5472,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   stats.forEach((s, i) => {
     // bar rows reveal AFTER the box has animated in, staggered per row
     const rowReveal = (vstudio.looping || vstudio.rendering)
-      ? Math.min(1, Math.max(0, (elapsed - 0.6 - i * 0.16) / 0.6))
+      ? Math.min(1, Math.max(0, (elapsed - 0.4 - i * 0.1) / 0.5))
       : 1;
     const re = 1 - Math.pow(1 - rowReveal, 3);
     const ry = cy + i * rowH;
@@ -6229,6 +6334,9 @@ function drawStudioFrame(elapsed) {
       case "drift":     textAlpha = tEase;
                         slideX = (1 - tEase) * W * 0.06;
                         baseY += (1 - tEase) * U * 0.03; break;
+      case "vox":       textAlpha = tEase;
+                        scaleT = 0.82 + txOver * 0.18;
+                        baseY += (1 - txOver) * U * 0.05; break;
       default:          textAlpha = tEase; baseY += (1 - tEase) * U * 0.05;
     }
     ctx.globalAlpha = textAlpha;
@@ -6518,6 +6626,9 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
                      dy = (1 - e) * U * 0.04;
                      blur = (1 - e) * U * 0.012; break;
     case "rise-spring": dy = (1 - overshoot) * U * 0.2; break; // rise + bounce
+    case "vox":      // Vox-style: snappy punchy pop with quick overshoot
+                     sc = 0.82 + overshoot * 0.18;
+                     dy = (1 - overshoot) * U * 0.05; break;
     default:         break;                      // "fade" — alpha only
   }
 
@@ -6990,15 +7101,24 @@ async function exportStudioVideo() {
 
   // mix in music audio if present
   let tracks = [...canvasStream.getVideoTracks()];
-  let audioCtx = null;
   if (vstudio.musicEl) {
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaElementSource(vstudio.musicEl);
-      const dest = audioCtx.createMediaStreamDestination();
-      src.connect(dest);
-      src.connect(audioCtx.destination);
-      tracks = tracks.concat(dest.stream.getAudioTracks());
+      // A MediaElementSource can only be created ONCE per audio element,
+      // and once created the element's audio routes through this context.
+      // So we create the graph a single time and reuse it on every export.
+      if (!vstudio._audioCtx) {
+        vstudio._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        vstudio._musicSrc = vstudio._audioCtx.createMediaElementSource(vstudio.musicEl);
+        vstudio._musicDest = vstudio._audioCtx.createMediaStreamDestination();
+        // route to BOTH the speakers (so preview is audible) and the
+        // recording destination (so the export captures the music).
+        vstudio._musicSrc.connect(vstudio._musicDest);
+        vstudio._musicSrc.connect(vstudio._audioCtx.destination);
+      }
+      if (vstudio._audioCtx.state === "suspended") {
+        try { await vstudio._audioCtx.resume(); } catch {}
+      }
+      tracks = tracks.concat(vstudio._musicDest.stream.getAudioTracks());
     } catch {}
   }
   const stream = new MediaStream(tracks);
@@ -7127,7 +7247,8 @@ async function exportStudioVideo() {
   });
 
   await done;
-  if (audioCtx) { try { audioCtx.close(); } catch {} }
+  // NOTE: do NOT close the audio context — it's reused across exports and
+  // keeps the music element routed to the speakers for preview.
   vstudio.rendering = false;
   vsStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
   previewStudioVideo();         // resume the live looping preview
