@@ -3,73 +3,73 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Radar — Find, Compare & Create with Real AI Tools</title>
-    <meta name="description" content="Discover 45+ real AI tools, live GitHub popularity charts, free AI image generator, Claude-powered captions, and a professional video studio — all free in your browser." />
-    <!-- Open Graph / Twitter Card -->
-    <meta property="og:title" content="AI Radar — Find, Compare & Create with Real AI Tools" />
-    <meta property="og:description" content="45+ curated AI tools, live GitHub charts, free AI image generator, Claude-powered captions and video studio. No account needed." />
+    <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
+    
+    <meta property="og:title" content="AI Radar — Find, Compare &amp; Create with Real AI Tools" />
+    <meta property="og:description" content="45+ curated AI tools, live GitHub charts, free AI image generator, captions and video studio." />
     <meta property="og:image" content="https://airadar.me/og.png" />
     <meta property="og:url" content="https://airadar.me/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://airadar.me/og.png" />
     <link rel="canonical" href="https://airadar.me/" />
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <meta name="description" content="Discover 45+ real AI tools, live GitHub charts, free AI image generator, Claude-powered captions and video studio. Free, no account." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=v230" />
+    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
+    <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
+         (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
-    <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"WebSite","name":"AI Radar","url":"https://airadar.me","description":"Find, compare and create with real AI tools. Live GitHub charts, free AI image generator, captions and video studio."}
-    </script>
+
     <style>
-      /* ── IMAGE GENERATOR SECTION ───────────────────────── */
-      .image-gen-layout{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+      /* ── IMAGE GENERATOR ─────────────────── */
+      .image-gen-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
       .image-gen-output{position:sticky;top:20px}
-      .gen-image-wrap{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;position:relative;transition:box-shadow 0.3s}
-      .gen-image-wrap:not(:empty) img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+      .gen-image-wrap{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;position:relative}
+      .gen-image-wrap img{width:100%;height:100%;object-fit:cover;border-radius:12px}
       .gen-placeholder{color:var(--muted);text-align:center;padding:32px 20px}
-      .gen-placeholder-icon{font-size:48px;margin-bottom:14px;opacity:0.35;display:block}
+      .gen-placeholder-icon{font-size:52px;margin-bottom:14px;opacity:0.3;display:block}
       .gen-style-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
-      .gen-style-btn{padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-weight:600;line-height:1.3}
+      .gen-style-btn{padding:8px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-weight:600;line-height:1.4}
       .gen-style-btn.active,.gen-style-btn:hover{border-color:rgba(216,183,106,0.55);color:var(--gold-2);background:rgba(216,183,106,0.1)}
       .gen-history{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
       .gen-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:border-color 0.15s}
       .gen-thumb:hover{border-color:var(--gold)}
       .gen-thumb img{width:100%;height:100%;object-fit:cover}
-      .gen-loading-overlay{position:absolute;inset:0;background:rgba(7,6,5,0.75);display:none;place-items:center;border-radius:12px;z-index:2}
+      .gen-loading-overlay{position:absolute;inset:0;background:rgba(7,6,5,0.78);display:none;place-items:center;border-radius:12px;z-index:2}
       .gen-loading-overlay.visible{display:grid}
-      .gen-spinner{width:44px;height:44px;border:3px solid rgba(216,183,106,0.25);border-top-color:var(--gold);border-radius:50%;animation:genSpin 0.85s linear infinite}
+      .gen-spinner{width:44px;height:44px;border:3px solid rgba(216,183,106,0.2);border-top-color:var(--gold);border-radius:50%;animation:genSpin 0.85s linear infinite}
       @keyframes genSpin{to{transform:rotate(360deg)}}
       .gen-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
       .gen-quick-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
       .gen-quick-btn{padding:5px 10px;border:1px solid var(--line);border-radius:99px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
       .gen-quick-btn:hover{border-color:rgba(216,183,106,0.4);color:var(--gold)}
-      @media(max-width:800px){.image-gen-layout{grid-template-columns:1fr}.image-gen-output{position:static}}
-      /* Fix hero stats */
-      .hero-stat strong{font-family:Prata,serif;font-size:30px;color:var(--gold-2);line-height:1}
+      @media(max-width:820px){.image-gen-layout{grid-template-columns:1fr}.image-gen-output{position:static}}
     </style>
   </head>
   <body>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
 
+    <!-- HEADER with motion ticker -->
     <div class="shell">
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-      <!-- ── SIDEBAR ──────────────────────────────────────── -->
+      <!-- ── FIXED LEFT SIDEBAR ──────────────────────────── -->
       <aside class="sidebar" id="appSidebar">
         <div class="sidebar-top">
           <a class="brand" href="#top" aria-label="AI Radar">
             <img class="brand-logo" src="logo.svg" alt="" />
             <span class="brand-name">AI Radar</span>
           </a>
-          <button id="navCollapseBtn" class="nav-collapse" type="button" aria-label="Collapse menu">
+          <button id="navCollapseBtn" class="nav-collapse" type="button"
+            aria-label="Collapse menu" title="Collapse menu">
             <span class="nav-collapse-icon">‹</span>
           </button>
         </div>
+
         <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
@@ -85,12 +85,19 @@
             <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
           </div>
         </nav>
+
         <div class="sidebar-footer">
           <a class="button primary sidebar-cta" href="#imageGen" id="sidebarCta">Create with AI</a>
           <div class="sidebar-prefs">
             <div class="seg-toggle" id="themeSeg" role="group" aria-label="Theme">
-              <button type="button" class="seg-btn" data-theme="light"><span class="seg-ic">☀</span><span class="seg-tx" data-i18n="themeLight">Light</span></button>
-              <button type="button" class="seg-btn" data-theme="dark"><span class="seg-ic">☾</span><span class="seg-tx" data-i18n="themeDark">Dark</span></button>
+              <button type="button" class="seg-btn" data-theme="light">
+                <span class="seg-ic">☀</span>
+                <span class="seg-tx" data-i18n="themeLight">Light</span>
+              </button>
+              <button type="button" class="seg-btn" data-theme="dark">
+                <span class="seg-ic">☾</span>
+                <span class="seg-tx" data-i18n="themeDark">Dark</span>
+              </button>
             </div>
             <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
               <button type="button" class="seg-btn" data-lang="en">EN</button>
@@ -100,203 +107,214 @@
         </div>
       </aside>
 
-      <!-- ── CONTENT ────────────────────────────────────── -->
+      <!-- ── CONTENT AREA ────────────────────────────────── -->
       <div class="content-area">
-        <button id="sidebarOpenBtn" class="sidebar-open" type="button" aria-label="Open menu">☰</button>
+        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
+          aria-label="Open menu" title="Menu">☰</button>
 
+        <!-- AI MODELS TICKER -->
         <div class="models-ticker-wrap" aria-label="AI model logos ticker">
           <div class="models-ticker" id="modelsTicker"></div>
         </div>
 
         <main id="top">
 
-          <!-- HERO -->
-          <section class="hero luxury-hero">
-            <div class="luxury-hero-grid">
-              <div class="luxury-hero-copy">
-                <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-                <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
-                <p data-i18n="heroText">Real AI tools, live popularity charts, free AI image generation, Claude-powered captions — one workspace, free in your browser.</p>
-                <div class="hero-actions">
-                  <a class="button primary" href="#imageGen" id="heroPrimaryBtn">Create with AI</a>
-                  <a class="button ghost" href="#tools" data-i18n="heroPrimary">Search tools</a>
-                </div>
+        <!-- HERO -->
+        <section class="hero luxury-hero">
+          <div class="luxury-hero-grid">
+            <div class="luxury-hero-copy">
+              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
+              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
+              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
+              <div class="hero-actions">
+                <a class="button primary" href="#imageGen">🎨 Create with AI</a>
+                <a class="button ghost" href="#tools" data-i18n="heroPrimary">Search tools</a>
               </div>
-              <div class="luxury-hero-visual">
-                <div class="hero-motion" aria-hidden="true"><canvas id="heroMotionCanvas"></canvas></div>
-                <div class="hero-stats">
-                  <div class="hero-stat"><strong>45+</strong><span data-i18n="metricTools">AI tools</span></div>
-                  <div class="hero-stat"><strong>100%</strong><span id="metricFreeLabel">Free</span></div>
-                  <div class="hero-stat"><strong>Live</strong><span id="metricLiveLabel">GitHub data</span></div>
+            </div>
+            <div class="luxury-hero-visual">
+              <div class="hero-motion" aria-hidden="true">
+                <canvas id="heroMotionCanvas"></canvas>
+              </div>
+              <div class="hero-stats">
+                <div class="hero-stat">
+                  <strong id="metricTools">45+</strong>
+                  <span>AI tools</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricFree">100%</strong>
+                  <span>Free to use</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricJobs">Live</strong>
+                  <span>GitHub data</span>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <!-- TOOLS -->
-          <section id="tools" class="panel">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
-                <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
-              </div>
-              <div class="search-wrap">
-                <label class="sr-only" for="searchInput">Search tools</label>
-                <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
-                <div class="view-toggle" role="group" aria-label="View mode">
-                  <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
-                    <svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-                  </button>
-                  <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
-                    <svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="2" width="3" height="3" rx="0.5"/><rect x="6" y="2.5" width="9" height="2" rx="1"/><rect x="1" y="6.5" width="3" height="3" rx="0.5"/><rect x="6" y="7" width="9" height="2" rx="1"/><rect x="1" y="11" width="3" height="3" rx="0.5"/><rect x="6" y="11.5" width="9" height="2" rx="1"/></svg>
-                  </button>
-                </div>
-              </div>
+        <!-- TOOLS -->
+        <section id="tools" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
+              <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
             </div>
-            <div class="filters" aria-label="Tool filters">
-              <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
-              <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
-              <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
-              <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
-            </div>
-            <div class="advanced-search">
-              <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
-              <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
-            </div>
-            <p id="toolCount" class="tool-count"></p>
-            <div id="toolGrid" class="tool-grid"></div>
-          </section>
-
-          <!-- LIVE CHARTS -->
-          <section id="performance" class="panel performance-panel">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
-                <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
-                <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
-              </div>
-            </div>
-            <div class="chart-toolbar">
-              <div class="chart-tabs">
-                <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
-                <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
-                <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
-              </div>
-              <div class="chart-live-bar">
-                <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
-                <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
-                  <span class="chart-refresh-ic">↻</span> <span data-i18n="refreshLabel">Refresh</span>
+            <div class="search-wrap">
+              <label class="sr-only" for="searchInput">Search tools</label>
+              <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
+              <div class="view-toggle" role="group" aria-label="View mode">
+                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="1" width="6" height="6" rx="1"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                  </svg>
+                </button>
+                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
+                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="7" width="9" height="2" rx="1"/>
+                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
+                  </svg>
                 </button>
               </div>
             </div>
-            <div id="performanceChart" class="performance-chart"></div>
-            <div class="source-note">
-              <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span>
-            </div>
-          </section>
+          </div>
+          <div class="filters" aria-label="Tool filters">
+            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
+            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
+            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
+            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
+          </div>
+          <div class="advanced-search">
+            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
+            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
+          </div>
+          <p id="toolCount" class="tool-count"></p>
+          <div id="toolGrid" class="tool-grid"></div>
+        </section>
 
-          <!-- COMPARE -->
-          <section id="compare" class="compare panel">
-            <div class="section-head">
-              <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
-              <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
+        <!-- LIVE PERFORMANCE CHART -->
+        <section id="performance" class="panel performance-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
+              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
+              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
             </div>
-            <div id="compareTable" class="compare-table"></div>
-          </section>
+          </div>
+          <div class="chart-toolbar">
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
+              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
+              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
+            </div>
+            <div class="chart-live-bar">
+              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
+              <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
+                <span class="chart-refresh-ic">↻</span>
+                <span data-i18n="refreshLabel">Refresh</span>
+              </button>
+            </div>
+          </div>
+          <div id="performanceChart" class="performance-chart"></div>
+          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
+        </section>
 
-          <!-- ── IMAGE GENERATOR (NEW) ────────────────────── -->
-          <section id="imageGen" class="panel">
-            <div class="section-head">
+        <!-- COMPARE -->
+        <section id="compare" class="compare panel">
+          <div class="section-head">
+            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
+            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
+          </div>
+          <div id="compareTable" class="compare-table"></div>
+        </section>
+
+
+        <!-- ── IMAGE GENERATOR ──────────────────────────── -->
+        <section id="imageGen" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">🎨 Free AI Image Generator — No Login</p>
+              <h2 id="imageGenTitle">Text to image in seconds</h2>
+              <p id="imageGenDesc">Describe what you want — get a stunning AI image free. 12 styles, instant download, no watermark, no account needed.</p>
+            </div>
+          </div>
+          <div class="image-gen-layout">
+            <div class="studio-controls">
+              <label>
+                <span id="imgPromptLbl">Describe your image</span>
+                <textarea id="imgPrompt" rows="4" placeholder="A futuristic city at sunset, neon lights reflecting on wet streets, cinematic wide angle, 8K…"></textarea>
+              </label>
+              <label>
+                <span id="imgStyleLbl">Style</span>
+                <div class="gen-style-grid" id="genStyleGrid"></div>
+              </label>
+              <label>
+                <span id="imgAspectLbl">Aspect ratio</span>
+                <select id="genAspect">
+                  <option value="1024x1024">1:1 Square (1024×1024)</option>
+                  <option value="1344x768">16:9 Landscape (1344×768)</option>
+                  <option value="768x1344">9:16 Portrait — Reels/TikTok (768×1344)</option>
+                  <option value="1216x832">3:2 Wide (1216×832)</option>
+                  <option value="832x1216">2:3 Tall (832×1216)</option>
+                </select>
+              </label>
+              <label>
+                <span id="imgNegLbl">Negative prompt (optional)</span>
+                <input id="genNeg" type="text" placeholder="blurry, watermark, text, low quality" />
+              </label>
+              <div style="display:flex;align-items:center;gap:10px;margin:4px 0;">
+                <input type="checkbox" id="genSafe" checked style="width:18px;height:18px;min-height:18px;padding:0;accent-color:var(--gold);flex-shrink:0;" />
+                <label for="genSafe" style="display:inline;color:var(--text);font-size:13px;font-weight:400;cursor:pointer;" id="genSafeLbl">Safe mode</label>
+              </div>
+              <button class="button primary ai-btn" id="genImageBtn" type="button" style="min-height:48px;font-size:15px;font-weight:800;">
+                <span class="ai-btn-icon">🎨</span>
+                <span id="genImageBtnTxt">Generate image</span>
+              </button>
+              <p id="genStatusTxt" style="font-size:13px;color:var(--muted);min-height:18px;margin:0;"></p>
               <div>
-                <p class="eyebrow">🎨 Free AI Image Generator — No Login</p>
-                <h2 id="imageGenTitle">Text to image in seconds</h2>
-                <p id="imageGenDesc">Describe what you want — get a stunning AI image free. 12 styles, instant download, no watermark, no account.</p>
+                <p style="font-size:12px;color:var(--muted);margin:0 0 6px;" id="quickPromptsLbl">Quick prompts</p>
+                <div class="gen-quick-wrap" id="genQuickWrap"></div>
               </div>
             </div>
-
-            <div class="image-gen-layout">
-              <!-- CONTROLS -->
-              <div class="studio-controls">
-                <label>
-                  <span id="imgPromptLbl">Describe your image</span>
-                  <textarea id="imgPrompt" rows="4" placeholder="A futuristic city at sunset, neon lights reflecting on wet streets, cinematic wide angle, 8K…"></textarea>
-                </label>
-
-                <label>
-                  <span id="imgStyleLbl">Style</span>
-                  <div class="gen-style-grid" id="genStyleGrid"></div>
-                </label>
-
-                <label>
-                  <span id="imgAspectLbl">Aspect ratio</span>
-                  <select id="genAspect">
-                    <option value="1024x1024">1:1 Square (1024×1024)</option>
-                    <option value="1344x768">16:9 Landscape (1344×768)</option>
-                    <option value="768x1344">9:16 Portrait — Reels/TikTok (768×1344)</option>
-                    <option value="1216x832">3:2 Wide (1216×832)</option>
-                    <option value="832x1216">2:3 Tall (832×1216)</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span id="imgNegLbl">Negative prompt (optional)</span>
-                  <input id="genNeg" type="text" placeholder="blurry, watermark, text, low quality" />
-                </label>
-
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <input type="checkbox" id="genSafe" checked style="width:18px;height:18px;min-height:18px;padding:0;accent-color:var(--gold);flex-shrink:0;" />
-                  <label for="genSafe" style="display:inline;color:var(--text);font-size:13px;font-weight:400;cursor:pointer;" id="genSafeLbl">Safe mode</label>
+            <div class="image-gen-output">
+              <div class="gen-image-wrap" id="genImageWrap">
+                <div class="gen-placeholder" id="genPlaceholder">
+                  <span class="gen-placeholder-icon">🎨</span>
+                  <p style="margin:0;font-size:14px;" id="genPlaceholderTxt">Your image appears here</p>
+                  <p style="margin:6px 0 0;font-size:12px;color:var(--muted);">Free · No watermark · Instant download</p>
                 </div>
-
-                <button class="button primary ai-btn" id="genImageBtn" type="button" style="min-height:48px;font-size:15px;font-weight:800;">
-                  <span class="ai-btn-icon">🎨</span>
-                  <span id="genImageBtnTxt">Generate image</span>
-                </button>
-
-                <p id="genStatusTxt" style="font-size:13px;color:var(--muted);min-height:18px;"></p>
-
-                <div>
-                  <p style="font-size:12px;color:var(--muted);margin:0 0 6px;" id="quickPromptsLbl">Quick prompts</p>
-                  <div class="gen-quick-wrap" id="genQuickWrap"></div>
+                <img id="genImage" src="" alt="Generated AI image" style="display:none;" />
+                <div class="gen-loading-overlay" id="genOverlay">
+                  <div style="text-align:center;">
+                    <div class="gen-spinner"></div>
+                    <p style="color:var(--gold-2);font-size:13px;margin-top:14px;" id="genProgressTxt">Generating…</p>
+                  </div>
                 </div>
               </div>
-
-              <!-- OUTPUT -->
-              <div class="image-gen-output">
-                <div class="gen-image-wrap" id="genImageWrap">
-                  <div class="gen-placeholder" id="genPlaceholder">
-                    <span class="gen-placeholder-icon">🎨</span>
-                    <p style="margin:0;font-size:14px;" id="genPlaceholderTxt">Your image appears here</p>
-                    <p style="margin:4px 0 0;font-size:12px;color:var(--muted);">Free · No watermark · Instant download</p>
-                  </div>
-                  <img id="genImage" src="" alt="Generated AI image" style="display:none;" />
-                  <div class="gen-loading-overlay" id="genOverlay">
-                    <div style="text-align:center;">
-                      <div class="gen-spinner"></div>
-                      <p style="color:var(--gold-2);font-size:13px;margin-top:12px;" id="genProgressTxt">Generating…</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="gen-actions" id="genActions" style="display:none;">
-                  <a class="button primary" id="genDownloadBtn" download="airadar-image.jpg">↓ Download</a>
-                  <button class="button ghost" id="genVariationBtn" type="button">🔀 Variation</button>
-                  <button class="button ghost" id="genShareBtn" type="button">🔗 Copy link</button>
-                  <button class="button ghost" id="genResetBtn" type="button">＋ New</button>
-                </div>
-
-                <div id="genHistorySection" style="display:none;margin-top:18px;">
-                  <p style="font-size:12px;color:var(--muted);margin-bottom:8px;" id="genHistoryLbl">Recent</p>
-                  <div class="gen-history" id="genHistory"></div>
-                </div>
-
-                <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                  <p style="margin:0;font-size:12px;color:var(--muted);">Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener" style="color:var(--gold);">Pollinations.ai</a> — free open AI image infrastructure. Images are generated on demand, not stored.</p>
-                </div>
+              <div class="gen-actions" id="genActions" style="display:none;">
+                <a class="button primary" id="genDownloadBtn" download="airadar-image.jpg">↓ Download</a>
+                <button class="button ghost" id="genVariationBtn" type="button">🔀 Variation</button>
+                <button class="button ghost" id="genShareBtn" type="button">🔗 Copy link</button>
+                <button class="button ghost" id="genResetBtn" type="button">＋ New</button>
+              </div>
+              <div id="genHistorySection" style="display:none;margin-top:16px;">
+                <p style="font-size:12px;color:var(--muted);margin-bottom:8px;" id="genHistoryLbl">Recent generations</p>
+                <div class="gen-history" id="genHistory"></div>
+              </div>
+              <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                <p style="margin:0;font-size:12px;color:var(--muted);">Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener" style="color:var(--gold);">Pollinations.ai</a> — free open AI image infrastructure. Images generated on demand, not stored. Free to download and use.</p>
               </div>
             </div>
-          </section>
-          <!-- /IMAGE GENERATOR -->
+          </div>
+        </section>
+        <!-- /IMAGE GENERATOR -->
 
         <!-- CAPTION AI -->
         <section id="mediaCaption" class="panel media-caption">
@@ -1188,61 +1206,55 @@
           </div>
         </section>
 
-
       </main>
-      <button id="scrollTopBtn" class="scroll-top" type="button" aria-label="Back to top" title="Back to top">
+      <button id="scrollTopBtn" class="scroll-top" type="button"
+        aria-label="Back to top" title="Back to top">
         <span class="scroll-top-arrow">↑</span>
       </button>
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v230"></script>
+    <script src="app.js?v=v220"></script>
+
     <script>
-    // ── IMAGE GENERATOR — Pollinations.ai (free, no key needed) ────────────
+    /* IMAGE GENERATOR — Pollinations.ai */
     (function(){
-      const STYLES=[
-        {id:"none",en:"Default",fa:"پیش‌فرض",suffix:""},
-        {id:"photo",en:"Photorealistic",fa:"واقع‌گرایانه",suffix:", photorealistic DSLR photo, sharp focus, 8K"},
-        {id:"cinematic",en:"Cinematic",fa:"سینمایی",suffix:", cinematic movie still, anamorphic lens, film grain, dramatic lighting"},
-        {id:"anime",en:"Anime",fa:"انیمه",suffix:", anime style, Studio Ghibli, vibrant colors, detailed illustration"},
-        {id:"oil",en:"Oil painting",fa:"نقاشی رنگ‌روغن",suffix:", oil painting on canvas, impasto, textured brushstrokes"},
-        {id:"watercolor",en:"Watercolor",fa:"آبرنگ",suffix:", watercolor painting, soft edges, flowing colors"},
-        {id:"3d",en:"3D render",fa:"سه‌بعدی",suffix:", 3D render, octane render, volumetric lighting, ultra detailed CGI"},
-        {id:"sketch",en:"Pencil sketch",fa:"اسکچ",suffix:", pencil sketch, black and white, detailed line art, graphite"},
-        {id:"pixel",en:"Pixel art",fa:"پیکسل‌آرت",suffix:", pixel art, 16-bit retro game style, crisp pixels"},
-        {id:"neon",en:"Neon / Cyberpunk",fa:"نئون/سایبرپانک",suffix:", neon lights cyberpunk, synthwave aesthetic, glowing neon"},
-        {id:"minimalist",en:"Minimalist",fa:"مینیمالیست",suffix:", minimalist clean flat design, simple shapes, white space"},
-        {id:"portrait",en:"Portrait",fa:"پرتره",suffix:", professional portrait photography, studio lighting, shallow DOF"},
+      var STYLES=[
+        {id:"none",en:"Default",fa:"پیش‌فرض",sx:""},
+        {id:"photo",en:"Photorealistic",fa:"واقع‌گرایانه",sx:", photorealistic DSLR photo, sharp focus, 8K"},
+        {id:"cinematic",en:"Cinematic",fa:"سینمایی",sx:", cinematic movie still, anamorphic lens, film grain"},
+        {id:"anime",en:"Anime",fa:"انیمه",sx:", anime style, Studio Ghibli, vibrant colors, detailed"},
+        {id:"oil",en:"Oil painting",fa:"نقاشی رنگ‌روغن",sx:", oil painting on canvas, impasto, textured brushstrokes"},
+        {id:"watercolor",en:"Watercolor",fa:"آبرنگ",sx:", watercolor painting, soft edges, flowing colors"},
+        {id:"3d",en:"3D render",fa:"سه‌بعدی",sx:", 3D octane render, volumetric lighting, ultra detailed CGI"},
+        {id:"sketch",en:"Pencil sketch",fa:"اسکچ",sx:", pencil sketch, black and white, detailed line art"},
+        {id:"pixel",en:"Pixel art",fa:"پیکسل‌آرت",sx:", pixel art, 16-bit retro game style"},
+        {id:"neon",en:"Neon/Cyberpunk",fa:"نئون/سایبرپانک",sx:", neon lights cyberpunk, synthwave, glowing neon"},
+        {id:"minimalist",en:"Minimalist",fa:"مینیمالیست",sx:", minimalist clean flat design, simple shapes"},
+        {id:"portrait",en:"Portrait",fa:"پرتره",sx:", professional portrait, studio lighting, shallow DOF"},
       ];
-      const QUICK=[
-        "Majestic dragon over snow-capped mountains at golden hour",
-        "Cozy Japanese coffee shop in autumn rain, warm neon lights",
-        "Astronaut floating in deep space, colorful nebula background",
-        "Ancient library with floating books and magical light beams",
-        "Persian garden in spring, blooming roses, marble fountain",
-        "Futuristic Dubai skyline at night, hyperrealistic 8K",
-        "Tiny cottage in enchanted forest, glowing mushrooms",
-        "Abstract geometric shapes forming a human face, neon colors",
-      ];
-      let currentStyle="none",history=[],isGenerating=false;
-      const fa=()=>document.documentElement.lang==="fa";
-      const el=id=>document.getElementById(id);
+      var QUICK=["Majestic dragon over snow mountains at golden hour","Cozy Japanese coffee shop, autumn rain, neon lights","Astronaut floating in deep space, colorful nebula","Ancient library with floating books, magical light","Persian garden in spring, blooming roses, fountain","Futuristic Dubai skyline at night, hyperrealistic 8K","Tiny cottage in enchanted forest, glowing mushrooms","Abstract geometric shapes forming a human face"];
+      var cur="none",hist=[],busy=false;
+      var fa=function(){return document.documentElement.lang==="fa";};
+      var el=function(id){return document.getElementById(id);};
 
       function buildStyles(){
-        const grid=el("genStyleGrid");if(!grid)return;
-        grid.innerHTML=STYLES.map(s=>`<button class="gen-style-btn${s.id===currentStyle?" active":""}" data-sid="${s.id}" type="button">${fa()?s.fa:s.en}</button>`).join("");
-        grid.querySelectorAll(".gen-style-btn").forEach(b=>b.addEventListener("click",()=>{currentStyle=b.dataset.sid;grid.querySelectorAll(".gen-style-btn").forEach(x=>x.classList.toggle("active",x===b));}));
+        var g=el("genStyleGrid");if(!g)return;
+        var h="";for(var i=0;i<STYLES.length;i++){var s=STYLES[i];h+='<button class="gen-style-btn'+(s.id===cur?" active":"")+'" data-s="'+s.id+'" type="button">'+(fa()?s.fa:s.en)+'</button>';}
+        g.innerHTML=h;
+        g.querySelectorAll(".gen-style-btn").forEach(function(b){b.onclick=function(){cur=b.dataset.s;g.querySelectorAll(".gen-style-btn").forEach(function(x){x.classList.toggle("active",x===b);});};});
       }
       function buildQuick(){
-        const w=el("genQuickWrap");if(!w)return;
-        w.innerHTML=QUICK.map(p=>`<button class="gen-quick-btn" type="button" data-qp="${p}">${p.length>38?p.slice(0,38)+"…":p}</button>`).join("");
-        w.querySelectorAll(".gen-quick-btn").forEach(b=>b.addEventListener("click",()=>{const ta=el("imgPrompt");if(ta){ta.value=b.dataset.qp;ta.focus();}}));
+        var w=el("genQuickWrap");if(!w)return;
+        var h="";QUICK.forEach(function(p){h+='<button class="gen-quick-btn" type="button" data-p="'+p+'">'+(p.length>38?p.slice(0,38)+"…":p)+'</button>';});
+        w.innerHTML=h;
+        w.querySelectorAll(".gen-quick-btn").forEach(function(b){b.onclick=function(){var t=el("imgPrompt");if(t){t.value=b.dataset.p;t.focus();}};});
       }
       function applyLang(){
-        const f=fa();
-        const tx=(id,en,fa_)=>{const e=el(id);if(e)e.textContent=f?fa_:en;};
+        var f=fa();
+        var tx=function(id,en,fa2){var e=el(id);if(e)e.textContent=f?fa2:en;};
         tx("imageGenTitle","Text to image in seconds","تولید تصویر AI رایگان");
-        tx("imageGenDesc","Describe what you want — free AI image, 12 styles, instant download.","یک توصیف بنویس — تصویر AI فوری. رایگان، بدون حساب.");
+        tx("imageGenDesc","Describe what you want — free AI image, 12 styles, instant download.","یک توصیف بنویس — تصویر AI رایگان، بدون حساب.");
         tx("imgPromptLbl","Describe your image","تصویر خود را توصیف کنید");
         tx("imgStyleLbl","Style","سبک");
         tx("imgAspectLbl","Aspect ratio","نسبت تصویر");
@@ -1252,83 +1264,75 @@
         tx("quickPromptsLbl","Quick prompts","پرامپت‌های سریع");
         tx("genPlaceholderTxt","Your image appears here","تصویر اینجا ظاهر می‌شود");
         tx("navImageTx","Image AI","تصویر AI");
-        tx("heroPrimaryBtn","Create with AI","ساخت با AI");
-        tx("sidebarCta","Create with AI","ساخت با AI");
-        tx("metricFreeLabel","Free to use","رایگان");
-        tx("metricLiveLabel","GitHub data","داده زنده");
         buildStyles();buildQuick();
       }
-
-      async function generate(customSeed){
-        if(isGenerating)return;
-        const prompt=el("imgPrompt")?.value?.trim();
-        const f=fa();
-        if(!prompt){const ta=el("imgPrompt");if(ta){ta.style.borderColor="rgba(255,80,50,0.8)";setTimeout(()=>ta.style.borderColor="",1500);}return;}
-        isGenerating=true;
-        const btn=el("genImageBtn"),btntxt=el("genImageBtnTxt"),overlay=el("genOverlay"),status=el("genStatusTxt"),imgEl=el("genImage"),actions=el("genActions"),ph=el("genPlaceholder");
+      function gen(seed){
+        if(busy)return;
+        var prompt=el("imgPrompt")?el("imgPrompt").value.trim():"";
+        var f=fa();
+        if(!prompt){var t=el("imgPrompt");if(t){t.style.borderColor="rgba(255,80,50,0.8)";setTimeout(function(){t.style.borderColor="";},1500);}return;}
+        busy=true;
+        var btn=el("genImageBtn"),btxt=el("genImageBtnTxt"),ov=el("genOverlay"),st=el("genStatusTxt"),img=el("genImage"),act=el("genActions"),ph=el("genPlaceholder");
         if(btn)btn.disabled=true;
-        if(btntxt)btntxt.textContent=f?"در حال تولید…":"Generating…";
-        if(overlay)overlay.classList.add("visible");
-        if(status)status.textContent=f?"ارسال به Pollinations.ai…":"Sending to Pollinations.ai…";
-        const style=STYLES.find(s=>s.id===currentStyle);
-        const suffix=style?style.suffix:"";
-        const neg=el("genNeg")?.value?.trim()||"";
-        const[W,H]=(el("genAspect")?.value||"1024x1024").split("x").map(Number);
-        const safe=el("genSafe")?.checked!==false;
-        const seed=customSeed||Math.floor(Math.random()*999999);
-        let fp=prompt+suffix;if(neg)fp+=`, avoid: ${neg}`;
-        const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(fp)}?width=${W}&height=${H}&seed=${seed}&nologo=true&enhance=true${safe?"&safe=true":""}`;
-        const msgs=f?["پرامپت پردازش…","در حال رندر…","تقریباً آماده…","لمس نهایی…"]:["Processing…","Rendering…","Almost there…","Finishing…"];
-        let mi=0;const progEl=el("genProgressTxt");
-        const ticker=setInterval(()=>{mi=(mi+1)%msgs.length;if(progEl)progEl.textContent=msgs[mi];},2500);
-        try{
-          await new Promise((res,rej)=>{const t=new Image();t.onload=res;t.onerror=rej;t.src=url;});
-          clearInterval(ticker);
-          if(imgEl){imgEl.src=url;imgEl.style.display="";}
+        if(btxt)btxt.textContent=f?"در حال تولید…":"Generating…";
+        if(ov)ov.classList.add("visible");
+        if(st)st.textContent=f?"ارسال به Pollinations.ai…":"Sending to Pollinations.ai…";
+        var s=null;for(var i=0;i<STYLES.length;i++){if(STYLES[i].id===cur){s=STYLES[i];break;}}
+        var sx=s?s.sx:"";
+        var neg=el("genNeg")?el("genNeg").value.trim():"";
+        var asp=(el("genAspect")?el("genAspect").value:"1024x1024").split("x");
+        var W=parseInt(asp[0])||1024,H=parseInt(asp[1])||1024;
+        var safe=el("genSafe")?el("genSafe").checked:true;
+        var sd=seed||Math.floor(Math.random()*999999);
+        var fp=prompt+sx;if(neg)fp+=", avoid: "+neg;
+        var url="https://image.pollinations.ai/prompt/"+encodeURIComponent(fp)+"?width="+W+"&height="+H+"&seed="+sd+"&nologo=true&enhance=true"+(safe?"&safe=true":"");
+        var msgs=f?["پردازش پرامپت…","در حال رندر…","تقریباً آماده…"]:["Processing…","Rendering…","Almost there…"];
+        var mi=0,pg=el("genProgressTxt");
+        var tick=setInterval(function(){mi=(mi+1)%msgs.length;if(pg)pg.textContent=msgs[mi];},2500);
+        var ti=new Image();
+        ti.onload=function(){
+          clearInterval(tick);
+          if(img){img.src=url;img.style.display="";}
           if(ph)ph.style.display="none";
-          if(overlay)overlay.classList.remove("visible");
-          if(actions)actions.style.display="flex";
-          if(status)status.textContent=f?"✓ تصویر آماده شد!":"✓ Image ready!";
-          const dl=el("genDownloadBtn");if(dl){dl.href=url;dl.download=`airadar-${seed}.jpg`;}
-          history.unshift({url,prompt,seed});if(history.length>8)history.pop();renderHistory();
-        }catch(e){
-          clearInterval(ticker);
-          if(overlay)overlay.classList.remove("visible");
-          if(status)status.textContent=f?"❌ خطا. دوباره امتحان کن.":"❌ Failed. Please try again.";
-        }finally{
-          isGenerating=false;
-          if(btn)btn.disabled=false;
-          if(btntxt)btntxt.textContent=f?"تولید تصویر":"Generate image";
-        }
+          if(ov)ov.classList.remove("visible");
+          if(act)act.style.display="flex";
+          if(st)st.textContent=f?"✓ تصویر آماده شد!":"✓ Image ready!";
+          var dl=el("genDownloadBtn");if(dl){dl.href=url;dl.download="airadar-"+sd+".jpg";}
+          hist.unshift({url:url,prompt:prompt});if(hist.length>8)hist.pop();
+          renderHist();
+          busy=false;if(btn)btn.disabled=false;if(btxt)btxt.textContent=f?"تولید تصویر":"Generate image";
+        };
+        ti.onerror=function(){
+          clearInterval(tick);if(ov)ov.classList.remove("visible");
+          if(st)st.textContent=f?"❌ خطا. دوباره امتحان کن.":"❌ Failed. Try again.";
+          busy=false;if(btn)btn.disabled=false;if(btxt)btxt.textContent=f?"تولید تصویر":"Generate image";
+        };
+        ti.src=url;
       }
-
-      function renderHistory(){
-        const sec=el("genHistorySection"),grid=el("genHistory");if(!sec||!grid)return;
-        if(!history.length){sec.style.display="none";return;}
+      function renderHist(){
+        var sec=el("genHistorySection"),g=el("genHistory");if(!sec||!g)return;
+        if(!hist.length){sec.style.display="none";return;}
         sec.style.display="";
-        grid.innerHTML=history.map(item=>`<div class="gen-thumb" title="${item.prompt}"><img src="${item.url}" alt="Generated" loading="lazy" onclick="(function(){var i=document.getElementById('genImage');var p=document.getElementById('genPlaceholder');var a=document.getElementById('genActions');if(i){i.src='${item.url}';i.style.display='';}if(p)p.style.display='none';if(a)a.style.display='flex';})()"/></div>`).join("");
+        var h="";
+        hist.forEach(function(item){
+          h+='<div class="gen-thumb"><img src="'+item.url+'" alt="img" loading="lazy" style="cursor:pointer" onclick="(function(){var i=document.getElementById('genImage'),p=document.getElementById('genPlaceholder'),a=document.getElementById('genActions');if(i){i.src=''+item.url+'';i.style.display='';}if(p)p.style.display='none';if(a)a.style.display='flex';})()" /></div>';
+        });
+        g.innerHTML=h;
       }
-
-      function reset(){
-        const imgEl=el("genImage"),ph=el("genPlaceholder"),actions=el("genActions"),ta=el("imgPrompt"),st=el("genStatusTxt");
-        if(imgEl){imgEl.src="";imgEl.style.display="none";}
-        if(ph)ph.style.display="";
-        if(actions)actions.style.display="none";
-        if(ta){ta.value="";ta.focus();}
-        if(st)st.textContent="";
+      function resetGen(){
+        var img=el("genImage"),ph=el("genPlaceholder"),act=el("genActions"),ta=el("imgPrompt"),st=el("genStatusTxt");
+        if(img){img.src="";img.style.display="none";}if(ph)ph.style.display="";if(act)act.style.display="none";if(ta){ta.value="";ta.focus();}if(st)st.textContent="";
       }
-
-      document.addEventListener("DOMContentLoaded",function(){
+      function init(){
         buildStyles();buildQuick();applyLang();
-        const g=el("genImageBtn");if(g)g.addEventListener("click",function(){generate();});
-        const ta=el("imgPrompt");if(ta)ta.addEventListener("keydown",function(e){if((e.metaKey||e.ctrlKey)&&e.key==="Enter")generate();});
-        const v=el("genVariationBtn");if(v)v.addEventListener("click",function(){const p=el("imgPrompt");if(p&&p.value.trim())generate(Math.floor(Math.random()*999999));});
-        const s=el("genShareBtn");if(s)s.addEventListener("click",async function(){const i=el("genImage");if(!i||!i.src)return;await navigator.clipboard.writeText(i.src);s.textContent="✓ Copied!";setTimeout(function(){s.textContent="🔗 Copy link";},2000);});
-        const r=el("genResetBtn");if(r)r.addEventListener("click",reset);
-        // Hook lang change
-        const orig=window.setLanguage;
-        window.setLanguage=function(lang){if(orig)orig(lang);applyLang();};
-      });
+        var g=el("genImageBtn");if(g)g.onclick=function(){gen();};
+        var ta=el("imgPrompt");if(ta)ta.onkeydown=function(e){if((e.metaKey||e.ctrlKey)&&e.key==="Enter")gen();};
+        var v=el("genVariationBtn");if(v)v.onclick=function(){var p=el("imgPrompt");if(p&&p.value.trim())gen(Math.floor(Math.random()*999999));};
+        var sh=el("genShareBtn");if(sh)sh.onclick=function(){var i=el("genImage");if(!i||!i.src||i.style.display==="none")return;navigator.clipboard.writeText(i.src).then(function(){sh.textContent="✓ Copied!";setTimeout(function(){sh.textContent="🔗 Copy link";},2000);});};
+        var re=el("genResetBtn");if(re)re.onclick=resetGen;
+        var orig=window.setLanguage;window.setLanguage=function(l){if(orig)orig(l);applyLang();};
+      }
+      document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init):init();
     })();
     </script>
   </body>
