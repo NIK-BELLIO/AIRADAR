@@ -3724,7 +3724,13 @@ function vsEasePro(t) {
 }
 
 function vsTemplate() {
-  return videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+  const tpl = videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+  // Override headlineFont if user has picked one manually
+  const fontEl = document.querySelector("#vsHeadlineFont");
+  if (fontEl && fontEl.value) {
+    return Object.assign({}, tpl, { headlineFont: fontEl.value });
+  }
+  return tpl;
 }
 function vsStatus(msg) {
   const el = $("#vsStatus");
@@ -3921,65 +3927,71 @@ function vsExtractStats(text) {
 // Build the sequence from already-decided pieces.
 function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, captions }) {
   vstudio.slides = [];
-  // hand-picked cinematic backgrounds (not just sequential) for a polished look
-  // premium cinematic backgrounds first for a polished, modern look
   const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
     "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
   const bg = (i) => bgPool[i % bgPool.length];
-  // professional, varied entrance motions for each scene
   const introMotions = ["rise-spring", "zoom", "glide", "drift", "spring"];
   const caps = captions || [];
 
-  // 1) intro scene — cinematic spring entrance
+  // Helper: get a CLEAN settings object with all overlays OFF
+  const cleanSet = () => {
+    const s = vsCaptureSettings();
+    s["#vsInfoOn"] = false;
+    s["#vsNewsOn"] = false;
+    return s;
+  };
+
+  // 1) intro scene
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
     introBg: bg(0), introMain: title || "Presenting", introSub: subtitle || "",
-    introMotion: "rise-spring", headline: "", duration: 3.2,
-    settings: vsCaptureSettings(),
+    introMotion: "rise-spring", headline: "", duration: 3,
+    settings: cleanSet(),
     _timelineLabel: title || "Intro"
   });
 
   let bgi = 1, capi = 0;
 
-  // 2) an infographic content slide (if we have stats) — with a caption
-  if (stats && stats.length) {
-    const set = vsCaptureSettings();
+  // 2) infographic slide — ONLY if we actually have stats
+  if (stats && stats.length >= 2) {
+    const set = cleanSet();
     set["#vsInfoOn"] = true;
-    set["#vsInfoStyle"] = stats.length > 3 ? "cards" : "donut";
+    set["#vsNewsOn"] = false;
+    set["#vsInfoStyle"] = stats.length > 3 ? "big-numbers" : "donut";
     set["#vsInfoMotion"] = "rise";
     set["#vsInfoJson"] = JSON.stringify({ title: title || "Key numbers",
       subtitle: subtitle || "", stats });
-    set["#vsNewsOn"] = false;
     vstudio.slides.push({
       url: null, isVideo: false, mediaEl: null, ready: true,
       isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
-      introMotion: "fade", headline: "", duration: 4.2, settings: set,
+      introMotion: "fade", headline: "", duration: 6, settings: set,
       _standaloneInfo: true,
-      _caption: caps[capi++] || (title ? title : "By the numbers")
+      _caption: caps[capi++] || "Key numbers",
+      _timelineLabel: "📊 " + (title || "Stats")
     });
   }
 
-  // 3) a news-banner content slide per key point — alternating styles + motions
-  // use the professional TEXT styles (big centered/quote/title) rather
-  // than a TV-subtitle lower-third, so content slides look cinematic
-  const newsStyles = ["title-center", "quote", "title-left", "caption"];
-  const newsMotions = ["fade", "slide-up", "pop", "fade"];
-  (points || []).slice(0, 4).forEach((pt, i) => {
-    const set = vsCaptureSettings();
+  // 3) news text slides per key point
+  const newsStyles = ["title-center", "bold-statement", "quote", "title-left"];
+  const newsMotions = ["fade", "vox", "pop", "fade"];
+  (points || []).slice(0, 5).forEach((pt, i) => {
+    const set = cleanSet();
     set["#vsNewsOn"] = true;
+    set["#vsInfoOn"] = false;
     set["#vsNewsStyle"] = newsStyles[i % newsStyles.length];
     set["#vsNewsMotion"] = newsMotions[i % newsMotions.length];
     set["#vsNewsKicker"] = (kicker || "UPDATE").toUpperCase().slice(0, 18);
     set["#vsNewsHeadline"] = pt.slice(0, 120);
     set["#vsNewsSource"] = "";
-    set["#vsInfoOn"] = false;
+    set["#vsNewsAccent"] = "gold";
     vstudio.slides.push({
       url: null, isVideo: false, mediaEl: null, ready: true,
       isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
       introMotion: introMotions[i % introMotions.length],
-      headline: "", duration: 3.6, settings: set,
+      headline: "", duration: 6, settings: set,
       _standaloneNews: true,
-      _caption: caps[capi++] || pt.split(/\s+/).slice(0, 4).join(" ")
+      _caption: caps[capi++] || pt.split(/\s+/).slice(0, 4).join(" "),
+      _timelineLabel: pt.slice(0, 22)
     });
   });
 
@@ -3988,7 +4000,8 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, ca
     url: null, isVideo: false, mediaEl: null, ready: true,
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: outroMain || "Thanks for watching", introSub: "Follow for more",
-    introMotion: "spring", headline: "", duration: 3, settings: vsCaptureSettings()
+    introMotion: "spring", headline: "", duration: 3, settings: cleanSet(),
+    _timelineLabel: outroMain || "Outro"
   });
 
   renderSlideList();
@@ -4083,17 +4096,17 @@ async function buildAutoVideo(useAI) {
   //    text (when it doesn't), so the video matches the content.
   vsAutoStatus(state.lang === "fa"
     ? "هوش مصنوعی در حال تحلیل کل مقاله…" : "AI is analyzing the whole article…");
-  const prompt = `You are a world-class motion-graphics director for short-form video. Read the ENTIRE article and design a cinematic, visually varied video. Return ONLY compact JSON (no markdown, no explanation):
-{"title":"<= 7 words","subtitle":"<= 9 words","kicker":"1-2 word category (TECH/FINANCE/HEALTH/etc)","palette":"one of: fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-4 words","title":"short","stats":[{"label":"label","value":"2.4M","num":2400000}],"chartType":"one of: bars|donut|pills|split"},{"type":"text","caption":"2-4 words","headline":"one punchy sentence","style":"one of: title-center|quote|title-left|caption|bold-statement","emphasis":"the most important 2-3 words to highlight"}],"outroMain":"<= 5 words"}
-Rules:
-- Analyze the WHOLE article. Produce 4 to 7 sections IN READING ORDER.
-- Alternate between infographic and text sections for visual variety. Never put two infographic sections in a row.
-- For parts with numbers/data/statistics: emit "infographic" with 2-5 stats, choose chartType based on data (donut for %, bars for comparisons, pills for short metrics, split for 2 contrasting numbers).
-- For narrative/quote/context: emit "text" with a punchy single-sentence headline. Choose style: title-center (dramatic fact), quote (direct speech/quote), title-left (news-style), caption (context/background), bold-statement (strong opinion/conclusion).
-- emphasis: pick 2-3 words from the headline that should be visually emphasised/larger.
-- kicker = article category in 1-2 ALL-CAPS words.
-- palette = overall visual mood.
-Article: """${text.slice(0, 5000)}"""`;
+  const prompt = `You are an award-winning motion-graphics news director. Analyze the ENTIRE article and create a compelling, journalistic short-form video. Return ONLY valid compact JSON (no markdown, no explanation, no extra text):
+{"title":"max 6 impactful words","subtitle":"max 8 descriptive words","kicker":"1-2 ALL-CAPS category words","palette":"fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline","stats":[{"label":"short label","value":"formatted value e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one punchy factual sentence from the article","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outroMain":"3-4 action words"}
+STRICT RULES:
+1. Produce EXACTLY 5 to 7 sections. Start with the most important fact/stat.
+2. INFOGRAPHIC: only when article contains actual numbers/data/stats. Include 2-5 real stats with formatted values. chartType: bars=comparisons, donut=percentages, pills=progress metrics, comparison=two contrasting values, ranking=ordered list.
+3. TEXT: for narrative, quotes, context, conclusions. headline must be ONE compelling sentence (max 12 words) directly from the article's content — never generic.
+4. Alternate types: never two infographics in a row.
+5. style choices: title-center=dramatic central fact, bold-statement=huge impactful claim, quote=direct speech, title-left=broadcast news, magazine-cover=editorial feel, neon-title=futuristic/tech.
+6. kicker = the article's category in 1-2 ALL-CAPS words (e.g. "AI", "FINANCE", "HEALTH", "CLIMATE", "TECH").
+7. ALL content must come from the article — do not invent facts or statistics.
+Article: """${text.slice(0, 6000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     const jsonStr = String(raw).replace(/```json|```/g, "").trim();
@@ -4175,19 +4188,22 @@ function vsAssembleFromSections(data) {
 
   const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
 
+  // Helper: clean settings with all overlays explicitly OFF
+  const cleanSet2 = () => { const s = vsCaptureSettings(); s["#vsInfoOn"] = false; s["#vsNewsOn"] = false; return s; };
+
   // intro — dramatic entrance
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
     introBg: bg(0), introMain: data.title || "Today's story",
     introSub: data.subtitle || "", introMotion: "rise-spring",
-    headline: "", duration: 3.5, settings: vsCaptureSettings(),
+    headline: "", duration: 3, settings: cleanSet2(),
     _timelineLabel: data.title || "Intro"
   });
 
   let bi = 1;
   const sections = (data.sections || []).slice(0, 7);
   sections.forEach((sec, i) => {
-    const set = vsCaptureSettings();
+    const set = cleanSet2();
     const motion = pickMotion();
 
     if (sec.type === "infographic" && Array.isArray(sec.stats) && sec.stats.length) {
@@ -4212,7 +4228,7 @@ function vsAssembleFromSections(data) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: 4.5, settings: set, _standaloneInfo: true,
+        duration: 6, settings: set, _standaloneInfo: true,
         _caption: sec.caption || "Key numbers",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
@@ -4234,7 +4250,7 @@ function vsAssembleFromSections(data) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: 4.0, settings: set, _standaloneNews: true,
+        duration: 6, settings: set, _standaloneNews: true,
         _caption: sec.caption || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
@@ -4247,7 +4263,7 @@ function vsAssembleFromSections(data) {
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: data.outroMain || "Thanks for watching",
     introSub: "Follow for more", introMotion: "spring",
-    headline: "", duration: 3.2, settings: vsCaptureSettings(),
+    headline: "", duration: 3, settings: cleanSet2(),
     _timelineLabel: data.outroMain || "Outro"
   });
 
@@ -4326,7 +4342,7 @@ function addStudioSlide(file) {
   const isVideo = file.type.startsWith("video/");
   const slide = {
     url, isVideo, mediaEl: null, ready: false,
-    headline: "", duration: 4,
+    headline: "", duration: 6,
     // a fresh slide inherits the current settings as its starting point
     settings: vsCaptureSettings()
   };
@@ -4802,7 +4818,7 @@ function vsFilterString() {
 // Aspect/duration-of-video and export settings stay global.
 const VS_SLIDE_CONTROLS = [
   "#vsSpeed", "#vsTransition",
-  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
   "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
@@ -7655,7 +7671,7 @@ function heraRenderTimeline() {
     const empty = document.createElement("div");
     empty.className = "vs-scene-block";
     empty.style.cssText = "min-width:140px;opacity:0.35;font-size:12px;";
-    empty.innerHTML = "<span class='vs-scene-label' style='pointer-events:none'>صحنه‌ای وجود ندارد</span>";
+    empty.innerHTML = `<span class='vs-scene-label' style='pointer-events:none'>${state.lang === "fa" ? "صحنه‌ای وجود ندارد" : "No scenes yet"}</span>`;
     blocks.appendChild(empty);
     if (waveRow) waveRow.style.display = "none";
     return;
@@ -7868,7 +7884,7 @@ function setPlayBtn(playing) {
 // Snapshots every studio control so changes can be reverted.
 const VS_CONTROLS = [
   "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
-  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
   "#vsLogoPos", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
@@ -8796,7 +8812,7 @@ function bindEvents() {
 
   // Live-update the static preview frame when any setting changes.
   const vsLiveControls = [
-    "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize",
+    "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
     "#vsMotion", "#vsTextAnim", "#vsOverlay",
     "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
     "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
@@ -8809,14 +8825,14 @@ function bindEvents() {
     if (vstudio.slides.length) vsSaveActiveSlide();
     const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
     const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
-    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
-                       || infoOn || newsOn;
+    const hasSlides = vstudio.slides.some(s => s.ready);
+    const hasContent = vstudio.mediaEl || hasSlides || infoOn || newsOn;
     if (!hasContent || vstudio.rendering) return;
     // make sure a canvas exists even when no media was ever loaded
     if (!$("#vsCanvas")) buildPreviewCanvas();
-    // if the live loop is running it already redraws every frame;
-    // only draw a static frame when the loop is stopped.
-    if (!vstudio.looping) {
+    // always redraw (even if looping) for news/info text changes so user
+    // sees real-time feedback when typing
+    if (!vstudio.looping || infoOn || newsOn) {
       drawStudioFrame(vstudio.position || 0);
       updateTimeline(vstudio.position || 0, studioDuration());
     }
