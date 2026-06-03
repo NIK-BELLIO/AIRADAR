@@ -3901,7 +3901,7 @@ a, button, input, select, textarea, [role="button"] {
 
 /* Section spacing — more breathing room */
 section.panel {
-  padding: 48px 0;
+  padding: 48px 28px;
   border-bottom: 1px solid var(--line);
 }
 section.panel:last-of-type { border-bottom: none; }
@@ -3958,7 +3958,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* Performance chart — better panel */
-.performance-panel { padding: 48px 0; }
+.performance-panel { padding: 48px 28px; }
 .chart-tab {
   padding: 7px 16px !important;
   border-radius: 20px !important;
@@ -4052,7 +4052,7 @@ input:focus, select:focus, textarea:focus {
 
 /* Mobile improvements */
 @media (max-width: 640px) {
-  section.panel { padding: 32px 0; }
+  section.panel { padding: 32px 16px; }
   .section-head { flex-direction: column; align-items: flex-start; }
   .section-head h2 { font-size: 22px; }
   .button { min-height: 38px; padding: 0 14px; font-size: 13px; }
