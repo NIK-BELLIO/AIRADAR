@@ -333,25 +333,30 @@
                     </label>
                     <label><span data-i18n="vIntroMotion2">Text motion</span>
                       <select id="vsIntroMotionInput">
-                        <option value="fade">Fade in</option>
-                        <option value="rise">Rise up</option>
-                        <option value="drop">Drop down</option>
-                        <option value="slide">Slide from left</option>
-                        <option value="slide-r">Slide from right</option>
-                        <option value="zoom">Zoom in</option>
-                        <option value="zoom-out">Zoom out</option>
-                        <option value="reveal">Line reveal</option>
-                        <option value="blur">Blur in</option>
-                        <option value="expand">Letter expand</option>
-                        <option value="tilt">Tilt in</option>
-                        <option value="glide">Glide in</option>
-                        <option value="spring">Spring (bouncy)</option>
-                        <option value="rise-spring">Rise + spring</option>
-                        <option value="swing">Swing in</option>
-                        <option value="punch">Punch in</option>
-                        <option value="flip">Flip in</option>
-                        <option value="drift">Cinematic drift</option>
-                        <option value="vox">Vox style (snappy)</option>
+                        <optgroup label="⬆ Enter">
+                          <option value="fade">Fade in</option>
+                          <option value="rise">Rise up</option>
+                          <option value="slide">Slide from left</option>
+                          <option value="slide-r">Slide from right</option>
+                          <option value="drop">Drop down</option>
+                        </optgroup>
+                        <optgroup label="💥 Dynamic">
+                          <option value="spring">Spring</option>
+                          <option value="rise-spring">Rise + spring</option>
+                          <option value="punch">Punch in</option>
+                          <option value="vox">Vox (snappy)</option>
+                          <option value="swing">Swing in</option>
+                        </optgroup>
+                        <optgroup label="🎬 Cinematic">
+                          <option value="zoom">Zoom in</option>
+                          <option value="blur">Blur in</option>
+                          <option value="flip">Flip in</option>
+                          <option value="glide">Glide in</option>
+                          <option value="drift">Cinematic drift</option>
+                          <option value="reveal">Line reveal</option>
+                          <option value="expand">Letter expand</option>
+                          <option value="tilt">Tilt in</option>
+                        </optgroup>
                       </select>
                     </label>
                   </div>
@@ -428,74 +433,91 @@
                       <div class="control-grid">
                         <label><span data-i18n="vCamMotionLabel">Camera motion</span>
                           <select id="vsMotion">
-                            <option value="kenburns-in">Ken Burns — zoom in</option>
-                            <option value="kenburns-out">Ken Burns — zoom out</option>
-                            <option value="punch-in">Punch in</option>
-                            <option value="zoom-pan">Zoom + pan</option>
-                            <option value="pan-right">Pan right</option>
-                            <option value="pan-left">Pan left</option>
-                            <option value="pan-up">Pan up</option>
-                            <option value="pan-down">Pan down</option>
-                            <option value="diagonal">Diagonal drift</option>
-                            <option value="drift-up">Slow drift up</option>
-                            <option value="parallax">Parallax drift</option>
-                            <option value="vertigo">Vertigo (dolly zoom)</option>
-                            <option value="spin-in">Spin in</option>
-                            <option value="pulse">Pulse</option>
-                            <option value="breathe">Breathe</option>
-                            <option value="sway">Sway</option>
-                            <option value="handheld">Handheld</option>
-                            <option value="shake">Shake</option>
-                            <option value="none">None (static)</option>
+                            <optgroup label="🎥 Zoom">
+                              <option value="kenburns-in">Ken Burns — zoom in</option>
+                              <option value="kenburns-out">Ken Burns — zoom out</option>
+                              <option value="punch-in">Punch in</option>
+                              <option value="zoom-pan">Zoom + pan</option>
+                              <option value="vertigo">Vertigo (dolly zoom)</option>
+                            </optgroup>
+                            <optgroup label="↔ Pan">
+                              <option value="pan-right">Pan right</option>
+                              <option value="pan-left">Pan left</option>
+                              <option value="pan-up">Pan up</option>
+                              <option value="pan-down">Pan down</option>
+                              <option value="diagonal">Diagonal drift</option>
+                              <option value="drift-up">Slow drift up</option>
+                              <option value="parallax">Parallax drift</option>
+                            </optgroup>
+                            <optgroup label="✨ Stylised">
+                              <option value="spin-in">Spin in</option>
+                              <option value="pulse">Pulse</option>
+                              <option value="breathe">Breathe</option>
+                              <option value="sway">Sway</option>
+                              <option value="handheld">Handheld</option>
+                              <option value="shake">Shake</option>
+                              <option value="none">None (static)</option>
+                            </optgroup>
                           </select>
                         </label>
                         <label><span data-i18n="vTextAnimLabel">Text animation</span>
                           <select id="vsTextAnim">
-                            <option value="fade-up">Fade up</option>
-                            <option value="fade-down">Fade down</option>
-                            <option value="fade">Fade in</option>
-                            <option value="rise">Rise up</option>
-                            <option value="drop">Drop down</option>
-                            <option value="slide-left">Slide from left</option>
-                            <option value="slide-right">Slide from right</option>
-                            <option value="pop">Pop / scale</option>
-                            <option value="bounce">Bounce</option>
-                            <option value="zoom-in">Zoom in</option>
-                            <option value="zoom-out">Zoom out</option>
-                            <option value="blur-in">Blur in</option>
-                            <option value="typewriter">Typewriter</option>
-                            <option value="spring">Spring (bouncy)</option>
-                            <option value="rise-spring">Rise + spring</option>
-                            <option value="swing">Swing in</option>
-                            <option value="punch">Punch in</option>
-                            <option value="slide-up">Slide up</option>
-                            <option value="slide-down">Slide down</option>
-                            <option value="flip">Flip in</option>
-                            <option value="glide-in">Glide in</option>
-                            <option value="drift">Cinematic drift</option>
-                            <option value="vox">Vox style (snappy)</option>
-                            <option value="none">None</option>
+                            <optgroup label="⬆ Enter">
+                              <option value="fade-up">Fade up</option>
+                              <option value="rise">Rise up</option>
+                              <option value="slide-left">Slide from left</option>
+                              <option value="slide-right">Slide from right</option>
+                              <option value="fade-down">Fade down</option>
+                              <option value="drop">Drop down</option>
+                            </optgroup>
+                            <optgroup label="💥 Dynamic">
+                              <option value="pop">Pop / scale</option>
+                              <option value="bounce">Bounce</option>
+                              <option value="spring">Spring</option>
+                              <option value="rise-spring">Rise + spring</option>
+                              <option value="punch">Punch in</option>
+                              <option value="vox">Vox (snappy)</option>
+                            </optgroup>
+                            <optgroup label="🎬 Cinematic">
+                              <option value="fade">Fade in</option>
+                              <option value="zoom-in">Zoom in</option>
+                              <option value="blur-in">Blur in</option>
+                              <option value="flip">Flip in</option>
+                              <option value="glide-in">Glide in</option>
+                              <option value="drift">Cinematic drift</option>
+                              <option value="typewriter">Typewriter</option>
+                              <option value="swing">Swing in</option>
+                              <option value="none">None</option>
+                            </optgroup>
                           </select>
                         </label>
                         <label><span data-i18n="vOverlayLabel">Overlay element</span>
                           <select id="vsOverlay">
                             <option value="none">None</option>
-                            <option value="goldframe">Gold frame (luxe)</option>
-                            <option value="shimmer">Shimmer sweep (luxe)</option>
-                            <option value="embers">Warm embers (luxe)</option>
-                            <option value="lightleak">Light leak</option>
-                            <option value="glow">Edge glow</option>
-                            <option value="bokeh">Bokeh lights</option>
-                            <option value="minimalline">Minimal line</option>
-                            <option value="corners">Corner brackets (minimal)</option>
-                            <option value="haze">Soft haze (minimal)</option>
-                            <option value="particles">Sparkle particles</option>
-                            <option value="dust">Floating dust</option>
-                            <option value="snow">Snow</option>
-                            <option value="rain">Rain</option>
-                            <option value="gradient">Cinematic bars</option>
-                            <option value="scanlines">Scanlines</option>
-                            <option value="vhs">VHS jitter</option>
+                            <optgroup label="✨ Luxury">
+                              <option value="goldframe">Gold frame</option>
+                              <option value="shimmer">Shimmer sweep</option>
+                              <option value="embers">Warm embers</option>
+                              <option value="lightleak">Light leak</option>
+                              <option value="glow">Edge glow</option>
+                              <option value="bokeh">Bokeh lights</option>
+                            </optgroup>
+                            <optgroup label="◻ Minimal">
+                              <option value="minimalline">Minimal line</option>
+                              <option value="corners">Corner brackets</option>
+                              <option value="haze">Soft haze</option>
+                              <option value="gradient">Cinematic bars</option>
+                            </optgroup>
+                            <optgroup label="🌟 Particle">
+                              <option value="particles">Sparkle particles</option>
+                              <option value="dust">Floating dust</option>
+                              <option value="snow">Snow</option>
+                              <option value="rain">Rain</option>
+                            </optgroup>
+                            <optgroup label="📼 Retro">
+                              <option value="scanlines">Scanlines</option>
+                              <option value="vhs">VHS jitter</option>
+                            </optgroup>
                           </select>
                         </label>
                       </div>
@@ -537,12 +559,30 @@
                       <div class="control-grid">
                         <label><span data-i18n="vInfoStyleLabel">Chart style</span>
                           <select id="vsInfoStyle">
-                            <option value="big-numbers">Big Numbers (cinematic)</option>
-                            <option value="bars">Animated bars</option>
-                            <option value="counters">Counting numbers</option>
-                            <option value="cards">Stat cards</option>
-                            <option value="donut">Donut ring</option>
-                            <option value="pills">Progress pills</option>
+                            <optgroup label="🔢 Numbers">
+                              <option value="big-numbers">Big Numbers (cinematic)</option>
+                              <option value="counters">Counting up</option>
+                              <option value="ticker-numbers">Ticker style</option>
+                              <option value="comparison">Side-by-side compare</option>
+                            </optgroup>
+                            <optgroup label="📊 Charts">
+                              <option value="bars">Horizontal bars</option>
+                              <option value="pills">Progress pills</option>
+                              <option value="donut">Donut rings</option>
+                              <option value="area-chart">Area / wave chart</option>
+                              <option value="bubble">Bubble chart</option>
+                            </optgroup>
+                            <optgroup label="🃏 Cards">
+                              <option value="cards">Stat cards</option>
+                              <option value="dark-cards">Dark glass cards</option>
+                              <option value="neon-cards">Neon accent cards</option>
+                              <option value="magazine">Magazine layout</option>
+                            </optgroup>
+                            <optgroup label="📰 Editorial">
+                              <option value="timeline-list">Timeline / list</option>
+                              <option value="ranking">Ranking / leaderboard</option>
+                              <option value="vs-split">VS split (2 values)</option>
+                            </optgroup>
                           </select>
                         </label>
                         <label><span data-i18n="vInfoPosLabel">Position</span>
@@ -611,19 +651,32 @@
                       <div class="control-grid">
                         <label><span data-i18n="vNewsStyleLabel">Banner style</span>
                           <select id="vsNewsStyle">
-                            <optgroup label="📺 News banners">
+                            <optgroup label="📺 Broadcast">
                               <option value="lowerthird">Lower third</option>
                               <option value="ticker">Bottom ticker</option>
                               <option value="fullbar">Full lower bar</option>
+                              <option value="breaking">Breaking news bar</option>
+                              <option value="topbar">Top news bar</option>
                             </optgroup>
-                            <optgroup label="🎬 Cinematic text">
-                              <option value="title-center">Centered title (dramatic)</option>
+                            <optgroup label="🎬 Cinematic title">
+                              <option value="title-center">Centered title</option>
                               <option value="bold-statement">Bold statement (huge)</option>
                               <option value="title-left">Left title block</option>
+                              <option value="kinetic">Kinetic type</option>
+                              <option value="reveal-words">Word reveal</option>
+                            </optgroup>
+                            <optgroup label="💬 Quote &amp; context">
                               <option value="quote">Quote style</option>
-                              <option value="caption">Caption (bottom)</option>
+                              <option value="pullquote">Pull quote (side)</option>
+                              <option value="caption">Caption bottom</option>
+                              <option value="annotation">Annotation card</option>
+                            </optgroup>
+                            <optgroup label="🎨 Graphic">
                               <option value="split">Split block</option>
                               <option value="badge">Badge headline</option>
+                              <option value="magazine-cover">Magazine cover</option>
+                              <option value="neon-title">Neon title</option>
+                              <option value="minimal-line">Minimal line</option>
                             </optgroup>
                           </select>
                         </label>
@@ -961,6 +1014,13 @@
               <span class="version-badge">v2.2.0</span>
             </div>
             <ul class="changelog-list">
+              <li>
+                <span class="changelog-ver">2.2</span>
+                <div>
+                  <strong>Cinematic graphics &amp; UI overhaul</strong>
+                  <p>New "Big Numbers" infographic preset with animated counting and glowing accent numbers. Headline text is now 25% larger across all news styles with proper dark scrims. Bold Statement style with massive full-frame text. Color filter only applies to uploaded footage — motion backgrounds stay crisp. Timeline accent matches site gold theme. All long dropdown lists reorganised into labelled groups. Auto-video AI produces varied news analysis with 4–7 scenes, palette selection and smart chart types.</p>
+                </div>
+              </li>
               <li>
                 <span class="changelog-ver">2.1</span>
                 <div>
