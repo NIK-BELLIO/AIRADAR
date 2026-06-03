@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Live AI Tools GitHub Trend Charts | AI Radar</title>
+  <meta name="description" content="Real-time GitHub popularity charts for 45+ AI tools — stars, forks, and developer activity refreshed every 5 minutes from the public GitHub API."/>
+  <meta property="og:title" content="Live AI Tools GitHub Trend Charts | AI Radar"/>
+  <meta property="og:image" content="https://airadar.me/og-charts.png"/>
+  <meta property="og:url" content="https://airadar.me/charts/"/>
+  <link rel="canonical" href="https://airadar.me/charts/"/>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Prata&family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <link rel="stylesheet" href="/extra.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+<div class="shell">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="appSidebar"></aside>
+  <div class="content-area">
+    <button id="sidebarOpenBtn" class="sidebar-open" type="button" aria-label="Menu">☰</button>
+    <main id="top">
+      <section class="page-hero">
+        <p class="eyebrow" id="chartsEyebrow">Live GitHub data</p>
+        <h1 id="chartsTitle">Live AI tools trend</h1>
+        <p id="chartsDesc">Real GitHub popularity for every AI tool, refreshed every 5 minutes. Add tools to Compare to highlight them.</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-head" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div class="chart-tabs" role="tablist">
+            <button class="chart-tab active" data-tab="stars" id="tabStars">⭐ GitHub Stars</button>
+            <button class="chart-tab" data-tab="forks" id="tabForks">🔀 Forks</button>
+            <button class="chart-tab" data-tab="activity" id="tabActivity">⚡ Dev Activity</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="live-pill" id="liveLabel">↻ Live</span>
+            <button class="button ghost" id="refreshChartBtn" type="button">Refresh</button>
+          </div>
+        </div>
+        <p id="chartsSubtext" style="color:var(--muted);font-size:14px;margin-bottom:18px;">Live data from the public GitHub REST API. Tools added to Compare are highlighted in gold.</p>
+        <div id="chartError" class="chart-error" style="display:none;"><p>⚠ GitHub API rate limit reached. Charts auto-refresh in a few minutes.</p></div>
+        <div style="position:relative;width:100%;min-height:400px;">
+          <canvas id="performanceChart" role="img" aria-label="Bar chart showing AI tool GitHub popularity">Loading chart…</canvas>
+        </div>
+        <p class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener" style="color:var(--gold);">Source: GitHub REST API</a> — refreshed every 5 min</p>
+      </section>
+    </main>
+    <button id="scrollTopBtn" class="scroll-top" type="button" aria-label="Back to top">↑</button>
+  </div>
+</div>
+<script src="/shared.js"></script>
+<script src="/app-data.js"></script>
+<script src="/charts.js"></script>
+</body>
+</html>
