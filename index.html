@@ -25,29 +25,26 @@
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
 
     <style>
-      /* ── IMAGE GENERATOR ─────────────────── */
-      .image-gen-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
-      .image-gen-output{position:sticky;top:20px}
-      .gen-image-wrap{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;position:relative}
-      .gen-image-wrap img{width:100%;height:100%;object-fit:cover;border-radius:12px}
-      .gen-placeholder{color:var(--muted);text-align:center;padding:32px 20px}
-      .gen-placeholder-icon{font-size:52px;margin-bottom:14px;opacity:0.3;display:block}
-      .gen-style-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
-      .gen-style-btn{padding:8px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-weight:600;line-height:1.4}
-      .gen-style-btn.active,.gen-style-btn:hover{border-color:rgba(216,183,106,0.55);color:var(--gold-2);background:rgba(216,183,106,0.1)}
-      .gen-history{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
-      .gen-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:border-color 0.15s}
-      .gen-thumb:hover{border-color:var(--gold)}
-      .gen-thumb img{width:100%;height:100%;object-fit:cover}
-      .gen-loading-overlay{position:absolute;inset:0;background:rgba(7,6,5,0.78);display:none;place-items:center;border-radius:12px;z-index:2}
-      .gen-loading-overlay.visible{display:grid}
-      .gen-spinner{width:44px;height:44px;border:3px solid rgba(216,183,106,0.2);border-top-color:var(--gold);border-radius:50%;animation:genSpin 0.85s linear infinite}
+      /* ── IMAGE GENERATOR ─────── */
       @keyframes genSpin{to{transform:rotate(360deg)}}
-      .gen-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-      .gen-quick-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-      .gen-quick-btn{padding:5px 10px;border:1px solid var(--line);border-radius:99px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
-      .gen-quick-btn:hover{border-color:rgba(216,183,106,0.4);color:var(--gold)}
-      @media(max-width:820px){.image-gen-layout{grid-template-columns:1fr}.image-gen-output{position:static}}
+      #genSpinner{animation:genSpin 0.85s linear infinite}
+      .gen-style-btn{padding:7px 4px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-weight:600;line-height:1.3;width:100%;}
+      .gen-style-btn.active,.gen-style-btn:hover{border-color:rgba(216,183,106,0.55);color:var(--gold-2);background:rgba(216,183,106,0.1);}
+      .gen-quick-btn{padding:4px 9px;border:1px solid var(--line);border-radius:99px;background:var(--surface-2);color:var(--muted);font-size:10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+      .gen-quick-btn:hover{border-color:rgba(216,183,106,0.4);color:var(--gold);}
+      .gen-thumb{aspect-ratio:1;border-radius:7px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:border-color 0.15s;}
+      .gen-thumb:hover{border-color:var(--gold);}
+      .gen-thumb img{width:100%;height:100%;object-fit:cover;}
+      @media(max-width:760px){#imageGen .studio-controls+div{grid-template-columns:1fr;}}
+
+      /* ── SIDEBAR 2-COL NAV ───── */
+      .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+      .nav-group-grid a{padding:9px 8px;font-size:12px;}
+      .nav-group-grid .nav-ic{width:18px;font-size:12px;}
+      .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr;}
+
+      /* ── VIDEO FONT FIX ──────── */
+      /* force preview redraw on font change */
     </style>
   </head>
   <body>
@@ -73,16 +70,19 @@
         <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
-            <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
-            <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx" data-i18n="navPerformance">Live charts</span></a>
-            <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
+            <div class="nav-group-grid">
+              <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
+              <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx" data-i18n="navPerformance">Charts</span></a>
+              <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
+            </div>
           </div>
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
-            <a href="#imageGen"><span class="nav-ic">🎨</span><span class="nav-tx" id="navImageTx">Image AI</span></a>
-            <a href="#mediaCaption"><span class="nav-ic">✎</span><span class="nav-tx" data-i18n="navMedia">Caption AI</span></a>
-            <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video studio</span></a>
-            <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
+            <div class="nav-group-grid">
+              <a href="#imageGen"><span class="nav-ic">◈</span><span class="nav-tx" id="navImageTx">Image AI</span></a>
+              <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
+              <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompts</span></a>
+            </div>
           </div>
         </nav>
 
@@ -238,131 +238,99 @@
 
         <!-- ── IMAGE GENERATOR ──────────────────────────── -->
         <section id="imageGen" class="panel">
-          <div class="section-head">
+          <div class="section-head" style="margin-bottom:24px;">
             <div>
-              <p class="eyebrow">🎨 Free AI Image Generator — No Login</p>
-              <h2 id="imageGenTitle">Text to image in seconds</h2>
-              <p id="imageGenDesc">Describe what you want — get a stunning AI image free. 12 styles, instant download, no watermark, no account needed.</p>
+              <p class="eyebrow" style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:14px;">◈</span> AI Image Generator</p>
+              <h2 id="imageGenTitle" style="margin-bottom:8px;">Text to image in seconds</h2>
+              <p id="imageGenDesc" style="max-width:560px;">Describe what you want — get a stunning AI image free. 12 styles, instant download, no account.</p>
             </div>
           </div>
-          <div class="image-gen-layout">
-            <div class="studio-controls">
+
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;">
+
+            <!-- LEFT: Controls -->
+            <div style="display:grid;gap:14px;">
               <label>
-                <span id="imgPromptLbl">Describe your image</span>
-                <textarea id="imgPrompt" rows="4" placeholder="A futuristic city at sunset, neon lights reflecting on wet streets, cinematic wide angle, 8K…"></textarea>
+                <span id="imgPromptLbl" style="color:var(--muted);font-size:13px;font-weight:800;display:block;margin-bottom:8px;">Describe your image</span>
+                <textarea id="imgPrompt" rows="3" placeholder="A futuristic city at sunset, neon lights, cinematic 8K…" style="resize:vertical;"></textarea>
               </label>
-              <label>
-                <span id="imgStyleLbl">Style</span>
-                <div class="gen-style-grid" id="genStyleGrid"></div>
-              </label>
-              <label>
-                <span id="imgAspectLbl">Aspect ratio</span>
-                <select id="genAspect">
-                  <option value="1024x1024">1:1 Square (1024×1024)</option>
-                  <option value="1344x768">16:9 Landscape (1344×768)</option>
-                  <option value="768x1344">9:16 Portrait — Reels/TikTok (768×1344)</option>
-                  <option value="1216x832">3:2 Wide (1216×832)</option>
-                  <option value="832x1216">2:3 Tall (832×1216)</option>
-                </select>
-              </label>
-              <label>
-                <span id="imgNegLbl">Negative prompt (optional)</span>
-                <input id="genNeg" type="text" placeholder="blurry, watermark, text, low quality" />
-              </label>
-              <div style="display:flex;align-items:center;gap:10px;margin:4px 0;">
-                <input type="checkbox" id="genSafe" checked style="width:18px;height:18px;min-height:18px;padding:0;accent-color:var(--gold);flex-shrink:0;" />
-                <label for="genSafe" style="display:inline;color:var(--text);font-size:13px;font-weight:400;cursor:pointer;" id="genSafeLbl">Safe mode</label>
+
+              <div>
+                <span id="imgStyleLbl" style="color:var(--muted);font-size:13px;font-weight:800;display:block;margin-bottom:8px;">Style</span>
+                <div id="genStyleGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
               </div>
-              <button class="button primary ai-btn" id="genImageBtn" type="button" style="min-height:48px;font-size:15px;font-weight:800;">
-                <span class="ai-btn-icon">🎨</span>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <label>
+                  <span id="imgAspectLbl" style="color:var(--muted);font-size:13px;font-weight:800;">Ratio</span>
+                  <select id="genAspect">
+                    <option value="1024x1024">Square 1:1</option>
+                    <option value="1344x768">Wide 16:9</option>
+                    <option value="768x1344">Tall 9:16</option>
+                    <option value="1216x832">3:2</option>
+                  </select>
+                </label>
+                <label>
+                  <span id="imgNegLbl" style="color:var(--muted);font-size:13px;font-weight:800;">Negative</span>
+                  <input id="genNeg" type="text" placeholder="blurry, watermark…" />
+                </label>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="genSafe" checked style="width:16px;height:16px;min-height:16px;padding:0;accent-color:var(--gold);flex-shrink:0;"/>
+                <label for="genSafe" id="genSafeLbl" style="display:inline;color:var(--muted);font-size:12px;cursor:pointer;">Safe mode</label>
+              </div>
+
+              <button class="button primary ai-btn" id="genImageBtn" type="button" style="min-height:44px;">
+                <span class="ai-btn-icon">◈</span>
                 <span id="genImageBtnTxt">Generate image</span>
               </button>
-              <p id="genStatusTxt" style="font-size:13px;color:var(--muted);min-height:18px;margin:0;"></p>
+              <p id="genStatusTxt" style="font-size:12px;color:var(--muted);min-height:16px;margin:0;"></p>
+
               <div>
-                <p style="font-size:12px;color:var(--muted);margin:0 0 6px;" id="quickPromptsLbl">Quick prompts</p>
-                <div class="gen-quick-wrap" id="genQuickWrap"></div>
+                <p id="quickPromptsLbl" style="font-size:12px;color:var(--muted);margin:0 0 6px;">Quick prompts</p>
+                <div id="genQuickWrap" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+              </div>
+
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                <p style="margin:0;font-size:11px;color:var(--muted);">Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener" style="color:var(--gold);">Pollinations.ai</a> — free open infrastructure. No login, no watermark.</p>
               </div>
             </div>
-            <div class="image-gen-output">
-              <div class="gen-image-wrap" id="genImageWrap">
-                <div class="gen-placeholder" id="genPlaceholder">
-                  <span class="gen-placeholder-icon">🎨</span>
-                  <p style="margin:0;font-size:14px;" id="genPlaceholderTxt">Your image appears here</p>
-                  <p style="margin:6px 0 0;font-size:12px;color:var(--muted);">Free · No watermark · Instant download</p>
+
+            <!-- RIGHT: Output -->
+            <div style="display:grid;gap:12px;">
+              <div id="genImageWrap" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;position:relative;">
+                <div id="genPlaceholder" style="text-align:center;padding:24px;color:var(--muted);">
+                  <div style="font-size:36px;margin-bottom:10px;opacity:0.25;">◈</div>
+                  <p id="genPlaceholderTxt" style="margin:0;font-size:13px;">Your image appears here</p>
+                  <p style="margin:4px 0 0;font-size:11px;color:var(--muted);">Free · No watermark · Instant download</p>
                 </div>
-                <img id="genImage" src="" alt="Generated AI image" style="display:none;" />
-                <div class="gen-loading-overlay" id="genOverlay">
+                <img id="genImage" src="" alt="Generated AI image" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;" />
+                <div id="genOverlay" style="position:absolute;inset:0;background:rgba(7,6,5,0.75);display:none;place-items:center;border-radius:12px;z-index:2;">
                   <div style="text-align:center;">
-                    <div class="gen-spinner"></div>
-                    <p style="color:var(--gold-2);font-size:13px;margin-top:14px;" id="genProgressTxt">Generating…</p>
+                    <div id="genSpinner" style="width:40px;height:40px;border:3px solid rgba(216,183,106,0.2);border-top-color:var(--gold);border-radius:50%;margin:0 auto;"></div>
+                    <p id="genProgressTxt" style="color:var(--gold-2);font-size:12px;margin-top:12px;">Generating…</p>
                   </div>
                 </div>
               </div>
-              <div class="gen-actions" id="genActions" style="display:none;">
-                <a class="button primary" id="genDownloadBtn" download="airadar-image.jpg">↓ Download</a>
-                <button class="button ghost" id="genVariationBtn" type="button">🔀 Variation</button>
-                <button class="button ghost" id="genShareBtn" type="button">🔗 Copy link</button>
-                <button class="button ghost" id="genResetBtn" type="button">＋ New</button>
+
+              <div id="genActions" style="display:none;gap:8px;flex-wrap:wrap;">
+                <a class="button primary" id="genDownloadBtn" download="airadar-image.jpg" style="flex:1;min-width:100px;justify-content:center;">↓ Download</a>
+                <button class="button ghost" id="genVariationBtn" type="button">↺ Variation</button>
+                <button class="button ghost" id="genShareBtn" type="button">⎘ Copy link</button>
+                <button class="button ghost" id="genResetBtn" type="button">✕ New</button>
               </div>
-              <div id="genHistorySection" style="display:none;margin-top:16px;">
-                <p style="font-size:12px;color:var(--muted);margin-bottom:8px;" id="genHistoryLbl">Recent generations</p>
-                <div class="gen-history" id="genHistory"></div>
-              </div>
-              <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                <p style="margin:0;font-size:12px;color:var(--muted);">Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener" style="color:var(--gold);">Pollinations.ai</a> — free open AI image infrastructure. Images generated on demand, not stored. Free to download and use.</p>
+
+              <div id="genHistorySection" style="display:none;">
+                <p id="genHistoryLbl" style="font-size:11px;color:var(--muted);margin:0 0 6px;">Recent</p>
+                <div id="genHistory" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
               </div>
             </div>
+
           </div>
         </section>
         <!-- /IMAGE GENERATOR -->
 
-        <!-- CAPTION AI -->
-        <section id="mediaCaption" class="panel media-caption">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Caption AI — Instant caption studio</p>
-              <h2 data-i18n="mediaTitle">Upload an image → caption, hooks, hashtags &amp; image prompt</h2>
-              <p data-i18n="mediaText">Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.</p>
-            </div>
-          </div>
-          <div class="media-layout">
-            <div class="studio-controls">
-              <label class="upload-box">
-                <span data-i18n="mediaUploadLabel">Upload image or video</span>
-                <input id="mediaUpload" type="file" accept="image/*,video/*" />
-              </label>
-              <div class="control-grid">
-                <label><span data-i18n="mediaSubjectLabel">What's in the photo/video?</span><input id="mediaSubjectInput" type="text" placeholder="e.g. a cat on a windowsill" /></label>
-                <label><span data-i18n="mediaGoalLabel">Goal</span><input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" /></label>
-                <label><span data-i18n="platformLabel">Platform</span>
-                  <select id="platformSelect">
-                    <option>Instagram Reels</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option><option>X</option>
-                  </select>
-                </label>
-                <label><span data-i18n="toneLabel">Tone</span>
-                  <select id="toneSelect">
-                    <option>Luxury</option><option>Professional</option><option>Viral</option><option>Minimal</option><option>Educational</option>
-                  </select>
-                </label>
-              </div>
-              <button id="generateCaptionButton" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> Generate with Claude AI
-              </button>
-              <p class="ai-note">Type what's in your photo/video in the subject box — the caption, hooks and hashtags are built around exactly that. (A static site can't auto-detect image content.)</p>
-            </div>
-            <div class="media-output">
-              <div id="mediaPreview" class="media-preview">
-                <div class="preview-placeholder" data-i18n="mediaPlaceholder">Upload media to preview it here</div>
-              </div>
-              <div class="caption-actions">
-                <button id="copyCaptionButton" class="button ghost gold" type="button">Copy caption</button>
-                <button id="copyMediaJsonButton" class="button ghost" type="button">Copy JSON</button>
-              </div>
-              <pre id="captionOutput" class="ai-output"></pre>
-              <pre id="mediaJsonOutput" class="ai-output json-out"></pre>
-            </div>
-          </div>
-        </section>
 
         <!-- VIDEO TEMPLATE STUDIO -->
         <section id="videoStudio" class="panel video-studio">
@@ -1264,6 +1232,7 @@
         tx("quickPromptsLbl","Quick prompts","پرامپت‌های سریع");
         tx("genPlaceholderTxt","Your image appears here","تصویر اینجا ظاهر می‌شود");
         tx("navImageTx","Image AI","تصویر AI");
+        tx("heroPrimaryBtn","Create with AI","ساخت با AI");
         buildStyles();buildQuick();
       }
       function gen(seed){
@@ -1334,6 +1303,23 @@
       }
       document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init):init();
     })();
+    </script>
+
+    <script>
+    /* ── VIDEO FONT FIX: redraw preview on font change ── */
+    document.addEventListener("DOMContentLoaded", function() {
+      var fontSel = document.getElementById("vsHeadlineFont");
+      if (!fontSel) return;
+      fontSel.addEventListener("change", function() {
+        setTimeout(function() {
+          /* app.js exposes drawStudioFrame as a global */
+          if (typeof drawStudioFrame === "function") { drawStudioFrame(0); return; }
+          /* fallback: click the Preview button */
+          var btn = document.getElementById("vsPreviewBtn");
+          if (btn) btn.click();
+        }, 80);
+      });
+    });
     </script>
   </body>
 </html>
