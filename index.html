@@ -771,31 +771,42 @@
                 <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
               </div>
 
-              <!-- AE-style timeline strip -->
+              <!-- Hera-style scene timeline -->
               <div class="vs-timeline" id="vsTimeline">
                 <div class="vs-timeline-toolbar">
                   <button id="vsUndoBtn" class="vs-tool-btn" type="button" aria-label="Undo" title="Undo">↶</button>
                   <button id="vsRedoBtn" class="vs-tool-btn" type="button" aria-label="Redo" title="Redo">↷</button>
                   <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
-                  <span id="vsTimecode" class="vs-timecode">0.0s / 6.0s</span>
-                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag the playhead to scrub</span>
+                  <span id="vsTimecode" class="vs-timecode">0:00 / 0:00</span>
+                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag edges to resize · click to select</span>
                 </div>
-                <div class="vs-track-area" id="vsTrackArea">
+                <!-- Scene strip (Hera style) -->
+                <div class="vs-scene-strip" id="vsSceneStrip">
+                  <div class="vs-scene-scroll" id="vsSceneScroll">
+                    <div class="vs-scene-blocks" id="vsSceneBlocks"></div>
+                    <div class="vs-waveform-row" id="vsWaveformRow">
+                      <canvas class="vs-waveform-canvas" id="vsWaveformCanvas"></canvas>
+                    </div>
+                    <div class="vs-scene-playhead" id="vsScenePlayhead"></div>
+                  </div>
+                </div>
+                <!-- Legacy track area kept hidden for JS scrub logic -->
+                <div class="vs-track-area" id="vsTrackArea" style="display:none">
                   <div class="vs-tracks">
                     <div class="vs-track">
-                      <span class="vs-track-label" data-i18n="vTrackMedia">Media</span>
+                      <span class="vs-track-label">Media</span>
                       <div class="vs-track-lane"><div class="vs-clip vs-clip-media" id="vsClipMedia">Media</div></div>
                     </div>
                     <div class="vs-track">
-                      <span class="vs-track-label" data-i18n="vTrackText">Text</span>
+                      <span class="vs-track-label">Text</span>
                       <div class="vs-track-lane"><div class="vs-clip vs-clip-text" id="vsClipText">Text</div></div>
                     </div>
                     <div class="vs-track">
-                      <span class="vs-track-label" data-i18n="vTrackLogo">Logo</span>
+                      <span class="vs-track-label">Logo</span>
                       <div class="vs-track-lane"><div class="vs-clip vs-clip-logo" id="vsClipLogo">Logo</div></div>
                     </div>
                     <div class="vs-track">
-                      <span class="vs-track-label" data-i18n="vTrackMusic">Music</span>
+                      <span class="vs-track-label">Music</span>
                       <div class="vs-track-lane"><div class="vs-clip vs-clip-music" id="vsClipMusic">Music</div></div>
                     </div>
                   </div>
