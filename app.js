@@ -5013,9 +5013,15 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   const playing = vstudio.looping || vstudio.rendering;
   const slideRaw = playing ? Math.min(1, elapsed / 0.7) : 1;
   const slideEase = vsEasePro(slideRaw);
-  const e = slideEase;  // shorthand for entrance ease 0..1
+  const e = slideEase;
   const U = Math.min(W, H);
-  vstudio.newsBox = { x: 0, y: H * 0.6, w: W, h: H * 0.4 };
+
+  // Banner styles sit at bottom/top; cinematic styles fill the frame
+  const bannerStyles = ["ticker","fullbar","lowerthird","breaking","topbar","boxed","minimal"];
+  const isBanner = bannerStyles.includes(style);
+  vstudio.newsBox = isBanner
+    ? { x: 0, y: H * 0.55, w: W, h: H * 0.45 }
+    : { x: 0, y: 0, w: W, h: H }; // cinematic = whole frame is interactive
 
   // ── Wrap helper ────────────────────────────────────────────
   const wrap = (str, font, maxW, maxLines) => {
@@ -5034,7 +5040,22 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   };
   const mainTxt = headline || kicker;
 
-  ctx.save(); // ── outer save (restored at end of function)
+  ctx.save(); // ── outer save
+
+  // Apply drag offset + scale from vstudio (enables drag-to-reposition on canvas)
+  const ndx = vsOff.newsDX * W, ndy = vsOff.newsDY * H;
+  const nScale = vsOff.newsScale || 1;
+  if (ndx !== 0 || ndy !== 0 || nScale !== 1) {
+    const pivX = W / 2, pivY = H / 2;
+    ctx.translate(pivX + ndx, pivY + ndy);
+    ctx.scale(nScale, nScale);
+    ctx.translate(-pivX, -pivY);
+  }
+
+  // Clip everything to canvas bounds so text never bleeds outside
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
 
   // ══════════════════════════════════════════════════════════
   // BROADCAST BANNER STYLES — ticker, fullbar, lowerthird, breaking, topbar
@@ -5119,23 +5140,43 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     const barH3 = H * 0.1;
     const y3 = -barH3 + barH3 * slideEase;
     ctx.fillStyle = "rgba(8,8,10,0.94)"; ctx.fillRect(0, y3, W, barH3);
-    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3+barH3*0.9, W, barH3*0.08);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3 + barH3 * 0.92, W, barH3 * 0.08);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, y3, W, barH3); ctx.clip(); // clip to bar
     ctx.textBaseline = "middle";
     if (kicker) {
-      ctx.font = `800 ${Math.round(H*0.025)}px Inter, sans-serif`;
+      const kPx3 = Math.round(H * 0.025);
+      ctx.font = `800 ${kPx3}px Inter, sans-serif`;
       ctx.textAlign = "left";
-      const kW3 = ctx.measureText(kicker.toUpperCase()).width + W*0.04;
-      ctx.fillStyle = ac.bar; ctx.fillRect(W*0.03, y3+barH3*0.18, kW3, barH3*0.64);
-      ctx.fillStyle = ac.text; ctx.fillText(kicker.toUpperCase(), W*0.05, y3+barH3*0.5);
+      const kT3 = kicker.toUpperCase();
+      const kW3 = ctx.measureText(kT3).width + W * 0.04;
+      ctx.fillStyle = ac.bar;
+      roundRectPath(ctx, W*0.025, y3+barH3*0.18, kW3, barH3*0.64, barH3*0.12); ctx.fill();
+      ctx.fillStyle = ac.text || "#fff";
+      ctx.fillText(kT3, W*0.045, y3 + barH3 * 0.5);
+      // headline right of kicker — truncated to fit
+      const hlPx3 = Math.round(H * 0.032);
+      ctx.font = `600 ${hlPx3}px Prata, serif`;
       ctx.fillStyle = "#fff";
-      ctx.font = `600 ${Math.round(H*0.033)}px Prata, serif`;
-      ctx.fillText(headline.slice(0,72), W*0.04+kW3+W*0.01, y3+barH3*0.5);
+      const maxHlW = W - kW3 - W * 0.06;
+      let hlTxt = headline;
+      while (hlTxt.length > 4 && ctx.measureText(hlTxt).width > maxHlW) {
+        hlTxt = hlTxt.slice(0, -1);
+      }
+      if (hlTxt !== headline) hlTxt = hlTxt.trimEnd() + "…";
+      ctx.fillText(hlTxt, W * 0.04 + kW3, y3 + barH3 * 0.5);
     } else {
       ctx.textAlign = "center"; ctx.fillStyle = "#fff";
-      ctx.font = `600 ${Math.round(H*0.036)}px Prata, serif`;
-      ctx.fillText(headline.slice(0,70), W/2, y3+barH3*0.5);
+      ctx.font = `600 ${Math.round(H * 0.034)}px Prata, serif`;
+      let hlTxt2 = headline;
+      while (hlTxt2.length > 4 && ctx.measureText(hlTxt2).width > W * 0.9) {
+        hlTxt2 = hlTxt2.slice(0, -1);
+      }
+      if (hlTxt2 !== headline) hlTxt2 = hlTxt2.trimEnd() + "…";
+      ctx.fillText(hlTxt2, W / 2, y3 + barH3 * 0.5);
     }
     ctx.textBaseline = "alphabetic";
+    ctx.restore();
 
   } else if (style === "lowerthird" || style === "boxed" || style === "minimal") {
     // lower third — kicker tab + headline plate
@@ -5187,44 +5228,48 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     const left = style === "title-left";
     const cx = left ? W*0.09 : W/2;
     const align = left ? "left" : "center";
-    const maxW = W * (left ? 0.88 : 0.84);
-    const mainPx = Math.round(U * 0.088);
-    const lines = wrap(mainTxt, `800 ${mainPx}px Prata, serif`, maxW, 3);
-    const lineH = mainPx * 1.15, blockH = lines.length * lineH;
+    const maxW = W * (left ? 0.84 : 0.80);
+    // Auto-fit font so text always wraps cleanly — start at 7.5%, min 4%
+    let mainPx = Math.round(U * 0.075);
+    const minPx = Math.round(U * 0.04);
+    const testLines = (px) => wrap(mainTxt, `800 ${px}px Prata, serif`, maxW, 4);
+    // shrink until 4 lines max
+    while (mainPx > minPx && testLines(mainPx).length > 4) mainPx -= 2;
+    const lines = testLines(mainPx);
+    const lineH = mainPx * 1.18, blockH = lines.length * lineH;
     const top = H*0.48 - blockH/2;
     // scrim
-    const scrimG = ctx.createLinearGradient(0, top-U*0.1, 0, top+blockH+U*0.2);
-    scrimG.addColorStop(0,"rgba(0,0,0,0)"); scrimG.addColorStop(0.2,"rgba(0,0,0,0.65)");
-    scrimG.addColorStop(0.8,"rgba(0,0,0,0.65)"); scrimG.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle = scrimG; ctx.fillRect(0, top-U*0.1, W, blockH+U*0.3);
+    const scrimG = ctx.createLinearGradient(0, top-U*0.08, 0, top+blockH+U*0.18);
+    scrimG.addColorStop(0,"rgba(0,0,0,0)"); scrimG.addColorStop(0.15,"rgba(0,0,0,0.68)");
+    scrimG.addColorStop(0.85,"rgba(0,0,0,0.68)"); scrimG.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle = scrimG; ctx.fillRect(0, top-U*0.08, W, blockH+U*0.26);
     // kicker pill
     if (kicker && headline) {
-      const kPx = Math.round(U*0.024);
+      const kPx = Math.round(U*0.022);
       ctx.font = `700 ${kPx}px Inter, sans-serif`; ctx.textAlign = align;
       const kText = kicker.toUpperCase(), kW = ctx.measureText(kText).width;
-      const kx = left ? cx : cx-kW/2, ky = top-U*0.065;
+      const kx = left ? cx : cx-kW/2, ky = top-U*0.055;
       ctx.fillStyle = ac.bar;
-      roundRectPath(ctx, kx-U*0.018, ky-kPx*0.85, kW+U*0.036, kPx*1.7, kPx*0.85); ctx.fill();
+      roundRectPath(ctx, kx-U*0.015, ky-kPx*0.85, kW+U*0.03, kPx*1.7, kPx*0.85); ctx.fill();
       ctx.fillStyle = ac.text||"#fff"; ctx.fillText(kText, kx, ky);
     }
     // headline lines
-    ctx.textAlign = align; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U*0.03;
+    ctx.textAlign = align; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U*0.025;
     ctx.font = `800 ${mainPx}px Prata, serif`;
     lines.forEach((ln, li) => {
       const le = Math.max(0, Math.min(1, e*(lines.length+1)-li));
       const le3 = 1-Math.pow(1-le,3);
       ctx.globalAlpha = le3; ctx.fillStyle = "#fff";
-      ctx.fillText(ln, cx, top+li*lineH+lineH*0.82+(1-le3)*U*0.035);
+      ctx.fillText(ln, cx, top+li*lineH+lineH*0.82+(1-le3)*U*0.03);
     });
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    // accent underline
-    const lineY = top+blockH+U*0.038, lw = U*0.18*e;
+    const lineY = top+blockH+U*0.035, lw = U*0.16*e;
     ctx.fillStyle = ac.bar;
-    ctx.fillRect(left?cx:cx-lw/2, lineY, lw, U*0.007);
+    ctx.fillRect(left?cx:cx-lw/2, lineY, lw, U*0.006);
     if (source) {
-      ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.font = `500 ${Math.round(U*0.028)}px Inter, sans-serif`; ctx.textAlign = align;
-      ctx.fillText(source, cx, lineY+U*0.055);
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.font = `500 ${Math.round(U*0.026)}px Inter, sans-serif`; ctx.textAlign = align;
+      ctx.fillText(source, cx, lineY+U*0.05);
     }
 
   } else if (style === "bold-statement") {
