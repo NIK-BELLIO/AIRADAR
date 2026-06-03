@@ -4525,6 +4525,18 @@ function slideAtTime(elapsed) {
 
 function loadStudioMedia(file) {
   if (!file) return;
+
+  // If slides exist, redirect this upload to the active slide's footage
+  // instead of the global vstudio.mediaEl — so it doesn't bleed into
+  // every other slide.
+  if (vstudio.slides.length) {
+    addFootageToActiveSlide(file);
+    vsStatus(state.lang === "fa"
+      ? "فوتیج به اسلاید فعال اضافه شد."
+      : "Footage added to the active slide.");
+    return;
+  }
+
   if (vstudio.mediaUrl) URL.revokeObjectURL(vstudio.mediaUrl);
   vstudio.mediaUrl = URL.createObjectURL(file);
   vstudio.isVideo = file.type.startsWith("video/");
@@ -4963,20 +4975,17 @@ function vsHexA(hex, a) {
 // Draw a broadcast-style news banner over the footage.
 function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   vsOff = vsOff || vstudio;
-  const val = dsVal || vsVal;   // per-slide resolver, or global fallback
+  const val = dsVal || vsVal;
   const onVal = val("#vsNewsOn", false);
-  const on = onVal === true || onVal === "true" ||
-             ($("#vsNewsOn") && $("#vsNewsOn").checked && !dsVal);
-  // when reading from a slide's saved settings, onVal is a real boolean
   const isOn = (typeof onVal === "boolean") ? onVal
              : ($("#vsNewsOn") && $("#vsNewsOn").checked);
   if (!isOn) { vstudio.newsBox = null; return; }
-  const kicker = String(val("#vsNewsKicker", "") || "").trim();
-  const headline = String(val("#vsNewsHeadline", "") || "").trim();
-  const source = String(val("#vsNewsSource", "") || "").trim();
+  const kicker  = String(val("#vsNewsKicker",  "") || "").trim();
+  const headline = String(val("#vsNewsHeadline","") || "").trim();
+  const source   = String(val("#vsNewsSource",  "") || "").trim();
   if (!kicker && !headline && !source) { vstudio.newsBox = null; return; }
 
-  const style = val("#vsNewsStyle", "lowerthird");
+  const style    = val("#vsNewsStyle", "lowerthird");
   const accentKey = val("#vsNewsAccent", "red");
   const accents = {
     red:  { bar: "#c0202a", text: "#ffffff" },
@@ -4985,824 +4994,444 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     mono: { bar: "#1a1a1a", text: "#ffffff" }
   };
   const ac = accents[accentKey] || accents.red;
-
-  // entrance progress while playing; fully shown when preview is paused
-  // animate during BOTH live preview and export rendering
-  const slideRaw = (vstudio.looping || vstudio.rendering)
-    ? Math.min(1, elapsed / 0.7)
-    : 1;
+  const playing = vstudio.looping || vstudio.rendering;
+  const slideRaw = playing ? Math.min(1, elapsed / 0.7) : 1;
   const slideEase = vsEasePro(slideRaw);
+  const e = slideEase;  // shorthand for entrance ease 0..1
+  const U = Math.min(W, H);
+  vstudio.newsBox = { x: 0, y: H * 0.6, w: W, h: H * 0.4 };
 
-  // entrance progress — used by all style branches
-  const e = slideEase;
-
-  // chosen entrance motion preset
-  const newsMotion = val("#vsNewsMotion", "slide-up");
-  // `slide` keeps each style's built-in reveal; for non-slide-up presets
-  // we hold the style fully open and animate the whole banner instead.
-  const slide = (newsMotion === "slide-up" || newsMotion === "none")
-    ? (newsMotion === "none" ? 1 : slideEase)
-    : 1;
-  // whole-banner transform from the preset
-  let nMDX = 0, nMDY = 0, nMScale = 1, nMAlpha = 1;
-  switch (newsMotion) {
-    case "none":        break;
-    case "slide-up":    break;   // handled by `slide` inside each style
-    case "slide-left":  nMDX = -(1 - slideEase) * W * 0.4; break;
-    case "slide-right": nMDX = (1 - slideEase) * W * 0.4; break;
-    case "fade":        nMAlpha = slideEase; break;
-    case "pop":         nMScale = 0.7 + slideEase * 0.3;
-                        nMAlpha = slideEase; break;
-    case "vox":         nMScale = 0.86 + slideEase * 0.14;
-                        nMAlpha = slideEase; break;
-    default:            break;
-  }
-
-  // manual drag offset for the whole banner (per-slide)
-  const ndx = vsOff.newsDX * W, ndy = vsOff.newsDY * H;
-  // record an approximate hit-box (banner sits in the lower area)
-  vstudio.newsBox = {
-    x: ndx, y: H * 0.62 + ndy, w: W, h: H * 0.34
-  };
-
-  ctx.save();
-  ctx.globalAlpha = nMAlpha;
-  // motion transform pivots around the lower-centre; combine entrance
-  // motion scale with the user's manual resize scale.
-  const npivX = W / 2, npivY = H * 0.85;
-  const newsTotalScale = nMScale * (vsOff.newsScale || 1);
-  ctx.translate(npivX + ndx + nMDX, npivY + ndy + nMDY);
-  ctx.scale(newsTotalScale, newsTotalScale);
-  ctx.translate(-npivX, -npivY);
-  ctx.textBaseline = "alphabetic";
-
-  // ── TEXT-STYLE templates — headline/subtitle text, not a news bar ──
-  const textStyles = ["title-center", "title-left", "quote", "caption",
-    "statement", "split", "badge", "bold-statement"];
-  if (textStyles.includes(style)) {
-    const U = Math.min(W, H);
-    const mainTxt = headline || kicker;
-    const subTxt = source;
-    const reveal = slide;
-    // e already defined at function level (= slideEase cubic ease)
-    ctx.globalAlpha = e;
-
-    // wrap helper
-    const wrap = (str, font, maxW, maxLines) => {
-      ctx.font = font;
-      const words = String(str).split(/\s+/).filter(Boolean);
-      const out = []; let ln = "";
-      for (const w of words) {
-        const t = ln ? ln + " " + w : w;
-        if (ctx.measureText(t).width > maxW && ln) {
-          out.push(ln); ln = w;
-          if (out.length === maxLines) { ln = ""; break; }
-        } else ln = t;
-      }
-      if (ln && out.length < maxLines) out.push(ln);
-      return out;
-    };
-
-    if (style === "title-center" || style === "title-left") {
-      const left = style === "title-left";
-      const cx = left ? W * 0.09 : W / 2;
-      const align = left ? "left" : "center";
-      ctx.textAlign = align;
-      // BIGGER headline — 9% of frame
-      const maxW = W * (left ? 0.88 : 0.84);
-      const mainPx = Math.round(U * 0.088);
-      const mainFont = `800 ${mainPx}px Prata, serif`;
-      const lines = wrap(mainTxt, mainFont, maxW, 3);
-      const lineH = mainPx * 1.15;
-      const blockH = lines.length * lineH;
-      const top = H * 0.48 - blockH / 2;
-
-      // dark scrim behind text for readability
-      const scrimH = blockH + U * 0.22;
-      const scrimG = ctx.createLinearGradient(0, top - U * 0.1, 0, top + scrimH);
-      scrimG.addColorStop(0, "rgba(0,0,0,0)");
-      scrimG.addColorStop(0.2, "rgba(0,0,0,0.65)");
-      scrimG.addColorStop(0.8, "rgba(0,0,0,0.65)");
-      scrimG.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = scrimG;
-      ctx.fillRect(0, top - U * 0.1, W, scrimH);
-
-      // kicker eyebrow
-      if (kicker && headline) {
-        const kPx = Math.round(U * 0.024);
-        ctx.font = `700 ${kPx}px Inter, sans-serif`;
-        const kText = kicker.toUpperCase();
-        const kW = ctx.measureText(kText).width;
-        const kx = left ? cx : cx - kW / 2;
-        const ky = top - U * 0.065;
-        // accent pill
-        ctx.fillStyle = ac.bar;
-        roundRectPath(ctx, kx - U * 0.018, ky - kPx * 0.85, kW + U * 0.036, kPx * 1.7, kPx * 0.85);
-        ctx.fill();
-        ctx.fillStyle = ac.text || "#fff";
-        ctx.fillText(kText, kx, ky);
-      }
-
-      // headline lines — staggered rise
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.7)";
-      ctx.shadowBlur = U * 0.03;
-      ctx.font = mainFont;
-      lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
-        const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.globalAlpha = e * le3;
-        const yy = top + li * lineH + lineH * 0.82 + (1 - le3) * U * 0.035;
-        ctx.fillText(ln, cx, yy);
-      });
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = e;
-
-      // accent underline
-      const lineY = top + blockH + U * 0.038;
-      const lw = U * 0.18 * e;
-      ctx.fillStyle = ac.bar;
-      const ux = left ? cx : cx - lw / 2;
-      ctx.fillRect(ux, lineY, lw, U * 0.007);
-      ctx.globalAlpha = e * 0.45;
-      ctx.fillRect(ux + lw + U * 0.014, lineY + U * 0.002, U * 0.028, U * 0.003);
-      ctx.globalAlpha = e;
-      if (subTxt) {
-        ctx.fillStyle = "rgba(255,255,255,0.78)";
-        ctx.font = `500 ${Math.round(U * 0.028)}px Inter, sans-serif`;
-        ctx.fillText(subTxt, cx, lineY + U * 0.055);
-      }
-
-    } else if (style === "quote") {
-      ctx.textAlign = "center";
-      // dark scrim
-      ctx.fillStyle = "rgba(0,0,0,0.52)";
-      ctx.fillRect(0, H * 0.25, W, H * 0.5);
-      const maxW = W * 0.8;
-      const qPx = Math.round(U * 0.058);
-      const lines = wrap(mainTxt, `italic 600 ${qPx}px Prata, serif`, maxW, 4);
-      const lineH = qPx * 1.32;
-      // huge decorative quote mark
-      ctx.fillStyle = ac.bar;
-      ctx.globalAlpha = e * 0.9;
-      ctx.font = `900 ${Math.round(U * 0.16)}px Prata, serif`;
-      ctx.fillText("\u201C", W / 2, H * 0.35 - (1 - e) * U * 0.05);
-      ctx.globalAlpha = e;
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = U * 0.03;
-      let yy = H * 0.5 - (lines.length - 1) * lineH / 2;
-      ctx.font = `italic 600 ${qPx}px Prata, serif`;
-      lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
-        const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.globalAlpha = e * le3;
-        ctx.fillText(ln, W / 2, yy + (1 - le3) * U * 0.03); yy += lineH;
-      });
-      ctx.shadowBlur = 0; ctx.globalAlpha = e;
-      // closing quote
-      ctx.fillStyle = ac.bar; ctx.globalAlpha = e * 0.5;
-      ctx.font = `900 ${Math.round(U * 0.1)}px Prata, serif`;
-      ctx.fillText("\u201D", W / 2, yy - lineH * 0.3 + Math.round(U * 0.1));
-      ctx.globalAlpha = e;
-      if (subTxt) {
-        ctx.fillStyle = vsHexA(ac.bar, 0.9);
-        ctx.font = `600 ${Math.round(U * 0.026)}px Inter, sans-serif`;
-        ctx.fillText("— " + subTxt, W / 2, yy + U * 0.015);
-      }
-
-    } else if (style === "caption") {
-      // bold context card at bottom
-      const capPx = Math.round(U * 0.042);
-      ctx.textAlign = "center";
-      const lines = wrap(mainTxt, `700 ${capPx}px Inter, sans-serif`, W * 0.84, 3);
-      const lineH = capPx * 1.28;
-      const blockH2 = lines.length * lineH + U * 0.06;
-      const by = H * 0.88 - blockH2 + (1 - e) * U * 0.05;
-      const sc = ctx.createLinearGradient(0, by - U * 0.06, 0, H);
-      sc.addColorStop(0, "rgba(0,0,0,0)");
-      sc.addColorStop(0.3, "rgba(0,0,0,0.75)");
-      sc.addColorStop(1, "rgba(0,0,0,0.85)");
-      ctx.fillStyle = sc;
-      ctx.fillRect(0, by - U * 0.06, W, H - by + U * 0.06);
-      // accent bar at top of caption area
-      ctx.fillStyle = ac.bar;
-      ctx.fillRect(W * 0.42, by - U * 0.02, W * 0.16 * e, U * 0.005);
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
-      ctx.font = `700 ${capPx}px Inter, sans-serif`;
-      let yy = by + lineH * 0.75;
-      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
-      ctx.shadowBlur = 0;
-      if (subTxt) {
-        ctx.fillStyle = vsHexA(ac.bar, 0.85);
-        ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
-        ctx.fillText(subTxt, W / 2, yy + U * 0.01);
-      }
-
-    } else if (style === "statement" || style === "bold-statement") {
-      // full-frame cinematic bold statement — massive text, alternating color
-      ctx.textAlign = "center";
-      // dark scrim
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(0, 0, W, H);
-      const maxW2 = W * 0.9;
-      let px2 = Math.round(U * 0.1);
-      const minPx2 = Math.round(U * 0.05);
-      const countFit = (size) => {
-        ctx.font = `900 ${size}px Inter, sans-serif`;
-        const words = String(mainTxt).toUpperCase().split(/\s+/).filter(Boolean);
-        for (const w of words) if (ctx.measureText(w).width > maxW2) return false;
-        return true;
-      };
-      while (px2 > minPx2 && !countFit(px2)) px2 -= 2;
-      const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px Inter, sans-serif`, maxW2, 4);
-      const lineH = px2 * 1.05;
-      const totalH = lines.length * lineH;
-      const topY = H / 2 - totalH / 2;
-      lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1.5) - li));
-        const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.save();
-        ctx.globalAlpha = e * le3;
-        const sc2 = 0.88 + le3 * 0.12;
-        ctx.translate(W / 2, topY + li * lineH + lineH * 0.82);
-        ctx.scale(sc2, sc2);
-        // alternating: accent / white for emphasis
-        ctx.fillStyle = li % 2 === 1 ? ac.bar : "#ffffff";
-        ctx.shadowColor = li % 2 === 1 ? vsHexA(ac.bar, 0.6) : "rgba(0,0,0,0.5)";
-        ctx.shadowBlur = U * 0.04;
-        ctx.font = `900 ${px2}px Inter, sans-serif`;
-        ctx.fillText(ln, 0, 0);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      });
-      // source tag
-      if (subTxt || kicker) {
-        ctx.globalAlpha = e;
-        ctx.fillStyle = ac.bar;
-        const kPx = Math.round(U * 0.022);
-        ctx.font = `700 ${kPx}px Inter, sans-serif`;
-        ctx.fillText((kicker || subTxt).toUpperCase(), W / 2, topY + totalH + U * 0.06);
-      }
-
-    } else if (style === "split") {
-      // left accent panel with number/kicker + right large headline
-      const padL = W * 0.06;
-      const splitX = W * 0.38;
-      // dark bg
-      ctx.fillStyle = "rgba(0,0,0,0.58)";
-      ctx.fillRect(0, H * 0.28, W, H * 0.44);
-      // accent column
-      const colW = splitX - padL - W * 0.04;
-      ctx.fillStyle = vsHexA(ac.bar, 0.9);
-      roundRectPath(ctx, padL, H * 0.3, colW, H * 0.4, W * 0.015); ctx.fill();
-      if (kicker) {
-        const kPx = Math.round(U * 0.032);
-        ctx.font = `800 ${kPx}px Inter, sans-serif`;
-        ctx.fillStyle = ac.text || "#fff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        wrapNewsText(ctx, kicker.toUpperCase(), padL + colW * 0.5, H * 0.5, colW * 0.9, kPx * 1.3, 3);
-        ctx.textBaseline = "alphabetic";
-      }
-      // headline right
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "left";
-      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
-      const maxW3 = W - splitX - padL;
-      const px3 = Math.round(U * 0.065);
-      const lines = wrap(headline, `700 ${px3}px Prata, serif`, maxW3, 4);
-      const lineH = px3 * 1.18;
-      let yy = H * 0.5 - (lines.length * lineH) / 2;
-      ctx.font = `700 ${px3}px Prata, serif`;
-      lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
-        const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.globalAlpha = e * le3;
-        ctx.fillText(ln, splitX, yy + li * lineH + (1 - le3) * U * 0.03);
-      });
-      ctx.shadowBlur = 0; ctx.globalAlpha = e;
-
-    } else if (style === "badge") {
-      ctx.textAlign = "center";
-      // dark scrim
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(0, H * 0.3, W, H * 0.4);
-      if (kicker) {
-        const kPx = Math.round(U * 0.026);
-        ctx.font = `700 ${kPx}px Inter, sans-serif`;
-        const kT = kicker.toUpperCase();
-        const kw = ctx.measureText(kT).width + U * 0.07;
-        const bx = W / 2 - kw / 2, byy = H * 0.39 - kPx * 1.6;
-        ctx.fillStyle = ac.bar;
-        roundRectPath(ctx, bx, byy, kw, kPx * 2.4, kPx * 1.2); ctx.fill();
-        ctx.fillStyle = ac.text || "#fff";
-        ctx.textBaseline = "middle";
-        ctx.fillText(kT, W / 2, byy + kPx * 1.2);
-        ctx.textBaseline = "alphabetic";
-      }
-      ctx.fillStyle = "#ffffff";
-      const px4 = Math.round(U * 0.072);
-      const lines = wrap(headline, `700 ${px4}px Prata, serif`, W * 0.84, 3);
-      const lineH = px4 * 1.18;
-      let yy = H * 0.47;
-      ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = U * 0.025;
-      ctx.font = `700 ${px4}px Prata, serif`;
-      lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
-        const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.globalAlpha = e * le3;
-        ctx.fillText(ln, W / 2, yy + li * lineH);
-      });
-      ctx.shadowBlur = 0; ctx.globalAlpha = e;
-      ctx.fillStyle = ac.bar;
-      ctx.fillRect(W / 2 - U * 0.08, yy + lines.length * lineH - lineH * 0.2, U * 0.16 * e, U * 0.006);
+  // ── Wrap helper ────────────────────────────────────────────
+  const wrap = (str, font, maxW, maxLines) => {
+    ctx.font = font;
+    const words = String(str).split(/\s+/).filter(Boolean);
+    const out = []; let ln = "";
+    for (const w of words) {
+      const t = ln ? ln + " " + w : w;
+      if (ctx.measureText(t).width > maxW && ln) {
+        out.push(ln); ln = w;
+        if (out.length === maxLines) { ln = ""; break; }
+      } else ln = t;
     }
-    ctx.restore();
-    ctx.restore();
-    return;
-  }
+    if (ln && out.length < maxLines) out.push(ln);
+    return out;
+  };
+  const mainTxt = headline || kicker;
 
+  ctx.save(); // ── outer save (restored at end of function)
+
+  // ══════════════════════════════════════════════════════════
+  // BROADCAST BANNER STYLES — ticker, fullbar, lowerthird, breaking, topbar
+  // ══════════════════════════════════════════════════════════
   if (style === "ticker") {
-    // thin scrolling ticker strip at the very bottom
     const barH = H * 0.072;
-    const y = H - barH * slide;
-    ctx.fillStyle = "rgba(8,8,10,0.92)";
-    ctx.fillRect(0, y, W, barH);
+    const y = H - barH * slideEase;
+    ctx.fillStyle = "rgba(8,8,10,0.94)"; ctx.fillRect(0, y, W, barH);
     ctx.fillStyle = ac.bar;
-    const tagW = W * 0.13;
+    const tagW = W * 0.14;
     ctx.fillRect(0, y, tagW, barH);
     ctx.fillStyle = ac.text;
-    const tkText = (kicker || "LIVE").toUpperCase();
-    vsFitFont(ctx, tkText, tagW - W * 0.02, "700", "Inter, sans-serif",
-      Math.round(H * 0.026), Math.round(H * 0.014));
+    vsFitFont(ctx, (kicker || "LIVE").toUpperCase(), tagW - W*0.02, "700", "Inter, sans-serif",
+      Math.round(H*0.026), Math.round(H*0.014));
     ctx.textAlign = "center";
-    ctx.fillText(tkText, tagW / 2, y + barH * 0.62);
-    // scrolling headline
+    ctx.fillText((kicker || "LIVE").toUpperCase(), tagW/2, y + barH*0.62);
     ctx.fillStyle = "#fff";
-    ctx.font = `500 ${Math.round(H * 0.03)}px Inter, sans-serif`;
+    ctx.font = `500 ${Math.round(H*0.03)}px Inter, sans-serif`;
     ctx.textAlign = "left";
     const txt = headline + (source ? "    •    " + source : "");
     const tw = ctx.measureText(txt).width || 1;
     const scrollX = W - ((elapsed * W * 0.12) % (tw + W));
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(tagW, y, W - tagW, barH);
-    ctx.clip();
-    ctx.fillText(txt, scrollX, y + barH * 0.62);
-    ctx.fillText(txt, scrollX + tw + W * 0.5, y + barH * 0.62);
+    ctx.save(); ctx.beginPath(); ctx.rect(tagW, y, W-tagW, barH); ctx.clip();
+    ctx.fillText(txt, scrollX, y + barH*0.62);
+    ctx.fillText(txt, scrollX + tw + W*0.5, y + barH*0.62);
     ctx.restore();
+
   } else if (style === "fullbar") {
-    // a full-width lower bar with kicker tab + headline + source row
     const barH = H * 0.2;
-    const y = H - barH * slide;
-    ctx.fillStyle = "rgba(10,10,12,0.9)";
-    ctx.fillRect(0, y, W, barH);
-    ctx.fillStyle = ac.bar;
-    ctx.fillRect(0, y, W, H * 0.01);
+    const y = H - barH * slideEase;
+    ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(0, y, W, barH);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y, W, H*0.01);
     if (kicker) {
       const kText = kicker.toUpperCase();
-      const kMaxW = W * 0.34;
-      const kPx = vsFitFont(ctx, kText, kMaxW, "700", "Inter, sans-serif",
-        Math.round(H * 0.028), Math.round(H * 0.015));
-      const kPad = W * 0.022;
-      const kw = ctx.measureText(kText).width + kPad * 2;
-      const kh = H * 0.05;
-      const ky = y + barH * 0.16;
-      ctx.fillStyle = ac.bar;
-      ctx.fillRect(W * 0.06, ky, kw, kh);
-      ctx.fillStyle = ac.text;
-      ctx.font = `700 ${kPx}px Inter, sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(kText, W * 0.06 + kPad, ky + kh / 2);
-      ctx.textBaseline = "alphabetic";
+      const kPx = vsFitFont(ctx, kText, W*0.3, "700", "Inter, sans-serif", Math.round(H*0.028), Math.round(H*0.015));
+      const kPad = W*0.022, kTextW = ctx.measureText(kText).width;
+      const kw = kTextW + kPad*2, kh = H*0.05, ky = y + barH*0.16;
+      ctx.fillStyle = ac.bar; ctx.fillRect(W*0.06, ky, kw, kh);
+      ctx.fillStyle = ac.text; ctx.font = `700 ${kPx}px Inter, sans-serif`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(kText, W*0.06+kPad, ky+kh/2); ctx.textBaseline = "alphabetic";
     }
-    ctx.fillStyle = "#fff";
-    ctx.font = `700 ${Math.round(H * 0.05)}px Prata, serif`;
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${Math.round(H*0.05)}px Prata, serif`;
     ctx.textAlign = "left";
-    wrapNewsText(ctx, headline, W * 0.06, y + barH * 0.56, W * 0.88, H * 0.058, 2);
+    wrapNewsText(ctx, headline, W*0.06, y+barH*0.56, W*0.88, H*0.058, 2);
     if (source) {
       ctx.fillStyle = "rgba(210,210,215,0.85)";
-      ctx.font = `400 ${Math.round(H * 0.024)}px Inter, sans-serif`;
-      ctx.fillText(source, W * 0.06, y + barH * 0.9);
+      ctx.font = `400 ${Math.round(H*0.024)}px Inter, sans-serif`;
+      ctx.fillText(source, W*0.06, y+barH*0.9);
     }
-  } else {
-    // lower third — kicker tab above a headline plate that sizes to its text.
-    // The plate is laid out at a FIXED position; the slide-in is applied as
-    // a transform so the text layout never depends on the animation.
-    const x = W * 0.06;
-    const plateW = W * 0.78;
-    const padX = W * 0.03;
-    const textW = plateW - padX * 2;
-    // Auto-fit the headline: start at a comfortable size and shrink the
-    // font until the whole headline fits within maxLines — so LONG text
-    // is never truncated, it just uses a slightly smaller size.
-    const maxLines = 5;
-    let hlSize = Math.round(H * 0.038);
-    const minHl = Math.round(H * 0.022);
-    const countLines = (px) => {
-      ctx.font = `700 ${px}px Prata, serif`;
-      const words = headline.split(/\s+/);
-      let line = "", n = 0;
-      for (const w of words) {
-        const test = line ? line + " " + w : w;
-        if (ctx.measureText(test).width > textW && line) { n++; line = w; }
-        else line = test;
-      }
-      if (line) n++;
-      return Math.max(1, n);
-    };
-    while (hlSize > minHl && countLines(hlSize) > maxLines) hlSize -= 1;
-    ctx.font = `700 ${hlSize}px Prata, serif`;
-    const lineH = hlSize * 1.25;
-    const lineCount = Math.min(maxLines, countLines(hlSize));
-    const srcH = source ? H * 0.04 : 0;
-    const plateH = lineH * lineCount + H * 0.05 + srcH;
-    const plateY = H * 0.86 - plateH;   // anchor near the bottom
 
-    // slide-in as a transform — the whole banner moves, text stays laid out
-    ctx.save();
-    ctx.translate(-W * 0.66 * (1 - slide), 0);
-
-    if (kicker) {
-      const kText = kicker.toUpperCase();
-      // shrink the kicker text so it always fits a sane tab width
-      const kMaxW = W * 0.5;
-      const kPx = vsFitFont(ctx, kText, kMaxW, "700", "Inter, sans-serif",
-        Math.round(H * 0.028), Math.round(H * 0.015));
-      // size the red tab to the (already-fitted) text plus even padding
-      const kPad = W * 0.022;
-      const kTextW = ctx.measureText(kText).width;
-      const kw = kTextW + kPad * 2;
-      const kh = H * 0.05;
-      ctx.fillStyle = ac.bar;
-      ctx.fillRect(x, plateY - kh, kw, kh);
-      ctx.fillStyle = ac.text;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.font = `700 ${kPx}px Inter, sans-serif`;
-      ctx.fillText(kText, x + kPad, plateY - kh / 2);
-      ctx.textBaseline = "alphabetic";
-    }
-    // headline plate (height fits the text)
-    ctx.fillStyle = "rgba(10,10,12,0.9)";
-    ctx.fillRect(x, plateY, plateW, plateH);
-    ctx.fillStyle = ac.bar;
-    ctx.fillRect(x, plateY, H * 0.008, plateH);
-    ctx.fillStyle = "#fff";
-    ctx.font = `700 ${hlSize}px Prata, serif`;
-    ctx.textAlign = "left";
-    const lines = wrapNewsText(ctx, headline, x + padX,
-      plateY + H * 0.03 + hlSize * 0.8, textW, lineH, maxLines);
-    if (source) {
-      ctx.fillStyle = "rgba(210,210,215,0.85)";
-      ctx.font = `400 ${Math.round(H * 0.022)}px Inter, sans-serif`;
-      const srcY = plateY + H * 0.03 + hlSize * 0.8
-                 + lines * lineH + H * 0.012;
-      ctx.fillText(source, x + padX, srcY);
-    }
-    ctx.restore();   // end slide-in transform
-  }
-
-  // ── NEW BROADCAST & GRAPHIC STYLES ───────────────────────
-  if (style === "breaking") {
-    // Breaking news — red flashing bar with BREAKING tag + scrolling headline
+  } else if (style === "breaking") {
     const barH2 = H * 0.12;
     const y2 = H - barH2 * slideEase;
-    ctx.fillStyle = "rgba(0,0,0,0.92)"; ctx.fillRect(0, y2, W, barH2);
-    // animated red left band
-    const blinkAlpha = 0.7 + 0.3 * Math.abs(Math.sin(elapsed * 3));
+    ctx.fillStyle = "rgba(0,0,0,0.94)"; ctx.fillRect(0, y2, W, barH2);
+    const blinkAlpha = 0.75 + 0.25 * Math.abs(Math.sin(elapsed * 3));
     ctx.fillStyle = `rgba(192,10,26,${blinkAlpha})`;
-    const tagW2 = W * 0.22;
+    const tagW2 = W * 0.21;
     ctx.fillRect(0, y2, tagW2, barH2);
-    // BREAKING text
+    // flash accent stripe
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(tagW2, y2, W*0.003, barH2);
     ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    vsFitFont(ctx, "BREAKING", tagW2 * 0.85, "900", "Inter, sans-serif",
-      Math.round(H * 0.032), Math.round(H * 0.018));
-    ctx.fillText("BREAKING", tagW2 / 2, y2 + barH2 * 0.38);
+    vsFitFont(ctx, "BREAKING", tagW2*0.82, "900", "Inter, sans-serif", Math.round(H*0.03), Math.round(H*0.016));
+    ctx.fillText("BREAKING", tagW2/2, y2 + barH2*0.37);
     if (kicker) {
-      ctx.font = `700 ${Math.round(H * 0.018)}px Inter, sans-serif`;
-      ctx.fillText(kicker.toUpperCase(), tagW2 / 2, y2 + barH2 * 0.72);
+      ctx.font = `600 ${Math.round(H*0.017)}px Inter, sans-serif`;
+      ctx.fillText(kicker.toUpperCase(), tagW2/2, y2 + barH2*0.72);
     }
-    // scrolling headline right side
-    const hlPx2 = Math.round(H * 0.034);
-    ctx.font = `700 ${hlPx2}px Prata, serif`;
-    ctx.textAlign = "left";
-    const txt2 = headline + (source ? "   ●   " + source : "");
-    const tw2 = ctx.measureText(txt2).width;
-    const scrollX2 = W - ((elapsed * W * 0.1) % (tw2 + W - tagW2));
-    ctx.save();
-    ctx.beginPath(); ctx.rect(tagW2 + W * 0.01, y2, W - tagW2 - W * 0.01, barH2); ctx.clip();
+    ctx.font = `700 ${Math.round(H*0.035)}px Prata, serif`;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    const bTxt = headline + (source ? "   ●   " + source : "");
+    const bTw = ctx.measureText(bTxt).width;
+    const bScrollX = tagW2 + W*0.01 + W*0.88 - ((elapsed * W*0.1) % (bTw + W*0.88));
+    ctx.save(); ctx.beginPath(); ctx.rect(tagW2+W*0.01, y2, W-tagW2-W*0.01, barH2); ctx.clip();
     ctx.fillStyle = "#fff";
-    ctx.fillText(txt2, scrollX2, y2 + barH2 * 0.58);
-    ctx.fillText(txt2, scrollX2 + tw2 + W * 0.6, y2 + barH2 * 0.58);
+    ctx.fillText(bTxt, bScrollX, y2 + barH2*0.62);
+    ctx.fillText(bTxt, bScrollX + bTw + W*0.5, y2 + barH2*0.62);
     ctx.restore(); ctx.textBaseline = "alphabetic";
 
   } else if (style === "topbar") {
-    // Top news bar — headline at top of frame
     const barH3 = H * 0.1;
     const y3 = -barH3 + barH3 * slideEase;
-    ctx.fillStyle = "rgba(8,8,10,0.92)"; ctx.fillRect(0, y3, W, barH3);
-    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3 + barH3 * 0.9, W, barH3 * 0.08);
+    ctx.fillStyle = "rgba(8,8,10,0.94)"; ctx.fillRect(0, y3, W, barH3);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3+barH3*0.9, W, barH3*0.08);
+    ctx.textBaseline = "middle";
     if (kicker) {
-      const kPx3 = Math.round(H * 0.025);
-      ctx.font = `800 ${kPx3}px Inter, sans-serif`;
-      ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const kW3 = ctx.measureText(kicker.toUpperCase()).width + W * 0.03;
-      ctx.fillStyle = ac.bar; ctx.fillRect(W * 0.03, y3 + barH3 * 0.2, kW3, kPx3 * 1.8);
-      ctx.fillStyle = ac.text || "#fff";
-      ctx.fillText(kicker.toUpperCase(), W * 0.045, y3 + barH3 * 0.52);
-      ctx.textBaseline = "alphabetic";
-      const hlPx3 = Math.round(H * 0.035);
-      ctx.font = `700 ${hlPx3}px Prata, serif`;
+      ctx.font = `800 ${Math.round(H*0.025)}px Inter, sans-serif`;
+      ctx.textAlign = "left";
+      const kW3 = ctx.measureText(kicker.toUpperCase()).width + W*0.04;
+      ctx.fillStyle = ac.bar; ctx.fillRect(W*0.03, y3+barH3*0.18, kW3, barH3*0.64);
+      ctx.fillStyle = ac.text; ctx.fillText(kicker.toUpperCase(), W*0.05, y3+barH3*0.5);
       ctx.fillStyle = "#fff";
-      ctx.fillText(headline.slice(0, 80), W * 0.04 + kW3 + W * 0.01, y3 + barH3 * 0.58);
+      ctx.font = `600 ${Math.round(H*0.033)}px Prata, serif`;
+      ctx.fillText(headline.slice(0,72), W*0.04+kW3+W*0.01, y3+barH3*0.5);
     } else {
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "#fff";
-      ctx.font = `700 ${Math.round(H * 0.038)}px Prata, serif`;
-      ctx.fillText(headline.slice(0, 70), W / 2, y3 + barH3 * 0.52);
-      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff";
+      ctx.font = `600 ${Math.round(H*0.036)}px Prata, serif`;
+      ctx.fillText(headline.slice(0,70), W/2, y3+barH3*0.5);
     }
+    ctx.textBaseline = "alphabetic";
 
-  } else if (style === "kinetic") {
-    // Kinetic typography — each word drops in with stagger
-    const U3 = Math.min(W, H);
-    ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0, H * 0.2, W, H * 0.6);
-    ctx.fillStyle = ac.bar;
-    ctx.fillRect(W * 0.08, H * 0.55, W * 0.84 * slideEase, U3 * 0.005);
-    const words = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    const wPx = Math.round(Math.min(U3 * 0.072, W / Math.max(words.length, 1) * 0.85));
-    const totalW = words.reduce((s2, w2) => {
-      ctx.font = `800 ${wPx}px Inter, sans-serif`; return s2 + ctx.measureText(w2).width + wPx * 0.2;
-    }, 0);
-    let wx = W / 2 - totalW / 2;
-    ctx.font = `800 ${wPx}px Inter, sans-serif`;
-    words.forEach((w2, wi) => {
-      const wr = playing ? Math.min(1, Math.max(0, (elapsed * (words.length + 1) - wi) / 0.7)) : 1;
-      const we = 1 - Math.pow(1 - wr, 3);
-      ctx.save();
-      ctx.globalAlpha = e * we;
-      ctx.fillStyle = wi % 3 === 0 ? ac.bar : "#ffffff";
-      ctx.shadowColor = wi % 3 === 0 ? vsHexA(ac.bar, 0.5) : "rgba(0,0,0,0.4)";
-      ctx.shadowBlur = U3 * 0.02;
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(w2, wx, H * 0.52 + (1 - we) * U3 * 0.05);
-      ctx.restore();
-      const ww = ctx.measureText(w2).width;
-      wx += ww + wPx * 0.2;
-    });
+  } else if (style === "lowerthird" || style === "boxed" || style === "minimal") {
+    // lower third — kicker tab + headline plate
+    const x = W * 0.06, plateW = W * 0.78, padX = W * 0.03, textW = plateW - padX*2;
+    const maxLines = 4;
+    let hlSize = Math.round(H * 0.038), minHl = Math.round(H * 0.022);
+    const countLines = (px2) => {
+      ctx.font = `700 ${px2}px Prata, serif`;
+      const words2 = headline.split(/\s+/);
+      let line2 = "", n = 0;
+      for (const w of words2) {
+        const test = line2 ? line2+" "+w : w;
+        if (ctx.measureText(test).width > textW && line2) { n++; line2 = w; } else line2 = test;
+      }
+      if (line2) n++; return Math.max(1, n);
+    };
+    while (hlSize > minHl && countLines(hlSize) > maxLines) hlSize--;
+    const lineH = hlSize * 1.25, lineCount = Math.min(maxLines, countLines(hlSize));
+    const srcH = source ? H*0.04 : 0, plateH = lineH*lineCount + H*0.05 + srcH;
+    const plateY = H*0.86 - plateH;
+    const slideX = -W*0.66*(1-slideEase);
+    ctx.save(); ctx.translate(slideX, 0);
+    if (kicker) {
+      const kText = kicker.toUpperCase();
+      const kPx2 = vsFitFont(ctx, kText, W*0.5, "700","Inter, sans-serif",Math.round(H*0.028),Math.round(H*0.015));
+      const kPad2 = W*0.022, kTextW2 = ctx.measureText(kText).width;
+      const kw2 = kTextW2+kPad2*2, kh2 = H*0.05;
+      ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY-kh2, kw2, kh2);
+      ctx.fillStyle = ac.text; ctx.textAlign="left"; ctx.textBaseline="middle";
+      ctx.font = `700 ${kPx2}px Inter, sans-serif`;
+      ctx.fillText(kText, x+kPad2, plateY-kh2/2); ctx.textBaseline="alphabetic";
+    }
+    ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(x, plateY, plateW, plateH);
+    ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY, H*0.008, plateH);
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${hlSize}px Prata, serif`; ctx.textAlign = "left";
+    const linesDrawn = wrapNewsText(ctx, headline, x+padX, plateY+H*0.03+hlSize*0.8, textW, lineH, maxLines);
     if (source) {
-      ctx.globalAlpha = e;
-      ctx.fillStyle = vsHexA(ac.bar, 0.85); ctx.textAlign = "center";
-      ctx.font = `600 ${Math.round(U3 * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(source, W / 2, H * 0.62);
+      ctx.fillStyle = "rgba(210,210,215,0.85)";
+      ctx.font = `400 ${Math.round(H*0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, x+padX, plateY+H*0.03+hlSize*0.8+linesDrawn*lineH+H*0.012);
+    }
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // CINEMATIC TEXT STYLES — full-frame, each independent
+  // ══════════════════════════════════════════════════════════
+  else if (style === "title-center" || style === "title-left") {
+    const left = style === "title-left";
+    const cx = left ? W*0.09 : W/2;
+    const align = left ? "left" : "center";
+    const maxW = W * (left ? 0.88 : 0.84);
+    const mainPx = Math.round(U * 0.088);
+    const lines = wrap(mainTxt, `800 ${mainPx}px Prata, serif`, maxW, 3);
+    const lineH = mainPx * 1.15, blockH = lines.length * lineH;
+    const top = H*0.48 - blockH/2;
+    // scrim
+    const scrimG = ctx.createLinearGradient(0, top-U*0.1, 0, top+blockH+U*0.2);
+    scrimG.addColorStop(0,"rgba(0,0,0,0)"); scrimG.addColorStop(0.2,"rgba(0,0,0,0.65)");
+    scrimG.addColorStop(0.8,"rgba(0,0,0,0.65)"); scrimG.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle = scrimG; ctx.fillRect(0, top-U*0.1, W, blockH+U*0.3);
+    // kicker pill
+    if (kicker && headline) {
+      const kPx = Math.round(U*0.024);
+      ctx.font = `700 ${kPx}px Inter, sans-serif`; ctx.textAlign = align;
+      const kText = kicker.toUpperCase(), kW = ctx.measureText(kText).width;
+      const kx = left ? cx : cx-kW/2, ky = top-U*0.065;
+      ctx.fillStyle = ac.bar;
+      roundRectPath(ctx, kx-U*0.018, ky-kPx*0.85, kW+U*0.036, kPx*1.7, kPx*0.85); ctx.fill();
+      ctx.fillStyle = ac.text||"#fff"; ctx.fillText(kText, kx, ky);
+    }
+    // headline lines
+    ctx.textAlign = align; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U*0.03;
+    ctx.font = `800 ${mainPx}px Prata, serif`;
+    lines.forEach((ln, li) => {
+      const le = Math.max(0, Math.min(1, e*(lines.length+1)-li));
+      const le3 = 1-Math.pow(1-le,3);
+      ctx.globalAlpha = le3; ctx.fillStyle = "#fff";
+      ctx.fillText(ln, cx, top+li*lineH+lineH*0.82+(1-le3)*U*0.035);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    // accent underline
+    const lineY = top+blockH+U*0.038, lw = U*0.18*e;
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(left?cx:cx-lw/2, lineY, lw, U*0.007);
+    if (source) {
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.font = `500 ${Math.round(U*0.028)}px Inter, sans-serif`; ctx.textAlign = align;
+      ctx.fillText(source, cx, lineY+U*0.055);
     }
 
-  } else if (style === "reveal-words") {
-    // Words reveal one at a time, centered
-    const U4 = Math.min(W, H);
-    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, H * 0.24, W, H * 0.52);
-    const words2 = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    const rPx = Math.round(Math.min(U4 * 0.082, W / Math.max(words2.length, 1) * 0.9));
-    const wordRevealDur = 0.45;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = `700 ${rPx}px Prata, serif`;
-    const totalW2 = words2.reduce((s2, w2) => s2 + ctx.measureText(w2).width + rPx * 0.22, 0);
-    let rwx = W / 2 - totalW2 / 2;
-    words2.forEach((w2, wi) => {
-      const wr = playing ? Math.min(1, Math.max(0, (elapsed - wi * wordRevealDur) / wordRevealDur)) : 1;
-      const we = 1 - Math.pow(1 - Math.min(1, wr), 3);
-      const ww = ctx.measureText(w2).width;
-      ctx.save();
-      ctx.globalAlpha = e * we;
-      ctx.fillStyle = "#fff";
-      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U4 * 0.02;
-      ctx.fillText(w2, rwx + ww / 2, H / 2 + (1 - we) * U4 * 0.04);
-      // accent underline per word
-      ctx.fillStyle = ac.bar; ctx.shadowBlur = 0;
-      ctx.fillRect(rwx, H / 2 + rPx * 0.55, ww * we, U4 * 0.005);
-      ctx.restore();
-      rwx += ww + rPx * 0.22;
+  } else if (style === "bold-statement") {
+    ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fillRect(0,0,W,H);
+    let px2 = Math.round(U*0.1), minPx2 = Math.round(U*0.05);
+    const cntFit = (sz) => {
+      ctx.font = `900 ${sz}px Inter, sans-serif`;
+      return String(mainTxt).toUpperCase().split(/\s+/).every(w2=>ctx.measureText(w2).width<=W*0.9);
+    };
+    while (px2>minPx2 && !cntFit(px2)) px2-=2;
+    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px Inter, sans-serif`, W*0.9, 4);
+    const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
+    lines.forEach((ln, li) => {
+      const le = Math.max(0,Math.min(1,e*(lines.length+1.5)-li)), le3=1-Math.pow(1-le,3);
+      ctx.save(); ctx.globalAlpha=le3;
+      ctx.translate(W/2, topY+li*lH+lH*0.82); ctx.scale(0.88+le3*0.12, 0.88+le3*0.12);
+      ctx.fillStyle = li%2===1 ? ac.bar : "#ffffff";
+      ctx.shadowColor = li%2===1 ? ac.bar : "rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.04;
+      ctx.font=`900 ${px2}px Inter, sans-serif`; ctx.textAlign="center";
+      ctx.fillText(ln,0,0); ctx.shadowBlur=0; ctx.restore();
     });
+    if (source||kicker) {
+      ctx.fillStyle=ac.bar; ctx.textAlign="center"; ctx.globalAlpha=e;
+      ctx.font=`700 ${Math.round(U*0.022)}px Inter, sans-serif`;
+      ctx.fillText((kicker||source).toUpperCase(), W/2, topY+lines.length*lH+U*0.06);
+    }
+
+  } else if (style === "quote") {
+    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.22,W,H*0.56);
+    const qPx = Math.round(U*0.058);
+    const lines = wrap(mainTxt, `italic 600 ${qPx}px Prata, serif`, W*0.78, 4);
+    const lH = qPx*1.32, qTop=H/2-(lines.length*lH)/2;
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.9;
+    ctx.font=`900 ${Math.round(U*0.15)}px Prata, serif`; ctx.textAlign="center";
+    ctx.fillText("\u201C",W/2,qTop-U*0.02);
+    ctx.globalAlpha=e; ctx.shadowColor="rgba(0,0,0,0.6)"; ctx.shadowBlur=U*0.03;
+    lines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
+      ctx.globalAlpha=e*le3; ctx.fillStyle="#fff";
+      ctx.font=`italic 600 ${qPx}px Prata, serif`;
+      ctx.fillText(ln,W/2,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
+    });
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.45;
+    ctx.font=`900 ${Math.round(U*0.1)}px Prata, serif`;
+    ctx.fillText("\u201D",W/2,qTop+lines.length*lH);
+    ctx.globalAlpha=e;
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.025)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+lines.length*lH+U*0.05); }
 
   } else if (style === "pullquote") {
-    // Pull quote — large text on the left side, accent bar right
-    const U5 = Math.min(W, H);
-    const qW = W * 0.62; const qX = W * 0.06;
-    ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(qX - W * 0.02, H * 0.2, W * 0.68, H * 0.6);
-    ctx.fillStyle = ac.bar; ctx.fillRect(W * 0.72, H * 0.25, U5 * 0.008, H * 0.5 * slideEase);
-    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    const qPx2 = Math.round(U5 * 0.062);
-    const lines2 = [];
-    ctx.font = `italic 700 ${qPx2}px Prata, serif`;
-    const qWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    let qLn = ""; qWords.forEach(w2 => {
-      const t2 = qLn ? qLn + " " + w2 : w2;
-      if (ctx.measureText(t2).width > qW && qLn) { lines2.push(qLn); qLn = w2; } else qLn = t2;
-    }); if (qLn) lines2.push(qLn);
-    const qLH = qPx2 * 1.32;
-    const qTop = H / 2 - (lines2.length * qLH) / 2;
-    ctx.fillStyle = ac.bar; ctx.font = `900 ${Math.round(U5 * 0.12)}px Prata, serif`;
-    ctx.fillText("\u201C", qX, qTop - U5 * 0.01);
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U5 * 0.02;
-    ctx.font = `italic 700 ${qPx2}px Prata, serif`;
-    lines2.forEach((ln2, li) => {
-      const le2 = playing ? Math.min(1, Math.max(0, (elapsed * (lines2.length + 1) - li) / 0.7)) : 1;
-      const le3 = 1 - Math.pow(1 - le2, 3);
-      ctx.globalAlpha = e * le3;
-      ctx.fillText(ln2, qX, qTop + li * qLH + qLH * 0.8 + (1 - le3) * U5 * 0.03);
+    const qW=W*0.58, qX=W*0.07;
+    ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(qX-W*0.02,H*0.18,W*0.66,H*0.64);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.74,H*0.24,U*0.008,H*0.52*e);
+    const qPx2=Math.round(U*0.062);
+    const lines=wrap(mainTxt,`italic 700 ${qPx2}px Prata, serif`,qW,4);
+    const lH=qPx2*1.32,qTop=H/2-(lines.length*lH)/2;
+    ctx.fillStyle=ac.bar; ctx.font=`900 ${Math.round(U*0.12)}px Prata, serif`; ctx.textAlign="left";
+    ctx.fillText("\u201C",qX,qTop-U*0.01);
+    ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    lines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
+      ctx.globalAlpha=le3; ctx.fillStyle="#fff";
+      ctx.font=`italic 700 ${qPx2}px Prata, serif`;
+      ctx.fillText(ln,qX,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
     });
-    ctx.shadowBlur = 0; ctx.globalAlpha = e;
-    if (source) {
-      ctx.fillStyle = vsHexA(ac.bar, 0.9); ctx.font = `600 ${Math.round(U5 * 0.024)}px Inter, sans-serif`;
-      ctx.fillText("— " + source, qX, qTop + lines2.length * qLH + U5 * 0.04);
-    }
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
+
+  } else if (style === "caption") {
+    const capPx=Math.round(U*0.042);
+    const lines=wrap(mainTxt,`700 ${capPx}px Inter, sans-serif`,W*0.84,3);
+    const lH=capPx*1.28, bH=lines.length*lH+U*0.06;
+    const by=H*0.88-bH+(1-e)*U*0.05;
+    const sc=ctx.createLinearGradient(0,by-U*0.06,0,H);
+    sc.addColorStop(0,"rgba(0,0,0,0)"); sc.addColorStop(0.3,"rgba(0,0,0,0.78)"); sc.addColorStop(1,"rgba(0,0,0,0.88)");
+    ctx.fillStyle=sc; ctx.fillRect(0,by-U*0.06,W,H-by+U*0.06);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.42,by-U*0.02,W*0.16*e,U*0.005);
+    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    ctx.font=`700 ${capPx}px Inter, sans-serif`;
+    let yy=by+lH*0.75;
+    lines.forEach(ln=>{ctx.fillText(ln,W/2,yy);yy+=lH;});
+    ctx.shadowBlur=0;
 
   } else if (style === "annotation") {
-    // Annotation card — positioned mid-frame, clean card with accent accent
-    const U6 = Math.min(W, H);
-    const aW2 = W * 0.78, aX2 = W * 0.11;
-    ctx.font = `700 ${Math.round(U6 * 0.042)}px Prata, serif`;
-    const words3 = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    const lines3 = []; let ln3 = "";
-    words3.forEach(w2 => {
-      const t3 = ln3 ? ln3 + " " + w2 : w2;
-      if (ctx.measureText(t3).width > aW2 * 0.88 && ln3) { lines3.push(ln3); ln3 = w2; } else ln3 = t3;
-    }); if (ln3) lines3.push(ln3);
-    const lH3 = U6 * 0.05;
-    const cardH3 = lines3.length * lH3 + U6 * 0.1 + (kicker ? U6 * 0.055 : 0) + (source ? U6 * 0.04 : 0);
-    const cardY3 = H / 2 - cardH3 / 2 + (1 - slideEase) * U6 * 0.06;
-    ctx.fillStyle = "rgba(12,10,8,0.93)";
-    roundRectPath(ctx, aX2, cardY3, aW2, cardH3, U6 * 0.025); ctx.fill();
-    ctx.strokeStyle = vsHexA(ac.bar, 0.5); ctx.lineWidth = 1.5;
-    roundRectPath(ctx, aX2, cardY3, aW2, cardH3, U6 * 0.025); ctx.stroke();
-    ctx.fillStyle = ac.bar;
-    ctx.fillRect(aX2, cardY3, aW2, U6 * 0.007);
-    let aY2 = cardY3 + U6 * 0.06;
-    if (kicker) {
-      ctx.fillStyle = ac.bar; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-      ctx.font = `700 ${Math.round(U6 * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(kicker.toUpperCase(), aX2 + aW2 * 0.05, aY2);
-      aY2 += U6 * 0.055;
-    }
-    ctx.fillStyle = "#fff"; ctx.textAlign = "left";
-    ctx.font = `700 ${Math.round(U6 * 0.042)}px Prata, serif`;
-    ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = U6 * 0.015;
-    lines3.forEach((ln4, li) => {
-      ctx.fillText(ln4, aX2 + aW2 * 0.05, aY2 + li * lH3 + lH3 * 0.78);
-    });
-    ctx.shadowBlur = 0;
-    if (source) {
-      ctx.fillStyle = "rgba(180,170,150,0.75)";
-      ctx.font = `400 ${Math.round(U6 * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(source, aX2 + aW2 * 0.05, aY2 + lines3.length * lH3 + U6 * 0.045);
-    }
+    const aW=W*0.78, aX=W*0.11;
+    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px Prata, serif`,aW*0.88,4);
+    const lH=U*0.05;
+    const cardH=lines.length*lH+U*0.1+(kicker?U*0.055:0)+(source?U*0.04:0);
+    const cardY=H/2-cardH/2+(1-e)*U*0.06;
+    ctx.fillStyle="rgba(12,10,8,0.94)"; roundRectPath(ctx,aX,cardY,aW,cardH,U*0.025); ctx.fill();
+    ctx.strokeStyle=vsHexA(ac.bar,0.55); ctx.lineWidth=1.5; roundRectPath(ctx,aX,cardY,aW,cardH,U*0.025); ctx.stroke();
+    ctx.fillStyle=ac.bar; ctx.fillRect(aX,cardY,aW,U*0.007);
+    let aY=cardY+U*0.06;
+    if(kicker){ctx.fillStyle=ac.bar;ctx.textAlign="left";ctx.font=`700 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),aX+aW*0.05,aY);aY+=U*0.055;}
+    ctx.fillStyle="#fff"; ctx.textAlign="left";
+    ctx.font=`700 ${Math.round(U*0.042)}px Prata, serif`; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015;
+    lines.forEach((ln,li)=>{ctx.fillText(ln,aX+aW*0.05,aY+li*lH+lH*0.78);});
+    ctx.shadowBlur=0;
+    if(source){ctx.fillStyle="rgba(180,170,150,0.75)";ctx.font=`400 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,aX+aW*0.05,aY+lines.length*lH+U*0.045);}
+
+  } else if (style === "split") {
+    const padL=W*0.06, splitX=W*0.38;
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(0,H*0.28,W,H*0.44);
+    const colW=splitX-padL-W*0.04;
+    ctx.fillStyle=vsHexA(ac.bar,0.9); roundRectPath(ctx,padL,H*0.3,colW,H*0.4,W*0.015); ctx.fill();
+    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
+    ctx.fillStyle="#fff"; ctx.textAlign="left";
+    ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px Prata, serif`,W-splitX-padL,4);
+    ctx.font=`700 ${Math.round(U*0.065)}px Prata, serif`;
+    const lH=Math.round(U*0.065)*1.18;
+    let yy=H/2-(lines.length*lH)/2+lH*0.8;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,splitX,yy+li*lH+(1-le3)*U*0.03);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+
+  } else if (style === "badge") {
+    ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
+    if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
+    const bPx=Math.round(U*0.072);
+    const lines=wrap(headline,`700 ${bPx}px Prata, serif`,W*0.84,3);
+    const lH=bPx*1.18;let yy=H*0.47;
+    ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px Prata, serif`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,yy+li*lH);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    ctx.fillStyle=ac.bar; ctx.fillRect(W/2-U*0.08,yy+lines.length*lH-lH*0.15,U*0.16*e,U*0.006);
 
   } else if (style === "magazine-cover") {
-    // Magazine cover — full-frame with bold title at top, gradient overlay
-    const U7 = Math.min(W, H);
-    const topG = ctx.createLinearGradient(0, 0, 0, H * 0.55);
-    topG.addColorStop(0, "rgba(0,0,0,0.88)"); topG.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = topG; ctx.fillRect(0, 0, W, H * 0.55);
-    const botG = ctx.createLinearGradient(0, H * 0.5, 0, H);
-    botG.addColorStop(0, "rgba(0,0,0,0)"); botG.addColorStop(1, "rgba(0,0,0,0.75)");
-    ctx.fillStyle = botG; ctx.fillRect(0, H * 0.5, W, H * 0.5);
-    // kicker pill
-    if (kicker) {
-      const kPx4 = Math.round(U7 * 0.025);
-      ctx.font = `800 ${kPx4}px Inter, sans-serif`;
-      const kW4 = ctx.measureText(kicker.toUpperCase()).width + U7 * 0.07;
-      ctx.fillStyle = ac.bar;
-      roundRectPath(ctx, W / 2 - kW4 / 2, H * 0.06, kW4, kPx4 * 2.2, kPx4 * 1.1); ctx.fill();
-      ctx.fillStyle = ac.text || "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(kicker.toUpperCase(), W / 2, H * 0.06 + kPx4 * 1.1);
-      ctx.textBaseline = "alphabetic";
-    }
-    // main headline — large, centered top
-    const U7px = Math.round(Math.min(U7 * 0.1, W * 0.22));
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    const hW4 = W * 0.88;
-    const lines4 = [];
-    ctx.font = `900 ${U7px}px Prata, serif`;
-    const hWords = (headline || kicker || "").split(/\s+/);
-    let hLn = ""; hWords.forEach(w2 => {
-      const t4 = hLn ? hLn + " " + w2 : w2;
-      if (ctx.measureText(t4).width > hW4 && hLn) { lines4.push(hLn); hLn = w2; } else hLn = t4;
-    }); if (hLn) lines4.push(hLn);
-    const hLH = U7px * 1.05;
-    let hY = H * 0.18;
-    ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U7 * 0.025;
-    lines4.forEach((ln5, li) => {
-      const le5 = playing ? Math.min(1, Math.max(0, (elapsed * (lines4.length + 1) - li) / 0.6)) : 1;
-      const le6 = 1 - Math.pow(1 - le5, 3);
-      ctx.globalAlpha = e * le6;
-      ctx.fillText(ln5, W / 2, hY + li * hLH + (1 - le6) * U7 * 0.04);
-    });
-    ctx.shadowBlur = 0; ctx.globalAlpha = e;
-    // bottom source bar
-    if (source) {
-      ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.font = `600 ${Math.round(U7 * 0.026)}px Inter, sans-serif`;
-      ctx.fillText(source, W / 2, H * 0.93);
-    }
+    const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
+    const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
+    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
+    const mPx=Math.round(Math.min(U*0.098,W*0.22));
+    const lines=wrap(mainTxt,`900 ${mPx}px Prata, serif`,W*0.88,3);
+    const lH=mPx*1.05; let hY=H*0.18;
+    ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px Prata, serif`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,hY+li*lH+(1-le3)*U*0.04);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if(source){ctx.fillStyle="rgba(255,255,255,0.85)";ctx.font=`600 ${Math.round(U*0.026)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.93);}
 
   } else if (style === "neon-title") {
-    // Neon glow title — dark bg, glowing headline
-    const U8 = Math.min(W, H);
-    ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(0, H * 0.18, W, H * 0.64);
-    const nPx = Math.round(Math.min(U8 * 0.088, W * 0.2));
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const nLines = [];
-    ctx.font = `900 ${nPx}px Inter, sans-serif`;
-    const nWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    let nLn = "";
-    nWords.forEach(w2 => {
-      const t5 = nLn ? nLn + " " + w2 : w2;
-      if (ctx.measureText(t5).width > W * 0.86 && nLn) { nLines.push(nLn); nLn = w2; } else nLn = t5;
-    }); if (nLn) nLines.push(nLn);
-    const nLH = nPx * 1.18;
-    const nTop = H / 2 - (nLines.length - 1) * nLH / 2;
-    nLines.forEach((ln6, li) => {
-      const nr = playing ? Math.min(1, Math.max(0, (elapsed * (nLines.length + 1) - li) / 0.65)) : 1;
-      const ne = 1 - Math.pow(1 - nr, 3);
-      ctx.save();
-      ctx.globalAlpha = e * ne;
-      // multi-layer glow
-      [0.5, 0.3, 0.15].forEach((a2, gi) => {
-        ctx.strokeStyle = vsHexA(ac.bar, a2); ctx.lineWidth = (gi + 1) * 3;
-        ctx.shadowColor = ac.bar; ctx.shadowBlur = U8 * (0.04 + gi * 0.025);
-        ctx.font = `900 ${nPx}px Inter, sans-serif`;
-        ctx.strokeText(ln6, W / 2, nTop + li * nLH + (1 - ne) * U8 * 0.035);
-      });
-      ctx.fillStyle = "#ffffff"; ctx.shadowColor = ac.bar; ctx.shadowBlur = U8 * 0.015;
-      ctx.font = `900 ${nPx}px Inter, sans-serif`;
-      ctx.fillText(ln6, W / 2, nTop + li * nLH + (1 - ne) * U8 * 0.035);
-      ctx.shadowBlur = 0;
-      ctx.restore();
+    ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    const nPx=Math.round(Math.min(U*0.088,W*0.2));
+    const lines=wrap(mainTxt,`900 ${nPx}px Inter, sans-serif`,W*0.86,4);
+    const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
+    lines.forEach((ln,li)=>{
+      const nr=Math.max(0,Math.min(1,e*(lines.length+1)-li)),ne=1-Math.pow(1-nr,3);
+      ctx.save(); ctx.globalAlpha=ne;
+      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px Inter, sans-serif`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
+      ctx.fillStyle="#fff"; ctx.shadowColor=ac.bar; ctx.shadowBlur=U*0.015; ctx.font=`900 ${nPx}px Inter, sans-serif`; ctx.textAlign="center";
+      ctx.fillText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04); ctx.shadowBlur=0; ctx.restore();
     });
-    if (kicker) {
-      ctx.fillStyle = vsHexA(ac.bar, 0.9);
-      ctx.font = `700 ${Math.round(U8 * 0.026)}px Inter, sans-serif`;
-      ctx.fillText(kicker.toUpperCase(), W / 2, nTop + nLines.length * nLH + U8 * 0.05);
-    }
+    ctx.globalAlpha=e;
+    if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.9);ctx.font=`700 ${Math.round(U*0.025)}px Inter, sans-serif`;ctx.textAlign="center";ctx.fillText(kicker.toUpperCase(),W/2,nTop+lines.length*lH+U*0.05);}
+
+  } else if (style === "kinetic") {
+    ctx.fillStyle="rgba(0,0,0,0.58)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.08,H*0.54,W*0.84*e,U*0.005);
+    const words=mainTxt.split(/\s+/).filter(Boolean);
+    const wPx=Math.round(Math.min(U*0.075,W/Math.max(words.length,1)*0.82));
+    ctx.font=`800 ${wPx}px Inter, sans-serif`;
+    const totalW=words.reduce((s2,w2)=>s2+ctx.measureText(w2).width+wPx*0.2,0);
+    let wx=W/2-totalW/2;
+    words.forEach((w2,wi)=>{
+      const wr=Math.max(0,Math.min(1,(elapsed*(words.length+1)-wi)/0.65)),we=1-Math.pow(1-wr,3);
+      ctx.save(); ctx.globalAlpha=we;
+      ctx.fillStyle=wi%3===0?ac.bar:"#fff"; ctx.shadowColor=wi%3===0?vsHexA(ac.bar,0.5):"rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.02;
+      ctx.textBaseline="alphabetic"; ctx.fillText(w2,wx,H*0.52+(1-we)*U*0.05); ctx.restore();
+      wx+=ctx.measureText(w2).width+wPx*0.2;
+    });
+    if(source){ctx.globalAlpha=e;ctx.fillStyle=vsHexA(ac.bar,0.85);ctx.textAlign="center";ctx.font=`600 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.63);}
+
+  } else if (style === "reveal-words") {
+    ctx.fillStyle="rgba(0,0,0,0.62)"; ctx.fillRect(0,H*0.22,W,H*0.56);
+    const words2=mainTxt.split(/\s+/).filter(Boolean);
+    const rPx=Math.round(Math.min(U*0.08,W/Math.max(words2.length,1)*0.88));
+    ctx.font=`700 ${rPx}px Prata, serif`;
+    const totalW2=words2.reduce((s2,w2)=>s2+ctx.measureText(w2).width+rPx*0.22,0);
+    let rwx=W/2-totalW2/2;
+    const wDur=0.45;
+    words2.forEach((w2,wi)=>{
+      const wr=Math.max(0,Math.min(1,(elapsed-wi*wDur)/wDur)),we=1-Math.pow(1-wr,3);
+      const ww=ctx.measureText(w2).width;
+      ctx.save(); ctx.globalAlpha=we; ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+      ctx.textAlign="left"; ctx.textBaseline="middle";
+      ctx.fillText(w2,rwx,H/2+(1-we)*U*0.04);
+      ctx.fillStyle=ac.bar; ctx.shadowBlur=0;
+      ctx.fillRect(rwx,H/2+rPx*0.55,ww*we,U*0.005);
+      ctx.restore(); rwx+=ww+rPx*0.22;
+    });
 
   } else if (style === "minimal-line") {
-    // Minimal — one thin accent line, clean headline
-    const U9 = Math.min(W, H);
-    const e9 = slideEase;
-    ctx.fillStyle = ac.bar;
-    ctx.fillRect(W * 0.1, H * 0.44, W * 0.8 * e9, U9 * 0.004);
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    const mPx = Math.round(U9 * 0.066);
-    const mLines = [];
-    ctx.font = `300 ${mPx}px Prata, serif`;
-    const mWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
-    let mLn = "";
-    mWords.forEach(w2 => {
-      const t6 = mLn ? mLn + " " + w2 : w2;
-      if (ctx.measureText(t6).width > W * 0.8 && mLn) { mLines.push(mLn); mLn = w2; } else mLn = t6;
-    }); if (mLn) mLines.push(mLn);
-    const mLH = mPx * 1.22;
-    ctx.fillStyle = "#ffffff"; ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = U9 * 0.015;
-    mLines.forEach((ln7, li) => {
-      const mr = playing ? Math.min(1, Math.max(0, (elapsed * (mLines.length + 1) - li) / 0.55)) : 1;
-      const me = 1 - Math.pow(1 - mr, 3);
-      ctx.globalAlpha = e * me;
-      ctx.fillText(ln7, W / 2, H * 0.48 + li * mLH + mLH * 0.82 + (1 - me) * U9 * 0.025);
-    });
-    ctx.shadowBlur = 0; ctx.globalAlpha = e;
-    if (kicker) {
-      ctx.fillStyle = vsHexA(ac.bar, 0.8);
-      ctx.font = `600 ${Math.round(U9 * 0.02)}px Inter, sans-serif`;
-      // letter spacing simulation
-      let lkx = W / 2 - ctx.measureText(kicker.toUpperCase()).width / 2;
-      for (const ch of kicker.toUpperCase()) { ctx.fillText(ch, lkx, H * 0.38); lkx += ctx.measureText(ch).width + U9 * 0.005; }
-    }
-    ctx.fillStyle = ac.bar; ctx.globalAlpha = e;
-    ctx.fillRect(W * 0.1, H * 0.44 + mLines.length * mLH + U9 * 0.038, W * 0.8 * e9, U9 * 0.003);
+    ctx.textAlign="center";
+    const mPx=Math.round(U*0.066);
+    const lines=wrap(mainTxt,`300 ${mPx}px Prata, serif`,W*0.8,3);
+    const lH=mPx*1.22;
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
+    ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015; ctx.font=`300 ${mPx}px Prata, serif`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,H*0.47+li*lH+lH*0.82+(1-le3)*U*0.025);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.8);ctx.font=`600 ${Math.round(U*0.02)}px Inter, sans-serif`;let lkx=W/2-ctx.measureText(kicker.toUpperCase()).width/2;for(const ch of kicker.toUpperCase()){ctx.fillText(ch,lkx,H*0.37);lkx+=ctx.measureText(ch).width+U*0.005;}}
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43+lines.length*lH+U*0.042,W*0.8*e,U*0.003);
   }
+
+  // ── optional live clock, top-right ────────────────────────
+  ctx.globalAlpha = 1;
   const clockOn = val("#vsNewsClock", false);
-  const showClock = (typeof clockOn === "boolean") ? clockOn
-                  : ($("#vsNewsClock") && $("#vsNewsClock").checked);
+  const showClock = (typeof clockOn === "boolean") ? clockOn : ($("#vsNewsClock") && $("#vsNewsClock").checked);
   if (showClock) {
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2,"0");
+    const mm = String(now.getMinutes()).padStart(2,"0");
     const clock = `${hh}:${mm}`;
     ctx.fillStyle = ac.bar;
-    const cw = W * 0.1, ch = H * 0.055;
-    ctx.fillRect(W - cw - W * 0.04, H * 0.05, cw, ch);
+    const cw = W*0.1, ch = H*0.055;
+    ctx.fillRect(W-cw-W*0.04, H*0.05, cw, ch);
     ctx.fillStyle = ac.text;
-    ctx.font = `700 ${Math.round(H * 0.03)}px Inter, sans-serif`;
+    ctx.font = `700 ${Math.round(H*0.03)}px Inter, sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(clock, W - cw / 2 - W * 0.04, H * 0.05 + ch * 0.68);
+    ctx.fillText(clock, W-cw/2-W*0.04, H*0.05+ch*0.68);
   }
-  ctx.restore();
+  ctx.restore(); // ── outer restore
 }
 
-// Word-wrap helper for news headlines (limited number of lines).
+
 function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
   if (!text) return 0;
   const words = String(text).split(/\s+/);
@@ -6920,7 +6549,10 @@ function drawStudioFrame(elapsed) {
   if (!canvas) return;
 
   // When slides exist, pick the slide active at this time.
-  let media = vstudio.mediaEl;
+  // IMPORTANT: when slides are present, we NEVER use vstudio.mediaEl as a
+  // fallback — each slide must have its own footage, or use a generated
+  // background. vstudio.mediaEl is only used in "single clip" mode (no slides).
+  let media = vstudio.slides.length ? null : vstudio.mediaEl;
   let slideHeadline = null;
   let dsSettings = null;          // settings of the slide being displayed
   let dsLocal = 0, dsDur = 0;     // local time within that slide
@@ -6932,8 +6564,11 @@ function drawStudioFrame(elapsed) {
     if (slide && slide.ready) {
       if (slide.isIntro) {
         introSlide = slide;
+        // intro/content slides may also carry per-slide footage
+        if (slide.mediaEl) media = slide.mediaEl;
       } else {
-        media = slide.mediaEl;
+        // regular media slide — use only THIS slide's footage
+        media = slide.mediaEl || null;
         slideHeadline = slide.headline || "";
       }
       // the active slide being edited reads LIVE controls; others read saved
@@ -6964,8 +6599,25 @@ function drawStudioFrame(elapsed) {
   // infographic (and news banner) can stand on their own coloured background.
   const infoOnEl = $("#vsInfoOn");
   const newsOnEl = $("#vsNewsOn");
-  const standaloneOverlay =
-    (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
+  // standaloneOverlay: can render even without media if info/news is enabled.
+  // When slides exist, read from the current slide's settings (dsSettings)
+  // OR the live controls if this is the active slide.
+  let standaloneOverlay = false;
+  if (vstudio.slides.length) {
+    // For the slide being displayed: check its own settings
+    const at2 = slideAtTime(elapsed);
+    const sl2 = vstudio.slides[at2.index];
+    if (sl2) {
+      const infoOn = sl2.settings && sl2.settings["#vsInfoOn"];
+      const newsOn = sl2.settings && sl2.settings["#vsNewsOn"];
+      // also check live controls if this is the active slide
+      const liveInfo = at2.index === vstudio.activeSlide && infoOnEl && infoOnEl.checked;
+      const liveNews = at2.index === vstudio.activeSlide && newsOnEl && newsOnEl.checked;
+      standaloneOverlay = infoOn || newsOn || liveInfo || liveNews || !!introSlide;
+    }
+  } else {
+    standaloneOverlay = (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
+  }
   if (!media && !standaloneOverlay && !introSlide) return;
 
   // ── TIME-STRETCH (After Effects style time-remap) ──────────
@@ -7866,8 +7518,9 @@ function previewStudioVideo(fromStart) {
   const duration0 = studioDuration();
   if (startElapsed >= duration0) startElapsed = 0;
 
-  if (vstudio.isVideo && media) {
-    // play the video — drawStudioFrame sets playbackRate for time-stretch
+  // Only start global media if no slides exist (single-clip mode).
+  // When slides are present, each slide manages its own mediaEl in the loop.
+  if (!vstudio.slides.length && vstudio.isVideo && media) {
     try {
       const span = Math.max(0.01, duration0);
       const startT = isFinite(media.duration)
@@ -7922,7 +7575,14 @@ function previewStudioVideo(fromStart) {
 function stopStudioPreview() {
   vstudio.looping = false;
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
-  if (vstudio.isVideo && vstudio.mediaEl) { try { vstudio.mediaEl.pause(); } catch {} }
+  // Only pause global media in single-clip mode
+  if (!vstudio.slides.length && vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause(); } catch {}
+  }
+  // Pause all slide videos
+  vstudio.slides.forEach(s => {
+    if (s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
+  });
   if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
   setPlayBtn(false);
 }
@@ -8249,9 +7909,9 @@ function vsApplySnapshot(snap) {
     else el.value = snap[sel];
   });
   vsHistory.suspended = false;
-  if (vstudio.mediaEl && !vstudio.rendering) {
+  if ((vstudio.mediaEl || vstudio.slides.some(s => s.ready)) && !vstudio.rendering) {
     buildPreviewCanvas();
-    drawStudioFrame(0);
+    drawStudioFrame(vstudio.position || 0);
   }
   refreshTimelineClips();
 }
