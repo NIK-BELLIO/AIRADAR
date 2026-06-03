@@ -4402,6 +4402,7 @@ function renderSlideList() {
   if (!vstudio.slides.length) {
     list.innerHTML = `<p class="vs-slide-empty">${
       state.lang === "fa" ? "هنوز اسلایدی اضافه نشده." : "No slides yet."}</p>`;
+    heraRenderTimeline();
     return;
   }
   const n = vstudio.slides.length;
@@ -4453,6 +4454,8 @@ function renderSlideList() {
       <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
     </div>`;
   }).join("");
+  // Also refresh Hera scene timeline blocks
+  heraRenderTimeline();
 }
 
 function escapeHtml(str) {
@@ -7075,19 +7078,226 @@ function stopStudioPreview() {
   setPlayBtn(false);
 }
 
-// ── TIMELINE STRIP ────────────────────────────────────────
-// Reflects playback position and lets the user scrub.
+// ── HERA-STYLE SCENE TIMELINE ─────────────────────────────────
+// Renders scene blocks with waveform and handles left/right resize.
+
+const PIXELS_PER_SEC = 80; // px per second of video — controls block width
+
+function heraTimelineScenes() {
+  // Returns scenes array: either vstudio.slides (multi) or single media block
+  if (vstudio.slides && vstudio.slides.length) return vstudio.slides;
+  if (vstudio.mediaEl) {
+    return [{ label: "Media", dur: studioDuration(), ready: true, isIntro: false }];
+  }
+  return [];
+}
+
+function heraRenderTimeline() {
+  const blocks = $("#vsSceneBlocks");
+  const waveCanvas = $("#vsWaveformCanvas");
+  const waveRow = $("#vsWaveformRow");
+  if (!blocks) return;
+
+  const scenes = heraTimelineScenes();
+  const total = studioDuration() || 1;
+
+  // Clear
+  blocks.innerHTML = "";
+
+  if (!scenes.length) {
+    const empty = document.createElement("div");
+    empty.className = "vs-scene-block";
+    empty.style.cssText = "min-width:120px;opacity:0.35;font-size:12px;";
+    empty.innerHTML = "<span class='vs-scene-label' style='pointer-events:none'>No scenes yet</span>";
+    blocks.appendChild(empty);
+    if (waveRow) waveRow.style.display = "none";
+    return;
+  }
+  if (waveRow) waveRow.style.display = "";
+
+  const activeIdx = vstudio.activeSlide ?? 0;
+
+  scenes.forEach((scene, i) => {
+    // Dot separator
+    if (i > 0) {
+      const dot = document.createElement("div");
+      dot.className = "vs-scene-dot";
+      blocks.appendChild(dot);
+    }
+
+    const dur = scene.dur ?? scene.duration ?? vsVal("#vsDuration", 4);
+    const width = Math.max(80, Math.round(parseFloat(dur) * PIXELS_PER_SEC));
+
+    const block = document.createElement("div");
+    block.className = "vs-scene-block" + (i === activeIdx ? " active" : "");
+    block.style.width = width + "px";
+    block.dataset.idx = i;
+
+    const label = scene.label || scene.headline || (scene.isIntro ? "Intro" : scene.isOutro ? "Outro" : `Scene-${i + 1}`);
+
+    block.innerHTML = `
+      <div class="vs-scene-resize vs-scene-resize-l" data-dir="l" data-idx="${i}"></div>
+      <span class="vs-scene-label">${label}</span>
+      <div class="vs-scene-dur">${parseFloat(dur).toFixed(1)}s</div>
+      <div class="vs-scene-resize vs-scene-resize-r" data-dir="r" data-idx="${i}"></div>
+    `;
+
+    // Click to select scene
+    block.addEventListener("pointerdown", (e) => {
+      if (e.target.closest(".vs-scene-resize")) return;
+      heraSelectScene(i);
+    });
+
+    blocks.appendChild(block);
+  });
+
+  // Draw waveform
+  heraDrawWaveform(waveCanvas, total);
+
+  // Update playhead
+  updateTimeline(vstudio.position || 0, total);
+}
+
+function heraSelectScene(idx) {
+  vstudio.activeSlide = idx;
+  // Highlight that slide row in the slide list
+  document.querySelectorAll(".vs-slide-row").forEach((r, i) => {
+    r.classList.toggle("active", i === idx);
+  });
+  heraRenderTimeline();
+  const dur = studioDuration();
+  // Jump preview to start of that scene
+  let t = 0;
+  if (vstudio.slides && vstudio.slides.length) {
+    for (let i = 0; i < idx; i++) {
+      const d = vstudio.slides[i]?.dur ?? vstudio.slides[i]?.duration ?? 4;
+      t += parseFloat(d);
+    }
+  }
+  vstudio.position = t;
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  drawStudioFrame(t);
+  updateTimeline(t, dur);
+}
+
+function heraDrawWaveform(canvas, totalDur) {
+  if (!canvas) return;
+  const stripWidth = Math.max(400, Math.round(totalDur * PIXELS_PER_SEC));
+  canvas.width = stripWidth;
+  canvas.height = 40;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, stripWidth, 40);
+  const barW = 3, gap = 2, total = Math.floor(stripWidth / (barW + gap));
+  const mid = 20;
+  // Colour: active zone (orange-red) vs future (muted)
+  const scenes = heraTimelineScenes();
+  const dur = studioDuration() || 1;
+  let activeEnd = 0;
+  const activeIdx = vstudio.activeSlide ?? 0;
+  for (let i = 0; i <= activeIdx && i < scenes.length; i++) {
+    activeEnd += parseFloat(scenes[i]?.dur ?? scenes[i]?.duration ?? 4);
+  }
+  const activeRatio = activeEnd / dur;
+
+  for (let i = 0; i < total; i++) {
+    const x = i * (barW + gap);
+    const ratio = i / total;
+    // Pseudo-random waveform height using sine harmonics
+    const h = Math.max(4, mid * (0.4 + 0.35 * Math.abs(Math.sin(i * 0.37)) + 0.25 * Math.abs(Math.sin(i * 0.11 + 1.2))));
+    const isActive = ratio <= activeRatio;
+    ctx.fillStyle = isActive
+      ? `rgba(240,78,43,${0.6 + 0.4 * (h / mid)})`
+      : "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.roundRect(x, mid - h / 2, barW, h, 1.5);
+    ctx.fill();
+  }
+}
+
+// ── TIMELINE UPDATE (scrub position → playhead in scene strip) ─
 function updateTimeline(elapsed, duration) {
+  // Legacy AE-style (hidden, kept for compat)
   const area = $("#vsTrackArea");
   const head = $("#vsPlayhead");
   const tc = $("#vsTimecode");
-  if (!area || !head) return;
-  const labelW = 76, laneRight = 12;
-  const usable = area.clientWidth - labelW - laneRight;
-  const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
-  head.style.left = (labelW + usable * ratio) + "px";
-  if (tc) tc.textContent = `${elapsed.toFixed(1)}s / ${duration.toFixed(1)}s`;
+  if (area && head) {
+    const labelW = 76, laneRight = 12;
+    const usable = area.clientWidth - labelW - laneRight;
+    const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
+    head.style.left = (labelW + usable * ratio) + "px";
+  }
+  if (tc) {
+    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+    tc.textContent = `${fmt(elapsed)} / ${fmt(duration)}`;
+  }
+
+  // Hera playhead in scene strip
+  const ph = $("#vsScenePlayhead");
+  const scroll = $("#vsSceneScroll");
+  if (ph && scroll) {
+    const totalPx = Math.max(400, Math.round((duration || 1) * PIXELS_PER_SEC));
+    const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
+    ph.style.left = Math.round(ratio * totalPx) + "px";
+  }
 }
+
+// ── SCENE BLOCK RESIZE (drag left/right handle) ─────────────
+(function attachSceneResize() {
+  let dragging = null; // { idx, dir, startX, startDur }
+
+  document.addEventListener("pointerdown", e => {
+    const handle = e.target.closest(".vs-scene-resize");
+    if (!handle) return;
+    e.preventDefault();
+    const idx = parseInt(handle.dataset.idx);
+    const dir = handle.dataset.dir; // 'l' or 'r'
+    const scene = vstudio.slides && vstudio.slides[idx];
+    if (!scene && !(idx === 0 && vstudio.mediaEl)) return;
+    const curDur = scene
+      ? parseFloat(scene.dur ?? scene.duration ?? 4)
+      : parseFloat(vsVal("#vsDuration", 4));
+    dragging = { idx, dir, startX: e.clientX, startDur: curDur };
+    handle.setPointerCapture(e.pointerId);
+  });
+
+  document.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - dragging.startX;
+    const deltaSec = dx / PIXELS_PER_SEC;
+    // For left handle: shrink from left = negative delta increases duration
+    const sign = dragging.dir === "r" ? 1 : -1;
+    let newDur = Math.max(1, Math.min(120, dragging.startDur + sign * deltaSec));
+    newDur = Math.round(newDur * 10) / 10;
+
+    const scene = vstudio.slides && vstudio.slides[dragging.idx];
+    if (scene) {
+      scene.dur = newDur;
+      scene.duration = newDur;
+    } else {
+      // Single media: update vsDuration input
+      const inp = $("#vsDuration");
+      if (inp) { inp.value = newDur; }
+    }
+
+    // Re-render timeline
+    heraRenderTimeline();
+    updateTimeline(vstudio.position || 0, studioDuration());
+  });
+
+  document.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    // Sync duration input if slide is selected
+    if (vstudio.slides && vstudio.slides[dragging.idx]) {
+      const dur = vstudio.slides[dragging.idx].dur;
+      const inp = $("#vsSlideDuration");
+      if (inp) inp.value = dur;
+    }
+    dragging = null;
+    vsPushHistory();
+  });
+})();
+
+
 
 function setPlayBtn(playing) {
   const b = $("#vsPlayBtn");
@@ -7177,6 +7387,8 @@ function refreshTimelineClips() {
   set("#vsClipText", hasText);
   set("#vsClipLogo", vstudio.logoEl);
   set("#vsClipMusic", vstudio.musicEl);
+  // Also refresh Hera scene blocks
+  heraRenderTimeline();
 }
 
 // Scrub: jump preview to a position when the track area is clicked/dragged.
@@ -7225,7 +7437,45 @@ function scrubTimeline(clientX) {
   updateTimeline(elapsed, duration);
 }
 
-// ── MP4 CONVERSION via ffmpeg.wasm (v0.11, single-threaded) ─
+// Scrub using the scene strip waveform row
+function scrubSceneStrip(clientX) {
+  const scroll = $("#vsSceneScroll");
+  if (!scroll) return;
+  const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+  if (!hasContent) return;
+  const rect = scroll.getBoundingClientRect();
+  const totalPx = Math.max(400, Math.round((studioDuration() || 1) * PIXELS_PER_SEC));
+  // account for scroll offset
+  const x = clientX - rect.left + scroll.scrollLeft;
+  let ratio = x / totalPx;
+  ratio = Math.max(0, Math.min(1, ratio));
+  const duration = studioDuration();
+  const elapsed = ratio * duration;
+  vstudio.looping = false;
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  if (vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause();
+      vstudio.mediaEl.currentTime = Math.min(vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
+  }
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    vstudio.slides.forEach((s, i) => {
+      if (s.ready && s.isVideo && s.mediaEl) {
+        try {
+          s.mediaEl.pause();
+          if (i === at.index) s.mediaEl.currentTime = Math.min(s.mediaEl.duration || at.local, at.local);
+        } catch {}
+      }
+    });
+  }
+  setPlayBtn(false);
+  vstudio.position = elapsed;
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  drawStudioFrame(elapsed);
+  updateTimeline(elapsed, duration);
+}
+
+
 // The browser's recorder only makes WebM; this converts it to MP4
 // entirely in the browser. Works on a plain static site — no special
 // headers needed. The ffmpeg core is loaded once and reused.
@@ -8057,6 +8307,28 @@ function bindEvents() {
     trackArea.addEventListener("touchstart", down, { passive: true });
     window.addEventListener("touchmove", move, { passive: true });
     window.addEventListener("touchend", up);
+  }
+
+  // Scene strip scrub — click / drag on the waveform row to scrub playhead
+  const sceneScroll = $("#vsSceneScroll");
+  if (sceneScroll) {
+    let sceneDragging = false;
+    const sceneDown = (e) => {
+      if (e.target.closest(".vs-scene-resize") || e.target.closest(".vs-scene-block")) return;
+      sceneDragging = true;
+      scrubSceneStrip((e.touches ? e.touches[0] : e).clientX);
+    };
+    const sceneMove = (e) => {
+      if (!sceneDragging) return;
+      scrubSceneStrip((e.touches ? e.touches[0] : e).clientX);
+    };
+    const sceneUp = () => { sceneDragging = false; };
+    sceneScroll.addEventListener("mousedown", sceneDown);
+    window.addEventListener("mousemove", sceneMove);
+    window.addEventListener("mouseup", sceneUp);
+    sceneScroll.addEventListener("touchstart", sceneDown, { passive: true });
+    window.addEventListener("touchmove", sceneMove, { passive: true });
+    window.addEventListener("touchend", sceneUp);
   }
 
   // Copy on every ai-output: click to copy
