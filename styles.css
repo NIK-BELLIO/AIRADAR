@@ -2914,105 +2914,236 @@ body.theme-light pre {
 }
 
 /* ── AE-STYLE TIMELINE STRIP ────────────────────────────── */
+/* ── HERA-STYLE SCENE TIMELINE ─────────────────────────────── */
 .vs-timeline {
   margin-top: 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   overflow: hidden;
 }
 .vs-timeline-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--line);
 }
 .vs-play-btn {
-  width: 30px; height: 30px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
   background: rgba(216,183,106,0.14);
   color: var(--gold);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.1s;
 }
-.vs-play-btn:hover { background: rgba(216,183,106,0.26); }
+.vs-play-btn:hover { background: rgba(216,183,106,0.3); transform: scale(1.06); }
 .vs-timecode {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
   color: var(--text);
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
 }
 .vs-timeline-hint {
   font-size: 11px;
   color: var(--muted);
   margin-left: auto;
 }
+
+/* Scene strip outer container */
+.vs-scene-strip {
+  position: relative;
+  padding: 12px 14px 0;
+  overflow: hidden;
+}
+.vs-scene-scroll {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  padding-bottom: 12px;
+}
+.vs-scene-scroll::-webkit-scrollbar { height: 4px; }
+.vs-scene-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+
+/* Scene blocks row */
+.vs-scene-blocks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  min-width: max-content;
+  padding: 0 2px;
+}
+
+/* Individual scene block */
+.vs-scene-block {
+  position: relative;
+  height: 52px;
+  min-width: 80px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: opacity 0.18s, transform 0.15s, box-shadow 0.15s;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.vs-scene-block.active {
+  background: #f04e2b !important;
+  color: #fff !important;
+  box-shadow: 0 4px 18px rgba(240,78,43,0.45);
+  transform: translateY(-1px);
+}
+.vs-scene-block:not(.active) {
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+  border: 1.5px solid var(--line);
+}
+.vs-scene-block:not(.active):hover {
+  background: rgba(255,255,255,0.13);
+  border-color: rgba(255,255,255,0.28);
+}
+
+/* Connector dot between blocks */
+.vs-scene-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+/* Resize handle left/right */
+.vs-scene-resize {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+}
+.vs-scene-resize::after {
+  content: '';
+  width: 3px; height: 22px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.35);
+  transition: background 0.15s, height 0.15s;
+}
+.vs-scene-resize:hover::after,
+.vs-scene-block.active .vs-scene-resize::after {
+  background: rgba(255,255,255,0.65);
+  height: 28px;
+}
+.vs-scene-resize-l { left: 4px; }
+.vs-scene-resize-r { right: 4px; }
+
+.vs-scene-label {
+  pointer-events: none;
+  padding: 0 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Duration badge */
+.vs-scene-dur {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Waveform row */
+.vs-waveform-row {
+  margin-top: 28px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+}
+.vs-waveform-canvas {
+  width: 100%;
+  height: 40px;
+  display: block;
+}
+
+/* Scene playhead */
+.vs-scene-playhead {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: #ff4433;
+  border-radius: 1px;
+  pointer-events: none;
+  left: 0;
+  transition: none;
+}
+.vs-scene-playhead::before {
+  content: '';
+  position: absolute;
+  top: -4px; left: 50%;
+  transform: translateX(-50%);
+  width: 10px; height: 8px;
+  background: #ff4433;
+  border-radius: 2px 2px 3px 3px;
+}
+
+/* Legacy hidden track area — keep for JS compat */
 .vs-track-area {
   position: relative;
   padding: 8px 0;
   cursor: pointer;
 }
 .vs-tracks { display: flex; flex-direction: column; gap: 6px; }
-.vs-track {
-  display: flex;
-  align-items: center;
-  height: 30px;
-}
+.vs-track { display: flex; align-items: center; height: 30px; }
 .vs-track-label {
-  width: 64px;
-  flex-shrink: 0;
-  padding-left: 12px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  width: 64px; flex-shrink: 0; padding-left: 12px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
 }
 .vs-track-lane {
-  flex: 1;
-  height: 100%;
-  margin-right: 12px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 5px;
-  position: relative;
+  flex: 1; height: 100%; margin-right: 12px;
+  background: rgba(255,255,255,0.04); border-radius: 5px; position: relative;
 }
 .vs-clip {
-  position: absolute;
-  inset: 3px 0;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #0c0a06;
-  overflow: hidden;
-  white-space: nowrap;
-  opacity: 0.4;            /* dim until that layer has content */
-  transition: opacity 0.2s;
+  position: absolute; inset: 3px 0; border-radius: 4px;
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: 11px; font-weight: 600; color: #0c0a06;
+  overflow: hidden; white-space: nowrap;
+  opacity: 0.4; transition: opacity 0.2s;
 }
 .vs-clip.is-active { opacity: 1; }
 .vs-clip-media { background: linear-gradient(90deg,#d8b76a,#fff0b8); }
 .vs-clip-text  { background: linear-gradient(90deg,#7a9cff,#b9c8ff); }
 .vs-clip-logo  { background: linear-gradient(90deg,#6fce9f,#bdeccf); }
 .vs-clip-music { background: linear-gradient(90deg,#c98fe0,#e6c4f0); }
-/* playhead */
 .vs-playhead {
-  position: absolute;
-  top: 0; bottom: 0;
-  left: 76px;
-  width: 2px;
-  background: #ff5a5a;
-  pointer-events: none;
+  position: absolute; top: 0; bottom: 0; left: 76px;
+  width: 2px; background: #ff5a5a; pointer-events: none;
 }
 .vs-playhead-grip {
-  position: absolute;
-  top: -1px; left: 50%;
+  position: absolute; top: -1px; left: 50%;
   transform: translateX(-50%);
-  width: 13px; height: 11px;
-  background: #ff5a5a;
-  border-radius: 2px 2px 4px 4px;
+  width: 13px; height: 11px; background: #ff5a5a; border-radius: 2px 2px 4px 4px;
 }
 
 /* Inline helper note inside a studio panel */
