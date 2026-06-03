@@ -4993,6 +4993,9 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     : 1;
   const slideEase = vsEasePro(slideRaw);
 
+  // entrance progress — used by all style branches
+  const e = slideEase;
+
   // chosen entrance motion preset
   const newsMotion = val("#vsNewsMotion", "slide-up");
   // `slide` keeps each style's built-in reveal; for non-slide-up presets
@@ -5041,8 +5044,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     const mainTxt = headline || kicker;
     const subTxt = source;
     const reveal = slide;
-    const e = 1 - Math.pow(1 - reveal, 3);
-    ctx.save();
+    // e already defined at function level (= slideEase cubic ease)
     ctx.globalAlpha = e;
 
     // wrap helper
@@ -5463,7 +5465,324 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.restore();   // end slide-in transform
   }
 
-  // optional live clock, top-right
+  // ── NEW BROADCAST & GRAPHIC STYLES ───────────────────────
+  if (style === "breaking") {
+    // Breaking news — red flashing bar with BREAKING tag + scrolling headline
+    const barH2 = H * 0.12;
+    const y2 = H - barH2 * slideEase;
+    ctx.fillStyle = "rgba(0,0,0,0.92)"; ctx.fillRect(0, y2, W, barH2);
+    // animated red left band
+    const blinkAlpha = 0.7 + 0.3 * Math.abs(Math.sin(elapsed * 3));
+    ctx.fillStyle = `rgba(192,10,26,${blinkAlpha})`;
+    const tagW2 = W * 0.22;
+    ctx.fillRect(0, y2, tagW2, barH2);
+    // BREAKING text
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    vsFitFont(ctx, "BREAKING", tagW2 * 0.85, "900", "Inter, sans-serif",
+      Math.round(H * 0.032), Math.round(H * 0.018));
+    ctx.fillText("BREAKING", tagW2 / 2, y2 + barH2 * 0.38);
+    if (kicker) {
+      ctx.font = `700 ${Math.round(H * 0.018)}px Inter, sans-serif`;
+      ctx.fillText(kicker.toUpperCase(), tagW2 / 2, y2 + barH2 * 0.72);
+    }
+    // scrolling headline right side
+    const hlPx2 = Math.round(H * 0.034);
+    ctx.font = `700 ${hlPx2}px Prata, serif`;
+    ctx.textAlign = "left";
+    const txt2 = headline + (source ? "   ●   " + source : "");
+    const tw2 = ctx.measureText(txt2).width;
+    const scrollX2 = W - ((elapsed * W * 0.1) % (tw2 + W - tagW2));
+    ctx.save();
+    ctx.beginPath(); ctx.rect(tagW2 + W * 0.01, y2, W - tagW2 - W * 0.01, barH2); ctx.clip();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(txt2, scrollX2, y2 + barH2 * 0.58);
+    ctx.fillText(txt2, scrollX2 + tw2 + W * 0.6, y2 + barH2 * 0.58);
+    ctx.restore(); ctx.textBaseline = "alphabetic";
+
+  } else if (style === "topbar") {
+    // Top news bar — headline at top of frame
+    const barH3 = H * 0.1;
+    const y3 = -barH3 + barH3 * slideEase;
+    ctx.fillStyle = "rgba(8,8,10,0.92)"; ctx.fillRect(0, y3, W, barH3);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3 + barH3 * 0.9, W, barH3 * 0.08);
+    if (kicker) {
+      const kPx3 = Math.round(H * 0.025);
+      ctx.font = `800 ${kPx3}px Inter, sans-serif`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const kW3 = ctx.measureText(kicker.toUpperCase()).width + W * 0.03;
+      ctx.fillStyle = ac.bar; ctx.fillRect(W * 0.03, y3 + barH3 * 0.2, kW3, kPx3 * 1.8);
+      ctx.fillStyle = ac.text || "#fff";
+      ctx.fillText(kicker.toUpperCase(), W * 0.045, y3 + barH3 * 0.52);
+      ctx.textBaseline = "alphabetic";
+      const hlPx3 = Math.round(H * 0.035);
+      ctx.font = `700 ${hlPx3}px Prata, serif`;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(headline.slice(0, 80), W * 0.04 + kW3 + W * 0.01, y3 + barH3 * 0.58);
+    } else {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.font = `700 ${Math.round(H * 0.038)}px Prata, serif`;
+      ctx.fillText(headline.slice(0, 70), W / 2, y3 + barH3 * 0.52);
+      ctx.textBaseline = "alphabetic";
+    }
+
+  } else if (style === "kinetic") {
+    // Kinetic typography — each word drops in with stagger
+    const U3 = Math.min(W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0, H * 0.2, W, H * 0.6);
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(W * 0.08, H * 0.55, W * 0.84 * slideEase, U3 * 0.005);
+    const words = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    const wPx = Math.round(Math.min(U3 * 0.072, W / Math.max(words.length, 1) * 0.85));
+    const totalW = words.reduce((s2, w2) => {
+      ctx.font = `800 ${wPx}px Inter, sans-serif`; return s2 + ctx.measureText(w2).width + wPx * 0.2;
+    }, 0);
+    let wx = W / 2 - totalW / 2;
+    ctx.font = `800 ${wPx}px Inter, sans-serif`;
+    words.forEach((w2, wi) => {
+      const wr = playing ? Math.min(1, Math.max(0, (elapsed * (words.length + 1) - wi) / 0.7)) : 1;
+      const we = 1 - Math.pow(1 - wr, 3);
+      ctx.save();
+      ctx.globalAlpha = e * we;
+      ctx.fillStyle = wi % 3 === 0 ? ac.bar : "#ffffff";
+      ctx.shadowColor = wi % 3 === 0 ? vsHexA(ac.bar, 0.5) : "rgba(0,0,0,0.4)";
+      ctx.shadowBlur = U3 * 0.02;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(w2, wx, H * 0.52 + (1 - we) * U3 * 0.05);
+      ctx.restore();
+      const ww = ctx.measureText(w2).width;
+      wx += ww + wPx * 0.2;
+    });
+    if (source) {
+      ctx.globalAlpha = e;
+      ctx.fillStyle = vsHexA(ac.bar, 0.85); ctx.textAlign = "center";
+      ctx.font = `600 ${Math.round(U3 * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, W / 2, H * 0.62);
+    }
+
+  } else if (style === "reveal-words") {
+    // Words reveal one at a time, centered
+    const U4 = Math.min(W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, H * 0.24, W, H * 0.52);
+    const words2 = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    const rPx = Math.round(Math.min(U4 * 0.082, W / Math.max(words2.length, 1) * 0.9));
+    const wordRevealDur = 0.45;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `700 ${rPx}px Prata, serif`;
+    const totalW2 = words2.reduce((s2, w2) => s2 + ctx.measureText(w2).width + rPx * 0.22, 0);
+    let rwx = W / 2 - totalW2 / 2;
+    words2.forEach((w2, wi) => {
+      const wr = playing ? Math.min(1, Math.max(0, (elapsed - wi * wordRevealDur) / wordRevealDur)) : 1;
+      const we = 1 - Math.pow(1 - Math.min(1, wr), 3);
+      const ww = ctx.measureText(w2).width;
+      ctx.save();
+      ctx.globalAlpha = e * we;
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U4 * 0.02;
+      ctx.fillText(w2, rwx + ww / 2, H / 2 + (1 - we) * U4 * 0.04);
+      // accent underline per word
+      ctx.fillStyle = ac.bar; ctx.shadowBlur = 0;
+      ctx.fillRect(rwx, H / 2 + rPx * 0.55, ww * we, U4 * 0.005);
+      ctx.restore();
+      rwx += ww + rPx * 0.22;
+    });
+
+  } else if (style === "pullquote") {
+    // Pull quote — large text on the left side, accent bar right
+    const U5 = Math.min(W, H);
+    const qW = W * 0.62; const qX = W * 0.06;
+    ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(qX - W * 0.02, H * 0.2, W * 0.68, H * 0.6);
+    ctx.fillStyle = ac.bar; ctx.fillRect(W * 0.72, H * 0.25, U5 * 0.008, H * 0.5 * slideEase);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    const qPx2 = Math.round(U5 * 0.062);
+    const lines2 = [];
+    ctx.font = `italic 700 ${qPx2}px Prata, serif`;
+    const qWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    let qLn = ""; qWords.forEach(w2 => {
+      const t2 = qLn ? qLn + " " + w2 : w2;
+      if (ctx.measureText(t2).width > qW && qLn) { lines2.push(qLn); qLn = w2; } else qLn = t2;
+    }); if (qLn) lines2.push(qLn);
+    const qLH = qPx2 * 1.32;
+    const qTop = H / 2 - (lines2.length * qLH) / 2;
+    ctx.fillStyle = ac.bar; ctx.font = `900 ${Math.round(U5 * 0.12)}px Prata, serif`;
+    ctx.fillText("\u201C", qX, qTop - U5 * 0.01);
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U5 * 0.02;
+    ctx.font = `italic 700 ${qPx2}px Prata, serif`;
+    lines2.forEach((ln2, li) => {
+      const le2 = playing ? Math.min(1, Math.max(0, (elapsed * (lines2.length + 1) - li) / 0.7)) : 1;
+      const le3 = 1 - Math.pow(1 - le2, 3);
+      ctx.globalAlpha = e * le3;
+      ctx.fillText(ln2, qX, qTop + li * qLH + qLH * 0.8 + (1 - le3) * U5 * 0.03);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = e;
+    if (source) {
+      ctx.fillStyle = vsHexA(ac.bar, 0.9); ctx.font = `600 ${Math.round(U5 * 0.024)}px Inter, sans-serif`;
+      ctx.fillText("— " + source, qX, qTop + lines2.length * qLH + U5 * 0.04);
+    }
+
+  } else if (style === "annotation") {
+    // Annotation card — positioned mid-frame, clean card with accent accent
+    const U6 = Math.min(W, H);
+    const aW2 = W * 0.78, aX2 = W * 0.11;
+    ctx.font = `700 ${Math.round(U6 * 0.042)}px Prata, serif`;
+    const words3 = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    const lines3 = []; let ln3 = "";
+    words3.forEach(w2 => {
+      const t3 = ln3 ? ln3 + " " + w2 : w2;
+      if (ctx.measureText(t3).width > aW2 * 0.88 && ln3) { lines3.push(ln3); ln3 = w2; } else ln3 = t3;
+    }); if (ln3) lines3.push(ln3);
+    const lH3 = U6 * 0.05;
+    const cardH3 = lines3.length * lH3 + U6 * 0.1 + (kicker ? U6 * 0.055 : 0) + (source ? U6 * 0.04 : 0);
+    const cardY3 = H / 2 - cardH3 / 2 + (1 - slideEase) * U6 * 0.06;
+    ctx.fillStyle = "rgba(12,10,8,0.93)";
+    roundRectPath(ctx, aX2, cardY3, aW2, cardH3, U6 * 0.025); ctx.fill();
+    ctx.strokeStyle = vsHexA(ac.bar, 0.5); ctx.lineWidth = 1.5;
+    roundRectPath(ctx, aX2, cardY3, aW2, cardH3, U6 * 0.025); ctx.stroke();
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(aX2, cardY3, aW2, U6 * 0.007);
+    let aY2 = cardY3 + U6 * 0.06;
+    if (kicker) {
+      ctx.fillStyle = ac.bar; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.font = `700 ${Math.round(U6 * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(kicker.toUpperCase(), aX2 + aW2 * 0.05, aY2);
+      aY2 += U6 * 0.055;
+    }
+    ctx.fillStyle = "#fff"; ctx.textAlign = "left";
+    ctx.font = `700 ${Math.round(U6 * 0.042)}px Prata, serif`;
+    ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = U6 * 0.015;
+    lines3.forEach((ln4, li) => {
+      ctx.fillText(ln4, aX2 + aW2 * 0.05, aY2 + li * lH3 + lH3 * 0.78);
+    });
+    ctx.shadowBlur = 0;
+    if (source) {
+      ctx.fillStyle = "rgba(180,170,150,0.75)";
+      ctx.font = `400 ${Math.round(U6 * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, aX2 + aW2 * 0.05, aY2 + lines3.length * lH3 + U6 * 0.045);
+    }
+
+  } else if (style === "magazine-cover") {
+    // Magazine cover — full-frame with bold title at top, gradient overlay
+    const U7 = Math.min(W, H);
+    const topG = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+    topG.addColorStop(0, "rgba(0,0,0,0.88)"); topG.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = topG; ctx.fillRect(0, 0, W, H * 0.55);
+    const botG = ctx.createLinearGradient(0, H * 0.5, 0, H);
+    botG.addColorStop(0, "rgba(0,0,0,0)"); botG.addColorStop(1, "rgba(0,0,0,0.75)");
+    ctx.fillStyle = botG; ctx.fillRect(0, H * 0.5, W, H * 0.5);
+    // kicker pill
+    if (kicker) {
+      const kPx4 = Math.round(U7 * 0.025);
+      ctx.font = `800 ${kPx4}px Inter, sans-serif`;
+      const kW4 = ctx.measureText(kicker.toUpperCase()).width + U7 * 0.07;
+      ctx.fillStyle = ac.bar;
+      roundRectPath(ctx, W / 2 - kW4 / 2, H * 0.06, kW4, kPx4 * 2.2, kPx4 * 1.1); ctx.fill();
+      ctx.fillStyle = ac.text || "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(kicker.toUpperCase(), W / 2, H * 0.06 + kPx4 * 1.1);
+      ctx.textBaseline = "alphabetic";
+    }
+    // main headline — large, centered top
+    const U7px = Math.round(Math.min(U7 * 0.1, W * 0.22));
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    const hW4 = W * 0.88;
+    const lines4 = [];
+    ctx.font = `900 ${U7px}px Prata, serif`;
+    const hWords = (headline || kicker || "").split(/\s+/);
+    let hLn = ""; hWords.forEach(w2 => {
+      const t4 = hLn ? hLn + " " + w2 : w2;
+      if (ctx.measureText(t4).width > hW4 && hLn) { lines4.push(hLn); hLn = w2; } else hLn = t4;
+    }); if (hLn) lines4.push(hLn);
+    const hLH = U7px * 1.05;
+    let hY = H * 0.18;
+    ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U7 * 0.025;
+    lines4.forEach((ln5, li) => {
+      const le5 = playing ? Math.min(1, Math.max(0, (elapsed * (lines4.length + 1) - li) / 0.6)) : 1;
+      const le6 = 1 - Math.pow(1 - le5, 3);
+      ctx.globalAlpha = e * le6;
+      ctx.fillText(ln5, W / 2, hY + li * hLH + (1 - le6) * U7 * 0.04);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = e;
+    // bottom source bar
+    if (source) {
+      ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.font = `600 ${Math.round(U7 * 0.026)}px Inter, sans-serif`;
+      ctx.fillText(source, W / 2, H * 0.93);
+    }
+
+  } else if (style === "neon-title") {
+    // Neon glow title — dark bg, glowing headline
+    const U8 = Math.min(W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.72)"; ctx.fillRect(0, H * 0.18, W, H * 0.64);
+    const nPx = Math.round(Math.min(U8 * 0.088, W * 0.2));
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const nLines = [];
+    ctx.font = `900 ${nPx}px Inter, sans-serif`;
+    const nWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    let nLn = "";
+    nWords.forEach(w2 => {
+      const t5 = nLn ? nLn + " " + w2 : w2;
+      if (ctx.measureText(t5).width > W * 0.86 && nLn) { nLines.push(nLn); nLn = w2; } else nLn = t5;
+    }); if (nLn) nLines.push(nLn);
+    const nLH = nPx * 1.18;
+    const nTop = H / 2 - (nLines.length - 1) * nLH / 2;
+    nLines.forEach((ln6, li) => {
+      const nr = playing ? Math.min(1, Math.max(0, (elapsed * (nLines.length + 1) - li) / 0.65)) : 1;
+      const ne = 1 - Math.pow(1 - nr, 3);
+      ctx.save();
+      ctx.globalAlpha = e * ne;
+      // multi-layer glow
+      [0.5, 0.3, 0.15].forEach((a2, gi) => {
+        ctx.strokeStyle = vsHexA(ac.bar, a2); ctx.lineWidth = (gi + 1) * 3;
+        ctx.shadowColor = ac.bar; ctx.shadowBlur = U8 * (0.04 + gi * 0.025);
+        ctx.font = `900 ${nPx}px Inter, sans-serif`;
+        ctx.strokeText(ln6, W / 2, nTop + li * nLH + (1 - ne) * U8 * 0.035);
+      });
+      ctx.fillStyle = "#ffffff"; ctx.shadowColor = ac.bar; ctx.shadowBlur = U8 * 0.015;
+      ctx.font = `900 ${nPx}px Inter, sans-serif`;
+      ctx.fillText(ln6, W / 2, nTop + li * nLH + (1 - ne) * U8 * 0.035);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    });
+    if (kicker) {
+      ctx.fillStyle = vsHexA(ac.bar, 0.9);
+      ctx.font = `700 ${Math.round(U8 * 0.026)}px Inter, sans-serif`;
+      ctx.fillText(kicker.toUpperCase(), W / 2, nTop + nLines.length * nLH + U8 * 0.05);
+    }
+
+  } else if (style === "minimal-line") {
+    // Minimal — one thin accent line, clean headline
+    const U9 = Math.min(W, H);
+    const e9 = slideEase;
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(W * 0.1, H * 0.44, W * 0.8 * e9, U9 * 0.004);
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    const mPx = Math.round(U9 * 0.066);
+    const mLines = [];
+    ctx.font = `300 ${mPx}px Prata, serif`;
+    const mWords = (headline || kicker || "").split(/\s+/).filter(Boolean);
+    let mLn = "";
+    mWords.forEach(w2 => {
+      const t6 = mLn ? mLn + " " + w2 : w2;
+      if (ctx.measureText(t6).width > W * 0.8 && mLn) { mLines.push(mLn); mLn = w2; } else mLn = t6;
+    }); if (mLn) mLines.push(mLn);
+    const mLH = mPx * 1.22;
+    ctx.fillStyle = "#ffffff"; ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = U9 * 0.015;
+    mLines.forEach((ln7, li) => {
+      const mr = playing ? Math.min(1, Math.max(0, (elapsed * (mLines.length + 1) - li) / 0.55)) : 1;
+      const me = 1 - Math.pow(1 - mr, 3);
+      ctx.globalAlpha = e * me;
+      ctx.fillText(ln7, W / 2, H * 0.48 + li * mLH + mLH * 0.82 + (1 - me) * U9 * 0.025);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = e;
+    if (kicker) {
+      ctx.fillStyle = vsHexA(ac.bar, 0.8);
+      ctx.font = `600 ${Math.round(U9 * 0.02)}px Inter, sans-serif`;
+      // letter spacing simulation
+      let lkx = W / 2 - ctx.measureText(kicker.toUpperCase()).width / 2;
+      for (const ch of kicker.toUpperCase()) { ctx.fillText(ch, lkx, H * 0.38); lkx += ctx.measureText(ch).width + U9 * 0.005; }
+    }
+    ctx.fillStyle = ac.bar; ctx.globalAlpha = e;
+    ctx.fillRect(W * 0.1, H * 0.44 + mLines.length * mLH + U9 * 0.038, W * 0.8 * e9, U9 * 0.003);
+  }
   const clockOn = val("#vsNewsClock", false);
   const showClock = (typeof clockOn === "boolean") ? clockOn
                   : ($("#vsNewsClock") && $("#vsNewsClock").checked);
@@ -5944,8 +6263,390 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.beginPath();
       ctx.arc(px + padX + fillW2 - pillH2 / 2, pillY + pillH2 / 2, pillH2 * 0.22, 0, Math.PI * 2);
       ctx.fill(); ctx.globalAlpha = mAlpha * contentEase;
+
+    } else if (style === "dark-cards") {
+      // Glass-morphism dark cards — frosted dark bg, glowing border
+      const cardY = ry + rowH * 0.07;
+      const cardH = rowH * 0.84;
+      const r2 = cardH * 0.18;
+      ctx.fillStyle = "rgba(10,8,6,0.82)";
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, r2); ctx.fill();
+      // glowing border
+      ctx.strokeStyle = vsHexA(ig.accent, 0.5 * re + 0.1);
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.02 * re;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, r2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      const cW = panelW - padX * 2; const cX = px + padX;
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillStyle = vsHexA(ig.accent, 0.75);
+      vsFitFont(ctx, s.label.toUpperCase(), cW * 0.6, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
+      ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
+      ctx.fillStyle = "#ffffff";
+      vsFitFont(ctx, s.value, cW * 0.5, "800", "Prata, serif",
+        Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "neon-cards") {
+      // Neon accent cards — bright colour fill left strip, dark right
+      const cardY = ry + rowH * 0.07;
+      const cardH = rowH * 0.84;
+      const stripW = panelW * 0.08;
+      const cX = px + padX; const cW = panelW - padX * 2;
+      roundRectPath(ctx, cX, cardY, cW, cardH, cardH * 0.16); ctx.save();
+      ctx.clip();
+      ctx.fillStyle = "rgba(12,10,8,0.9)"; ctx.fillRect(cX, cardY, cW, cardH);
+      const ng = ctx.createLinearGradient(cX, cardY, cX + stripW * 2, cardY);
+      ng.addColorStop(0, ig.accent); ng.addColorStop(1, vsHexA(ig.accent, 0));
+      ctx.fillStyle = ng; ctx.fillRect(cX, cardY, cW, cardH);
+      ctx.restore();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.35); ctx.lineWidth = 1;
+      roundRectPath(ctx, cX, cardY, cW, cardH, cardH * 0.16); ctx.stroke();
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      vsFitFont(ctx, s.label, cW * 0.58, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.019, cardH * 0.22)), Math.round(cardH * 0.13));
+      ctx.fillText(s.label, cX + cW * 0.14, cardY + cardH * 0.3);
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
+      vsFitFont(ctx, s.value, cW * 0.5, "800", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.7);
+      ctx.shadowBlur = 0; ctx.textBaseline = "alphabetic";
+
+    } else if (style === "ranking") {
+      // Leaderboard rank row — number + bar + label
+      const rowMaxW = panelW - padX * 2;
+      const rankPx = Math.round(Math.min(rowH * 0.55, U * 0.045));
+      const labelPx = Math.round(Math.min(rowH * 0.3, U * 0.02));
+      // rank number bubble
+      const bubR = Math.min(rowH * 0.38, U * 0.032);
+      const bubX = px + padX + bubR;
+      const bubY = ry + rowH * 0.5;
+      const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : ig.accent;
+      ctx.fillStyle = vsHexA(rankColor, 0.2);
+      ctx.beginPath(); ctx.arc(bubX, bubY, bubR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = rankColor; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(bubX, bubY, bubR, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = rankColor; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `700 ${rankPx * 0.7}px Inter, sans-serif`;
+      ctx.fillText(i + 1, bubX, bubY);
+      ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      // label
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${labelPx}px Inter, sans-serif`;
+      const lX = px + padX + bubR * 2 + U * 0.018;
+      ctx.fillText(s.label, lX, ry + rowH * 0.36);
+      // bar + value
+      const barH3 = Math.min(rowH * 0.22, U * 0.018);
+      const barY3 = ry + rowH * 0.54;
+      const barMaxW = panelW - padX * 2 - bubR * 2 - U * 0.025;
+      ctx.fillStyle = ig.track;
+      roundRectPath(ctx, lX, barY3, barMaxW, barH3, barH3 / 2); ctx.fill();
+      const fillFrac = (s.num / Math.max(max, 1)) * re;
+      const gr3 = ctx.createLinearGradient(lX, 0, lX + barMaxW, 0);
+      gr3.addColorStop(0, rankColor); gr3.addColorStop(1, vsHexA(rankColor, 0.6));
+      ctx.fillStyle = gr3;
+      roundRectPath(ctx, lX, barY3, Math.max(barH3, barMaxW * fillFrac), barH3, barH3 / 2); ctx.fill();
+      ctx.fillStyle = rankColor; ctx.textAlign = "right";
+      ctx.font = `700 ${Math.round(rowH * 0.32)}px Prata, serif`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.38);
+
+    } else if (style === "timeline-list") {
+      // Timeline / list — vertical line left, dot, label + value
+      const dotR = Math.min(rowH * 0.18, U * 0.014);
+      const lineX = px + padX + dotR;
+      const dotY = ry + rowH * 0.42;
+      // vertical connector line
+      if (i < stats.length - 1) {
+        ctx.strokeStyle = vsHexA(ig.accent, 0.3); ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(lineX, dotY + dotR);
+        ctx.lineTo(lineX, ry + rowH);
+        ctx.stroke();
+      }
+      // dot
+      ctx.fillStyle = re > 0.5 ? ig.accent : vsHexA(ig.accent, re * 2);
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
+      ctx.beginPath(); ctx.arc(lineX, dotY, dotR, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // label + value
+      const tX = lineX + dotR + U * 0.02;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const lblPxT = Math.round(Math.min(rowH * 0.3, U * 0.022));
+      ctx.fillStyle = ig.label; ctx.font = `600 ${lblPxT}px Inter, sans-serif`;
+      ctx.fillText(s.label, tX, dotY - dotR * 0.5);
+      ctx.fillStyle = ig.value;
+      ctx.font = `700 ${Math.round(lblPxT * 1.5)}px Prata, serif`;
+      ctx.fillText(s.value, tX, dotY + dotR * 1.8);
+      ctx.textBaseline = "alphabetic";
     }
   });
+
+  // ── STYLES that render the whole panel in one pass (not per-stat) ──
+  const onePassStyles = ["ticker-numbers","comparison","area-chart","bubble","magazine","vs-split"];
+  if (onePassStyles.includes(style) && stats.length > 0) {
+    ctx.save();
+    ctx.globalAlpha = mAlpha * contentEase;
+
+    if (style === "ticker-numbers") {
+      // Large numbers in a horizontal scroller — up to 4 stats side by side
+      const cols = Math.min(stats.length, 4);
+      const cellW2 = (panelW - padX * 2) / cols;
+      const centerY = py + panelH * 0.58;
+      stats.slice(0, 4).forEach((s, i) => {
+        const rowReveal = playing ? Math.min(1, Math.max(0, (elapsed - 0.3 - i * 0.15) / 0.5)) : 1;
+        const re = 1 - Math.pow(1 - rowReveal, 3);
+        const cx2 = px + padX + cellW2 * (i + 0.5);
+        // divider
+        if (i > 0) {
+          ctx.strokeStyle = vsHexA(ig.accent, 0.2); ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(px + padX + cellW2 * i, py + panelH * 0.3);
+          ctx.lineTo(px + padX + cellW2 * i, py + panelH * 0.82);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = mAlpha * contentEase * re;
+        ctx.textAlign = "center";
+        const numPxT = Math.round(Math.min(U * 0.09, cellW2 * 0.5));
+        const suffix3 = s.value.replace(/[\d.,\-]/g, "");
+        const prefix3 = s.value.replace(/[\d.,\-].*$/, "");
+        const shown3 = s.num && playing ? prefix3 + Math.round(s.num * re).toLocaleString() + suffix3 : s.value;
+        ctx.fillStyle = ig.accent;
+        ctx.shadowColor = vsHexA(ig.accent, 0.3); ctx.shadowBlur = U * 0.025;
+        ctx.font = `900 ${numPxT}px Inter, sans-serif`;
+        ctx.fillText(shown3, cx2, centerY);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = `500 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+        ctx.fillText(s.label.toUpperCase(), cx2, centerY + numPxT * 0.65);
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "comparison") {
+      // Two large values side by side with labels — best for 2 stats
+      const a = stats[0], b = stats[1] || { label: "", value: "", num: 0 };
+      const midX = px + panelW / 2;
+      const midY = py + panelH * 0.56;
+      // central VS badge
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.accent;
+      roundRectPath(ctx, midX - U * 0.045, midY - U * 0.04, U * 0.09, U * 0.08, U * 0.04); ctx.fill();
+      ctx.fillStyle = "#000"; ctx.font = `800 ${Math.round(U * 0.028)}px Inter, sans-serif`;
+      ctx.fillText("VS", midX, midY);
+      // left value
+      ctx.fillStyle = ig.value;
+      ctx.shadowColor = vsHexA(ig.accent, 0.35); ctx.shadowBlur = U * 0.03;
+      const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.6)) : 1;
+      const aE = 1 - Math.pow(1 - aRe, 3);
+      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px Inter, sans-serif`;
+      ctx.fillText(a.value, midX - panelW * 0.26, midY);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), midX - panelW * 0.26, midY + U * 0.07);
+      // right value
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.shadowColor = "rgba(255,255,255,0.2)"; ctx.shadowBlur = U * 0.02;
+      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px Inter, sans-serif`;
+      ctx.fillText(b.value, midX + panelW * 0.26, midY);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), midX + panelW * 0.26, midY + U * 0.07);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "area-chart") {
+      // Animated area/wave chart background + value labels at peaks
+      const chartX = px + padX, chartW = panelW - padX * 2;
+      const chartTop = cy + U * 0.02, chartBot = py + panelH - srcReserve - U * 0.01;
+      const chartH2 = chartBot - chartTop;
+      const nPts = stats.length;
+      // draw area
+      ctx.beginPath();
+      const getY = (i2, re2) => {
+        const frac = stats[i2].num / Math.max(max, 1);
+        return chartBot - chartH2 * frac * re2;
+      };
+      const pts = stats.map((s, i2) => ({
+        x: chartX + chartW * (i2 / Math.max(nPts - 1, 1)),
+        y: getY(i2, contentEase)
+      }));
+      ctx.moveTo(pts[0].x, chartBot);
+      ctx.lineTo(pts[0].x, pts[0].y);
+      for (let i2 = 1; i2 < pts.length; i2++) {
+        const cp1x = (pts[i2-1].x + pts[i2].x) / 2, cp1y = pts[i2-1].y;
+        const cp2x = (pts[i2-1].x + pts[i2].x) / 2, cp2y = pts[i2].y;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, pts[i2].x, pts[i2].y);
+      }
+      ctx.lineTo(pts[pts.length-1].x, chartBot);
+      ctx.closePath();
+      const ag = ctx.createLinearGradient(0, chartTop, 0, chartBot);
+      ag.addColorStop(0, vsHexA(ig.accent, 0.5)); ag.addColorStop(1, vsHexA(ig.accent, 0.03));
+      ctx.fillStyle = ag; ctx.fill();
+      // line on top
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i2 = 1; i2 < pts.length; i2++) {
+        const cp1x = (pts[i2-1].x + pts[i2].x) / 2;
+        ctx.bezierCurveTo(cp1x, pts[i2-1].y, cp1x, pts[i2].y, pts[i2].x, pts[i2].y);
+      }
+      ctx.strokeStyle = ig.accent; ctx.lineWidth = 2.5; ctx.stroke();
+      // dots + labels at each point
+      pts.forEach((pt, i2) => {
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.4 - i2 * 0.1) / 0.4)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        ctx.fillStyle = ig.accent;
+        ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, U * 0.012, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+        ctx.font = `700 ${Math.round(U * 0.018)}px Inter, sans-serif`;
+        ctx.fillText(stats[i2].value, pt.x, pt.y - U * 0.025);
+        ctx.fillStyle = ig.label;
+        ctx.font = `500 ${Math.round(U * 0.015)}px Inter, sans-serif`;
+        ctx.fillText(stats[i2].label, pt.x, chartBot + U * 0.02);
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "bubble") {
+      // Proportional bubbles — radius proportional to value
+      const bArea = (panelH - (cy - py) - srcReserve);
+      const bCenterY = cy + bArea / 2;
+      const totalParts = stats.reduce((s2, st) => s2 + Math.sqrt(st.num || 1), 0);
+      let bx2 = px + padX;
+      stats.forEach((s, i2) => {
+        const frac = Math.sqrt(s.num || 1) / totalParts;
+        const slotW2 = (panelW - padX * 2) * frac;
+        const rad2 = Math.min(slotW2 * 0.44, bArea * 0.44);
+        const bcx = bx2 + slotW2 / 2;
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.3 - i2 * 0.12) / 0.5)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        const bg2 = ctx.createRadialGradient(bcx, bCenterY, 0, bcx, bCenterY, rad2 * pe);
+        bg2.addColorStop(0, vsHexA(ig.accent, 0.9)); bg2.addColorStop(1, vsHexA(ig.accent, 0.2));
+        ctx.fillStyle = bg2;
+        ctx.beginPath(); ctx.arc(bcx, bCenterY, rad2 * pe, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = ig.accent; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(bcx, bCenterY, rad2 * pe, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const vPx2 = Math.round(Math.min(rad2 * 0.45, U * 0.032));
+        ctx.font = `800 ${vPx2}px Inter, sans-serif`;
+        ctx.fillText(s.value, bcx, bCenterY - rad2 * 0.12 * pe);
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.font = `500 ${Math.round(vPx2 * 0.6)}px Inter, sans-serif`;
+        ctx.fillText(s.label, bcx, bCenterY + rad2 * 0.35 * pe);
+        ctx.textBaseline = "alphabetic";
+        ctx.globalAlpha = mAlpha * contentEase;
+        bx2 += slotW2;
+      });
+
+    } else if (style === "magazine") {
+      // Magazine layout — large featured stat + list of others
+      const featStat = stats[0];
+      const rest = stats.slice(1, 5);
+      const featW = panelW * 0.5, featH = panelH * 0.7;
+      const featX = px + padX, featY = cy;
+      const fg = ctx.createLinearGradient(featX, featY, featX, featY + featH);
+      fg.addColorStop(0, vsHexA(ig.accent, 0.22)); fg.addColorStop(1, vsHexA(ig.accent, 0.05));
+      ctx.fillStyle = fg;
+      roundRectPath(ctx, featX, featY, featW - U * 0.015, featH, U * 0.02); ctx.fill();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.4); ctx.lineWidth = 1.5;
+      roundRectPath(ctx, featX, featY, featW - U * 0.015, featH, U * 0.02); ctx.stroke();
+      ctx.textAlign = "center";
+      const fPx2 = Math.round(Math.min(U * 0.085, featW * 0.38));
+      const fRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.5)) : 1;
+      const fE = 1 - Math.pow(1 - fRe, 3);
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.03 * fE;
+      ctx.font = `900 ${fPx2}px Inter, sans-serif`;
+      ctx.fillText(featStat.value, featX + featW * 0.5 - U * 0.008, featY + featH * 0.52);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = `500 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(featStat.label.toUpperCase(), featX + featW * 0.5 - U * 0.008, featY + featH * 0.7);
+      // right side list
+      const rX = px + padX + featW + U * 0.01;
+      const rW = panelW - padX * 2 - featW - U * 0.01;
+      rest.forEach((s2, i2) => {
+        const iY = featY + (featH / Math.max(rest.length, 1)) * (i2 + 0.5);
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.4 - i2 * 0.1) / 0.45)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = ig.label;
+        ctx.font = `600 ${Math.round(U * 0.017)}px Inter, sans-serif`;
+        ctx.fillText(s2.label, rX, iY - U * 0.012);
+        ctx.fillStyle = ig.value;
+        ctx.font = `700 ${Math.round(U * 0.028)}px Prata, serif`;
+        ctx.fillText(s2.value, rX, iY + U * 0.018);
+        if (i2 < rest.length - 1) {
+          ctx.strokeStyle = vsHexA(ig.accent, 0.18); ctx.lineWidth = 1;
+          const sepY = iY + U * 0.04;
+          ctx.beginPath(); ctx.moveTo(rX, sepY); ctx.lineTo(rX + rW, sepY); ctx.stroke();
+        }
+        ctx.textBaseline = "alphabetic";
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "vs-split") {
+      // VS split — two large values with label, dramatic divider
+      const a = stats[0], b = stats[1] || { label: "—", value: "—", num: 0 };
+      const midX = px + panelW / 2;
+      const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.55)) : 1;
+      const bRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.5) / 0.55)) : 1;
+      const aE = 1 - Math.pow(1 - aRe, 3);
+      const bE = 1 - Math.pow(1 - bRe, 3);
+      // left half tint
+      const lG = ctx.createLinearGradient(px, py, midX, py);
+      lG.addColorStop(0, vsHexA(ig.accent, 0.18)); lG.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = lG;
+      roundRectPath(ctx, px, py, panelW / 2, panelH, panelW * 0.04 + 0.5); ctx.fill();
+      // right half tint
+      const rG = ctx.createLinearGradient(midX, py, px + panelW, py);
+      rG.addColorStop(0, "rgba(0,0,0,0)"); rG.addColorStop(1, "rgba(255,255,255,0.06)");
+      ctx.fillStyle = rG;
+      roundRectPath(ctx, midX, py, panelW / 2, panelH, panelW * 0.04); ctx.fill();
+      // divider
+      ctx.strokeStyle = vsHexA(ig.accent, 0.5 * aE); ctx.lineWidth = 2;
+      const dvH = panelH * 0.55 * Math.max(aE, bE);
+      ctx.beginPath();
+      ctx.moveTo(midX, py + panelH * 0.22);
+      ctx.lineTo(midX, py + panelH * 0.22 + dvH);
+      ctx.stroke();
+      // VS label
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.accent; ctx.font = `900 ${Math.round(U * 0.028)}px Inter, sans-serif`;
+      ctx.fillText("VS", midX, py + panelH * 0.5);
+      // left value + label
+      ctx.globalAlpha = mAlpha * contentEase * aE;
+      const vsPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.025;
+      ctx.font = `900 ${vsPx}px Inter, sans-serif`;
+      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.45);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.65);
+      // right value + label
+      ctx.globalAlpha = mAlpha * contentEase * bE;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `900 ${vsPx}px Inter, sans-serif`;
+      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.45);
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.65);
+      ctx.textBaseline = "alphabetic";
+      ctx.globalAlpha = mAlpha * contentEase;
+    }
+    ctx.restore();
+  }
 
   if (data.source) {
     ctx.textAlign = "left";
@@ -7366,25 +8067,22 @@ function heraRenderTimeline() {
 }
 
 function heraSelectScene(idx) {
-  vstudio.activeSlide = idx;
-  // Highlight that slide row in the slide list
-  document.querySelectorAll(".vs-slide-row").forEach((r, i) => {
-    r.classList.toggle("active", i === idx);
-  });
+  // Use the proper selectSlide() — it saves the current slide's settings,
+  // loads the new slide's settings onto all controls, and redraws the preview.
+  // Do NOT manually set activeSlide here — selectSlide() handles all of that.
+  selectSlide(idx);
+  // Re-render the timeline to show the new active block
   heraRenderTimeline();
-  const dur = studioDuration();
-  // Jump preview to start of that scene
+  // Jump the playhead to the start of the selected scene
   let t = 0;
   if (vstudio.slides && vstudio.slides.length) {
     for (let i = 0; i < idx; i++) {
-      const d = vstudio.slides[i]?.dur ?? vstudio.slides[i]?.duration ?? 4;
-      t += parseFloat(d);
+      const d = parseFloat(vstudio.slides[i]?.dur ?? vstudio.slides[i]?.duration ?? 4);
+      t += d;
     }
   }
   vstudio.position = t;
-  if (!$("#vsCanvas")) buildPreviewCanvas();
-  drawStudioFrame(t);
-  updateTimeline(t, dur);
+  updateTimeline(t, studioDuration());
 }
 
 function heraDrawWaveform(canvas, totalDur) {
