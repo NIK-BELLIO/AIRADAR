@@ -3935,7 +3935,8 @@ function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, ca
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
     introBg: bg(0), introMain: title || "Presenting", introSub: subtitle || "",
     introMotion: "rise-spring", headline: "", duration: 3.2,
-    settings: vsCaptureSettings()
+    settings: vsCaptureSettings(),
+    _timelineLabel: title || "Intro"
   });
 
   let bgi = 1, capi = 0;
@@ -4082,15 +4083,17 @@ async function buildAutoVideo(useAI) {
   //    text (when it doesn't), so the video matches the content.
   vsAutoStatus(state.lang === "fa"
     ? "هوش مصنوعی در حال تحلیل کل مقاله…" : "AI is analyzing the whole article…");
-  const prompt = `You are a professional short-form video editor. Read the ENTIRE article below and turn it into a video plan. Return ONLY compact JSON (no markdown), shaped exactly:
-{"title":"<= 7 words","subtitle":"<= 9 words","kicker":"1-2 word category","sections":[{"type":"infographic","caption":"2-4 words","title":"short","stats":[{"label":"...","value":"2.4M","num":2400000}]},{"type":"text","caption":"2-4 words","headline":"one clear sentence","style":"title-center"}],"outroMain":"<= 5 words"}
+  const prompt = `You are a world-class motion-graphics director for short-form video. Read the ENTIRE article and design a cinematic, visually varied video. Return ONLY compact JSON (no markdown, no explanation):
+{"title":"<= 7 words","subtitle":"<= 9 words","kicker":"1-2 word category (TECH/FINANCE/HEALTH/etc)","palette":"one of: fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-4 words","title":"short","stats":[{"label":"label","value":"2.4M","num":2400000}],"chartType":"one of: bars|donut|pills|split"},{"type":"text","caption":"2-4 words","headline":"one punchy sentence","style":"one of: title-center|quote|title-left|caption|bold-statement","emphasis":"the most important 2-3 words to highlight"}],"outroMain":"<= 5 words"}
 Rules:
-- Analyze the WHOLE article, not just the start. Produce 3 to 6 sections IN READING ORDER.
-- For a part that contains numbers/data/statistics, emit a "infographic" section with 2-5 stats (value like "2.4M","34%","$1.2B"; num is the numeric value).
-- For a part that is narrative/quote/context with no useful numbers, emit a "text" section with a clear headline and a style chosen from: "title-center","title-left","quote","caption".
-- kicker = the article's topic/category (e.g. "TECH","FINANCE","HEALTH").
-- Keep every headline factual to the article. Do not invent numbers.
-Article: """${text.slice(0, 4000)}"""`;
+- Analyze the WHOLE article. Produce 4 to 7 sections IN READING ORDER.
+- Alternate between infographic and text sections for visual variety. Never put two infographic sections in a row.
+- For parts with numbers/data/statistics: emit "infographic" with 2-5 stats, choose chartType based on data (donut for %, bars for comparisons, pills for short metrics, split for 2 contrasting numbers).
+- For narrative/quote/context: emit "text" with a punchy single-sentence headline. Choose style: title-center (dramatic fact), quote (direct speech/quote), title-left (news-style), caption (context/background), bold-statement (strong opinion/conclusion).
+- emphasis: pick 2-3 words from the headline that should be visually emphasised/larger.
+- kicker = article category in 1-2 ALL-CAPS words.
+- palette = overall visual mood.
+Article: """${text.slice(0, 5000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     const jsonStr = String(raw).replace(/```json|```/g, "").trim();
@@ -4146,28 +4149,61 @@ async function vsFetchArticle(url) {
 // Build a video from the AI's ordered "sections" (infographic vs text).
 function vsAssembleFromSections(data) {
   vstudio.slides = [];
-  // premium cinematic backgrounds first for a polished, modern look
-  const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
-    "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
+
+  // Palette → background pool mapping for cinematic variety
+  const palettes = {
+    fire:   ["cine-ember", "cine-spotlight", "cine-aurora", "aurora", "cine-mesh", "cine-violet", "cine-wave"],
+    ocean:  ["cine-wave", "cine-aurora", "cine-mesh", "cine-violet", "aurora", "cine-spotlight"],
+    forest: ["cine-mesh", "cine-aurora", "cine-wave", "aurora", "cine-violet", "cine-ember"],
+    gold:   ["gold-rings", "cine-spotlight", "cine-ember", "cine-aurora", "cine-mesh", "aurora"],
+    neon:   ["cine-violet", "cine-aurora", "cine-wave", "cine-mesh", "cine-spotlight", "cine-ember"],
+    mono:   ["cine-spotlight", "cine-mesh", "cine-aurora", "cine-wave", "cine-violet", "aurora"],
+  };
+  const palette = (data.palette && palettes[data.palette]) ? data.palette : "fire";
+  const bgPool = palettes[palette];
   const bg = (i) => bgPool[i % bgPool.length];
-  const motions = ["rise-spring", "zoom", "glide", "drift", "spring"];
+
+  // Varied entrance motions — never repeat same motion twice in a row
+  const motionPool = ["rise-spring", "zoom", "glide", "drift", "spring", "vox", "flip", "punch"];
+  let lastMotion = "";
+  const pickMotion = () => {
+    const candidates = motionPool.filter(m => m !== lastMotion);
+    const m = candidates[Math.floor(Math.random() * candidates.length)];
+    lastMotion = m;
+    return m;
+  };
+
   const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
 
-  // intro
+  // intro — dramatic entrance
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
     introBg: bg(0), introMain: data.title || "Today's story",
     introSub: data.subtitle || "", introMotion: "rise-spring",
-    headline: "", duration: 3.2, settings: vsCaptureSettings()
+    headline: "", duration: 3.5, settings: vsCaptureSettings(),
+    _timelineLabel: data.title || "Intro"
   });
 
   let bi = 1;
-  (data.sections || []).slice(0, 6).forEach((sec, i) => {
+  const sections = (data.sections || []).slice(0, 7);
+  sections.forEach((sec, i) => {
     const set = vsCaptureSettings();
+    const motion = pickMotion();
+
     if (sec.type === "infographic" && Array.isArray(sec.stats) && sec.stats.length) {
+      // Infographic slide — use chartType hint from AI
+      const validStyles = ["cards", "donut", "bars", "pills", "split"];
+      const aiChart = sec.chartType;
+      let infoStyle = "cards";
+      if (aiChart === "donut" || aiChart === "donut") infoStyle = "donut";
+      else if (aiChart === "bars") infoStyle = sec.stats.length > 3 ? "cards" : "bars";
+      else if (aiChart === "pills") infoStyle = "progress-pills";
+      else if (aiChart === "split" && sec.stats.length === 2) infoStyle = "split-block";
+      else infoStyle = sec.stats.length > 3 ? "cards" : "donut";
+
       set["#vsInfoOn"] = true;
-      set["#vsInfoStyle"] = sec.stats.length > 3 ? "cards" : "donut";
-      set["#vsInfoMotion"] = "rise";
+      set["#vsInfoStyle"] = infoStyle;
+      set["#vsInfoMotion"] = motion;
       set["#vsInfoJson"] = JSON.stringify({
         title: sec.title || data.title || "Key numbers",
         subtitle: "", stats: sec.stats });
@@ -4175,26 +4211,32 @@ function vsAssembleFromSections(data) {
       vstudio.slides.push({
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
-        introMotion: motions[i % motions.length], headline: "",
-        duration: 4.2, settings: set, _standaloneInfo: true,
-        _caption: sec.caption || "Key numbers"
+        introMotion: motion, headline: "",
+        duration: 4.5, settings: set, _standaloneInfo: true,
+        _caption: sec.caption || "Key numbers",
+        _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
+
     } else {
-      // text section
+      // Text / narrative slide
+      const validStyles = ["title-center", "title-left", "quote", "caption", "bold-statement"];
+      const style = validStyles.includes(sec.style) ? sec.style : "title-center";
       set["#vsNewsOn"] = true;
-      set["#vsNewsStyle"] = ["title-center", "quote", "title-left", "caption"]
-        .includes(sec.style) ? sec.style : "title-center";
-      set["#vsNewsMotion"] = "fade";
+      set["#vsNewsStyle"] = style;
+      set["#vsNewsMotion"] = motion;
       set["#vsNewsKicker"] = kicker;
       set["#vsNewsHeadline"] = String(sec.headline || sec.title || "").slice(0, 200);
       set["#vsNewsSource"] = "";
+      // Store emphasis words for richer rendering
+      if (sec.emphasis) set["#vsNewsEmphasis"] = sec.emphasis;
       set["#vsInfoOn"] = false;
       vstudio.slides.push({
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
-        introMotion: motions[i % motions.length], headline: "",
-        duration: 3.8, settings: set, _standaloneNews: true,
-        _caption: sec.caption || ""
+        introMotion: motion, headline: "",
+        duration: 4.0, settings: set, _standaloneNews: true,
+        _caption: sec.caption || "",
+        _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
     }
   });
@@ -4205,7 +4247,8 @@ function vsAssembleFromSections(data) {
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: data.outroMain || "Thanks for watching",
     introSub: "Follow for more", introMotion: "spring",
-    headline: "", duration: 3, settings: vsCaptureSettings()
+    headline: "", duration: 3.2, settings: vsCaptureSettings(),
+    _timelineLabel: data.outroMain || "Outro"
   });
 
   renderSlideList();
@@ -7092,14 +7135,52 @@ function heraTimelineScenes() {
   return [];
 }
 
+// Derive a human-readable label from any slide object
+function heraSlideLabel(scene, i, total) {
+  if (!scene) return `Scene ${i + 1}`;
+  const n = total;
+  // Use explicit timeline label if set
+  if (scene._timelineLabel) return scene._timelineLabel.slice(0, 22);
+  // Outro
+  if (scene.isOutro || (i === n - 1 && n > 1 && scene.isIntro)) {
+    return scene.introMain ? scene.introMain.slice(0, 18) : "Outro";
+  }
+  // Intro (first scene or explicit)
+  if (i === 0 && scene.isIntro) {
+    return scene.introMain ? scene.introMain.slice(0, 18) : "Intro";
+  }
+  // Infographic scene
+  if (scene._standaloneInfo) {
+    try {
+      const d = JSON.parse(scene.settings && scene.settings["#vsInfoJson"] || "{}");
+      return d.title ? d.title.slice(0, 18) : (scene._caption || "Infographic");
+    } catch { return scene._caption || "Infographic"; }
+  }
+  // News/text scene
+  if (scene._standaloneNews) {
+    const h = scene.settings && scene.settings["#vsNewsHeadline"];
+    if (h) return h.slice(0, 22);
+    return scene._caption || "Slide";
+  }
+  // Scene with uploaded media + headline
+  if (scene.settings && scene.settings["#vsHeadline"]) {
+    return scene.settings["#vsHeadline"].slice(0, 22);
+  }
+  if (scene._caption) return scene._caption.slice(0, 22);
+  if (scene.introMain) return scene.introMain.slice(0, 18);
+  return `Scene ${i + 1}`;
+}
+
 function heraRenderTimeline() {
   const blocks = $("#vsSceneBlocks");
   const waveCanvas = $("#vsWaveformCanvas");
   const waveRow = $("#vsWaveformRow");
+  const strip = $("#vsSceneStrip");
   if (!blocks) return;
 
   const scenes = heraTimelineScenes();
   const total = studioDuration() || 1;
+  const totalPx = Math.max(500, Math.round(total * PIXELS_PER_SEC));
 
   // Clear
   blocks.innerHTML = "";
@@ -7107,8 +7188,8 @@ function heraRenderTimeline() {
   if (!scenes.length) {
     const empty = document.createElement("div");
     empty.className = "vs-scene-block";
-    empty.style.cssText = "min-width:120px;opacity:0.35;font-size:12px;";
-    empty.innerHTML = "<span class='vs-scene-label' style='pointer-events:none'>No scenes yet</span>";
+    empty.style.cssText = "min-width:140px;opacity:0.35;font-size:12px;";
+    empty.innerHTML = "<span class='vs-scene-label' style='pointer-events:none'>صحنه‌ای وجود ندارد</span>";
     blocks.appendChild(empty);
     if (waveRow) waveRow.style.display = "none";
     return;
@@ -7116,6 +7197,7 @@ function heraRenderTimeline() {
   if (waveRow) waveRow.style.display = "";
 
   const activeIdx = vstudio.activeSlide ?? 0;
+  const n = scenes.length;
 
   scenes.forEach((scene, i) => {
     // Dot separator
@@ -7125,20 +7207,30 @@ function heraRenderTimeline() {
       blocks.appendChild(dot);
     }
 
-    const dur = scene.dur ?? scene.duration ?? vsVal("#vsDuration", 4);
-    const width = Math.max(80, Math.round(parseFloat(dur) * PIXELS_PER_SEC));
+    const dur = parseFloat(scene.dur ?? scene.duration ?? vsVal("#vsDuration", 4));
+    const width = Math.max(90, Math.round(dur * PIXELS_PER_SEC));
+    const isActive = i === activeIdx;
 
     const block = document.createElement("div");
-    block.className = "vs-scene-block" + (i === activeIdx ? " active" : "");
+    block.className = "vs-scene-block" + (isActive ? " active" : "");
     block.style.width = width + "px";
     block.dataset.idx = i;
 
-    const label = scene.label || scene.headline || (scene.isIntro ? "Intro" : scene.isOutro ? "Outro" : `Scene-${i + 1}`);
+    // Scene type badge
+    let badge = "▶";
+    if (scene._standaloneInfo) badge = "📊";
+    else if (scene._standaloneNews) badge = "📰";
+    else if (i === 0 && scene.isIntro) badge = "✨";
+    else if (scene.isOutro) badge = "🏁";
+    else if (scene.isVideo) badge = "🎬";
+    else if (scene.mediaEl) badge = "🖼";
+
+    const label = heraSlideLabel(scene, i, n);
 
     block.innerHTML = `
       <div class="vs-scene-resize vs-scene-resize-l" data-dir="l" data-idx="${i}"></div>
-      <span class="vs-scene-label">${label}</span>
-      <div class="vs-scene-dur">${parseFloat(dur).toFixed(1)}s</div>
+      <span class="vs-scene-label"><span class="vs-scene-badge">${badge}</span>${escapeHtml(label)}</span>
+      <div class="vs-scene-dur">${dur.toFixed(1)}s</div>
       <div class="vs-scene-resize vs-scene-resize-r" data-dir="r" data-idx="${i}"></div>
     `;
 
@@ -7150,6 +7242,16 @@ function heraRenderTimeline() {
 
     blocks.appendChild(block);
   });
+
+  // Sync waveform canvas width to total timeline width
+  if (waveCanvas) {
+    waveCanvas.style.width = totalPx + "px";
+    waveCanvas.style.minWidth = totalPx + "px";
+  }
+  if (waveRow) {
+    waveRow.style.width = totalPx + "px";
+    waveRow.style.minWidth = totalPx + "px";
+  }
 
   // Draw waveform
   heraDrawWaveform(waveCanvas, total);
@@ -7217,27 +7319,20 @@ function heraDrawWaveform(canvas, totalDur) {
 // ── TIMELINE UPDATE (scrub position → playhead in scene strip) ─
 function updateTimeline(elapsed, duration) {
   // Legacy AE-style (hidden, kept for compat)
-  const area = $("#vsTrackArea");
-  const head = $("#vsPlayhead");
   const tc = $("#vsTimecode");
-  if (area && head) {
-    const labelW = 76, laneRight = 12;
-    const usable = area.clientWidth - labelW - laneRight;
-    const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
-    head.style.left = (labelW + usable * ratio) + "px";
-  }
   if (tc) {
     const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
     tc.textContent = `${fmt(elapsed)} / ${fmt(duration)}`;
   }
 
-  // Hera playhead in scene strip
+  // Hera playhead — position within .vs-scene-scroll (includes scroll offset effect via left)
   const ph = $("#vsScenePlayhead");
-  const scroll = $("#vsSceneScroll");
-  if (ph && scroll) {
-    const totalPx = Math.max(400, Math.round((duration || 1) * PIXELS_PER_SEC));
+  if (ph) {
+    const totalPx = Math.max(500, Math.round((duration || 1) * PIXELS_PER_SEC));
     const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
     ph.style.left = Math.round(ratio * totalPx) + "px";
+    ph.style.top = "0";
+    ph.style.bottom = "0";
   }
 }
 
