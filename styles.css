@@ -1,3834 +1,1035 @@
-:root {
-  color-scheme: dark;
-  --bg: #070605;
-  --surface: rgba(18, 16, 12, 0.9);
-  --surface-2: rgba(32, 28, 20, 0.9);
-  --line: rgba(255, 255, 255, 0.13);
-  --text: #f8fbff;
-  --muted: #a8b4c8;
-  --gold: #d8b76a;
-  --gold-2: #fff0b8;
-  --bronze: #8f6f33;
-  --ivory: #ffffff;
-  --blue: #d8b76a;
-  --cyan: #d8b76a;
-  --green: #f2d686;
-  --amber: #f4c96a;
-  --rose: #8d62ff;
-  --shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
-}
-
-/* ── LIGHT THEME ─────────────────── */
-body.theme-light {
-  color-scheme: light;
-  --bg: #faf8f3;
-  --surface: rgba(255, 255, 255, 0.95);
-  --surface-2: rgba(248, 244, 236, 0.96);
-  --line: rgba(40, 32, 20, 0.14);
-  --text: #221c12;
-  --muted: #6b6353;
-  --gold: #a8842f;
-  --gold-2: #8a6a22;
-  --bronze: #c8b585;
-  --ivory: #2a2418;
-  --green: #a8842f;
-  --amber: #b8923a;
-  --rose: #7a5fc0;
-  --shadow: 0 24px 70px rgba(60, 48, 24, 0.16);
-}
-body.theme-light .ambient { opacity: 0.25; }
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
-}
-
-body[dir="rtl"] {
-  font-family: Vazirmatn, Tahoma, Arial, sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-.ambient {
-  position: fixed;
-  z-index: -1;
-  width: 340px;
-  height: 340px;
-  border-radius: 999px;
-  filter: blur(84px);
-  opacity: 0.38;
-  transform: translateZ(0);
-}
-
-.ambient-a {
-  top: 12%;
-  left: -120px;
-  background: rgba(111, 134, 255, 0.45);
-}
-
-.ambient-b {
-  right: -120px;
-  bottom: 10%;
-  background: rgba(255, 138, 42, 0.22);
-}
-
-.shell {
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-}
-
-/* ── FIXED LEFT SIDEBAR ────────────────────────────────────── */
-.sidebar {
-  position: sticky;
-  top: 0;
-  flex: 0 0 248px;
-  width: 248px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 14px;
-  border-right: 1px solid var(--line);
-  background: var(--surface);
-  overflow-y: auto;
-  transition: flex-basis 0.22s ease, width 0.22s ease;
-  z-index: 40;
-}
-.sidebar.collapsed {
-  flex-basis: 72px;
-  width: 72px;
-}
-.sidebar-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 6px 10px;
-  border-bottom: 1px solid var(--line);
-}
-/* when collapsed, stack the logo and the collapse button so the
-   button is never clipped — it must always be reachable */
-.sidebar.collapsed .sidebar-top {
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 0 10px;
-}
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1 1 auto;
-  padding-top: 10px;
-}
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 14px;
-  margin-top: 4px;
-  border-top: 1px solid var(--line);
-}
-/* Start CTA — the prominent action */
-.sidebar-cta {
-  text-align: center;
-  width: 100%;
-  min-height: 46px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  box-shadow: 0 6px 18px rgba(216,183,106,0.22);
-}
-/* theme + language sit together in one tidy row */
-.sidebar-prefs {
-  display: flex;
-  gap: 8px;
-}
-.sidebar-prefs .theme-toggle {
-  flex: 1 1 auto;
-  justify-content: center;
-}
-
-/* content area to the right of the sidebar */
-.content-area {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: min(1220px, 100%);
-  margin: 0 auto;
-  padding: 0 16px 40px;
-}
-.sidebar-open {
-  display: none;
-}
-
-/* ── collapsed sidebar — clean icon-only rail ──────────────── */
-.sidebar.collapsed .brand-name,
-.sidebar.collapsed .nav-tx,
-.sidebar.collapsed .nav-group-title {
-  display: none;
-}
-.sidebar.collapsed .sidebar-nav {
-  align-items: center;
-}
-.sidebar.collapsed .nav-group {
-  width: 100%;
-  align-items: center;
-}
-.sidebar.collapsed .sidebar-nav a {
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  margin: 0 auto;
-}
-.sidebar.collapsed .nav-ic {
-  width: auto;
-  font-size: 17px;
-}
-.sidebar.collapsed .sidebar-nav a.active {
-  box-shadow: inset 0 0 0 1px rgba(216,183,106,0.4);
-}
-/* collapsed footer — icon-sized controls */
-.sidebar.collapsed .sidebar-footer {
-  align-items: center;
-}
-.sidebar.collapsed .sidebar-prefs {
-  flex-direction: column;
-  width: 100%;
-  align-items: center;
-}
-.sidebar.collapsed .language-select {
-  display: none;
-}
-.sidebar.collapsed .sidebar-cta {
-  width: 44px;
-  height: 44px;
-  min-height: 0;
-  font-size: 0;
-  padding: 0;
-  border-radius: 12px;
-}
-.sidebar.collapsed .sidebar-cta::after {
-  content: "▶";
-  font-size: 14px;
-  line-height: 1;
-}
-.sidebar.collapsed .nav-collapse-icon {
-  display: inline-block;
-  transform: rotate(180deg);
-}
-.sidebar.collapsed .theme-toggle {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-.sidebar.collapsed #themeToggleLabel { display: none; }
-.topbar {
-  position: sticky;
-  top: 16px;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: 18px;
-  margin: 18px 0 54px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  backdrop-filter: blur(24px);
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
-}
-.topbar .brand,
-.topbar .header-actions {
-  padding-top: 6px;
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 900;
-}
-
-.brand-mark {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 8px;
-  background: #d8b76a;
-  color: #090805;
-  font-size: 13px;
-  letter-spacing: 0;
-  box-shadow: 0 14px 30px rgba(53, 215, 255, 0.22);
-}
-
-.brand-logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  box-shadow: 0 14px 30px rgba(216, 183, 106, 0.18);
-}
-
-.nav {
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-.nav a {
-  padding: 10px 13px;
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 14px;
-  white-space: nowrap;
-}
-.nav a:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: var(--text);
-}
-/* ── Sidebar nav groups ────────────────────────────────────── */
-.nav-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
-}
-.nav-group + .nav-group {
-  border-top: 1px solid var(--line);
-  margin-top: 6px;
-  padding-top: 10px;
-}
-.nav-group-title {
-  margin: 2px 0 4px;
-  padding: 0 10px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  opacity: 0.7;
-}
-.sidebar-nav a {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 10px 11px;
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 14px;
-}
-.sidebar-nav a:hover {
-  background: rgba(255,255,255,0.07);
-  color: var(--text);
-}
-.sidebar-nav a.active {
-  background: rgba(216,183,106,0.14);
-  color: var(--gold);
-}
-.nav-ic {
-  flex: 0 0 auto;
-  width: 22px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--gold);
-}
-.nav-tx { white-space: nowrap; }
-.nav-collapse {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 14px;
-  flex: 0 0 auto;
-}
-.nav-collapse:hover { color: var(--gold); }
-
-.header-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.language-select {
-  flex: 0 0 auto;
-  width: 108px;
-  height: 38px;
-  border-radius: 8px;
-  padding: 0 8px;
-  box-sizing: border-box;
-}
-.sidebar-prefs .theme-toggle {
-  height: 38px;
-  padding: 0 10px;
-}
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text);
-  font-weight: 850;
-  white-space: nowrap;
-}
-
-.button.primary {
-  background: #d8b76a;
-  color: #090805;
-  box-shadow: 0 18px 40px rgba(216, 183, 106, 0.2);
-}
-
-.button.ghost {
-  border-color: var(--line);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.button.gold {
-  border-color: rgba(216, 183, 106, 0.45);
-  color: var(--gold-2);
-  background: rgba(216, 183, 106, 0.11);
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 26px;
-  align-items: center;
-  min-height: 640px;
-  padding-bottom: 54px;
-}
-
-.hero-copy {
-  max-width: 790px;
-}
-
-.hero-mini-copy {
-  align-self: start;
-  padding-top: 44px;
-}
-
-.hero-mini-copy h1 {
-  max-width: 250px;
-  margin-bottom: 14px;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.22;
-}
-
-.hero-mini-copy p:not(.eyebrow) {
-  max-width: 250px;
-  font-size: 12px;
-  line-height: 1.8;
-}
-
-.hero-mini-copy .hero-actions {
-  margin-top: 18px;
-}
-
-.hero-mini-copy .button {
-  min-height: 34px;
-  padding: 0 12px;
-  font-size: 12px;
-}
-
-.eyebrow {
-  margin: 0 0 14px;
-  color: var(--green);
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-body[dir="rtl"] .eyebrow {
-  letter-spacing: 0;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 22px;
-  font-size: clamp(44px, 6.4vw, 82px);
-  line-height: 1.03;
-  letter-spacing: 0;
-  font-family: Prata, Georgia, serif;
-  font-weight: 400;
-}
-
-h2 {
-  margin-bottom: 14px;
-  font-size: clamp(28px, 3.8vw, 46px);
-  line-height: 1.14;
-  font-family: Prata, Georgia, serif;
-  font-weight: 400;
-}
-
-body[dir="rtl"] h1,
-body[dir="rtl"] h2 {
-  font-family: Vazirmatn, Tahoma, Arial, sans-serif;
-  font-weight: 800;
-}
-
-h3 {
-  margin-bottom: 8px;
-  font-size: 20px;
-}
-
-p,
-li {
-  color: var(--muted);
-  line-height: 1.8;
-}
-
-.hero-actions,
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.hero-actions {
-  justify-content: flex-start;
-  margin-top: 30px;
-  flex-wrap: wrap;
-}
-
-.orbital-stage {
-  position: relative;
-  min-height: 560px;
-  perspective: 1000px;
-}
-
-.stage-grid {
-  position: absolute;
-  inset: 48px 0 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: var(--surface);
-  transform: rotateX(64deg) rotateZ(-8deg);
-  transform-origin: center bottom;
-  opacity: 0.7;
-}
-
-.floating-panel,
-.panel,
-.job-card,
-.job-result {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
-}
-
-.panel-main {
-  position: absolute;
-  inset: 10px 12px auto;
-  min-height: 520px;
-  padding: 20px;
-  transform: rotateY(-7deg) rotateX(3deg);
-  transform-style: preserve-3d;
-}
-
-body[dir="rtl"] .panel-main {
-  transform: rotateY(7deg) rotateX(3deg);
-}
-
-.dashboard-board {
-  background: var(--surface-2);
-}
-
-.panel-chip {
-  position: absolute;
-  right: 2px;
-  bottom: 54px;
-  display: grid;
-  gap: 4px;
-  width: 176px;
-  padding: 18px;
-  background: var(--surface-2);
-}
-
-body[dir="rtl"] .panel-chip {
-  right: auto;
-  left: 2px;
-}
-
-.panel-chip span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.panel-chip strong {
-  font-size: 32px;
-}
-
-.preview-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  direction: ltr;
-}
-
-.preview-top strong {
-  margin-left: 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.preview-top span {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--line);
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin: 22px 0 14px;
-}
-
-.metric-grid article {
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.metric-grid strong {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 24px;
-}
-
-.metric-grid span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.chart {
-  display: flex;
-  align-items: end;
-  gap: 14px;
-  height: 300px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-.chart span {
-  flex: 1;
-  border-radius: 8px 8px 0 0;
-  background: #6f86ff;
-  box-shadow: 0 12px 28px rgba(111, 134, 255, 0.16);
-}
-
-.hero-chart-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.live-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid rgba(216, 183, 106, 0.42);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--gold-2);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.hero-live-chart {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.hero-live-row {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) minmax(100px, 0.9fr) 54px;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
-}
-
-.hero-live-row strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.panel,
-.jobs {
-  margin-bottom: 34px;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1.35fr 0.8fr;
-  gap: 14px;
-}
-
-.dash-card {
-  min-height: 132px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.dash-card-large {
-  grid-row: span 3;
-}
-
-.dash-title {
-  margin-bottom: 12px;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.dash-card p {
-  margin: 10px 0 0;
-  font-size: 11px;
-}
-
-.donut-card {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  border: 12px solid #26395f;
-  border-top-color: #6f86ff;
-  border-right-color: #ff8a2a;
-  border-radius: 999px;
-}
-
-.donut-card span {
-  position: absolute;
-  inset: 14px;
-  border: 10px solid #17223c;
-  border-top-color: #ff8a2a;
-  border-radius: inherit;
-}
-
-.donut-card strong {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--text);
-  font-size: 16px;
-}
-
-.spark-bars {
-  display: flex;
-  align-items: end;
-  gap: 10px;
-  height: 92px;
-}
-
-.spark-bars span {
-  flex: 1;
-  min-width: 10px;
-  border-radius: 6px 6px 0 0;
-  background: #6f86ff;
-}
-
-.spark-bars span:nth-child(even) {
-  background: #ff8a2a;
-}
-
-.dash-score-card strong {
-  display: block;
-  margin-top: 10px;
-  color: var(--text);
-  font-size: 44px;
-  line-height: 1;
-}
-
-.luxury-hero {
-  display: block;
-  min-height: auto;
-  padding: 56px 0 72px;
-  border-bottom: 1px solid rgba(216, 183, 106, 0.12);
-}
-
-.luxury-hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 48px;
-  align-items: center;
-}
-
-.luxury-hero-copy { min-width: 0; }
-
-.luxury-hero h1 {
-  margin: 14px 0 22px;
-  color: var(--text);
-  font-family: Prata, Georgia, serif;
-  font-size: clamp(44px, 5vw, 78px);
-  font-weight: 400;
-  line-height: 1.06;
-}
-
-.luxury-hero p:not(.eyebrow) {
-  max-width: 560px;
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1.85;
-}
-
-.luxury-hero .hero-actions { margin-top: 28px; }
-
-/* Right column: motion panel + live stats */
-.luxury-hero-visual {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-/* The title text becomes a window onto a flowing motion gradient */
-.motion-title {
-  background: linear-gradient(
-    100deg,
-    #d8b76a 0%, #fff0b8 22%, #ffffff 38%,
-    #d8b76a 55%, #8f6f33 72%, #fff0b8 88%, #d8b76a 100%);
-  background-size: 280% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: motionTitleFlow 9s linear infinite;
-}
-@keyframes motionTitleFlow {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 280% 50%; }
-}
-
-/* Motion-graphic panel */
-.hero-motion {
-  position: relative;
-  width: 100%;
-  height: 240px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(216,183,106,0.28);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.45), 0 0 60px rgba(216,183,106,0.1);
-}
-.hero-motion canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* Live stat cards under the motion panel */
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.hero-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 14px;
-  border: 1px solid rgba(216,183,106,0.18);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  text-align: center;
-}
-.hero-stat strong {
-  font-family: Prata, serif;
-  font-size: 30px;
-  color: var(--gold-2);
-  line-height: 1;
-}
-.hero-stat span {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-@media (max-width: 860px) {
-  .luxury-hero-grid { grid-template-columns: 1fr; gap: 32px; }
-  .hero-motion { height: 180px; }
-}
-
-.luxury-hero p:not(.eyebrow) {
-  max-width: 760px;
-  color: var(--muted);
-  font-size: 17px;
-  line-height: 1.9;
-}
-
-.luxury-hero .hero-actions {
-  margin-top: 30px;
-}
-
-.chart-only-hero {
-  display: block;
-  min-height: 0;
-  padding: 38px 0 56px;
-}
-
-.chart-dashboard {
-  display: grid;
-  grid-template-columns: 1fr 1.05fr 0.9fr;
-  grid-template-rows: 124px 154px 124px;
-  gap: 18px;
-  width: min(1120px, 100%);
-  margin: 0 auto;
-}
-
-.chart-card {
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  background: var(--surface-2);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
-}
-
-.welcome-card {
-  display: grid;
-  align-content: space-between;
-  padding: 16px;
-  background: var(--surface-2);
-}
-
-.status-row,
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #dbe6ff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.welcome-card > strong {
-  color: var(--text);
-  text-align: center;
-  font-size: 20px;
-}
-
-.welcome-card nav {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px;
-  border-radius: 14px;
-  background: #6f86ff;
-}
-
-.welcome-card nav a {
-  color: var(--text);
-  text-align: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.ranking-card {
-  grid-row: span 2;
-  padding: 16px;
-}
-
-.ranking-card .hero-live-chart {
-  margin-top: 12px;
-  border: 0;
-  background: var(--surface-2);
-}
-
-.donut-panel,
-.bars-panel,
-.line-panel,
-.mini-stats {
-  padding: 16px;
-}
-
-.donut-panel {
-  display: grid;
-  align-content: center;
-}
-
-.bars-panel {
-  grid-column: 3;
-}
-
-.line-panel {
-  grid-column: 3;
-  background: var(--surface-2);
-}
-
-.line-panel svg {
-  width: 100%;
-  height: 92px;
-  margin-top: 10px;
-  overflow: visible;
-}
-
-.line-panel path {
-  fill: none;
-  stroke: #6f86ff;
-  stroke-width: 7;
-  stroke-linecap: round;
-}
-
-.line-panel circle {
-  fill: #ffffff;
-  stroke: #6f86ff;
-  stroke-width: 5;
-}
-
-.mini-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.mini-stats div {
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-
-.mini-stats strong {
-  color: var(--text);
-  font-size: 26px;
-}
-
-.mini-stats span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.panel {
-  padding: 28px;
-  background-color: var(--surface);
-}
-
-.search-wrap {
-  width: min(460px, 100%);
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-.search-wrap #searchInput {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 40px;
-  padding: 0 14px;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  outline: none;
-}
-
-/* Open dropdown list — explicit colors so options are never
-   rendered with white text on a white background. */
-select option,
-select optgroup {
-  background-color: #16130d;
-  color: var(--text);
-}
-body.theme-light select option,
-body.theme-light select optgroup {
-  background-color: #ffffff;
-  color: #221c12;
-}
-
-input,
-select {
-  min-height: 46px;
-  padding: 0 14px;
-}
-
-textarea {
-  resize: vertical;
-  padding: 14px;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: rgba(53, 215, 255, 0.76);
-  box-shadow: 0 0 0 4px rgba(53, 215, 255, 0.12);
-}
-
-label {
-  display: grid;
-  gap: 9px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.web-search-form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: end;
-  margin: 24px 0 20px;
-}
-
-.source-links {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.source-card,
-.tool-card,
-.role-item,
-.slide-item {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.052);
-}
-
-.source-card {
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-}
-
-.source-card strong {
-  font-size: 16px;
-}
-
-.source-card span {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin: 24px 0;
-}
-@media (max-width: 760px) {
-  .filters { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 420px) {
-  .filters { grid-template-columns: 1fr; }
-}
-
-.advanced-search {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin: -8px 0 24px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-@media (max-width: 560px) {
-  .advanced-search { grid-template-columns: 1fr; }
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.toggle-row input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  min-height: 20px;
-  padding: 0;
-  margin: 0;
-  flex-shrink: 0;
-  accent-color: var(--gold);
-  cursor: pointer;
-}
-.toggle-row span {
-  color: var(--text);
-}
-
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.tool-card {
-  display: grid;
-  gap: 14px;
-  min-height: 338px;
-  padding: 18px;
-  transform: translateY(0);
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
-}
-
-.tool-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(53, 215, 255, 0.34);
-  background: rgba(255, 255, 255, 0.072);
-}
-
-.tool-top,
-.tool-actions,
-.tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tool-top {
-  justify-content: space-between;
-}
-
-.logo {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--gold-2);
-  font-weight: 950;
-  overflow: hidden;
-}
-
-.logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.price {
-  color: var(--amber);
-  font-weight: 900;
-}
-
-.tag {
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.tool-card p {
-  margin-bottom: 0;
-  font-size: 14px;
-}
-
-.tool-actions {
-  align-self: end;
-  justify-content: space-between;
-}
-
-.mini-link {
-  color: var(--green);
-  font-weight: 900;
-}
-
-.compare-table {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  min-width: 800px;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 14px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-}
-
-body[dir="rtl"] th,
-body[dir="rtl"] td {
-  text-align: right;
-}
-
-th {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.empty {
-  margin: 0;
-  padding: 22px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.studio-layout,
-.media-layout {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 20px;
-}
-
-.panel-sub {
-  margin-top: 18px;
-  padding: 20px;
-  border: 1px solid rgba(111, 134, 255, 0.18);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-.section-head.compact {
-  margin-bottom: 14px;
-}
-
-.intel-layout,
-.register-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.utility-card {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.045);
-}
-
-pre {
-  min-height: 180px;
-  max-height: 360px;
-  overflow: auto;
-  margin: 0;
-  padding: 44px 14px 14px;
-  border: 1px solid rgba(111, 134, 255, 0.18);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--gold-2);
-  white-space: pre-wrap;
-}
-
-.output-box {
-  position: relative;
-}
-
-.copy-mini {
-  position: absolute;
-  top: 8px;
-  inset-inline-end: 8px;
-  z-index: 2;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid rgba(111, 134, 255, 0.35);
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--gold-2);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.register-form {
-  grid-template-columns: 1fr 1fr 1fr auto;
-  align-items: end;
-}
-
-.studio-controls {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-}
-
-.upload-box {
-  padding: 18px;
-  border: 1px dashed rgba(111, 134, 255, 0.55);
-  border-radius: 8px;
-  background: rgba(111, 134, 255, 0.08);
-}
-
-.control-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-.video-preview-wrap,
-.media-output {
-  display: grid;
-  gap: 14px;
-}
-
-.video-preview,
-.media-preview {
-  position: relative;
-  display: grid;
-  min-height: 220px;
-  max-height: 70vh;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-/* Background-art images in the studio still fill their frame. */
-.video-preview img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Uploaded caption media scales to fit any size/aspect ratio
-   without cropping or distortion. */
-.media-preview img,
-.media-preview video {
-  position: static;
-  display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 70vh;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.caption-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.performance-chart {
-  display: block;
-  width: 100%;
-  min-height: 200px;
-  padding: 22px;
-  border: 1px solid rgba(216, 183, 106, 0.18);
-  border-radius: 10px;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(216,183,106,0.06), transparent 60%),
-    rgba(0, 0, 0, 0.32);
-}
-#chart3DLabel {
-  margin-bottom: 14px;
-}
-.live-bar-row.is-highlighted .bar-names strong {
-  color: var(--gold-2);
-  font-weight: 700;
-}
-
-.performance-group {
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-  border: 1px solid rgba(111, 134, 255, 0.18);
-  border-radius: 8px;
-  background: var(--surface-2);
-}
-
-.performance-row {
-  display: grid;
-  grid-template-columns: 32px minmax(110px, 1fr) minmax(120px, 1.4fr) 42px;
-  gap: 10px;
-  align-items: center;
-}
-
-.performance-row strong {
-  display: grid;
-  gap: 3px;
-}
-
-.performance-row small {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.performance-row em {
-  display: grid;
-  gap: 2px;
-  color: var(--gold-2);
-  font-style: normal;
-  font-weight: 800;
-}
-
-.source-note {
-  margin: 8px 0 18px;
-  color: var(--gold-2);
-  font-size: 13px;
-}
-
-.logo.small {
-  width: 32px;
-  height: 32px;
-}
-
-.score-track {
-  height: 9px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.score-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #d8b76a;
-}
-
-.video-shade {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: rgba(0, 0, 0, 0.58);
-  animation: shadeSweep var(--slide-duration, 4s) ease-in-out infinite alternate;
-}
-
-body[dir="rtl"] .video-shade {
-  background: rgba(0, 0, 0, 0.58);
-}
-
-.video-copy {
-  position: absolute;
-  inset-inline-start: 34px;
-  bottom: 34px;
-  z-index: 3;
-  max-width: min(74%, 620px);
-}
-
-.video-kicker,
-.video-title,
-.video-caption,
-.video-line {
-  display: block;
-  animation-duration: var(--slide-duration, 4s);
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
-
-.video-kicker {
-  margin-bottom: 12px;
-  color: var(--gold-2);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  animation-name: elementDrift;
-}
-
-.video-title {
-  color: var(--ivory);
-  font-family: Prata, Georgia, serif;
-  font-size: clamp(30px, 5vw, 58px);
-  line-height: 1.04;
-  animation-name: titleReveal;
-}
-
-body[dir="rtl"] .video-title {
-  font-family: Vazirmatn, Tahoma, Arial, sans-serif;
-  font-weight: 800;
-}
-
-.video-caption {
-  max-width: 560px;
-  margin-top: 14px;
-  color: rgba(255, 250, 240, 0.78);
-  line-height: 1.7;
-  animation-name: captionRise;
-}
-
-.video-line {
-  width: 132px;
-  height: 2px;
-  margin-top: 18px;
-  background: #6f86ff;
-  animation-name: lineGrow;
-}
-
-.video-progress {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 16px;
-  z-index: 4;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.video-progress span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  transform-origin: left;
-  background: #6f86ff;
-  animation: progressFill var(--slide-duration, 4s) linear infinite;
-}
-
-.chart-overlay {
-  position: absolute;
-  right: 34px;
-  bottom: 34px;
-  z-index: 3;
-  display: flex;
-  align-items: end;
-  gap: 10px;
-  width: min(34%, 300px);
-  height: 170px;
-  padding: 18px;
-  border: 1px solid rgba(111, 134, 255, 0.22);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.38);
-}
-
-body[dir="rtl"] .chart-overlay {
-  right: auto;
-  left: 34px;
-}
-
-.chart-overlay span {
-  flex: 1;
-  min-width: 8px;
-  border-radius: 6px 6px 0 0;
-  background: #6f86ff;
-  animation: barRise var(--slide-duration, 4s) ease-in-out infinite alternate;
-  transform-origin: bottom;
-}
-
-.preview-placeholder {
-  padding: 24px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.motion-zoom {
-  animation: motionZoom var(--slide-duration, 4s) ease-in-out infinite alternate;
-}
-
-.motion-pan {
-  animation: motionPan var(--slide-duration, 4s) ease-in-out infinite alternate;
-}
-
-.motion-fade {
-  animation: motionFade var(--slide-duration, 4s) ease-in-out infinite alternate;
-}
-
-.motion-rise {
-  animation: motionRise var(--slide-duration, 4s) ease-in-out infinite alternate;
-}
-
-@keyframes motionZoom {
-  from { transform: scale(1); }
-  to { transform: scale(1.12); }
-}
-
-@keyframes motionPan {
-  from { transform: scale(1.08) translateX(-3%); }
-  to { transform: scale(1.08) translateX(3%); }
-}
-
-@keyframes motionFade {
-  from { opacity: 0.68; transform: scale(1.04); }
-  to { opacity: 1; transform: scale(1.04); }
-}
-
-@keyframes motionRise {
-  from { transform: scale(1.06) translateY(3%); }
-  to { transform: scale(1.06) translateY(-3%); }
-}
-
-@keyframes shadeSweep {
-  from { opacity: 0.9; transform: translateX(-2%); }
-  to { opacity: 0.72; transform: translateX(2%); }
-}
-
-@keyframes elementDrift {
-  from { opacity: 0.72; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes titleReveal {
-  from { opacity: 0.86; transform: translateY(18px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes captionRise {
-  from { opacity: 0.58; transform: translateY(14px); }
-  to { opacity: 0.96; transform: translateY(0); }
-}
-
-@keyframes lineGrow {
-  from { opacity: 0.5; transform: scaleX(0.35); transform-origin: left; }
-  to { opacity: 1; transform: scaleX(1); transform-origin: left; }
-}
-
-@keyframes progressFill {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
-@keyframes barRise {
-  from { transform: scaleY(0.18); opacity: 0.65; }
-  to { transform: scaleY(1); opacity: 1; }
-}
-
-.studio-status {
-  min-height: 24px;
-  margin: 0;
-  color: var(--gold-2);
-  font-size: 13px;
-}
-
-.timeline {
-  display: grid;
-  gap: 10px;
-}
-
-.slide-item {
-  display: grid;
-  grid-template-columns: 64px minmax(120px, 1fr) repeat(5, minmax(110px, 1fr)) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px;
-}
-
-.slide-item img {
-  width: 64px;
-  height: 42px;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
-.slide-item p {
-  margin: 0;
-  font-size: 13px;
-}
-
-.slide-item label {
-  gap: 6px;
-}
-
-.slide-item input,
-.slide-item select {
-  min-height: 38px;
-}
-
-.job-layout {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 18px;
-}
-
-.job-card,
-.job-result {
-  padding: 22px;
-}
-
-.job-card {
-  align-content: start;
-}
-
-.job-result {
-  min-height: 260px;
-}
-
-.role-list {
-  display: grid;
-  gap: 12px;
-}
-
-.role-item {
-  padding: 14px;
-}
-
-.role-item strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (max-width: 980px) {
-  /* the fixed sidebar becomes an off-canvas slide-out drawer */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    flex-basis: 248px;
-    width: 248px;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    box-shadow: 0 0 60px rgba(0,0,0,0.5);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  /* collapsed state is irrelevant on mobile — always show full drawer */
-  .sidebar.collapsed {
-    flex-basis: 248px;
-    width: 248px;
-  }
-  .sidebar.collapsed .brand-name,
-  .sidebar.collapsed .nav-tx,
-  .sidebar.collapsed .nav-group-title,
-  .sidebar.collapsed .language-select { display: revert; }
-  .nav-collapse { display: none; }
-  .content-area {
-    width: 100%;
-    padding: 0 14px 40px;
-  }
-  /* hamburger button to open the drawer */
-  .sidebar-open {
-    display: grid;
-    place-items: center;
-    position: sticky;
-    top: 10px;
-    width: 42px;
-    height: 42px;
-    margin: 12px 0;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--surface);
-    color: var(--text);
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 30;
-  }
-  /* dim backdrop when the drawer is open */
-  .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 39;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease;
-  }
-  .sidebar-backdrop.show {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .hero,
-  .studio-layout,
-  .media-layout,
-  .job-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .orbital-stage {
-    min-height: 450px;
-  }
-
-  .panel-main {
-    inset: 18px;
-  }
-
-  .source-links,
-  .tool-grid,
-  .advanced-search,
-  .intel-layout,
-  .performance-chart,
-  .register-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .section-head,
-  .web-search-form {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-    flex-direction: column;
-  }
-  .section-head .search-wrap {
-    width: 100%;
-  }
-
-  .chart-dashboard {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: none;
-  }
-  .chart-dashboard > .chart-card {
-    grid-column: auto;
-    grid-row: auto;
-    min-height: 150px;
-  }
-}
-
-@media (max-width: 640px) {
-  .topbar {
-    top: 8px;
-    margin-bottom: 34px;
-  }
-
-  .brand span:last-child {
-    display: none;
-  }
-
-  .header-actions {
-    gap: 8px;
-  }
-
-  .language-select {
-    width: 96px;
-  }
-
-  .hero {
-    min-height: auto;
-  }
-
-  h1 {
-    font-size: 39px;
-  }
-
-  .metric-grid,
-  .filters,
-  .advanced-search,
-  .intel-layout,
-  .register-form,
-  .performance-chart,
-  .source-links,
-  .tool-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .chart-dashboard {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-    gap: 14px;
-  }
-  .chart-dashboard > .chart-card {
-    grid-column: 1 !important;
-    grid-row: auto !important;
-    min-height: 150px;
-  }
-  .ranking-card {
-    grid-row: auto;
-  }
-  .mini-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .panel,
-  .job-card,
-  .job-result {
-    padding: 18px;
-  }
-  /* video studio — stack controls, un-stick the preview, single-column grids */
-  .vstudio-stage {
-    position: static;
-  }
-  .vstudio-block .control-grid {
-    grid-template-columns: 1fr;
-  }
-  .vtab-bar {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-  }
-  .vs-info-row {
-    grid-template-columns: 1fr 1fr 28px;
-  }
-  /* safety net — nothing overflows the viewport on phones */
-  .panel, .chart-card, .tool-card, .credit-card {
-    max-width: 100%;
-  }
-  canvas, svg, img, video {
-    max-width: 100%;
-  }
-  .nav {
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .panel-main {
-    transform: none;
-  }
-
-  .panel-chip {
-    display: none;
-  }
-
-  .video-preview,
-  .media-preview {
-    min-height: 300px;
-  }
-
-  .slide-item {
-    grid-template-columns: 56px 1fr;
-  }
-
-  .slide-item label,
-  .slide-item .button {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ── AI LUXURY UPGRADES ──────────────────────────────── */
-.ai-btn {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #d8b76a 0%, #f7df9c 50%, #d8b76a 100%);
-  background-size: 200% 200%;
-  animation: goldShimmer 3s ease infinite;
-  color: #090805;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  gap: 8px;
-  border: none;
-  box-shadow: 0 0 0 1px rgba(216,183,106,0.4), 0 20px 50px rgba(216,183,106,0.25);
-}
-
-.ai-btn:hover {
-  box-shadow: 0 0 0 1px rgba(216,183,106,0.7), 0 24px 60px rgba(216,183,106,0.4);
-  transform: translateY(-1px);
-}
-
-.ai-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.ai-btn-icon {
-  font-size: 14px;
-  animation: pulse 2s ease infinite;
-}
-
-@keyframes goldShimmer {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
-}
-
-.ai-note {
-  font-size: 12px;
-  color: var(--bronze);
-  margin: 8px 0 0;
-  line-height: 1.5;
-}
-
-.ai-output {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid rgba(216,183,106,0.15);
-  border-radius: 10px;
-  padding: 18px;
-  font-size: 13px;
-  line-height: 1.75;
-  color: #e8dfc8;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 60px;
-  transition: border-color 0.3s;
-}
-
-.ai-output:not(:empty) {
-  border-color: rgba(216,183,106,0.3);
-  box-shadow: 0 0 30px rgba(216,183,106,0.05);
-}
-
-.json-out {
-  color: #a8c8a8;
-  border-color: rgba(168,200,168,0.15);
-  font-family: "SF Mono", "Fira Code", monospace;
-  font-size: 12px;
-}
-
-.json-out:not(:empty) {
-  border-color: rgba(168,200,168,0.3);
-}
-
-/* Highlight JSON keys */
-.json-out { color: #c8e6c8; }
-
-/* Output box upgrade */
-.output-box {
-  position: relative;
-  margin-top: 16px;
-}
-
-.output-box .copy-mini {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  padding: 4px 12px;
-  font-size: 11px;
-  min-height: 28px;
-  background: rgba(216,183,106,0.12);
-  border: 1px solid rgba(216,183,106,0.3);
-  border-radius: 6px;
-  color: var(--gold);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.output-box .copy-mini:hover {
-  background: rgba(216,183,106,0.22);
-}
-
-/* Loading animation for AI outputs */
-.ai-output.loading::after {
-  content: "▋";
-  animation: blink 0.8s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* Caption section badge */
-.eyebrow.ai-powered {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.eyebrow.ai-powered::before {
-  content: "✦";
-  color: var(--gold);
-}
-
-/* Media preview enhancement */
-.media-preview {
-  border: 1px solid rgba(216,183,106,0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--surface);
-  min-height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.3s;
-}
-
-.media-preview:has(img) {
-  border-color: rgba(216,183,106,0.4);
-  box-shadow: 0 0 40px rgba(216,183,106,0.08);
-}
-
-.media-preview img,
-.media-preview video {
-  max-width: 100%;
-  max-height: 70vh;
-  width: auto;
-  height: auto;
-  border-radius: 12px;
-  display: block;
-}
-
-/* Upload box enhancement */
-.upload-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px;
-  border: 1px dashed rgba(216,183,106,0.3);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: rgba(216,183,106,0.03);
-  text-align: center;
-}
-
-.upload-box:hover {
-  border-color: rgba(216,183,106,0.6);
-  background: rgba(216,183,106,0.06);
-}
-
-.upload-box input { display: none; }
-
-.utility-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.utility-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(216,183,106,0.4), transparent);
-}
-
-/* ── HEADER MOTION ───────────────────────────────────── */
-.topbar {
-  animation: slideDown 0.6s cubic-bezier(0.4,0,0.2,1) both;
-}
-@keyframes slideDown {
-  from { transform: translateY(-20px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
-
-/* Compact title */
-h1[data-i18n="heroTitle"] {
-  font-size: clamp(32px, 4.5vw, 58px) !important;
-}
-
-/* ── MODELS TICKER ───────────────────────────────────── */
-.models-ticker-wrap {
-  width: 100%;
-  overflow: hidden;
-  padding: 10px 0;
-  margin: 18px 0 30px;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-}
-.models-ticker {
-  display: flex;
-  gap: 0;
-  width: max-content;
-  animation: tickerScroll 40s linear infinite;
-}
-.models-ticker:hover { animation-play-state: paused; }
-@keyframes tickerScroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.ticker-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 18px;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--muted);
-  transition: color 0.2s;
-}
-.ticker-item:hover { color: var(--gold); }
-.ticker-item img {
-  width: 18px; height: 18px;
-  border-radius: 4px;
-  opacity: 0.85;
-}
-
-/* ── LIVE CHART ─────────────────────────────────────── */
-.chart-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 6px 0 20px;
-}
-.chart-tabs {
-  display: flex;
-  gap: 8px;
-}
-.chart-tab {
-  height: 38px;
-  padding: 0 18px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.04);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.chart-tab.active,
-.chart-tab:hover {
-  background: rgba(216,183,106,0.12);
-  border-color: rgba(216,183,106,0.4);
-  color: var(--gold);
-}
-.live-dot-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(16,185,129,0.08);
-  font-size: 12px;
-  color: #10B981;
-  font-weight: 700;
-}
-.live-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 8px #10B981;
-  animation: livePulse 1.5s ease infinite;
-}
-@keyframes livePulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px #10B981; }
-  50%       { opacity: 0.5; box-shadow: 0 0 16px #10B981; }
-}
-.live-chart { display: flex; flex-direction: column; gap: 10px; }
-.chart-label {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.live-bar-row {
-  display: grid;
-  grid-template-columns: 220px 1fr 80px;
-  align-items: center;
-  gap: 12px;
-  opacity: 0;
-  animation: fadeUp 0.4s ease forwards;
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.bar-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.bar-meta img { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
-.bar-names { min-width: 0; }
-.bar-names strong { display: block; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-names small  { font-size: 10px; color: var(--muted); }
-.bar-track {
-  height: 10px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  width: 0;
-  transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
-}
-.bar-val {
-  font-size: 12px;
-  font-weight: 600;
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* ── VIDEO TEMPLATE STUDIO ──────────────────────────────── */
-.vstudio-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-.vstudio-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.vstudio-block {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.vstudio-label {
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--gold);
-  font-weight: 600;
-}
-.vstudio-block label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.vstudio-block input[type="text"],
-.vstudio-block input[type="number"],
-.vstudio-block select {
-  padding: 9px 11px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  font-size: 14px;
-}
-.template-picker {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.template-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 6px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(255,255,255,0.03);
-  cursor: pointer;
-  text-align: center;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-}
-.template-card:hover { transform: translateY(-2px); }
-.template-card.selected {
-  border-color: var(--gold);
-  background: rgba(216,183,106,0.1);
-  box-shadow: 0 0 22px rgba(216,183,106,0.12);
-}
-.template-card strong {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.2;
-}
-/* small template icon — a compact rounded swatch */
-.template-swatch {
-  width: 100%;
-  height: 30px;
-  border-radius: 6px;
-  border: 1px solid;
-  display: grid;
-  place-items: center;
-}
-.template-swatch span {
-  width: 44%;
-  height: 4px;
-  border-radius: 99px;
-}
-/* collapsible template section */
-.vs-template-collapse { width: 100%; }
-.vs-template-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-  list-style: none;
-  padding: 4px 0;
-}
-.vs-template-summary::-webkit-details-marker { display: none; }
-.vs-template-summary::after {
-  content: "▾";
-  color: var(--gold);
-  font-size: 12px;
-  margin-left: auto;
-  transition: transform 0.2s ease;
-}
-.vs-template-collapse:not([open]) .vs-template-summary::after {
-  transform: rotate(-90deg);
-}
-.vs-template-current {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--gold);
-}
-.vstudio-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.vstudio-stage {
-  position: sticky;
-  top: 16px;
-  align-self: start;
-}
-.vs-preview {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  /* the box hugs the canvas — height follows the media's shape,
-     so there's no wasted black space around a wide or tall clip */
-  min-height: 260px;
-  border: 1px solid rgba(216,183,106,0.2);
-  border-radius: 12px;
-  background: var(--surface);
-  overflow: hidden;
-  padding: 10px;
-}
-.vs-preview canvas {
-  display: block;
-  /* fill available width; cap height so a tall portrait clip can't
-     push the studio off-screen. Aspect ratio always preserved. */
-  max-width: 100%;
-  max-height: 68vh;
-  width: auto;
-  height: auto;
-  border-radius: 8px;
-}
-@media (max-width: 860px) {
-  .vstudio-layout { grid-template-columns: 1fr; }
-}
-
-/* ── ADVANCED VIDEO STUDIO — additional controls ────────── */
-.upload-box.small {
-  padding: 14px;
-  font-size: 12px;
-}
-.vstudio-block .control-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.vstudio-block .toggle-row {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding-top: 22px;
-}
-.vstudio-block .toggle-row input {
-  width: auto;
-}
-.vstudio-block select {
-  cursor: pointer;
-}
-.vs-stage-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 10px;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--gold);
-  font-weight: 600;
-}
-.vs-size-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--muted);
-  font-weight: 400;
-}
-.vs-size-control input[type="range"] {
-  width: 130px;
-  accent-color: var(--gold);
-  cursor: pointer;
-}
-.vs-size-control em {
-  font-style: normal;
-  color: var(--gold-2);
-  min-width: 38px;
-  text-align: right;
-}
-.vs-preview {
-  text-align: center;
-}
-.vs-preview canvas {
-  margin: 0 auto;
-}
-
-/* ── THEME TOGGLE ───────────────────────────────────────── */
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.05);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  box-sizing: border-box;
-  transition: border-color 0.2s, background 0.2s;
-}
-.theme-toggle:hover {
-  border-color: var(--gold);
-  background: rgba(216,183,106,0.1);
-}
-.theme-toggle-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #070605 50%, #d8b76a 50%);
-  border: 1px solid var(--line);
-}
-body.theme-light .theme-toggle-dot {
-  background: linear-gradient(135deg, #f6f3fb 50%, #8b6fc7 50%);
-}
-
-/* ── ABOUT / CREDITS SECTION ────────────────────────────── */
-.about-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-}
-.credit-card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  gap: 4px 14px;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-}
-.credit-avatar {
-  grid-row: span 2;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: Prata, serif;
-  font-size: 20px;
-  color: var(--bg);
-  background: linear-gradient(135deg, var(--gold), var(--gold-2));
-}
-.credit-meta strong {
-  font-size: 16px;
-  color: var(--text);
-  display: block;
-}
-.credit-meta span {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--gold);
-}
-.credit-card p {
-  grid-column: 1 / -1;
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--muted);
-}
-
-/* ── TOOL FINDER — view toggle & list mode ──────────────── */
-.view-toggle {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: stretch;
-  gap: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.view-btn {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255,255,255,0.04);
-  border: none;
-  cursor: pointer;
-  color: var(--muted);
-  transition: background 0.15s, color 0.15s;
-}
-.view-btn svg { fill: currentColor; }
-.view-btn:hover { color: var(--text); }
-.view-btn.active {
-  background: rgba(216,183,106,0.16);
-  color: var(--gold);
-}
-
-/* List view: tools render as full-width rows */
-.tool-grid.is-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* Compact list row — fixed small height, no oversized cards */
-.tool-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.tool-row:hover { border-color: var(--gold); }
-.tool-row .logo {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--surface-2);
-  font-size: 13px;
-  overflow: hidden;
-}
-.tool-row .logo img { width: 100%; height: 100%; object-fit: cover; }
-.tool-row-main {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-.tool-row-main h3 {
-  font-size: 15px;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tool-row-main .tag { flex-shrink: 0; font-size: 11px; }
-.tool-row .price { font-size: 13px; flex-shrink: 0; white-space: nowrap; }
-.tool-row-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.tool-row-actions .button { padding: 6px 12px; font-size: 12px; }
-@media (max-width: 680px) {
-  .tool-row { flex-wrap: wrap; gap: 8px; }
-  .tool-row-main { flex-basis: 100%; }
-}
-
-/* Jump-to highlight flash */
-@keyframes toolCardFlash {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(216,183,106,0); }
-  30%      { box-shadow: 0 0 0 3px rgba(216,183,106,0.55), 0 0 30px rgba(216,183,106,0.3); }
-}
-.tool-card-flash {
-  animation: toolCardFlash 1.6s ease;
-  border-color: var(--gold) !important;
-}
-
-/* ── VIDEO STUDIO — category tabs ───────────────────────── */
-.vtab-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 4px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-}
-.vtab {
-  flex-shrink: 0;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.04);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.18s;
-}
-.vtab:hover { color: var(--text); }
-.vtab.active {
-  background: rgba(216,183,106,0.14);
-  border-color: rgba(216,183,106,0.4);
-  color: var(--gold);
-}
-.vtab-hidden { display: none !important; }
-
-/* ── LIGHT THEME — fix hardcoded light text ─────────────────
-   These selectors hardcode white/cream colors that become
-   invisible on the light background. Force them to theme vars. */
-body.theme-light .dash-title,
-body.theme-light .welcome-card > strong,
-body.theme-light .welcome-card nav a,
-body.theme-light .mini-stats strong,
-body.theme-light .luxury-hero h1:not(.motion-title),
-body.theme-light h1, body.theme-light h2, body.theme-light h3,
-body.theme-light .tool-card h3,
-body.theme-light .credit-meta strong,
-body.theme-light .hero-stat strong,
-body.theme-light .bar-names strong,
-body.theme-light .ai-output,
-body.theme-light pre,
-body.theme-light td, body.theme-light th {
-  color: var(--text);
-}
-body.theme-light .luxury-hero p:not(.eyebrow),
-body.theme-light .credit-card p,
-body.theme-light p {
-  color: var(--muted);
-}
-body.theme-light .badge,
-body.theme-light [class*="chip"] {
-  color: var(--gold-2);
-}
-/* SVG icons that hardcode white fill */
-body.theme-light svg[fill="#ffffff"],
-body.theme-light .view-btn svg {
-  fill: currentColor;
-}
-/* Inputs/textareas readable in light mode */
-body.theme-light input,
-body.theme-light textarea,
-body.theme-light select {
-  background: rgba(255,255,255,0.7);
-  color: var(--text);
-}
-body.theme-light .ai-output,
-body.theme-light pre {
-  background: rgba(255,255,255,0.6);
-}
-
-/* Tool count + free-toggle as a clear switch */
-.tool-count {
-  margin: 0 0 14px;
-  font-size: 13px;
-  color: var(--gold);
-  font-weight: 600;
-}
-.toggle-row {
-  cursor: pointer;
-  user-select: none;
-}
-.toggle-row input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 42px;
-  height: 24px;
-  min-height: 24px;
-  padding: 0;
-  margin: 0;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid var(--line);
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.2s;
-}
-.toggle-row input[type="checkbox"]::after {
-  content: "";
-  position: absolute;
-  top: 2px; left: 2px;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s;
-}
-.toggle-row input[type="checkbox"]:checked {
-  background: var(--gold);
-}
-.toggle-row input[type="checkbox"]:checked::after {
-  transform: translateX(18px);
-}
-
-/* ── AE-STYLE TIMELINE STRIP ────────────────────────────── */
-
-/* ── HERA-STYLE SCENE TIMELINE ─────────────────────────────── */
-.vs-timeline {
-  margin-top: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.vs-timeline-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
-}
-.vs-play-btn {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: rgba(216,183,106,0.14);
-  color: var(--gold);
-  cursor: pointer;
-  font-size: 11px;
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s, transform 0.1s;
-}
-.vs-play-btn:hover { background: rgba(216,183,106,0.3); transform: scale(1.06); }
-.vs-timecode {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 12px;
-  color: var(--text);
-  background: rgba(255,255,255,0.06);
-  border-radius: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-}
-.vs-timeline-hint { font-size: 11px; color: var(--muted); margin-left: auto; }
-
-/* Scene strip */
-.vs-scene-strip { position: relative; padding: 12px 14px 4px; }
-.vs-scene-scroll {
-  position: relative;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
-  padding-bottom: 20px;
-  min-height: 130px;
-}
-.vs-scene-scroll::-webkit-scrollbar { height: 4px; }
-.vs-scene-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
-
-/* blocks container: flex row, wide as needed */
-.vs-scene-blocks {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 52px;
-  padding: 2px 2px 4px;
-  white-space: nowrap;
-  min-width: max-content;
-}
-
-/* single scene block */
-.vs-scene-block {
-  position: relative;
-  height: 52px;
-  min-width: 90px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  user-select: none;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  transition: opacity 0.18s, transform 0.15s, box-shadow 0.15s;
-  overflow: visible;
-  flex-shrink: 0;
-  vertical-align: middle;
-}
-.vs-scene-block.active {
-  background: #f04e2b !important;
-  color: #fff !important;
-  box-shadow: 0 4px 20px rgba(240,78,43,0.5);
-  transform: translateY(-1px);
-}
-.vs-scene-block:not(.active) {
-  background: rgba(255,255,255,0.07);
-  color: var(--muted);
-  border: 1.5px solid var(--line);
-}
-.vs-scene-block:not(.active):hover {
-  background: rgba(255,255,255,0.13);
-  border-color: rgba(255,255,255,0.3);
-  color: var(--text);
-}
-
-/* connector dot */
-.vs-scene-dot {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
-  flex-shrink: 0;
-  vertical-align: middle;
-  margin-bottom: 4px;
-}
-
-/* resize handle */
-.vs-scene-resize {
-  position: absolute; top: 0; bottom: 0;
-  width: 14px; cursor: ew-resize; z-index: 5;
-  display: flex; align-items: center; justify-content: center;
-}
-.vs-scene-resize::after {
-  content: ''; width: 3px; height: 20px; border-radius: 2px;
-  background: rgba(255,255,255,0.28); transition: background 0.15s, height 0.15s;
-}
-.vs-scene-resize:hover::after,
-.vs-scene-block.active .vs-scene-resize::after {
-  background: rgba(255,255,255,0.75); height: 28px;
-}
-.vs-scene-resize-l { left: 3px; }
-.vs-scene-resize-r { right: 3px; }
-
-.vs-scene-label {
-  pointer-events: none;
-  padding: 0 18px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  display: flex; align-items: center; gap: 4px;
-}
-.vs-scene-badge { font-size: 12px; flex-shrink: 0; }
-
-/* duration badge below block */
-.vs-scene-dur {
-  position: absolute; bottom: -18px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px; color: var(--muted);
-  white-space: nowrap; pointer-events: none;
-  font-family: ui-monospace, monospace;
-}
-
-/* waveform row — width set by JS */
-.vs-waveform-row {
-  margin-top: 26px; height: 38px;
-  border-radius: 6px; overflow: hidden;
-  background: rgba(255,255,255,0.03);
-  position: relative; min-width: 100%;
-}
-.vs-waveform-canvas { height: 38px; display: block; }
-
-/* playhead */
-.vs-scene-playhead {
-  position: absolute; top: 0; bottom: 0; width: 2px;
-  background: #ff4433; border-radius: 1px;
-  pointer-events: none; left: 0; z-index: 10;
-}
-.vs-scene-playhead::before {
-  content: ''; position: absolute; top: -5px; left: 50%;
-  transform: translateX(-50%);
-  width: 10px; height: 9px; background: #ff4433;
-  border-radius: 2px 2px 3px 3px;
-}
-
-/* Legacy tracks (hidden) */
-.vs-track-area { position: relative; padding: 8px 0; cursor: pointer; }
-.vs-tracks { display: flex; flex-direction: column; gap: 6px; }
-.vs-track { display: flex; align-items: center; height: 30px; }
-.vs-track-label {
-  width: 64px; flex-shrink: 0; padding-left: 12px;
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
-}
-.vs-track-lane { flex: 1; height: 100%; margin-right: 12px; background: rgba(255,255,255,0.04); border-radius: 5px; position: relative; }
-.vs-clip {
-  position: absolute; inset: 3px 0; border-radius: 4px;
-  display: flex; align-items: center; padding: 0 10px;
-  font-size: 11px; font-weight: 600; color: #0c0a06;
-  overflow: hidden; white-space: nowrap; opacity: 0.4; transition: opacity 0.2s;
-}
-.vs-clip.is-active { opacity: 1; }
-.vs-clip-media { background: linear-gradient(90deg,#d8b76a,#fff0b8); }
-.vs-clip-text  { background: linear-gradient(90deg,#7a9cff,#b9c8ff); }
-.vs-clip-logo  { background: linear-gradient(90deg,#6fce9f,#bdeccf); }
-.vs-clip-music { background: linear-gradient(90deg,#c98fe0,#e6c4f0); }
-.vs-playhead { position: absolute; top: 0; bottom: 0; left: 76px; width: 2px; background: #ff5a5a; pointer-events: none; }
-.vs-playhead-grip { position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 13px; height: 11px; background: #ff5a5a; border-radius: 2px 2px 4px 4px; }
-
-/* Inline helper note inside a studio panel */
-.vstudio-note {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-
-/* Price / Free badges */
-.price-free {
-  color: #6fce9f !important;
-  font-weight: 700;
-}
-.price-paid {
-  color: var(--muted);
-}
-
-/* Timeline undo/redo buttons */
-.vs-tool-btn {
-  width: 30px; height: 30px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.05);
-  color: var(--text);
-  cursor: pointer;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.vs-tool-btn:hover:not(:disabled) {
-  background: rgba(216,183,106,0.16);
-  color: var(--gold);
-}
-.vs-tool-btn:disabled {
-  opacity: 0.32;
-  cursor: not-allowed;
-}
-
-/* File input field inside the studio panels */
-.file-field {
-  display: grid;
-  gap: 6px;
-}
-.file-field input[type="file"] {
-  font-size: 13px;
-  color: var(--muted);
-  padding: 8px;
-  min-height: auto;
-}
-
-/* ── MULTI-SLIDE SEQUENCE ───────────────────────────────── */
-.vs-slide-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 10px 0;
-}
-.vs-slide-empty {
-  font-size: 13px;
-  color: var(--muted);
-  padding: 12px;
-  text-align: center;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
-}
-.vs-slide-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-.vs-slide-row:hover { border-color: var(--gold); }
-.vs-slide-row.active {
-  border-color: var(--gold);
-  background: rgba(216,183,106,0.12);
-}
-.vs-slide-num {
-  width: 22px; height: 22px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--gold);
-  color: var(--bg);
-  font-size: 12px;
-  font-weight: 700;
-}
-.vs-slide-info {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.vs-slide-info em {
-  color: var(--muted);
-  font-style: normal;
-  font-size: 11px;
-  margin-left: 6px;
-}
-.vs-slide-del {
-  flex-shrink: 0;
-  width: 24px; height: 24px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.06);
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-}
-.vs-slide-del:hover { background: rgba(255,90,90,0.2); color: #ff8888; }
-.vs-add-slide {
-  display: inline-flex;
-  cursor: pointer;
-}
-.vs-slide-editor {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 10px;
-}
-
-/* Infographic JSON validation status */
-.vs-err { color: #e8806a !important; }
-.vs-ok  { color: #6fae6f !important; }
-
-/* Active-slide indicator inside the slide editor */
-.vs-active-tag {
-  margin: 0 0 4px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(216,183,106,0.14);
-  border: 1px solid rgba(216,183,106,0.35);
-  color: var(--gold);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* Consolidated per-slide setting sections inside the Slides panel */
-.vs-sec-head {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 2px solid var(--gold);
-}
-.vs-slide-section {
-  margin: 10px 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-.vs-slide-section .vstudio-label {
-  margin-top: 0;
-}
-
-/* Collapsible per-slide setting sections */
-details.vs-slide-section {
-  margin: 10px 0;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-details.vs-slide-section > summary {
-  margin: 0;
-  padding: 12px 14px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-details.vs-slide-section > summary::-webkit-details-marker { display: none; }
-details.vs-slide-section > summary::after {
-  content: "▾";
-  color: var(--gold);
-  font-size: 12px;
-  transition: transform 0.2s;
-}
-details.vs-slide-section:not([open]) > summary::after {
-  transform: rotate(-90deg);
-}
-details.vs-slide-section > summary:hover { color: var(--gold); }
-details.vs-slide-section > *:not(summary) {
-  margin-left: 14px;
-  margin-right: 14px;
-}
-details.vs-slide-section > *:last-child { margin-bottom: 14px; }
-
-/* Load-example button in the infographic panel */
-.vs-example-btn {
-  align-self: flex-start;
-  margin: 4px 0 8px;
-  font-size: 12px;
-  padding: 7px 14px;
-}
-
-/* Infographic stat-row form */
-.vs-info-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 6px 0 10px;
-}
-.vs-info-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 30px;
-  gap: 6px;
-  align-items: center;
-}
-.vs-info-row input {
-  width: 100%;
-  min-width: 0;
-}
-.vs-info-del {
-  width: 30px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.06);
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-}
-.vs-info-del:hover { background: rgba(255,90,90,0.2); color: #ff8888; }
-.vs-stat-head { margin-top: 12px; }
-.vs-info-advanced {
-  margin-top: 12px;
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
-}
-.vs-info-advanced > summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--muted);
-  list-style: none;
-}
-.vs-info-advanced > summary::-webkit-details-marker { display: none; }
-.vs-info-advanced > summary:hover { color: var(--gold); }
-.vs-info-adv-body { padding-top: 10px; }
-
-/* AI generation blocks (Puter.js) — infographic + news */
-.vs-ai-block {
-  margin: 10px 0 14px;
-  padding: 14px;
-  border: 1px solid rgba(216,183,106,0.4);
-  border-radius: 10px;
-  background: linear-gradient(160deg, rgba(216,183,106,0.10), rgba(216,183,106,0.03));
-}
-.vs-ai-block .vstudio-label { margin-top: 0; }
-.vs-ai-block textarea {
-  width: 100%;
-  min-width: 0;
-  margin: 8px 0;
-  resize: vertical;
-}
-.vs-ai-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  padding: 9px 16px;
-}
-.vs-ai-btn:disabled {
-  opacity: 0.55;
-  cursor: progress;
-}
-.vs-ai-btn .ai-btn-icon { font-size: 13px; }
-
-/* ── Collapsible tool category groups ──────────────────────── */
-.tool-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.tool-group {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  overflow: hidden;
-}
-.tool-group-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 20px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  font-weight: 700;
-  font-size: 16px;
-}
-.tool-group-head::-webkit-details-marker { display: none; }
-.tool-group-head::after {
-  content: "▾";
-  color: var(--gold);
-  font-size: 13px;
-  transition: transform 0.2s ease;
-  margin-left: auto;
-}
-.tool-group:not([open]) .tool-group-head::after {
-  transform: rotate(-90deg);
-}
-.tool-group-head:hover { color: var(--gold); }
-.tool-group-name { letter-spacing: 0.01em; }
-.tool-group-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  background: rgba(216,183,106,0.14);
-  border: 1px solid rgba(216,183,106,0.3);
-  border-radius: 99px;
-  padding: 2px 10px;
-}
-.tool-group > .tool-grid,
-.tool-group > .tool-grid.is-list {
-  padding: 4px 18px 20px;
-}
-
-/* ── About section — feature highlights, stats, mission ────── */
-.about-highlight {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  margin: 6px 0 22px;
-  padding: 24px;
-  border: 1px solid rgba(216,183,106,0.3);
-  border-radius: 16px;
-  background: linear-gradient(150deg, rgba(216,183,106,0.09), rgba(216,183,106,0.02));
-}
-.about-highlight-mark {
-  flex: 0 0 auto;
-  color: var(--gold);
-}
-.about-highlight h3 {
-  margin: 0 0 6px;
-  font-family: Prata, serif;
-  font-size: 20px;
-  color: var(--text);
-}
-.about-highlight p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--muted);
-}
-.about-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 22px;
-}
-.about-stat {
-  text-align: center;
-  padding: 18px 10px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-}
-.about-stat strong {
-  display: block;
-  font-family: Prata, serif;
-  font-size: 28px;
-  color: var(--gold);
-  line-height: 1;
-}
-.about-stat span {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-}
-.about-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-bottom: 22px;
-}
-.about-feature {
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  transition: border-color 0.2s, transform 0.2s;
-}
-.about-feature:hover {
-  border-color: rgba(216,183,106,0.4);
-  transform: translateY(-3px);
-}
-.about-feature-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  font-size: 18px;
-  color: var(--gold);
-  background: rgba(216,183,106,0.12);
-}
-.about-feature h4 {
-  margin: 12px 0 6px;
-  font-size: 15px;
-  color: var(--text);
-}
-.about-feature p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--muted);
-}
-.creator-card {
-  border-color: rgba(216,183,106,0.35);
-  background: linear-gradient(150deg, rgba(216,183,106,0.07), transparent);
-}
-@media (max-width: 640px) {
-  .about-highlight { flex-direction: column; text-align: center; gap: 14px; }
-  .about-stats { grid-template-columns: 1fr 1fr; }
-}
-
-/* ── Scroll-to-top button ──────────────────────────────────── */
-.scroll-top {
-  position: fixed;
-  right: 26px;
-  bottom: 26px;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(216,183,106,0.5);
-  border-radius: 50%;
-  background: linear-gradient(150deg, #f3dca0, #d8b76a 55%, #a8843f);
-  color: #1a1408;
-  cursor: pointer;
-  box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 0 22px rgba(216,183,106,0.25);
-  opacity: 0;
-  transform: translateY(16px) scale(0.85);
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-  z-index: 50;
-}
-.scroll-top.show {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-.scroll-top:hover {
-  transform: translateY(-3px) scale(1.06);
-  box-shadow: 0 14px 34px rgba(0,0,0,0.45), 0 0 30px rgba(216,183,106,0.4);
-}
-.scroll-top-arrow {
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1;
-}
-@media (max-width: 640px) {
-  .scroll-top {
-    right: 16px;
-    bottom: 16px;
-    width: 44px;
-    height: 44px;
-  }
-}
-
-/* ── Live chart refresh control ────────────────────────────── */
-.chart-live-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.chart-refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 16px;
-  border: 1px solid rgba(216,183,106,0.4);
-  border-radius: 8px;
-  background: rgba(216,183,106,0.08);
-  color: var(--gold);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
-}
-.chart-refresh-btn:hover {
-  background: rgba(216,183,106,0.16);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(216,183,106,0.18);
-}
-.chart-refresh-btn:active { transform: translateY(0); }
-.chart-refresh-ic {
-  font-size: 15px;
-  display: inline-block;
-}
-.chart-refresh-btn.loading .chart-refresh-ic {
-  animation: chartSpin 0.8s linear infinite;
-}
-@keyframes chartSpin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Intro scene — background picker ───────────────────────── */
-.intro-bg-picker {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 8px 0 14px;
-}
-.intro-bg-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.03);
-  cursor: pointer;
-  transition: border-color 0.18s, transform 0.15s;
-}
-.intro-bg-card:hover { transform: translateY(-2px); }
-.intro-bg-card.selected {
-  border-color: var(--gold);
-  background: rgba(216,183,106,0.1);
-}
-.intro-bg-swatch {
-  width: 100%;
-  height: 34px;
-  border-radius: 6px;
-  border: 1px solid;
-}
-.intro-bg-card small {
-  font-size: 10px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.2;
-}
-.vs-slide-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* ── About — changelog / version section ───────────────────── */
-.changelog {
-  margin-top: 22px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
-}
-.changelog-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.changelog-head h3 {
-  margin: 0;
-  font-family: Prata, serif;
-  font-size: 20px;
-  color: var(--text);
-}
-.version-badge {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: #14110b;
-  background: linear-gradient(150deg, #f3dca0, #d8b76a);
-  border-radius: 99px;
-  padding: 4px 12px;
-}
-.changelog-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.changelog-list li {
-  display: flex;
-  gap: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-}
-.changelog-list li:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-.changelog-ver {
-  flex: 0 0 auto;
-  width: 42px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--gold);
-  background: rgba(216,183,106,0.12);
-  border: 1px solid rgba(216,183,106,0.3);
-  border-radius: 7px;
-}
-.changelog-list strong {
-  display: block;
-  font-size: 14px;
-  color: var(--text);
-  margin-bottom: 3px;
-}
-.changelog-list p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.changelog-note {
-  margin: 16px 0 0;
-  font-size: 12px;
-  color: var(--muted);
-  opacity: 0.8;
-}
-
-/* ── Segmented toggles — theme & language ──────────────────── */
-.sidebar-prefs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.seg-toggle {
-  display: flex;
-  width: 100%;
-  padding: 3px;
-  gap: 3px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-}
-.seg-btn {
-  flex: 1 1 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 38px;
-  height: 32px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s;
-}
-.seg-btn:hover { color: var(--text); }
-.seg-btn.active {
-  background: linear-gradient(150deg, #f3dca0, #d8b76a);
-  color: #14110b;
-  box-shadow: 0 2px 8px rgba(216,183,106,0.25);
-}
-.seg-ic { font-size: 13px; line-height: 1; }
-/* collapsed sidebar — stack the toggles, icons only */
-.sidebar.collapsed .sidebar-prefs {
-  flex-direction: column;
-  width: 100%;
-}
-.sidebar.collapsed .seg-toggle {
-  width: 44px;
-  margin: 0 auto;
-}
-.sidebar.collapsed .seg-tx { display: none; }
-.sidebar.collapsed .seg-btn { padding: 0; min-width: 0; }
-
-/* video-link add row in the slides panel */
-.vs-link-add {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-.vs-link-add input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* auto story builder */
-.vs-auto-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-#vsAutoTopic {
-  width: 100%;
-  resize: vertical;
-  font-family: inherit;
-}
-
-/* per-slide footage upload button */
-.vs-slide-footage {
-  display: inline-flex;
-  width: 100%;
-  justify-content: center;
-  margin-bottom: 8px;
-  cursor: pointer;
-}
-
-/* global colour filter control at the top of the slides panel */
-.vs-global-filter {
-  display: block;
-  margin: 4px 0 12px;
-}
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Radar | AI tool search, live charts, and captions</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=v108" />
+    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
+    <script src="https://js.puter.com/v2/" defer></script>
+    <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
+         (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <!-- HEADER with motion ticker -->
+    <div class="shell">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <!-- ── FIXED LEFT SIDEBAR ──────────────────────────── -->
+      <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="#top" aria-label="AI Radar">
+            <img class="brand-logo" src="logo.svg" alt="" />
+            <span class="brand-name">AI Radar</span>
+          </a>
+          <button id="navCollapseBtn" class="nav-collapse" type="button"
+            aria-label="Collapse menu" title="Collapse menu">
+            <span class="nav-collapse-icon">‹</span>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
+          <div class="nav-group">
+            <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
+            <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
+            <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx" data-i18n="navPerformance">Live charts</span></a>
+            <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
+            <a href="#mediaCaption"><span class="nav-ic">✎</span><span class="nav-tx" data-i18n="navMedia">Caption AI</span></a>
+            <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video studio</span></a>
+            <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a class="button primary sidebar-cta" href="#tools" data-i18n="startButton">Start</a>
+          <div class="sidebar-prefs">
+            <div class="seg-toggle" id="themeSeg" role="group" aria-label="Theme">
+              <button type="button" class="seg-btn" data-theme="light">
+                <span class="seg-ic">☀</span>
+                <span class="seg-tx" data-i18n="themeLight">Light</span>
+              </button>
+              <button type="button" class="seg-btn" data-theme="dark">
+                <span class="seg-ic">☾</span>
+                <span class="seg-tx" data-i18n="themeDark">Dark</span>
+              </button>
+            </div>
+            <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
+              <button type="button" class="seg-btn" data-lang="en">EN</button>
+              <button type="button" class="seg-btn" data-lang="fa">فا</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── CONTENT AREA ────────────────────────────────── -->
+      <div class="content-area">
+        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
+          aria-label="Open menu" title="Menu">☰</button>
+
+        <!-- AI MODELS TICKER -->
+        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+          <div class="models-ticker" id="modelsTicker"></div>
+        </div>
+
+        <main id="top">
+
+        <!-- HERO -->
+        <section class="hero luxury-hero">
+          <div class="luxury-hero-grid">
+            <div class="luxury-hero-copy">
+              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
+              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
+              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
+              <div class="hero-actions">
+                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
+                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
+              </div>
+            </div>
+            <div class="luxury-hero-visual">
+              <div class="hero-motion" aria-hidden="true">
+                <canvas id="heroMotionCanvas"></canvas>
+              </div>
+              <div class="hero-stats">
+                <div class="hero-stat">
+                  <strong id="metricTools">30</strong>
+                  <span data-i18n="metricTools">AI tools</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricFree">—</strong>
+                  <span data-i18n="metricFree">Free plans</span>
+                </div>
+                <div class="hero-stat">
+                  <strong id="metricJobs">—</strong>
+                  <span data-i18n="metricJobs">Career paths</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TOOLS -->
+        <section id="tools" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
+              <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
+            </div>
+            <div class="search-wrap">
+              <label class="sr-only" for="searchInput">Search tools</label>
+              <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
+              <div class="view-toggle" role="group" aria-label="View mode">
+                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="1" width="6" height="6" rx="1"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                  </svg>
+                </button>
+                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
+                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="7" width="9" height="2" rx="1"/>
+                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="filters" aria-label="Tool filters">
+            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
+            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
+            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
+            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
+          </div>
+          <div class="advanced-search">
+            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
+            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
+          </div>
+          <p id="toolCount" class="tool-count"></p>
+          <div id="toolGrid" class="tool-grid"></div>
+        </section>
+
+        <!-- LIVE PERFORMANCE CHART -->
+        <section id="performance" class="panel performance-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
+              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
+              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
+            </div>
+          </div>
+          <div class="chart-toolbar">
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
+              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
+              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
+            </div>
+            <div class="chart-live-bar">
+              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
+              <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
+                <span class="chart-refresh-ic">↻</span>
+                <span data-i18n="refreshLabel">Refresh</span>
+              </button>
+            </div>
+          </div>
+          <div id="performanceChart" class="performance-chart"></div>
+          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
+        </section>
+
+        <!-- COMPARE -->
+        <section id="compare" class="compare panel">
+          <div class="section-head">
+            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
+            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
+          </div>
+          <div id="compareTable" class="compare-table"></div>
+        </section>
+
+        <!-- CAPTION AI -->
+        <section id="mediaCaption" class="panel media-caption">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Caption AI — Instant caption studio</p>
+              <h2 data-i18n="mediaTitle">Upload an image → caption, hooks, hashtags &amp; image prompt</h2>
+              <p data-i18n="mediaText">Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.</p>
+            </div>
+          </div>
+          <div class="media-layout">
+            <div class="studio-controls">
+              <label class="upload-box">
+                <span data-i18n="mediaUploadLabel">Upload image or video</span>
+                <input id="mediaUpload" type="file" accept="image/*,video/*" />
+              </label>
+              <div class="control-grid">
+                <label><span data-i18n="mediaSubjectLabel">What's in the photo/video?</span><input id="mediaSubjectInput" type="text" placeholder="e.g. a cat on a windowsill" /></label>
+                <label><span data-i18n="mediaGoalLabel">Goal</span><input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" /></label>
+                <label><span data-i18n="platformLabel">Platform</span>
+                  <select id="platformSelect">
+                    <option>Instagram Reels</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option><option>X</option>
+                  </select>
+                </label>
+                <label><span data-i18n="toneLabel">Tone</span>
+                  <select id="toneSelect">
+                    <option>Luxury</option><option>Professional</option><option>Viral</option><option>Minimal</option><option>Educational</option>
+                  </select>
+                </label>
+              </div>
+              <button id="generateCaptionButton" class="button primary ai-btn" type="button">
+                <span class="ai-btn-icon">✦</span> Generate with Claude AI
+              </button>
+              <p class="ai-note">Type what's in your photo/video in the subject box — the caption, hooks and hashtags are built around exactly that. (A static site can't auto-detect image content.)</p>
+            </div>
+            <div class="media-output">
+              <div id="mediaPreview" class="media-preview">
+                <div class="preview-placeholder" data-i18n="mediaPlaceholder">Upload media to preview it here</div>
+              </div>
+              <div class="caption-actions">
+                <button id="copyCaptionButton" class="button ghost gold" type="button">Copy caption</button>
+                <button id="copyMediaJsonButton" class="button ghost" type="button">Copy JSON</button>
+              </div>
+              <pre id="captionOutput" class="ai-output"></pre>
+              <pre id="mediaJsonOutput" class="ai-output json-out"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIDEO TEMPLATE STUDIO -->
+        <section id="videoStudio" class="panel video-studio">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="studioEyebrow">Advanced video studio</p>
+              <h2 data-i18n="studioTitle">Create a complete, luxurious video</h2>
+              <p data-i18n="studioText">Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.</p>
+            </div>
+          </div>
+          <div class="vstudio-layout">
+            <div class="vstudio-controls">
+
+              <div class="vtab-bar" role="tablist">
+                <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
+                <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
+                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
+                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
+              </div>
+
+              <div class="vstudio-block" data-vtab-panel="template">
+                <details class="vs-template-collapse" open>
+                  <summary class="vs-template-summary">
+                    <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
+                    <span class="vs-template-current" id="vsTemplateCurrent"></span>
+                  </summary>
+                  <div id="templatePicker" class="template-picker"></div>
+                </details>
+              </div>
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
+                <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
+                <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
+
+                <label class="vs-global-filter"><span data-i18n="vFilterLabel">Color filter (all slides)</span>
+                  <select id="vsFilter">
+                    <option value="none">None</option>
+                    <option value="cinematic">Cinematic</option>
+                    <option value="warm">Warm</option>
+                    <option value="cool">Cool</option>
+                    <option value="mono">Black &amp; white</option>
+                    <option value="vivid">Vivid</option>
+                  </select>
+                </label>
+
+                <div id="vsSlideList" class="vs-slide-list"></div>
+                <div class="vs-slide-actions">
+                  <label class="button primary vs-add-slide">
+                    <span data-i18n="vAddSlide">+ Add scene (upload media)</span>
+                    <input id="vsSlideUpload" type="file" accept="video/*,image/*" hidden />
+                  </label>
+                  <button id="vsAddIntroBtn" class="button ghost gold" type="button" data-i18n="vAddIntro">+ Add intro scene</button>
+                  <button id="vsAddOutroBtn" class="button ghost gold" type="button" data-i18n="vAddOutro">+ Add outro scene</button>
+                </div>
+                <details class="vs-slide-section" id="vsAutoBuild">
+                  <summary class="vstudio-label" data-i18n="vAutoLabel">⚡ Auto-build a full video</summary>
+                  <div class="vs-section-body">
+                    <p class="vstudio-note" data-i18n="vAutoHint">Paste a news article URL (or its text). The AI reads the whole article and builds a complete video — analyzing each part and using an infographic where there are numbers, or clean text where there aren't — plus an intro and outro.</p>
+                    <label><span data-i18n="vAutoUrl">Article URL (optional)</span>
+                      <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
+                    </label>
+                    <label><span data-i18n="vAutoTopic">Topic or article text</span>
+                      <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
+                    </label>
+                    <div class="vs-auto-actions">
+                      <button id="vsAutoBuildBtn" class="button primary" type="button" data-i18n="vAutoBuildBtn">Build the video</button>
+                      <button id="vsAutoAiBtn" class="button ghost gold" type="button" data-i18n="vAutoAiBtn">✦ Build with AI</button>
+                    </div>
+                    <p id="vsAutoStatus" class="vstudio-note"></p>
+                  </div>
+                </details>
+
+                <details class="vs-slide-section" id="vsIntroEditor" hidden>
+                  <summary class="vstudio-label" data-i18n="vIntroSceneLabel">Intro scene settings</summary>
+                  <div class="vs-section-body">
+                    <p class="vstudio-note" data-i18n="vIntroSceneHint">Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.</p>
+                    <label><span data-i18n="vIntroBgLabel">Background</span></label>
+                    <div id="vsIntroBgPicker" class="intro-bg-picker"></div>
+                    <label><span data-i18n="vIntroMainLabel">Main text</span>
+                      <input id="vsIntroMainInput" type="text" maxlength="90" placeholder="AI Radar presents" />
+                    </label>
+                    <label><span data-i18n="vIntroSubInput2">Secondary text</span>
+                      <input id="vsIntroSubInput" type="text" maxlength="110" placeholder="A new standard of calm" />
+                    </label>
+                    <label><span data-i18n="vIntroMotion2">Text motion</span>
+                      <select id="vsIntroMotionInput">
+                        <option value="fade">Fade in</option>
+                        <option value="rise">Rise up</option>
+                        <option value="drop">Drop down</option>
+                        <option value="slide">Slide from left</option>
+                        <option value="slide-r">Slide from right</option>
+                        <option value="zoom">Zoom in</option>
+                        <option value="zoom-out">Zoom out</option>
+                        <option value="reveal">Line reveal</option>
+                        <option value="blur">Blur in</option>
+                        <option value="expand">Letter expand</option>
+                        <option value="tilt">Tilt in</option>
+                        <option value="glide">Glide in</option>
+                        <option value="spring">Spring (bouncy)</option>
+                        <option value="rise-spring">Rise + spring</option>
+                        <option value="swing">Swing in</option>
+                        <option value="punch">Punch in</option>
+                        <option value="flip">Flip in</option>
+                        <option value="drift">Cinematic drift</option>
+                        <option value="vox">Vox style (snappy)</option>
+                      </select>
+                    </label>
+                  </div>
+                </details>
+
+                <details class="vs-slide-section">
+                  <summary class="vstudio-label" data-i18n="vQuickClipLabel">Quick mode — single clip</summary>
+                  <div class="vs-section-body">
+                    <p class="vstudio-note" data-i18n="vQuickClipHint">Just one clip and no scenes? Upload a single video or image here instead of adding scenes.</p>
+                    <label class="upload-box">
+                      <span data-i18n="vUploadHint">Upload one video or image (mp4, webm, mov, jpg, png)</span>
+                      <input id="vsUpload" type="file" accept="video/*,image/*" />
+                    </label>
+                  </div>
+                </details>
+
+                <details class="vs-slide-section">
+                  <summary class="vstudio-label" data-i18n="vMusicLabel">Background music</summary>
+                  <div class="vs-section-body">
+                    <label class="upload-box small">
+                      <span data-i18n="vMusicHint">Optional: background music (mp3, wav) — applies to the whole video</span>
+                      <input id="vsMusic" type="file" accept="audio/*" />
+                    </label>
+                  </div>
+                </details>
+
+                <div id="vsSlideEditor" class="vs-slide-editor">
+                  <div id="vsSlideOnlyFields" class="vtab-hidden">
+                    <p id="vsActiveSlideTag" class="vs-active-tag"></p>
+                    <label class="button ghost gold vs-slide-footage">
+                      <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
+                      <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
+                    </label>
+                    <p id="vsSlideMediaName" class="vstudio-note"></p>
+                    <label><span data-i18n="vSlideCaption">Caption (top label)</span>
+                      <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
+                    </label>
+                    <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
+                      <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
+                    </label>
+                  </div>
+
+                  <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This scene's settings</span>
+
+                  <details class="vs-slide-section" open>
+                    <summary class="vstudio-label" data-i18n="vTextLabel">Text layers</summary>
+                    <div class="vs-section-body">
+                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
+                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
+                      <div class="control-grid">
+                        <label><span data-i18n="vTextPosLabel">Text position</span>
+                          <select id="vsTextPos">
+                            <option value="center">Center</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vTextSizeLabel">Text size</span>
+                          <select id="vsTextSize">
+                            <option value="0.8">Small</option>
+                            <option value="1" selected>Medium</option>
+                            <option value="1.3">Large</option>
+                          </select>
+                        </label>
+                      </div>
+                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
+                    <div class="vs-section-body">
+                      <div class="control-grid">
+                        <label><span data-i18n="vCamMotionLabel">Camera motion</span>
+                          <select id="vsMotion">
+                            <option value="kenburns-in">Ken Burns — zoom in</option>
+                            <option value="kenburns-out">Ken Burns — zoom out</option>
+                            <option value="punch-in">Punch in</option>
+                            <option value="zoom-pan">Zoom + pan</option>
+                            <option value="pan-right">Pan right</option>
+                            <option value="pan-left">Pan left</option>
+                            <option value="pan-up">Pan up</option>
+                            <option value="pan-down">Pan down</option>
+                            <option value="diagonal">Diagonal drift</option>
+                            <option value="drift-up">Slow drift up</option>
+                            <option value="parallax">Parallax drift</option>
+                            <option value="vertigo">Vertigo (dolly zoom)</option>
+                            <option value="spin-in">Spin in</option>
+                            <option value="pulse">Pulse</option>
+                            <option value="breathe">Breathe</option>
+                            <option value="sway">Sway</option>
+                            <option value="handheld">Handheld</option>
+                            <option value="shake">Shake</option>
+                            <option value="none">None (static)</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vTextAnimLabel">Text animation</span>
+                          <select id="vsTextAnim">
+                            <option value="fade-up">Fade up</option>
+                            <option value="fade-down">Fade down</option>
+                            <option value="fade">Fade in</option>
+                            <option value="rise">Rise up</option>
+                            <option value="drop">Drop down</option>
+                            <option value="slide-left">Slide from left</option>
+                            <option value="slide-right">Slide from right</option>
+                            <option value="pop">Pop / scale</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="zoom-in">Zoom in</option>
+                            <option value="zoom-out">Zoom out</option>
+                            <option value="blur-in">Blur in</option>
+                            <option value="typewriter">Typewriter</option>
+                            <option value="spring">Spring (bouncy)</option>
+                            <option value="rise-spring">Rise + spring</option>
+                            <option value="swing">Swing in</option>
+                            <option value="punch">Punch in</option>
+                            <option value="slide-up">Slide up</option>
+                            <option value="slide-down">Slide down</option>
+                            <option value="flip">Flip in</option>
+                            <option value="glide-in">Glide in</option>
+                            <option value="drift">Cinematic drift</option>
+                            <option value="vox">Vox style (snappy)</option>
+                            <option value="none">None</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vOverlayLabel">Overlay element</span>
+                          <select id="vsOverlay">
+                            <option value="none">None</option>
+                            <option value="goldframe">Gold frame (luxe)</option>
+                            <option value="shimmer">Shimmer sweep (luxe)</option>
+                            <option value="embers">Warm embers (luxe)</option>
+                            <option value="lightleak">Light leak</option>
+                            <option value="glow">Edge glow</option>
+                            <option value="bokeh">Bokeh lights</option>
+                            <option value="minimalline">Minimal line</option>
+                            <option value="corners">Corner brackets (minimal)</option>
+                            <option value="haze">Soft haze (minimal)</option>
+                            <option value="particles">Sparkle particles</option>
+                            <option value="dust">Floating dust</option>
+                            <option value="snow">Snow</option>
+                            <option value="rain">Rain</option>
+                            <option value="gradient">Cinematic bars</option>
+                            <option value="scanlines">Scanlines</option>
+                            <option value="vhs">VHS jitter</option>
+                          </select>
+                        </label>
+                      </div>
+                      <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
+                    <div class="vs-section-body">
+                      <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
+                      <p class="vstudio-note" data-i18n="vInfoHint">Type your title and stats below — the infographic builds itself as you write. No JSON needed.</p>
+
+                      <div class="vs-ai-block">
+                        <span class="vstudio-label" data-i18n="vInfoAiLabel">✦ Generate with AI</span>
+                        <p class="vstudio-note" data-i18n="vInfoAiHint">Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.</p>
+                        <textarea id="vsInfoAiText" rows="3" placeholder="e.g. The 2026 housing market: prices up 8.4%, mortgage rates around 6.2%, 1.2M homes for sale, average 34 days on market."></textarea>
+                        <button id="vsInfoAiBtn" class="button primary vs-ai-btn" type="button">
+                          <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoAiBtn">Generate infographic</span>
+                        </button>
+                        <p class="vstudio-note" id="vsInfoAiStatus"></p>
+                      </div>
+
+                      <label><span data-i18n="vInfoFormTitle">Title</span>
+                        <input id="vsInfoTitle" type="text" maxlength="48" placeholder="Housing Market 2026" />
+                      </label>
+                      <label><span data-i18n="vInfoFormSubtitle">Subtitle (optional)</span>
+                        <input id="vsInfoSubtitle" type="text" maxlength="48" placeholder="Key metrics" />
+                      </label>
+                      <label><span data-i18n="vInfoFormSource">Data source (recommended)</span>
+                        <input id="vsInfoSource" type="text" maxlength="60" placeholder="e.g. World Bank, 2025" />
+                      </label>
+                      <p class="vstudio-note" data-i18n="vInfoSourceNote">Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.</p>
+
+                      <span class="vstudio-label vs-stat-head" data-i18n="vInfoStatsHead">Stats</span>
+                      <div id="vsInfoRows" class="vs-info-rows"></div>
+                      <button id="vsInfoAddRow" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoAddRow">+ Add a stat</button>
+
+                      <div class="control-grid">
+                        <label><span data-i18n="vInfoStyleLabel">Chart style</span>
+                          <select id="vsInfoStyle">
+                            <option value="big-numbers">Big Numbers (cinematic)</option>
+                            <option value="bars">Animated bars</option>
+                            <option value="counters">Counting numbers</option>
+                            <option value="cards">Stat cards</option>
+                            <option value="donut">Donut ring</option>
+                            <option value="pills">Progress pills</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vInfoPosLabel">Position</span>
+                          <select id="vsInfoPos">
+                            <option value="center">Center</option>
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vInfoMotionLabel">Entrance motion</span>
+                          <select id="vsInfoMotion">
+                            <option value="fade">Fade in</option>
+                            <option value="rise">Rise up</option>
+                            <option value="drop">Drop down</option>
+                            <option value="slide-left">Slide from left</option>
+                            <option value="slide-right">Slide from right</option>
+                            <option value="pop">Pop / scale</option>
+                            <option value="zoom-in">Zoom in</option>
+                            <option value="vox">Vox style (snappy)</option>
+                            <option value="none">None</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <details class="vs-info-advanced">
+                        <summary data-i18n="vInfoAdvanced">Advanced — edit raw JSON / import file</summary>
+                        <div class="vs-info-adv-body">
+                          <label class="file-field">
+                            <span data-i18n="vInfoImportLabel">Import JSON file</span>
+                            <input id="vsInfoFile" type="file" accept="application/json,.json" />
+                          </label>
+                          <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
+                            <textarea id="vsInfoJson" rows="7" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M" } ] }'></textarea>
+                          </label>
+                          <p class="vstudio-note" id="vsInfoJsonStatus"></p>
+                          <button id="vsInfoSyncBtn" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoSyncBtn">Load this JSON into the form</button>
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+
+                  <details class="vs-slide-section">
+                    <summary class="vstudio-label" data-i18n="vNewsLabel">News banner</summary>
+                    <div class="vs-section-body">
+                      <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
+                      <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
+
+                      <div class="vs-ai-block">
+                        <span class="vstudio-label" data-i18n="vNewsAiLabel">✦ Summarize with AI</span>
+                        <p class="vstudio-note" data-i18n="vNewsAiHint">Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.</p>
+                        <textarea id="vsNewsAiText" rows="4" placeholder="Paste the news article text or your notes here…"></textarea>
+                        <button id="vsNewsAiBtn" class="button primary vs-ai-btn" type="button">
+                          <span class="ai-btn-icon">✦</span> <span data-i18n="vNewsAiBtn">Summarize into banner</span>
+                        </button>
+                        <p class="vstudio-note" id="vsNewsAiStatus"></p>
+                      </div>
+                      <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
+                        <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
+                      </label>
+                      <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
+                        <input id="vsNewsHeadline" type="text" maxlength="120" placeholder="Type the news headline here" />
+                      </label>
+                      <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
+                        <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
+                      </label>
+                      <div class="control-grid">
+                        <label><span data-i18n="vNewsStyleLabel">Banner style</span>
+                          <select id="vsNewsStyle">
+                            <optgroup label="📺 News banners">
+                              <option value="lowerthird">Lower third</option>
+                              <option value="ticker">Bottom ticker</option>
+                              <option value="fullbar">Full lower bar</option>
+                            </optgroup>
+                            <optgroup label="🎬 Cinematic text">
+                              <option value="title-center">Centered title (dramatic)</option>
+                              <option value="bold-statement">Bold statement (huge)</option>
+                              <option value="title-left">Left title block</option>
+                              <option value="quote">Quote style</option>
+                              <option value="caption">Caption (bottom)</option>
+                              <option value="split">Split block</option>
+                              <option value="badge">Badge headline</option>
+                            </optgroup>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
+                          <select id="vsNewsAccent">
+                            <option value="red">Breaking red</option>
+                            <option value="blue">News blue</option>
+                            <option value="gold">Studio gold</option>
+                            <option value="mono">Mono / dark</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label><span data-i18n="vNewsMotionLabel">Entrance motion</span>
+                        <select id="vsNewsMotion">
+                          <option value="slide-up">Slide up</option>
+                          <option value="slide-left">Slide from left</option>
+                          <option value="slide-right">Slide from right</option>
+                          <option value="fade">Fade in</option>
+                          <option value="pop">Pop / scale</option>
+                          <option value="vox">Vox style (snappy)</option>
+                          <option value="none">None</option>
+                        </select>
+                      </label>
+                      <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
+                    </div>
+                  </details>
+                </div>
+              </div>
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
+                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
+                    <select id="vsAspect">
+                      <option value="9:16" selected>9:16 — Reels / TikTok</option>
+                      <option value="original">Original</option>
+                      <option value="16:9">16:9 — Landscape</option>
+                      <option value="1:1">1:1 — Square</option>
+                      <option value="4:5">4:5 — Portrait</option>
+                    </select>
+                  </label>
+                </div>
+                <input id="vsDuration" type="hidden" value="6" />
+                <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
+                <div class="control-grid">
+                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
+                    <select id="vsSpeed">
+                      <option value="0.5">0.5×</option>
+                      <option value="1" selected>1×</option>
+                      <option value="1.5">1.5×</option>
+                      <option value="2">2×</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="control-grid">
+                  <label><span data-i18n="vTransitionLabel">Transition in</span>
+                    <select id="vsTransition">
+                      <option value="fade">Fade</option>
+                      <option value="blur">Blur</option>
+                      <option value="zoom">Zoom in</option>
+                      <option value="slide">Slide up</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
+                </div>
+                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
+                <div class="control-grid">
+                  <label><span data-i18n="vExportSizeLabel">Download size</span>
+                    <select id="vsExportSize">
+                      <option value="2160">4K — 2160p</option>
+                      <option value="1080" selected>Full HD — 1080p</option>
+                      <option value="720">HD — 720p</option>
+                      <option value="480">SD — 480p</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
+                    <select id="vsExportQuality">
+                      <option value="max">Maximum</option>
+                      <option value="high" selected>High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low (small file)</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="vExportFormatLabel">File format</span>
+                    <select id="vsExportFormat">
+                      <option value="mp4" selected>MP4 (most compatible)</option>
+                      <option value="webm">WebM (faster, smaller)</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="vstudio-note" data-i18n="vExportFormatNote">MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.</p>
+                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
+              </div>
+
+
+
+
+              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
+                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
+                <label class="upload-box small">
+                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
+                  <input id="vsLogo" type="file" accept="image/*" />
+                </label>
+                <label><span data-i18n="vLogoPosLabel">Logo position</span>
+                  <select id="vsLogoPos">
+                    <option value="tl">Top left</option>
+                    <option value="tr">Top right</option>
+                    <option value="bl">Bottom left</option>
+                    <option value="br">Bottom right</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vIntroLabel">Intro — main text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
+                <label><span data-i18n="vIntroSubLabel">Intro — secondary text</span><input id="vsIntroSub" type="text" placeholder="A new standard of calm" /></label>
+                <label><span data-i18n="vIntroMotionLabel">Intro text motion</span>
+                  <select id="vsIntroMotion">
+                    <option value="fade">Fade in</option>
+                    <option value="rise">Rise up</option>
+                    <option value="slide">Slide in</option>
+                    <option value="zoom">Zoom in</option>
+                    <option value="reveal">Line reveal</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
+              </div>
+
+
+              <div class="vstudio-actions">
+                <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
+                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
+              </div>
+              <p id="vsStatus" class="ai-note"></p>
+            </div>
+
+            <div class="vstudio-stage">
+              <div class="vs-stage-bar">
+                <span data-i18n="vPreviewLabel">Preview</span>
+                <label class="vs-size-control">
+                  <span data-i18n="vPreviewSizeLabel">Preview size</span>
+                  <input id="vsPreviewSize" type="range" min="40" max="100" value="100" />
+                  <em id="vsPreviewSizeVal">100%</em>
+                </label>
+              </div>
+              <div id="vsPreview" class="vs-preview">
+                <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
+              </div>
+
+                <!-- Hera-style scene timeline -->
+              <div class="vs-timeline" id="vsTimeline">
+                <div class="vs-timeline-toolbar">
+                  <button id="vsUndoBtn" class="vs-tool-btn" type="button" aria-label="Undo" title="Undo">↶</button>
+                  <button id="vsRedoBtn" class="vs-tool-btn" type="button" aria-label="Redo" title="Redo">↷</button>
+                  <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
+                  <span id="vsTimecode" class="vs-timecode">0:00 / 0:00</span>
+                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag edges to resize · click to select</span>
+                </div>
+                <!-- Scene strip (Hera style) -->
+                <div class="vs-scene-strip" id="vsSceneStrip">
+                  <div class="vs-scene-scroll" id="vsSceneScroll">
+                    <div class="vs-scene-blocks" id="vsSceneBlocks"></div>
+                    <div class="vs-waveform-row" id="vsWaveformRow">
+                      <canvas class="vs-waveform-canvas" id="vsWaveformCanvas"></canvas>
+                    </div>
+                    <div class="vs-scene-playhead" id="vsScenePlayhead"></div>
+                  </div>
+                </div>
+                <!-- Legacy track area kept hidden for JS scrub logic -->
+                <div class="vs-track-area" id="vsTrackArea" style="display:none">
+                  <div class="vs-tracks">
+                    <div class="vs-track">
+                      <span class="vs-track-label">Media</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-media" id="vsClipMedia">Media</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label">Text</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-text" id="vsClipText">Text</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label">Logo</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-logo" id="vsClipLogo">Logo</div></div>
+                    </div>
+                    <div class="vs-track">
+                      <span class="vs-track-label">Music</span>
+                      <div class="vs-track-lane"><div class="vs-clip vs-clip-music" id="vsClipMusic">Music</div></div>
+                    </div>
+                  </div>
+                  <div class="vs-playhead" id="vsPlayhead"><div class="vs-playhead-grip"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROMPT LAB -->
+        <section id="intelligence" class="panel intelligence">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Prompt Lab — Prompt & JSON tools</p>
+              <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
+            </div>
+          </div>
+          <div class="intel-layout">
+            <div id="promptForm" class="utility-card">
+              <label>
+                <span data-i18n="promptDescLabel">Describe what you want to create</span>
+                <input id="simplePromptInput" type="text" placeholder="Type one word, e.g. ocean — or a short idea" />
+              </label>
+              <label>
+                <span data-i18n="promptStyleLabel">Style</span>
+                <select id="promptStyleSelect">
+                  <option value="cinematic">Cinematic</option>
+                  <option value="editorial">Editorial</option>
+                  <option value="hyperreal">Hyper-real</option>
+                  <option value="minimal">Minimal luxury</option>
+                  <option value="render3d">3D render</option>
+                  <option value="anime">Anime / illustration</option>
+                </select>
+              </label>
+              <button id="promptGenBtn" class="button primary ai-btn" type="button">
+                <span class="ai-btn-icon">✦</span> <span data-i18n="promptGenBtn">Generate prompt</span>
+              </button>
+              <p class="ai-note" data-i18n="promptNote">Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.</p>
+              <div class="output-box">
+                <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
+                <pre id="advancedPromptOutput" class="ai-output"></pre>
+              </div>
+            </div>
+            <div id="jsonForm" class="utility-card">
+              <label>
+                <span data-i18n="jsonDescLabel">Describe any data, product, or idea</span>
+                <textarea id="textJsonInput" rows="6" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
+              </label>
+              <button id="jsonGenBtn" class="button primary ai-btn" type="button">
+                <span class="ai-btn-icon">✦</span> <span data-i18n="jsonGenBtn">Generate JSON</span>
+              </button>
+              <p class="ai-note" data-i18n="jsonNote">Outputs only clean, valid JSON — no explanation, no extra text.</p>
+              <div class="output-box">
+                <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
+                <pre id="jsonOutput" class="ai-output"></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ABOUT / CREDITS -->
+        <section id="about" class="panel about-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" data-i18n="aboutEyebrow">About</p>
+              <h2 data-i18n="aboutTitle">Built for the AI-curious</h2>
+              <p data-i18n="aboutText">AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.</p>
+            </div>
+          </div>
+
+          <div class="about-highlight">
+            <div class="about-highlight-mark" aria-hidden="true">
+              <svg viewBox="0 0 64 64" width="56" height="56">
+                <circle cx="32" cy="32" r="25" fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.9"/>
+                <circle cx="32" cy="32" r="15" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
+                <line x1="32" y1="32" x2="32" y2="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <circle cx="44" cy="22" r="3" fill="currentColor"/>
+                <circle cx="32" cy="32" r="2.4" fill="currentColor"/>
+              </svg>
+            </div>
+            <div>
+              <h3 data-i18n="aboutMissionTitle">Why AI Radar exists</h3>
+              <p data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.</p>
+            </div>
+          </div>
+
+          <div class="about-stats">
+            <div class="about-stat">
+              <strong id="aboutToolCount">45+</strong>
+              <span data-i18n="aboutStatTools">curated AI tools</span>
+            </div>
+            <div class="about-stat">
+              <strong>100%</strong>
+              <span data-i18n="aboutStatFree">free, no account</span>
+            </div>
+            <div class="about-stat">
+              <strong data-i18n="aboutStatLiveValue">Live</strong>
+              <span data-i18n="aboutStatLive">GitHub data</span>
+            </div>
+            <div class="about-stat">
+              <strong data-i18n="aboutStatPrivacyValue">Zero</strong>
+              <span data-i18n="aboutStatPrivacy">tracking or ads</span>
+            </div>
+          </div>
+
+          <div class="about-features">
+            <article class="about-feature">
+              <span class="about-feature-icon">◎</span>
+              <h4 data-i18n="aboutFeat1Title">Tool finder</h4>
+              <p data-i18n="aboutFeat1Text">Search and filter real AI tools by use case, price, and job — grouped and easy to scan.</p>
+            </article>
+            <article class="about-feature">
+              <span class="about-feature-icon">▥</span>
+              <h4 data-i18n="aboutFeat2Title">Live trend chart</h4>
+              <p data-i18n="aboutFeat2Text">Popularity tracked from the public GitHub API, refreshed automatically — no guesswork.</p>
+            </article>
+            <article class="about-feature">
+              <span class="about-feature-icon">✦</span>
+              <h4 data-i18n="aboutFeat3Title">Video studio</h4>
+              <p data-i18n="aboutFeat3Text">Build multi-scene videos with motion, infographics, and news banners — entirely in your browser.</p>
+            </article>
+            <article class="about-feature">
+              <span class="about-feature-icon">⚙</span>
+              <h4 data-i18n="aboutFeat4Title">Caption &amp; prompt tools</h4>
+              <p data-i18n="aboutFeat4Text">Generate captions and refined prompts locally — fast, private, and free to use.</p>
+            </article>
+          </div>
+
+          <div class="about-grid">
+            <article class="credit-card creator-card">
+              <div class="credit-avatar">SA</div>
+              <div class="credit-meta">
+                <strong>Shayan Alinia</strong>
+                <span data-i18n="aboutRole">Creator &amp; Designer</span>
+              </div>
+              <p data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, the interface, the live trend chart, and the in-browser video studio. Every detail here is the work of one person who cares about doing it properly.</p>
+            </article>
+            <article class="credit-card">
+              <div class="credit-avatar">AR</div>
+              <div class="credit-meta">
+                <strong>AI Radar</strong>
+                <span data-i18n="aboutProjectRole">Free static project</span>
+              </div>
+              <p data-i18n="aboutProjectText">Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.</p>
+            </article>
+          </div>
+
+          <div class="changelog">
+            <div class="changelog-head">
+              <h3 data-i18n="changelogTitle">Latest updates</h3>
+              <span class="version-badge">v2.2.0</span>
+            </div>
+            <ul class="changelog-list">
+              <li>
+                <span class="changelog-ver">2.1</span>
+                <div>
+                  <strong data-i18n="cl21Title">Cinematic design upgrade</strong>
+                  <p data-i18n="cl21Text">Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">2.0</span>
+                <div>
+                  <strong data-i18n="cl20Title">Smarter article-to-video</strong>
+                  <p data-i18n="cl20Text">Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.9</span>
+                <div>
+                  <strong data-i18n="cl19Title">Auto video builder</strong>
+                  <p data-i18n="cl19Text">Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.8</span>
+                <div>
+                  <strong data-i18n="cl18Title">Outro scenes &amp; more designs</strong>
+                  <p data-i18n="cl18Text">Added outro scenes, 22 intro backgrounds, cinematic motion presets, clearer infographic text, per-slide element positions, and a graceful music fade-out.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.7</span>
+                <div>
+                  <strong data-i18n="cl17Title">Intro scenes &amp; richer motion</strong>
+                  <p data-i18n="cl17Text">New intro scene type in the Video Studio with built-in backgrounds, dual animated text, and many motion presets. Scene-aware motion so every slide animates correctly.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.6</span>
+                <div>
+                  <strong data-i18n="cl16Title">Full sidebar &amp; cleaner UI</strong>
+                  <p data-i18n="cl16Text">Collapsible left sidebar navigation, redesigned chart and footer controls, a back-to-top button, and tighter mobile layouts throughout.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.5</span>
+                <div>
+                  <strong data-i18n="cl15Title">MP4 export &amp; real charts</strong>
+                  <p data-i18n="cl15Text">Video Studio now exports MP4. The infographic became a proper bar chart with a labelled axis, scale, and gridlines.</p>
+                </div>
+              </li>
+              <li>
+                <span class="changelog-ver">1.4</span>
+                <div>
+                  <strong data-i18n="cl14Title">Bigger tool catalogue</strong>
+                  <p data-i18n="cl14Text">Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.</p>
+                </div>
+              </li>
+            </ul>
+            <p class="changelog-note" data-i18n="changelogNote">AI Radar is actively maintained. This list shows the most recent notable changes.</p>
+          </div>
+        </section>
+
+      </main>
+      <button id="scrollTopBtn" class="scroll-top" type="button"
+        aria-label="Back to top" title="Back to top">
+        <span class="scroll-top-arrow">↑</span>
+      </button>
+      </div><!-- /.content-area -->
+    </div>
+
+    <script src="app.js?v=v108"></script>
+  </body>
+</html>
