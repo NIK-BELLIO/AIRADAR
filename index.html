@@ -1,1103 +1,133 @@
 <!doctype html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Radar | AI tool search, live charts, and captions</title>
-    <link rel="icon" href="logo.svg" type="image/svg+xml" />
-    <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v220" />
-    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
-    <script src="https://js.puter.com/v2/" defer></script>
-    <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
-         (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
-  </head>
-  <body>
-    <div class="ambient ambient-a"></div>
-    <div class="ambient ambient-b"></div>
-
-    <!-- HEADER with motion ticker -->
-    <div class="shell">
-      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-      <!-- ── FIXED LEFT SIDEBAR ──────────────────────────── -->
-      <aside class="sidebar" id="appSidebar">
-        <div class="sidebar-top">
-          <a class="brand" href="#top" aria-label="AI Radar">
-            <img class="brand-logo" src="logo.svg" alt="" />
-            <span class="brand-name">AI Radar</span>
-          </a>
-          <button id="navCollapseBtn" class="nav-collapse" type="button"
-            aria-label="Collapse menu" title="Collapse menu">
-            <span class="nav-collapse-icon">‹</span>
-          </button>
-        </div>
-
-        <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
-          <div class="nav-group">
-            <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
-            <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
-            <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx" data-i18n="navPerformance">Live charts</span></a>
-            <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
-          </div>
-          <div class="nav-group">
-            <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
-            <a href="#mediaCaption"><span class="nav-ic">✎</span><span class="nav-tx" data-i18n="navMedia">Caption AI</span></a>
-            <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video studio</span></a>
-            <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompt lab</span></a>
-          </div>
-        </nav>
-
-        <div class="sidebar-footer">
-          <a class="button primary sidebar-cta" href="#tools" data-i18n="startButton">Start</a>
-          <div class="sidebar-prefs">
-            <div class="seg-toggle" id="themeSeg" role="group" aria-label="Theme">
-              <button type="button" class="seg-btn" data-theme="light">
-                <span class="seg-ic">☀</span>
-                <span class="seg-tx" data-i18n="themeLight">Light</span>
-              </button>
-              <button type="button" class="seg-btn" data-theme="dark">
-                <span class="seg-ic">☾</span>
-                <span class="seg-tx" data-i18n="themeDark">Dark</span>
-              </button>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Radar — Find, Compare & Create with AI Tools</title>
+  <meta name="description" content="Discover 45+ real AI tools, live GitHub popularity charts, Claude-powered captions, AI image generation, and a free browser video studio."/>
+  <meta property="og:title" content="AI Radar — Find, Compare & Create with AI Tools"/>
+  <meta property="og:description" content="45+ curated AI tools, live GitHub charts, caption generator, AI image creator and video studio. Free, no account."/>
+  <meta property="og:image" content="https://airadar.me/og.png"/>
+  <meta property="og:url" content="https://airadar.me/"/>
+  <meta property="og:type" content="website"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:image" content="https://airadar.me/og.png"/>
+  <link rel="canonical" href="https://airadar.me/"/>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Prata&family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <link rel="stylesheet" href="/extra.css"/>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"AI Radar","url":"https://airadar.me","description":"Find, compare and create with real AI tools."}</script>
+</head>
+<body>
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+<div class="shell">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="appSidebar"></aside>
+  <div class="content-area">
+    <button id="sidebarOpenBtn" class="sidebar-open" type="button" aria-label="Menu">☰</button>
+    <div class="models-ticker-wrap"><div class="models-ticker" id="modelsTicker"></div></div>
+    <main id="top">
+      <section class="luxury-hero">
+        <div class="luxury-hero-grid">
+          <div class="luxury-hero-copy">
+            <div class="hero-badge">✦ AI Radar — Live Intelligence</div>
+            <h1 class="motion-title">Find. Compare. Create.</h1>
+            <p>Real AI tools, live popularity charts, Claude-powered captions, AI image generation, and a professional video studio — one workspace, free in your browser.</p>
+            <div class="hero-actions">
+              <a class="button primary" href="/tools/">Search tools</a>
+              <a class="button ghost" href="/image/">Create image</a>
             </div>
-            <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
-              <button type="button" class="seg-btn" data-lang="en">EN</button>
-              <button type="button" class="seg-btn" data-lang="fa">فا</button>
+          </div>
+          <div class="luxury-hero-visual">
+            <div class="hero-motion"><canvas id="heroMotionCanvas"></canvas></div>
+            <div class="hero-stats">
+              <div class="hero-stat"><strong>45+</strong><span>AI tools</span></div>
+              <div class="hero-stat"><strong>100%</strong><span>Free to use</span></div>
+              <div class="hero-stat"><strong>Live</strong><span>GitHub data</span></div>
             </div>
           </div>
         </div>
-      </aside>
+      </section>
 
-      <!-- ── CONTENT AREA ────────────────────────────────── -->
-      <div class="content-area">
-        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
-          aria-label="Open menu" title="Menu">☰</button>
-
-        <!-- AI MODELS TICKER -->
-        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-          <div class="models-ticker" id="modelsTicker"></div>
+      <section class="home-features panel">
+        <p class="eyebrow">What you can do</p>
+        <h2>One workspace, everything AI</h2>
+        <div class="home-feat-grid">
+          <a class="home-feat-card" href="/tools/"><span class="home-feat-icon">◎</span><h3>Tool finder</h3><p>Search and filter 45+ real AI tools by use case, price, and model type.</p><span class="home-feat-link">Browse tools →</span></a>
+          <a class="home-feat-card" href="/charts/"><span class="home-feat-icon">▥</span><h3>Live charts</h3><p>GitHub popularity refreshed every 5 minutes — no guesswork.</p><span class="home-feat-link">See charts →</span></a>
+          <a class="home-feat-card" href="/image/"><span class="home-feat-icon">🎨</span><h3>Image generator</h3><p>Generate stunning AI images from text prompts in multiple styles — free, no login.</p><span class="home-feat-link">Generate now →</span></a>
+          <a class="home-feat-card" href="/caption/"><span class="home-feat-icon">✎</span><h3>Caption AI</h3><p>Upload media, pick a platform, get captions, hooks, and hashtags instantly.</p><span class="home-feat-link">Try captions →</span></a>
+          <a class="home-feat-card" href="/video/"><span class="home-feat-icon">▶</span><h3>Video studio</h3><p>Build multi-scene videos with motion, infographics, and news banners in your browser.</p><span class="home-feat-link">Open studio →</span></a>
+          <a class="home-feat-card" href="/about/"><span class="home-feat-icon">✦</span><h3>About</h3><p>Learn what AI Radar is, who made it, and what's been updated.</p><span class="home-feat-link">Read more →</span></a>
         </div>
+      </section>
 
-        <main id="top">
-
-        <!-- HERO -->
-        <section class="hero luxury-hero">
-          <div class="luxury-hero-grid">
-            <div class="luxury-hero-copy">
-              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
-              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
-              <div class="hero-actions">
-                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
-                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
-              </div>
-            </div>
-            <div class="luxury-hero-visual">
-              <div class="hero-motion" aria-hidden="true">
-                <canvas id="heroMotionCanvas"></canvas>
-              </div>
-              <div class="hero-stats">
-                <div class="hero-stat">
-                  <strong id="metricTools">30</strong>
-                  <span data-i18n="metricTools">AI tools</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricFree">—</strong>
-                  <span data-i18n="metricFree">Free plans</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricJobs">—</strong>
-                  <span data-i18n="metricJobs">Career paths</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- TOOLS -->
-        <section id="tools" class="panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
-              <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
-            </div>
-            <div class="search-wrap">
-              <label class="sr-only" for="searchInput">Search tools</label>
-              <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
-              <div class="view-toggle" role="group" aria-label="View mode">
-                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
-                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                    <rect x="1" y="1" width="6" height="6" rx="1"/>
-                    <rect x="9" y="1" width="6" height="6" rx="1"/>
-                    <rect x="1" y="9" width="6" height="6" rx="1"/>
-                    <rect x="9" y="9" width="6" height="6" rx="1"/>
-                  </svg>
-                </button>
-                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
-                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
-                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="7" width="9" height="2" rx="1"/>
-                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="filters" aria-label="Tool filters">
-            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
-            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
-            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
-            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
-          </div>
-          <div class="advanced-search">
-            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
-            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
-          </div>
-          <p id="toolCount" class="tool-count"></p>
-          <div id="toolGrid" class="tool-grid"></div>
-        </section>
-
-        <!-- LIVE PERFORMANCE CHART -->
-        <section id="performance" class="panel performance-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
-              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
-              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
-            </div>
-          </div>
-          <div class="chart-toolbar">
-            <div class="chart-tabs">
-              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
-              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
-              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
-            </div>
-            <div class="chart-live-bar">
-              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
-              <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
-                <span class="chart-refresh-ic">↻</span>
-                <span data-i18n="refreshLabel">Refresh</span>
-              </button>
-            </div>
-          </div>
-          <div id="performanceChart" class="performance-chart"></div>
-          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
-        </section>
-
-        <!-- COMPARE -->
-        <section id="compare" class="compare panel">
-          <div class="section-head">
-            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
-            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
-          </div>
-          <div id="compareTable" class="compare-table"></div>
-        </section>
-
-        <!-- CAPTION AI -->
-        <section id="mediaCaption" class="panel media-caption">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Caption AI — Instant caption studio</p>
-              <h2 data-i18n="mediaTitle">Upload an image → caption, hooks, hashtags &amp; image prompt</h2>
-              <p data-i18n="mediaText">Upload media, describe the goal, choose a platform, and generate a polished caption, hooks, hashtags, and JSON metadata locally.</p>
-            </div>
-          </div>
-          <div class="media-layout">
-            <div class="studio-controls">
-              <label class="upload-box">
-                <span data-i18n="mediaUploadLabel">Upload image or video</span>
-                <input id="mediaUpload" type="file" accept="image/*,video/*" />
-              </label>
-              <div class="control-grid">
-                <label><span data-i18n="mediaSubjectLabel">What's in the photo/video?</span><input id="mediaSubjectInput" type="text" placeholder="e.g. a cat on a windowsill" /></label>
-                <label><span data-i18n="mediaGoalLabel">Goal</span><input id="mediaGoalInput" type="text" placeholder="Sell a luxury real estate listing" /></label>
-                <label><span data-i18n="platformLabel">Platform</span>
-                  <select id="platformSelect">
-                    <option>Instagram Reels</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option><option>X</option>
-                  </select>
-                </label>
-                <label><span data-i18n="toneLabel">Tone</span>
-                  <select id="toneSelect">
-                    <option>Luxury</option><option>Professional</option><option>Viral</option><option>Minimal</option><option>Educational</option>
-                  </select>
-                </label>
-              </div>
-              <button id="generateCaptionButton" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> Generate with Claude AI
-              </button>
-              <p class="ai-note">Type what's in your photo/video in the subject box — the caption, hooks and hashtags are built around exactly that. (A static site can't auto-detect image content.)</p>
-            </div>
-            <div class="media-output">
-              <div id="mediaPreview" class="media-preview">
-                <div class="preview-placeholder" data-i18n="mediaPlaceholder">Upload media to preview it here</div>
-              </div>
-              <div class="caption-actions">
-                <button id="copyCaptionButton" class="button ghost gold" type="button">Copy caption</button>
-                <button id="copyMediaJsonButton" class="button ghost" type="button">Copy JSON</button>
-              </div>
-              <pre id="captionOutput" class="ai-output"></pre>
-              <pre id="mediaJsonOutput" class="ai-output json-out"></pre>
-            </div>
-          </div>
-        </section>
-
-        <!-- VIDEO TEMPLATE STUDIO -->
-        <section id="videoStudio" class="panel video-studio">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="studioEyebrow">Advanced video studio</p>
-              <h2 data-i18n="studioTitle">Create a complete, luxurious video</h2>
-              <p data-i18n="studioText">Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.</p>
-            </div>
-          </div>
-          <div class="vstudio-layout">
-            <div class="vstudio-controls">
-
-              <div class="vtab-bar" role="tablist">
-                <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
-                <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
-                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
-                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
-              </div>
-
-              <div class="vstudio-block" data-vtab-panel="template">
-                <details class="vs-template-collapse" open>
-                  <summary class="vs-template-summary">
-                    <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
-                    <span class="vs-template-current" id="vsTemplateCurrent"></span>
-                  </summary>
-                  <div id="templatePicker" class="template-picker"></div>
-                </details>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
-                <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
-                <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
-
-                <label class="vs-global-filter"><span data-i18n="vFilterLabel">Color filter (all slides)</span>
-                  <select id="vsFilter">
-                    <option value="none">None</option>
-                    <option value="cinematic">Cinematic</option>
-                    <option value="warm">Warm</option>
-                    <option value="cool">Cool</option>
-                    <option value="mono">Black &amp; white</option>
-                    <option value="vivid">Vivid</option>
-                  </select>
-                </label>
-
-                <div id="vsSlideList" class="vs-slide-list"></div>
-                <div class="vs-slide-actions">
-                  <label class="button primary vs-add-slide">
-                    <span data-i18n="vAddSlide">+ Add scene (upload media)</span>
-                    <input id="vsSlideUpload" type="file" accept="video/*,image/*" hidden />
-                  </label>
-                  <button id="vsAddIntroBtn" class="button ghost gold" type="button" data-i18n="vAddIntro">+ Add intro scene</button>
-                  <button id="vsAddOutroBtn" class="button ghost gold" type="button" data-i18n="vAddOutro">+ Add outro scene</button>
-                </div>
-                <details class="vs-slide-section" id="vsAutoBuild">
-                  <summary class="vstudio-label" data-i18n="vAutoLabel">⚡ Auto-build a full video</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vAutoHint">Paste a news article URL (or its text). The AI reads the whole article and builds a complete video — analyzing each part and using an infographic where there are numbers, or clean text where there aren't — plus an intro and outro.</p>
-                    <label><span data-i18n="vAutoUrl">Article URL (optional)</span>
-                      <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
-                    </label>
-                    <label><span data-i18n="vAutoTopic">Topic or article text</span>
-                      <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
-                    </label>
-                    <div class="vs-auto-actions">
-                      <button id="vsAutoBuildBtn" class="button primary" type="button" data-i18n="vAutoBuildBtn">Build the video</button>
-                      <button id="vsAutoAiBtn" class="button ghost gold" type="button" data-i18n="vAutoAiBtn">✦ Build with AI</button>
-                    </div>
-                    <p id="vsAutoStatus" class="vstudio-note"></p>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section" id="vsIntroEditor" hidden>
-                  <summary class="vstudio-label" data-i18n="vIntroSceneLabel">Intro scene settings</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vIntroSceneHint">Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.</p>
-                    <label><span data-i18n="vIntroBgLabel">Background</span></label>
-                    <div id="vsIntroBgPicker" class="intro-bg-picker"></div>
-                    <label><span data-i18n="vIntroMainLabel">Main text</span>
-                      <input id="vsIntroMainInput" type="text" maxlength="90" placeholder="AI Radar presents" />
-                    </label>
-                    <label><span data-i18n="vIntroSubInput2">Secondary text</span>
-                      <input id="vsIntroSubInput" type="text" maxlength="110" placeholder="A new standard of calm" />
-                    </label>
-                    <label><span data-i18n="vIntroMotion2">Text motion</span>
-                      <select id="vsIntroMotionInput">
-                        <optgroup label="⬆ Enter">
-                          <option value="fade">Fade in</option>
-                          <option value="rise">Rise up</option>
-                          <option value="slide">Slide from left</option>
-                          <option value="slide-r">Slide from right</option>
-                          <option value="drop">Drop down</option>
-                        </optgroup>
-                        <optgroup label="💥 Dynamic">
-                          <option value="spring">Spring</option>
-                          <option value="rise-spring">Rise + spring</option>
-                          <option value="punch">Punch in</option>
-                          <option value="vox">Vox (snappy)</option>
-                          <option value="swing">Swing in</option>
-                        </optgroup>
-                        <optgroup label="🎬 Cinematic">
-                          <option value="zoom">Zoom in</option>
-                          <option value="blur">Blur in</option>
-                          <option value="flip">Flip in</option>
-                          <option value="glide">Glide in</option>
-                          <option value="drift">Cinematic drift</option>
-                          <option value="reveal">Line reveal</option>
-                          <option value="expand">Letter expand</option>
-                          <option value="tilt">Tilt in</option>
-                        </optgroup>
-                      </select>
-                    </label>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section">
-                  <summary class="vstudio-label" data-i18n="vQuickClipLabel">Quick mode — single clip</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vQuickClipHint">Just one clip and no scenes? Upload a single video or image here instead of adding scenes.</p>
-                    <label class="upload-box">
-                      <span data-i18n="vUploadHint">Upload one video or image (mp4, webm, mov, jpg, png)</span>
-                      <input id="vsUpload" type="file" accept="video/*,image/*" />
-                    </label>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section">
-                  <summary class="vstudio-label" data-i18n="vMusicLabel">Background music</summary>
-                  <div class="vs-section-body">
-                    <label class="upload-box small">
-                      <span data-i18n="vMusicHint">Optional: background music (mp3, wav) — applies to the whole video</span>
-                      <input id="vsMusic" type="file" accept="audio/*" />
-                    </label>
-                  </div>
-                </details>
-
-                <div id="vsSlideEditor" class="vs-slide-editor">
-                  <div id="vsSlideOnlyFields" class="vtab-hidden">
-                    <p id="vsActiveSlideTag" class="vs-active-tag"></p>
-                    <label class="button ghost gold vs-slide-footage">
-                      <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
-                      <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
-                    </label>
-                    <p id="vsSlideMediaName" class="vstudio-note"></p>
-                    <label><span data-i18n="vSlideCaption">Caption (top label)</span>
-                      <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
-                    </label>
-                    <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
-                      <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
-                    </label>
-                  </div>
-
-                  <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This scene's settings</span>
-
-                  <details class="vs-slide-section" open>
-                    <summary class="vstudio-label" data-i18n="vTextLabel">Text layers</summary>
-                    <div class="vs-section-body">
-                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                      <div class="control-grid">
-                        <label><span data-i18n="vTextPosLabel">Text position</span>
-                          <select id="vsTextPos">
-                            <option value="center">Center</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="top">Top</option>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vTextSizeLabel">Text size</span>
-                          <select id="vsTextSize">
-                            <option value="0.8">Small</option>
-                            <option value="1" selected>Medium</option>
-                            <option value="1.3">Large</option>
-                          </select>
-                        </label>
-                        <label><span>Headline font</span>
-                          <select id="vsHeadlineFont">
-                            <option value="Prata, serif">Prata (serif)</option>
-                            <option value="Alice, serif">Alice (elegant)</option>
-                            <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
-                            <option value="Inter, sans-serif">Inter (modern)</option>
-                          </select>
-                        </label>
-                      </div>
-                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
-                    </div>
-                  </details>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
-                    <div class="vs-section-body">
-                      <div class="control-grid">
-                        <label><span data-i18n="vCamMotionLabel">Camera motion</span>
-                          <select id="vsMotion">
-                            <optgroup label="🎥 Zoom">
-                              <option value="kenburns-in">Ken Burns — zoom in</option>
-                              <option value="kenburns-out">Ken Burns — zoom out</option>
-                              <option value="punch-in">Punch in</option>
-                              <option value="zoom-pan">Zoom + pan</option>
-                              <option value="vertigo">Vertigo (dolly zoom)</option>
-                            </optgroup>
-                            <optgroup label="↔ Pan">
-                              <option value="pan-right">Pan right</option>
-                              <option value="pan-left">Pan left</option>
-                              <option value="pan-up">Pan up</option>
-                              <option value="pan-down">Pan down</option>
-                              <option value="diagonal">Diagonal drift</option>
-                              <option value="drift-up">Slow drift up</option>
-                              <option value="parallax">Parallax drift</option>
-                            </optgroup>
-                            <optgroup label="✨ Stylised">
-                              <option value="spin-in">Spin in</option>
-                              <option value="pulse">Pulse</option>
-                              <option value="breathe">Breathe</option>
-                              <option value="sway">Sway</option>
-                              <option value="handheld">Handheld</option>
-                              <option value="shake">Shake</option>
-                              <option value="none">None (static)</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vTextAnimLabel">Text animation</span>
-                          <select id="vsTextAnim">
-                            <optgroup label="⬆ Enter">
-                              <option value="fade-up">Fade up</option>
-                              <option value="rise">Rise up</option>
-                              <option value="slide-left">Slide from left</option>
-                              <option value="slide-right">Slide from right</option>
-                              <option value="fade-down">Fade down</option>
-                              <option value="drop">Drop down</option>
-                            </optgroup>
-                            <optgroup label="💥 Dynamic">
-                              <option value="pop">Pop / scale</option>
-                              <option value="bounce">Bounce</option>
-                              <option value="spring">Spring</option>
-                              <option value="rise-spring">Rise + spring</option>
-                              <option value="punch">Punch in</option>
-                              <option value="vox">Vox (snappy)</option>
-                            </optgroup>
-                            <optgroup label="🎬 Cinematic">
-                              <option value="fade">Fade in</option>
-                              <option value="zoom-in">Zoom in</option>
-                              <option value="blur-in">Blur in</option>
-                              <option value="flip">Flip in</option>
-                              <option value="glide-in">Glide in</option>
-                              <option value="drift">Cinematic drift</option>
-                              <option value="typewriter">Typewriter</option>
-                              <option value="swing">Swing in</option>
-                              <option value="none">None</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vOverlayLabel">Overlay element</span>
-                          <select id="vsOverlay">
-                            <option value="none">None</option>
-                            <optgroup label="✨ Luxury">
-                              <option value="goldframe">Gold frame</option>
-                              <option value="shimmer">Shimmer sweep</option>
-                              <option value="embers">Warm embers</option>
-                              <option value="lightleak">Light leak</option>
-                              <option value="glow">Edge glow</option>
-                              <option value="bokeh">Bokeh lights</option>
-                            </optgroup>
-                            <optgroup label="◻ Minimal">
-                              <option value="minimalline">Minimal line</option>
-                              <option value="corners">Corner brackets</option>
-                              <option value="haze">Soft haze</option>
-                              <option value="gradient">Cinematic bars</option>
-                            </optgroup>
-                            <optgroup label="🌟 Particle">
-                              <option value="particles">Sparkle particles</option>
-                              <option value="dust">Floating dust</option>
-                              <option value="snow">Snow</option>
-                              <option value="rain">Rain</option>
-                            </optgroup>
-                            <optgroup label="📼 Retro">
-                              <option value="scanlines">Scanlines</option>
-                              <option value="vhs">VHS jitter</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                      </div>
-                      <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
-                    </div>
-                  </details>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
-                    <div class="vs-section-body">
-                      <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                      <p class="vstudio-note" data-i18n="vInfoHint">Type your title and stats below — the infographic builds itself as you write. No JSON needed.</p>
-
-                      <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vInfoAiLabel">✦ Generate with AI</span>
-                        <p class="vstudio-note" data-i18n="vInfoAiHint">Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.</p>
-                        <textarea id="vsInfoAiText" rows="3" placeholder="e.g. The 2026 housing market: prices up 8.4%, mortgage rates around 6.2%, 1.2M homes for sale, average 34 days on market."></textarea>
-                        <button id="vsInfoAiBtn" class="button primary vs-ai-btn" type="button">
-                          <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoAiBtn">Generate infographic</span>
-                        </button>
-                        <p class="vstudio-note" id="vsInfoAiStatus"></p>
-                      </div>
-
-                      <label><span data-i18n="vInfoFormTitle">Title</span>
-                        <input id="vsInfoTitle" type="text" maxlength="48" placeholder="Housing Market 2026" />
-                      </label>
-                      <label><span data-i18n="vInfoFormSubtitle">Subtitle (optional)</span>
-                        <input id="vsInfoSubtitle" type="text" maxlength="48" placeholder="Key metrics" />
-                      </label>
-                      <label><span data-i18n="vInfoFormSource">Data source (recommended)</span>
-                        <input id="vsInfoSource" type="text" maxlength="60" placeholder="e.g. World Bank, 2025" />
-                      </label>
-                      <p class="vstudio-note" data-i18n="vInfoSourceNote">Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.</p>
-
-                      <span class="vstudio-label vs-stat-head" data-i18n="vInfoStatsHead">Stats</span>
-                      <div id="vsInfoRows" class="vs-info-rows"></div>
-                      <button id="vsInfoAddRow" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoAddRow">+ Add a stat</button>
-
-                      <div class="control-grid">
-                        <label><span data-i18n="vInfoStyleLabel">Chart style</span>
-                          <select id="vsInfoStyle">
-                            <optgroup label="🔢 Numbers">
-                              <option value="big-numbers">Big Numbers (cinematic)</option>
-                              <option value="counters">Counting up</option>
-                              <option value="ticker-numbers">Ticker style</option>
-                              <option value="comparison">Side-by-side compare</option>
-                            </optgroup>
-                            <optgroup label="📊 Charts">
-                              <option value="bars">Horizontal bars</option>
-                              <option value="pills">Progress pills</option>
-                              <option value="donut">Donut rings</option>
-                              <option value="area-chart">Area / wave chart</option>
-                              <option value="bubble">Bubble chart</option>
-                            </optgroup>
-                            <optgroup label="🃏 Cards">
-                              <option value="cards">Stat cards</option>
-                              <option value="dark-cards">Dark glass cards</option>
-                              <option value="neon-cards">Neon accent cards</option>
-                              <option value="magazine">Magazine layout</option>
-                            </optgroup>
-                            <optgroup label="📰 Editorial">
-                              <option value="timeline-list">Timeline / list</option>
-                              <option value="ranking">Ranking / leaderboard</option>
-                              <option value="vs-split">VS split (2 values)</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vInfoPosLabel">Position</span>
-                          <select id="vsInfoPos">
-                            <option value="center">Center</option>
-                            <option value="left">Left</option>
-                            <option value="right">Right</option>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vInfoMotionLabel">Entrance motion</span>
-                          <select id="vsInfoMotion">
-                            <option value="fade">Fade in</option>
-                            <option value="rise">Rise up</option>
-                            <option value="drop">Drop down</option>
-                            <option value="slide-left">Slide from left</option>
-                            <option value="slide-right">Slide from right</option>
-                            <option value="pop">Pop / scale</option>
-                            <option value="zoom-in">Zoom in</option>
-                            <option value="vox">Vox style (snappy)</option>
-                            <option value="none">None</option>
-                          </select>
-                        </label>
-                      </div>
-
-                      <details class="vs-info-advanced">
-                        <summary data-i18n="vInfoAdvanced">Advanced — edit raw JSON / import file</summary>
-                        <div class="vs-info-adv-body">
-                          <label class="file-field">
-                            <span data-i18n="vInfoImportLabel">Import JSON file</span>
-                            <input id="vsInfoFile" type="file" accept="application/json,.json" />
-                          </label>
-                          <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
-                            <textarea id="vsInfoJson" rows="7" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M" } ] }'></textarea>
-                          </label>
-                          <p class="vstudio-note" id="vsInfoJsonStatus"></p>
-                          <button id="vsInfoSyncBtn" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoSyncBtn">Load this JSON into the form</button>
-                        </div>
-                      </details>
-                    </div>
-                  </details>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vNewsLabel">News banner</summary>
-                    <div class="vs-section-body">
-                      <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
-                      <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
-
-                      <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vNewsAiLabel">✦ Summarize with AI</span>
-                        <p class="vstudio-note" data-i18n="vNewsAiHint">Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.</p>
-                        <textarea id="vsNewsAiText" rows="4" placeholder="Paste the news article text or your notes here…"></textarea>
-                        <button id="vsNewsAiBtn" class="button primary vs-ai-btn" type="button">
-                          <span class="ai-btn-icon">✦</span> <span data-i18n="vNewsAiBtn">Summarize into banner</span>
-                        </button>
-                        <p class="vstudio-note" id="vsNewsAiStatus"></p>
-                      </div>
-                      <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
-                        <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
-                      </label>
-                      <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
-                        <input id="vsNewsHeadline" type="text" maxlength="120" placeholder="Type the news headline here" />
-                      </label>
-                      <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
-                        <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
-                      </label>
-                      <div class="control-grid">
-                        <label><span data-i18n="vNewsStyleLabel">Banner style</span>
-                          <select id="vsNewsStyle">
-                            <optgroup label="📺 Broadcast">
-                              <option value="lowerthird">Lower third</option>
-                              <option value="ticker">Bottom ticker</option>
-                              <option value="fullbar">Full lower bar</option>
-                              <option value="breaking">Breaking news bar</option>
-                              <option value="topbar">Top news bar</option>
-                            </optgroup>
-                            <optgroup label="🎬 Cinematic title">
-                              <option value="title-center">Centered title</option>
-                              <option value="bold-statement">Bold statement (huge)</option>
-                              <option value="title-left">Left title block</option>
-                              <option value="kinetic">Kinetic type</option>
-                              <option value="reveal-words">Word reveal</option>
-                            </optgroup>
-                            <optgroup label="💬 Quote &amp; context">
-                              <option value="quote">Quote style</option>
-                              <option value="pullquote">Pull quote (side)</option>
-                              <option value="caption">Caption bottom</option>
-                              <option value="annotation">Annotation card</option>
-                            </optgroup>
-                            <optgroup label="🎨 Graphic">
-                              <option value="split">Split block</option>
-                              <option value="badge">Badge headline</option>
-                              <option value="magazine-cover">Magazine cover</option>
-                              <option value="neon-title">Neon title</option>
-                              <option value="minimal-line">Minimal line</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
-                          <select id="vsNewsAccent">
-                            <option value="red">Breaking red</option>
-                            <option value="blue">News blue</option>
-                            <option value="gold">Studio gold</option>
-                            <option value="mono">Mono / dark</option>
-                          </select>
-                        </label>
-                      </div>
-                      <label><span data-i18n="vNewsMotionLabel">Entrance motion</span>
-                        <select id="vsNewsMotion">
-                          <option value="slide-up">Slide up</option>
-                          <option value="slide-left">Slide from left</option>
-                          <option value="slide-right">Slide from right</option>
-                          <option value="fade">Fade in</option>
-                          <option value="pop">Pop / scale</option>
-                          <option value="vox">Vox style (snappy)</option>
-                          <option value="none">None</option>
-                        </select>
-                      </label>
-                      <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
-                    </div>
-                  </details>
-                </div>
-              </div>
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
-                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
-                    <select id="vsAspect">
-                      <option value="9:16" selected>9:16 — Reels / TikTok</option>
-                      <option value="original">Original</option>
-                      <option value="16:9">16:9 — Landscape</option>
-                      <option value="1:1">1:1 — Square</option>
-                      <option value="4:5">4:5 — Portrait</option>
-                    </select>
-                  </label>
-                </div>
-                <input id="vsDuration" type="hidden" value="6" />
-                <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
-                <div class="control-grid">
-                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
-                    <select id="vsSpeed">
-                      <option value="0.5">0.5×</option>
-                      <option value="1" selected>1×</option>
-                      <option value="1.5">1.5×</option>
-                      <option value="2">2×</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="control-grid">
-                  <label><span data-i18n="vTransitionLabel">Transition in</span>
-                    <select id="vsTransition">
-                      <option value="fade">Fade</option>
-                      <option value="blur">Blur</option>
-                      <option value="zoom">Zoom in</option>
-                      <option value="slide">Slide up</option>
-                      <option value="none">None</option>
-                    </select>
-                  </label>
-                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
-                </div>
-                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vExportSizeLabel">Download size</span>
-                    <select id="vsExportSize">
-                      <option value="2160">4K — 2160p</option>
-                      <option value="1080" selected>Full HD — 1080p</option>
-                      <option value="720">HD — 720p</option>
-                      <option value="480">SD — 480p</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
-                    <select id="vsExportQuality">
-                      <option value="max">Maximum</option>
-                      <option value="high" selected>High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low (small file)</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportFormatLabel">File format</span>
-                    <select id="vsExportFormat">
-                      <option value="mp4" selected>MP4 (most compatible)</option>
-                      <option value="webm">WebM (faster, smaller)</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="vstudio-note" data-i18n="vExportFormatNote">MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.</p>
-                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
-              </div>
-
-
-
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
-                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
-                <label class="upload-box small">
-                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
-                  <input id="vsLogo" type="file" accept="image/*" />
-                </label>
-                <label><span data-i18n="vLogoPosLabel">Logo position</span>
-                  <select id="vsLogoPos">
-                    <option value="tl">Top left</option>
-                    <option value="tr">Top right</option>
-                    <option value="bl">Bottom left</option>
-                    <option value="br">Bottom right</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vIntroLabel">Intro — main text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
-                <label><span data-i18n="vIntroSubLabel">Intro — secondary text</span><input id="vsIntroSub" type="text" placeholder="A new standard of calm" /></label>
-                <label><span data-i18n="vIntroMotionLabel">Intro text motion</span>
-                  <select id="vsIntroMotion">
-                    <option value="fade">Fade in</option>
-                    <option value="rise">Rise up</option>
-                    <option value="slide">Slide in</option>
-                    <option value="zoom">Zoom in</option>
-                    <option value="reveal">Line reveal</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
-              </div>
-
-
-              <div class="vstudio-actions">
-                <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
-                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
-              </div>
-              <p id="vsStatus" class="ai-note"></p>
-            </div>
-
-            <div class="vstudio-stage">
-              <div class="vs-stage-bar">
-                <span data-i18n="vPreviewLabel">Preview</span>
-                <label class="vs-size-control">
-                  <span data-i18n="vPreviewSizeLabel">Preview size</span>
-                  <input id="vsPreviewSize" type="range" min="40" max="100" value="100" />
-                  <em id="vsPreviewSizeVal">100%</em>
-                </label>
-              </div>
-              <div id="vsPreview" class="vs-preview">
-                <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
-              </div>
-
-                <!-- Hera-style scene timeline -->
-              <div class="vs-timeline" id="vsTimeline">
-                <div class="vs-timeline-toolbar">
-                  <button id="vsUndoBtn" class="vs-tool-btn" type="button" aria-label="Undo" title="Undo">↶</button>
-                  <button id="vsRedoBtn" class="vs-tool-btn" type="button" aria-label="Redo" title="Redo">↷</button>
-                  <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
-                  <span id="vsTimecode" class="vs-timecode">0:00 / 0:00</span>
-                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag edges to resize · click to select</span>
-                </div>
-                <!-- Scene strip (Hera style) -->
-                <div class="vs-scene-strip" id="vsSceneStrip">
-                  <div class="vs-scene-scroll" id="vsSceneScroll">
-                    <div class="vs-scene-blocks" id="vsSceneBlocks"></div>
-                    <div class="vs-waveform-row" id="vsWaveformRow">
-                      <canvas class="vs-waveform-canvas" id="vsWaveformCanvas"></canvas>
-                    </div>
-                    <div class="vs-scene-playhead" id="vsScenePlayhead"></div>
-                  </div>
-                </div>
-                <!-- Legacy track area kept hidden for JS scrub logic -->
-                <div class="vs-track-area" id="vsTrackArea" style="display:none">
-                  <div class="vs-tracks">
-                    <div class="vs-track">
-                      <span class="vs-track-label">Media</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-media" id="vsClipMedia">Media</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Text</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-text" id="vsClipText">Text</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Logo</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-logo" id="vsClipLogo">Logo</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Music</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-music" id="vsClipMusic">Music</div></div>
-                    </div>
-                  </div>
-                  <div class="vs-playhead" id="vsPlayhead"><div class="vs-playhead-grip"></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- PROMPT LAB -->
-        <section id="intelligence" class="panel intelligence">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Prompt Lab — Prompt & JSON tools</p>
-              <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
-            </div>
-          </div>
-          <div class="intel-layout">
-            <div id="promptForm" class="utility-card">
-              <label>
-                <span data-i18n="promptDescLabel">Describe what you want to create</span>
-                <input id="simplePromptInput" type="text" placeholder="Type one word, e.g. ocean — or a short idea" />
-              </label>
-              <label>
-                <span data-i18n="promptStyleLabel">Style</span>
-                <select id="promptStyleSelect">
-                  <option value="cinematic">Cinematic</option>
-                  <option value="editorial">Editorial</option>
-                  <option value="hyperreal">Hyper-real</option>
-                  <option value="minimal">Minimal luxury</option>
-                  <option value="render3d">3D render</option>
-                  <option value="anime">Anime / illustration</option>
-                </select>
-              </label>
-              <button id="promptGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="promptGenBtn">Generate prompt</span>
-              </button>
-              <p class="ai-note" data-i18n="promptNote">Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.</p>
-              <div class="output-box">
-                <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
-                <pre id="advancedPromptOutput" class="ai-output"></pre>
-              </div>
-            </div>
-            <div id="jsonForm" class="utility-card">
-              <label>
-                <span data-i18n="jsonDescLabel">Describe any data, product, or idea</span>
-                <textarea id="textJsonInput" rows="6" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
-              </label>
-              <button id="jsonGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="jsonGenBtn">Generate JSON</span>
-              </button>
-              <p class="ai-note" data-i18n="jsonNote">Outputs only clean, valid JSON — no explanation, no extra text.</p>
-              <div class="output-box">
-                <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
-                <pre id="jsonOutput" class="ai-output"></pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-
-        <!-- ABOUT / CREDITS -->
-        <section id="about" class="panel about-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="aboutEyebrow">About</p>
-              <h2 data-i18n="aboutTitle">Built for the AI-curious</h2>
-              <p data-i18n="aboutText">AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.</p>
-            </div>
-          </div>
-
-          <div class="about-highlight">
-            <div class="about-highlight-mark" aria-hidden="true">
-              <svg viewBox="0 0 64 64" width="56" height="56">
-                <circle cx="32" cy="32" r="25" fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.9"/>
-                <circle cx="32" cy="32" r="15" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
-                <line x1="32" y1="32" x2="32" y2="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                <circle cx="44" cy="22" r="3" fill="currentColor"/>
-                <circle cx="32" cy="32" r="2.4" fill="currentColor"/>
-              </svg>
-            </div>
-            <div>
-              <h3 data-i18n="aboutMissionTitle">Why AI Radar exists</h3>
-              <p data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.</p>
-            </div>
-          </div>
-
-          <div class="about-stats">
-            <div class="about-stat">
-              <strong id="aboutToolCount">45+</strong>
-              <span data-i18n="aboutStatTools">curated AI tools</span>
-            </div>
-            <div class="about-stat">
-              <strong>100%</strong>
-              <span data-i18n="aboutStatFree">free, no account</span>
-            </div>
-            <div class="about-stat">
-              <strong data-i18n="aboutStatLiveValue">Live</strong>
-              <span data-i18n="aboutStatLive">GitHub data</span>
-            </div>
-            <div class="about-stat">
-              <strong data-i18n="aboutStatPrivacyValue">Zero</strong>
-              <span data-i18n="aboutStatPrivacy">tracking or ads</span>
-            </div>
-          </div>
-
-          <div class="about-features">
-            <article class="about-feature">
-              <span class="about-feature-icon">◎</span>
-              <h4 data-i18n="aboutFeat1Title">Tool finder</h4>
-              <p data-i18n="aboutFeat1Text">Search and filter real AI tools by use case, price, and job — grouped and easy to scan.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">▥</span>
-              <h4 data-i18n="aboutFeat2Title">Live trend chart</h4>
-              <p data-i18n="aboutFeat2Text">Popularity tracked from the public GitHub API, refreshed automatically — no guesswork.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">✦</span>
-              <h4 data-i18n="aboutFeat3Title">Video studio</h4>
-              <p data-i18n="aboutFeat3Text">Build multi-scene videos with motion, infographics, and news banners — entirely in your browser.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">⚙</span>
-              <h4 data-i18n="aboutFeat4Title">Caption &amp; prompt tools</h4>
-              <p data-i18n="aboutFeat4Text">Generate captions and refined prompts locally — fast, private, and free to use.</p>
-            </article>
-          </div>
-
-          <div class="about-grid">
-            <article class="credit-card creator-card">
-              <div class="credit-avatar">SA</div>
-              <div class="credit-meta">
-                <strong>Shayan Alinia</strong>
-                <span data-i18n="aboutRole">Creator &amp; Designer</span>
-              </div>
-              <p data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, the interface, the live trend chart, and the in-browser video studio. Every detail here is the work of one person who cares about doing it properly.</p>
-            </article>
-            <article class="credit-card">
-              <div class="credit-avatar">AR</div>
-              <div class="credit-meta">
-                <strong>AI Radar</strong>
-                <span data-i18n="aboutProjectRole">Free static project</span>
-              </div>
-              <p data-i18n="aboutProjectText">Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.</p>
-            </article>
-          </div>
-
-          <div class="changelog">
-            <div class="changelog-head">
-              <h3 data-i18n="changelogTitle">Latest updates</h3>
-              <span class="version-badge">v2.2.0</span>
-            </div>
-            <ul class="changelog-list">
-              <li>
-                <span class="changelog-ver">2.2</span>
-                <div>
-                  <strong>Cinematic graphics &amp; UI overhaul</strong>
-                  <p>New "Big Numbers" infographic preset with animated counting and glowing accent numbers. Headline text is now 25% larger across all news styles with proper dark scrims. Bold Statement style with massive full-frame text. Color filter only applies to uploaded footage — motion backgrounds stay crisp. Timeline accent matches site gold theme. All long dropdown lists reorganised into labelled groups. Auto-video AI produces varied news analysis with 4–7 scenes, palette selection and smart chart types.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">2.1</span>
-                <div>
-                  <strong data-i18n="cl21Title">Cinematic design upgrade</strong>
-                  <p data-i18n="cl21Text">Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">2.0</span>
-                <div>
-                  <strong data-i18n="cl20Title">Smarter article-to-video</strong>
-                  <p data-i18n="cl20Text">Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.9</span>
-                <div>
-                  <strong data-i18n="cl19Title">Auto video builder</strong>
-                  <p data-i18n="cl19Text">Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.8</span>
-                <div>
-                  <strong data-i18n="cl18Title">Outro scenes &amp; more designs</strong>
-                  <p data-i18n="cl18Text">Added outro scenes, 22 intro backgrounds, cinematic motion presets, clearer infographic text, per-slide element positions, and a graceful music fade-out.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.7</span>
-                <div>
-                  <strong data-i18n="cl17Title">Intro scenes &amp; richer motion</strong>
-                  <p data-i18n="cl17Text">New intro scene type in the Video Studio with built-in backgrounds, dual animated text, and many motion presets. Scene-aware motion so every slide animates correctly.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.6</span>
-                <div>
-                  <strong data-i18n="cl16Title">Full sidebar &amp; cleaner UI</strong>
-                  <p data-i18n="cl16Text">Collapsible left sidebar navigation, redesigned chart and footer controls, a back-to-top button, and tighter mobile layouts throughout.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.5</span>
-                <div>
-                  <strong data-i18n="cl15Title">MP4 export &amp; real charts</strong>
-                  <p data-i18n="cl15Text">Video Studio now exports MP4. The infographic became a proper bar chart with a labelled axis, scale, and gridlines.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.4</span>
-                <div>
-                  <strong data-i18n="cl14Title">Bigger tool catalogue</strong>
-                  <p data-i18n="cl14Text">Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.</p>
-                </div>
-              </li>
-            </ul>
-            <p class="changelog-note" data-i18n="changelogNote">AI Radar is actively maintained. This list shows the most recent notable changes.</p>
-          </div>
-        </section>
-
-      </main>
-      <button id="scrollTopBtn" class="scroll-top" type="button"
-        aria-label="Back to top" title="Back to top">
-        <span class="scroll-top-arrow">↑</span>
-      </button>
-      </div><!-- /.content-area -->
-    </div>
-
-    <script src="app.js?v=v220"></script>
-  </body>
+      <section class="home-tools-preview panel">
+        <div class="section-head">
+          <div><p class="eyebrow">Top tools</p><h2>Most recommended</h2></div>
+          <a class="button ghost" href="/tools/">View all 45+ tools</a>
+        </div>
+        <div class="tool-grid" id="homeToolGrid"></div>
+      </section>
+    </main>
+    <button id="scrollTopBtn" class="scroll-top" type="button" aria-label="Back to top">↑</button>
+  </div>
+</div>
+<script src="/shared.js"></script>
+<script src="/app-data.js"></script>
+<script>
+window.PAGE_ID="home";
+document.addEventListener("DOMContentLoaded",()=>{
+  buildSidebar("home");
+  renderHomeTop6();
+  startHeroCanvas();
+  buildTicker();
+});
+function renderHomeTop6(){
+  const grid=document.getElementById("homeToolGrid"); if(!grid||typeof tools==="undefined") return;
+  const lang=localStorage.getItem("lang")||"en", fa=lang==="fa";
+  const top=[...tools].sort((a,b)=>b.score-a.score).slice(0,6);
+  const text=v=>typeof v==="string"?v:(v[lang]||v.en);
+  grid.innerHTML=top.map(t=>{
+    const logoHtml=t.logoUrl?`<img src="${t.logoUrl}" alt="${t.name}" loading="lazy"/>`:(t.logo||t.name.slice(0,2).toUpperCase());
+    const price=t.price===0?(fa?"رایگان":"Free"):"$"+t.price;
+    const pc=t.price===0?"price-free":"price-paid";
+    return`<article class="tool-card">
+      <div class="tool-top">
+        <div style="display:flex;align-items:center;gap:10px;"><span class="logo">${logoHtml}</span><div><h3>${t.name}</h3><span class="tag">${text(t.category)}</span></div></div>
+        <span class="price ${pc}">${price}</span>
+      </div>
+      <p>${text(t.useCase)}</p>
+      <div class="tool-actions">
+        <a class="button ghost" href="/tools/#tool-${t.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")}" style="font-size:12px;min-height:34px;padding:0 12px;">${fa?"جزئیات":"Details"}</a>
+        <a class="mini-link" href="${t.url}" target="_blank" rel="noopener">${fa?"لینک رسمی":"Official link"}</a>
+      </div>
+    </article>`;
+  }).join("");
+}
+function buildTicker(){
+  const w=document.getElementById("modelsTicker"); if(!w) return;
+  const ms=[{n:"OpenAI",d:"openai.com"},{n:"Anthropic",d:"anthropic.com"},{n:"Google DeepMind",d:"deepmind.google"},{n:"Meta AI",d:"meta.ai"},{n:"Mistral",d:"mistral.ai"},{n:"Stability AI",d:"stability.ai"},{n:"Runway",d:"runwayml.com"},{n:"ElevenLabs",d:"elevenlabs.io"},{n:"Midjourney",d:"midjourney.com"},{n:"xAI Grok",d:"x.ai"},{n:"Cohere",d:"cohere.com"},{n:"Hugging Face",d:"huggingface.co"},{n:"DeepSeek",d:"deepseek.com"},{n:"Black Forest Labs",d:"blackforestlabs.ai"}];
+  const items=[...ms,...ms].map(m=>`<span class="ticker-item"><img src="https://www.google.com/s2/favicons?domain=${m.d}&sz=32" alt="${m.n}" loading="lazy"/><span>${m.n}</span></span>`).join("");
+  w.innerHTML=items;
+}
+function startHeroCanvas(){
+  const canvas=document.getElementById("heroMotionCanvas"); if(!canvas) return;
+  const ctx=canvas.getContext("2d"); let W,H,dots=[];
+  function resize(){ W=canvas.width=canvas.offsetWidth*devicePixelRatio; H=canvas.height=canvas.offsetHeight*devicePixelRatio; dots=Array.from({length:40},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*0.5,vy:(Math.random()-.5)*0.5,r:Math.random()*2+1})); }
+  function draw(){ ctx.clearRect(0,0,W,H); dots.forEach(d=>{ d.x+=d.vx; d.y+=d.vy; if(d.x<0||d.x>W)d.vx*=-1; if(d.y<0||d.y>H)d.vy*=-1; ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fillStyle="rgba(216,183,106,0.6)";ctx.fill(); }); dots.forEach((a,i)=>dots.slice(i+1).forEach(b=>{ const dx=a.x-b.x,dy=a.y-b.y,dist=Math.sqrt(dx*dx+dy*dy); if(dist<100){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(216,183,106,${0.15*(1-dist/100)})`;ctx.lineWidth=0.5;ctx.stroke();} })); requestAnimationFrame(draw); }
+  resize(); window.addEventListener("resize",resize,{passive:true}); draw();
+}
+function onLangChange(lang){
+  const fa=lang==="fa";
+  document.querySelector(".hero-badge").textContent=fa?"✦ AI Radar — هوش زنده":"✦ AI Radar — Live Intelligence";
+  document.querySelector(".luxury-hero h1").textContent=fa?"پیدا کن. مقایسه کن. بساز.":"Find. Compare. Create.";
+  document.querySelector(".luxury-hero p").textContent=fa?"ابزارهای واقعی AI، نمودار زنده، کپشن و ساخت تصویر — رایگان در مرورگر.":"Real AI tools, live charts, AI captions and image generation — free in your browser.";
+  renderHomeTop6();
+}
+</script>
+</body>
 </html>
