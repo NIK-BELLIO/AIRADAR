@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Tool Finder — 45+ Curated Tools | AI Radar</title>
+  <meta name="description" content="Search and compare 45+ real AI tools by use case, price, and model type. Free plans highlighted. Live GitHub popularity data."/>
+  <meta property="og:title" content="AI Tool Finder — 45+ Curated Tools | AI Radar"/>
+  <meta property="og:image" content="https://airadar.me/og-tools.png"/>
+  <meta property="og:url" content="https://airadar.me/tools/"/>
+  <link rel="canonical" href="https://airadar.me/tools/"/>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Prata&family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <link rel="stylesheet" href="/extra.css"/>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"AI Tool Finder","url":"https://airadar.me/tools/","description":"45+ curated AI tools with live GitHub data, pricing, and use-case details."}</script>
+</head>
+<body>
+<div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+<div class="shell">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="appSidebar"></aside>
+  <div class="content-area">
+    <button id="sidebarOpenBtn" class="sidebar-open" type="button" aria-label="Menu">☰</button>
+    <main id="top">
+      <section class="page-hero">
+        <p class="eyebrow" id="toolsEyebrow">Tool finder</p>
+        <h1 id="toolsTitle">Curated real AI tools</h1>
+        <p id="toolsDesc">45+ hand-picked tools with live GitHub data, pricing, and use-case detail. Compare side-by-side or jump straight to any tool.</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-head" style="flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div class="search-wrap" style="flex:1;min-width:200px;">
+            <label class="sr-only" for="searchInput">Search tools</label>
+            <input id="searchInput" type="search" placeholder="Search by use case, price, job..."/>
+            <div class="view-toggle" role="group">
+              <button id="viewGrid" class="view-btn active" type="button" title="Grid view"><svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></button>
+              <button id="viewList" class="view-btn" type="button" title="List view"><svg viewBox="0 0 16 16" width="16" height="16"><rect x="1" y="2" width="3" height="3" rx="0.5"/><rect x="6" y="2" width="9" height="3" rx="0.5"/><rect x="1" y="7" width="3" height="3" rx="0.5"/><rect x="6" y="7" width="9" height="3" rx="0.5"/><rect x="1" y="12" width="3" height="3" rx="0.5"/><rect x="6" y="12" width="9" height="3" rx="0.5"/></svg></button>
+            </div>
+          </div>
+          <span id="toolCount" style="color:var(--muted);font-size:13px;align-self:center;white-space:nowrap;"></span>
+        </div>
+        <div class="filters">
+          <label><span id="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
+          <label><span id="categoryLabel">Category</span><select id="categoryFilter"></select></label>
+          <label><span id="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
+          <label><span id="sortLabel">Sort</span><select id="sortFilter"></select></label>
+        </div>
+        <div class="filters" style="margin-top:-10px;">
+          <label><span id="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
+          <label style="grid-column:span 2;">
+            <span>Min score: <span id="minScoreValue">0</span></span>
+            <input type="range" id="minScoreFilter" min="0" max="100" value="0"/>
+          </label>
+          <label style="align-self:end;"><span>&nbsp;</span><button class="button ghost" id="resetFilters" type="button">Reset</button></label>
+        </div>
+        <div id="toolGrid" class="tool-groups"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head" style="margin-bottom:16px;">
+          <div><p class="eyebrow" id="compareEyebrow">Compare</p><h2 id="compareTitle" style="font-size:clamp(20px,2.5vw,32px);">Compare selected tools</h2></div>
+          <button class="button ghost" id="clearCompareBtn" type="button">Clear</button>
+        </div>
+        <div class="compare-table" id="compareTable"></div>
+      </section>
+    </main>
+    <button id="scrollTopBtn" class="scroll-top" type="button" aria-label="Back to top">↑</button>
+  </div>
+</div>
+<script src="/shared.js"></script>
+<script src="/app-data.js"></script>
+<script src="/tools.js"></script>
+</body>
+</html>
