@@ -5035,15 +5035,16 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
 
   // ── TEXT-STYLE templates — headline/subtitle text, not a news bar ──
   const textStyles = ["title-center", "title-left", "quote", "caption",
-    "statement", "split", "badge"];
+    "statement", "split", "badge", "bold-statement"];
   if (textStyles.includes(style)) {
     const U = Math.min(W, H);
     const mainTxt = headline || kicker;
     const subTxt = source;
-    const reveal = slide;                  // entrance progress 0..1
+    const reveal = slide;
     const e = 1 - Math.pow(1 - reveal, 3);
     ctx.save();
     ctx.globalAlpha = e;
+
     // wrap helper
     const wrap = (str, font, maxW, maxLines) => {
       ctx.font = font;
@@ -5059,203 +5060,264 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       if (ln && out.length < maxLines) out.push(ln);
       return out;
     };
+
     if (style === "title-center" || style === "title-left") {
       const left = style === "title-left";
-      const cx = left ? W * 0.1 : W / 2;
+      const cx = left ? W * 0.09 : W / 2;
       const align = left ? "left" : "center";
       ctx.textAlign = align;
-      const maxW = W * 0.82;
-      const mainPx = Math.round(U * 0.07);
-      const mainFont = `700 ${mainPx}px Prata, serif`;
-      const lines = wrap(mainTxt, mainFont, maxW, 4);
-      const lineH = mainPx * 1.18;
+      // BIGGER headline — 9% of frame
+      const maxW = W * (left ? 0.88 : 0.84);
+      const mainPx = Math.round(U * 0.088);
+      const mainFont = `800 ${mainPx}px Prata, serif`;
+      const lines = wrap(mainTxt, mainFont, maxW, 3);
+      const lineH = mainPx * 1.15;
       const blockH = lines.length * lineH;
-      const top = H * 0.5 - blockH / 2;
+      const top = H * 0.48 - blockH / 2;
 
-      // ── kicker label above the headline (category / eyebrow) ──
+      // dark scrim behind text for readability
+      const scrimH = blockH + U * 0.22;
+      const scrimG = ctx.createLinearGradient(0, top - U * 0.1, 0, top + scrimH);
+      scrimG.addColorStop(0, "rgba(0,0,0,0)");
+      scrimG.addColorStop(0.2, "rgba(0,0,0,0.65)");
+      scrimG.addColorStop(0.8, "rgba(0,0,0,0.65)");
+      scrimG.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = scrimG;
+      ctx.fillRect(0, top - U * 0.1, W, scrimH);
+
+      // kicker eyebrow
       if (kicker && headline) {
-        const kPx = Math.round(U * 0.022);
+        const kPx = Math.round(U * 0.024);
         ctx.font = `700 ${kPx}px Inter, sans-serif`;
-        ctx.textAlign = align;
         const kText = kicker.toUpperCase();
         const kW = ctx.measureText(kText).width;
         const kx = left ? cx : cx - kW / 2;
-        const ky = top - U * 0.06;
-        // small accent block before the kicker
+        const ky = top - U * 0.065;
+        // accent pill
         ctx.fillStyle = ac.bar;
-        ctx.globalAlpha = e;
-        ctx.fillRect(kx - U * 0.03, ky - kPx * 0.7, U * 0.018, kPx);
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        // letter-spaced kicker
-        ctx.save();
-        ctx.translate(kx, ky);
-        let lx = 0;
-        for (const ch of kText) {
-          ctx.fillText(ch, lx, 0);
-          lx += ctx.measureText(ch).width + U * 0.004;
-        }
-        ctx.restore();
+        roundRectPath(ctx, kx - U * 0.018, ky - kPx * 0.85, kW + U * 0.036, kPx * 1.7, kPx * 0.85);
+        ctx.fill();
+        ctx.fillStyle = ac.text || "#fff";
+        ctx.fillText(kText, kx, ky);
       }
 
-      // ── headline lines, each rising in with a slight stagger ──
+      // headline lines — staggered rise
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.55)";
-      ctx.shadowBlur = U * 0.025;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = U * 0.03;
       ctx.font = mainFont;
       lines.forEach((ln, li) => {
-        const le = Math.max(0, Math.min(1,
-          (reveal * (lines.length + 1) - li)));
+        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
         const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.globalAlpha = le3;
-        const yy = top + li * lineH + lineH * 0.8 + (1 - le3) * U * 0.04;
+        ctx.globalAlpha = e * le3;
+        const yy = top + li * lineH + lineH * 0.82 + (1 - le3) * U * 0.035;
         ctx.fillText(ln, cx, yy);
       });
       ctx.shadowBlur = 0;
       ctx.globalAlpha = e;
 
-      // ── accent line(s) below the headline ──
-      const lineY = top + blockH + U * 0.04;
-      const lw = U * 0.16 * e;
+      // accent underline
+      const lineY = top + blockH + U * 0.038;
+      const lw = U * 0.18 * e;
       ctx.fillStyle = ac.bar;
       const ux = left ? cx : cx - lw / 2;
       ctx.fillRect(ux, lineY, lw, U * 0.007);
-      // a thin secondary tick for a designed look
-      ctx.globalAlpha = e * 0.5;
-      ctx.fillRect(ux + lw + U * 0.015, lineY + U * 0.002, U * 0.03, U * 0.003);
+      ctx.globalAlpha = e * 0.45;
+      ctx.fillRect(ux + lw + U * 0.014, lineY + U * 0.002, U * 0.028, U * 0.003);
       ctx.globalAlpha = e;
-
       if (subTxt) {
-        ctx.fillStyle = "rgba(255,255,255,0.82)";
-        ctx.font = `400 ${Math.round(U * 0.026)}px Inter, sans-serif`;
+        ctx.fillStyle = "rgba(255,255,255,0.78)";
+        ctx.font = `500 ${Math.round(U * 0.028)}px Inter, sans-serif`;
         ctx.fillText(subTxt, cx, lineY + U * 0.055);
       }
+
     } else if (style === "quote") {
       ctx.textAlign = "center";
-      const maxW = W * 0.78;
-      const qPx = Math.round(U * 0.05);
-      const lines = wrap(mainTxt, `italic 500 ${qPx}px Prata, serif`, maxW, 4);
-      const lineH = qPx * 1.3;
-      // big quotation mark
+      // dark scrim
+      ctx.fillStyle = "rgba(0,0,0,0.52)";
+      ctx.fillRect(0, H * 0.25, W, H * 0.5);
+      const maxW = W * 0.8;
+      const qPx = Math.round(U * 0.058);
+      const lines = wrap(mainTxt, `italic 600 ${qPx}px Prata, serif`, maxW, 4);
+      const lineH = qPx * 1.32;
+      // huge decorative quote mark
       ctx.fillStyle = ac.bar;
-      ctx.font = `700 ${Math.round(U * 0.14)}px Prata, serif`;
-      ctx.fillText("\u201C", W / 2, H * 0.34 - (1 - e) * U * 0.04);
+      ctx.globalAlpha = e * 0.9;
+      ctx.font = `900 ${Math.round(U * 0.16)}px Prata, serif`;
+      ctx.fillText("\u201C", W / 2, H * 0.35 - (1 - e) * U * 0.05);
+      ctx.globalAlpha = e;
       ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = U * 0.03;
       let yy = H * 0.5 - (lines.length - 1) * lineH / 2;
-      ctx.font = `italic 500 ${qPx}px Prata, serif`;
-      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
-      if (subTxt) {
-        ctx.fillStyle = ac.bar;
-        ctx.font = `600 ${Math.round(U * 0.024)}px Inter, sans-serif`;
-        ctx.fillText("— " + subTxt, W / 2, yy + U * 0.02);
-      }
-    } else if (style === "caption") {
-      // small caption line near the bottom with a subtle scrim
-      const capPx = Math.round(U * 0.034);
-      ctx.textAlign = "center";
-      const lines = wrap(mainTxt, `600 ${capPx}px Inter, sans-serif`,
-        W * 0.86, 2);
-      const lineH = capPx * 1.25;
-      const blockH = lines.length * lineH + U * 0.04;
-      const by = H * 0.9 - blockH + (1 - e) * U * 0.04;
-      const sc = ctx.createLinearGradient(0, by - U * 0.04, 0, H);
-      sc.addColorStop(0, "rgba(0,0,0,0)");
-      sc.addColorStop(1, "rgba(0,0,0,0.55)");
-      ctx.fillStyle = sc;
-      ctx.fillRect(0, by - U * 0.04, W, H - (by - U * 0.04));
-      ctx.fillStyle = "#ffffff";
-      let yy = by + lineH * 0.7;
-      lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
-    } else if (style === "statement") {
-      // huge bold statement, each line scaling in with a stagger.
-      // Auto-fit the font so even long words stay inside the frame.
-      ctx.textAlign = "center";
-      const maxW = W * 0.9;
-      let px = Math.round(U * 0.092);
-      const minPx = Math.round(U * 0.045);
-      const countFit = (size) => {
-        ctx.font = `800 ${size}px Inter, sans-serif`;
-        const words = String(mainTxt).toUpperCase().split(/\s+/).filter(Boolean);
-        // longest single word must fit; also wrap to <=4 lines
-        for (const w of words)
-          if (ctx.measureText(w).width > maxW) return false;
-        return true;
-      };
-      while (px > minPx && !countFit(px)) px -= 2;
-      const lines = wrap(mainTxt.toUpperCase(), `800 ${px}px Inter, sans-serif`,
-        maxW, 4);
-      const lineH = px * 1.04;
-      const top = H / 2 - (lines.length - 1) * lineH / 2;
+      ctx.font = `italic 600 ${qPx}px Prata, serif`;
       lines.forEach((ln, li) => {
         const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
         const le3 = 1 - Math.pow(1 - le, 3);
-        ctx.save();
-        ctx.globalAlpha = le3;
-        const sc = 0.86 + le3 * 0.14;
-        ctx.translate(W / 2, top + li * lineH);
-        ctx.scale(sc, sc);
-        ctx.fillStyle = li % 2 === 1 ? ac.bar : "#ffffff";
-        ctx.font = `800 ${px}px Inter, sans-serif`;
-        ctx.fillText(ln, 0, 0);
-        ctx.restore();
+        ctx.globalAlpha = e * le3;
+        ctx.fillText(ln, W / 2, yy + (1 - le3) * U * 0.03); yy += lineH;
       });
-    } else if (style === "split") {
-      // kicker on a coloured block (left), headline to the right
-      const padL = W * 0.08;
-      const blkY = H * 0.4;
-      if (kicker) {
-        ctx.fillStyle = ac.bar;
-        const kPx = Math.round(U * 0.03);
-        ctx.font = `800 ${kPx}px Inter, sans-serif`;
-        const kT = kicker.toUpperCase();
-        const kw = ctx.measureText(kT).width + U * 0.05;
-        ctx.fillRect(padL, blkY - kPx, kw, kPx * 1.8);
-        ctx.fillStyle = ac.text || "#fff";
-        ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        ctx.fillText(kT, padL + U * 0.025, blkY - kPx + kPx * 0.9);
-        ctx.textBaseline = "alphabetic";
+      ctx.shadowBlur = 0; ctx.globalAlpha = e;
+      // closing quote
+      ctx.fillStyle = ac.bar; ctx.globalAlpha = e * 0.5;
+      ctx.font = `900 ${Math.round(U * 0.1)}px Prata, serif`;
+      ctx.fillText("\u201D", W / 2, yy - lineH * 0.3 + Math.round(U * 0.1));
+      ctx.globalAlpha = e;
+      if (subTxt) {
+        ctx.fillStyle = vsHexA(ac.bar, 0.9);
+        ctx.font = `600 ${Math.round(U * 0.026)}px Inter, sans-serif`;
+        ctx.fillText("— " + subTxt, W / 2, yy + U * 0.015);
       }
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "left";
-      const maxW = W * 0.84;
-      const px = Math.round(U * 0.062);
-      const lines = wrap(headline, `700 ${px}px Prata, serif`, maxW, 4);
-      const lineH = px * 1.16;
-      let yy = blkY + U * 0.08;
-      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
-      ctx.font = `700 ${px}px Prata, serif`;
-      lines.forEach((ln) => { ctx.fillText(ln, padL, yy); yy += lineH; });
-      ctx.shadowBlur = 0;
-    } else if (style === "badge") {
-      // a rounded pill badge with the kicker, headline below, centered
+
+    } else if (style === "caption") {
+      // bold context card at bottom
+      const capPx = Math.round(U * 0.042);
       ctx.textAlign = "center";
-      if (kicker) {
-        const kPx = Math.round(U * 0.024);
-        ctx.font = `700 ${kPx}px Inter, sans-serif`;
-        const kT = kicker.toUpperCase();
-        const kw = ctx.measureText(kT).width + U * 0.06;
-        const bx = W / 2 - kw / 2, byy = H * 0.4 - kPx * 1.4;
-        ctx.fillStyle = ac.bar;
-        roundRectPath(ctx, bx, byy, kw, kPx * 2.2, kPx * 1.1);
-        ctx.fill();
-        ctx.fillStyle = ac.text || "#fff";
-        ctx.textBaseline = "middle";
-        ctx.fillText(kT, W / 2, byy + kPx * 1.1);
-        ctx.textBaseline = "alphabetic";
-      }
+      const lines = wrap(mainTxt, `700 ${capPx}px Inter, sans-serif`, W * 0.84, 3);
+      const lineH = capPx * 1.28;
+      const blockH2 = lines.length * lineH + U * 0.06;
+      const by = H * 0.88 - blockH2 + (1 - e) * U * 0.05;
+      const sc = ctx.createLinearGradient(0, by - U * 0.06, 0, H);
+      sc.addColorStop(0, "rgba(0,0,0,0)");
+      sc.addColorStop(0.3, "rgba(0,0,0,0.75)");
+      sc.addColorStop(1, "rgba(0,0,0,0.85)");
+      ctx.fillStyle = sc;
+      ctx.fillRect(0, by - U * 0.06, W, H - by + U * 0.06);
+      // accent bar at top of caption area
+      ctx.fillStyle = ac.bar;
+      ctx.fillRect(W * 0.42, by - U * 0.02, W * 0.16 * e, U * 0.005);
       ctx.fillStyle = "#ffffff";
-      const px = Math.round(U * 0.062);
-      const lines = wrap(headline, `700 ${px}px Prata, serif`, W * 0.84, 4);
-      const lineH = px * 1.18;
-      let yy = H * 0.5;
       ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
-      ctx.font = `700 ${px}px Prata, serif`;
+      ctx.font = `700 ${capPx}px Inter, sans-serif`;
+      let yy = by + lineH * 0.75;
       lines.forEach((ln) => { ctx.fillText(ln, W / 2, yy); yy += lineH; });
       ctx.shadowBlur = 0;
+      if (subTxt) {
+        ctx.fillStyle = vsHexA(ac.bar, 0.85);
+        ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+        ctx.fillText(subTxt, W / 2, yy + U * 0.01);
+      }
+
+    } else if (style === "statement" || style === "bold-statement") {
+      // full-frame cinematic bold statement — massive text, alternating color
+      ctx.textAlign = "center";
+      // dark scrim
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, 0, W, H);
+      const maxW2 = W * 0.9;
+      let px2 = Math.round(U * 0.1);
+      const minPx2 = Math.round(U * 0.05);
+      const countFit = (size) => {
+        ctx.font = `900 ${size}px Inter, sans-serif`;
+        const words = String(mainTxt).toUpperCase().split(/\s+/).filter(Boolean);
+        for (const w of words) if (ctx.measureText(w).width > maxW2) return false;
+        return true;
+      };
+      while (px2 > minPx2 && !countFit(px2)) px2 -= 2;
+      const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px Inter, sans-serif`, maxW2, 4);
+      const lineH = px2 * 1.05;
+      const totalH = lines.length * lineH;
+      const topY = H / 2 - totalH / 2;
+      lines.forEach((ln, li) => {
+        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1.5) - li));
+        const le3 = 1 - Math.pow(1 - le, 3);
+        ctx.save();
+        ctx.globalAlpha = e * le3;
+        const sc2 = 0.88 + le3 * 0.12;
+        ctx.translate(W / 2, topY + li * lineH + lineH * 0.82);
+        ctx.scale(sc2, sc2);
+        // alternating: accent / white for emphasis
+        ctx.fillStyle = li % 2 === 1 ? ac.bar : "#ffffff";
+        ctx.shadowColor = li % 2 === 1 ? vsHexA(ac.bar, 0.6) : "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = U * 0.04;
+        ctx.font = `900 ${px2}px Inter, sans-serif`;
+        ctx.fillText(ln, 0, 0);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      });
+      // source tag
+      if (subTxt || kicker) {
+        ctx.globalAlpha = e;
+        ctx.fillStyle = ac.bar;
+        const kPx = Math.round(U * 0.022);
+        ctx.font = `700 ${kPx}px Inter, sans-serif`;
+        ctx.fillText((kicker || subTxt).toUpperCase(), W / 2, topY + totalH + U * 0.06);
+      }
+
+    } else if (style === "split") {
+      // left accent panel with number/kicker + right large headline
+      const padL = W * 0.06;
+      const splitX = W * 0.38;
+      // dark bg
+      ctx.fillStyle = "rgba(0,0,0,0.58)";
+      ctx.fillRect(0, H * 0.28, W, H * 0.44);
+      // accent column
+      const colW = splitX - padL - W * 0.04;
+      ctx.fillStyle = vsHexA(ac.bar, 0.9);
+      roundRectPath(ctx, padL, H * 0.3, colW, H * 0.4, W * 0.015); ctx.fill();
+      if (kicker) {
+        const kPx = Math.round(U * 0.032);
+        ctx.font = `800 ${kPx}px Inter, sans-serif`;
+        ctx.fillStyle = ac.text || "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        wrapNewsText(ctx, kicker.toUpperCase(), padL + colW * 0.5, H * 0.5, colW * 0.9, kPx * 1.3, 3);
+        ctx.textBaseline = "alphabetic";
+      }
+      // headline right
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.02;
+      const maxW3 = W - splitX - padL;
+      const px3 = Math.round(U * 0.065);
+      const lines = wrap(headline, `700 ${px3}px Prata, serif`, maxW3, 4);
+      const lineH = px3 * 1.18;
+      let yy = H * 0.5 - (lines.length * lineH) / 2;
+      ctx.font = `700 ${px3}px Prata, serif`;
+      lines.forEach((ln, li) => {
+        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
+        const le3 = 1 - Math.pow(1 - le, 3);
+        ctx.globalAlpha = e * le3;
+        ctx.fillText(ln, splitX, yy + li * lineH + (1 - le3) * U * 0.03);
+      });
+      ctx.shadowBlur = 0; ctx.globalAlpha = e;
+
+    } else if (style === "badge") {
+      ctx.textAlign = "center";
+      // dark scrim
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, H * 0.3, W, H * 0.4);
+      if (kicker) {
+        const kPx = Math.round(U * 0.026);
+        ctx.font = `700 ${kPx}px Inter, sans-serif`;
+        const kT = kicker.toUpperCase();
+        const kw = ctx.measureText(kT).width + U * 0.07;
+        const bx = W / 2 - kw / 2, byy = H * 0.39 - kPx * 1.6;
+        ctx.fillStyle = ac.bar;
+        roundRectPath(ctx, bx, byy, kw, kPx * 2.4, kPx * 1.2); ctx.fill();
+        ctx.fillStyle = ac.text || "#fff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(kT, W / 2, byy + kPx * 1.2);
+        ctx.textBaseline = "alphabetic";
+      }
+      ctx.fillStyle = "#ffffff";
+      const px4 = Math.round(U * 0.072);
+      const lines = wrap(headline, `700 ${px4}px Prata, serif`, W * 0.84, 3);
+      const lineH = px4 * 1.18;
+      let yy = H * 0.47;
+      ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = U * 0.025;
+      ctx.font = `700 ${px4}px Prata, serif`;
+      lines.forEach((ln, li) => {
+        const le = Math.max(0, Math.min(1, reveal * (lines.length + 1) - li));
+        const le3 = 1 - Math.pow(1 - le, 3);
+        ctx.globalAlpha = e * le3;
+        ctx.fillText(ln, W / 2, yy + li * lineH);
+      });
+      ctx.shadowBlur = 0; ctx.globalAlpha = e;
       ctx.fillStyle = ac.bar;
-      ctx.fillRect(W / 2 - U * 0.07, yy, U * 0.14, U * 0.006);
+      ctx.fillRect(W / 2 - U * 0.08, yy + lines.length * lineH - lineH * 0.2, U * 0.16 * e, U * 0.006);
     }
     ctx.restore();
-    ctx.restore();   // close the outer banner transform
+    ctx.restore();
     return;
   }
 
@@ -5468,7 +5530,6 @@ function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
 function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   vsOff = vsOff || vstudio;
   const val = dsVal || vsVal;
-  // resolve the on/off toggle (boolean from slide settings, or live checkbox)
   const onVal = val("#vsInfoOn", false);
   const on = (typeof onVal === "boolean") ? onVal
            : ($("#vsInfoOn") && $("#vsInfoOn").checked);
@@ -5476,386 +5537,428 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   const data = vsInfoData(val);
   if (!data || (!data.stats.length && !data.title)) { vstudio.infoBox = null; return; }
 
-  // colours follow the chosen template so the infographic matches it
   tpl = tpl || vsTemplate();
   const isLight = vsHexLuma(tpl.bg) > 140;
+
+  // Accent colour — prefer the template accent but saturate it for infographic use
+  const accentHex = tpl.accent || "#f04e2b";
   const ig = {
-    panelTop:   isLight ? "rgba(255,255,255,0.95)" : "rgba(22,20,16,0.95)",
-    panelBot:   isLight ? "rgba(244,241,234,0.95)" : "rgba(10,9,7,0.95)",
-    border:     vsHexA(tpl.accent, 0.45),
-    accent:     tpl.accent,
-    title:      tpl.text,
-    label:      isLight ? "rgba(40,36,28,0.85)" : "rgba(220,210,185,0.9)",
-    value:      tpl.accent,
-    track:      isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+    panelTop:   isLight ? "rgba(255,255,255,0.97)" : "rgba(18,16,14,0.97)",
+    panelBot:   isLight ? "rgba(245,242,236,0.97)" : "rgba(8,7,6,0.97)",
+    border:     vsHexA(accentHex, 0.3),
+    accent:     accentHex,
+    title:      isLight ? "#111" : "#fff",
+    label:      isLight ? "rgba(40,36,28,0.7)" : "rgba(200,190,170,0.8)",
+    value:      accentHex,
+    track:      isLight ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.07)",
+    bg2:        isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"
   };
 
   const stats = data.stats;
-  const style = val("#vsInfoStyle", "bars");
+  const style = val("#vsInfoStyle", "big-numbers");
   const pos = val("#vsInfoPos", "center");
-  const motion = val("#vsInfoMotion", "fade");
-  // reveal progress while playing; fully shown when preview is paused.
-  // The BOX animates in first (its own motion), then the CONTENT inside
-  // (title, bars, numbers) fades/rises in after — a two-stage reveal.
-  const playing = (vstudio.looping || vstudio.rendering);
+  const motion = val("#vsInfoMotion", "rise");
+  const playing = vstudio.looping || vstudio.rendering;
   const rawAll = playing ? Math.min(1, elapsed / 1.1) : 1;
-  // box settles first, content follows with a gentle overlap (not a
-  // separate hard stage) so the reveal feels smooth, not busy.
   const boxRaw = Math.min(1, rawAll / 0.6);
-  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.3) / 0.7));
+  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.25) / 0.75));
   const ease = vsEasePro(boxRaw);
   const contentEase = vsEasePro(contentRaw);
 
-  // ── ASPECT-SAFE SIZING ─────────────────────────────────────
-  // The panel must stay a readable card on ANY frame shape (wide,
-  // square, or tall portrait). Size everything off ONE reference unit
-  // (`U`) — the smaller frame dimension — so the infographic never
-  // gets squished when the video is portrait.
   const U = Math.min(W, H);
   const nStats = Math.max(1, stats.length);
-  // panel width: a comfortable card, but never wider than the frame
-  let panelW = Math.min(W * 0.9, U * (style === "donut" ? 1.15 : 0.95));
-  const headH = U * (0.22 + (data.subtitle ? 0.05 : 0));
-  const rowSlice = U * (style === "bars" ? 0.135 : 0.145);
-  // donuts lay out in a grid (max 3 per row), so the height is driven by
-  // the number of grid ROWS, not the raw stat count.
-  let contentRows = nStats;
-  if (style === "donut") {
+
+  // ── STYLE-SPECIFIC panel sizing ─────────────────────────
+  let panelW, panelH;
+  if (style === "big-numbers") {
+    // Full-screen overlay — numbers huge and centered
+    panelW = W * 0.92;
+    panelH = H * 0.88;
+  } else if (style === "donut") {
+    panelW = Math.min(W * 0.9, U * 1.1);
+    const rowSlice = U * 0.18;
     const perRow = nStats <= 3 ? nStats : Math.ceil(nStats / 2);
-    contentRows = Math.ceil(nStats / perRow) * 2.2;  // each donut row is taller
+    const rows = Math.ceil(nStats / perRow);
+    panelH = U * 0.24 + rowSlice * rows * 2.2;
+  } else if (style === "cards") {
+    panelW = Math.min(W * 0.92, U * 1.0);
+    panelH = U * 0.22 + nStats * U * 0.16;
+  } else {
+    panelW = Math.min(W * 0.9, U * 0.95);
+    const headH = U * (0.20 + (data.subtitle ? 0.05 : 0));
+    const rowSlice = U * 0.14;
+    panelH = headH + rowSlice * nStats + U * 0.08;
   }
-  let panelH = headH + rowSlice * contentRows + U * 0.08;
-  // never let the panel exceed the frame
-  panelH = Math.min(panelH, H * 0.94);
-  panelW = Math.min(panelW, W * 0.92);
+
+  panelH = Math.min(panelH, H * 0.95);
+  panelW = Math.min(panelW, W * 0.95);
   let px = (W - panelW) / 2;
-  if (pos === "left") px = U * 0.05;
-  if (pos === "right") px = W - panelW - U * 0.05;
+  if (pos === "left") px = U * 0.04;
+  if (pos === "right") px = W - panelW - U * 0.04;
   let py = (H - panelH) / 2;
-  // apply manual drag offset
   px += vsOff.infoDX * W;
   py += vsOff.infoDY * H;
-  // record bounds so the infographic can be dragged
   vstudio.infoBox = { x: px, y: py, w: panelW, h: panelH };
 
-  // entrance motion preset — offset / scale / alpha from `ease`
+  // entrance motion
   let mDX = 0, mDY = 0, mScale = 1, mAlpha = ease;
   switch (motion) {
     case "none":        mAlpha = 1; break;
-    case "rise":        mDY = (1 - ease) * H * 0.06; break;
-    case "drop":        mDY = -(1 - ease) * H * 0.06; break;
-    case "slide-left":  mDX = -(1 - ease) * W * 0.12; break;
-    case "slide-right": mDX = (1 - ease) * W * 0.12; break;
-    case "pop":         mScale = 0.86 + ease * 0.14; break;
-    case "zoom-in":     mScale = 0.7 + ease * 0.3; break;
-    case "vox":         // Vox-style snappy pop with overshoot
-                        mScale = 0.84 + vsEasePro(Math.min(1, boxRaw * 1.15)) * 0.18;
+    case "rise":        mDY = (1 - ease) * H * 0.05; break;
+    case "drop":        mDY = -(1 - ease) * H * 0.05; break;
+    case "slide-left":  mDX = -(1 - ease) * W * 0.1; break;
+    case "slide-right": mDX = (1 - ease) * W * 0.1; break;
+    case "pop":         mScale = 0.88 + ease * 0.12; break;
+    case "zoom-in":     mScale = 0.72 + ease * 0.28; break;
+    case "vox":         mScale = 0.86 + vsEasePro(Math.min(1, boxRaw * 1.15)) * 0.16;
                         mDY = (1 - ease) * H * 0.03; break;
-    default:            break;   // "fade" — alpha only
+    default: break;
   }
 
   ctx.save();
   ctx.globalAlpha = mAlpha;
-  // pivot the scale/offset around the panel centre; combine the entrance
-  // motion scale with the user's manual resize scale.
   const pivX = px + panelW / 2, pivY = py + panelH / 2;
   const infoTotalScale = mScale * (vsOff.infoScale || 1);
   ctx.translate(pivX + mDX, pivY + mDY);
   ctx.scale(infoTotalScale, infoTotalScale);
   ctx.translate(-pivX, -pivY);
 
+  // ── BIG-NUMBERS style — cinematic full-screen stat display ──
+  if (style === "big-numbers") {
+    ctx.save();
+    // dark scrim over background
+    const scrim = ctx.createLinearGradient(0, py, 0, py + panelH);
+    scrim.addColorStop(0, "rgba(0,0,0,0.72)");
+    scrim.addColorStop(0.5, "rgba(0,0,0,0.55)");
+    scrim.addColorStop(1, "rgba(0,0,0,0.72)");
+    ctx.fillStyle = scrim;
+    roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.03);
+    ctx.fill();
+
+    // accent line at top
+    const accentLineW = panelW * contentEase;
+    ctx.fillStyle = ig.accent;
+    ctx.fillRect(px + (panelW - accentLineW) / 2, py + panelH * 0.045, accentLineW, H * 0.005);
+
+    // title
+    if (data.title) {
+      ctx.globalAlpha = mAlpha * contentEase;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      const tpx = Math.round(U * 0.032);
+      ctx.font = `600 ${tpx}px Inter, sans-serif`;
+      ctx.fillText(data.title.toUpperCase(), px + panelW / 2, py + panelH * 0.13);
+    }
+
+    // Stats laid out in grid: 1-2 per row, big numbers
+    const cols = nStats <= 2 ? nStats : nStats <= 4 ? 2 : 3;
+    const rows = Math.ceil(nStats / cols);
+    const cellW = panelW / cols;
+    const cellH = (panelH * 0.72) / rows;
+    const startY = py + panelH * 0.2;
+
+    stats.forEach((s, i) => {
+      const rowReveal = playing
+        ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.12) / 0.55)) : 1;
+      const re = 1 - Math.pow(1 - rowReveal, 3);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = px + cellW * (col + 0.5);
+      const cy2 = startY + cellH * (row + 0.5);
+
+      // separator line between columns
+      if (col > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + cellW * col, startY + cellH * row + cellH * 0.15);
+        ctx.lineTo(px + cellW * col, startY + cellH * (row + 1) - cellH * 0.15);
+        ctx.stroke();
+      }
+
+      ctx.save();
+      ctx.globalAlpha = mAlpha * re;
+      ctx.textAlign = "center";
+
+      // BIG number — animate counting up
+      const suffix = s.value.replace(/[\d.,\-]/g, "");
+      const prefix = s.value.replace(/[\d.,\-].*$/, "");
+      const shown = s.num && playing
+        ? prefix + Math.round(s.num * re).toLocaleString() + suffix
+        : s.value;
+
+      const numPx = Math.round(Math.min(U * 0.11, cellH * 0.42));
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4);
+      ctx.shadowBlur = U * 0.04;
+      ctx.font = `800 ${numPx}px Inter, sans-serif`;
+      ctx.fillText(shown, cx, cy2 + numPx * 0.35);
+      ctx.shadowBlur = 0;
+
+      // label below number
+      const lblPx = Math.round(Math.min(U * 0.022, cellH * 0.14));
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = `500 ${lblPx}px Inter, sans-serif`;
+      ctx.fillText(s.label.toUpperCase(), cx, cy2 + numPx * 0.35 + lblPx * 1.6);
+
+      // small accent underline
+      ctx.fillStyle = vsHexA(ig.accent, 0.4);
+      const ulW = Math.min(cellW * 0.35, U * 0.12) * re;
+      ctx.fillRect(cx - ulW / 2, cy2 + numPx * 0.35 + lblPx * 2.4, ulW, H * 0.003);
+
+      ctx.restore();
+    });
+
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // ── PANEL CARD background for other styles ───────────────
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = U * 0.03;
-  ctx.shadowOffsetY = H * 0.012;
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = U * 0.04;
+  ctx.shadowOffsetY = H * 0.01;
   const pg = ctx.createLinearGradient(0, py, 0, py + panelH);
   pg.addColorStop(0, ig.panelTop);
   pg.addColorStop(1, ig.panelBot);
   ctx.fillStyle = pg;
-  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
   ctx.fill();
   ctx.restore();
-
   ctx.strokeStyle = ig.border;
-  ctx.lineWidth = Math.max(1, U * 0.0012);
-  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.045);
+  ctx.lineWidth = Math.max(1, U * 0.001);
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
   ctx.stroke();
-  // ── inner CONTENT — fades in after the box (contentEase) ──
+
+  // ── INNER CONTENT ─────────────────────────────────────────
   ctx.save();
   ctx.globalAlpha = mAlpha * contentEase;
-  const accentW = panelW * 0.14 * contentEase;
+  const padX = panelW * 0.08;
+  const accentW = panelW * 0.12 * contentEase;
   ctx.fillStyle = ig.accent;
-  ctx.fillRect(px + panelW * 0.09, py + panelH * 0.085, accentW, H * 0.006);
+  ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
 
-  const padX = panelW * 0.09;
-  const titleMaxW = panelW - padX * 2;
-  let cy = py + panelH * 0.17;
+  let cy = py + panelH * 0.15;
 
   if (data.title) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
-    vsFitFont(ctx, data.title, titleMaxW, "600", "Prata, serif",
-      Math.round(U * 0.046), Math.round(U * 0.03));
+    const titlePx = Math.round(U * 0.048);
+    vsFitFont(ctx, data.title, panelW - padX * 2, "700", "Prata, serif",
+      titlePx, Math.round(U * 0.028));
     ctx.fillText(data.title, px + padX, cy);
-    cy += panelH * 0.075;
+    cy += panelH * 0.085;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
     ctx.textAlign = "left";
-    vsFitFont(ctx, data.subtitle.toUpperCase(), titleMaxW, "400",
-      "Inter, sans-serif", Math.round(U * 0.024), Math.round(U * 0.016));
+    vsFitFont(ctx, data.subtitle.toUpperCase(), panelW - padX * 2, "500",
+      "Inter, sans-serif", Math.round(U * 0.022), Math.round(U * 0.014));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
-    cy += panelH * 0.07;
+    cy += panelH * 0.065;
   }
 
-  const max = Math.max(1, ...stats.map(s => s.num));
-  // stats area — leave a strip at the bottom for the source line,
-  // plus extra room under bar charts for the axis scale labels.
-  const axisReserve = style === "bars" ? H * 0.04 : 0;
-  const srcReserve = (data.source ? H * 0.05 : panelH * 0.07) + axisReserve;
+  const max = Math.max(1, ...stats.map(s => s.num || 0));
+  let axisMax = max;
+  const srcReserve = data.source ? H * 0.05 : panelH * 0.065;
   const areaH = py + panelH - cy - srcReserve;
   const rowH = areaH / Math.max(1, stats.length);
 
-  // ── BAR CHART FRAME (drawn once, behind all bars) ──────────
-  // a proper chart needs a shared axis, scale, and gridlines —
-  // not per-row ticks. Compute a "nice" rounded axis maximum.
-  let axisMax = max, barChartX = 0, barChartW = 0;
+  // bar chart axis
+  let barChartX = 0, barChartW = 0;
   if (style === "bars") {
-    // round the axis max up to a clean number (1-2-5 × 10^n)
-    const mag = Math.pow(10, Math.floor(Math.log10(max)));
+    const mag = Math.pow(10, Math.floor(Math.log10(max || 1)));
     const norm = max / mag;
     const niceN = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
     axisMax = niceN * mag;
     barChartX = px + padX;
     barChartW = panelW - padX * 2;
-    const topY = cy + rowH * 0.06;
-    const botY = cy + areaH - rowH * 0.06;
-    // vertical gridlines + scale labels at 0 / 25 / 50 / 75 / 100%
+    const topY = cy + rowH * 0.06, botY = cy + areaH - rowH * 0.06;
     ctx.textAlign = "center";
     ctx.font = `500 ${Math.round(U * 0.016)}px Inter, sans-serif`;
     for (let g = 0; g <= 4; g++) {
       const gx = barChartX + barChartW * (g / 4);
-      ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.45 : 0.14);
-      ctx.lineWidth = g === 0 ? 1.4 : 1;
-      ctx.beginPath();
-      ctx.moveTo(gx, topY);
-      ctx.lineTo(gx, botY);
-      ctx.stroke();
-      // scale label below the axis
+      ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.4 : 0.1);
+      ctx.lineWidth = g === 0 ? 1.5 : 1;
+      ctx.beginPath(); ctx.moveTo(gx, topY); ctx.lineTo(gx, botY); ctx.stroke();
       const scaleVal = axisMax * (g / 4);
-      const lbl = scaleVal >= 1000
-        ? (scaleVal / 1000).toFixed(scaleVal % 1000 ? 1 : 0) + "k"
-        : (Number.isInteger(scaleVal) ? String(scaleVal)
-           : scaleVal.toFixed(1));
-      ctx.fillStyle = vsHexA(ig.label, 0.6);
-      ctx.fillText(lbl, gx, botY + U * 0.018);
+      const lbl = scaleVal >= 1e9 ? (scaleVal/1e9).toFixed(1)+"B"
+        : scaleVal >= 1e6 ? (scaleVal/1e6).toFixed(1)+"M"
+        : scaleVal >= 1000 ? (scaleVal/1000).toFixed(0)+"k"
+        : (Number.isInteger(scaleVal) ? String(scaleVal) : scaleVal.toFixed(1));
+      ctx.fillStyle = vsHexA(ig.label, 0.55);
+      ctx.fillText(lbl, gx, botY + U * 0.017);
     }
   }
 
   stats.forEach((s, i) => {
-    // bar rows reveal AFTER the box has animated in, staggered per row
-    const rowReveal = (vstudio.looping || vstudio.rendering)
-      ? Math.min(1, Math.max(0, (elapsed - 0.4 - i * 0.1) / 0.5))
-      : 1;
+    const rowReveal = playing
+      ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.1) / 0.5)) : 1;
     const re = 1 - Math.pow(1 - rowReveal, 3);
     const ry = cy + i * rowH;
 
     if (style === "bars") {
       const rowMaxW = panelW - padX * 2;
-      // ── ROW = three stacked, non-overlapping bands ──
-      //  band A (top ~40%): the label text
-      //  band B (mid ~38%): the bar track + fill
-      //  the value is drawn on the label line, right-aligned
       ctx.textBaseline = "alphabetic";
-
-      // --- label, top band, left-aligned ---
-      const lblPx = Math.min(Math.round(rowH * 0.40), Math.round(U * 0.024));
-      ctx.font = `600 ${lblPx}px Inter, sans-serif`;
-      ctx.textAlign = "left";
-      ctx.fillStyle = ig.label;
-      // value width is reserved on the right so the label is shortened
-      const valPx = Math.min(Math.round(rowH * 0.46), Math.round(U * 0.028));
-      ctx.font = `700 ${valPx}px Inter, sans-serif`;
-      const valW = Math.min(ctx.measureText(s.value).width, rowMaxW * 0.4);
-      // shrink the label to fit the space left of the value
-      ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label.toUpperCase(), rowMaxW - valW - U * 0.03,
-        "600", "Inter, sans-serif", lblPx, Math.round(U * 0.016));
-      const labelBaseline = ry + rowH * 0.30;
-      ctx.fillText(s.label.toUpperCase(), px + padX, labelBaseline);
-
-      // --- value, SAME line as label, right-aligned (never on the bar) ---
-      ctx.font = `700 ${valPx}px Inter, sans-serif`;
+      const lblPx = Math.min(Math.round(rowH * 0.34), Math.round(U * 0.022));
+      const valPx = Math.min(Math.round(rowH * 0.42), Math.round(U * 0.03));
+      ctx.font = `700 ${valPx}px Prata, serif`;
+      const valW = Math.min(ctx.measureText(s.value).width + U * 0.02, rowMaxW * 0.38);
       ctx.fillStyle = ig.value;
       ctx.textAlign = "right";
-      ctx.fillText(s.value, px + panelW - padX, labelBaseline);
-
-      // --- the bar, middle band, well below the text line ---
-      const barW = rowMaxW;
-      const barH = Math.min(rowH * 0.26, U * 0.022);
-      const barY = ry + rowH * 0.46;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label.toUpperCase(), rowMaxW - valW - U * 0.02, "600",
+        "Inter, sans-serif", lblPx, Math.round(U * 0.014));
+      ctx.textAlign = "left";
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.32);
+      const barH2 = Math.min(rowH * 0.24, U * 0.02);
+      const barY = ry + rowH * 0.48;
       ctx.fillStyle = ig.track;
-      roundRectPath(ctx, px + padX, barY, barW, barH, barH / 2);
-      ctx.fill();
-      const fillW = Math.max(barH, barW * (s.num / axisMax) * re);
-      const grad = ctx.createLinearGradient(px + padX, 0, px + padX + barW, 0);
-      grad.addColorStop(0, vsHexA(ig.accent, 0.65));
-      grad.addColorStop(1, ig.accent);
-      ctx.fillStyle = grad;
-      roundRectPath(ctx, px + padX, barY, fillW, barH, barH / 2);
-      ctx.fill();
+      roundRectPath(ctx, px + padX, barY, rowMaxW, barH2, barH2 / 2); ctx.fill();
+      const fillW = Math.max(barH2, rowMaxW * (s.num / axisMax) * re);
+      const gr = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW, 0);
+      gr.addColorStop(0, vsHexA(ig.accent, 0.6)); gr.addColorStop(1, ig.accent);
+      ctx.fillStyle = gr;
+      roundRectPath(ctx, px + padX, barY, fillW, barH2, barH2 / 2); ctx.fill();
+
     } else if (style === "counters") {
       const cMaxW = panelW - padX * 2;
-      const suffix = s.value.replace(/[0-9.,\-]/g, "");
-      const shown = s.num
-        ? Math.round(s.num * re).toLocaleString() + suffix
-        : s.value;
-      // big number — top portion of the row
+      const suffix2 = s.value.replace(/[0-9.,\-]/g, "");
+      const shown2 = s.num && playing
+        ? Math.round(s.num * re).toLocaleString() + suffix2 : s.value;
       ctx.textAlign = "left";
       ctx.fillStyle = ig.value;
-      const numPx = vsFitFont(ctx, shown, cMaxW * 0.9, "700", "Prata, serif",
-        Math.round(rowH * 0.42), Math.round(rowH * 0.22));
-      ctx.fillText(shown, px + padX, ry + rowH * 0.40);
-      // label — lower portion, always BELOW the number, no overlap
+      // HUGE number
+      const numPx2 = vsFitFont(ctx, shown2, cMaxW * 0.88, "800", "Inter, sans-serif",
+        Math.round(rowH * 0.52), Math.round(rowH * 0.28));
+      ctx.fillText(shown2, px + padX, ry + rowH * 0.46);
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "500", "Inter, sans-serif",
-        Math.round(rowH * 0.26), Math.round(rowH * 0.17));
-      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.66);
-      // a small accent bar under the number adds a chart-like cue
-      ctx.fillStyle = vsHexA(ig.accent, 0.5);
-      ctx.fillRect(px + padX, ry + rowH * 0.74,
-        (panelW - padX * 2) * (s.num / max) * re, rowH * 0.05);
-      // divider
-      ctx.strokeStyle = vsHexA(ig.accent, 0.18);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(px + padX, ry + rowH * 0.94);
-      ctx.lineTo(px + panelW - padX, ry + rowH * 0.94);
-      ctx.stroke();
+        Math.round(rowH * 0.24), Math.round(rowH * 0.15));
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.68);
+      ctx.fillStyle = vsHexA(ig.accent, 0.45);
+      ctx.fillRect(px + padX, ry + rowH * 0.78, (panelW - padX * 2) * (s.num / max) * re, rowH * 0.04);
+      if (i < stats.length - 1) {
+        ctx.strokeStyle = vsHexA(ig.accent, 0.14);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + padX, ry + rowH * 0.93);
+        ctx.lineTo(px + panelW - padX, ry + rowH * 0.93);
+        ctx.stroke();
+      }
+
     } else if (style === "donut") {
       const n = stats.length;
-      // lay donuts out in a GRID — at most 3 per row — so each one has
-      // enough width for its value and label even with 4-6 stats.
-      const perRow = n <= 3 ? n : Math.ceil(n / 2);
-      const rows = Math.ceil(n / perRow);
-      const col = i % perRow;
-      const rowIx = Math.floor(i / perRow);
-      // items on the last (possibly shorter) row are centred
-      const itemsThisRow = Math.min(perRow, n - rowIx * perRow);
-      const slotW = (panelW - padX * 2) / perRow;
+      const perRow2 = n <= 3 ? n : Math.ceil(n / 2);
+      const donutRows = Math.ceil(n / perRow2);
+      const col = i % perRow2;
+      const rowIx = Math.floor(i / perRow2);
+      const itemsThisRow = Math.min(perRow2, n - rowIx * perRow2);
+      const slotW = (panelW - padX * 2) / perRow2;
       const rowGap = (panelW - padX * 2) - slotW * itemsThisRow;
       const cxx = px + padX + rowGap / 2 + slotW * (col + 0.5);
-      const cellH = areaH / rows;
-      const cyy = cy + cellH * (rowIx + 0.42);
-      const rad = Math.min(slotW, cellH) * 0.30;
-      ctx.lineWidth = rad * 0.34;
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.beginPath();
-      ctx.arc(cxx, cyy, rad, 0, Math.PI * 2);
-      ctx.stroke();
-      const frac = (s.num / max) * re;
+      const cellH2 = areaH / donutRows;
+      const cyy = cy + cellH2 * (rowIx + 0.45);
+      const rad = Math.min(slotW, cellH2) * 0.32;
+      // track
+      ctx.lineWidth = rad * 0.3;
+      ctx.strokeStyle = vsHexA(ig.accent, 0.1);
+      ctx.beginPath(); ctx.arc(cxx, cyy, rad, 0, Math.PI * 2); ctx.stroke();
+      // arc fill
+      const frac = Math.max(0, (s.num / max)) * re;
       ctx.strokeStyle = ig.accent;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.arc(cxx, cyy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
       ctx.stroke();
       ctx.lineCap = "butt";
+      // value inside
       ctx.textBaseline = "middle";
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
-      vsFitFont(ctx, s.value, rad * 1.6, "700", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.03, rad * 0.62)),
-        Math.round(rad * 0.34));
+      vsFitFont(ctx, s.value, rad * 1.55, "800", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.032, rad * 0.65)), Math.round(rad * 0.32));
       ctx.fillText(s.value, cxx, cyy);
+      // label below
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label, slotW * 0.96, "500", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.022, cellH * 0.13)),
-        Math.round(U * 0.013));
-      ctx.fillText(s.label, cxx, cyy + rad + cellH * 0.16);
+      vsFitFont(ctx, s.label, slotW * 0.9, "500", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.02, cellH2 * 0.12)), Math.round(U * 0.012));
+      ctx.fillText(s.label, cxx, cyy + rad + cellH2 * 0.15);
       ctx.textBaseline = "alphabetic";
+
     } else if (style === "cards") {
-      const cardY = ry + rowH * 0.10;
-      const cardH = rowH * 0.80;
+      const cardY = ry + rowH * 0.08;
+      const cardH = rowH * 0.82;
+      // card bg
       const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
-      cg.addColorStop(0, vsHexA(ig.accent, 0.16));
-      cg.addColorStop(1, vsHexA(ig.accent, 0.05));
+      cg.addColorStop(0, vsHexA(ig.accent, 0.14)); cg.addColorStop(1, vsHexA(ig.accent, 0.04));
       ctx.fillStyle = cg;
-      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
-      ctx.fill();
-      ctx.strokeStyle = vsHexA(ig.accent, 0.24);
-      ctx.lineWidth = 1;
-      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.16);
-      ctx.stroke();
-      ctx.textAlign = "left";
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.15); ctx.fill();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.22); ctx.lineWidth = 1;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.15); ctx.stroke();
+      // left accent bar
+      ctx.fillStyle = ig.accent;
+      roundRectPath(ctx, px + padX, cardY, U * 0.008, cardH, U * 0.004); ctx.fill();
+
+      const ctxX = px + padX + panelW * 0.06;
+      const ctxW = panelW - padX * 2 - panelW * 0.06 - U * 0.02;
       ctx.textBaseline = "middle";
-      const cardTextW = (panelW - padX * 2) - panelW * 0.09;
-      const cardTextX = px + padX + panelW * 0.045;
-      // label sits in the top third, value in the lower portion — both
-      // sized relative to the CARD HEIGHT so they never overlap, however
-      // many stats there are.
       ctx.fillStyle = ig.label;
-      vsFitFont(ctx, s.label.toUpperCase(), cardTextW, "600",
-        "Inter, sans-serif",
-        Math.round(Math.min(U * 0.022, cardH * 0.26)),
-        Math.round(cardH * 0.16));
-      ctx.fillText(s.label.toUpperCase(), cardTextX, cardY + cardH * 0.30);
-      ctx.fillStyle = ig.value;
-      vsFitFont(ctx, s.value, cardTextW, "700", "Prata, serif",
-        Math.round(Math.min(U * 0.05, cardH * 0.46)),
-        Math.round(cardH * 0.3));
-      ctx.fillText(s.value, cardTextX, cardY + cardH * 0.68);
-      ctx.textBaseline = "alphabetic";
-    } else if (style === "pills") {
-      // a horizontal progress pill per stat: label left, value right,
-      // a thick rounded track with a gradient fill.
-      const rowMaxW = panelW - padX * 2;
-      ctx.textBaseline = "alphabetic";
-      const lblPx = Math.min(Math.round(rowH * 0.34), Math.round(U * 0.024));
+      vsFitFont(ctx, s.label.toUpperCase(), ctxW * 0.65, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.02, cardH * 0.24)), Math.round(cardH * 0.14));
       ctx.textAlign = "left";
-      ctx.fillStyle = ig.label;
-      ctx.font = `600 ${lblPx}px Inter, sans-serif`;
-      vsFitFont(ctx, s.label, rowMaxW * 0.6, "600", "Inter, sans-serif",
-        lblPx, Math.round(U * 0.016));
-      ctx.fillText(s.label, px + padX, ry + rowH * 0.32);
-      ctx.textAlign = "right";
+      ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
+      // big value right-aligned
       ctx.fillStyle = ig.value;
-      ctx.font = `700 ${Math.round(rowH * 0.36)}px Prata, serif`;
-      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
-      // pill track
-      const pillH = Math.min(rowH * 0.34, U * 0.03);
+      vsFitFont(ctx, s.value, ctxW * 0.55, "800", "Prata, serif",
+        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "pills") {
+      const rowMaxW2 = panelW - padX * 2;
+      ctx.textBaseline = "alphabetic";
+      const lblPx2 = Math.min(Math.round(rowH * 0.32), Math.round(U * 0.022));
+      const valPx2 = Math.min(Math.round(rowH * 0.38), Math.round(U * 0.028));
+      ctx.textAlign = "left"; ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label, rowMaxW2 * 0.58, "600", "Inter, sans-serif",
+        lblPx2, Math.round(U * 0.014));
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.3);
+      ctx.textAlign = "right"; ctx.fillStyle = ig.value;
+      ctx.font = `800 ${valPx2}px Prata, serif`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.3);
+      const pillH2 = Math.min(rowH * 0.32, U * 0.028);
       const pillY = ry + rowH * 0.46;
       ctx.fillStyle = ig.track;
-      roundRectPath(ctx, px + padX, pillY, rowMaxW, pillH, pillH / 2);
-      ctx.fill();
-      const fillW = Math.max(pillH, rowMaxW * (s.num / axisMax) * re);
-      const pg = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW, 0);
-      pg.addColorStop(0, vsHexA(ig.accent, 0.55));
-      pg.addColorStop(1, ig.accent);
-      ctx.fillStyle = pg;
-      roundRectPath(ctx, px + padX, pillY, fillW, pillH, pillH / 2);
-      ctx.fill();
-      // glossy dot at the end of the fill
-      ctx.fillStyle = "#fff";
-      ctx.globalAlpha = 0.9;
+      roundRectPath(ctx, px + padX, pillY, rowMaxW2, pillH2, pillH2 / 2); ctx.fill();
+      const fillW2 = Math.max(pillH2, rowMaxW2 * (s.num / Math.max(axisMax, 1)) * re);
+      const pg2 = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW2, 0);
+      pg2.addColorStop(0, vsHexA(ig.accent, 0.5)); pg2.addColorStop(1, ig.accent);
+      ctx.fillStyle = pg2;
+      roundRectPath(ctx, px + padX, pillY, fillW2, pillH2, pillH2 / 2); ctx.fill();
+      // glow dot
+      ctx.fillStyle = "#fff"; ctx.globalAlpha = 0.85;
       ctx.beginPath();
-      ctx.arc(px + padX + fillW - pillH / 2, pillY + pillH / 2, pillH * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.arc(px + padX + fillW2 - pillH2 / 2, pillY + pillH2 / 2, pillH2 * 0.22, 0, Math.PI * 2);
+      ctx.fill(); ctx.globalAlpha = mAlpha * contentEase;
     }
   });
 
-  // ----- data source line at the bottom — honest attribution -----
   if (data.source) {
     ctx.textAlign = "left";
-    ctx.fillStyle = vsHexA(ig.label, 0.7);
-    const srcLabel = (state.lang === "fa" ? "منبع: " : "Source: ") + data.source;
+    ctx.fillStyle = vsHexA(ig.label, 0.65);
+    const srcLabel = "Source: " + data.source;
     vsFitFont(ctx, srcLabel, panelW - padX * 2, "400",
-      "Inter, sans-serif", Math.round(U * 0.0125), Math.round(U * 0.009));
-    ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.028);
+      "Inter, sans-serif", Math.round(U * 0.012), Math.round(U * 0.009));
+    ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.024);
   }
-  ctx.restore();   // end inner content layer
-  ctx.restore();   // end outer entrance transform
+  ctx.restore();
+  ctx.restore();
 }
+
 
 // A butterfly that flies a gentle path with flapping wings.
 function drawButterfly(ctx, W, H, elapsed, px, py, panelW, panelH) {
@@ -6237,8 +6340,10 @@ function drawStudioFrame(elapsed) {
       drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
       drawIntroGraphics(ctx, W, H, bg, elapsed, k);
     }
-    // grade the background/footage only — before text/info/news draw
-    vsApplyBgFilter(ctx, canvas, W, H);
+    // grade the background/footage only — SKIP for code-generated animated
+    // backgrounds (motion graphics look wrong with color filters applied).
+    // Only apply filter when there is actual footage (photo/video) on the slide.
+    if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
     // A content slide (auto-builder) uses the intro background as a
     // backdrop but shows an infographic / news banner instead of a
     // title card — so we DON'T return; we fall through to those draws.
@@ -6286,8 +6391,8 @@ function drawStudioFrame(elapsed) {
       accent: (tpl && tpl.accent) || bg.accent,
       headlineFont: (tpl && tpl.headlineFont) || "Prata, serif"
     };
-    // grade the background only — before the title text is drawn
-    vsApplyBgFilter(ctx, canvas, W, H);
+    // Skip color filter for animated motion backgrounds — only apply to footage
+    if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
       introSlide.introSub || "", introSlide.introMotion || "rise", k);
@@ -7308,8 +7413,8 @@ function heraDrawWaveform(canvas, totalDur) {
     const h = Math.max(4, mid * (0.4 + 0.35 * Math.abs(Math.sin(i * 0.37)) + 0.25 * Math.abs(Math.sin(i * 0.11 + 1.2))));
     const isActive = ratio <= activeRatio;
     ctx.fillStyle = isActive
-      ? `rgba(240,78,43,${0.6 + 0.4 * (h / mid)})`
-      : "rgba(255,255,255,0.18)";
+      ? `rgba(216,183,106,${0.55 + 0.45 * (h / mid)})`
+      : "rgba(255,255,255,0.15)";
     ctx.beginPath();
     ctx.roundRect(x, mid - h / 2, barW, h, 1.5);
     ctx.fill();
