@@ -1102,10 +1102,21 @@ select optgroup {
   background-color: #16130d;
   color: var(--text);
 }
+select optgroup {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-top: 4px;
+}
 body.theme-light select option,
 body.theme-light select optgroup {
   background-color: #ffffff;
   color: #221c12;
+}
+body.theme-light select optgroup {
+  color: #a8842f;
 }
 
 input,
@@ -2410,50 +2421,69 @@ h1[data-i18n="heroTitle"] {
 /* ── VIDEO TEMPLATE STUDIO ──────────────────────────────── */
 .vstudio-layout {
   display: grid;
-  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
 }
 .vstudio-controls {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  /* scrollable controls panel */
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,183,106,0.2) transparent;
+  padding-right: 4px;
+  padding-bottom: 20px;
 }
+.vstudio-controls::-webkit-scrollbar { width: 4px; }
+.vstudio-controls::-webkit-scrollbar-thumb { background: rgba(216,183,106,0.2); border-radius: 2px; }
 .vstudio-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .vstudio-label {
-  font-size: 12px;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold);
-  font-weight: 600;
+  font-weight: 700;
 }
 .vstudio-block label {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12px;
   color: var(--muted);
+}
+.vstudio-block label > span {
+  font-size: 11px;
+  font-weight: 500;
 }
 .vstudio-block input[type="text"],
 .vstudio-block input[type="number"],
 .vstudio-block select {
-  padding: 9px 11px;
+  padding: 7px 10px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--line);
   border-radius: 7px;
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
+  min-height: 36px;
+  height: 36px;
+}
+.vstudio-block textarea {
+  font-size: 13px;
+  padding: 8px 10px;
 }
 .template-picker {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-  max-height: 320px;
+  gap: 7px;
+  margin-top: 8px;
+  max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -2461,23 +2491,23 @@ h1[data-i18n="heroTitle"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 9px 6px;
+  gap: 5px;
+  padding: 7px 5px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 8px;
   background: rgba(255,255,255,0.03);
   cursor: pointer;
   text-align: center;
   transition: border-color 0.2s, background 0.2s, transform 0.15s;
 }
-.template-card:hover { transform: translateY(-2px); }
+.template-card:hover { transform: translateY(-2px); border-color: rgba(216,183,106,0.3); }
 .template-card.selected {
   border-color: var(--gold);
   background: rgba(216,183,106,0.1);
-  box-shadow: 0 0 22px rgba(216,183,106,0.12);
+  box-shadow: 0 0 18px rgba(216,183,106,0.12);
 }
 .template-card strong {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text);
   line-height: 1.2;
@@ -2485,15 +2515,15 @@ h1[data-i18n="heroTitle"] {
 /* small template icon — a compact rounded swatch */
 .template-swatch {
   width: 100%;
-  height: 30px;
-  border-radius: 6px;
+  height: 26px;
+  border-radius: 5px;
   border: 1px solid;
   display: grid;
   place-items: center;
 }
 .template-swatch span {
   width: 44%;
-  height: 4px;
+  height: 3px;
   border-radius: 99px;
 }
 /* collapsible template section */
@@ -2519,14 +2549,20 @@ h1[data-i18n="heroTitle"] {
   transform: rotate(-90deg);
 }
 .vs-template-current {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--gold);
 }
 .vstudio-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+.vstudio-actions .button {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 10px 14px;
 }
 .vstudio-stage {
   position: sticky;
@@ -2537,44 +2573,41 @@ h1[data-i18n="heroTitle"] {
   display: grid;
   place-items: center;
   width: 100%;
-  /* the box hugs the canvas — height follows the media's shape,
-     so there's no wasted black space around a wide or tall clip */
-  min-height: 260px;
+  min-height: 240px;
   border: 1px solid rgba(216,183,106,0.2);
   border-radius: 12px;
   background: var(--surface);
   overflow: hidden;
-  padding: 10px;
+  padding: 8px;
 }
 .vs-preview canvas {
   display: block;
-  /* fill available width; cap height so a tall portrait clip can't
-     push the studio off-screen. Aspect ratio always preserved. */
   max-width: 100%;
-  max-height: 68vh;
+  max-height: 65vh;
   width: auto;
   height: auto;
-  border-radius: 8px;
+  border-radius: 7px;
 }
 @media (max-width: 860px) {
   .vstudio-layout { grid-template-columns: 1fr; }
+  .vstudio-controls { max-height: none; overflow-y: visible; }
 }
 
 /* ── ADVANCED VIDEO STUDIO — additional controls ────────── */
 .upload-box.small {
-  padding: 14px;
+  padding: 12px;
   font-size: 12px;
 }
 .vstudio-block .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 .vstudio-block .toggle-row {
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding-top: 22px;
+  padding-top: 16px;
 }
 .vstudio-block .toggle-row input {
   width: auto;
@@ -2800,28 +2833,29 @@ body.theme-light .theme-toggle-dot {
 .vtab-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 4px;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
 }
 .vtab {
   flex-shrink: 0;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.04);
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.18s;
+  letter-spacing: 0.02em;
 }
-.vtab:hover { color: var(--text); }
+.vtab:hover { color: var(--text); background: rgba(255,255,255,0.09); }
 .vtab.active {
-  background: rgba(216,183,106,0.14);
-  border-color: rgba(216,183,106,0.4);
+  background: rgba(216,183,106,0.16);
+  border-color: rgba(216,183,106,0.45);
   color: var(--gold);
 }
 .vtab-hidden { display: none !important; }
@@ -3256,15 +3290,15 @@ body.theme-light pre {
 
 /* Consolidated per-slide setting sections inside the Slides panel */
 .vs-sec-head {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 2px solid var(--gold);
 }
 .vs-slide-section {
-  margin: 10px 0;
-  padding: 14px;
+  margin: 7px 0;
+  padding: 11px 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-2);
 }
 .vs-slide-section .vstudio-label {
@@ -3273,16 +3307,16 @@ body.theme-light pre {
 
 /* Collapsible per-slide setting sections */
 details.vs-slide-section {
-  margin: 10px 0;
+  margin: 7px 0;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-2);
   overflow: hidden;
 }
 details.vs-slide-section > summary {
   margin: 0;
-  padding: 12px 14px;
+  padding: 10px 13px;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -3294,7 +3328,7 @@ details.vs-slide-section > summary::-webkit-details-marker { display: none; }
 details.vs-slide-section > summary::after {
   content: "▾";
   color: var(--gold);
-  font-size: 12px;
+  font-size: 11px;
   transition: transform 0.2s;
 }
 details.vs-slide-section:not([open]) > summary::after {
@@ -3302,8 +3336,8 @@ details.vs-slide-section:not([open]) > summary::after {
 }
 details.vs-slide-section > summary:hover { color: var(--gold); }
 details.vs-slide-section > *:not(summary) {
-  margin-left: 14px;
-  margin-right: 14px;
+  margin-left: 13px;
+  margin-right: 13px;
 }
 details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 
