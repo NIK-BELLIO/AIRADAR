@@ -1610,6 +1610,43 @@ function jumpToTool(name) {
   });
 }
 
+
+// ── TREND BADGE ─────────────────────────────────────────────────────────
+// Returns badge HTML based on GitHub stars growth signals.
+// Uses score + stars to classify each tool.
+function getTrendBadge(tool) {
+  const fa = state.lang === "fa";
+  // Today's tool of the day
+  const dayIdx = Math.floor(Date.now() / 86400000) % tools.length;
+  if (tools[dayIdx] && tools[dayIdx].name === tool.name) {
+    return `<span class="trend-badge badge-today" title="${fa?'ابزار روز':'Tool of the Day'}">⭐ ${fa?'ابزار روز':'Today\'s pick'}</span>`;
+  }
+  const stars = tool.stars || 0;
+  const score = tool.score || 0;
+  const isNew = tool.tags && tool.tags.some(t => ['new','2024','2025','2026'].includes(t.toLowerCase()));
+  // Trending: high stars + high score
+  if (stars >= 20000 && score >= 85) {
+    return `<span class="trend-badge badge-hot" title="${fa?'داغ':'Trending this week'}">🔥 ${fa?'پرطرفدار':'Trending'}</span>`;
+  }
+  // Growing: decent stars, above average score
+  if (stars >= 5000 && score >= 70) {
+    return `<span class="trend-badge badge-growing" title="${fa?'در حال رشد':'Growing fast'}">⬆ ${fa?'رشد سریع':'Growing'}</span>`;
+  }
+  // Free & popular
+  if (tool.price === 0 && score >= 80) {
+    return `<span class="trend-badge badge-free-pick" title="${fa?'بهترین رایگان':'Best free pick'}">✓ ${fa?'بهترین رایگان':'Best free'}</span>`;
+  }
+  // New tool
+  if (isNew || (tool.activityDays != null && tool.activityDays < 30)) {
+    return `<span class="trend-badge badge-new" title="${fa?'تازه':'Newly added'}">✦ ${fa?'جدید':'New'}</span>`;
+  }
+  // Established
+  if (score >= 90) {
+    return `<span class="trend-badge badge-established" title="${fa?'تثبیت‌شده':'Established tool'}">◈ ${fa?'تثبیت‌شده':'Established'}</span>`;
+  }
+  return '';
+}
+// ────────────────────────────────────────────────────────────────────────
 function renderToolCard(tool) {
   const isCompared = state.compare.includes(tool.name);
   const slug = tool.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -1623,7 +1660,7 @@ function renderToolCard(tool) {
     <article class="tool-row" data-tool-card="${tool.name}" id="tool-${slug}">
       <span class="logo">${logoHtml}</span>
       <div class="tool-row-main">
-        <h3>${tool.name}</h3>
+        <h3>${tool.name} ${getTrendBadge(tool)}</h3>
         <span class="tag">${text(tool.category)}</span>
       </div>
       <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
@@ -1649,6 +1686,7 @@ function renderToolCard(tool) {
         </div>
         <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
       </div>
+      ${getTrendBadge(tool)}
       <p>${text(tool.useCase)}</p>
       <div class="tags">
         ${tool.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
@@ -2900,6 +2938,7 @@ async function fetchLiveChartData() {
   rebuildLiveChartData();
   render3DChart();
   if (state.compare.length) renderCompare();
+  try { renderTools(); } catch(e) {} // refresh trend badges after GitHub data
 
   if (rateLimited) {
     setRefreshLabel(
