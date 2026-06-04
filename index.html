@@ -1271,163 +1271,167 @@
     <script src="app.js?v=v220"></script>
 
     <script>
-    /* ── TOOL OF THE DAY ─────────────────────────────────────── */
+    /* ── TOOL OF THE DAY — robust version ───────────────────── */
     (function(){
-      // Deterministic daily pick — same tool for everyone on the same day
       function getDayIndex(total) {
-        const now = new Date();
-        // day number since epoch, stable across timezones
+        // Stable daily index — same for all users on the same UTC day
         const dayNum = Math.floor(Date.now() / 86400000);
-        return dayNum % total;
-      }
-
-      function secondsUntilMidnightUTC() {
-        const now = new Date();
-        const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()+1));
-        return Math.floor((tomorrow - now) / 1000);
+        return dayNum % Math.max(1, total);
       }
 
       function fmt(secs) {
-        const h = Math.floor(secs/3600);
-        const m = Math.floor((secs%3600)/60);
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
         const s = secs % 60;
-        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
       }
 
       function fmtNum(n) {
-        if (!n) return '—';
-        if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
-        if (n >= 1000) return (n/1000).toFixed(1)+'k';
+        if (n == null || n === 0) return '—';
+        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
         return String(n);
       }
 
       function renderTOD() {
-        if (typeof tools === 'undefined' || !tools.length) return;
+        if (typeof tools === 'undefined' || !tools || !tools.length) return;
         const fa = document.documentElement.lang === 'fa';
+        const get = id => document.getElementById(id);
+        const set = (id, txt) => { const e = get(id); if (e) e.textContent = txt; };
+        const txtVal = v => !v ? '' : typeof v === 'string' ? v : (v[fa ? 'fa' : 'en'] || v.en || '');
 
         const idx = getDayIndex(tools.length);
         const tool = tools[idx];
+        if (!tool) return;
 
-        // Labels
-        const el = id => document.getElementById(id);
-        if(el('todLabel')) el('todLabel').textContent = fa ? 'ابزار روز' : 'Tool of the Day';
-        if(el('todDayLabel')) el('todDayLabel').textContent = fa ? 'امروز' : 'Today';
-        if(el('todBtnLabel')) el('todBtnLabel').textContent = fa ? 'مشاهده ابزار' : 'Visit tool';
+        // ── Labels ──
+        set('todLabel',    fa ? 'ابزار روز' : 'Tool of the Day');
+        set('todDayLabel', fa ? 'امروز' : 'Today');
+        set('todBtnLabel', fa ? 'مشاهده ابزار' : 'Visit tool');
+        set('todName',     tool.name || '—');
+        set('todCategory', txtVal(tool.category));
+        set('todDesc',     txtVal(tool.useCase));
 
-        // Tool data
-        const text = v => typeof v==='string' ? v : (v[fa?'fa':'en']||v.en);
-        if(el('todName')) { el('todName').textContent = tool.name; }
-
-        // Logo
-        const logoWrap = el('todLogoWrap');
-        if (logoWrap) {
-          if (tool.url) {
-            try {
-              const domain = new URL(tool.url).hostname;
-              logoWrap.innerHTML = `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" alt="${tool.name}" style="width:36px;height:36px;border-radius:6px;"/>`;
-            } catch(e) {
-              logoWrap.innerHTML = `<span class="tod-logo">${tool.name.slice(0,2).toUpperCase()}</span>`;
-            }
+        // ── Logo ──
+        const logoWrap = get('todLogoWrap');
+        if (logoWrap && tool.url) {
+          try {
+            const domain = new URL(tool.url).hostname;
+            logoWrap.innerHTML = '<img src="https://www.google.com/s2/favicons?domain=' + domain + '&sz=64" alt="' + tool.name + '" style="width:36px;height:36px;border-radius:6px;"/>';
+          } catch(e) {
+            logoWrap.innerHTML = '<span class="tod-logo">' + (tool.name || '?').slice(0,2).toUpperCase() + '</span>';
           }
         }
 
-        if(el('todCategory')) el('todCategory').textContent = text(tool.category);
-        if(el('todDesc')) el('todDesc').textContent = text(tool.useCase);
-
-        // Price
-        const priceEl = el('todPrice');
-        if(priceEl) {
+        // ── Price badge ──
+        const priceEl = get('todPrice');
+        if (priceEl) {
           const isFree = tool.price === 0 || tool.plan === 'free' || tool.plan === 'freemium';
-          priceEl.textContent = isFree ? (fa?'رایگان':'Free') : '$'+tool.price;
+          priceEl.textContent = isFree ? (fa ? 'رایگان' : 'Free') : '$' + tool.price;
           priceEl.className = 'tod-price ' + (isFree ? 'free' : 'paid');
         }
 
-        // Tags
-        const tagsEl = el('todTags');
-        if(tagsEl && tool.tags) {
-          tagsEl.innerHTML = (tool.tags||[]).slice(0,4)
-            .map(t=>`<span class="tag">${t}</span>`).join('');
+        // ── Tags ──
+        const tagsEl = get('todTags');
+        if (tagsEl && Array.isArray(tool.tags)) {
+          tagsEl.innerHTML = tool.tags.slice(0, 4)
+            .map(t => '<span class="tag">' + t + '</span>').join('');
         }
 
-        // Link
-        const linkEl = el('todLink');
-        if(linkEl && tool.url) linkEl.href = tool.url;
+        // ── LINK ──
+        const linkEl = get('todLink');
+        if (linkEl && tool.url && tool.url !== '#') {
+          linkEl.href = tool.url;
+          linkEl.setAttribute('href', tool.url);
+          linkEl.onclick = null; // clear any previous handler
+        }
 
-        // Day number in ring (day of year)
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 0);
-        const dayOfYear = Math.floor((now - start) / 86400000);
-        if(el('todDayNum')) el('todDayNum').textContent = dayOfYear;
-
-        // Progress ring — fraction of day elapsed
-        const ring = el('todRingFill');
-        if(ring) {
-          const secsPassed = (now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds());
+        // ── Progress ring ──
+        const ring = get('todRingFill');
+        if (ring) {
+          const now = new Date();
+          const secsPassed = now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds();
           const frac = secsPassed / 86400;
-          const circumference = 2 * Math.PI * 52; // r=52
+          const circumference = 2 * Math.PI * 52;
           ring.style.strokeDashoffset = circumference * (1 - frac);
         }
 
-        // Stats
-        const statsEl = el('todStats');
-        if(statsEl) {
+        // ── Day of year in ring ──
+        const now2 = new Date();
+        const start2 = new Date(now2.getFullYear(), 0, 0);
+        const dayOfYear = Math.floor((now2 - start2) / 86400000);
+        set('todDayNum', String(dayOfYear));
+
+        // ── Stats ──
+        const statsEl = get('todStats');
+        if (statsEl) {
           const rows = [
-            { label: fa?'امتیاز':'Score', val: tool.score || '—' },
-            { label: fa?'ستاره':'Stars', val: fmtNum(tool.stars) },
-            { label: fa?'قیمت':'Price', val: tool.price===0?(fa?'رایگان':'Free'):'$'+tool.price },
+            { label: fa ? 'امتیاز' : 'Score',  val: tool.score || '—' },
+            { label: fa ? 'ستاره'  : 'Stars',  val: fmtNum(tool.stars) },
+            { label: fa ? 'قیمت'   : 'Price',  val: tool.price === 0 ? (fa ? 'رایگان' : 'Free') : (tool.price ? '$' + tool.price : '—') },
           ];
-          statsEl.innerHTML = rows.map(r=>
-            `<div class="tod-stat-row"><span class="tod-stat-label">${r.label}</span><span class="tod-stat-val">${r.val}</span></div>`
+          statsEl.innerHTML = rows.map(r =>
+            '<div class="tod-stat-row"><span class="tod-stat-label">' + r.label + '</span><span class="tod-stat-val">' + r.val + '</span></div>'
           ).join('');
         }
 
-        // Animate in
-        const panel = document.getElementById('toolOfDay');
-        if(panel) {
+        // ── Animate ──
+        const panel = get('toolOfDay');
+        if (panel) {
           panel.classList.remove('tod-animate');
-          void panel.offsetWidth; // reflow
+          void panel.offsetWidth;
           panel.classList.add('tod-animate');
         }
       }
 
-      // Countdown
+      // ── Countdown ──
       function startCountdown() {
-        const el = document.getElementById('todCountdown');
-        const nextEl = document.getElementById('todNext');
-        const fa = document.documentElement.lang === 'fa';
-        if(nextEl) {
-          const label = fa ? 'ابزار بعدی تا: ' : 'Next tool in ';
-          nextEl.innerHTML = label + '<span id="todCountdown">—</span>';
+        function secsToMidnight() {
+          const now = new Date();
+          const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+          return Math.max(0, Math.floor((tomorrow - now) / 1000));
         }
-        let secs = secondsUntilMidnightUTC();
+        let secs = secsToMidnight();
         function tick() {
           const cd = document.getElementById('todCountdown');
-          if(cd) cd.textContent = fmt(secs);
-          if(secs > 0) { secs--; setTimeout(tick, 1000); }
+          if (cd) cd.textContent = fmt(secs);
+          if (secs > 0) { secs--; setTimeout(tick, 1000); }
         }
         tick();
       }
 
-      // Init — wait for tools to be available
+      // ── Init — wait for tools array to be populated ──
       function init() {
-        if (typeof tools === 'undefined' || !tools.length) {
-          setTimeout(init, 200);
+        if (typeof tools === 'undefined' || !tools || !tools.length) {
+          setTimeout(init, 100);
           return;
         }
-        renderTOD();
-        startCountdown();
+        // Wait for app.js tools.forEach to complete
+        setTimeout(function() {
+          renderTOD();
+          startCountdown();
+        }, 80);
 
-        // Re-render on lang change
-        const origSetLang = window.setLanguage;
+        // Hook into lang change
+        const orig = window.setLanguage;
         window.setLanguage = function(lang) {
-          if(origSetLang) origSetLang(lang);
+          if (orig) orig(lang);
+          renderTOD();
+        };
+
+        // Re-render when GitHub stars load (so stats update)
+        const origRebuild = window.rebuildLiveChartData;
+        window.rebuildLiveChartData = function() {
+          if (origRebuild) origRebuild.apply(this, arguments);
           renderTOD();
         };
       }
 
-      document.readyState === 'loading'
-        ? document.addEventListener('DOMContentLoaded', init)
-        : init();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
     })();
     </script>
   </body>
