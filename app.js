@@ -94,6 +94,7 @@ const i18n = {
     vDurationLabel: "Duration (seconds)",
     vDurationNote: "Set any length you like. A shorter time simply trims the clip — it still plays at normal speed and ends early. A longer time slows the clip down so it stretches to fill the duration.",
     vFilterLabel: "Filter / grade",
+    vFontLabel: "Headline font (all slides)",
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
     vGrainLabel: "Film grain",
@@ -383,6 +384,7 @@ const i18n = {
     vDurationLabel: "مدت (ثانیه)",
     vDurationNote: "هر طولی بخواهی تنظیم کن. کلیپ کش می‌آید تا آن را پر کند — بلندتر از کلیپ یعنی پخش آهسته، کوتاه‌تر یعنی سریع‌تر. همیشه یک‌بار از ابتدا تا انتها اجرا می‌شود، بدون توقف یا تکرار.",
     vFilterLabel: "فیلتر / گرید",
+    vFontLabel: "فونت عنوان (همه صحنه‌ها)",
     vSpeedLabel: "سرعت پخش",
     vTransitionLabel: "ترانزیشن ورودی",
     vGrainLabel: "دانه‌دانه فیلم",
@@ -5247,7 +5249,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     // Auto-fit font so text always wraps cleanly — start at 7.5%, min 4%
     let mainPx = Math.round(U * 0.075);
     const minPx = Math.round(U * 0.04);
-    const testLines = (px) => wrap(mainTxt, `800 ${px}px Prata, serif`, maxW, 4);
+    const testLines = (px) => wrap(mainTxt, `800 ${px}px ${vsGetFont("Prata, serif")}`, maxW, 4);
     // shrink until 4 lines max
     while (mainPx > minPx && testLines(mainPx).length > 4) mainPx -= 2;
     const lines = testLines(mainPx);
@@ -5295,7 +5297,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       return String(mainTxt).toUpperCase().split(/\s+/).every(w2=>ctx.measureText(w2).width<=W*0.9);
     };
     while (px2>minPx2 && !cntFit(px2)) px2-=2;
-    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px Inter, sans-serif`, W*0.9, 4);
+    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px ${vsGetFont('Inter, sans-serif')}`, W*0.9, 4);
     const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
     lines.forEach((ln, li) => {
       const le = Math.max(0,Math.min(1,e*(lines.length+1.5)-li)), le3=1-Math.pow(1-le,3);
@@ -5303,7 +5305,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       ctx.translate(W/2, topY+li*lH+lH*0.82); ctx.scale(0.88+le3*0.12, 0.88+le3*0.12);
       ctx.fillStyle = li%2===1 ? ac.bar : "#ffffff";
       ctx.shadowColor = li%2===1 ? ac.bar : "rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.04;
-      ctx.font=`900 ${px2}px Inter, sans-serif`; ctx.textAlign="center";
+      ctx.font=`900 ${px2}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign="center";
       ctx.fillText(ln,0,0); ctx.shadowBlur=0; ctx.restore();
     });
     if (source||kicker) {
@@ -5315,7 +5317,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "quote") {
     ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.22,W,H*0.56);
     const qPx = Math.round(U*0.058);
-    const lines = wrap(mainTxt, `italic 600 ${qPx}px Prata, serif`, W*0.78, 4);
+    const lines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
     const lH = qPx*1.32, qTop=H/2-(lines.length*lH)/2;
     ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.9;
     ctx.font=`900 ${Math.round(U*0.15)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
@@ -5339,7 +5341,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(qX-W*0.02,H*0.18,W*0.66,H*0.64);
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.74,H*0.24,U*0.008,H*0.52*e);
     const qPx2=Math.round(U*0.062);
-    const lines=wrap(mainTxt,`italic 700 ${qPx2}px Prata, serif`,qW,4);
+    const lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4);
     const lH=qPx2*1.32,qTop=H/2-(lines.length*lH)/2;
     ctx.fillStyle=ac.bar; ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="left";
     ctx.fillText("\u201C",qX,qTop-U*0.01);
@@ -5355,7 +5357,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
 
   } else if (style === "caption") {
     const capPx=Math.round(U*0.042);
-    const lines=wrap(mainTxt,`700 ${capPx}px Inter, sans-serif`,W*0.84,3);
+    const lines=wrap(mainTxt,`700 ${capPx}px ${vsGetFont('Inter, sans-serif')}`,W*0.84,3);
     const lH=capPx*1.28, bH=lines.length*lH+U*0.06;
     const by=H*0.88-bH+(1-e)*U*0.05;
     const sc=ctx.createLinearGradient(0,by-U*0.06,0,H);
@@ -5370,7 +5372,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
 
   } else if (style === "annotation") {
     const aW=W*0.78, aX=W*0.11;
-    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px Prata, serif`,aW*0.88,4);
+    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px ${vsGetFont("Prata, serif")}`,aW*0.88,4);
     const lH=U*0.05;
     const cardH=lines.length*lH+U*0.1+(kicker?U*0.055:0)+(source?U*0.04:0);
     const cardY=H/2-cardH/2+(1-e)*U*0.06;
@@ -5393,7 +5395,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
     ctx.fillStyle="#fff"; ctx.textAlign="left";
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px Prata, serif`,W-splitX-padL,4);
+    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`,W-splitX-padL,4);
     ctx.font=`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`;
     const lH=Math.round(U*0.065)*1.18;
     let yy=H/2-(lines.length*lH)/2+lH*0.8;
@@ -5404,7 +5406,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
     const bPx=Math.round(U*0.072);
-    const lines=wrap(headline,`700 ${bPx}px Prata, serif`,W*0.84,3);
+    const lines=wrap(headline,`700 ${bPx}px ${vsGetFont("Prata, serif")}`,W*0.84,3);
     const lH=bPx*1.18;let yy=H*0.47;
     ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px ${vsGetFont("Prata, serif")}`;
     lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,yy+li*lH);});
@@ -5414,9 +5416,9 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "magazine-cover") {
     const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
     const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
-    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
+    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px ${vsGetFont("Inter, sans-serif")}`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
     const mPx=Math.round(Math.min(U*0.098,W*0.22));
-    const lines=wrap(mainTxt,`900 ${mPx}px Prata, serif`,W*0.88,3);
+    const lines=wrap(mainTxt,`900 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.88,3);
     const lH=mPx*1.05; let hY=H*0.18;
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px ${vsGetFont("Prata, serif")}`;
     lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,hY+li*lH+(1-le3)*U*0.04);});
@@ -5426,13 +5428,13 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "neon-title") {
     ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
     const nPx=Math.round(Math.min(U*0.088,W*0.2));
-    const lines=wrap(mainTxt,`900 ${nPx}px Inter, sans-serif`,W*0.86,4);
+    const lines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4);
     const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
     lines.forEach((ln,li)=>{
       const nr=Math.max(0,Math.min(1,e*(lines.length+1)-li)),ne=1-Math.pow(1-nr,3);
       ctx.save(); ctx.globalAlpha=ne;
-      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px Inter, sans-serif`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
-      ctx.fillStyle="#fff"; ctx.shadowColor=ac.bar; ctx.shadowBlur=U*0.015; ctx.font=`900 ${nPx}px Inter, sans-serif`; ctx.textAlign="center";
+      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
+      ctx.fillStyle="#fff"; ctx.shadowColor=ac.bar; ctx.shadowBlur=U*0.015; ctx.font=`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign="center";
       ctx.fillText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04); ctx.shadowBlur=0; ctx.restore();
     });
     ctx.globalAlpha=e;
@@ -5443,7 +5445,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.08,H*0.54,W*0.84*e,U*0.005);
     const words=mainTxt.split(/\s+/).filter(Boolean);
     const wPx=Math.round(Math.min(U*0.075,W/Math.max(words.length,1)*0.82));
-    ctx.font=`800 ${wPx}px Inter, sans-serif`;
+    ctx.font=`800 ${wPx}px ${vsGetFont("Inter, sans-serif")}`;
     const totalW=words.reduce((s2,w2)=>s2+ctx.measureText(w2).width+wPx*0.2,0);
     let wx=W/2-totalW/2;
     words.forEach((w2,wi)=>{
@@ -5477,7 +5479,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "minimal-line") {
     ctx.textAlign="center";
     const mPx=Math.round(U*0.066);
-    const lines=wrap(mainTxt,`300 ${mPx}px Prata, serif`,W*0.8,3);
+    const lines=wrap(mainTxt,`300 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.8,3);
     const lH=mPx*1.22;
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015; ctx.font=`300 ${mPx}px ${vsGetFont("Prata, serif")}`;
@@ -5715,7 +5717,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = vsHexA(ig.accent, 0.4);
       ctx.shadowBlur = U * 0.04;
-      ctx.font = `800 ${numPx}px Inter, sans-serif`;
+      ctx.font = `800 ${numPx}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(shown, cx, cy2 + numPx * 0.35);
       ctx.shadowBlur = 0;
 
@@ -6124,7 +6126,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         const shown3 = s.num && playing ? prefix3 + Math.round(s.num * re).toLocaleString() + suffix3 : s.value;
         ctx.fillStyle = ig.accent;
         ctx.shadowColor = vsHexA(ig.accent, 0.3); ctx.shadowBlur = U * 0.025;
-        ctx.font = `900 ${numPxT}px Inter, sans-serif`;
+        ctx.font = `900 ${numPxT}px ${vsGetFont("Inter, sans-serif")}`;
         ctx.fillText(shown3, cx2, centerY);
         ctx.shadowBlur = 0;
         ctx.fillStyle = "rgba(255,255,255,0.6)";
