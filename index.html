@@ -203,6 +203,53 @@
         .tod-inner { grid-template-columns: 1fr; }
         .tod-right  { flex-direction: row; justify-content: space-between; }
       }
+    
+      /* ── TREND BADGES ────────────────────────────────── */
+      .trend-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 99px;
+        letter-spacing: .04em;
+        margin-bottom: 6px;
+        width: fit-content;
+      }
+      .badge-hot {
+        background: rgba(255,80,40,0.12);
+        border: 1px solid rgba(255,80,40,0.35);
+        color: #ff6040;
+      }
+      .badge-growing {
+        background: rgba(95,189,116,0.12);
+        border: 1px solid rgba(95,189,116,0.35);
+        color: #5fbd74;
+      }
+      .badge-free-pick {
+        background: rgba(94,186,255,0.12);
+        border: 1px solid rgba(94,186,255,0.35);
+        color: #5eb4ff;
+      }
+      .badge-new {
+        background: rgba(180,130,255,0.12);
+        border: 1px solid rgba(180,130,255,0.35);
+        color: #c084fc;
+      }
+      .badge-established {
+        background: rgba(216,183,106,0.12);
+        border: 1px solid rgba(216,183,106,0.35);
+        color: var(--gold);
+      }
+      .badge-today {
+        background: linear-gradient(90deg,rgba(216,183,106,0.2),rgba(216,183,106,0.08));
+        border: 1px solid rgba(216,183,106,0.5);
+        color: var(--gold-2);
+        box-shadow: 0 0 8px rgba(216,183,106,0.15);
+      }
+      /* in list mode — inline */
+      .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
     </style>
   </head>
   <body>
