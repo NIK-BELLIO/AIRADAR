@@ -923,6 +923,8 @@
             </div>
           </div>
           <div class="about-compact-grid">
+
+            <!-- LEFT: mission + stats -->
             <div style="display:flex;flex-direction:column;gap:14px;">
               <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos — all in your browser.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -932,29 +934,45 @@
                 <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
               </div>
               <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(216,183,106,0.05);border-radius:0 8px 8px 0;">
-                <p style="margin:0;font-size:13px;line-height:1.8;" data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls or sign-ups.</p>
+                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
               </div>
             </div>
+
+            <!-- RIGHT: creator + changelog -->
             <div style="display:flex;flex-direction:column;gap:12px;">
               <div style="padding:16px;border:1px solid rgba(216,183,106,0.3);border-radius:10px;background:rgba(216,183,106,0.05);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                   <div style="width:40px;height:40px;border-radius:50%;background:rgba(216,183,106,0.2);border:1px solid rgba(216,183,106,0.4);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--gold-2);flex-shrink:0;">SA</div>
-                  <div><strong style="display:block;font-size:15px;" data-i18n="aboutCreatorName">Shayan Alinia</strong><span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span></div>
+                  <div>
+                    <strong style="display:block;font-size:15px;">Shayan Alinia</strong>
+                    <span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span>
+                  </div>
                 </div>
-                <p style="margin:0;font-size:13px;line-height:1.75;" data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, interface, live trend chart, and in-browser video studio.</p>
+                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar — concept, interface, and the video studio.</p>
               </div>
+
               <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
                   <span style="font-size:12px;font-weight:800;" data-i18n="changelogTitle">Latest updates</span>
                   <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(216,183,106,0.15);border:1px solid rgba(216,183,106,0.3);color:var(--gold);">v2.3</span>
                 </div>
                 <ul style="list-style:none;margin:0;padding:0;">
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span><div><strong style="font-size:13px;" data-i18n="cl23Head">Font system + snap guides</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl23Text">Font selector applies to all scenes. Center snap guides on drag. Sidebar 2-col layout.</p></div></li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span><div><strong style="font-size:13px;" data-i18n="cl22Head">Cinematic design upgrade</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl22Text">New infographic presets, animated backgrounds, Vox-style motion.</p></div></li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span><div><strong style="font-size:13px;" data-i18n="cl21Head">Auto video builder</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl21Text">Describe a topic — studio assembles a complete video in one click.</p></div></li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector applies to all scenes including infographic &amp; news. Center snap guide on drag.</p></div>
+                  </li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);" data-i18n="cl22Head">2.2</span>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Cinematic design upgrade</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl21Text">New infographic presets, animated backgrounds, Vox-style motion.</p></div>
+                  </li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Auto video builder</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Describe a topic — studio builds a full video in one click.</p></div>
+                  </li>
                 </ul>
               </div>
             </div>
+
           </div>
         </section>
 
