@@ -8,7 +8,7 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
-    studioEyebrow: "Video studio",
+    studioEyebrow: "Advanced video studio",
     studioTitle: "Create a complete, luxurious video",
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
     vTabTemplate: "Template",
@@ -94,7 +94,6 @@ const i18n = {
     vDurationLabel: "Duration (seconds)",
     vDurationNote: "Set any length you like. A shorter time simply trims the clip — it still plays at normal speed and ends early. A longer time slows the clip down so it stretches to fill the duration.",
     vFilterLabel: "Filter / grade",
-    vFontLabel: "Headline font (all slides)",
     vSpeedLabel: "Playback speed",
     vTransitionLabel: "Transition in",
     vGrainLabel: "Film grain",
@@ -216,7 +215,7 @@ const i18n = {
     copyPrompt: "Copy prompt",
     mediaPlaceholder: "Upload media to preview it here",
     copied: "Copied.",
-    studioEyebrow: "Video studio",
+    studioEyebrow: "Free video template studio",
     studioTitle: "Create an animated video template from static uploads",
     studioText:
       "Upload images, set duration per slide, edit animated text elements, preview the timing, and export JSON or a real .webm video. It is free because it runs locally in the browser.",
@@ -298,7 +297,7 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
-    studioEyebrow: "استودیوی ویدیو",
+    studioEyebrow: "استودیوی پیشرفته ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
     vTabTemplate: "قالب",
@@ -384,7 +383,6 @@ const i18n = {
     vDurationLabel: "مدت (ثانیه)",
     vDurationNote: "هر طولی بخواهی تنظیم کن. کلیپ کش می‌آید تا آن را پر کند — بلندتر از کلیپ یعنی پخش آهسته، کوتاه‌تر یعنی سریع‌تر. همیشه یک‌بار از ابتدا تا انتها اجرا می‌شود، بدون توقف یا تکرار.",
     vFilterLabel: "فیلتر / گرید",
-    vFontLabel: "فونت عنوان (همه صحنه‌ها)",
     vSpeedLabel: "سرعت پخش",
     vTransitionLabel: "ترانزیشن ورودی",
     vGrainLabel: "دانه‌دانه فیلم",
@@ -506,7 +504,7 @@ const i18n = {
     copyPrompt: "کپی پرامپت",
     mediaPlaceholder: "مدیا را آپلود کن تا اینجا نمایش داده شود",
     copied: "کپی شد.",
-    studioEyebrow: "استودیوی ویدیو",
+    studioEyebrow: "استودیو رایگان تمپلیت ویدیو",
     studioTitle: "از فایل‌های استاتیک، تمپلیت ویدیویی متحرک بساز",
     studioText:
       "تصویرها را آپلود کن، برای هر اسلاید زمان بگذار، متن‌های متحرک را ویرایش کن، پیش‌نمایش بگیر و خروجی JSON یا ویدیوی واقعی .webm بگیر. چون داخل مرورگر اجرا می‌شود رایگان است.",
@@ -1385,7 +1383,7 @@ const state = {
 };
 
 
-// ── GLOBAL FONT HELPER — reads #vsHeadlineFont, applied to ALL drawing ──
+// ── GLOBAL FONT HELPER — applied to ALL value/headline text in video studio ──
 function vsGetFont(fallback){
   var el=document.querySelector("#vsHeadlineFont");
   if(el&&el.value) return el.value;
@@ -1611,42 +1609,21 @@ function jumpToTool(name) {
 }
 
 
-// ── TREND BADGE ─────────────────────────────────────────────────────────
-// Returns badge HTML based on GitHub stars growth signals.
-// Uses score + stars to classify each tool.
 function getTrendBadge(tool) {
   const fa = state.lang === "fa";
-  // Today's tool of the day
   const dayIdx = Math.floor(Date.now() / 86400000) % tools.length;
   if (tools[dayIdx] && tools[dayIdx].name === tool.name) {
-    return `<span class="trend-badge badge-today" title="${fa?'ابزار روز':'Tool of the Day'}">⭐ ${fa?'ابزار روز':'Today\'s pick'}</span>`;
+    return `<span class="trend-badge badge-today">⭐ ${fa?'ابزار روز':"Today's pick"}</span>`;
   }
-  const stars = tool.stars || 0;
-  const score = tool.score || 0;
-  const isNew = tool.tags && tool.tags.some(t => ['new','2024','2025','2026'].includes(t.toLowerCase()));
-  // Trending: high stars + high score
-  if (stars >= 20000 && score >= 85) {
-    return `<span class="trend-badge badge-hot" title="${fa?'داغ':'Trending this week'}">🔥 ${fa?'پرطرفدار':'Trending'}</span>`;
-  }
-  // Growing: decent stars, above average score
-  if (stars >= 5000 && score >= 70) {
-    return `<span class="trend-badge badge-growing" title="${fa?'در حال رشد':'Growing fast'}">⬆ ${fa?'رشد سریع':'Growing'}</span>`;
-  }
-  // Free & popular
-  if (tool.price === 0 && score >= 80) {
-    return `<span class="trend-badge badge-free-pick" title="${fa?'بهترین رایگان':'Best free pick'}">✓ ${fa?'بهترین رایگان':'Best free'}</span>`;
-  }
-  // New tool
-  if (isNew || (tool.activityDays != null && tool.activityDays < 30)) {
-    return `<span class="trend-badge badge-new" title="${fa?'تازه':'Newly added'}">✦ ${fa?'جدید':'New'}</span>`;
-  }
-  // Established
-  if (score >= 90) {
-    return `<span class="trend-badge badge-established" title="${fa?'تثبیت‌شده':'Established tool'}">◈ ${fa?'تثبیت‌شده':'Established'}</span>`;
-  }
+  const stars = tool.stars || 0, score = tool.score || 0;
+  const isNew = tool.tags && tool.tags.some(t => ['new','2025','2026'].includes(t.toLowerCase()));
+  if (stars >= 20000 && score >= 85) return `<span class="trend-badge badge-hot">🔥 ${fa?'پرطرفدار':'Trending'}</span>`;
+  if (stars >= 5000 && score >= 70)  return `<span class="trend-badge badge-growing">⬆ ${fa?'رشد سریع':'Growing'}</span>`;
+  if (tool.price === 0 && score >= 80) return `<span class="trend-badge badge-free-pick">✓ ${fa?'بهترین رایگان':'Best free'}</span>`;
+  if (isNew) return `<span class="trend-badge badge-new">✦ ${fa?'جدید':'New'}</span>`;
+  if (score >= 90) return `<span class="trend-badge badge-established">◈ ${fa?'تثبیت‌شده':'Established'}</span>`;
   return '';
 }
-// ────────────────────────────────────────────────────────────────────────
 function renderToolCard(tool) {
   const isCompared = state.compare.includes(tool.name);
   const slug = tool.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -2938,7 +2915,6 @@ async function fetchLiveChartData() {
   rebuildLiveChartData();
   render3DChart();
   if (state.compare.length) renderCompare();
-  try { renderTools(); } catch(e) {} // refresh trend badges after GitHub data
 
   if (rateLimited) {
     setRefreshLabel(
@@ -3748,7 +3724,6 @@ const vstudio = {
   textScale: 1,         // text manual scale (resize)
   textBox: null,        // last drawn text bounds, for hit-testing
   infoDX: 0, infoDY: 0, // infographic drag offset
-  snapGuideX: null, snapGuideY: null,
   infoScale: 1,         // infographic manual scale
   infoBox: null,        // last drawn infographic bounds
   newsDX: 0, newsDY: 0, // news banner drag offset
@@ -3774,9 +3749,14 @@ function vsEasePro(t) {
 
 function vsTemplate() {
   const tpl = videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+  const _fontEl = document.querySelector("#vsHeadlineFont");
+  if (_fontEl && _fontEl.value) return Object.assign({}, tpl, { headlineFont: _fontEl.value });
+  // Override headlineFont if user has picked one manually
   const fontEl = document.querySelector("#vsHeadlineFont");
-  const userFont = fontEl && fontEl.value ? fontEl.value : null;
-  return Object.assign({}, tpl, { headlineFont: userFont || tpl.headlineFont });
+  if (fontEl && fontEl.value) {
+    return Object.assign({}, tpl, { headlineFont: fontEl.value });
+  }
+  return tpl;
 }
 function vsStatus(msg) {
   const el = $("#vsStatus");
@@ -4782,7 +4762,6 @@ function setupTextDrag() {
     canvas.style.cursor = "grabbing";
     if (e.cancelable) e.preventDefault();
   };
-  const SNAP_THR = 0.018;
   const move = (e) => {
     const pt = toCanvas(e);
     if (!dragging) {
@@ -4792,10 +4771,6 @@ function setupTextDrag() {
     const [kx, ky] = offsetsFor(dragging);
     let dx = baseDX + (pt.x - startX) / canvas.width;
     let dy = baseDY + (pt.y - startY) / canvas.height;
-    // center snap
-    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
-    if (Math.abs(dx) < SNAP_THR) { dx = 0; vstudio.snapGuideX = 0.5; }
-    if (Math.abs(dy) < SNAP_THR) { dy = 0; vstudio.snapGuideY = 0.5; }
     vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
     vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
     // redraw at the CURRENT position so the frame never jumps
@@ -4808,7 +4783,6 @@ function setupTextDrag() {
     if (e.cancelable) e.preventDefault();
   };
   const up = () => {
-    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
     if (dragging && vstudio.slides.length) vsSaveActiveSlide();
     dragging = null;
     canvas.style.cursor = "default";
@@ -5146,20 +5120,20 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       const kPad = W*0.022, kTextW = ctx.measureText(kText).width;
       const kw = kTextW + kPad*2, kh = H*0.05, ky = y + barH*0.16;
       ctx.fillStyle = ac.bar; ctx.fillRect(W*0.06, ky, kw, kh);
-      ctx.fillStyle = ac.text; ctx.font = `700 ${kPx}px Inter, sans-serif`;
+      ctx.fillStyle = ac.text; ctx.font = `700 ${kPx}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(kText, W*0.06+kPad, ky+kh/2); ctx.textBaseline = "alphabetic";
     }
-    // auto-fit headline inside bar height
-    const fbHlPx = vsFitFont(ctx, headline, W*0.86, "700", vsGetFont("Prata, serif"), Math.round(H*0.042), Math.round(H*0.02));
-    ctx.fillStyle = "#fff"; ctx.font = `700 ${fbHlPx}px ${vsGetFont("Prata, serif")}`;
+    // auto-size headline to fit in 2 lines, clip to bar
+    const fbHl = vsFitFont(ctx, headline, W*0.88, "700", vsGetFont("Prata, serif"), Math.round(H*0.044), Math.round(H*0.022));
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${fbHl}px ${vsGetFont("Prata, serif")}`;
     ctx.textAlign = "left";
-    ctx.save(); ctx.beginPath(); ctx.rect(0,y,W,barH); ctx.clip();
-    wrapNewsText(ctx, headline, W*0.06, y+barH*0.52, W*0.86, fbHlPx*1.22, 2);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, y, W, barH); ctx.clip();
+    wrapNewsText(ctx, headline, W*0.06, y + (source ? barH*0.42 : barH*0.5), W*0.88, fbHl*1.2, 2);
     if (source) {
       ctx.fillStyle = "rgba(210,210,215,0.85)";
-      ctx.font = `400 ${Math.round(H*0.021)}px Inter, sans-serif`;
-      ctx.fillText(source, W*0.06, y+barH*0.88);
+      ctx.font = `400 ${Math.round(H*0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, W*0.06, y+barH*0.86);
     }
     ctx.restore();
 
@@ -5181,7 +5155,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       ctx.font = `600 ${Math.round(H*0.017)}px Inter, sans-serif`;
       ctx.fillText(kicker.toUpperCase(), tagW2/2, y2 + barH2*0.72);
     }
-    ctx.font = `700 ${Math.round(H*0.026)}px ${vsGetFont("Prata, serif")}`;
+    ctx.font = `700 ${Math.round(H*0.035)}px ${vsGetFont("Prata, serif")}`;
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     const bTxt = headline + (source ? "   ●   " + source : "");
     const bTw = ctx.measureText(bTxt).width;
@@ -5262,7 +5236,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       const kw2 = kTextW2+kPad2*2, kh2 = H*0.05;
       ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY-kh2, kw2, kh2);
       ctx.fillStyle = ac.text; ctx.textAlign="left"; ctx.textBaseline="middle";
-      ctx.font = `700 ${kPx2}px Inter, sans-serif`;
+      ctx.font = `700 ${kPx2}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(kText, x+kPad2, plateY-kh2/2); ctx.textBaseline="alphabetic";
     }
     ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(x, plateY, plateW, plateH);
@@ -5288,7 +5262,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     // Auto-fit font so text always wraps cleanly — start at 7.5%, min 4%
     let mainPx = Math.round(U * 0.075);
     const minPx = Math.round(U * 0.04);
-    const testLines = (px) => wrap(mainTxt, `800 ${px}px ${vsGetFont("Prata, serif")}`, maxW, 4);
+    const testLines = (px) => wrap(mainTxt, `800 ${px}px Prata, serif`, maxW, 4);
     // shrink until 4 lines max
     while (mainPx > minPx && testLines(mainPx).length > 4) mainPx -= 2;
     const lines = testLines(mainPx);
@@ -5302,7 +5276,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     // kicker pill
     if (kicker && headline) {
       const kPx = Math.round(U*0.022);
-      ctx.font = `700 ${kPx}px Inter, sans-serif`; ctx.textAlign = align;
+      ctx.font = `700 ${kPx}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign = align;
       const kText = kicker.toUpperCase(), kW = ctx.measureText(kText).width;
       const kx = left ? cx : cx-kW/2, ky = top-U*0.055;
       ctx.fillStyle = ac.bar;
@@ -5336,7 +5310,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       return String(mainTxt).toUpperCase().split(/\s+/).every(w2=>ctx.measureText(w2).width<=W*0.9);
     };
     while (px2>minPx2 && !cntFit(px2)) px2-=2;
-    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px ${vsGetFont('Inter, sans-serif')}`, W*0.9, 4);
+    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px Inter, sans-serif`, W*0.9, 4);
     const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
     lines.forEach((ln, li) => {
       const le = Math.max(0,Math.min(1,e*(lines.length+1.5)-li)), le3=1-Math.pow(1-le,3);
@@ -5354,52 +5328,34 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     }
 
   } else if (style === "quote") {
-    // scrim area
-    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    // clip text to scrim area
-    ctx.save();
-    ctx.beginPath(); ctx.rect(W*0.05, H*0.18, W*0.9, H*0.64); ctx.clip();
-    // auto-size font to fit within available height
-    const maxQH = H*0.54;
-    let qPx = Math.round(U*0.052);
-    let qLines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
-    while (qPx > Math.round(U*0.028) && qLines.length * qPx * 1.32 > maxQH) {
-      qPx -= 2;
-      qLines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
-    }
-    const lH = qPx*1.32;
-    const srcH = source ? U*0.055 : 0;
-    const blockH = qLines.length*lH + srcH;
-    const qTop = Math.max(H*0.22, H/2 - blockH/2);
+    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.22,W,H*0.56);
+    const qPx = Math.round(U*0.058);
+    const lines = wrap(mainTxt, `italic 600 ${qPx}px Prata, serif`, W*0.78, 4);
+    const lH = qPx*1.32, qTop=H/2-(lines.length*lH)/2;
     ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.9;
-    ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
-    ctx.fillText("\u201C",W/2,qTop-U*0.01);
+    ctx.font=`900 ${Math.round(U*0.15)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
+    ctx.fillText("\u201C",W/2,qTop-U*0.02);
     ctx.globalAlpha=e; ctx.shadowColor="rgba(0,0,0,0.6)"; ctx.shadowBlur=U*0.03;
-    qLines.forEach((ln,li) => {
-      const le=Math.max(0,Math.min(1,e*(qLines.length+1)-li)),le3=1-Math.pow(1-le,3);
+    lines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
       ctx.globalAlpha=e*le3; ctx.fillStyle="#fff";
       ctx.font=`italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`;
       ctx.fillText(ln,W/2,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
     });
     ctx.shadowBlur=0; ctx.globalAlpha=e;
-    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.4;
-    ctx.font=`900 ${Math.round(U*0.08)}px ${vsGetFont("Prata, serif")}`;
-    ctx.fillText("\u201D",W/2,qTop+qLines.length*lH);
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.45;
+    ctx.font=`900 ${Math.round(U*0.1)}px ${vsGetFont("Prata, serif")}`;
+    ctx.fillText("\u201D",W/2,qTop+lines.length*lH);
     ctx.globalAlpha=e;
-    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+qLines.length*lH+U*0.055); }
-    ctx.restore(); // end clip
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.025)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+lines.length*lH+U*0.05); }
 
   } else if (style === "pullquote") {
     const qW=W*0.58, qX=W*0.07;
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(qX-W*0.02,H*0.18,W*0.66,H*0.64);
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.74,H*0.24,U*0.008,H*0.52*e);
-    // auto-size to fit
-    let qPx2=Math.round(U*0.055);
-    let lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4);
-    while(qPx2>Math.round(U*0.026) && lines.length*qPx2*1.32>H*0.52){ qPx2-=2; lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4); }
-    // clip
-    ctx.save(); ctx.beginPath(); ctx.rect(qX-W*0.02,H*0.18,W*0.68,H*0.64); ctx.clip();
-    const lH=qPx2*1.32,qTop=Math.max(H*0.24,H/2-(lines.length*lH)/2);
+    const qPx2=Math.round(U*0.062);
+    const lines=wrap(mainTxt,`italic 700 ${qPx2}px Prata, serif`,qW,4);
+    const lH=qPx2*1.32,qTop=H/2-(lines.length*lH)/2;
     ctx.fillStyle=ac.bar; ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="left";
     ctx.fillText("\u201C",qX,qTop-U*0.01);
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
@@ -5411,11 +5367,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     });
     ctx.shadowBlur=0; ctx.globalAlpha=e;
     if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
-    ctx.restore(); // end pullquote clip
 
   } else if (style === "caption") {
     const capPx=Math.round(U*0.042);
-    const lines=wrap(mainTxt,`700 ${capPx}px ${vsGetFont('Inter, sans-serif')}`,W*0.84,3);
+    const lines=wrap(mainTxt,`700 ${capPx}px Inter, sans-serif`,W*0.84,3);
     const lH=capPx*1.28, bH=lines.length*lH+U*0.06;
     const by=H*0.88-bH+(1-e)*U*0.05;
     const sc=ctx.createLinearGradient(0,by-U*0.06,0,H);
@@ -5423,14 +5378,14 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle=sc; ctx.fillRect(0,by-U*0.06,W,H-by+U*0.06);
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.42,by-U*0.02,W*0.16*e,U*0.005);
     ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    ctx.font=`700 ${capPx}px ${vsGetFont('Inter, sans-serif')}`;
+    ctx.font=`700 ${capPx}px ${vsGetFont("Inter, sans-serif")}`;
     let yy=by+lH*0.75;
     lines.forEach(ln=>{ctx.fillText(ln,W/2,yy);yy+=lH;});
     ctx.shadowBlur=0;
 
   } else if (style === "annotation") {
     const aW=W*0.78, aX=W*0.11;
-    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px ${vsGetFont("Prata, serif")}`,aW*0.88,4);
+    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px Prata, serif`,aW*0.88,4);
     const lH=U*0.05;
     const cardH=lines.length*lH+U*0.1+(kicker?U*0.055:0)+(source?U*0.04:0);
     const cardY=H/2-cardH/2+(1-e)*U*0.06;
@@ -5450,10 +5405,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     const colW=splitX-padL-W*0.04;
     ctx.fillStyle=vsHexA(ac.bar,0.9); roundRectPath(ctx,padL,H*0.3,colW,H*0.4,W*0.015); ctx.fill();
-    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px ${vsGetFont("Inter, sans-serif")}`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
+    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
     ctx.fillStyle="#fff"; ctx.textAlign="left";
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`,W-splitX-padL,4);
+    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px Prata, serif`,W-splitX-padL,4);
     ctx.font=`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`;
     const lH=Math.round(U*0.065)*1.18;
     let yy=H/2-(lines.length*lH)/2+lH*0.8;
@@ -5464,7 +5419,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
     const bPx=Math.round(U*0.072);
-    const lines=wrap(headline,`700 ${bPx}px ${vsGetFont("Prata, serif")}`,W*0.84,3);
+    const lines=wrap(headline,`700 ${bPx}px Prata, serif`,W*0.84,3);
     const lH=bPx*1.18;let yy=H*0.47;
     ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px ${vsGetFont("Prata, serif")}`;
     lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,yy+li*lH);});
@@ -5474,9 +5429,9 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "magazine-cover") {
     const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
     const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
-    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px ${vsGetFont("Inter, sans-serif")}`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
+    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
     const mPx=Math.round(Math.min(U*0.098,W*0.22));
-    const lines=wrap(mainTxt,`900 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.88,3);
+    const lines=wrap(mainTxt,`900 ${mPx}px Prata, serif`,W*0.88,3);
     const lH=mPx*1.05; let hY=H*0.18;
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px ${vsGetFont("Prata, serif")}`;
     lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,hY+li*lH+(1-le3)*U*0.04);});
@@ -5485,27 +5440,21 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
 
   } else if (style === "neon-title") {
     ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    ctx.save(); ctx.beginPath(); ctx.rect(0,H*0.18,W,H*0.64); ctx.clip();
-    let nPx=Math.round(Math.min(U*0.085,W*0.18));
-    let nLines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4);
-    while(nPx>Math.round(U*0.03) && nLines.length*nPx*1.18>H*0.56){ nPx-=2; nLines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4); }
-    const lines=nLines;
-    const lH=nPx*1.18, nTop=Math.max(H*0.22,H/2-(lines.length-1)*lH/2);
+    const nPx=Math.round(Math.min(U*0.088,W*0.2));
+    const lines=wrap(mainTxt,`900 ${nPx}px Inter, sans-serif`,W*0.86,4);
+    const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
     lines.forEach((ln,li)=>{
       const nr=Math.max(0,Math.min(1,e*(lines.length+1)-li)),ne=1-Math.pow(1-nr,3);
       ctx.save(); ctx.globalAlpha=ne;
-      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
+      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px Inter, sans-serif`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
       ctx.fillStyle="#fff"; ctx.shadowColor=ac.bar; ctx.shadowBlur=U*0.015; ctx.font=`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign="center";
       ctx.fillText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04); ctx.shadowBlur=0; ctx.restore();
     });
     ctx.globalAlpha=e;
     if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.9);ctx.font=`700 ${Math.round(U*0.025)}px Inter, sans-serif`;ctx.textAlign="center";ctx.fillText(kicker.toUpperCase(),W/2,nTop+lines.length*lH+U*0.05);}
 
-    ctx.restore(); // end neon-title clip
-
   } else if (style === "kinetic") {
     ctx.fillStyle="rgba(0,0,0,0.58)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    ctx.save(); ctx.beginPath(); ctx.rect(0,H*0.18,W,H*0.64); ctx.clip();
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.08,H*0.54,W*0.84*e,U*0.005);
     const words=mainTxt.split(/\s+/).filter(Boolean);
     const wPx=Math.round(Math.min(U*0.075,W/Math.max(words.length,1)*0.82));
@@ -5520,8 +5469,6 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       wx+=ctx.measureText(w2).width+wPx*0.2;
     });
     if(source){ctx.globalAlpha=e;ctx.fillStyle=vsHexA(ac.bar,0.85);ctx.textAlign="center";ctx.font=`600 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.63);}
-
-    ctx.restore(); // end kinetic clip
 
   } else if (style === "reveal-words") {
     ctx.fillStyle="rgba(0,0,0,0.62)"; ctx.fillRect(0,H*0.22,W,H*0.56);
@@ -5545,7 +5492,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   } else if (style === "minimal-line") {
     ctx.textAlign="center";
     const mPx=Math.round(U*0.066);
-    const lines=wrap(mainTxt,`300 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.8,3);
+    const lines=wrap(mainTxt,`300 ${mPx}px Prata, serif`,W*0.8,3);
     const lH=mPx*1.22;
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015; ctx.font=`300 ${mPx}px ${vsGetFont("Prata, serif")}`;
@@ -5568,7 +5515,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     const cw = W*0.1, ch = H*0.055;
     ctx.fillRect(W-cw-W*0.04, H*0.05, cw, ch);
     ctx.fillStyle = ac.text;
-    ctx.font = `700 ${Math.round(H*0.03)}px Inter, sans-serif`;
+    ctx.font = `700 ${Math.round(H*0.03)}px ${vsGetFont("Inter, sans-serif")}`;
     ctx.textAlign = "center";
     ctx.fillText(clock, W-cw/2-W*0.04, H*0.05+ch*0.68);
   }
@@ -5746,9 +5693,8 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     const cols = nStats <= 2 ? nStats : nStats <= 4 ? 2 : 3;
     const rows = Math.ceil(nStats / cols);
     const cellW = panelW / cols;
-    const titleAreaH = data.title ? panelH * 0.22 : panelH * 0.10;
-    const cellH = Math.min((panelH * 0.72) / rows, (panelH - titleAreaH - panelH * 0.06) / rows);
-    const startY = py + titleAreaH;
+    const cellH = (panelH * 0.72) / rows;
+    const startY = py + panelH * 0.2;
 
     stats.forEach((s, i) => {
       const rowReveal = playing
@@ -5832,16 +5778,16 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   ctx.fillStyle = ig.accent;
   ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
 
-  let cy = py + panelH * 0.20;
+  let cy = py + panelH * 0.15;
 
   if (data.title) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
-    const titlePx = Math.min(Math.round(U * 0.042), Math.round(panelH * 0.09));
-    const actualTitlePx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
-      titlePx, Math.round(U * 0.022));
+    const titlePx = Math.round(U * 0.048);
+    vsFitFont(ctx, data.title, panelW - padX * 2, "700", "Prata, serif",
+      titlePx, Math.round(U * 0.028));
     ctx.fillText(data.title, px + padX, cy);
-    cy += actualTitlePx * 1.4 + panelH * 0.03;
+    cy += panelH * 0.085;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
@@ -6107,7 +6053,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.strokeStyle = rankColor; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(bubX, bubY, bubR, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = rankColor; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = `700 ${rankPx * 0.7}px Inter, sans-serif`;
+      ctx.font = `700 ${rankPx * 0.7}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(i + 1, bubX, bubY);
       ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
       // label
@@ -6217,7 +6163,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.shadowColor = vsHexA(ig.accent, 0.35); ctx.shadowBlur = U * 0.03;
       const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.6)) : 1;
       const aE = 1 - Math.pow(1 - aRe, 3);
-      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px ${vsGetFont("Inter, sans-serif")}`;
+      // auto-fit value into half-panel width (leave room for VS badge)
+      const compMaxW = panelW * 0.40;
+      let compPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      const longest = String(a.value).length >= String(b.value).length ? a.value : b.value;
+      while (compPx > Math.round(U * 0.04) && ctx.measureText(longest).width > compMaxW) {
+        compPx -= 2; ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      }
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(a.value, midX - panelW * 0.26, midY);
       ctx.shadowBlur = 0;
       ctx.fillStyle = ig.label;
@@ -6226,7 +6180,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       // right value
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       ctx.shadowColor = "rgba(255,255,255,0.2)"; ctx.shadowBlur = U * 0.02;
-      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(b.value, midX + panelW * 0.26, midY);
       ctx.shadowBlur = 0;
       ctx.fillStyle = ig.label;
@@ -7023,7 +6977,6 @@ function drawStudioFrame(elapsed) {
   // grade the footage/background only — before vignette, text, overlays
   vsApplyBgFilter(ctx, canvas, W, H);
 
-  vsDrawSnapGuides(ctx, W, H);
   // vignette
   if (tpl.vignette > 0) {
     const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
@@ -7304,25 +7257,6 @@ function drawStudioFrame(elapsed) {
 
 // Applies the slide-to-slide transition veil and the global colour grade
 // to the finished frame. Safe to call once per frame at any exit point.
-
-// ── CENTER SNAP GUIDE — drawn on canvas during drag ──────────────────────
-function vsDrawSnapGuides(ctx, W, H) {
-  var gx = vstudio.snapGuideX, gy = vstudio.snapGuideY;
-  if (gx == null && gy == null) return;
-  ctx.save();
-  ctx.strokeStyle = "rgba(216,183,106,0.85)";
-  ctx.lineWidth = Math.max(1, W * 0.0015);
-  ctx.setLineDash([W * 0.008, W * 0.006]);
-  if (gx != null) { ctx.beginPath(); ctx.moveTo(W*gx,0); ctx.lineTo(W*gx,H); ctx.stroke(); }
-  if (gy != null) { ctx.beginPath(); ctx.moveTo(0,H*gy); ctx.lineTo(W,H*gy); ctx.stroke(); }
-  ctx.setLineDash([]);
-  if (gx != null && gy != null) {
-    var d=W*0.012, cx=W*gx, cy=H*gy;
-    ctx.fillStyle="rgba(216,183,106,0.9)";
-    ctx.beginPath(); ctx.moveTo(cx,cy-d); ctx.lineTo(cx+d,cy); ctx.lineTo(cx,cy+d); ctx.lineTo(cx-d,cy); ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-}
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
   const transKind = vsVal("#vsTransition", "fade");
   if (vstudio.slides.length && transKind !== "none") {
