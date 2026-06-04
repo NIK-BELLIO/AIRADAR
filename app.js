@@ -1204,18 +1204,18 @@ tools.push(
     logo: "FF"
   },
   {
-    name: "Tome",
+    name: "Gamma",
     category: { en: "Presentations", fa: "ارائه" },
-    useCase: { en: "AI presentation tool that builds polished decks and narratives from a prompt.", fa: "ابزار ارائه AI که از یک پرامپت، اسلاید و روایت حرفه‌ای می‌سازد." },
-    price: 16,
-    pricing: { en: "Free plan + paid from about $16/mo", fa: "پلن رایگان + پولی از حدود ۱۶ دلار ماهانه" },
+    useCase: { en: "AI presentation tool that builds polished decks, docs and websites from a prompt in seconds.", fa: "ابزار ارائه AI که از یک پرامپت، اسلاید، داکیومنت و وب‌سایت حرفه‌ای می‌سازد." },
+    price: 0,
+    pricing: { en: "Free plan + Pro from $10/mo", fa: "پلن رایگان + پرو از ۱۰ دلار ماهانه" },
     plan: "freemium",
-    score: 78,
-    jobs: ["Presentation Designer", "Marketer"],
-    url: "https://tome.app",
-    tags: ["presentations", "decks", "design"],
+    score: 84,
+    jobs: ["Presentation Designer", "Marketer", "Educator"],
+    url: "https://gamma.app",
+    tags: ["presentations", "decks", "design", "docs"],
     modelType: "assistant",
-    logo: "TM"
+    logo: "GM"
   },
   {
     name: "Jasper",
@@ -1282,7 +1282,7 @@ const toolRepos = {
   "v0":              "vercel/ai",
   "Lovable":         "lovable-dev/lovable",
   "Fireflies":       "fireflies-ai/fireflies-api",
-  "Tome":            "tome-hq/tome",
+  "Gamma":           "gamma-app/gamma",
   "Jasper":          "jasperai/jasper-sdk"
 };
 
