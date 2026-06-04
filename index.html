@@ -39,6 +39,170 @@
       .hero-stat strong{font-family:Prata,serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
       @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
       @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
+    
+      /* ── TOOL OF THE DAY ─────────────────────────────── */
+      .tod-panel {
+        background: linear-gradient(135deg,
+          rgba(216,183,106,0.07) 0%,
+          rgba(216,183,106,0.03) 50%,
+          rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(216,183,106,0.25);
+        position: relative;
+        overflow: hidden;
+      }
+      .tod-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      }
+      .tod-inner {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 28px;
+        align-items: center;
+      }
+      .tod-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tod-live-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 0 0 rgba(216,183,106,0.5);
+        animation: todPulse 2s infinite;
+        flex-shrink: 0;
+      }
+      @keyframes todPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(216,183,106,0.5); }
+        70%  { box-shadow: 0 0 0 8px rgba(216,183,106,0); }
+        100% { box-shadow: 0 0 0 0 rgba(216,183,106,0); }
+      }
+      #todLabel {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        color: var(--gold);
+      }
+      .tod-card-main {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+      .tod-logo-wrap {
+        width: 52px; height: 52px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        display: grid; place-items: center;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .tod-logo { font-size: 22px; font-weight: 800; color: var(--gold); }
+      .tod-logo img { width: 100%; height: 100%; object-fit: contain; }
+      .tod-info { flex: 1; min-width: 0; }
+      .tod-name {
+        margin: 0 0 3px;
+        font-size: clamp(18px, 2.5vw, 26px);
+        font-family: Prata, serif;
+        color: var(--text);
+        line-height: 1.2;
+      }
+      .tod-category {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--muted);
+        padding: 2px 8px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        background: var(--surface-2);
+      }
+      .tod-price {
+        font-size: 13px;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 99px;
+        flex-shrink: 0;
+      }
+      .tod-price.free  { background: rgba(95,189,116,0.12); color: #5fbd74; border: 1px solid rgba(95,189,116,0.3); }
+      .tod-price.paid  { background: rgba(216,183,106,0.12); color: var(--gold); border: 1px solid rgba(216,183,106,0.3); }
+      .tod-desc {
+        font-size: 14px;
+        line-height: 1.75;
+        color: var(--muted);
+        margin: 0 0 12px;
+        max-width: 580px;
+      }
+      .tod-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+      .tod-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .tod-btn { min-height: 40px; padding: 0 20px; font-weight: 700; }
+      .tod-next { font-size: 12px; color: var(--muted); }
+      #todCountdown { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+      /* RIGHT: ring */
+      .tod-right {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+      .tod-progress-ring { position: relative; display: inline-flex; }
+      .tod-ring-bg  { fill: none; stroke: rgba(216,183,106,0.12); stroke-width: 6; }
+      .tod-ring-fill {
+        fill: none; stroke: var(--gold); stroke-width: 6;
+        stroke-linecap: round;
+        stroke-dasharray: 326.7;
+        stroke-dashoffset: 326.7;
+        transform: rotate(-90deg);
+        transform-origin: 60px 60px;
+        transition: stroke-dashoffset 1s ease;
+      }
+      .tod-ring-inner {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2px;
+      }
+      .tod-day-num  { font-size: 22px; font-weight: 800; font-family: Prata,serif; color: var(--gold-2); line-height: 1; }
+      .tod-day-label{ font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; }
+      .tod-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 120px;
+      }
+      .tod-stat-row {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 11px;
+      }
+      .tod-stat-label { color: var(--muted); }
+      .tod-stat-val   { font-weight: 700; color: var(--gold-2); }
+
+      /* Enter animation */
+      @keyframes todSlideIn {
+        from { opacity:0; transform: translateY(12px); }
+        to   { opacity:1; transform: translateY(0); }
+      }
+      .tod-animate { animation: todSlideIn 0.5s ease both; }
+
+      @media(max-width:760px){
+        .tod-inner { grid-template-columns: 1fr; }
+        .tod-right  { flex-direction: row; justify-content: space-between; }
+      }
     </style>
   </head>
   <body>
@@ -148,6 +312,53 @@
 
         <!-- TOOLS -->
         
+
+        <!-- TOOL OF THE DAY -->
+        <section id="toolOfDay" class="panel tod-panel">
+          <div class="tod-inner">
+            <div class="tod-left">
+              <div class="tod-eyebrow">
+                <span class="tod-live-dot"></span>
+                <span id="todLabel">Tool of the Day</span>
+              </div>
+              <div class="tod-card-main">
+                <div class="tod-logo-wrap" id="todLogoWrap">
+                  <span class="tod-logo" id="todLogo"></span>
+                </div>
+                <div class="tod-info">
+                  <h3 class="tod-name" id="todName">Loading…</h3>
+                  <span class="tod-category" id="todCategory"></span>
+                </div>
+                <span class="tod-price" id="todPrice"></span>
+              </div>
+              <p class="tod-desc" id="todDesc"></p>
+              <div class="tod-tags" id="todTags"></div>
+              <div class="tod-actions">
+                <a class="button primary tod-btn" id="todLink" href="#" target="_blank" rel="noopener">
+                  <span id="todBtnLabel">Visit tool</span> ↗
+                </a>
+                <span class="tod-next" id="todNext">
+                  Next tool in <span id="todCountdown">—</span>
+                </span>
+              </div>
+            </div>
+            <div class="tod-right">
+              <div class="tod-progress-ring">
+                <svg viewBox="0 0 120 120" width="120" height="120">
+                  <circle cx="60" cy="60" r="52" class="tod-ring-bg"/>
+                  <circle cx="60" cy="60" r="52" class="tod-ring-fill" id="todRingFill"/>
+                </svg>
+                <div class="tod-ring-inner">
+                  <span class="tod-day-num" id="todDayNum"></span>
+                  <span class="tod-day-label" id="todDayLabel">Today</span>
+                </div>
+              </div>
+              <div class="tod-stats" id="todStats"></div>
+            </div>
+          </div>
+        </section>
+        <!-- /TOOL OF THE DAY -->
+
         <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
           <div class="twin-col">
@@ -1011,5 +1222,166 @@
     });
     </script>
     <script src="app.js?v=v220"></script>
+
+    <script>
+    /* ── TOOL OF THE DAY ─────────────────────────────────────── */
+    (function(){
+      // Deterministic daily pick — same tool for everyone on the same day
+      function getDayIndex(total) {
+        const now = new Date();
+        // day number since epoch, stable across timezones
+        const dayNum = Math.floor(Date.now() / 86400000);
+        return dayNum % total;
+      }
+
+      function secondsUntilMidnightUTC() {
+        const now = new Date();
+        const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()+1));
+        return Math.floor((tomorrow - now) / 1000);
+      }
+
+      function fmt(secs) {
+        const h = Math.floor(secs/3600);
+        const m = Math.floor((secs%3600)/60);
+        const s = secs % 60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+
+      function fmtNum(n) {
+        if (!n) return '—';
+        if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+        if (n >= 1000) return (n/1000).toFixed(1)+'k';
+        return String(n);
+      }
+
+      function renderTOD() {
+        if (typeof tools === 'undefined' || !tools.length) return;
+        const fa = document.documentElement.lang === 'fa';
+
+        const idx = getDayIndex(tools.length);
+        const tool = tools[idx];
+
+        // Labels
+        const el = id => document.getElementById(id);
+        if(el('todLabel')) el('todLabel').textContent = fa ? 'ابزار روز' : 'Tool of the Day';
+        if(el('todDayLabel')) el('todDayLabel').textContent = fa ? 'امروز' : 'Today';
+        if(el('todBtnLabel')) el('todBtnLabel').textContent = fa ? 'مشاهده ابزار' : 'Visit tool';
+
+        // Tool data
+        const text = v => typeof v==='string' ? v : (v[fa?'fa':'en']||v.en);
+        if(el('todName')) { el('todName').textContent = tool.name; }
+
+        // Logo
+        const logoWrap = el('todLogoWrap');
+        if (logoWrap) {
+          if (tool.url) {
+            try {
+              const domain = new URL(tool.url).hostname;
+              logoWrap.innerHTML = `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" alt="${tool.name}" style="width:36px;height:36px;border-radius:6px;"/>`;
+            } catch(e) {
+              logoWrap.innerHTML = `<span class="tod-logo">${tool.name.slice(0,2).toUpperCase()}</span>`;
+            }
+          }
+        }
+
+        if(el('todCategory')) el('todCategory').textContent = text(tool.category);
+        if(el('todDesc')) el('todDesc').textContent = text(tool.useCase);
+
+        // Price
+        const priceEl = el('todPrice');
+        if(priceEl) {
+          const isFree = tool.price === 0 || tool.plan === 'free' || tool.plan === 'freemium';
+          priceEl.textContent = isFree ? (fa?'رایگان':'Free') : '$'+tool.price;
+          priceEl.className = 'tod-price ' + (isFree ? 'free' : 'paid');
+        }
+
+        // Tags
+        const tagsEl = el('todTags');
+        if(tagsEl && tool.tags) {
+          tagsEl.innerHTML = (tool.tags||[]).slice(0,4)
+            .map(t=>`<span class="tag">${t}</span>`).join('');
+        }
+
+        // Link
+        const linkEl = el('todLink');
+        if(linkEl && tool.url) linkEl.href = tool.url;
+
+        // Day number in ring (day of year)
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        const dayOfYear = Math.floor((now - start) / 86400000);
+        if(el('todDayNum')) el('todDayNum').textContent = dayOfYear;
+
+        // Progress ring — fraction of day elapsed
+        const ring = el('todRingFill');
+        if(ring) {
+          const secsPassed = (now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds());
+          const frac = secsPassed / 86400;
+          const circumference = 2 * Math.PI * 52; // r=52
+          ring.style.strokeDashoffset = circumference * (1 - frac);
+        }
+
+        // Stats
+        const statsEl = el('todStats');
+        if(statsEl) {
+          const rows = [
+            { label: fa?'امتیاز':'Score', val: tool.score || '—' },
+            { label: fa?'ستاره':'Stars', val: fmtNum(tool.stars) },
+            { label: fa?'قیمت':'Price', val: tool.price===0?(fa?'رایگان':'Free'):'$'+tool.price },
+          ];
+          statsEl.innerHTML = rows.map(r=>
+            `<div class="tod-stat-row"><span class="tod-stat-label">${r.label}</span><span class="tod-stat-val">${r.val}</span></div>`
+          ).join('');
+        }
+
+        // Animate in
+        const panel = document.getElementById('toolOfDay');
+        if(panel) {
+          panel.classList.remove('tod-animate');
+          void panel.offsetWidth; // reflow
+          panel.classList.add('tod-animate');
+        }
+      }
+
+      // Countdown
+      function startCountdown() {
+        const el = document.getElementById('todCountdown');
+        const nextEl = document.getElementById('todNext');
+        const fa = document.documentElement.lang === 'fa';
+        if(nextEl) {
+          const label = fa ? 'ابزار بعدی تا: ' : 'Next tool in ';
+          nextEl.innerHTML = label + '<span id="todCountdown">—</span>';
+        }
+        let secs = secondsUntilMidnightUTC();
+        function tick() {
+          const cd = document.getElementById('todCountdown');
+          if(cd) cd.textContent = fmt(secs);
+          if(secs > 0) { secs--; setTimeout(tick, 1000); }
+        }
+        tick();
+      }
+
+      // Init — wait for tools to be available
+      function init() {
+        if (typeof tools === 'undefined' || !tools.length) {
+          setTimeout(init, 200);
+          return;
+        }
+        renderTOD();
+        startCountdown();
+
+        // Re-render on lang change
+        const origSetLang = window.setLanguage;
+        window.setLanguage = function(lang) {
+          if(origSetLang) origSetLang(lang);
+          renderTOD();
+        };
+      }
+
+      document.readyState === 'loading'
+        ? document.addEventListener('DOMContentLoaded', init)
+        : init();
+    })();
+    </script>
   </body>
 </html>
