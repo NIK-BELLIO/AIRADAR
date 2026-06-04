@@ -1383,19 +1383,12 @@ const state = {
 };
 
 
-// ── FONT OVERRIDE HELPER ─────────────────────────────────────────────────
-// Returns the user-selected headline font (from #vsHeadlineFont) or the
-// template default. Called by every drawing function so ALL text elements
-// (news banner, infographic, intro, outro, headlines) respect the choice.
-function vsGetFont(fallback) {
-  const el = document.querySelector("#vsHeadlineFont");
-  if (el && el.value) return el.value;
-  return fallback || "Prata, serif";
+// ── GLOBAL FONT HELPER — reads #vsHeadlineFont, applied to ALL drawing ──
+function vsGetFont(fallback){
+  var el=document.querySelector("#vsHeadlineFont");
+  if(el&&el.value) return el.value;
+  return fallback||"Prata, serif";
 }
-// Same but for body/subtext — always Inter unless user picks a display font
-function vsGetBodyFont() { return "Inter, sans-serif"; }
-// ─────────────────────────────────────────────────────────────────────────
-
 const $ = (selector) => document.querySelector(selector);
 const toolGrid = $("#toolGrid");
 const compareTable = $("#compareTable");
@@ -3714,6 +3707,7 @@ const vstudio = {
   textScale: 1,         // text manual scale (resize)
   textBox: null,        // last drawn text bounds, for hit-testing
   infoDX: 0, infoDY: 0, // infographic drag offset
+  snapGuideX: null, snapGuideY: null,
   infoScale: 1,         // infographic manual scale
   infoBox: null,        // last drawn infographic bounds
   newsDX: 0, newsDY: 0, // news banner drag offset
@@ -3739,7 +3733,6 @@ function vsEasePro(t) {
 
 function vsTemplate() {
   const tpl = videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
-  // Always override headlineFont with user selection
   const fontEl = document.querySelector("#vsHeadlineFont");
   const userFont = fontEl && fontEl.value ? fontEl.value : null;
   return Object.assign({}, tpl, { headlineFont: userFont || tpl.headlineFont });
@@ -4748,9 +4741,7 @@ function setupTextDrag() {
     canvas.style.cursor = "grabbing";
     if (e.cancelable) e.preventDefault();
   };
-  const SNAP_THRESHOLD = 0.018; // 1.8% of frame — snap zone
-  let snapGuideX = null, snapGuideY = null;
-
+  const SNAP_THR = 0.018;
   const move = (e) => {
     const pt = toCanvas(e);
     if (!dragging) {
@@ -4760,17 +4751,13 @@ function setupTextDrag() {
     const [kx, ky] = offsetsFor(dragging);
     let dx = baseDX + (pt.x - startX) / canvas.width;
     let dy = baseDY + (pt.y - startY) / canvas.height;
-
-    // ── CENTER SNAP GUIDE ──────────────────────────────────────
-    snapGuideX = null; snapGuideY = null;
-    if (Math.abs(dx) < SNAP_THRESHOLD) { dx = 0; snapGuideX = 0.5; }
-    if (Math.abs(dy) < SNAP_THRESHOLD) { dy = 0; snapGuideY = 0.5; }
-    vstudio.snapGuideX = snapGuideX;
-    vstudio.snapGuideY = snapGuideY;
-    // ──────────────────────────────────────────────────────────
-
+    // center snap
+    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
+    if (Math.abs(dx) < SNAP_THR) { dx = 0; vstudio.snapGuideX = 0.5; }
+    if (Math.abs(dy) < SNAP_THR) { dy = 0; vstudio.snapGuideY = 0.5; }
     vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
     vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
+    // redraw at the CURRENT position so the frame never jumps
     if (!vstudio.looping) {
       const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
         || ($("#vsInfoOn") && $("#vsInfoOn").checked)
@@ -7244,25 +7231,25 @@ function drawStudioFrame(elapsed) {
 
 // Applies the slide-to-slide transition veil and the global colour grade
 // to the finished frame. Safe to call once per frame at any exit point.
+
+// ── CENTER SNAP GUIDE — drawn on canvas during drag ──────────────────────
 function vsDrawSnapGuides(ctx, W, H) {
-  const gx = vstudio.snapGuideX, gy = vstudio.snapGuideY;
+  var gx = vstudio.snapGuideX, gy = vstudio.snapGuideY;
   if (gx == null && gy == null) return;
   ctx.save();
   ctx.strokeStyle = "rgba(216,183,106,0.85)";
-  ctx.lineWidth = Math.max(1, W * 0.002);
+  ctx.lineWidth = Math.max(1, W * 0.0015);
   ctx.setLineDash([W * 0.008, W * 0.006]);
   if (gx != null) { ctx.beginPath(); ctx.moveTo(W*gx,0); ctx.lineTo(W*gx,H); ctx.stroke(); }
   if (gy != null) { ctx.beginPath(); ctx.moveTo(0,H*gy); ctx.lineTo(W,H*gy); ctx.stroke(); }
   ctx.setLineDash([]);
   if (gx != null && gy != null) {
-    const d = W*0.012;
-    ctx.fillStyle = "rgba(216,183,106,0.9)";
-    ctx.beginPath(); ctx.moveTo(W*gx,H*gy-d); ctx.lineTo(W*gx+d,H*gy);
-    ctx.lineTo(W*gx,H*gy+d); ctx.lineTo(W*gx-d,H*gy); ctx.closePath(); ctx.fill();
+    var d=W*0.012, cx=W*gx, cy=H*gy;
+    ctx.fillStyle="rgba(216,183,106,0.9)";
+    ctx.beginPath(); ctx.moveTo(cx,cy-d); ctx.lineTo(cx+d,cy); ctx.lineTo(cx,cy+d); ctx.lineTo(cx-d,cy); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
 }
-
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
   const transKind = vsVal("#vsTransition", "fade");
   if (vstudio.slides.length && transKind !== "none") {
