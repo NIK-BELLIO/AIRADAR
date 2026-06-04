@@ -37,10 +37,23 @@
       }
       .twin-col{display:flex;flex-direction:column;gap:16px;}
       .twin-col--left .panel{margin:0;}
-      .twin-col--right .panel{margin:0;position:sticky;top:16px;}
+      .twin-col--right{
+        position:sticky;
+        top:16px;
+        max-height:calc(100vh - 32px);
+        overflow-y:auto;
+        overflow-x:hidden;
+        /* smooth fade at bottom so content doesn't hard-cut */
+        -webkit-mask-image:linear-gradient(to bottom,black 0%,black 85%,transparent 100%);
+        mask-image:linear-gradient(to bottom,black 0%,black 85%,transparent 100%);
+      }
+      .twin-col--right .panel{margin:0;}
+      .twin-col--right::-webkit-scrollbar{width:4px;}
+      .twin-col--right::-webkit-scrollbar-track{background:transparent;}
+      .twin-col--right::-webkit-scrollbar-thumb{background:rgba(216,183,106,0.3);border-radius:2px;}
       @media(max-width:960px){
         .twin-panels{grid-template-columns:1fr;}
-        .twin-col--right .panel{position:static;}
+        .twin-col--right{position:static;max-height:none;overflow:visible;}
       }
 
       /* ── SIDEBAR 2-COL NAV ───── */
@@ -53,6 +66,33 @@
       @media(max-width:900px){
         #tools+*,#performance{grid-column:1 !important;}
         .tools-charts-grid{grid-template-columns:1fr !important;}
+      }
+      /* ── RANGE SLIDER (gold, on-brand) ── */
+      input[type="range"]{
+        -webkit-appearance:none;appearance:none;
+        width:100%;height:4px;
+        border-radius:2px;
+        background:var(--line);
+        outline:none;border:none;padding:0;min-height:4px;
+        cursor:pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb{
+        -webkit-appearance:none;appearance:none;
+        width:16px;height:16px;border-radius:50%;
+        background:var(--gold);cursor:pointer;
+        box-shadow:0 0 0 3px rgba(216,183,106,0.2);
+        transition:box-shadow 0.15s;
+      }
+      input[type="range"]::-webkit-slider-thumb:hover{
+        box-shadow:0 0 0 5px rgba(216,183,106,0.3);
+      }
+      input[type="range"]::-moz-range-thumb{
+        width:16px;height:16px;border-radius:50%;border:none;
+        background:var(--gold);cursor:pointer;
+      }
+      input[type="range"]::-webkit-slider-runnable-track{
+        background:linear-gradient(to right,rgba(216,183,106,0.5) 0%,rgba(216,183,106,0.5) var(--val,0%),var(--line) var(--val,0%),var(--line) 100%);
+        border-radius:2px;height:4px;
       }
       /* ── VIDEO FONT FIX ──────── */
       /* force preview redraw on font change */
@@ -263,7 +303,7 @@
         <section id="videoStudio" class="panel video-studio">
           <div class="section-head">
             <div>
-              <p class="eyebrow" data-i18n="studioEyebrow">Advanced video studio</p>
+              <p class="eyebrow" data-i18n="studioEyebrow">Video studio</p>
               <h2 data-i18n="studioTitle">Create a complete, luxurious video</h2>
               <p data-i18n="studioText">Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.</p>
             </div>
@@ -323,7 +363,7 @@
                       <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
                     </label>
                     <div class="vs-auto-actions">
-                      <button id="vsAutoBuildBtn" class="button primary" type="button" data-i18n="vAutoBuildBtn">Build the video</button>
+                      
                       <button id="vsAutoAiBtn" class="button ghost gold" type="button" data-i18n="vAutoAiBtn">✦ Build with AI</button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
@@ -410,41 +450,45 @@
                     </label>
                   </div>
 
+                  <!-- Global font selector — affects ALL text in ALL scenes -->
+                  <div style="margin:0 0 12px;padding:10px 12px;background:rgba(216,183,106,0.07);border:1px solid rgba(216,183,106,0.2);border-radius:8px;">
+                    <label style="margin:0;">
+                      <span style="font-size:11px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">🎨 Headline font — all scenes</span>
+                      <select id="vsHeadlineFont" style="background:var(--surface-2);">
+                        <option value="Prata, serif">Prata (serif)</option>
+                        <option value="Alice, serif">Alice (elegant)</option>
+                        <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
+                        <option value="Inter, sans-serif">Inter (modern sans)</option>
+                        <option value="'Playfair Display', serif">Playfair Display</option>
+                        <option value="Georgia, serif">Georgia (classic)</option>
+                      </select>
+                    </label>
+                  </div>
+
                   <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This scene's settings</span>
 
-                  <details class="vs-slide-section" open>
-                    <summary class="vstudio-label" data-i18n="vTextLabel">Text layers</summary>
-                    <div class="vs-section-body">
-                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                      <div class="control-grid">
-                        <label><span data-i18n="vTextPosLabel">Text position</span>
-                          <select id="vsTextPos">
-                            <option value="center">Center</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="top">Top</option>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vTextSizeLabel">Text size</span>
-                          <select id="vsTextSize">
-                            <option value="0.8">Small</option>
-                            <option value="1" selected>Medium</option>
-                            <option value="1.3">Large</option>
-                          </select>
-                        </label>
-                        <label><span>Headline font</span>
-                          <select id="vsHeadlineFont">
-                            <option value="Prata, serif">Prata (serif)</option>
-                            <option value="Alice, serif">Alice (elegant)</option>
-                            <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
-                            <option value="Inter, sans-serif">Inter (modern)</option>
-                          </select>
-                        </label>
-                      </div>
-                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
+                  <!-- Text fields (no collapsible wrapper) -->
+                  <div class="vs-section-body" style="padding:0;margin-bottom:4px;">
+                    <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
+                    <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                    <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
+                    <div class="control-grid">
+                      <label><span data-i18n="vTextPosLabel">Text position</span>
+                        <select id="vsTextPos">
+                          <option value="center">Center</option>
+                          <option value="bottom">Bottom</option>
+                          <option value="top">Top</option>
+                        </select>
+                      </label>
+                      <label><span data-i18n="vTextSizeLabel">Text size</span>
+                        <select id="vsTextSize">
+                          <option value="0.8">Small</option>
+                          <option value="1" selected>Medium</option>
+                          <option value="1.3">Large</option>
+                        </select>
+                      </label>
                     </div>
-                  </details>
+                  </div>
 
                   <details class="vs-slide-section">
                     <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
@@ -941,163 +985,77 @@
 
 
         <!-- ABOUT / CREDITS -->
-        <section id="about" class="panel about-panel">
-          <div class="section-head">
+        <section id="about" class="panel">
+          <div class="section-head" style="margin-bottom:20px;">
             <div>
               <p class="eyebrow" data-i18n="aboutEyebrow">About</p>
-              <h2 data-i18n="aboutTitle">Built for the AI-curious</h2>
-              <p data-i18n="aboutText">AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.</p>
+              <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
             </div>
           </div>
 
-          <div class="about-highlight">
-            <div class="about-highlight-mark" aria-hidden="true">
-              <svg viewBox="0 0 64 64" width="56" height="56">
-                <circle cx="32" cy="32" r="25" fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.9"/>
-                <circle cx="32" cy="32" r="15" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
-                <line x1="32" y1="32" x2="32" y2="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                <circle cx="44" cy="22" r="3" fill="currentColor"/>
-                <circle cx="32" cy="32" r="2.4" fill="currentColor"/>
-              </svg>
-            </div>
-            <div>
-              <h3 data-i18n="aboutMissionTitle">Why AI Radar exists</h3>
-              <p data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.</p>
-            </div>
-          </div>
+          <!-- 2-col compact layout -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
 
-          <div class="about-stats">
-            <div class="about-stat">
-              <strong id="aboutToolCount">45+</strong>
-              <span data-i18n="aboutStatTools">curated AI tools</span>
-            </div>
-            <div class="about-stat">
-              <strong>100%</strong>
-              <span data-i18n="aboutStatFree">free, no account</span>
-            </div>
-            <div class="about-stat">
-              <strong data-i18n="aboutStatLiveValue">Live</strong>
-              <span data-i18n="aboutStatLive">GitHub data</span>
-            </div>
-            <div class="about-stat">
-              <strong data-i18n="aboutStatPrivacyValue">Zero</strong>
-              <span data-i18n="aboutStatPrivacy">tracking or ads</span>
-            </div>
-          </div>
+            <!-- LEFT: mission + features -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <p data-i18n="aboutText" style="font-size:14px;line-height:1.75;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build videos — all running in your browser.</p>
 
-          <div class="about-features">
-            <article class="about-feature">
-              <span class="about-feature-icon">◎</span>
-              <h4 data-i18n="aboutFeat1Title">Tool finder</h4>
-              <p data-i18n="aboutFeat1Text">Search and filter real AI tools by use case, price, and job — grouped and easy to scan.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">▥</span>
-              <h4 data-i18n="aboutFeat2Title">Live trend chart</h4>
-              <p data-i18n="aboutFeat2Text">Popularity tracked from the public GitHub API, refreshed automatically — no guesswork.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">✦</span>
-              <h4 data-i18n="aboutFeat3Title">Video studio</h4>
-              <p data-i18n="aboutFeat3Text">Build multi-scene videos with motion, infographics, and news banners — entirely in your browser.</p>
-            </article>
-            <article class="about-feature">
-              <span class="about-feature-icon">⚙</span>
-              <h4 data-i18n="aboutFeat4Title">Caption &amp; prompt tools</h4>
-              <p data-i18n="aboutFeat4Text">Generate captions and refined prompts locally — fast, private, and free to use.</p>
-            </article>
-          </div>
-
-          <div class="about-grid">
-            <article class="credit-card creator-card">
-              <div class="credit-avatar">SA</div>
-              <div class="credit-meta">
-                <strong>Shayan Alinia</strong>
-                <span data-i18n="aboutRole">Creator &amp; Designer</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">45+</strong>
+                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricTools">AI tools</span>
+                </div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">100%</strong>
+                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricFreeLabel">Free to use</span>
+                </div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Live</strong>
+                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricLiveLabel">GitHub data</span>
+                </div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
+                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong>
+                  <span style="font-size:11px;color:var(--muted);">Tracking / ads</span>
+                </div>
               </div>
-              <p data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, the interface, the live trend chart, and the in-browser video studio. Every detail here is the work of one person who cares about doing it properly.</p>
-            </article>
-            <article class="credit-card">
-              <div class="credit-avatar">AR</div>
-              <div class="credit-meta">
-                <strong>AI Radar</strong>
-                <span data-i18n="aboutProjectRole">Free static project</span>
-              </div>
-              <p data-i18n="aboutProjectText">Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.</p>
-            </article>
-          </div>
 
-          <div class="changelog">
-            <div class="changelog-head">
-              <h3 data-i18n="changelogTitle">Latest updates</h3>
-              <span class="version-badge">v2.2.0</span>
+              <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(216,183,106,0.05);border-radius:0 8px 8px 0;">
+                <p style="margin:0;font-size:13px;line-height:1.8;" data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
+              </div>
             </div>
-            <ul class="changelog-list">
-              <li>
-                <span class="changelog-ver">2.2</span>
-                <div>
-                  <strong>Cinematic graphics &amp; UI overhaul</strong>
-                  <p>New "Big Numbers" infographic preset with animated counting and glowing accent numbers. Headline text is now 25% larger across all news styles with proper dark scrims. Bold Statement style with massive full-frame text. Color filter only applies to uploaded footage — motion backgrounds stay crisp. Timeline accent matches site gold theme. All long dropdown lists reorganised into labelled groups. Auto-video AI produces varied news analysis with 4–7 scenes, palette selection and smart chart types.</p>
+
+            <!-- RIGHT: creator + changelog latest -->
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="padding:16px;border:1px solid rgba(216,183,106,0.3);border-radius:10px;background:rgba(216,183,106,0.05);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <div style="width:40px;height:40px;border-radius:50%;background:rgba(216,183,106,0.2);border:1px solid rgba(216,183,106,0.4);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--gold-2);flex-shrink:0;">SA</div>
+                  <div><strong style="display:block;font-size:15px;" data-i18n="aboutCreatorName">Shayan Alinia</strong><span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span></div>
                 </div>
-              </li>
-              <li>
-                <span class="changelog-ver">2.1</span>
-                <div>
-                  <strong data-i18n="cl21Title">Cinematic design upgrade</strong>
-                  <p data-i18n="cl21Text">Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.</p>
+                <p style="margin:0;font-size:13px;line-height:1.75;" data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, interface, live trend chart, and in-browser video studio.</p>
+              </div>
+
+              <!-- Latest changelog items (compact) -->
+              <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
+                  <span style="font-size:12px;font-weight:800;color:var(--text);" data-i18n="changelogTitle">Latest updates</span>
+                  <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(216,183,106,0.15);border:1px solid rgba(216,183,106,0.3);color:var(--gold);">v2.3</span>
                 </div>
-              </li>
-              <li>
-                <span class="changelog-ver">2.0</span>
-                <div>
-                  <strong data-i18n="cl20Title">Smarter article-to-video</strong>
-                  <p data-i18n="cl20Text">Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.9</span>
-                <div>
-                  <strong data-i18n="cl19Title">Auto video builder</strong>
-                  <p data-i18n="cl19Text">Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.8</span>
-                <div>
-                  <strong data-i18n="cl18Title">Outro scenes &amp; more designs</strong>
-                  <p data-i18n="cl18Text">Added outro scenes, 22 intro backgrounds, cinematic motion presets, clearer infographic text, per-slide element positions, and a graceful music fade-out.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.7</span>
-                <div>
-                  <strong data-i18n="cl17Title">Intro scenes &amp; richer motion</strong>
-                  <p data-i18n="cl17Text">New intro scene type in the Video Studio with built-in backgrounds, dual animated text, and many motion presets. Scene-aware motion so every slide animates correctly.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.6</span>
-                <div>
-                  <strong data-i18n="cl16Title">Full sidebar &amp; cleaner UI</strong>
-                  <p data-i18n="cl16Text">Collapsible left sidebar navigation, redesigned chart and footer controls, a back-to-top button, and tighter mobile layouts throughout.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.5</span>
-                <div>
-                  <strong data-i18n="cl15Title">MP4 export &amp; real charts</strong>
-                  <p data-i18n="cl15Text">Video Studio now exports MP4. The infographic became a proper bar chart with a labelled axis, scale, and gridlines.</p>
-                </div>
-              </li>
-              <li>
-                <span class="changelog-ver">1.4</span>
-                <div>
-                  <strong data-i18n="cl14Title">Bigger tool catalogue</strong>
-                  <p data-i18n="cl14Text">Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.</p>
-                </div>
-              </li>
-            </ul>
-            <p class="changelog-note" data-i18n="changelogNote">AI Radar is actively maintained. This list shows the most recent notable changes.</p>
+                <ul style="list-style:none;margin:0;padding:0;" data-i18n-changelog="true">
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
+                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl23Head">Multi-page + font system</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl23Text">Font selector now applies to all scenes. Snap guides, infographic drag fix, sidebar 2-col layout.</p></div>
+                  </li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
+                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl22Head">Cinematic design upgrade</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl22Text">New infographic presets, Big Numbers style, animated backgrounds, Vox-style motion.</p></div>
+                  </li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;">
+                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
+                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl21Head">Auto video builder</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl21Text">Describe a topic and the studio assembles a complete video in one click.</p></div>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1131,6 +1089,24 @@
             if (btn) btn.click();
           }
         }, 30);
+      });
+    });
+    </script>
+
+    <script>
+    /* ── RANGE SLIDER FILL (gold track) ── */
+    document.addEventListener("DOMContentLoaded", function() {
+      function updateRange(input) {
+        var min = parseFloat(input.min) || 0;
+        var max = parseFloat(input.max) || 100;
+        var val = parseFloat(input.value) || 0;
+        var pct = ((val - min) / (max - min) * 100).toFixed(1) + "%";
+        input.style.setProperty("--val", pct);
+        input.style.background = "linear-gradient(to right, rgba(216,183,106,0.6) 0%, rgba(216,183,106,0.6) " + pct + ", var(--line) " + pct + ", var(--line) 100%)";
+      }
+      document.querySelectorAll("input[type=range]").forEach(function(r) {
+        updateRange(r);
+        r.addEventListener("input", function() { updateRange(r); });
       });
     });
     </script>
