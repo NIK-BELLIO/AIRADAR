@@ -5746,16 +5746,9 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     const cols = nStats <= 2 ? nStats : nStats <= 4 ? 2 : 3;
     const rows = Math.ceil(nStats / cols);
     const cellW = panelW / cols;
-    const titleAreaH = data.title ? panelH * 0.20 : panelH * 0.10;
-    const bottomPad = panelH * 0.05;
-    const availH = panelH - titleAreaH - bottomPad;
-    const cellH = availH / rows;
+    const titleAreaH = data.title ? panelH * 0.22 : panelH * 0.10;
+    const cellH = Math.min((panelH * 0.72) / rows, (panelH - titleAreaH - panelH * 0.06) / rows);
     const startY = py + titleAreaH;
-    // Clip to panel so numbers never overflow
-    ctx.save();
-    ctx.beginPath();
-    roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.03);
-    ctx.clip();
 
     stats.forEach((s, i) => {
       const rowReveal = playing
@@ -5808,7 +5801,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
 
       ctx.restore();
     });
-    ctx.restore(); // end clip
+
     ctx.restore();
     ctx.restore();
     return;
@@ -5831,12 +5824,6 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
   ctx.stroke();
 
-  // Clip all content to panel bounds — prevents text overflow
-  ctx.save();
-  ctx.beginPath();
-  roundRectPath(ctx, px - 2, py - 2, panelW + 4, panelH + 4, panelW * 0.04);
-  ctx.clip();
-
   // ── INNER CONTENT ─────────────────────────────────────────
   ctx.save();
   ctx.globalAlpha = mAlpha * contentEase;
@@ -5845,17 +5832,16 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   ctx.fillStyle = ig.accent;
   ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
 
-  let cy = py + panelH * 0.20;  // more room above title to avoid accent line overlap
+  let cy = py + panelH * 0.20;
 
   if (data.title) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
-    // cap title size so it never overlaps the accent line above
     const titlePx = Math.min(Math.round(U * 0.042), Math.round(panelH * 0.09));
     const actualTitlePx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
       titlePx, Math.round(U * 0.022));
     ctx.fillText(data.title, px + padX, cy);
-    cy += actualTitlePx * 1.4 + panelH * 0.03;  // dynamic spacing based on actual font size
+    cy += actualTitlePx * 1.4 + panelH * 0.03;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
@@ -6019,7 +6005,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
       // big value right-aligned
       ctx.fillStyle = ig.value;
-      vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
+      vsFitFont(ctx, s.value, ctxW * 0.55, "800", "Prata, serif",
         Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
@@ -6072,7 +6058,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
       ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
       ctx.fillStyle = "#ffffff";
-      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
+      vsFitFont(ctx, s.value, cW * 0.5, "800", "Prata, serif",
         Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
@@ -6413,29 +6399,23 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillText("VS", midX, py + panelH * 0.5);
       // left value + label
       ctx.globalAlpha = mAlpha * contentEase * aE;
-      // auto-size: fit value within half-panel width
-      let vsPx = Math.round(Math.min(U * 0.09, panelW * 0.18));
-      const halfW = panelW * 0.44;
-      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
-      while (vsPx > Math.round(U*0.04) && ctx.measureText(a.value).width > halfW) {
-        vsPx -= 2; ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
-      }
+      const vsPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.025;
       ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
-      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.48);
+      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.45);
       ctx.shadowBlur = 0;
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
-      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.64);
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.65);
       // right value + label
       ctx.globalAlpha = mAlpha * contentEase * bE;
       ctx.fillStyle = "#ffffff";
       ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
-      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.48);
+      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.45);
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
-      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.64);
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.65);
       ctx.textBaseline = "alphabetic";
       ctx.globalAlpha = mAlpha * contentEase;
     }
