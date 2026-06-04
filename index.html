@@ -25,17 +25,23 @@
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
 
     <style>
-      /* ── IMAGE GENERATOR ─────── */
-      @keyframes genSpin{to{transform:rotate(360deg)}}
-      #genSpinner{animation:genSpin 0.85s linear infinite}
-      .gen-style-btn{padding:7px 4px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-weight:600;line-height:1.3;width:100%;}
-      .gen-style-btn.active,.gen-style-btn:hover{border-color:rgba(216,183,106,0.55);color:var(--gold-2);background:rgba(216,183,106,0.1);}
-      .gen-quick-btn{padding:4px 9px;border:1px solid var(--line);border-radius:99px;background:var(--surface-2);color:var(--muted);font-size:10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-      .gen-quick-btn:hover{border-color:rgba(216,183,106,0.4);color:var(--gold);}
-      .gen-thumb{aspect-ratio:1;border-radius:7px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:border-color 0.15s;}
-      .gen-thumb:hover{border-color:var(--gold);}
-      .gen-thumb img{width:100%;height:100%;object-fit:cover;}
-      @media(max-width:760px){#imageGen .studio-controls+div{grid-template-columns:1fr;}}
+
+
+      /* ── TWIN PANELS (Tools + Charts) ── */
+      .twin-panels{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:20px;
+        align-items:start;
+        margin-bottom:20px;
+      }
+      .twin-col{display:flex;flex-direction:column;gap:16px;}
+      .twin-col--left .panel{margin:0;}
+      .twin-col--right .panel{margin:0;position:sticky;top:16px;}
+      @media(max-width:960px){
+        .twin-panels{grid-template-columns:1fr;}
+        .twin-col--right .panel{position:static;}
+      }
 
       /* ── SIDEBAR 2-COL NAV ───── */
       .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
@@ -43,6 +49,11 @@
       .nav-group-grid .nav-ic{width:18px;font-size:12px;}
       .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr;}
 
+      /* ── TOOLS+CHARTS SIDE BY SIDE ── */
+      @media(max-width:900px){
+        #tools+*,#performance{grid-column:1 !important;}
+        .tools-charts-grid{grid-template-columns:1fr !important;}
+      }
       /* ── VIDEO FONT FIX ──────── */
       /* force preview redraw on font change */
     </style>
@@ -79,7 +90,6 @@
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <div class="nav-group-grid">
-              <a href="#imageGen"><span class="nav-ic">◈</span><span class="nav-tx" id="navImageTx">Image AI</span></a>
               <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
               <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompts</span></a>
             </div>
@@ -87,7 +97,7 @@
         </nav>
 
         <div class="sidebar-footer">
-          <a class="button primary sidebar-cta" href="#imageGen" id="sidebarCta">Create with AI</a>
+          <a class="button primary sidebar-cta" href="#tools" data-i18n="startButton">Start</a>
           <div class="sidebar-prefs">
             <div class="seg-toggle" id="themeSeg" role="group" aria-label="Theme">
               <button type="button" class="seg-btn" data-theme="light">
@@ -127,8 +137,8 @@
               <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
               <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
               <div class="hero-actions">
-                <a class="button primary" href="#imageGen">🎨 Create with AI</a>
-                <a class="button ghost" href="#tools" data-i18n="heroPrimary">Search tools</a>
+                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
+                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
               </div>
             </div>
             <div class="luxury-hero-visual">
@@ -154,7 +164,13 @@
         </section>
 
         <!-- TOOLS -->
-        <section id="tools" class="panel">
+        
+        <!-- TOOLS + CHARTS SIDE BY SIDE -->
+        <div class="twin-panels">
+
+          <!-- LEFT: Tool Finder + Compare -->
+          <div class="twin-col twin-col--left">
+<section id="tools" class="panel">
           <div class="section-head">
             <div>
               <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
@@ -198,9 +214,18 @@
           <p id="toolCount" class="tool-count"></p>
           <div id="toolGrid" class="tool-grid"></div>
         </section>
+<section id="compare" class="compare panel">
+          <div class="section-head">
+            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
+            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
+          </div>
+          <div id="compareTable" class="compare-table"></div>
+        </section>
+          </div>
 
-        <!-- LIVE PERFORMANCE CHART -->
-        <section id="performance" class="panel performance-panel">
+          <!-- RIGHT: Live Charts -->
+          <div class="twin-col twin-col--right">
+<section id="performance" class="panel performance-panel">
           <div class="section-head">
             <div>
               <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
@@ -225,110 +250,12 @@
           <div id="performanceChart" class="performance-chart"></div>
           <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
         </section>
-
-        <!-- COMPARE -->
-        <section id="compare" class="compare panel">
-          <div class="section-head">
-            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
-            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
-          </div>
-          <div id="compareTable" class="compare-table"></div>
-        </section>
-
-
-        <!-- ── IMAGE GENERATOR ──────────────────────────── -->
-        <section id="imageGen" class="panel">
-          <div class="section-head" style="margin-bottom:24px;">
-            <div>
-              <p class="eyebrow" style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:14px;">◈</span> AI Image Generator</p>
-              <h2 id="imageGenTitle" style="margin-bottom:8px;">Text to image in seconds</h2>
-              <p id="imageGenDesc" style="max-width:560px;">Describe what you want — get a stunning AI image free. 12 styles, instant download, no account.</p>
-            </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;">
+        </div>
+        <!-- /TOOLS + CHARTS -->
 
-            <!-- LEFT: Controls -->
-            <div style="display:grid;gap:14px;">
-              <label>
-                <span id="imgPromptLbl" style="color:var(--muted);font-size:13px;font-weight:800;display:block;margin-bottom:8px;">Describe your image</span>
-                <textarea id="imgPrompt" rows="3" placeholder="A futuristic city at sunset, neon lights, cinematic 8K…" style="resize:vertical;"></textarea>
-              </label>
 
-              <div>
-                <span id="imgStyleLbl" style="color:var(--muted);font-size:13px;font-weight:800;display:block;margin-bottom:8px;">Style</span>
-                <div id="genStyleGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <label>
-                  <span id="imgAspectLbl" style="color:var(--muted);font-size:13px;font-weight:800;">Ratio</span>
-                  <select id="genAspect">
-                    <option value="1024x1024">Square 1:1</option>
-                    <option value="1344x768">Wide 16:9</option>
-                    <option value="768x1344">Tall 9:16</option>
-                    <option value="1216x832">3:2</option>
-                  </select>
-                </label>
-                <label>
-                  <span id="imgNegLbl" style="color:var(--muted);font-size:13px;font-weight:800;">Negative</span>
-                  <input id="genNeg" type="text" placeholder="blurry, watermark…" />
-                </label>
-              </div>
-
-              <div style="display:flex;align-items:center;gap:8px;">
-                <input type="checkbox" id="genSafe" checked style="width:16px;height:16px;min-height:16px;padding:0;accent-color:var(--gold);flex-shrink:0;"/>
-                <label for="genSafe" id="genSafeLbl" style="display:inline;color:var(--muted);font-size:12px;cursor:pointer;">Safe mode</label>
-              </div>
-
-              <button class="button primary ai-btn" id="genImageBtn" type="button" style="min-height:44px;">
-                <span class="ai-btn-icon">◈</span>
-                <span id="genImageBtnTxt">Generate image</span>
-              </button>
-              <p id="genStatusTxt" style="font-size:12px;color:var(--muted);min-height:16px;margin:0;"></p>
-
-              <div>
-                <p id="quickPromptsLbl" style="font-size:12px;color:var(--muted);margin:0 0 6px;">Quick prompts</p>
-                <div id="genQuickWrap" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
-              </div>
-
-              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                <p style="margin:0;font-size:11px;color:var(--muted);">Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener" style="color:var(--gold);">Pollinations.ai</a> — free open infrastructure. No login, no watermark.</p>
-              </div>
-            </div>
-
-            <!-- RIGHT: Output -->
-            <div style="display:grid;gap:12px;">
-              <div id="genImageWrap" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;position:relative;">
-                <div id="genPlaceholder" style="text-align:center;padding:24px;color:var(--muted);">
-                  <div style="font-size:36px;margin-bottom:10px;opacity:0.25;">◈</div>
-                  <p id="genPlaceholderTxt" style="margin:0;font-size:13px;">Your image appears here</p>
-                  <p style="margin:4px 0 0;font-size:11px;color:var(--muted);">Free · No watermark · Instant download</p>
-                </div>
-                <img id="genImage" src="" alt="Generated AI image" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;" />
-                <div id="genOverlay" style="position:absolute;inset:0;background:rgba(7,6,5,0.75);display:none;place-items:center;border-radius:12px;z-index:2;">
-                  <div style="text-align:center;">
-                    <div id="genSpinner" style="width:40px;height:40px;border:3px solid rgba(216,183,106,0.2);border-top-color:var(--gold);border-radius:50%;margin:0 auto;"></div>
-                    <p id="genProgressTxt" style="color:var(--gold-2);font-size:12px;margin-top:12px;">Generating…</p>
-                  </div>
-                </div>
-              </div>
-
-              <div id="genActions" style="display:none;gap:8px;flex-wrap:wrap;">
-                <a class="button primary" id="genDownloadBtn" download="airadar-image.jpg" style="flex:1;min-width:100px;justify-content:center;">↓ Download</a>
-                <button class="button ghost" id="genVariationBtn" type="button">↺ Variation</button>
-                <button class="button ghost" id="genShareBtn" type="button">⎘ Copy link</button>
-                <button class="button ghost" id="genResetBtn" type="button">✕ New</button>
-              </div>
-
-              <div id="genHistorySection" style="display:none;">
-                <p id="genHistoryLbl" style="font-size:11px;color:var(--muted);margin:0 0 6px;">Recent</p>
-                <div id="genHistory" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
-              </div>
-            </div>
-
-          </div>
-        </section>
         <!-- /IMAGE GENERATOR -->
 
 
@@ -1184,126 +1111,7 @@
 
     <script src="app.js?v=v220"></script>
 
-    <script>
-    /* IMAGE GENERATOR — Pollinations.ai */
-    (function(){
-      var STYLES=[
-        {id:"none",en:"Default",fa:"پیش‌فرض",sx:""},
-        {id:"photo",en:"Photorealistic",fa:"واقع‌گرایانه",sx:", photorealistic DSLR photo, sharp focus, 8K"},
-        {id:"cinematic",en:"Cinematic",fa:"سینمایی",sx:", cinematic movie still, anamorphic lens, film grain"},
-        {id:"anime",en:"Anime",fa:"انیمه",sx:", anime style, Studio Ghibli, vibrant colors, detailed"},
-        {id:"oil",en:"Oil painting",fa:"نقاشی رنگ‌روغن",sx:", oil painting on canvas, impasto, textured brushstrokes"},
-        {id:"watercolor",en:"Watercolor",fa:"آبرنگ",sx:", watercolor painting, soft edges, flowing colors"},
-        {id:"3d",en:"3D render",fa:"سه‌بعدی",sx:", 3D octane render, volumetric lighting, ultra detailed CGI"},
-        {id:"sketch",en:"Pencil sketch",fa:"اسکچ",sx:", pencil sketch, black and white, detailed line art"},
-        {id:"pixel",en:"Pixel art",fa:"پیکسل‌آرت",sx:", pixel art, 16-bit retro game style"},
-        {id:"neon",en:"Neon/Cyberpunk",fa:"نئون/سایبرپانک",sx:", neon lights cyberpunk, synthwave, glowing neon"},
-        {id:"minimalist",en:"Minimalist",fa:"مینیمالیست",sx:", minimalist clean flat design, simple shapes"},
-        {id:"portrait",en:"Portrait",fa:"پرتره",sx:", professional portrait, studio lighting, shallow DOF"},
-      ];
-      var QUICK=["Majestic dragon over snow mountains at golden hour","Cozy Japanese coffee shop, autumn rain, neon lights","Astronaut floating in deep space, colorful nebula","Ancient library with floating books, magical light","Persian garden in spring, blooming roses, fountain","Futuristic Dubai skyline at night, hyperrealistic 8K","Tiny cottage in enchanted forest, glowing mushrooms","Abstract geometric shapes forming a human face"];
-      var cur="none",hist=[],busy=false;
-      var fa=function(){return document.documentElement.lang==="fa";};
-      var el=function(id){return document.getElementById(id);};
 
-      function buildStyles(){
-        var g=el("genStyleGrid");if(!g)return;
-        var h="";for(var i=0;i<STYLES.length;i++){var s=STYLES[i];h+='<button class="gen-style-btn'+(s.id===cur?" active":"")+'" data-s="'+s.id+'" type="button">'+(fa()?s.fa:s.en)+'</button>';}
-        g.innerHTML=h;
-        g.querySelectorAll(".gen-style-btn").forEach(function(b){b.onclick=function(){cur=b.dataset.s;g.querySelectorAll(".gen-style-btn").forEach(function(x){x.classList.toggle("active",x===b);});};});
-      }
-      function buildQuick(){
-        var w=el("genQuickWrap");if(!w)return;
-        var h="";QUICK.forEach(function(p){h+='<button class="gen-quick-btn" type="button" data-p="'+p+'">'+(p.length>38?p.slice(0,38)+"…":p)+'</button>';});
-        w.innerHTML=h;
-        w.querySelectorAll(".gen-quick-btn").forEach(function(b){b.onclick=function(){var t=el("imgPrompt");if(t){t.value=b.dataset.p;t.focus();}};});
-      }
-      function applyLang(){
-        var f=fa();
-        var tx=function(id,en,fa2){var e=el(id);if(e)e.textContent=f?fa2:en;};
-        tx("imageGenTitle","Text to image in seconds","تولید تصویر AI رایگان");
-        tx("imageGenDesc","Describe what you want — free AI image, 12 styles, instant download.","یک توصیف بنویس — تصویر AI رایگان، بدون حساب.");
-        tx("imgPromptLbl","Describe your image","تصویر خود را توصیف کنید");
-        tx("imgStyleLbl","Style","سبک");
-        tx("imgAspectLbl","Aspect ratio","نسبت تصویر");
-        tx("imgNegLbl","Negative prompt (optional)","پرامپت منفی (اختیاری)");
-        tx("genSafeLbl","Safe mode","حالت ایمن");
-        tx("genImageBtnTxt","Generate image","تولید تصویر");
-        tx("quickPromptsLbl","Quick prompts","پرامپت‌های سریع");
-        tx("genPlaceholderTxt","Your image appears here","تصویر اینجا ظاهر می‌شود");
-        tx("navImageTx","Image AI","تصویر AI");
-        tx("heroPrimaryBtn","Create with AI","ساخت با AI");
-        buildStyles();buildQuick();
-      }
-      function gen(seed){
-        if(busy)return;
-        var prompt=el("imgPrompt")?el("imgPrompt").value.trim():"";
-        var f=fa();
-        if(!prompt){var t=el("imgPrompt");if(t){t.style.borderColor="rgba(255,80,50,0.8)";setTimeout(function(){t.style.borderColor="";},1500);}return;}
-        busy=true;
-        var btn=el("genImageBtn"),btxt=el("genImageBtnTxt"),ov=el("genOverlay"),st=el("genStatusTxt"),img=el("genImage"),act=el("genActions"),ph=el("genPlaceholder");
-        if(btn)btn.disabled=true;
-        if(btxt)btxt.textContent=f?"در حال تولید…":"Generating…";
-        if(ov)ov.classList.add("visible");
-        if(st)st.textContent=f?"ارسال به Pollinations.ai…":"Sending to Pollinations.ai…";
-        var s=null;for(var i=0;i<STYLES.length;i++){if(STYLES[i].id===cur){s=STYLES[i];break;}}
-        var sx=s?s.sx:"";
-        var neg=el("genNeg")?el("genNeg").value.trim():"";
-        var asp=(el("genAspect")?el("genAspect").value:"1024x1024").split("x");
-        var W=parseInt(asp[0])||1024,H=parseInt(asp[1])||1024;
-        var safe=el("genSafe")?el("genSafe").checked:true;
-        var sd=seed||Math.floor(Math.random()*999999);
-        var fp=prompt+sx;if(neg)fp+=", avoid: "+neg;
-        var url="https://image.pollinations.ai/prompt/"+encodeURIComponent(fp)+"?width="+W+"&height="+H+"&seed="+sd+"&nologo=true&enhance=true"+(safe?"&safe=true":"");
-        var msgs=f?["پردازش پرامپت…","در حال رندر…","تقریباً آماده…"]:["Processing…","Rendering…","Almost there…"];
-        var mi=0,pg=el("genProgressTxt");
-        var tick=setInterval(function(){mi=(mi+1)%msgs.length;if(pg)pg.textContent=msgs[mi];},2500);
-        var ti=new Image();
-        ti.onload=function(){
-          clearInterval(tick);
-          if(img){img.src=url;img.style.display="";}
-          if(ph)ph.style.display="none";
-          if(ov)ov.classList.remove("visible");
-          if(act)act.style.display="flex";
-          if(st)st.textContent=f?"✓ تصویر آماده شد!":"✓ Image ready!";
-          var dl=el("genDownloadBtn");if(dl){dl.href=url;dl.download="airadar-"+sd+".jpg";}
-          hist.unshift({url:url,prompt:prompt});if(hist.length>8)hist.pop();
-          renderHist();
-          busy=false;if(btn)btn.disabled=false;if(btxt)btxt.textContent=f?"تولید تصویر":"Generate image";
-        };
-        ti.onerror=function(){
-          clearInterval(tick);if(ov)ov.classList.remove("visible");
-          if(st)st.textContent=f?"❌ خطا. دوباره امتحان کن.":"❌ Failed. Try again.";
-          busy=false;if(btn)btn.disabled=false;if(btxt)btxt.textContent=f?"تولید تصویر":"Generate image";
-        };
-        ti.src=url;
-      }
-      function renderHist(){
-        var sec=el("genHistorySection"),g=el("genHistory");if(!sec||!g)return;
-        if(!hist.length){sec.style.display="none";return;}
-        sec.style.display="";
-        var h="";
-        hist.forEach(function(item){
-          h+='<div class="gen-thumb"><img src="'+item.url+'" alt="img" loading="lazy" style="cursor:pointer" onclick="(function(){var i=document.getElementById('genImage'),p=document.getElementById('genPlaceholder'),a=document.getElementById('genActions');if(i){i.src=''+item.url+'';i.style.display='';}if(p)p.style.display='none';if(a)a.style.display='flex';})()" /></div>';
-        });
-        g.innerHTML=h;
-      }
-      function resetGen(){
-        var img=el("genImage"),ph=el("genPlaceholder"),act=el("genActions"),ta=el("imgPrompt"),st=el("genStatusTxt");
-        if(img){img.src="";img.style.display="none";}if(ph)ph.style.display="";if(act)act.style.display="none";if(ta){ta.value="";ta.focus();}if(st)st.textContent="";
-      }
-      function init(){
-        buildStyles();buildQuick();applyLang();
-        var g=el("genImageBtn");if(g)g.onclick=function(){gen();};
-        var ta=el("imgPrompt");if(ta)ta.onkeydown=function(e){if((e.metaKey||e.ctrlKey)&&e.key==="Enter")gen();};
-        var v=el("genVariationBtn");if(v)v.onclick=function(){var p=el("imgPrompt");if(p&&p.value.trim())gen(Math.floor(Math.random()*999999));};
-        var sh=el("genShareBtn");if(sh)sh.onclick=function(){var i=el("genImage");if(!i||!i.src||i.style.display==="none")return;navigator.clipboard.writeText(i.src).then(function(){sh.textContent="✓ Copied!";setTimeout(function(){sh.textContent="🔗 Copy link";},2000);});};
-        var re=el("genResetBtn");if(re)re.onclick=resetGen;
-        var orig=window.setLanguage;window.setLanguage=function(l){if(orig)orig(l);applyLang();};
-      }
-      document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init):init();
-    })();
-    </script>
 
     <script>
     /* ── VIDEO FONT FIX: redraw preview on font change ── */
@@ -1311,13 +1119,18 @@
       var fontSel = document.getElementById("vsHeadlineFont");
       if (!fontSel) return;
       fontSel.addEventListener("change", function() {
+        // Small delay to let the DOM update, then redraw
         setTimeout(function() {
-          /* app.js exposes drawStudioFrame as a global */
-          if (typeof drawStudioFrame === "function") { drawStudioFrame(0); return; }
-          /* fallback: click the Preview button */
-          var btn = document.getElementById("vsPreviewBtn");
-          if (btn) btn.click();
-        }, 80);
+          // vsGetFont() in app.js reads #vsHeadlineFont live,
+          // so just triggering a redraw is enough
+          if (typeof drawStudioFrame === "function") {
+            drawStudioFrame(0);
+          } else {
+            // Fallback: simulate preview button click
+            var btn = document.getElementById("vsPreviewBtn");
+            if (btn) btn.click();
+          }
+        }, 30);
       });
     });
     </script>
