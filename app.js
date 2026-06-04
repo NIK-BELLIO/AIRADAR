@@ -8,7 +8,7 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
-    studioEyebrow: "Advanced video studio",
+    studioEyebrow: "Video studio",
     studioTitle: "Create a complete, luxurious video",
     studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
     vTabTemplate: "Template",
@@ -215,7 +215,7 @@ const i18n = {
     copyPrompt: "Copy prompt",
     mediaPlaceholder: "Upload media to preview it here",
     copied: "Copied.",
-    studioEyebrow: "Free video template studio",
+    studioEyebrow: "Video studio",
     studioTitle: "Create an animated video template from static uploads",
     studioText:
       "Upload images, set duration per slide, edit animated text elements, preview the timing, and export JSON or a real .webm video. It is free because it runs locally in the browser.",
@@ -297,7 +297,7 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
-    studioEyebrow: "استودیوی پیشرفته ویدیو",
+    studioEyebrow: "استودیوی ویدیو",
     studioTitle: "یک ویدیوی کامل و لوکس بساز",
     studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
     vTabTemplate: "قالب",
@@ -504,7 +504,7 @@ const i18n = {
     copyPrompt: "کپی پرامپت",
     mediaPlaceholder: "مدیا را آپلود کن تا اینجا نمایش داده شود",
     copied: "کپی شد.",
-    studioEyebrow: "استودیو رایگان تمپلیت ویدیو",
+    studioEyebrow: "استودیوی ویدیو",
     studioTitle: "از فایل‌های استاتیک، تمپلیت ویدیویی متحرک بساز",
     studioText:
       "تصویرها را آپلود کن، برای هر اسلاید زمان بگذار، متن‌های متحرک را ویرایش کن، پیش‌نمایش بگیر و خروجی JSON یا ویدیوی واقعی .webm بگیر. چون داخل مرورگر اجرا می‌شود رایگان است.",
@@ -4748,6 +4748,9 @@ function setupTextDrag() {
     canvas.style.cursor = "grabbing";
     if (e.cancelable) e.preventDefault();
   };
+  const SNAP_THRESHOLD = 0.018; // 1.8% of frame — snap zone
+  let snapGuideX = null, snapGuideY = null;
+
   const move = (e) => {
     const pt = toCanvas(e);
     if (!dragging) {
@@ -4757,9 +4760,17 @@ function setupTextDrag() {
     const [kx, ky] = offsetsFor(dragging);
     let dx = baseDX + (pt.x - startX) / canvas.width;
     let dy = baseDY + (pt.y - startY) / canvas.height;
+
+    // ── CENTER SNAP GUIDE ──────────────────────────────────────
+    snapGuideX = null; snapGuideY = null;
+    if (Math.abs(dx) < SNAP_THRESHOLD) { dx = 0; snapGuideX = 0.5; }
+    if (Math.abs(dy) < SNAP_THRESHOLD) { dy = 0; snapGuideY = 0.5; }
+    vstudio.snapGuideX = snapGuideX;
+    vstudio.snapGuideY = snapGuideY;
+    // ──────────────────────────────────────────────────────────
+
     vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
     vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
-    // redraw at the CURRENT position so the frame never jumps
     if (!vstudio.looping) {
       const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
         || ($("#vsInfoOn") && $("#vsInfoOn").checked)
@@ -4769,6 +4780,7 @@ function setupTextDrag() {
     if (e.cancelable) e.preventDefault();
   };
   const up = () => {
+    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
     if (dragging && vstudio.slides.length) vsSaveActiveSlide();
     dragging = null;
     canvas.style.cursor = "default";
@@ -6951,6 +6963,7 @@ function drawStudioFrame(elapsed) {
   // grade the footage/background only — before vignette, text, overlays
   vsApplyBgFilter(ctx, canvas, W, H);
 
+  vsDrawSnapGuides(ctx, W, H);
   // vignette
   if (tpl.vignette > 0) {
     const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
@@ -7231,6 +7244,25 @@ function drawStudioFrame(elapsed) {
 
 // Applies the slide-to-slide transition veil and the global colour grade
 // to the finished frame. Safe to call once per frame at any exit point.
+function vsDrawSnapGuides(ctx, W, H) {
+  const gx = vstudio.snapGuideX, gy = vstudio.snapGuideY;
+  if (gx == null && gy == null) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(216,183,106,0.85)";
+  ctx.lineWidth = Math.max(1, W * 0.002);
+  ctx.setLineDash([W * 0.008, W * 0.006]);
+  if (gx != null) { ctx.beginPath(); ctx.moveTo(W*gx,0); ctx.lineTo(W*gx,H); ctx.stroke(); }
+  if (gy != null) { ctx.beginPath(); ctx.moveTo(0,H*gy); ctx.lineTo(W,H*gy); ctx.stroke(); }
+  ctx.setLineDash([]);
+  if (gx != null && gy != null) {
+    const d = W*0.012;
+    ctx.fillStyle = "rgba(216,183,106,0.9)";
+    ctx.beginPath(); ctx.moveTo(W*gx,H*gy-d); ctx.lineTo(W*gx+d,H*gy);
+    ctx.lineTo(W*gx,H*gy+d); ctx.lineTo(W*gx-d,H*gy); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
   const transKind = vsVal("#vsTransition", "fade");
   if (vstudio.slides.length && transKind !== "none") {
