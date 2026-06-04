@@ -5202,7 +5202,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.textBaseline = "middle";
     if (kicker) {
       const kPx3 = Math.round(H * 0.025);
-      ctx.font = `800 ${kPx3}px Inter, sans-serif`;
+      ctx.font = `800 ${kPx3}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.textAlign = "left";
       const kT3 = kicker.toUpperCase();
       const kW3 = ctx.measureText(kT3).width + W * 0.04;
@@ -5332,7 +5332,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fillRect(0,0,W,H);
     let px2 = Math.round(U*0.1), minPx2 = Math.round(U*0.05);
     const cntFit = (sz) => {
-      ctx.font = `900 ${sz}px Inter, sans-serif`;
+      ctx.font = `900 ${sz}px ${vsGetFont("Inter, sans-serif")}`;
       return String(mainTxt).toUpperCase().split(/\s+/).every(w2=>ctx.measureText(w2).width<=W*0.9);
     };
     while (px2>minPx2 && !cntFit(px2)) px2-=2;
@@ -5354,34 +5354,52 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     }
 
   } else if (style === "quote") {
-    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.22,W,H*0.56);
-    const qPx = Math.round(U*0.058);
-    const lines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
-    const lH = qPx*1.32, qTop=H/2-(lines.length*lH)/2;
+    // scrim area
+    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    // clip text to scrim area
+    ctx.save();
+    ctx.beginPath(); ctx.rect(W*0.05, H*0.18, W*0.9, H*0.64); ctx.clip();
+    // auto-size font to fit within available height
+    const maxQH = H*0.54;
+    let qPx = Math.round(U*0.052);
+    let qLines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
+    while (qPx > Math.round(U*0.028) && qLines.length * qPx * 1.32 > maxQH) {
+      qPx -= 2;
+      qLines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
+    }
+    const lH = qPx*1.32;
+    const srcH = source ? U*0.055 : 0;
+    const blockH = qLines.length*lH + srcH;
+    const qTop = Math.max(H*0.22, H/2 - blockH/2);
     ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.9;
-    ctx.font=`900 ${Math.round(U*0.15)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
-    ctx.fillText("\u201C",W/2,qTop-U*0.02);
+    ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
+    ctx.fillText("\u201C",W/2,qTop-U*0.01);
     ctx.globalAlpha=e; ctx.shadowColor="rgba(0,0,0,0.6)"; ctx.shadowBlur=U*0.03;
-    lines.forEach((ln,li) => {
-      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
+    qLines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(qLines.length+1)-li)),le3=1-Math.pow(1-le,3);
       ctx.globalAlpha=e*le3; ctx.fillStyle="#fff";
       ctx.font=`italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`;
       ctx.fillText(ln,W/2,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
     });
     ctx.shadowBlur=0; ctx.globalAlpha=e;
-    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.45;
-    ctx.font=`900 ${Math.round(U*0.1)}px ${vsGetFont("Prata, serif")}`;
-    ctx.fillText("\u201D",W/2,qTop+lines.length*lH);
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.4;
+    ctx.font=`900 ${Math.round(U*0.08)}px ${vsGetFont("Prata, serif")}`;
+    ctx.fillText("\u201D",W/2,qTop+qLines.length*lH);
     ctx.globalAlpha=e;
-    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.025)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+lines.length*lH+U*0.05); }
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+qLines.length*lH+U*0.055); }
+    ctx.restore(); // end clip
 
   } else if (style === "pullquote") {
     const qW=W*0.58, qX=W*0.07;
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(qX-W*0.02,H*0.18,W*0.66,H*0.64);
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.74,H*0.24,U*0.008,H*0.52*e);
-    const qPx2=Math.round(U*0.062);
-    const lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4);
-    const lH=qPx2*1.32,qTop=H/2-(lines.length*lH)/2;
+    // auto-size to fit
+    let qPx2=Math.round(U*0.055);
+    let lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4);
+    while(qPx2>Math.round(U*0.026) && lines.length*qPx2*1.32>H*0.52){ qPx2-=2; lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4); }
+    // clip
+    ctx.save(); ctx.beginPath(); ctx.rect(qX-W*0.02,H*0.18,W*0.68,H*0.64); ctx.clip();
+    const lH=qPx2*1.32,qTop=Math.max(H*0.24,H/2-(lines.length*lH)/2);
     ctx.fillStyle=ac.bar; ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="left";
     ctx.fillText("\u201C",qX,qTop-U*0.01);
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
@@ -5393,6 +5411,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     });
     ctx.shadowBlur=0; ctx.globalAlpha=e;
     if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
+    ctx.restore(); // end pullquote clip
 
   } else if (style === "caption") {
     const capPx=Math.round(U*0.042);
@@ -5404,7 +5423,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle=sc; ctx.fillRect(0,by-U*0.06,W,H-by+U*0.06);
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.42,by-U*0.02,W*0.16*e,U*0.005);
     ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    ctx.font=`700 ${capPx}px Inter, sans-serif`;
+    ctx.font=`700 ${capPx}px ${vsGetFont('Inter, sans-serif')}`;
     let yy=by+lH*0.75;
     lines.forEach(ln=>{ctx.fillText(ln,W/2,yy);yy+=lH;});
     ctx.shadowBlur=0;
@@ -5431,7 +5450,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     const colW=splitX-padL-W*0.04;
     ctx.fillStyle=vsHexA(ac.bar,0.9); roundRectPath(ctx,padL,H*0.3,colW,H*0.4,W*0.015); ctx.fill();
-    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
+    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px ${vsGetFont("Inter, sans-serif")}`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
     ctx.fillStyle="#fff"; ctx.textAlign="left";
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
     const lines=wrap(headline,`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`,W-splitX-padL,4);
@@ -5466,9 +5485,12 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
 
   } else if (style === "neon-title") {
     ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    const nPx=Math.round(Math.min(U*0.088,W*0.2));
-    const lines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4);
-    const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
+    ctx.save(); ctx.beginPath(); ctx.rect(0,H*0.18,W,H*0.64); ctx.clip();
+    let nPx=Math.round(Math.min(U*0.085,W*0.18));
+    let nLines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4);
+    while(nPx>Math.round(U*0.03) && nLines.length*nPx*1.18>H*0.56){ nPx-=2; nLines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4); }
+    const lines=nLines;
+    const lH=nPx*1.18, nTop=Math.max(H*0.22,H/2-(lines.length-1)*lH/2);
     lines.forEach((ln,li)=>{
       const nr=Math.max(0,Math.min(1,e*(lines.length+1)-li)),ne=1-Math.pow(1-nr,3);
       ctx.save(); ctx.globalAlpha=ne;
@@ -5479,8 +5501,11 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
     ctx.globalAlpha=e;
     if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.9);ctx.font=`700 ${Math.round(U*0.025)}px Inter, sans-serif`;ctx.textAlign="center";ctx.fillText(kicker.toUpperCase(),W/2,nTop+lines.length*lH+U*0.05);}
 
+    ctx.restore(); // end neon-title clip
+
   } else if (style === "kinetic") {
     ctx.fillStyle="rgba(0,0,0,0.58)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    ctx.save(); ctx.beginPath(); ctx.rect(0,H*0.18,W,H*0.64); ctx.clip();
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.08,H*0.54,W*0.84*e,U*0.005);
     const words=mainTxt.split(/\s+/).filter(Boolean);
     const wPx=Math.round(Math.min(U*0.075,W/Math.max(words.length,1)*0.82));
@@ -5495,6 +5520,8 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       wx+=ctx.measureText(w2).width+wPx*0.2;
     });
     if(source){ctx.globalAlpha=e;ctx.fillStyle=vsHexA(ac.bar,0.85);ctx.textAlign="center";ctx.font=`600 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.63);}
+
+    ctx.restore(); // end kinetic clip
 
   } else if (style === "reveal-words") {
     ctx.fillStyle="rgba(0,0,0,0.62)"; ctx.fillRect(0,H*0.22,W,H*0.56);
@@ -5719,8 +5746,16 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     const cols = nStats <= 2 ? nStats : nStats <= 4 ? 2 : 3;
     const rows = Math.ceil(nStats / cols);
     const cellW = panelW / cols;
-    const cellH = (panelH * 0.72) / rows;
-    const startY = py + panelH * 0.2;
+    const titleAreaH = data.title ? panelH * 0.20 : panelH * 0.10;
+    const bottomPad = panelH * 0.05;
+    const availH = panelH - titleAreaH - bottomPad;
+    const cellH = availH / rows;
+    const startY = py + titleAreaH;
+    // Clip to panel so numbers never overflow
+    ctx.save();
+    ctx.beginPath();
+    roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.03);
+    ctx.clip();
 
     stats.forEach((s, i) => {
       const rowReveal = playing
@@ -5773,7 +5808,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
 
       ctx.restore();
     });
-
+    ctx.restore(); // end clip
     ctx.restore();
     ctx.restore();
     return;
@@ -5795,6 +5830,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   ctx.lineWidth = Math.max(1, U * 0.001);
   roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
   ctx.stroke();
+
+  // Clip all content to panel bounds — prevents text overflow
+  ctx.save();
+  ctx.beginPath();
+  roundRectPath(ctx, px - 2, py - 2, panelW + 4, panelH + 4, panelW * 0.04);
+  ctx.clip();
 
   // ── INNER CONTENT ─────────────────────────────────────────
   ctx.save();
@@ -6183,14 +6224,14 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillStyle = ig.accent;
       roundRectPath(ctx, midX - U * 0.045, midY - U * 0.04, U * 0.09, U * 0.08, U * 0.04); ctx.fill();
-      ctx.fillStyle = "#000"; ctx.font = `800 ${Math.round(U * 0.028)}px Inter, sans-serif`;
+      ctx.fillStyle = "#000"; ctx.font = `800 ${Math.round(U * 0.028)}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText("VS", midX, midY);
       // left value
       ctx.fillStyle = ig.value;
       ctx.shadowColor = vsHexA(ig.accent, 0.35); ctx.shadowBlur = U * 0.03;
       const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.6)) : 1;
       const aE = 1 - Math.pow(1 - aRe, 3);
-      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px Inter, sans-serif`;
+      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(a.value, midX - panelW * 0.26, midY);
       ctx.shadowBlur = 0;
       ctx.fillStyle = ig.label;
@@ -6199,7 +6240,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       // right value
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       ctx.shadowColor = "rgba(255,255,255,0.2)"; ctx.shadowBlur = U * 0.02;
-      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px Inter, sans-serif`;
+      ctx.font = `900 ${Math.round(Math.min(U * 0.1, panelW * 0.22))}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(b.value, midX + panelW * 0.26, midY);
       ctx.shadowBlur = 0;
       ctx.fillStyle = ig.label;
@@ -6283,7 +6324,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         ctx.beginPath(); ctx.arc(bcx, bCenterY, rad2 * pe, 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const vPx2 = Math.round(Math.min(rad2 * 0.45, U * 0.032));
-        ctx.font = `800 ${vPx2}px Inter, sans-serif`;
+        ctx.font = `800 ${vPx2}px ${vsGetFont("Inter, sans-serif")}`;
         ctx.fillText(s.value, bcx, bCenterY - rad2 * 0.12 * pe);
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.font = `500 ${Math.round(vPx2 * 0.6)}px Inter, sans-serif`;
@@ -6311,7 +6352,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       const fE = 1 - Math.pow(1 - fRe, 3);
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.03 * fE;
-      ctx.font = `900 ${fPx2}px Inter, sans-serif`;
+      ctx.font = `900 ${fPx2}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText(featStat.value, featX + featW * 0.5 - U * 0.008, featY + featH * 0.52);
       ctx.shadowBlur = 0;
       ctx.fillStyle = "rgba(255,255,255,0.6)";
@@ -6368,27 +6409,33 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.stroke();
       // VS label
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = ig.accent; ctx.font = `900 ${Math.round(U * 0.028)}px Inter, sans-serif`;
+      ctx.fillStyle = ig.accent; ctx.font = `900 ${Math.round(U * 0.028)}px ${vsGetFont("Inter, sans-serif")}`;
       ctx.fillText("VS", midX, py + panelH * 0.5);
       // left value + label
       ctx.globalAlpha = mAlpha * contentEase * aE;
-      const vsPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      // auto-size: fit value within half-panel width
+      let vsPx = Math.round(Math.min(U * 0.09, panelW * 0.18));
+      const halfW = panelW * 0.44;
+      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      while (vsPx > Math.round(U*0.04) && ctx.measureText(a.value).width > halfW) {
+        vsPx -= 2; ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      }
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.025;
-      ctx.font = `900 ${vsPx}px Inter, sans-serif`;
-      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.45);
+      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.48);
       ctx.shadowBlur = 0;
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.65);
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.64);
       // right value + label
       ctx.globalAlpha = mAlpha * contentEase * bE;
       ctx.fillStyle = "#ffffff";
-      ctx.font = `900 ${vsPx}px Inter, sans-serif`;
-      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.45);
+      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.48);
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
-      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.65);
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.64);
       ctx.textBaseline = "alphabetic";
       ctx.globalAlpha = mAlpha * contentEase;
     }
