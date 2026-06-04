@@ -4,98 +4,41 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
-    
-    <meta property="og:title" content="AI Radar — Find, Compare &amp; Create with Real AI Tools" />
-    <meta property="og:description" content="45+ curated AI tools, live GitHub charts, free AI image generator, captions and video studio." />
+    <meta property="og:title" content="AI Radar — Find, Compare &amp; Create" />
     <meta property="og:image" content="https://airadar.me/og.png" />
     <meta property="og:url" content="https://airadar.me/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://airadar.me/" />
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
-    <meta name="description" content="Discover 45+ real AI tools, live GitHub charts, free AI image generator, Claude-powered captions and video studio. Free, no account." />
+    <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v230" />
+    <link rel="stylesheet" href="styles.css?v=v220" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
          (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
 
-    <style>
-
-
-      /* ── TWIN PANELS (Tools + Charts) ── */
-      .twin-panels{
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        gap:20px;
-        align-items:start;
-        margin-bottom:20px;
-      }
-      .twin-col{display:flex;flex-direction:column;gap:16px;}
-      .twin-col--left .panel{margin:0;}
-      .twin-col--right{
-        position:sticky;
-        top:16px;
-        max-height:calc(100vh - 32px);
-        overflow-y:auto;
-        overflow-x:hidden;
-        /* smooth fade at bottom so content doesn't hard-cut */
-        -webkit-mask-image:linear-gradient(to bottom,black 0%,black 85%,transparent 100%);
-        mask-image:linear-gradient(to bottom,black 0%,black 85%,transparent 100%);
-      }
-      .twin-col--right .panel{margin:0;}
-      .twin-col--right::-webkit-scrollbar{width:4px;}
-      .twin-col--right::-webkit-scrollbar-track{background:transparent;}
-      .twin-col--right::-webkit-scrollbar-thumb{background:rgba(216,183,106,0.3);border-radius:2px;}
-      @media(max-width:960px){
-        .twin-panels{grid-template-columns:1fr;}
-        .twin-col--right{position:static;max-height:none;overflow:visible;}
-      }
-
-      /* ── SIDEBAR 2-COL NAV ───── */
-      .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
-      .nav-group-grid a{padding:9px 8px;font-size:12px;}
-      .nav-group-grid .nav-ic{width:18px;font-size:12px;}
-      .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr;}
-
-      /* ── TOOLS+CHARTS SIDE BY SIDE ── */
-      @media(max-width:900px){
-        #tools+*,#performance{grid-column:1 !important;}
-        .tools-charts-grid{grid-template-columns:1fr !important;}
-      }
-      /* ── RANGE SLIDER (gold, on-brand) ── */
-      input[type="range"]{
-        -webkit-appearance:none;appearance:none;
-        width:100%;height:4px;
-        border-radius:2px;
-        background:var(--line);
-        outline:none;border:none;padding:0;min-height:4px;
-        cursor:pointer;
-      }
-      input[type="range"]::-webkit-slider-thumb{
-        -webkit-appearance:none;appearance:none;
-        width:16px;height:16px;border-radius:50%;
-        background:var(--gold);cursor:pointer;
-        box-shadow:0 0 0 3px rgba(216,183,106,0.2);
-        transition:box-shadow 0.15s;
-      }
-      input[type="range"]::-webkit-slider-thumb:hover{
-        box-shadow:0 0 0 5px rgba(216,183,106,0.3);
-      }
-      input[type="range"]::-moz-range-thumb{
-        width:16px;height:16px;border-radius:50%;border:none;
-        background:var(--gold);cursor:pointer;
-      }
-      input[type="range"]::-webkit-slider-runnable-track{
-        background:linear-gradient(to right,rgba(216,183,106,0.5) 0%,rgba(216,183,106,0.5) var(--val,0%),var(--line) var(--val,0%),var(--line) 100%);
-        border-radius:2px;height:4px;
-      }
-      /* ── VIDEO FONT FIX ──────── */
-      /* force preview redraw on font change */
+    <style id="ar-extra">
+      @keyframes panelFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+      .panel{animation:panelFadeIn 0.45s ease both}
+      .vs-slide-section,.vstudio-block{animation:panelFadeIn 0.3s ease both}
+      .twin-panels{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:20px}
+      .twin-col{display:flex;flex-direction:column;gap:16px}
+      .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+      .nav-group-grid a{padding:9px 8px;font-size:12px}
+      .nav-group-grid .nav-ic{width:18px;font-size:12px}
+      .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr}
+      .about-compact-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+      input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;border:none;padding:0;min-height:4px;cursor:pointer}
+      input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 0 3px rgba(216,183,106,0.2)}
+      input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:none;background:var(--gold);cursor:pointer}
+      .hero-stat strong{font-family:Prata,serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
+      @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
+      @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
     </style>
   </head>
   <body>
@@ -123,7 +66,7 @@
             <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
             <div class="nav-group-grid">
               <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
-              <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx" data-i18n="navPerformance">Charts</span></a>
+              <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx">Charts</span></a>
               <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
             </div>
           </div>
@@ -131,7 +74,7 @@
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <div class="nav-group-grid">
               <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
-              <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx" data-i18n="navIntelligence">Prompts</span></a>
+              <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx">Prompts</span></a>
             </div>
           </div>
         </nav>
@@ -188,15 +131,15 @@
               <div class="hero-stats">
                 <div class="hero-stat">
                   <strong id="metricTools">45+</strong>
-                  <span>AI tools</span>
+                  <span data-i18n="metricTools">AI tools</span>
                 </div>
                 <div class="hero-stat">
                   <strong id="metricFree">100%</strong>
-                  <span>Free to use</span>
+                  <span data-i18n="metricFree">Free plans</span>
                 </div>
                 <div class="hero-stat">
                   <strong id="metricJobs">Live</strong>
-                  <span>GitHub data</span>
+                  <span data-i18n="metricJobs">Career paths</span>
                 </div>
               </div>
             </div>
@@ -205,11 +148,9 @@
 
         <!-- TOOLS -->
         
-        <!-- TOOLS + CHARTS SIDE BY SIDE -->
+        <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
-
-          <!-- LEFT: Tool Finder + Compare -->
-          <div class="twin-col twin-col--left">
+          <div class="twin-col">
 <section id="tools" class="panel">
           <div class="section-head">
             <div>
@@ -262,9 +203,7 @@
           <div id="compareTable" class="compare-table"></div>
         </section>
           </div>
-
-          <!-- RIGHT: Live Charts -->
-          <div class="twin-col twin-col--right">
+          <div class="twin-col" style="position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;overflow-x:hidden;-webkit-mask-image:linear-gradient(to bottom,black 85%,transparent 100%);mask-image:linear-gradient(to bottom,black 85%,transparent 100%);">
 <section id="performance" class="panel performance-panel">
           <div class="section-head">
             <div>
@@ -291,13 +230,10 @@
           <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
         </section>
           </div>
-
         </div>
-        <!-- /TOOLS + CHARTS -->
 
-
-        <!-- /IMAGE GENERATOR -->
-
+        <!-- CAPTION AI -->
+        
 
         <!-- VIDEO TEMPLATE STUDIO -->
         <section id="videoStudio" class="panel video-studio">
@@ -342,6 +278,15 @@
                     <option value="vivid">Vivid</option>
                   </select>
                 </label>
+                <label class="vs-global-filter"><span data-i18n="vFontLabel">Headline font (all slides)</span>
+                  <select id="vsHeadlineFont">
+                    <option value="Prata, serif">Prata (serif)</option>
+                    <option value="Alice, serif">Alice (elegant)</option>
+                    <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
+                    <option value="Inter, sans-serif">Inter (modern sans)</option>
+                    <option value="Georgia, serif">Georgia (classic)</option>
+                  </select>
+                </label>
 
                 <div id="vsSlideList" class="vs-slide-list"></div>
                 <div class="vs-slide-actions">
@@ -363,7 +308,6 @@
                       <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
                     </label>
                     <div class="vs-auto-actions">
-                      
                       <button id="vsAutoAiBtn" class="button ghost gold" type="button" data-i18n="vAutoAiBtn">✦ Build with AI</button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
@@ -450,45 +394,31 @@
                     </label>
                   </div>
 
-                  <!-- Global font selector — affects ALL text in ALL scenes -->
-                  <div style="margin:0 0 12px;padding:10px 12px;background:rgba(216,183,106,0.07);border:1px solid rgba(216,183,106,0.2);border-radius:8px;">
-                    <label style="margin:0;">
-                      <span style="font-size:11px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">🎨 Headline font — all scenes</span>
-                      <select id="vsHeadlineFont" style="background:var(--surface-2);">
-                        <option value="Prata, serif">Prata (serif)</option>
-                        <option value="Alice, serif">Alice (elegant)</option>
-                        <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
-                        <option value="Inter, sans-serif">Inter (modern sans)</option>
-                        <option value="'Playfair Display', serif">Playfair Display</option>
-                        <option value="Georgia, serif">Georgia (classic)</option>
-                      </select>
-                    </label>
-                  </div>
 
-                  <span class="vstudio-label vs-sec-head" data-i18n="vSlideSectionsLabel">This scene's settings</span>
 
-                  <!-- Text fields (no collapsible wrapper) -->
-                  <div class="vs-section-body" style="padding:0;margin-bottom:4px;">
-                    <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                    <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                    <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                    <div class="control-grid">
-                      <label><span data-i18n="vTextPosLabel">Text position</span>
-                        <select id="vsTextPos">
-                          <option value="center">Center</option>
-                          <option value="bottom">Bottom</option>
-                          <option value="top">Top</option>
-                        </select>
-                      </label>
-                      <label><span data-i18n="vTextSizeLabel">Text size</span>
-                        <select id="vsTextSize">
-                          <option value="0.8">Small</option>
-                          <option value="1" selected>Medium</option>
-                          <option value="1.3">Large</option>
-                        </select>
-                      </label>
+                  <div class="vs-section-body">
+                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
+                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
+                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
+                      <div class="control-grid">
+                        <label><span data-i18n="vTextPosLabel">Text position</span>
+                          <select id="vsTextPos">
+                            <option value="center">Center</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                          </select>
+                        </label>
+                        <label><span data-i18n="vTextSizeLabel">Text size</span>
+                          <select id="vsTextSize">
+                            <option value="0.8">Small</option>
+                            <option value="1" selected>Medium</option>
+                            <option value="1.3">Large</option>
+                          </select>
+                        </label>
+
+                      </div>
+                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
                     </div>
-                  </div>
 
                   <details class="vs-slide-section">
                     <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
@@ -992,39 +922,19 @@
               <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
             </div>
           </div>
-
-          <!-- 2-col compact layout -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
-
-            <!-- LEFT: mission + features -->
+          <div class="about-compact-grid">
             <div style="display:flex;flex-direction:column;gap:14px;">
-              <p data-i18n="aboutText" style="font-size:14px;line-height:1.75;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build videos — all running in your browser.</p>
-
+              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos — all in your browser.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">45+</strong>
-                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricTools">AI tools</span>
-                </div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">100%</strong>
-                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricFreeLabel">Free to use</span>
-                </div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Live</strong>
-                  <span style="font-size:11px;color:var(--muted);" data-i18n="metricLiveLabel">GitHub data</span>
-                </div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);">
-                  <strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong>
-                  <span style="font-size:11px;color:var(--muted);">Tracking / ads</span>
-                </div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
               </div>
-
               <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(216,183,106,0.05);border-radius:0 8px 8px 0;">
-                <p style="margin:0;font-size:13px;line-height:1.8;" data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
+                <p style="margin:0;font-size:13px;line-height:1.8;" data-i18n="aboutMissionText">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls or sign-ups.</p>
               </div>
             </div>
-
-            <!-- RIGHT: creator + changelog latest -->
             <div style="display:flex;flex-direction:column;gap:12px;">
               <div style="padding:16px;border:1px solid rgba(216,183,106,0.3);border-radius:10px;background:rgba(216,183,106,0.05);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -1033,26 +943,15 @@
                 </div>
                 <p style="margin:0;font-size:13px;line-height:1.75;" data-i18n="aboutCreditText">Designed and built AI Radar end to end — the concept, interface, live trend chart, and in-browser video studio.</p>
               </div>
-
-              <!-- Latest changelog items (compact) -->
               <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
-                  <span style="font-size:12px;font-weight:800;color:var(--text);" data-i18n="changelogTitle">Latest updates</span>
+                  <span style="font-size:12px;font-weight:800;" data-i18n="changelogTitle">Latest updates</span>
                   <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(216,183,106,0.15);border:1px solid rgba(216,183,106,0.3);color:var(--gold);">v2.3</span>
                 </div>
-                <ul style="list-style:none;margin:0;padding:0;" data-i18n-changelog="true">
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
-                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl23Head">Multi-page + font system</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl23Text">Font selector now applies to all scenes. Snap guides, infographic drag fix, sidebar 2-col layout.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
-                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl22Head">Cinematic design upgrade</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl22Text">New infographic presets, Big Numbers style, animated backgrounds, Vox-style motion.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
-                    <div><strong style="font-size:13px;color:var(--text);" data-i18n="cl21Head">Auto video builder</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl21Text">Describe a topic and the studio assembles a complete video in one click.</p></div>
-                  </li>
+                <ul style="list-style:none;margin:0;padding:0;">
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span><div><strong style="font-size:13px;" data-i18n="cl23Head">Font system + snap guides</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl23Text">Font selector applies to all scenes. Center snap guides on drag. Sidebar 2-col layout.</p></div></li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span><div><strong style="font-size:13px;" data-i18n="cl22Head">Cinematic design upgrade</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl22Text">New infographic presets, animated backgrounds, Vox-style motion.</p></div></li>
+                  <li style="display:flex;gap:10px;padding:10px 14px;"><span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span><div><strong style="font-size:13px;" data-i18n="cl21Head">Auto video builder</strong><p style="margin:4px 0 0;font-size:12px;line-height:1.6;" data-i18n="cl21Text">Describe a topic — studio assembles a complete video in one click.</p></div></li>
                 </ul>
               </div>
             </div>
@@ -1067,48 +966,28 @@
       </div><!-- /.content-area -->
     </div>
 
-    <script src="app.js?v=v220"></script>
-
-
 
     <script>
-    /* ── VIDEO FONT FIX: redraw preview on font change ── */
-    document.addEventListener("DOMContentLoaded", function() {
-      var fontSel = document.getElementById("vsHeadlineFont");
-      if (!fontSel) return;
-      fontSel.addEventListener("change", function() {
-        // Small delay to let the DOM update, then redraw
-        setTimeout(function() {
-          // vsGetFont() in app.js reads #vsHeadlineFont live,
-          // so just triggering a redraw is enough
-          if (typeof drawStudioFrame === "function") {
-            drawStudioFrame(0);
-          } else {
-            // Fallback: simulate preview button click
-            var btn = document.getElementById("vsPreviewBtn");
-            if (btn) btn.click();
-          }
-        }, 30);
-      });
-    });
-    </script>
-
-    <script>
-    /* ── RANGE SLIDER FILL (gold track) ── */
-    document.addEventListener("DOMContentLoaded", function() {
-      function updateRange(input) {
-        var min = parseFloat(input.min) || 0;
-        var max = parseFloat(input.max) || 100;
-        var val = parseFloat(input.value) || 0;
-        var pct = ((val - min) / (max - min) * 100).toFixed(1) + "%";
-        input.style.setProperty("--val", pct);
-        input.style.background = "linear-gradient(to right, rgba(216,183,106,0.6) 0%, rgba(216,183,106,0.6) " + pct + ", var(--line) " + pct + ", var(--line) 100%)";
+    /* ── RANGE SLIDER GOLD FILL ── */
+    document.addEventListener("DOMContentLoaded", function(){
+      function updateRange(r){
+        var pct=((+r.value-+(r.min||0))/(+(r.max||100)-+(r.min||0))*100).toFixed(1)+"%";
+        r.style.background="linear-gradient(to right,rgba(216,183,106,0.6) 0%,rgba(216,183,106,0.6) "+pct+",var(--line) "+pct+",var(--line) 100%)";
       }
-      document.querySelectorAll("input[type=range]").forEach(function(r) {
-        updateRange(r);
-        r.addEventListener("input", function() { updateRange(r); });
+      document.querySelectorAll("input[type=range]").forEach(function(r){updateRange(r);r.addEventListener("input",function(){updateRange(r);});});
+    });
+    /* ── FONT CHANGE → REDRAW ── */
+    document.addEventListener("DOMContentLoaded", function(){
+      var f=document.getElementById("vsHeadlineFont");
+      if(!f)return;
+      f.addEventListener("change",function(){
+        setTimeout(function(){
+          if(typeof drawStudioFrame==="function"){drawStudioFrame(0);}
+          else{var b=document.getElementById("vsPreviewBtn");if(b)b.click();}
+        },30);
       });
     });
     </script>
+    <script src="app.js?v=v220"></script>
   </body>
 </html>
