@@ -5109,14 +5109,18 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(kText, W*0.06+kPad, ky+kh/2); ctx.textBaseline = "alphabetic";
     }
-    ctx.fillStyle = "#fff"; ctx.font = `700 ${Math.round(H*0.05)}px ${vsGetFont("Prata, serif")}`;
+    // auto-fit headline inside bar height
+    const fbHlPx = vsFitFont(ctx, headline, W*0.86, "700", vsGetFont("Prata, serif"), Math.round(H*0.042), Math.round(H*0.02));
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${fbHlPx}px ${vsGetFont("Prata, serif")}`;
     ctx.textAlign = "left";
-    wrapNewsText(ctx, headline, W*0.06, y+barH*0.56, W*0.88, H*0.058, 2);
+    ctx.save(); ctx.beginPath(); ctx.rect(0,y,W,barH); ctx.clip();
+    wrapNewsText(ctx, headline, W*0.06, y+barH*0.52, W*0.86, fbHlPx*1.22, 2);
     if (source) {
       ctx.fillStyle = "rgba(210,210,215,0.85)";
-      ctx.font = `400 ${Math.round(H*0.024)}px Inter, sans-serif`;
-      ctx.fillText(source, W*0.06, y+barH*0.9);
+      ctx.font = `400 ${Math.round(H*0.021)}px Inter, sans-serif`;
+      ctx.fillText(source, W*0.06, y+barH*0.88);
     }
+    ctx.restore();
 
   } else if (style === "breaking") {
     const barH2 = H * 0.12;
@@ -5136,7 +5140,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
       ctx.font = `600 ${Math.round(H*0.017)}px Inter, sans-serif`;
       ctx.fillText(kicker.toUpperCase(), tagW2/2, y2 + barH2*0.72);
     }
-    ctx.font = `700 ${Math.round(H*0.035)}px ${vsGetFont("Prata, serif")}`;
+    ctx.font = `700 ${Math.round(H*0.026)}px ${vsGetFont("Prata, serif")}`;
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     const bTxt = headline + (source ? "   ●   " + source : "");
     const bTw = ctx.measureText(bTxt).width;
@@ -5759,16 +5763,17 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   ctx.fillStyle = ig.accent;
   ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
 
-  let cy = py + panelH * 0.15;
+  let cy = py + panelH * 0.20;  // more room above title to avoid accent line overlap
 
   if (data.title) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
-    const titlePx = Math.round(U * 0.048);
-    vsFitFont(ctx, data.title, panelW - padX * 2, "700", "Prata, serif",
-      titlePx, Math.round(U * 0.028));
+    // cap title size so it never overlaps the accent line above
+    const titlePx = Math.min(Math.round(U * 0.042), Math.round(panelH * 0.09));
+    const actualTitlePx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
+      titlePx, Math.round(U * 0.022));
     ctx.fillText(data.title, px + padX, cy);
-    cy += panelH * 0.085;
+    cy += actualTitlePx * 1.4 + panelH * 0.03;  // dynamic spacing based on actual font size
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
@@ -5932,7 +5937,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
       // big value right-aligned
       ctx.fillStyle = ig.value;
-      vsFitFont(ctx, s.value, ctxW * 0.55, "800", "Prata, serif",
+      vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
         Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
@@ -5985,7 +5990,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
       ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
       ctx.fillStyle = "#ffffff";
-      vsFitFont(ctx, s.value, cW * 0.5, "800", "Prata, serif",
+      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
         Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
