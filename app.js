@@ -3889,6 +3889,7 @@ function bindIntroEditor() {
       var btn = e.target.closest && e.target.closest(".vs-auto-mode-btn");
       if (!btn) return;
       e.preventDefault();
+      e.stopPropagation();
       var mode = btn.dataset.mode || "smart";
       window._vsAutoMode = mode;
       // toggle active state across all mode buttons
