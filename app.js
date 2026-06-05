@@ -3881,25 +3881,32 @@ function bindIntroEditor() {
   if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
   const autoBtn = $("#vsAutoBuildBtn");
   if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
-  // ── AI Assistant mode switching ──
-  (function(){
-    var modeBtns = document.querySelectorAll(".vs-auto-mode-btn");
-    var urlWrap = document.querySelector("#vsAutoUrlWrap");
-    var topicLbl = document.querySelector("#vsAutoTopicLbl");
-    var topicTa = document.querySelector("#vsAutoTopic");
-    function setMode(mode){
-      modeBtns.forEach(function(b){ b.classList.toggle("active", b.dataset.mode===mode); });
+  // ── AI Assistant mode switching (document-level delegation — robust) ──
+  window._vsAutoMode = window._vsAutoMode || "smart";
+  if (!window._vsAutoModeBound) {
+    window._vsAutoModeBound = true;
+    document.addEventListener("click", function(e){
+      var btn = e.target.closest && e.target.closest(".vs-auto-mode-btn");
+      if (!btn) return;
+      e.preventDefault();
+      var mode = btn.dataset.mode || "smart";
+      window._vsAutoMode = mode;
+      // toggle active state across all mode buttons
+      var all = document.querySelectorAll(".vs-auto-mode-btn");
+      for (var i=0;i<all.length;i++) all[i].classList.toggle("active", all[i]===btn);
+      // show/hide URL field
+      var urlWrap = document.querySelector("#vsAutoUrlWrap");
       if (urlWrap) urlWrap.style.display = (mode==="link") ? "" : "none";
+      // update label + placeholder
+      var topicLbl = document.querySelector("#vsAutoTopicLbl");
+      var topicTa  = document.querySelector("#vsAutoTopic");
       if (topicLbl && topicTa) {
         if (mode==="smart"){ topicLbl.textContent="What should the video be about?"; topicTa.placeholder="e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
         else if (mode==="link"){ topicLbl.textContent="Notes (optional — used if the link can't be read)"; topicTa.placeholder="Optional fallback text…"; }
         else { topicLbl.textContent="Paste your article or text"; topicTa.placeholder="Paste the full article text here…"; }
       }
-      window._vsAutoMode = mode;
-    }
-    modeBtns.forEach(function(b){ b.addEventListener("click", function(){ setMode(b.dataset.mode); }); });
-    window._vsAutoMode = "smart";
-  })();
+    });
+  }
 
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
