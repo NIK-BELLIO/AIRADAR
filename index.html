@@ -1238,6 +1238,41 @@
       });
     });
     </script>
+
+    <script>
+    /* ── FONT PRELOAD — prevents canvas text overlap from unloaded fonts ── */
+    (function(){
+      // Force-load all studio fonts so canvas measureText matches render
+      var fontsToLoad = [
+        '700 48px Prata', '400 48px Prata',
+        '700 48px Alice', '400 48px Alice',
+        '700 48px "Viaoda Libre"',
+        '900 48px Inter', '800 48px Inter', '700 48px Inter', '600 48px Inter', '500 48px Inter', '400 48px Inter',
+        '700 48px Georgia'
+      ];
+      window._vsFontsReady = false;
+      function loadFonts() {
+        if (!document.fonts || !document.fonts.load) {
+          window._vsFontsReady = true;
+          return;
+        }
+        Promise.all(fontsToLoad.map(function(f){
+          return document.fonts.load(f).catch(function(){});
+        })).then(function(){
+          return document.fonts.ready;
+        }).then(function(){
+          window._vsFontsReady = true;
+          // trigger a redraw if studio is open
+          if (typeof drawStudioFrame === 'function') {
+            try { drawStudioFrame(window.vstudio ? (vstudio.position||0) : 0); } catch(e){}
+          }
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFonts);
+      } else { loadFonts(); }
+    })();
+    </script>
     <script src="app.js?v=v220"></script>
 
     <script>
