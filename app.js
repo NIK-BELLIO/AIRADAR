@@ -1387,23 +1387,31 @@ const state = {
 function vsGetFont(fallback){
   var el=document.querySelector("#vsHeadlineFont");
   var fam = (el&&el.value) ? el.value : (fallback||"Prata, serif");
-  // Ensure the font is loaded so canvas measureText matches the rendered glyphs.
-  // If not yet loaded, kick off a load and temporarily fall back to a safe font
-  // to avoid the "overlapping letters" mis-measurement bug.
+  // CRITICAL: canvas measureText and fillText MUST use the same loaded font,
+  // otherwise letters overlap (measured narrow, rendered wide) or get cut.
   try {
     if (document.fonts && document.fonts.check) {
-      if (!document.fonts.check('700 48px ' + fam.split(',')[0].replace(/['"]/g,'').trim())) {
-        document.fonts.load('700 48px ' + fam).then(function(){
-          if (!window._vsFontReloadPending) {
-            window._vsFontReloadPending = true;
-            requestAnimationFrame(function(){
-              window._vsFontReloadPending = false;
-              if (typeof drawStudioFrame === 'function' && !vstudio.looping) {
-                try { drawStudioFrame(vstudio.position||0); } catch(e){}
-              }
-            });
-          }
+      var firstFam = fam.split(',')[0].replace(/['"]/g,'').trim();
+      // Has this font actually finished loading?
+      var loaded = document.fonts.check('700 48px "' + firstFam + '"')
+                || document.fonts.check('400 48px "' + firstFam + '"');
+      if (!loaded) {
+        // Not ready — load it, then redraw once. Until then, return a
+        // metric-compatible SYSTEM font so measure == render (no overlap).
+        document.fonts.load('700 48px "' + firstFam + '"').then(function(){
+          if (window._vsFontReloadPending) return;
+          window._vsFontReloadPending = true;
+          requestAnimationFrame(function(){
+            window._vsFontReloadPending = false;
+            if (typeof drawStudioFrame === 'function') {
+              try { drawStudioFrame((typeof vstudio!=='undefined' && vstudio.position)||0); } catch(e){}
+            }
+          });
         }).catch(function(){});
+        // serif vs sans fallback so spacing stays sane until the real font lands
+        return /serif/i.test(fam) || /Prata|Alice|Viaoda|Georgia|Playfair/i.test(fam)
+          ? "Georgia, 'Times New Roman', serif"
+          : "Arial, Helvetica, sans-serif";
       }
     }
   } catch(e){}
@@ -3873,6 +3881,26 @@ function bindIntroEditor() {
   if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
   const autoBtn = $("#vsAutoBuildBtn");
   if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
+  // ── AI Assistant mode switching ──
+  (function(){
+    var modeBtns = document.querySelectorAll(".vs-auto-mode-btn");
+    var urlWrap = document.querySelector("#vsAutoUrlWrap");
+    var topicLbl = document.querySelector("#vsAutoTopicLbl");
+    var topicTa = document.querySelector("#vsAutoTopic");
+    function setMode(mode){
+      modeBtns.forEach(function(b){ b.classList.toggle("active", b.dataset.mode===mode); });
+      if (urlWrap) urlWrap.style.display = (mode==="link") ? "" : "none";
+      if (topicLbl && topicTa) {
+        if (mode==="smart"){ topicLbl.textContent="What should the video be about?"; topicTa.placeholder="e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
+        else if (mode==="link"){ topicLbl.textContent="Notes (optional — used if the link can't be read)"; topicTa.placeholder="Optional fallback text…"; }
+        else { topicLbl.textContent="Paste your article or text"; topicTa.placeholder="Paste the full article text here…"; }
+      }
+      window._vsAutoMode = mode;
+    }
+    modeBtns.forEach(function(b){ b.addEventListener("click", function(){ setMode(b.dataset.mode); }); });
+    window._vsAutoMode = "smart";
+  })();
+
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
 }
@@ -4122,9 +4150,9 @@ async function buildAutoVideo(useAI) {
     }
   }
 
-  if (!text) {
+  if (!text || text.length < 3) {
     vsAutoStatus(state.lang === "fa"
-      ? "اول یک لینک یا متن مقاله وارد کن." : "Enter an article URL or some text first.");
+      ? "یک لینک، متن، یا حتی فقط یک موضوع وارد کن." : "Enter a link, some text, or even just a topic.");
     return;
   }
   vsSaveActiveSlide();
@@ -4142,18 +4170,35 @@ async function buildAutoVideo(useAI) {
   //    sections, each tagged as an infographic (when it has numbers) or
   //    text (when it doesn't), so the video matches the content.
   vsAutoStatus(state.lang === "fa"
-    ? "هوش مصنوعی در حال تحلیل کل مقاله…" : "AI is analyzing the whole article…");
-  const prompt = `You are an award-winning motion-graphics news director. Analyze the ENTIRE article and create a compelling, journalistic short-form video. Return ONLY valid compact JSON (no markdown, no explanation, no extra text):
-{"title":"max 6 impactful words","subtitle":"max 8 descriptive words","kicker":"1-2 ALL-CAPS category words","palette":"fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline","stats":[{"label":"short label","value":"formatted value e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one punchy factual sentence from the article","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outroMain":"3-4 action words"}
-STRICT RULES:
-1. Produce EXACTLY 5 to 7 sections. Start with the most important fact/stat.
-2. INFOGRAPHIC: only when article contains actual numbers/data/stats. Include 2-5 real stats with formatted values. chartType: bars=comparisons, donut=percentages, pills=progress metrics, comparison=two contrasting values, ranking=ordered list.
-3. TEXT: for narrative, quotes, context, conclusions. headline must be ONE compelling sentence (max 12 words) directly from the article's content — never generic.
-4. Alternate types: never two infographics in a row.
-5. style choices: title-center=dramatic central fact, bold-statement=huge impactful claim, quote=direct speech, title-left=broadcast news, magazine-cover=editorial feel, neon-title=futuristic/tech.
-6. kicker = the article's category in 1-2 ALL-CAPS words (e.g. "AI", "FINANCE", "HEALTH", "CLIMATE", "TECH").
-7. ALL content must come from the article — do not invent facts or statistics.
-Article: """${text.slice(0, 6000)}"""`;
+    ? "دستیار در حال تحقیق و نوشتن فیلمنامه…" : "Assistant is researching & scripting your video…");
+
+  // Read assistant controls
+  const tone = (document.querySelector("#vsAutoTone") || {}).value || "news";
+  const lenChoice = (document.querySelector("#vsAutoLen") || {}).value || "medium";
+  const sectionRange = lenChoice === "short" ? "4 to 5" : lenChoice === "long" ? "8 to 10" : "6 to 7";
+  const toneGuide = {
+    news:        "authoritative broadcast-news director. Crisp, factual, urgent. Use title-left and title-center styles, bars/comparison charts.",
+    explainer:   "friendly educator. Clear, step-by-step, builds understanding. Use title-center, donut/pills charts, simple language.",
+    hype:        "high-energy launch hype-master. Bold, punchy, exciting. Use bold-statement, neon-title, big single numbers.",
+    documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
+    social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers."
+  }[tone] || "broadcast-news director.";
+
+  const prompt = `You are an award-winning ${toneGuide}
+You will turn the SOURCE below into a complete, professional short-form video. If the source is just a topic or rough idea (not a full article), use your own expert knowledge to develop it into accurate, specific, engaging content — like a real creative assistant would. If it is a full article, extract and dramatize its real facts.
+
+Return ONLY valid compact JSON (no markdown, no commentary):
+{"title":"max 6 impactful words","subtitle":"max 8 descriptive words","kicker":"1-2 ALL-CAPS category words","palette":"fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one punchy sentence (max 11 words)","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outroMain":"3-4 action words"}
+
+RULES:
+1. Produce EXACTLY ${sectionRange} sections. Open with the single most compelling hook.
+2. INFOGRAPHIC: use when there is real quantitative data (2-5 stats, realistic formatted values). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two contrasting values, ranking=ordered.
+3. TEXT: for narrative, quotes, context. headline = ONE vivid, specific sentence — never generic filler.
+4. Never two infographics in a row. Vary the text styles for visual rhythm.
+5. Match the ${tone} tone in every word choice.
+6. kicker = topic category in 1-2 ALL-CAPS words.
+7. Be accurate and specific. Real numbers, real names, real detail. No vague platitudes.
+SOURCE: """${text.slice(0, 7000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     const jsonStr = String(raw).replace(/```json|```/g, "").trim();
@@ -5853,16 +5898,20 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   ctx.fillStyle = ig.accent;
   ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
 
-  let cy = py + panelH * 0.15;
+  // start title lower so its ascenders clear the accent line at panelH*0.07
+  let cy = py + panelH * 0.21;
 
   if (data.title) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
-    const titlePx = Math.round(U * 0.048);
-    vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
-      titlePx, Math.round(U * 0.028));
+    ctx.textBaseline = "alphabetic";
+    // cap size so a tall font can't collide with the accent line above
+    const titlePx = Math.min(Math.round(U * 0.04), Math.round(panelH * 0.085));
+    const fittedPx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
+      titlePx, Math.round(U * 0.022));
     ctx.fillText(data.title, px + padX, cy);
-    cy += panelH * 0.085;
+    // space below title scales with the ACTUAL font size used
+    cy += fittedPx * 1.5;
   }
   if (data.subtitle) {
     ctx.fillStyle = ig.label;
@@ -6938,6 +6987,7 @@ function drawStudioFrame(elapsed) {
     if (vstudio.slides.length && dsDur > 0) bgMotionT = dsLocal / dsDur;
     else bgMotionT = (elapsed) / Math.max(0.01, studioDuration());
     bgMotionT = Math.max(0, Math.min(1, bgMotionT));
+    if (!(vstudio.looping || vstudio.rendering)) bgMotionT = 0.4;
     const bgMot = (dsSettings && "#vsMotion" in dsSettings) ? dsSettings["#vsMotion"] : vsVal("#vsMotion", "kenburns-in");
     let bgZoom = 1, bgX = 0, bgY = 0;
     switch (bgMot) {
@@ -7025,7 +7075,11 @@ function drawStudioFrame(elapsed) {
     local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
     intro = Math.min(1, (elapsed - introDur) / 0.9);
   }
-  const lc = Math.max(0, Math.min(1, local));
+  let lc = Math.max(0, Math.min(1, local));
+  // STATIC PREVIEW: when not playing/rendering, show the camera move at ~40%
+  // so the motion is visible in the still frame instead of frozen at the start.
+  const _playing = vstudio.looping || vstudio.rendering;
+  if (!_playing) lc = 0.4;
   const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
 
   let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
