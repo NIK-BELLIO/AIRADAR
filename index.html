@@ -250,6 +250,9 @@
       }
       /* in list mode — inline */
       .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
+          .vs-auto-mode-btn{flex:1;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+      .vs-auto-mode-btn.active,.vs-auto-mode-btn:hover{border-color:rgba(216,183,106,0.5);color:var(--gold-2);background:rgba(216,183,106,0.1);}
+      
     </style>
   </head>
   <body>
@@ -555,18 +558,44 @@
                   <button id="vsAddIntroBtn" class="button ghost gold" type="button" data-i18n="vAddIntro">+ Add intro scene</button>
                   <button id="vsAddOutroBtn" class="button ghost gold" type="button" data-i18n="vAddOutro">+ Add outro scene</button>
                 </div>
-                <details class="vs-slide-section" id="vsAutoBuild">
-                  <summary class="vstudio-label" data-i18n="vAutoLabel">⚡ Auto-build a full video</summary>
+                <details class="vs-slide-section" id="vsAutoBuild" open>
+                  <summary class="vstudio-label" data-i18n="vAutoLabel">✦ AI Video Assistant</summary>
                   <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vAutoHint">Paste a news article URL (or its text). The AI reads the whole article and builds a complete video — analyzing each part and using an infographic where there are numbers, or clean text where there aren't — plus an intro and outro.</p>
-                    <label><span data-i18n="vAutoUrl">Article URL (optional)</span>
+                    <p class="vstudio-note" id="vsAutoHint">Give the assistant <strong>anything</strong> — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro &amp; outro.</p>
+
+                    <div class="vs-auto-mode" style="display:flex;gap:6px;margin-bottom:10px;">
+                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn">✦ Smart</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn">🔗 From link</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">📄 From text</button>
+                    </div>
+
+                    <label id="vsAutoUrlWrap" style="display:none;"><span>Article / news URL</span>
                       <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
                     </label>
-                    <label><span data-i18n="vAutoTopic">Topic or article text</span>
-                      <textarea id="vsAutoTopic" rows="4" placeholder="Paste the article text here (used if the URL can't be fetched)…"></textarea>
+                    <label><span id="vsAutoTopicLbl">What should the video be about?</span>
+                      <textarea id="vsAutoTopic" rows="3" placeholder="e.g. 'The rise of AI agents in 2026' or paste an article, or describe any idea…"></textarea>
                     </label>
+
+                    <label><span id="vsAutoToneLbl">Tone</span>
+                      <select id="vsAutoTone">
+                        <option value="news">📰 Broadcast news</option>
+                        <option value="explainer">🎓 Explainer / educational</option>
+                        <option value="hype">🔥 Hype / launch</option>
+                        <option value="documentary">🎬 Cinematic documentary</option>
+                        <option value="social">📱 Punchy social (TikTok/Reels)</option>
+                      </select>
+                    </label>
+
+                    <label><span id="vsAutoLenLbl">Length</span>
+                      <select id="vsAutoLen">
+                        <option value="short">Short — 4-5 scenes (~20s)</option>
+                        <option value="medium" selected>Medium — 6-7 scenes (~35s)</option>
+                        <option value="long">Long — 8-10 scenes (~50s)</option>
+                      </select>
+                    </label>
+
                     <div class="vs-auto-actions">
-                      <button id="vsAutoAiBtn" class="button ghost gold" type="button" data-i18n="vAutoAiBtn">✦ Build with AI</button>
+                      <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
                   </div>
