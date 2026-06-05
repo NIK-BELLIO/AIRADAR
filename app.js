@@ -1386,8 +1386,28 @@ const state = {
 // ── GLOBAL FONT HELPER — applied to ALL value/headline text in video studio ──
 function vsGetFont(fallback){
   var el=document.querySelector("#vsHeadlineFont");
-  if(el&&el.value) return el.value;
-  return fallback||"Prata, serif";
+  var fam = (el&&el.value) ? el.value : (fallback||"Prata, serif");
+  // Ensure the font is loaded so canvas measureText matches the rendered glyphs.
+  // If not yet loaded, kick off a load and temporarily fall back to a safe font
+  // to avoid the "overlapping letters" mis-measurement bug.
+  try {
+    if (document.fonts && document.fonts.check) {
+      if (!document.fonts.check('700 48px ' + fam.split(',')[0].replace(/['"]/g,'').trim())) {
+        document.fonts.load('700 48px ' + fam).then(function(){
+          if (!window._vsFontReloadPending) {
+            window._vsFontReloadPending = true;
+            requestAnimationFrame(function(){
+              window._vsFontReloadPending = false;
+              if (typeof drawStudioFrame === 'function' && !vstudio.looping) {
+                try { drawStudioFrame(vstudio.position||0); } catch(e){}
+              }
+            });
+          }
+        }).catch(function(){});
+      }
+    }
+  } catch(e){}
+  return fam;
 }
 const $ = (selector) => document.querySelector(selector);
 const toolGrid = $("#toolGrid");
@@ -4165,22 +4185,35 @@ Article: """${text.slice(0, 6000)}"""`;
 // cross-origin; we try a couple of public read-only proxies, and if all
 // fail we return "" so the caller falls back to pasted text.
 async function vsFetchArticle(url) {
+  // Normalize URL
+  let clean = url.trim();
+  if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
+
+  // Jina AI Reader returns clean article text (markdown) — best option,
+  // handles JS-rendered pages, paywalls, and strips nav/ads.
+  // allorigins is the CORS fallback for raw HTML.
   const tryUrls = [
-    url,
-    "https://r.jina.ai/" + url,
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
+    { u: "https://r.jina.ai/" + clean, clean: true },
+    { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(clean), clean: false },
+    { u: "https://corsproxy.io/?url=" + encodeURIComponent(clean), clean: false },
+    { u: clean, clean: false }
   ];
-  for (const u of tryUrls) {
+  for (const entry of tryUrls) {
     try {
-      const res = await fetch(u, { mode: "cors" });
+      const res = await fetch(entry.u, { mode: "cors", headers: entry.clean ? { "X-Return-Format": "text" } : {} });
       if (!res.ok) continue;
       let t = await res.text();
-      // strip HTML tags to get readable text
-      t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
-           .replace(/<style[\s\S]*?<\/style>/gi, " ")
-           .replace(/<[^>]+>/g, " ")
-           .replace(/\s+/g, " ").trim();
-      if (t.length > 200) return t.slice(0, 6000);
+      if (!entry.clean) {
+        // strip HTML tags to get readable text
+        t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
+             .replace(/<style[\s\S]*?<\/style>/gi, " ")
+             .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+             .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+             .replace(/<[^>]+>/g, " ")
+             .replace(/&[a-z]+;/gi, " ");
+      }
+      t = t.replace(/\s+/g, " ").trim();
+      if (t.length > 200) return t.slice(0, 8000);
     } catch (e) { /* try next */ }
   }
   return "";
@@ -5826,7 +5859,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     ctx.fillStyle = ig.title;
     ctx.textAlign = "left";
     const titlePx = Math.round(U * 0.048);
-    vsFitFont(ctx, data.title, panelW - padX * 2, "700", "Prata, serif",
+    vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
       titlePx, Math.round(U * 0.028));
     ctx.fillText(data.title, px + padX, cy);
     cy += panelH * 0.085;
@@ -5912,7 +5945,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textAlign = "left";
       ctx.fillStyle = ig.value;
       // HUGE number
-      const numPx2 = vsFitFont(ctx, shown2, cMaxW * 0.88, "800", "Inter, sans-serif",
+      const numPx2 = vsFitFont(ctx, shown2, cMaxW * 0.88, "800", vsGetFont("Inter, sans-serif"),
         Math.round(rowH * 0.52), Math.round(rowH * 0.28));
       ctx.fillText(shown2, px + padX, ry + rowH * 0.46);
       ctx.fillStyle = ig.label;
@@ -5959,7 +5992,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle";
       ctx.fillStyle = ig.value;
       ctx.textAlign = "center";
-      vsFitFont(ctx, s.value, rad * 1.55, "800", "Inter, sans-serif",
+      vsFitFont(ctx, s.value, rad * 1.55, "800", vsGetFont("Inter, sans-serif"),
         Math.round(Math.min(U * 0.032, rad * 0.65)), Math.round(rad * 0.32));
       ctx.fillText(s.value, cxx, cyy);
       // label below
@@ -5993,7 +6026,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
       // big value right-aligned
       ctx.fillStyle = ig.value;
-      vsFitFont(ctx, s.value, ctxW * 0.55, "800", "Prata, serif",
+      vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
         Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
@@ -6046,7 +6079,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
       ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
       ctx.fillStyle = "#ffffff";
-      vsFitFont(ctx, s.value, cW * 0.5, "800", "Prata, serif",
+      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
         Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
@@ -6074,7 +6107,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillText(s.label, cX + cW * 0.14, cardY + cardH * 0.3);
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
-      vsFitFont(ctx, s.value, cW * 0.5, "800", "Inter, sans-serif",
+      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Inter, sans-serif"),
         Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.7);
@@ -6896,13 +6929,43 @@ function drawStudioFrame(elapsed) {
   }
 
   // when there is no media, paint a template-coloured backdrop so the
-  // infographic / news banner has something to sit on.
+  // infographic / news banner has something to sit on. A subtle camera
+  // motion (slow drift) is applied so "Camera motion" still has visible
+  // effect even on text/news/infographic-only slides.
   if (!media) {
+    // compute a gentle motion offset based on the selected camera motion
+    let bgMotionT;
+    if (vstudio.slides.length && dsDur > 0) bgMotionT = dsLocal / dsDur;
+    else bgMotionT = (elapsed) / Math.max(0.01, studioDuration());
+    bgMotionT = Math.max(0, Math.min(1, bgMotionT));
+    const bgMot = (dsSettings && "#vsMotion" in dsSettings) ? dsSettings["#vsMotion"] : vsVal("#vsMotion", "kenburns-in");
+    let bgZoom = 1, bgX = 0, bgY = 0;
+    switch (bgMot) {
+      case "kenburns-in":  bgZoom = 1 + bgMotionT * 0.08; break;
+      case "kenburns-out": bgZoom = 1.08 - bgMotionT * 0.08; break;
+      case "pan-right":    bgX = (0.5 - bgMotionT) * W * 0.06; bgZoom = 1.05; break;
+      case "pan-left":     bgX = (bgMotionT - 0.5) * W * 0.06; bgZoom = 1.05; break;
+      case "pan-up":       bgY = (bgMotionT - 0.5) * H * 0.06; bgZoom = 1.05; break;
+      case "pan-down":     bgY = (0.5 - bgMotionT) * H * 0.06; bgZoom = 1.05; break;
+      case "drift-up":     bgY = (0.5 - bgMotionT) * H * 0.08; bgZoom = 1.04; break;
+      case "zoom-pan":     bgZoom = 1 + bgMotionT * 0.08; bgX = (0.5 - bgMotionT) * W * 0.04; break;
+      case "breathe":      bgZoom = 1.03 + Math.sin(elapsed * 1.6) * 0.02; break;
+      case "pulse":        bgZoom = 1.02 + Math.sin(elapsed * 4) * 0.015; break;
+      case "none":         bgZoom = 1; break;
+      default:             bgZoom = 1 + bgMotionT * 0.05;
+    }
+    ctx.save();
+    if (bgZoom !== 1 || bgX || bgY) {
+      ctx.translate(W/2 + bgX, H/2 + bgY);
+      ctx.scale(bgZoom, bgZoom);
+      ctx.translate(-W/2, -H/2);
+    }
     const bgGrad = ctx.createLinearGradient(0, 0, W, H);
     bgGrad.addColorStop(0, tpl.bg);
     bgGrad.addColorStop(1, vsHexLuma(tpl.bg) > 140 ? "#ffffff" : "#000000");
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(-W*0.1, -H*0.1, W*1.2, H*1.2);
+    ctx.restore();
   }
 
   // resolver: read a per-slide control value (saved settings or live control)
@@ -6951,9 +7014,18 @@ function drawStudioFrame(elapsed) {
 
   // transition in
   const trans = dsVal("#vsTransition", "fade");
-  const local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
+  // CAMERA MOTION TIME: when slides exist, motion must progress across THIS
+  // slide's own duration (dsLocal/dsDur) — not the whole timeline, otherwise
+  // a 6s slide inside a 36s video barely moves. Single-clip mode uses global.
+  let local, intro;
+  if (vstudio.slides.length && dsDur > 0) {
+    local = dsLocal / dsDur;
+    intro = Math.min(1, dsLocal / 0.9);
+  } else {
+    local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
+    intro = Math.min(1, (elapsed - introDur) / 0.9);
+  }
   const lc = Math.max(0, Math.min(1, local));
-  const intro = Math.min(1, (elapsed - introDur) / 0.9);
   const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
 
   let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
@@ -7903,6 +7975,10 @@ function heraSelectScene(idx) {
   }
   vstudio.position = t;
   updateTimeline(t, studioDuration());
+  // redraw the preview at the selected scene's start so the canvas shows it
+  if (!vstudio.looping) {
+    try { drawStudioFrame(t); } catch(e){}
+  }
 }
 
 function heraDrawWaveform(canvas, totalDur) {
