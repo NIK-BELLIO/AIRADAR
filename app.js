@@ -4125,13 +4125,35 @@ function vsBuildStoryLocal(text) {
 }
 
 // Module-level AI chat for the auto-builder (mirrors the nested helper).
-async function vsAutoAiChat(prompt) {
+// Tries the strongest available models first, falling back gracefully so the
+// assistant is as "smart" as the platform allows on any given day.
+async function vsAutoAiChat(prompt, opts) {
   if (typeof puter === "undefined" || !puter.ai || !puter.ai.chat) {
     throw new Error("AI unavailable");
   }
-  let res;
-  try { res = await puter.ai.chat(prompt, { model: "gpt-4o-mini" }); }
-  catch (e1) { res = await puter.ai.chat(prompt); }
+  opts = opts || {};
+  // Best → worst. Puter exposes 500+ models; these are the strong, widely
+  // available ones. We try each until one succeeds.
+  const modelChain = [
+    "claude-sonnet-4-5",
+    "anthropic/claude-sonnet-4-5",
+    "gpt-5.3-chat",
+    "gpt-4o",
+    "claude-haiku-4-5",
+    "gpt-4o-mini"
+  ];
+  let res = null, lastErr = null;
+  for (const model of modelChain) {
+    try {
+      res = await puter.ai.chat(prompt, Object.assign({ model: model }, opts.params || {}));
+      if (res != null) break;
+    } catch (e) { lastErr = e; }
+  }
+  if (res == null) {
+    // final attempt with no model specified (platform default)
+    try { res = await puter.ai.chat(prompt); }
+    catch (e) { throw (lastErr || e); }
+  }
   if (res == null) return "";
   if (typeof res === "string") return res;
   const fromContent = (c) => {
@@ -4189,7 +4211,7 @@ async function buildAutoVideo(useAI) {
   //    sections, each tagged as an infographic (when it has numbers) or
   //    text (when it doesn't), so the video matches the content.
   vsAutoStatus(state.lang === "fa"
-    ? "دستیار در حال تحقیق و نوشتن فیلمنامه…" : "Assistant is researching & scripting your video…");
+    ? "دستیار در حال تحلیل محتوا…" : "Assistant is analyzing the content…");
 
   // Read assistant controls
   const tone = (document.querySelector("#vsAutoTone") || {}).value || "news";
@@ -4202,6 +4224,26 @@ async function buildAutoVideo(useAI) {
     documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
     social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers."
   }[tone] || "broadcast-news director.";
+
+  // ── STAGE 1: ANALYZE — let the model think about the content first, like a
+  // real creative director planning a piece. This separate reasoning pass
+  // makes the final script far sharper than a single one-shot prompt.
+  let analysis = "";
+  try {
+    const analyzePrompt = `You are a sharp video researcher and story strategist. Read the SOURCE and produce a tight CREATIVE BRIEF for a ${tone}-style short video. In 6-10 bullet lines cover:
+- THE HOOK: the single most surprising/important fact to open on
+- KEY DATA: every concrete number/stat worth showing (with its meaning)
+- NARRATIVE ARC: the order ideas should unfold for maximum impact
+- TENSION/PAYOFF: the contrast or stakes that keep viewers watching
+- TAKEAWAY: the one thing the viewer should remember
+Be specific and factual. If the source is only a topic, use your expert knowledge to supply real, accurate specifics. Output plain text bullets only — no preamble.
+SOURCE: """${text.slice(0, 7000)}"""`;
+    analysis = await vsAutoAiChat(analyzePrompt);
+    analysis = String(analysis || "").trim().slice(0, 2000);
+  } catch (e) { analysis = ""; }
+
+  vsAutoStatus(state.lang === "fa"
+    ? "دستیار در حال نوشتن فیلمنامه…" : "Assistant is writing the script…");
 
   const prompt = `You are an award-winning ${toneGuide}
 You will turn the SOURCE below into a complete, professional short-form video. If the source is just a topic or rough idea (not a full article), use your own expert knowledge to develop it into accurate, specific, engaging content — like a real creative assistant would. If it is a full article, extract and dramatize its real facts.
@@ -4217,7 +4259,7 @@ RULES:
 5. Match the ${tone} tone in every word choice.
 6. kicker = topic category in 1-2 ALL-CAPS words.
 7. Be accurate and specific. Real numbers, real names, real detail. No vague platitudes.
-SOURCE: """${text.slice(0, 7000)}"""`;
+${analysis ? "\nCREATIVE BRIEF (use this analysis to guide the script):\n" + analysis + "\n" : ""}SOURCE: """${text.slice(0, 7000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     const jsonStr = String(raw).replace(/```json|```/g, "").trim();
@@ -7104,6 +7146,9 @@ function drawStudioFrame(elapsed) {
   // so the motion is visible in the still frame instead of frozen at the start.
   const _playing = vstudio.looping || vstudio.rendering;
   if (!_playing) lc = 0.4;
+  // elapsed-based motions (handheld/shake/pulse/breathe) need a moving clock;
+  // in a still preview give them a fixed non-zero phase so their look shows.
+  const mClock = _playing ? elapsed : 1.2;
   const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
 
   let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
@@ -7122,22 +7167,23 @@ function drawStudioFrame(elapsed) {
     case "parallax":      zoom = 1.12 + Math.sin(lc * Math.PI) * 0.05;
                           offX = Math.sin(lc * TAU) * W * 0.04; break;
     case "shake":         zoom = 1.08;
-                          offX = (Math.random() - 0.5) * W * 0.012;
-                          offY = (Math.random() - 0.5) * H * 0.012; break;
-    case "pulse":         zoom = 1.06 + Math.sin(elapsed * 4) * 0.03; break;
+                          offX = (_playing ? (Math.random() - 0.5) : 0.3) * W * 0.012;
+                          offY = (_playing ? (Math.random() - 0.5) : -0.3) * H * 0.012; break;
+    case "pulse":         zoom = 1.06 + Math.sin(mClock * 4) * 0.03; break;
     case "sway":          zoom = 1.1; rot = Math.sin(lc * TAU) * 0.03; break;
     case "zoom-pan":      zoom = 1.0 + lc * 0.2; offX = (0.5 - lc) * W * 0.1; break;
     case "diagonal":      zoom = 1.14; offX = (lc - 0.5) * W * 0.12;
                           offY = (lc - 0.5) * H * 0.12; break;
     case "spin-in":       zoom = 0.7 + lc * 0.35; rot = (1 - lc) * 0.4; break;
-    case "breathe":       zoom = 1.05 + Math.sin(elapsed * 1.6) * 0.04; break;
+    case "breathe":       zoom = 1.05 + Math.sin(mClock * 1.6) * 0.04; break;
     case "drift-up":      zoom = 1.12; offY = (0.5 - lc) * H * 0.22; break;
     case "punch-in":      zoom = lc < 0.12 ? 1 + lc * 1.5 : 1.18; break;
-    case "handheld":      zoom = 1.1;
-                          offX = Math.sin(elapsed * 5.5) * W * 0.006 +
-                                 Math.sin(elapsed * 2.3) * W * 0.004;
-                          offY = Math.cos(elapsed * 4.7) * H * 0.006;
-                          rot = Math.sin(elapsed * 1.9) * 0.006; break;
+    case "handheld":      zoom = 1.12;
+                          offX = Math.sin(mClock * 3.2) * W * 0.018 +
+                                 Math.sin(mClock * 1.7) * W * 0.010;
+                          offY = Math.cos(mClock * 2.6) * H * 0.016 +
+                                 Math.sin(mClock * 4.1) * H * 0.008;
+                          rot = Math.sin(mClock * 1.4) * 0.012; break;
     case "vertigo":       zoom = 1.0 + Math.sin(lc * Math.PI) * 0.22; break;
     default:              zoom = 1.0 + lc * 0.06;
   }
@@ -8765,6 +8811,12 @@ function bindEvents() {
   });
   on("#vsFilter", "change", () => {
     if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  });
+  // Camera motion: save to the active slide AND auto-play a short preview so
+  // the user actually SEES the movement (a still frame can't show motion).
+  on("#vsMotion", "change", () => {
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    previewStudioVideo(false);
   });
   on("#vsSlideCaption", "input", (e) => {
     const s = vstudio.slides[vstudio.activeSlide];
