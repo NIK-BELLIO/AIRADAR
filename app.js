@@ -2979,6 +2979,8 @@ function formatMetricValue(v) {
   return String(Math.round(v));
 }
 
+let _chartFingerprint = "";
+let _chartAnimated = false;
 function renderLiveChart() {
   const container = $("#performanceChart");
   if (!container) return;
@@ -2989,6 +2991,14 @@ function renderLiveChart() {
     .slice(0, 12);
   const maxVal = Math.max(...sorted.map(metricValueOf), 1);
   const compared = new Set(state.compare);
+
+  // Skip a full rebuild (which restarts the bar animation and causes the
+  // "jumping" flicker) when nothing meaningful changed.
+  const fp = activeMetric + "|" + [...compared].join(",") + "|" +
+    sorted.map(s => s.name + ":" + metricValueOf(s)).join("|");
+  if (fp === _chartFingerprint && container.querySelector(".live-bar-row")) return;
+  const firstPaint = !_chartAnimated;
+  _chartFingerprint = fp;
 
   // header label
   let label = $("#chart3DLabel");
@@ -3020,7 +3030,7 @@ function renderLiveChart() {
       const hot = compared.has(item.name);
       const color = hot ? "#fff0b8" : "#d8b76a";
       const disp = formatMetricValue(val);
-      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="animation-delay:${i*45}ms">
+      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="${firstPaint ? `animation-delay:${i*45}ms` : `animation:none`}">
         <div class="bar-meta">
           <img src="https://www.google.com/s2/favicons?domain=${item.domain || "github.com"}&sz=32" alt="" loading="lazy" onerror="this.style.display='none'" />
           <div class="bar-names"><strong>${item.name}</strong></div>
@@ -3030,6 +3040,7 @@ function renderLiveChart() {
       </div>`;
     }).join("")}
   </div>`;
+  _chartAnimated = true;
 }
 
 
@@ -6896,6 +6907,11 @@ function drawStudioFrame(elapsed) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   const W = canvas.width, H = canvas.height;
+  // CRITICAL: fully reset transform + clear every frame so nothing from the
+  // previous frame (text, scaled background) bleeds through and looks doubled.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, W, H);
   const tpl = vsTemplate();
 
   // ── INTRO SLIDE — self-contained background + dual animated text ──
