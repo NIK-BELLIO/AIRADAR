@@ -1,6 +1,30 @@
 <!doctype html>
 <html lang="en" dir="ltr">
   <head>
+    <style id="ar-custom-fonts">
+      @font-face {
+        font-family: 'Bryn Vogue';
+        src: url('fonts/Bryn_Vogue.ttf') format('truetype');
+        font-weight: normal; font-style: normal; font-display: swap;
+      }
+      @font-face {
+        font-family: 'Elegant';
+        src: url('fonts/Elegant.ttf') format('truetype');
+        font-weight: normal; font-style: normal; font-display: swap;
+      }
+      @font-face {
+        font-family: 'Things';
+        src: url('fonts/Things-Regular.woff') format('woff'),
+             url('fonts/Things-Regular.ttf') format('truetype');
+        font-weight: normal; font-style: normal; font-display: swap;
+      }
+      @font-face {
+        font-family: 'Things';
+        src: url('fonts/Things-Italic.woff') format('woff'),
+             url('fonts/Things-Italic.ttf') format('truetype');
+        font-weight: normal; font-style: italic; font-display: swap;
+      }
+    </style>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
@@ -15,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v241" />
+    <link rel="stylesheet" href="styles.css?v=v244" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -544,6 +568,9 @@
                     <option value="Prata, serif">Prata (serif)</option>
                     <option value="Alice, serif">Alice (elegant)</option>
                     <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
+                    <option value="'Bryn Vogue', serif">Bryn Vogue (fashion)</option>
+                    <option value="Elegant, serif">Elegant (script)</option>
+                    <option value="Things, serif">Things (editorial)</option>
                     <option value="Inter, sans-serif">Inter (modern sans)</option>
                     <option value="Georgia, serif">Georgia (classic)</option>
                   </select>
@@ -1276,6 +1303,9 @@
         '700 48px Prata', '400 48px Prata',
         '700 48px Alice', '400 48px Alice',
         '700 48px "Viaoda Libre"',
+        '700 48px "Bryn Vogue"', '400 48px "Bryn Vogue"',
+        '700 48px Elegant', '400 48px Elegant',
+        '700 48px Things', '400 48px Things', 'italic 400 48px Things',
         '900 48px Inter', '800 48px Inter', '700 48px Inter', '600 48px Inter', '500 48px Inter', '400 48px Inter',
         '700 48px Georgia'
       ];
@@ -1302,7 +1332,7 @@
       } else { loadFonts(); }
     })();
     </script>
-    <script src="app.js?v=v241"></script>
+    <script src="app.js?v=v244"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
