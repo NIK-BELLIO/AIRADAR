@@ -4129,55 +4129,80 @@ function vsBuildStoryLocal(text) {
 async function vsAutoAiChat(prompt, opts) {
   opts = opts || {};
   const seed = Math.floor(Math.random() * 1e6);
+  const wantJson = opts.json !== false; // default: ask for JSON back
 
-  // Endpoint 1 — new OpenAI-compatible host
+  const parseChoices = (data) => {
+    const txt = data && data.choices && data.choices[0] &&
+                data.choices[0].message && data.choices[0].message.content;
+    return (txt && String(txt).trim()) ? String(txt) : null;
+  };
+
+  // Endpoint 1 — OpenAI-compatible POST on text.pollinations.ai (handles long
+  // prompts; a GET would blow past URL length limits with a full article).
   try {
+    const body = {
+      model: "openai",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.75, seed: seed
+    };
+    if (wantJson) body.response_format = { type: "json_object" };
     const resp = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "openai",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.8, seed: seed
-      })
+      body: JSON.stringify(body)
     });
     if (resp.ok) {
       const data = await resp.json();
-      const txt = data && data.choices && data.choices[0] &&
-                  data.choices[0].message && data.choices[0].message.content;
-      if (txt && String(txt).trim()) return String(txt);
+      const t = parseChoices(data);
+      if (t) return t;
     }
   } catch (e) { /* next */ }
 
-  // Endpoint 2 — gen.pollinations.ai OpenAI-compatible
+  // Endpoint 2 — gen.pollinations.ai OpenAI-compatible POST
   try {
+    const body = {
+      model: "openai",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.75, seed: seed
+    };
+    if (wantJson) body.response_format = { type: "json_object" };
     const resp = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "openai",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.8, seed: seed
-      })
+      body: JSON.stringify(body)
     });
     if (resp.ok) {
       const data = await resp.json();
-      const txt = data && data.choices && data.choices[0] &&
-                  data.choices[0].message && data.choices[0].message.content;
-      if (txt && String(txt).trim()) return String(txt);
+      const t = parseChoices(data);
+      if (t) return t;
     }
   } catch (e) { /* next */ }
 
-  // Endpoint 3 — simple GET (plain text)
+  // Endpoint 3 — POST routed through a CORS proxy (in case the API blocks the
+  // browser Origin directly). allorigins forwards the JSON body.
   try {
-    const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
-                "?model=openai&seed=" + seed;
-    const r = await fetch(url);
-    if (r.ok) { const t = await r.text(); if (t && t.trim()) return t; }
+    const body = {
+      model: "openai",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.75, seed: seed
+    };
+    if (wantJson) body.response_format = { type: "json_object" };
+    const resp = await fetch(
+      "https://corsproxy.io/?url=" + encodeURIComponent("https://text.pollinations.ai/openai"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const t = parseChoices(data);
+      if (t) return t;
+    }
   } catch (e) { /* next */ }
 
   // All free endpoints unreachable → signal caller to use the local builder.
-  // (We deliberately do NOT fall back to Puter — that triggers paid popups.)
   throw new Error("AI temporarily unavailable");
 }
 
@@ -4186,7 +4211,15 @@ async function buildAutoVideo(useAI) {
   const urlInp = document.querySelector("#vsAutoUrl");
   const inp = document.querySelector("#vsAutoTopic");
   let text = (inp && inp.value || "").trim();
-  const url = (urlInp && urlInp.value || "").trim();
+  let url = (urlInp && urlInp.value || "").trim();
+
+  // If the user pasted a URL into the topic box (Smart mode hides the URL
+  // field), treat it as a link to fetch rather than raw script text.
+  if (!url) {
+    const trimmed = text.replace(/\s+/g, "");
+    if (/^https?:\/\/\S+$/i.test(trimmed)) { url = trimmed; text = ""; }
+  }
+
 
   // 1) if a URL was given, TRY to fetch the article text (often blocked
   //    by the site's CORS policy on a static site — we fall back to the
@@ -4197,10 +4230,14 @@ async function buildAutoVideo(useAI) {
     if (fetched && fetched.length > 200) {
       text = fetched;
     } else if (!text) {
-      vsAutoStatus(state.lang === "fa"
-        ? "نمی‌توان این لینک را خواند (سایت اجازه نمی‌دهد). لطفاً متن مقاله را در کادر زیر بچسبان."
-        : "Couldn't read that link (the site blocks it). Please paste the article text in the box below.");
-      return;
+      // Couldn't read the link. Instead of stopping, let the AI write about
+      // the topic implied by the URL using its own knowledge.
+      const slug = url.replace(/^https?:\/\//i, "")
+                      .replace(/[#?].*$/, "")
+                      .replace(/[\/\-_]+/g, " ")
+                      .replace(/\.(html?|php|aspx?)\b/gi, "")
+                      .replace(/\s+/g, " ").trim();
+      text = "Create an informative video about this news topic: " + slug;
     }
   }
 
@@ -4261,7 +4298,14 @@ RULES:
 ${analysis ? "\nCREATIVE BRIEF (use this analysis to guide the script):\n" + analysis + "\n" : ""}SOURCE: """${text.slice(0, 7000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
-    const jsonStr = String(raw).replace(/```json|```/g, "").trim();
+    // Pollinations / LLMs sometimes wrap JSON in prose or code fences.
+    // Extract the first {...} block robustly.
+    let jsonStr = String(raw).replace(/```json|```/g, "").trim();
+    if (jsonStr[0] !== "{") {
+      const a = jsonStr.indexOf("{");
+      const b = jsonStr.lastIndexOf("}");
+      if (a !== -1 && b !== -1 && b > a) jsonStr = jsonStr.slice(a, b + 1);
+    }
     const data = JSON.parse(jsonStr);
     if (Array.isArray(data.sections) && data.sections.length) {
       vsAssembleFromSections(data);
@@ -4279,10 +4323,11 @@ ${analysis ? "\nCREATIVE BRIEF (use this analysis to guide the script):\n" + ana
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
       : `Built a ${vstudio.slides.length}-scene video.`);
   } catch (e) {
-    vsBuildStoryLocal(text);
+    const msg = (e && e.message) ? e.message : String(e);
+    vsBuildStoryLocal(text || url);
     vsAutoStatus(state.lang === "fa"
-      ? `بدون هوش مصنوعی ساخته شد (${vstudio.slides.length} صحنه).`
-      : `Built without AI (${vstudio.slides.length} scenes).`);
+      ? `هوش مصنوعی جواب نداد (${msg}). فعلاً ${vstudio.slides.length} صحنه ساده ساخته شد.`
+      : `AI didn't respond (${msg}). Built ${vstudio.slides.length} basic scenes for now.`);
   }
 }
 
@@ -4574,18 +4619,29 @@ async function vsGenerateImage(promptText, aspect) {
   else if (aspect === "1:1") { w = 1024; h = 1024; }
   else if (aspect === "4:5") { w = 896; h = 1120; }
   const seed = Math.floor(Math.random() * 1e6);
-  const url = "https://image.pollinations.ai/prompt/" +
+  const buildUrl = (sd) => "https://image.pollinations.ai/prompt/" +
     encodeURIComponent(styled) +
-    "?width=" + w + "&height=" + h + "&seed=" + seed +
+    "?width=" + w + "&height=" + h + "&seed=" + sd +
     "&model=flux&nologo=true&enhance=true";
-  const imgEl = await new Promise((res, rej) => {
-    const im = new Image();
-    im.crossOrigin = "anonymous"; // allow drawing to canvas + export
-    im.onload = () => res(im);
-    im.onerror = () => rej(new Error("Image service did not respond"));
-    im.src = url;
-  });
-  if (!imgEl.naturalWidth) throw new Error("No image produced");
+
+  // Pollinations renders on-demand and can take 5-25s, sometimes erroring on
+  // the first hit. Retry a few times with a generous timeout before giving up.
+  async function tryLoad(src) {
+    return new Promise((res) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous"; // needed so the canvas isn't tainted on export
+      let done = false;
+      const timer = setTimeout(() => { if (!done) { done = true; res(null); } }, 30000);
+      im.onload = () => { if (!done) { done = true; clearTimeout(timer); res(im.naturalWidth ? im : null); } };
+      im.onerror = () => { if (!done) { done = true; clearTimeout(timer); res(null); } };
+      im.src = src;
+    });
+  }
+  let imgEl = null;
+  for (let attempt = 0; attempt < 3 && !imgEl; attempt++) {
+    imgEl = await tryLoad(buildUrl(seed + attempt));
+  }
+  if (!imgEl) throw new Error("Image service timed out");
   return imgEl;
 }
 
