@@ -4124,57 +4124,71 @@ function vsBuildStoryLocal(text) {
   });
 }
 
-// Module-level AI chat for the auto-builder (mirrors the nested helper).
-// Tries the strongest available models first, falling back gracefully so the
-// assistant is as "smart" as the platform allows on any given day.
+// AI chat for the auto-builder. Uses Pollinations.ai FIRST — it's free
+// forever, no API key, no login, no "Low Balance". Puter is only a fallback.
 async function vsAutoAiChat(prompt, opts) {
-  if (typeof puter === "undefined" || !puter.ai || !puter.ai.chat) {
-    throw new Error("AI unavailable");
-  }
   opts = opts || {};
-  // Best → worst. Puter exposes 500+ models; these are the strong, widely
-  // available ones. We try each until one succeeds.
-  const modelChain = [
-    "claude-sonnet-4-5",
-    "anthropic/claude-sonnet-4-5",
-    "gpt-5.3-chat",
-    "gpt-4o",
-    "claude-haiku-4-5",
-    "gpt-4o-mini"
-  ];
-  let res = null, lastErr = null;
-  for (const model of modelChain) {
-    try {
-      res = await puter.ai.chat(prompt, Object.assign({ model: model }, opts.params || {}));
-      if (res != null) break;
-    } catch (e) { lastErr = e; }
+
+  // ── 1) Pollinations.ai — free, unlimited, no account ──
+  try {
+    const resp = await fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "openai",                 // routes to a capable default model
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.8,
+        seed: Math.floor(Math.random() * 1e6)
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const txt = data && data.choices && data.choices[0] &&
+                  data.choices[0].message && data.choices[0].message.content;
+      if (txt && String(txt).trim()) return String(txt);
+    }
+  } catch (e) { /* fall through to the simple GET endpoint, then puter */ }
+
+  // ── 2) Pollinations simple GET endpoint (also free) ──
+  try {
+    const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
+                "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
+    const r = await fetch(url);
+    if (r.ok) {
+      const t = await r.text();
+      if (t && t.trim()) return t;
+    }
+  } catch (e) { /* fall through to puter */ }
+
+  // ── 3) Puter fallback (User-Pays; only if Pollinations is unreachable) ──
+  if (typeof puter !== "undefined" && puter.ai && puter.ai.chat) {
+    const modelChain = ["gpt-5-nano", "gpt-4o-mini", "gpt-4o"];
+    let res = null;
+    for (const model of modelChain) {
+      try {
+        res = await puter.ai.chat(prompt, Object.assign({ model: model }, opts.params || {}));
+        if (res != null) break;
+      } catch (e) { /* try next */ }
+    }
+    if (res == null) { try { res = await puter.ai.chat(prompt); } catch (e) {} }
+    if (res != null) {
+      if (typeof res === "string") return res;
+      const fromContent = (c) => {
+        if (typeof c === "string") return c;
+        if (Array.isArray(c)) return c.map(b => (typeof b === "string" ? b
+          : (b && (b.text || b.content)) || "")).join("");
+        return "";
+      };
+      if (res.message && res.message.content != null) return fromContent(res.message.content);
+      if (res.content != null) return fromContent(res.content);
+      if (res.text) return res.text;
+      return String(res);
+    }
   }
-  if (res == null) {
-    // final attempt with no model specified (platform default)
-    try { res = await puter.ai.chat(prompt); }
-    catch (e) { throw (lastErr || e); }
-  }
-  if (res == null) return "";
-  if (typeof res === "string") return res;
-  const fromContent = (c) => {
-    if (typeof c === "string") return c;
-    if (Array.isArray(c)) return c.map(b => (typeof b === "string" ? b
-      : (b && (b.text || b.content)) || "")).join("");
-    return "";
-  };
-  if (res.message && res.message.content != null) return fromContent(res.message.content);
-  if (res.content != null) return fromContent(res.content);
-  if (res.text) return res.text;
-  return String(res);
+  throw new Error("AI unavailable");
 }
 
 async function buildAutoVideo(useAI) {
-
-  // Sign in to Puter only for the AI SCRIPT step (text is free on Puter).
-  // Image generation uses Pollinations.ai which needs no account at all.
-  if (useAI) {
-    await vsEnsurePuterAuth();
-  }
 
   const urlInp = document.querySelector("#vsAutoUrl");
   const inp = document.querySelector("#vsAutoTopic");
@@ -4231,22 +4245,8 @@ async function buildAutoVideo(useAI) {
     social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers."
   }[tone] || "broadcast-news director.";
 
-  // ── STAGE 1: ANALYZE — let the model think about the content first, like a
-  // real creative director planning a piece. This separate reasoning pass
-  // makes the final script far sharper than a single one-shot prompt.
+  // Single AI call keeps free Puter credit usage minimal (one request, not two).
   let analysis = "";
-  try {
-    const analyzePrompt = `You are a sharp video researcher and story strategist. Read the SOURCE and produce a tight CREATIVE BRIEF for a ${tone}-style short video. In 6-10 bullet lines cover:
-- THE HOOK: the single most surprising/important fact to open on
-- KEY DATA: every concrete number/stat worth showing (with its meaning)
-- NARRATIVE ARC: the order ideas should unfold for maximum impact
-- TENSION/PAYOFF: the contrast or stakes that keep viewers watching
-- TAKEAWAY: the one thing the viewer should remember
-Be specific and factual. If the source is only a topic, use your expert knowledge to supply real, accurate specifics. Output plain text bullets only — no preamble.
-SOURCE: """${text.slice(0, 7000)}"""`;
-    analysis = await vsAutoAiChat(analyzePrompt);
-    analysis = String(analysis || "").trim().slice(0, 2000);
-  } catch (e) { analysis = ""; }
 
   vsAutoStatus(state.lang === "fa"
     ? "دستیار در حال نوشتن فیلمنامه…" : "Assistant is writing the script…");
@@ -9135,20 +9135,41 @@ function bindEvents() {
   // ── PUTER AI — browser-based AI for infographic + news ──────
   // Returns the model's text reply, or throws a friendly error.
   async function vsAiChat(prompt) {
-    if (typeof puter === "undefined" || !puter.ai || !puter.ai.chat) {
-      throw new Error(state.lang === "fa"
-        ? "سرویس هوش مصنوعی در دسترس نیست. اتصال اینترنت را بررسی کن."
-        : "AI service unavailable. Check your internet connection.");
-    }
-    let res;
+    // Free Pollinations.ai first — no login, no credits, no "Low Balance".
     try {
-      // try with an explicit model first
-      res = await puter.ai.chat(prompt, { model: "gpt-4o-mini" });
-    } catch (e1) {
-      // fall back to the default model if that model name is rejected
-      res = await puter.ai.chat(prompt);
+      const resp = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "openai",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.8,
+          seed: Math.floor(Math.random() * 1e6)
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const txt = data && data.choices && data.choices[0] &&
+                    data.choices[0].message && data.choices[0].message.content;
+        if (txt && String(txt).trim()) return String(txt);
+      }
+    } catch (e) { /* fall through */ }
+    try {
+      const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
+                  "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
+      const r = await fetch(url);
+      if (r.ok) { const t = await r.text(); if (t && t.trim()) return t; }
+    } catch (e) { /* fall through to puter */ }
+    // Puter fallback only if Pollinations is unreachable
+    if (typeof puter !== "undefined" && puter.ai && puter.ai.chat) {
+      let res;
+      try { res = await puter.ai.chat(prompt, { model: "gpt-5-nano" }); }
+      catch (e1) { res = await puter.ai.chat(prompt); }
+      return vsAiReplyToText(res);
     }
-    return vsAiReplyToText(res);
+    throw new Error(state.lang === "fa"
+      ? "سرویس هوش مصنوعی در دسترس نیست. اتصال اینترنت را بررسی کن."
+      : "AI service unavailable. Check your internet connection.");
   }
   // Normalise any puter.ai.chat reply shape into a plain string.
   function vsAiReplyToText(res) {
