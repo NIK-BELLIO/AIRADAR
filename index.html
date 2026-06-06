@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v244" />
+    <link rel="stylesheet" href="styles.css?v=v245" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <script src="https://js.puter.com/v2/" defer></script>
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -621,6 +621,11 @@
                       </select>
                     </label>
 
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:4px 0 8px;">
+                      <input type="checkbox" id="vsAutoImages" style="width:auto;margin:0;" />
+                      <span id="vsAutoImagesLbl" style="font-size:13px;">✦ Generate AI background images for each scene</span>
+                    </label>
+
                     <div class="vs-auto-actions">
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
                     </div>
@@ -700,6 +705,12 @@
                       <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
                     </label>
                     <p id="vsSlideMediaName" class="vstudio-note"></p>
+
+                    <div class="vs-img-gen" style="border:1px solid rgba(216,183,106,0.25);border-radius:10px;padding:12px;margin:8px 0;background:rgba(216,183,106,0.04);">
+                      <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--gold);text-transform:uppercase;">✦ <span id="vsImgGenLbl">AI image generator</span></p>
+                      <textarea id="vsImgPrompt" rows="2" placeholder="Describe the background image (or leave empty to use the caption)…" style="margin-bottom:8px;"></textarea>
+                      <button id="vsImgGenBtn" type="button" class="button primary" style="width:100%;font-weight:700;">✦ <span id="vsImgGenBtnTxt">Generate image with AI</span></button>
+                    </div>
                     <label><span data-i18n="vSlideCaption">Caption (top label)</span>
                       <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
                     </label>
@@ -1332,7 +1343,7 @@
       } else { loadFonts(); }
     })();
     </script>
-    <script src="app.js?v=v244"></script>
+    <script src="app.js?v=v245"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
