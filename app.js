@@ -4170,6 +4170,12 @@ async function vsAutoAiChat(prompt, opts) {
 
 async function buildAutoVideo(useAI) {
 
+  // Sign in to Puter only for the AI SCRIPT step (text is free on Puter).
+  // Image generation uses Pollinations.ai which needs no account at all.
+  if (useAI) {
+    await vsEnsurePuterAuth();
+  }
+
   const urlInp = document.querySelector("#vsAutoUrl");
   const inp = document.querySelector("#vsAutoTopic");
   let text = (inp && inp.value || "").trim();
@@ -4440,7 +4446,7 @@ function vsAssembleFromSections(data) {
 
   // ── OPTIONAL: auto-generate AI background images for text scenes ──
   const wantImages = $("#vsAutoImages") && $("#vsAutoImages").checked;
-  if (wantImages && typeof puter !== "undefined" && puter.ai && puter.ai.txt2img) {
+  if (wantImages) {
     vsAutoGenerateBackgrounds(data);
   }
 }
@@ -4450,7 +4456,10 @@ function vsAssembleFromSections(data) {
 async function vsAutoGenerateBackgrounds(data) {
   const slides = vstudio.slides;
   const palette = (data && data.palette) || "cinematic";
-  let made = 0;
+  // Cinematic camera moves to rotate through so each photo feels alive
+  const camMoves = ["kenburns-in", "kenburns-out", "pan-right", "pan-left",
+                    "zoom-pan", "drift-up", "pan-up", "handheld"];
+  let made = 0, camIdx = 0;
   for (let i = 0; i < slides.length; i++) {
     const s = slides[i];
     if (s._standaloneInfo || s.isOutro) continue;
@@ -4466,6 +4475,10 @@ async function vsAutoGenerateBackgrounds(data) {
       s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
       // make sure the renderer treats it as footage-backed
       s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
+      // give each photo a cinematic camera move so the video feels dynamic
+      const cam = camMoves[camIdx++ % camMoves.length];
+      s.settings = s.settings || {};
+      s.settings["#vsMotion"] = cam;
       made++;
       renderSlideList();
       if (vstudio.activeSlide === i) drawStudioFrame(vstudio.position || 0);
@@ -4541,53 +4554,45 @@ function addFootageToActiveSlide(file) {
 // ── AI IMAGE GENERATION ─────────────────────────────────────────────────
 // Generate a cinematic background image from a text prompt using puter.ai,
 // then attach it to a slide as its footage. Returns the loaded <img> or null.
+// Ensure the user is signed in to Puter before any AI call that needs it.
+// Uses a temporary anonymous account so there's no signup friction. Must be
+// called directly from a click handler (popup requires a user gesture).
+async function vsEnsurePuterAuth() {
+  if (typeof puter === "undefined" || !puter.auth) return false;
+  try {
+    if (puter.auth.isSignedIn && puter.auth.isSignedIn()) return true;
+    await puter.auth.signIn({ attempt_temp_user_creation: true });
+    return puter.auth.isSignedIn ? puter.auth.isSignedIn() : true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function vsGenerateImage(promptText, aspect) {
-  if (typeof puter === "undefined" || !puter.ai || !puter.ai.txt2img) {
-    throw new Error("Image generation unavailable");
-  }
-  // enrich the prompt for a polished, cinematic look that suits the studio
+  // FREE image generation via Pollinations.ai — no API key, no login, no
+  // credits, no paywall. It serves a generated image straight from a URL.
   const styled = promptText.trim() +
-    ", cinematic, dramatic lighting, high detail, professional photography, " +
-    "moody atmosphere, depth of field, no text, no watermark";
-  // Correct Puter model names (gpt-image-2 is current; others are fallbacks).
-  // Passing testMode=false (the 2nd arg as object) uses real credits.
-  const attempts = [
-    { model: "gpt-image-2", quality: "medium" },
-    { model: "gemini-2.5-flash-image-preview" },
-    { model: "stabilityai/stable-diffusion-3-medium" },
-    {} // platform default
-  ];
-  let imgEl = null, lastErr = null;
-  for (const opts of attempts) {
-    try {
-      // puter.ai.txt2img resolves to an HTMLImageElement whose src is a data URL
-      const result = await puter.ai.txt2img(styled, opts);
-      if (result instanceof HTMLImageElement) {
-        imgEl = result;
-      } else if (typeof result === "string") {
-        imgEl = await new Promise((res, rej) => {
-          const im = new Image();
-          im.onload = () => res(im); im.onerror = rej; im.src = result;
-        });
-      } else if (result && result.src) {
-        imgEl = await new Promise((res, rej) => {
-          const im = new Image();
-          im.onload = () => res(im); im.onerror = rej; im.src = result.src;
-        });
-      }
-      if (imgEl) {
-        // ensure it's fully decoded before we draw it to the canvas
-        if (!imgEl.complete || !imgEl.naturalWidth) {
-          await new Promise((res) => {
-            imgEl.onload = res; imgEl.onerror = res;
-            if (imgEl.complete && imgEl.naturalWidth) res();
-          });
-        }
-        break;
-      }
-    } catch (e) { lastErr = e; }
-  }
-  if (!imgEl || !imgEl.naturalWidth) throw (lastErr || new Error("No image produced"));
+    " — cinematic editorial photograph, dramatic volumetric lighting, rich" +
+    " color grading, shallow depth of field, ultra detailed, atmospheric," +
+    " professional composition, no text, no words, no watermark";
+  // dimensions follow the chosen aspect ratio
+  let w = 768, h = 1344; // default 9:16 portrait
+  if (aspect === "16:9") { w = 1344; h = 768; }
+  else if (aspect === "1:1") { w = 1024; h = 1024; }
+  else if (aspect === "4:5") { w = 896; h = 1120; }
+  const seed = Math.floor(Math.random() * 1e6);
+  const url = "https://image.pollinations.ai/prompt/" +
+    encodeURIComponent(styled) +
+    "?width=" + w + "&height=" + h + "&seed=" + seed +
+    "&model=flux&nologo=true&enhance=true";
+  const imgEl = await new Promise((res, rej) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous"; // allow drawing to canvas + export
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("Image service did not respond"));
+    im.src = url;
+  });
+  if (!imgEl.naturalWidth) throw new Error("No image produced");
   return imgEl;
 }
 
@@ -4601,28 +4606,28 @@ async function vsGenerateImageForActiveSlide() {
   const btn = $("#vsImgGenBtn");
   const setBtn = (txt, dis) => { if (btn) { btn.innerHTML = txt; btn.disabled = dis; } };
   setBtn(state.lang === "fa" ? "در حال ساخت…" : "Generating…", true);
-  vsStatus(state.lang === "fa" ? "هوش مصنوعی در حال ساخت تصویر…" : "AI is generating the image…");
-  // make sure puter is loaded (it's deferred)
-  if (typeof puter === "undefined") {
-    vsStatus(state.lang === "fa"
-      ? "سرویس هوش مصنوعی هنوز آماده نیست. چند ثانیه صبر کن و دوباره امتحان کن."
-      : "AI service not ready yet. Wait a moment and try again.");
-    setBtn("✦ " + (state.lang === "fa" ? "ساخت تصویر با AI" : "Generate image with AI"), false);
-    return;
-  }
+  vsStatus(state.lang === "fa" ? "در حال ساخت تصویر…" : "Generating the image…");
   try {
     const img = await vsGenerateImage(p, vsVal("#vsAspect", "9:16"));
     s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
     // ensure it shows even on intro-type assistant slides
     s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
+    // give it a cinematic camera move if the slide has none yet
+    s.settings = s.settings || {};
+    if (!s.settings["#vsMotion"] || s.settings["#vsMotion"] === "none") {
+      s.settings["#vsMotion"] = "kenburns-in";
+    }
+    // reflect it in the live control if this is the active slide
+    const motionSel = $("#vsMotion");
+    if (motionSel) motionSel.value = s.settings["#vsMotion"];
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
     vsStatus(state.lang === "fa" ? "تصویر ساخته شد و به صحنه اضافه شد." : "Image generated and added to the scene.");
   } catch (e) {
     const msg = (e && e.message) ? e.message : String(e);
     vsStatus(state.lang === "fa"
-      ? ("ساخت تصویر ناموفق بود: " + msg + " — ممکن است نیاز به ورود رایگان به Puter باشد.")
-      : ("Image generation failed: " + msg + " — you may need to sign in to Puter (free)."));
+      ? ("ساخت تصویر ناموفق بود: " + msg)
+      : ("Image generation failed: " + msg));
   } finally {
     setBtn("✦ " + (state.lang === "fa" ? "ساخت تصویر با AI" : "Generate image with AI"), false);
   }
@@ -7100,9 +7105,42 @@ function drawStudioFrame(elapsed) {
       const m = introSlide.mediaEl;
       const mw = m.videoWidth || m.naturalWidth || W;
       const mh = m.videoHeight || m.naturalHeight || H;
-      const scale = Math.max(W / mw, H / mh);
+      // ── camera motion on the photo/footage backdrop ──
+      const camMot = (introSlide.settings && introSlide.settings["#vsMotion"]) || "kenburns-in";
+      const playingC = vstudio.looping || vstudio.rendering;
+      let cLc = (dsDur > 0) ? dsLocal / dsDur : 0;
+      cLc = Math.max(0, Math.min(1, cLc));
+      if (!playingC) cLc = 0.4; // show the move in a static preview too
+      const cClock = playingC ? elapsed : 1.2;
+      let cz = 1, cox = 0, coy = 0, crot = 0;
+      const CT = Math.PI * 2;
+      switch (camMot) {
+        case "none":         cz = 1; break;
+        case "kenburns-in":  cz = 1.0 + cLc * 0.18; break;
+        case "kenburns-out": cz = 1.18 - cLc * 0.18; break;
+        case "pan-right":    cz = 1.14; cox = (0.5 - cLc) * W * 0.16; break;
+        case "pan-left":     cz = 1.14; cox = (cLc - 0.5) * W * 0.16; break;
+        case "pan-up":       cz = 1.14; coy = (cLc - 0.5) * H * 0.16; break;
+        case "pan-down":     cz = 1.14; coy = (0.5 - cLc) * H * 0.16; break;
+        case "zoom-pan":     cz = 1.0 + cLc * 0.2; cox = (0.5 - cLc) * W * 0.1; break;
+        case "drift-up":     cz = 1.12; coy = (0.5 - cLc) * H * 0.22; break;
+        case "punch-in":     cz = cLc < 0.12 ? 1 + cLc * 1.5 : 1.18; break;
+        case "vertigo":      cz = 1.0 + Math.sin(cLc * Math.PI) * 0.22; break;
+        case "breathe":      cz = 1.05 + Math.sin(cClock * 1.6) * 0.04; break;
+        case "pulse":        cz = 1.06 + Math.sin(cClock * 4) * 0.03; break;
+        case "handheld":     cz = 1.12;
+                             cox = Math.sin(cClock * 3.2) * W * 0.018 + Math.sin(cClock * 1.7) * W * 0.010;
+                             coy = Math.cos(cClock * 2.6) * H * 0.016;
+                             crot = Math.sin(cClock * 1.4) * 0.012; break;
+        default:             cz = 1.0 + cLc * 0.08;
+      }
+      const scale = Math.max(W / mw, H / mh) * cz;
       const dw = mw * scale, dh = mh * scale;
-      try { ctx.drawImage(m, (W - dw) / 2, (H - dh) / 2, dw, dh); } catch {}
+      ctx.save();
+      ctx.translate(W / 2 + cox, H / 2 + coy);
+      if (crot) ctx.rotate(crot);
+      try { ctx.drawImage(m, -dw / 2, -dh / 2, dw, dh); } catch {}
+      ctx.restore();
       // a soft scrim so overlaid text/graphics stay readable on footage
       ctx.fillStyle = "rgba(0,0,0,0.28)";
       ctx.fillRect(0, 0, W, H);
