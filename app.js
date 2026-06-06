@@ -4283,6 +4283,7 @@ async function buildAutoVideo(useAI) {
 
   const prompt = `You are an award-winning ${toneGuide}
 You will turn the SOURCE below into a complete, professional short-form video. If the source is just a topic or rough idea (not a full article), use your own expert knowledge to develop it into accurate, specific, engaging content — like a real creative assistant would. If it is a full article, extract and dramatize its real facts.
+IMPORTANT: Ignore any website navigation text, menus, button labels, cookie notices, or boilerplate like "skip to main content", "subscribe", "share", category lists, or related-links. These are NOT the story. Identify the actual news/article topic and build the video around THAT. Never use navigation words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
 {"title":"max 6 impactful words","subtitle":"max 8 descriptive words","kicker":"1-2 ALL-CAPS category words","palette":"fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one punchy sentence (max 11 words)","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outroMain":"3-4 action words"}
@@ -4339,31 +4340,68 @@ async function vsFetchArticle(url) {
   let clean = url.trim();
   if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
 
-  // Jina AI Reader returns clean article text (markdown) — best option,
-  // handles JS-rendered pages, paywalls, and strips nav/ads.
-  // allorigins is the CORS fallback for raw HTML.
+  // Jina AI Reader returns clean article text — best option, handles
+  // JS-rendered pages and strips nav/ads. Try it a couple of ways first.
   const tryUrls = [
     { u: "https://r.jina.ai/" + clean, clean: true },
+    { u: "https://r.jina.ai/" + encodeURIComponent(clean), clean: true },
     { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(clean), clean: false },
     { u: "https://corsproxy.io/?url=" + encodeURIComponent(clean), clean: false },
     { u: clean, clean: false }
   ];
+
+  // Strip site chrome (nav menus, "skip to content", cookie notices, etc.)
+  // that otherwise leaks in as the first text and confuses the AI.
+  const cleanupText = (t) => {
+    return t
+      // remove common boilerplate phrases
+      .replace(/skip to (main )?content/gi, " ")
+      .replace(/accept (all )?cookies?/gi, " ")
+      .replace(/(^|\s)(menu|search|sign in|log in|subscribe|newsletter|share|advertisement)(\s|$)/gi, " ")
+      .replace(/\b(home|news|sport|business|politics|world|more)\b\s*(\|\s*)?/gi, m => m) // keep words but harmless
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // For Jina markdown: the real article usually starts after a "Markdown
+  // Content:" marker or after the page title line. Trim everything before it.
+  const focusArticle = (t) => {
+    let s = t;
+    const mc = s.indexOf("Markdown Content:");
+    if (mc !== -1) s = s.slice(mc + "Markdown Content:".length);
+    // drop leading "Title:" / "URL Source:" metadata lines Jina prepends
+    s = s.replace(/^\s*Title:.*$/im, "")
+         .replace(/^\s*URL Source:.*$/im, "")
+         .replace(/^\s*Published Time:.*$/im, "");
+    return s;
+  };
+
   for (const entry of tryUrls) {
     try {
-      const res = await fetch(entry.u, { mode: "cors", headers: entry.clean ? { "X-Return-Format": "text" } : {} });
+      const res = await fetch(entry.u, {
+        mode: "cors",
+        headers: entry.clean ? { "X-Return-Format": "markdown" } : {}
+      });
       if (!res.ok) continue;
       let t = await res.text();
-      if (!entry.clean) {
-        // strip HTML tags to get readable text
+      if (entry.clean) {
+        t = focusArticle(t);
+      } else {
+        // strip scripts/styles/nav/header/footer, then tags
         t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
              .replace(/<style[\s\S]*?<\/style>/gi, " ")
+             .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
              .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+             .replace(/<header[\s\S]*?<\/header>/gi, " ")
              .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+             .replace(/<aside[\s\S]*?<\/aside>/gi, " ")
+             .replace(/<form[\s\S]*?<\/form>/gi, " ")
              .replace(/<[^>]+>/g, " ")
              .replace(/&[a-z]+;/gi, " ");
       }
-      t = t.replace(/\s+/g, " ").trim();
-      if (t.length > 200) return t.slice(0, 8000);
+      t = cleanupText(t);
+      // require a decent amount of real prose
+      if (t.length > 300) return t.slice(0, 8000);
     } catch (e) { /* try next */ }
   }
   return "";
@@ -4618,30 +4656,44 @@ async function vsGenerateImage(promptText, aspect) {
   if (aspect === "16:9") { w = 1344; h = 768; }
   else if (aspect === "1:1") { w = 1024; h = 1024; }
   else if (aspect === "4:5") { w = 896; h = 1120; }
-  const seed = Math.floor(Math.random() * 1e6);
-  const buildUrl = (sd) => "https://image.pollinations.ai/prompt/" +
-    encodeURIComponent(styled) +
-    "?width=" + w + "&height=" + h + "&seed=" + sd +
-    "&model=flux&nologo=true&enhance=true";
+  const enc = encodeURIComponent(styled);
+  // Build a list of candidate URLs across hosts + models. Pollinations
+  // sometimes errors anonymously on one model/host but works on another.
+  const candidates = [];
+  const seeds = [Math.floor(Math.random() * 1e6), Math.floor(Math.random() * 1e6)];
+  for (const sd of seeds) {
+    candidates.push("https://image.pollinations.ai/prompt/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux&nologo=true");
+    candidates.push("https://image.pollinations.ai/prompt/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=turbo&nologo=true");
+    candidates.push("https://gen.pollinations.ai/image/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux");
+  }
 
-  // Pollinations renders on-demand and can take 5-25s, sometimes erroring on
-  // the first hit. Retry a few times with a generous timeout before giving up.
-  async function tryLoad(src) {
+  // Load an image URL. Try WITHOUT crossOrigin first (most reliable for mere
+  // display); if that works we keep it. crossOrigin is only needed for video
+  // EXPORT — we re-flag it then. Returns the <img> or null.
+  function tryLoad(src, useCors) {
     return new Promise((res) => {
       const im = new Image();
-      im.crossOrigin = "anonymous"; // needed so the canvas isn't tainted on export
+      if (useCors) im.crossOrigin = "anonymous";
       let done = false;
-      const timer = setTimeout(() => { if (!done) { done = true; res(null); } }, 30000);
+      const timer = setTimeout(() => { if (!done) { done = true; res(null); } }, 25000);
       im.onload = () => { if (!done) { done = true; clearTimeout(timer); res(im.naturalWidth ? im : null); } };
       im.onerror = () => { if (!done) { done = true; clearTimeout(timer); res(null); } };
       im.src = src;
     });
   }
+
   let imgEl = null;
-  for (let attempt = 0; attempt < 3 && !imgEl; attempt++) {
-    imgEl = await tryLoad(buildUrl(seed + attempt));
+  for (const url of candidates) {
+    // try with CORS first (so export works); if it fails, retry same URL
+    // without CORS so at least the preview shows something.
+    imgEl = await tryLoad(url, true);
+    if (!imgEl) imgEl = await tryLoad(url, false);
+    if (imgEl) break;
   }
-  if (!imgEl) throw new Error("Image service timed out");
+  if (!imgEl) throw new Error("Image service unavailable (try again in a moment)");
   return imgEl;
 }
 
