@@ -4464,6 +4464,8 @@ async function vsAutoGenerateBackgrounds(data) {
       const img = await vsGenerateImage(
         subject + ", " + palette + " color palette, editorial photography", null);
       s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+      // make sure the renderer treats it as footage-backed
+      s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
       made++;
       renderSlideList();
       if (vstudio.activeSlide === i) drawStudioFrame(vstudio.position || 0);
@@ -4546,32 +4548,46 @@ async function vsGenerateImage(promptText, aspect) {
   // enrich the prompt for a polished, cinematic look that suits the studio
   const styled = promptText.trim() +
     ", cinematic, dramatic lighting, high detail, professional photography, " +
-    "moody atmosphere, depth of field, 4k, no text, no watermark";
-  // try the strong image models in order
-  const models = ["gpt-image-1", "dall-e-3", "flux", undefined];
+    "moody atmosphere, depth of field, no text, no watermark";
+  // Correct Puter model names (gpt-image-2 is current; others are fallbacks).
+  // Passing testMode=false (the 2nd arg as object) uses real credits.
+  const attempts = [
+    { model: "gpt-image-2", quality: "medium" },
+    { model: "gemini-2.5-flash-image-preview" },
+    { model: "stabilityai/stable-diffusion-3-medium" },
+    {} // platform default
+  ];
   let imgEl = null, lastErr = null;
-  for (const model of models) {
+  for (const opts of attempts) {
     try {
-      const opts = {};
-      if (model) opts.model = model;
-      // puter.ai.txt2img resolves to an <img> element (or data URL)
+      // puter.ai.txt2img resolves to an HTMLImageElement whose src is a data URL
       const result = await puter.ai.txt2img(styled, opts);
-      if (result) {
-        if (result instanceof HTMLImageElement) { imgEl = result; }
-        else if (typeof result === "string") {
-          imgEl = await new Promise((res, rej) => {
-            const im = new Image();
-            im.crossOrigin = "anonymous";
-            im.onload = () => res(im);
-            im.onerror = rej;
-            im.src = result;
+      if (result instanceof HTMLImageElement) {
+        imgEl = result;
+      } else if (typeof result === "string") {
+        imgEl = await new Promise((res, rej) => {
+          const im = new Image();
+          im.onload = () => res(im); im.onerror = rej; im.src = result;
+        });
+      } else if (result && result.src) {
+        imgEl = await new Promise((res, rej) => {
+          const im = new Image();
+          im.onload = () => res(im); im.onerror = rej; im.src = result.src;
+        });
+      }
+      if (imgEl) {
+        // ensure it's fully decoded before we draw it to the canvas
+        if (!imgEl.complete || !imgEl.naturalWidth) {
+          await new Promise((res) => {
+            imgEl.onload = res; imgEl.onerror = res;
+            if (imgEl.complete && imgEl.naturalWidth) res();
           });
         }
+        break;
       }
-      if (imgEl) break;
     } catch (e) { lastErr = e; }
   }
-  if (!imgEl) throw (lastErr || new Error("No image produced"));
+  if (!imgEl || !imgEl.naturalWidth) throw (lastErr || new Error("No image produced"));
   return imgEl;
 }
 
@@ -4581,24 +4597,34 @@ async function vsGenerateImageForActiveSlide() {
   if (!s) { vsStatus(state.lang === "fa" ? "اول یک صحنه انتخاب کن." : "Select a slide first."); return; }
   const promptInput = $("#vsImgPrompt");
   let p = (promptInput && promptInput.value || "").trim();
-  // fall back to the slide's caption / headline if no prompt typed
   if (!p) p = s._caption || s._headline || vsVal("#vsHeadline", "") || "abstract cinematic background";
   const btn = $("#vsImgGenBtn");
-  const setBtn = (txt, dis) => { if (btn) { btn.textContent = txt; btn.disabled = dis; } };
+  const setBtn = (txt, dis) => { if (btn) { btn.innerHTML = txt; btn.disabled = dis; } };
   setBtn(state.lang === "fa" ? "در حال ساخت…" : "Generating…", true);
   vsStatus(state.lang === "fa" ? "هوش مصنوعی در حال ساخت تصویر…" : "AI is generating the image…");
+  // make sure puter is loaded (it's deferred)
+  if (typeof puter === "undefined") {
+    vsStatus(state.lang === "fa"
+      ? "سرویس هوش مصنوعی هنوز آماده نیست. چند ثانیه صبر کن و دوباره امتحان کن."
+      : "AI service not ready yet. Wait a moment and try again.");
+    setBtn("✦ " + (state.lang === "fa" ? "ساخت تصویر با AI" : "Generate image with AI"), false);
+    return;
+  }
   try {
     const img = await vsGenerateImage(p, vsVal("#vsAspect", "9:16"));
     s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+    // ensure it shows even on intro-type assistant slides
+    s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
     vsStatus(state.lang === "fa" ? "تصویر ساخته شد و به صحنه اضافه شد." : "Image generated and added to the scene.");
   } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
     vsStatus(state.lang === "fa"
-      ? "ساخت تصویر ناموفق بود. (ممکن است نیاز به ورود به Puter باشد)"
-      : "Image generation failed. (You may need to sign in to Puter.)");
+      ? ("ساخت تصویر ناموفق بود: " + msg + " — ممکن است نیاز به ورود رایگان به Puter باشد.")
+      : ("Image generation failed: " + msg + " — you may need to sign in to Puter (free)."));
   } finally {
-    setBtn(state.lang === "fa" ? "✦ ساخت تصویر با AI" : "✦ Generate image with AI", false);
+    setBtn("✦ " + (state.lang === "fa" ? "ساخت تصویر با AI" : "Generate image with AI"), false);
   }
 }
 
