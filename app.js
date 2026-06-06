@@ -4437,6 +4437,42 @@ function vsAssembleFromSections(data) {
   if (!$("#vsCanvas")) buildPreviewCanvas();
   selectSlide(0);
   drawStudioFrame(0);
+
+  // ── OPTIONAL: auto-generate AI background images for text scenes ──
+  const wantImages = $("#vsAutoImages") && $("#vsAutoImages").checked;
+  if (wantImages && typeof puter !== "undefined" && puter.ai && puter.ai.txt2img) {
+    vsAutoGenerateBackgrounds(data);
+  }
+}
+
+// Generate cinematic AI backgrounds for narrative slides, one at a time so we
+// don't hammer the API. Updates each slide as its image arrives.
+async function vsAutoGenerateBackgrounds(data) {
+  const slides = vstudio.slides;
+  const palette = (data && data.palette) || "cinematic";
+  let made = 0;
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (s._standaloneInfo || s.isOutro) continue;
+    if (s.mediaEl) continue;
+    const subject = s._caption || (s.settings && s.settings["#vsNewsHeadline"]) ||
+                    data.title || "abstract concept";
+    vsAutoStatus(state.lang === "fa"
+      ? `در حال ساخت تصویر صحنه ${i + 1}…`
+      : `Generating image for scene ${i + 1}…`);
+    try {
+      const img = await vsGenerateImage(
+        subject + ", " + palette + " color palette, editorial photography", null);
+      s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+      made++;
+      renderSlideList();
+      if (vstudio.activeSlide === i) drawStudioFrame(vstudio.position || 0);
+    } catch (e) { /* keep colored background on failure */ }
+  }
+  vsAutoStatus(state.lang === "fa"
+    ? (made ? `${made} تصویر ساخته شد.` : "ساخت تصویر در دسترس نبود.")
+    : (made ? `Generated ${made} background image${made > 1 ? "s" : ""}.` : "Image generation unavailable."));
+  if (!vstudio.looping) previewStudioVideo(false);
 }
 
 function addOutroSlide() {
@@ -4498,6 +4534,72 @@ function addFootageToActiveSlide(file) {
     img.src = url;
   }
   vsStatus(state.lang === "fa" ? "در حال بارگیری فوتیج…" : "Loading footage…");
+}
+
+// ── AI IMAGE GENERATION ─────────────────────────────────────────────────
+// Generate a cinematic background image from a text prompt using puter.ai,
+// then attach it to a slide as its footage. Returns the loaded <img> or null.
+async function vsGenerateImage(promptText, aspect) {
+  if (typeof puter === "undefined" || !puter.ai || !puter.ai.txt2img) {
+    throw new Error("Image generation unavailable");
+  }
+  // enrich the prompt for a polished, cinematic look that suits the studio
+  const styled = promptText.trim() +
+    ", cinematic, dramatic lighting, high detail, professional photography, " +
+    "moody atmosphere, depth of field, 4k, no text, no watermark";
+  // try the strong image models in order
+  const models = ["gpt-image-1", "dall-e-3", "flux", undefined];
+  let imgEl = null, lastErr = null;
+  for (const model of models) {
+    try {
+      const opts = {};
+      if (model) opts.model = model;
+      // puter.ai.txt2img resolves to an <img> element (or data URL)
+      const result = await puter.ai.txt2img(styled, opts);
+      if (result) {
+        if (result instanceof HTMLImageElement) { imgEl = result; }
+        else if (typeof result === "string") {
+          imgEl = await new Promise((res, rej) => {
+            const im = new Image();
+            im.crossOrigin = "anonymous";
+            im.onload = () => res(im);
+            im.onerror = rej;
+            im.src = result;
+          });
+        }
+      }
+      if (imgEl) break;
+    } catch (e) { lastErr = e; }
+  }
+  if (!imgEl) throw (lastErr || new Error("No image produced"));
+  return imgEl;
+}
+
+// Attach a generated image to the active slide as its background footage.
+async function vsGenerateImageForActiveSlide() {
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (!s) { vsStatus(state.lang === "fa" ? "اول یک صحنه انتخاب کن." : "Select a slide first."); return; }
+  const promptInput = $("#vsImgPrompt");
+  let p = (promptInput && promptInput.value || "").trim();
+  // fall back to the slide's caption / headline if no prompt typed
+  if (!p) p = s._caption || s._headline || vsVal("#vsHeadline", "") || "abstract cinematic background";
+  const btn = $("#vsImgGenBtn");
+  const setBtn = (txt, dis) => { if (btn) { btn.textContent = txt; btn.disabled = dis; } };
+  setBtn(state.lang === "fa" ? "در حال ساخت…" : "Generating…", true);
+  vsStatus(state.lang === "fa" ? "هوش مصنوعی در حال ساخت تصویر…" : "AI is generating the image…");
+  try {
+    const img = await vsGenerateImage(p, vsVal("#vsAspect", "9:16"));
+    s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
+    vsStatus(state.lang === "fa" ? "تصویر ساخته شد و به صحنه اضافه شد." : "Image generated and added to the scene.");
+  } catch (e) {
+    vsStatus(state.lang === "fa"
+      ? "ساخت تصویر ناموفق بود. (ممکن است نیاز به ورود به Puter باشد)"
+      : "Image generation failed. (You may need to sign in to Puter.)");
+  } finally {
+    setBtn(state.lang === "fa" ? "✦ ساخت تصویر با AI" : "✦ Generate image with AI", false);
+  }
 }
 
 function addStudioSlide(file) {
@@ -8818,6 +8920,8 @@ function bindEvents() {
     if (vstudio.slides.length) vsSaveActiveSlide();
     previewStudioVideo(false);
   });
+  // AI image generation for the active slide
+  on("#vsImgGenBtn", "click", () => vsGenerateImageForActiveSlide());
   on("#vsSlideCaption", "input", (e) => {
     const s = vstudio.slides[vstudio.activeSlide];
     if (s) {
