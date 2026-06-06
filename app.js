@@ -4124,21 +4124,21 @@ function vsBuildStoryLocal(text) {
   });
 }
 
-// AI chat for the auto-builder. Uses Pollinations.ai FIRST — it's free
-// forever, no API key, no login, no "Low Balance". Puter is only a fallback.
+// AI chat for the auto-builder — 100% free via Pollinations.ai.
+// No API key, no login, no "Low Balance" popup ever. Puter is NOT used.
 async function vsAutoAiChat(prompt, opts) {
   opts = opts || {};
+  const seed = Math.floor(Math.random() * 1e6);
 
-  // ── 1) Pollinations.ai — free, unlimited, no account ──
+  // Endpoint 1 — new OpenAI-compatible host
   try {
     const resp = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai",                 // routes to a capable default model
+        model: "openai",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.8,
-        seed: Math.floor(Math.random() * 1e6)
+        temperature: 0.8, seed: seed
       })
     });
     if (resp.ok) {
@@ -4147,45 +4147,38 @@ async function vsAutoAiChat(prompt, opts) {
                   data.choices[0].message && data.choices[0].message.content;
       if (txt && String(txt).trim()) return String(txt);
     }
-  } catch (e) { /* fall through to the simple GET endpoint, then puter */ }
+  } catch (e) { /* next */ }
 
-  // ── 2) Pollinations simple GET endpoint (also free) ──
+  // Endpoint 2 — gen.pollinations.ai OpenAI-compatible
+  try {
+    const resp = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "openai",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.8, seed: seed
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const txt = data && data.choices && data.choices[0] &&
+                  data.choices[0].message && data.choices[0].message.content;
+      if (txt && String(txt).trim()) return String(txt);
+    }
+  } catch (e) { /* next */ }
+
+  // Endpoint 3 — simple GET (plain text)
   try {
     const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
-                "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
+                "?model=openai&seed=" + seed;
     const r = await fetch(url);
-    if (r.ok) {
-      const t = await r.text();
-      if (t && t.trim()) return t;
-    }
-  } catch (e) { /* fall through to puter */ }
+    if (r.ok) { const t = await r.text(); if (t && t.trim()) return t; }
+  } catch (e) { /* next */ }
 
-  // ── 3) Puter fallback (User-Pays; only if Pollinations is unreachable) ──
-  if (typeof puter !== "undefined" && puter.ai && puter.ai.chat) {
-    const modelChain = ["gpt-5-nano", "gpt-4o-mini", "gpt-4o"];
-    let res = null;
-    for (const model of modelChain) {
-      try {
-        res = await puter.ai.chat(prompt, Object.assign({ model: model }, opts.params || {}));
-        if (res != null) break;
-      } catch (e) { /* try next */ }
-    }
-    if (res == null) { try { res = await puter.ai.chat(prompt); } catch (e) {} }
-    if (res != null) {
-      if (typeof res === "string") return res;
-      const fromContent = (c) => {
-        if (typeof c === "string") return c;
-        if (Array.isArray(c)) return c.map(b => (typeof b === "string" ? b
-          : (b && (b.text || b.content)) || "")).join("");
-        return "";
-      };
-      if (res.message && res.message.content != null) return fromContent(res.message.content);
-      if (res.content != null) return fromContent(res.content);
-      if (res.text) return res.text;
-      return String(res);
-    }
-  }
-  throw new Error("AI unavailable");
+  // All free endpoints unreachable → signal caller to use the local builder.
+  // (We deliberately do NOT fall back to Puter — that triggers paid popups.)
+  throw new Error("AI temporarily unavailable");
 }
 
 async function buildAutoVideo(useAI) {
@@ -9159,17 +9152,28 @@ function bindEvents() {
                   "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
       const r = await fetch(url);
       if (r.ok) { const t = await r.text(); if (t && t.trim()) return t; }
-    } catch (e) { /* fall through to puter */ }
-    // Puter fallback only if Pollinations is unreachable
-    if (typeof puter !== "undefined" && puter.ai && puter.ai.chat) {
-      let res;
-      try { res = await puter.ai.chat(prompt, { model: "gpt-5-nano" }); }
-      catch (e1) { res = await puter.ai.chat(prompt); }
-      return vsAiReplyToText(res);
-    }
+    } catch (e) { /* next */ }
+    // second free host
+    try {
+      const resp = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "openai",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.8, seed: Math.floor(Math.random() * 1e6)
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const txt = data && data.choices && data.choices[0] &&
+                    data.choices[0].message && data.choices[0].message.content;
+        if (txt && String(txt).trim()) return String(txt);
+      }
+    } catch (e) { /* give up — no paid fallback */ }
     throw new Error(state.lang === "fa"
-      ? "سرویس هوش مصنوعی در دسترس نیست. اتصال اینترنت را بررسی کن."
-      : "AI service unavailable. Check your internet connection.");
+      ? "سرویس هوش مصنوعی موقتاً در دسترس نیست. کمی بعد دوباره امتحان کن."
+      : "AI service temporarily unavailable. Please try again shortly.");
   }
   // Normalise any puter.ai.chat reply shape into a plain string.
   function vsAiReplyToText(res) {
