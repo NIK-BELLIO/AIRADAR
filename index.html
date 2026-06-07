@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v252" />
+    <link rel="stylesheet" href="styles.css?v=v253" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -620,13 +620,7 @@
                         <option value="long">Long — 8-10 scenes (~50s)</option>
                       </select>
                     </label>
-
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:4px 0 8px;">
-                      <input type="checkbox" id="vsAutoImages" style="width:auto;margin:0;" />
-                      <span id="vsAutoImagesLbl" style="font-size:13px;">✦ Generate AI background images for each scene</span>
-                    </label>
-
-                    <div class="vs-auto-actions">
+<div class="vs-auto-actions">
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
@@ -706,11 +700,6 @@
                     </label>
                     <p id="vsSlideMediaName" class="vstudio-note"></p>
 
-                    <div class="vs-img-gen" style="border:1px solid rgba(216,183,106,0.25);border-radius:10px;padding:12px;margin:8px 0;background:rgba(216,183,106,0.04);">
-                      <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--gold);text-transform:uppercase;">✦ <span id="vsImgGenLbl">AI image generator</span></p>
-                      <textarea id="vsImgPrompt" rows="2" placeholder="Describe the background image (or leave empty to use the caption)…" style="margin-bottom:8px;"></textarea>
-                      <button id="vsImgGenBtn" type="button" class="button primary" style="width:100%;font-weight:700;">✦ <span id="vsImgGenBtnTxt">Generate image with AI</span></button>
-                    </div>
                     <label><span data-i18n="vSlideCaption">Caption (top label)</span>
                       <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
                     </label>
@@ -722,27 +711,11 @@
 
 
                   <div class="vs-section-body">
-                      <label><span data-i18n="vHeadlineLabel">Headline</span><input id="vsHeadline" type="text" placeholder="A new standard of calm" /></label>
-                      <label><span data-i18n="vSubLabel">Subtext</span><input id="vsSub" type="text" placeholder="Minimal. Considered. Yours." /></label>
-                      <label><span data-i18n="vCtaLabel">Call to action</span><input id="vsCta" type="text" placeholder="Learn more →" /></label>
-                      <div class="control-grid">
-                        <label><span data-i18n="vTextPosLabel">Text position</span>
-                          <select id="vsTextPos">
-                            <option value="center">Center</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="top">Top</option>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vTextSizeLabel">Text size</span>
-                          <select id="vsTextSize">
-                            <option value="0.8">Small</option>
-                            <option value="1" selected>Medium</option>
-                            <option value="1.3">Large</option>
-                          </select>
-                        </label>
-
-                      </div>
-                      <p class="vstudio-note" data-i18n="vTextAutoNote">Text sits on an automatic dark panel, so it stays readable on any photo or video.</p>
+                      <input id="vsHeadline" type="hidden" value="" />
+                      <input id="vsSub" type="hidden" value="" />
+                      <input id="vsCta" type="hidden" value="" />
+                      <select id="vsTextPos" style="display:none;"><option value="center" selected>Center</option><option value="bottom">Bottom</option><option value="top">Top</option></select>
+                      <select id="vsTextSize" style="display:none;"><option value="0.8">Small</option><option value="1" selected>Medium</option><option value="1.3">Large</option></select>
                     </div>
 
                   <details class="vs-slide-section">
@@ -927,9 +900,7 @@
                         </button>
                         <p class="vstudio-note" id="vsNewsAiStatus"></p>
                       </div>
-                      <label><span data-i18n="vNewsKickerLabel">Kicker / category</span>
-                        <input id="vsNewsKicker" type="text" maxlength="28" placeholder="BREAKING" />
-                      </label>
+                      <input id="vsNewsKicker" type="hidden" value="" />
                       <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
                         <textarea id="vsNewsHeadline" rows="3" maxlength="200" placeholder="Type the news headline here — multiple lines supported" style="resize:vertical;min-height:72px;"></textarea>
                       </label>
@@ -970,6 +941,7 @@
                         </label>
                         <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
                           <select id="vsNewsAccent">
+                            <option value="auto" selected>Match template</option>
                             <option value="red">Breaking red</option>
                             <option value="blue">News blue</option>
                             <option value="gold">Studio gold</option>
@@ -1343,7 +1315,7 @@
       } else { loadFonts(); }
     })();
     </script>
-    <script src="app.js?v=v252"></script>
+    <script src="app.js?v=v253"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
