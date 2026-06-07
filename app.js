@@ -4137,11 +4137,11 @@ async function vsAutoAiChat(prompt, opts) {
     return (txt && String(txt).trim()) ? String(txt) : null;
   };
 
-  // POST a chat request to one endpoint. `useJson` toggles response_format,
-  // `viaProxy` wraps it through corsproxy for blocked origins.
-  async function postChat(endpoint, useJson, viaProxy) {
+  // POST a chat request to one endpoint. `model` selects the LLM,
+  // `useJson` toggles response_format, `viaProxy` wraps via corsproxy.
+  async function postChat(endpoint, model, useJson, viaProxy) {
     const body = {
-      model: "openai",
+      model: model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7, seed: seed
     };
@@ -4161,21 +4161,25 @@ async function vsAutoAiChat(prompt, opts) {
     return t;
   }
 
-  // Try each endpoint; for each, try WITH json first then WITHOUT (some
-  // models reject response_format). Order: direct hosts, then proxy.
+  // Strongest free Pollinations models first — these are far smarter than the
+  // default "openai" (gpt-4.1-mini). All free, no key, no login.
+  const models = ["openai-large", "gemini", "claude", "openai-reasoning", "openai"];
   const endpoints = [
     "https://text.pollinations.ai/openai",
     "https://gen.pollinations.ai/v1/chat/completions"
   ];
-  for (const ep of endpoints) {
-    for (const useJson of (wantJson ? [true, false] : [false])) {
-      try { return await postChat(ep, useJson, false); }
-      catch (e) { /* next combo */ }
+  // Try each model on each endpoint (json first, then without).
+  for (const model of models) {
+    for (const ep of endpoints) {
+      for (const useJson of (wantJson ? [true, false] : [false])) {
+        try { return await postChat(ep, model, useJson, false); }
+        catch (e) { /* next combo */ }
+      }
     }
   }
-  // proxied last resort
+  // proxied last resort with the strongest model
   for (const useJson of (wantJson ? [true, false] : [false])) {
-    try { return await postChat("https://text.pollinations.ai/openai", useJson, true); }
+    try { return await postChat("https://text.pollinations.ai/openai", "openai-large", useJson, true); }
     catch (e) { /* next */ }
   }
 
