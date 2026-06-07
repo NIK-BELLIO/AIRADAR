@@ -4137,72 +4137,48 @@ async function vsAutoAiChat(prompt, opts) {
     return (txt && String(txt).trim()) ? String(txt) : null;
   };
 
-  // Endpoint 1 — OpenAI-compatible POST on text.pollinations.ai (handles long
-  // prompts; a GET would blow past URL length limits with a full article).
-  try {
+  // POST a chat request to one endpoint. `useJson` toggles response_format,
+  // `viaProxy` wraps it through corsproxy for blocked origins.
+  async function postChat(endpoint, useJson, viaProxy) {
     const body = {
       model: "openai",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.75, seed: seed
+      temperature: 0.7, seed: seed
     };
-    if (wantJson) body.response_format = { type: "json_object" };
-    const resp = await fetch("https://text.pollinations.ai/openai", {
+    if (useJson) body.response_format = { type: "json_object" };
+    const target = viaProxy
+      ? "https://corsproxy.io/?url=" + encodeURIComponent(endpoint)
+      : endpoint;
+    const resp = await fetch(target, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    if (resp.ok) {
-      const data = await resp.json();
-      const t = parseChoices(data);
-      if (t) return t;
-    }
-  } catch (e) { /* next */ }
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    const t = parseChoices(data);
+    if (!t) throw new Error("empty");
+    return t;
+  }
 
-  // Endpoint 2 — gen.pollinations.ai OpenAI-compatible POST
-  try {
-    const body = {
-      model: "openai",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.75, seed: seed
-    };
-    if (wantJson) body.response_format = { type: "json_object" };
-    const resp = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      const t = parseChoices(data);
-      if (t) return t;
+  // Try each endpoint; for each, try WITH json first then WITHOUT (some
+  // models reject response_format). Order: direct hosts, then proxy.
+  const endpoints = [
+    "https://text.pollinations.ai/openai",
+    "https://gen.pollinations.ai/v1/chat/completions"
+  ];
+  for (const ep of endpoints) {
+    for (const useJson of (wantJson ? [true, false] : [false])) {
+      try { return await postChat(ep, useJson, false); }
+      catch (e) { /* next combo */ }
     }
-  } catch (e) { /* next */ }
+  }
+  // proxied last resort
+  for (const useJson of (wantJson ? [true, false] : [false])) {
+    try { return await postChat("https://text.pollinations.ai/openai", useJson, true); }
+    catch (e) { /* next */ }
+  }
 
-  // Endpoint 3 — POST routed through a CORS proxy (in case the API blocks the
-  // browser Origin directly). allorigins forwards the JSON body.
-  try {
-    const body = {
-      model: "openai",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.75, seed: seed
-    };
-    if (wantJson) body.response_format = { type: "json_object" };
-    const resp = await fetch(
-      "https://corsproxy.io/?url=" + encodeURIComponent("https://text.pollinations.ai/openai"),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      }
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      const t = parseChoices(data);
-      if (t) return t;
-    }
-  } catch (e) { /* next */ }
-
-  // All free endpoints unreachable → signal caller to use the local builder.
   throw new Error("AI temporarily unavailable");
 }
 
@@ -4282,21 +4258,22 @@ async function buildAutoVideo(useAI) {
     ? "دستیار در حال نوشتن فیلمنامه…" : "Assistant is writing the script…");
 
   const prompt = `You are an award-winning ${toneGuide}
-You will turn the SOURCE below into a complete, professional short-form video. If the source is just a topic or rough idea (not a full article), use your own expert knowledge to develop it into accurate, specific, engaging content — like a real creative assistant would. If it is a full article, extract and dramatize its real facts.
-IMPORTANT: Ignore any website navigation text, menus, button labels, cookie notices, or boilerplate like "skip to main content", "subscribe", "share", category lists, or related-links. These are NOT the story. Identify the actual news/article topic and build the video around THAT. Never use navigation words as a title or headline.
+Turn the SOURCE below into a complete, professional short-form video script. If the SOURCE is a real article, dig into its ACTUAL substance — the specific facts, figures, names, places, causes and consequences. Lead with what genuinely matters most. If the SOURCE is only a topic/idea, use your expert knowledge to develop accurate, concrete specifics. Be a sharp journalist, not a generic copywriter.
+IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"max 6 impactful words","subtitle":"max 8 descriptive words","kicker":"1-2 ALL-CAPS category words","palette":"fire|ocean|forest|gold|neon|mono","sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one punchy sentence (max 11 words)","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outroMain":"3-4 action words"}
+{"title":"the core story in max 6 words","subtitle":"max 8 words that add real context","kicker":"1-2 ALL-CAPS category words","source":"the publication or outlet name if known, else a fitting newsroom label","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"a sharp 3-6 word hook headline","sub":"max 8 words framing the story"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one vivid, specific sentence (max 12 words)","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words"}}
 
 RULES:
-1. Produce EXACTLY ${sectionRange} sections. Open with the single most compelling hook.
-2. INFOGRAPHIC: use when there is real quantitative data (2-5 stats, realistic formatted values). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two contrasting values, ranking=ordered.
-3. TEXT: for narrative, quotes, context. headline = ONE vivid, specific sentence — never generic filler.
-4. Never two infographics in a row. Vary the text styles for visual rhythm.
-5. Match the ${tone} tone in every word choice.
-6. kicker = topic category in 1-2 ALL-CAPS words.
-7. Be accurate and specific. Real numbers, real names, real detail. No vague platitudes.
-${analysis ? "\nCREATIVE BRIEF (use this analysis to guide the script):\n" + analysis + "\n" : ""}SOURCE: """${text.slice(0, 7000)}"""`;
+1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
+2. INFOGRAPHIC: only with real quantitative data (2-5 stats, realistic values). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered.
+3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
+4. Never two infographics in a row. Vary text styles for rhythm.
+5. Match the ${tone} tone precisely in word choice and energy.
+6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
+7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise "AI Radar — Newsroom".
+8. Every line must be accurate and specific. Real numbers, real names, real detail.
+SOURCE: """${text.slice(0, 7000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
     // Pollinations / LLMs sometimes wrap JSON in prose or code fences.
@@ -4435,17 +4412,22 @@ function vsAssembleFromSections(data) {
   };
 
   const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
+  const srcLabel = (data.source && String(data.source).trim())
+    ? String(data.source).trim().slice(0, 60) : "AI Radar — Newsroom";
 
   // Helper: clean settings with all overlays explicitly OFF
   const cleanSet2 = () => { const s = vsCaptureSettings(); s["#vsInfoOn"] = false; s["#vsNewsOn"] = false; return s; };
 
-  // intro — dramatic entrance
+  // intro — dramatic entrance with a precise hook + the source line
+  const introMain = (data.intro && data.intro.main) || data.title || "Today's story";
+  const introSub  = (data.intro && data.intro.sub)  || data.subtitle || "";
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
-    introBg: bg(0), introMain: data.title || "Today's story",
-    introSub: data.subtitle || "", introMotion: "rise-spring",
+    introBg: bg(0), introMain: introMain,
+    introSub: introSub ? (introSub + "  ·  " + srcLabel) : srcLabel,
+    introMotion: "rise-spring",
     headline: "", duration: 3, settings: cleanSet2(),
-    _timelineLabel: data.title || "Intro"
+    _timelineLabel: introMain
   });
 
   let bi = 1;
@@ -4490,7 +4472,7 @@ function vsAssembleFromSections(data) {
       set["#vsNewsMotion"] = motion;
       set["#vsNewsKicker"] = kicker;
       set["#vsNewsHeadline"] = String(sec.headline || sec.title || "").slice(0, 200);
-      set["#vsNewsSource"] = "";
+      set["#vsNewsSource"] = srcLabel;
       // Store emphasis words for richer rendering
       if (sec.emphasis) set["#vsNewsEmphasis"] = sec.emphasis;
       set["#vsInfoOn"] = false;
@@ -4505,14 +4487,16 @@ function vsAssembleFromSections(data) {
     }
   });
 
-  // outro
+  // outro — key takeaway + source credit
+  const outroMain = (data.outro && data.outro.main) || data.outroMain || "Thanks for watching";
+  const outroSub  = (data.outro && data.outro.sub)  || srcLabel;
   vstudio.slides.push({
     url: null, isVideo: false, mediaEl: null, ready: true,
     isIntro: true, isOutro: true, introBg: bg(0),
-    introMain: data.outroMain || "Thanks for watching",
-    introSub: "Follow for more", introMotion: "spring",
+    introMain: outroMain,
+    introSub: outroSub, introMotion: "spring",
     headline: "", duration: 3, settings: cleanSet2(),
-    _timelineLabel: data.outroMain || "Outro"
+    _timelineLabel: outroMain
   });
 
   renderSlideList();
@@ -5411,14 +5395,23 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   if (!kicker && !headline && !source) { vstudio.newsBox = null; return; }
 
   const style    = val("#vsNewsStyle", "lowerthird");
-  const accentKey = val("#vsNewsAccent", "red");
+  const accentKey = val("#vsNewsAccent", "auto");
   const accents = {
     red:  { bar: "#c0202a", text: "#ffffff" },
     blue: { bar: "#15418c", text: "#ffffff" },
     gold: { bar: "#d8b76a", text: "#1a1408" },
     mono: { bar: "#1a1a1a", text: "#ffffff" }
   };
-  const ac = accents[accentKey] || accents.red;
+  let ac = accents[accentKey];
+  if (!ac || accentKey === "auto") {
+    // follow the active template's accent colour so changing the template
+    // restyles the news banner too (just like the infographic).
+    const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
+    const acc = (tpl && tpl.accent) ? tpl.accent : "#d8b76a";
+    // pick readable text colour based on accent luminance
+    const lum = vsHexLuma ? vsHexLuma(acc) : 160;
+    ac = { bar: acc, text: lum > 150 ? "#1a1408" : "#ffffff" };
+  }
   const playing = vstudio.looping || vstudio.rendering;
   const slideRaw = playing ? Math.min(1, elapsed / 0.7) : 1;
   const slideEase = vsEasePro(slideRaw);
@@ -9236,49 +9229,18 @@ function bindEvents() {
   // ── PUTER AI — browser-based AI for infographic + news ──────
   // Returns the model's text reply, or throws a friendly error.
   async function vsAiChat(prompt) {
-    // Free Pollinations.ai first — no login, no credits, no "Low Balance".
+    // Reuse the robust, free Pollinations chain (POST + JSON + proxy fallback).
     try {
-      const resp = await fetch("https://text.pollinations.ai/openai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "openai",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.8,
-          seed: Math.floor(Math.random() * 1e6)
-        })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const txt = data && data.choices && data.choices[0] &&
-                    data.choices[0].message && data.choices[0].message.content;
-        if (txt && String(txt).trim()) return String(txt);
-      }
-    } catch (e) { /* fall through */ }
+      const t = await vsAutoAiChat(prompt, { json: true });
+      if (t && String(t).trim()) return String(t);
+    } catch (e) { /* fall through to plain-text attempts below */ }
+    // last resort: simple GET (short prompts only)
     try {
       const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
                   "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
       const r = await fetch(url);
-      if (r.ok) { const t = await r.text(); if (t && t.trim()) return t; }
-    } catch (e) { /* next */ }
-    // second free host
-    try {
-      const resp = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "openai",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.8, seed: Math.floor(Math.random() * 1e6)
-        })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const txt = data && data.choices && data.choices[0] &&
-                    data.choices[0].message && data.choices[0].message.content;
-        if (txt && String(txt).trim()) return String(txt);
-      }
-    } catch (e) { /* give up — no paid fallback */ }
+      if (r.ok) { const tt = await r.text(); if (tt && tt.trim()) return tt; }
+    } catch (e) { /* give up */ }
     throw new Error(state.lang === "fa"
       ? "سرویس هوش مصنوعی موقتاً در دسترس نیست. کمی بعد دوباره امتحان کن."
       : "AI service temporarily unavailable. Please try again shortly.");
