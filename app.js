@@ -3080,7 +3080,7 @@ function renderLiveChart() {
       const hot = compared.has(item.name);
       const color = hot ? "#fff0b8" : "#d8b76a";
       const disp = formatMetricValue(val);
-      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="${firstPaint ? `animation-delay:${i*45}ms` : `animation:none`}">
+      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="opacity:1;animation:none">
         <div class="bar-meta">
           <img src="https://www.google.com/s2/favicons?domain=${item.domain || "github.com"}&sz=32" alt="" loading="lazy" onerror="this.style.display='none'" />
           <div class="bar-names"><strong>${item.name}</strong></div>
