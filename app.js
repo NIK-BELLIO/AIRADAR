@@ -4440,6 +4440,7 @@ function vsAssembleFromSections(data) {
     introSub: introSub ? (introSub + "  ·  " + srcLabel) : srcLabel,
     introMotion: "rise-spring",
     headline: "", duration: 3, settings: cleanSet2(),
+    _kicker: kicker || "AI RADAR",
     _timelineLabel: introMain
   });
 
@@ -7305,13 +7306,18 @@ function drawStudioFrame(elapsed) {
     const introTpl = {
       text: (tpl && tpl.text) || "#ffffff",
       accent: (tpl && tpl.accent) || bg.accent,
-      headlineFont: (tpl && tpl.headlineFont) || "Prata, serif"
+      headlineFont: (tpl && tpl.headlineFont) || "Prata, serif",
+      // eyebrow label above the intro title (uses the AI kicker if present)
+      _eyebrow: introSlide.isOutro ? "" :
+        ((introSlide.settings && introSlide.settings["#vsNewsKicker"]) ||
+         introSlide._kicker || "AI RADAR")
     };
     // Skip color filter for animated motion backgrounds — only apply to footage
     if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
     drawCard(ctx, W, H, introTpl,
       introSlide.introMain || "", 1,
-      introSlide.introSub || "", introSlide.introMotion || "rise", k);
+      introSlide.introSub || "", introSlide.introMotion || "rise", k,
+      introSlide.isOutro ? "outro" : "intro");
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
     vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
@@ -7895,9 +7901,12 @@ function vsApplyGlobalFilter(ctx, canvas, W, H) {
 }
 
 // Draw a centred intro/outro card.
-function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
+function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind) {
   // `prog` 0..1 is the entrance progress; `motion` picks the animation.
-  // `alpha` is the overall card fade (in then out).
+  // `alpha` is the overall card fade (in then out). `kind` is "intro",
+  // "outro" or undefined — intro is rendered larger and more cinematic.
+  const isIntro = kind === "intro";
+  const isOutro = kind === "outro";
   ctx.save();
   ctx.globalAlpha = Math.max(0, alpha);
   const U = Math.min(W, H);
@@ -7968,12 +7977,16 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   ctx.fillStyle = tpl.text;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  // The headline WRAPS to up to 3 lines so a long title stays readable
-  // instead of running off the frame. Font shrinks only a little; the
-  // rest of the length is handled by wrapping.
+  // cinematic glow behind the intro title
+  if (isIntro) {
+    ctx.shadowColor = tpl.accent;
+    ctx.shadowBlur = U * 0.05 * e;
+  }
   const maxTextW = W * 0.82;
-  let fontPx = Math.round(U * 0.072);
-  ctx.font = `600 ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+  // intro headlines are bigger and bolder for impact; outro a touch smaller
+  let fontPx = Math.round(U * (isIntro ? 0.094 : isOutro ? 0.066 : 0.072));
+  const headWeight = isIntro ? 700 : 600;
+  ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
   // helper: break text into lines that each fit maxTextW (cap at maxLines)
   const layout = (str, maxLines) => {
     const words = String(str).split(/\s+/).filter(Boolean);
@@ -7994,7 +8007,7 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   while (fontPx > U * 0.022 &&
          layout(txt, 99).length > 3) {
     fontPx -= 1;
-    ctx.font = `600 ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+    ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
     lines = layout(txt, 3);
   }
   // extreme case — still overflowing 3 lines: ellipsize the last line
@@ -8037,8 +8050,8 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   // divider and secondary text so they never overlap a multi-line title.
   const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6;
 
-  // accent divider line
-  const lw = U * 0.14 * e;
+  // accent divider line — intro gets a fancier centred divider with a diamond
+  const lw = U * (isIntro ? 0.2 : 0.14) * e;
   const dividerY = cy + headBottom + U * 0.03;
   ctx.strokeStyle = tpl.accent;
   ctx.lineWidth = Math.max(1, U * 0.003);
@@ -8046,6 +8059,40 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog) {
   ctx.moveTo(cx - lw / 2, dividerY);
   ctx.lineTo(cx + lw / 2, dividerY);
   ctx.stroke();
+  if (isIntro && e > 0.6) {
+    // a small diamond centred on the divider for an editorial flourish
+    const ds = U * 0.012 * e;
+    ctx.fillStyle = tpl.accent;
+    ctx.save();
+    ctx.translate(cx, dividerY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillRect(-ds / 2, -ds / 2, ds, ds);
+    ctx.restore();
+  }
+
+  // intro EYEBROW — a small all-caps label above the title for a premium feel
+  if (isIntro) {
+    const eb = (tpl._eyebrow || "").toUpperCase();
+    if (eb) {
+      const ebE = 1 - Math.pow(1 - Math.max(0, Math.min(1, (prog == null ? 1 : prog) * 1.6)), 3);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha) * ebE;
+      ctx.fillStyle = tpl.accent;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${Math.round(U * 0.026)}px Inter, sans-serif`;
+      // letter-spaced label
+      const chars = [...eb];
+      const sp = U * 0.012;
+      let total = 0;
+      const ws = chars.map(c => { const w = ctx.measureText(c).width + sp; total += w; return w; });
+      let x = cx - total / 2;
+      const ebY = cy - headBottom - U * 0.075;
+      ctx.textAlign = "left";
+      chars.forEach((c, i) => { ctx.fillText(c, x, ebY); x += ws[i]; });
+      ctx.restore();
+    }
+  }
 
   // secondary text — fades in slightly after the main text. It also
   // wraps to up to 2 lines so a long sub-line stays readable.
