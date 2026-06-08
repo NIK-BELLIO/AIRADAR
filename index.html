@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v260" />
+    <link rel="stylesheet" href="styles.css?v=v262" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -64,8 +64,38 @@
       @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
       @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
     
+      /* ── GITHUB DASHBOARD ────────────────────────────── */
+      .gh-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 4px 0 14px; }
+      @media (max-width: 720px) { .gh-summary { grid-template-columns: 1fr 1fr; } }
+      .gh-sum-card { padding: 12px 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); }
+      .gh-sum-val { font-family: Prata, serif; font-size: 22px; color: var(--gold-2); line-height: 1; }
+      .gh-sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; }
+      .gh-sum-sub { font-size: 11px; color: var(--text); margin-top: 3px; font-weight: 600; }
+      .gh-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+      .gh-sort { display: flex; gap: 6px; }
+      .gh-sort-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+      .gh-sort-btn.active, .gh-sort-btn:hover { border-color: rgba(216,183,106,0.5); color: var(--gold-2); background: rgba(216,183,106,0.08); }
+      .gh-search { flex: 1; min-width: 140px; max-width: 240px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 13px; }
+      .gh-search:focus { outline: none; border-color: rgba(216,183,106,0.5); }
+      /* multi-metric rows */
+      .gh-multi-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+      .gh-multi-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .gh-multi-bars { display: flex; flex-direction: column; gap: 5px; }
+      .gh-multi-bar { display: grid; grid-template-columns: 54px 1fr 60px; gap: 8px; align-items: center; font-size: 10px; }
+      .gh-multi-bar-label { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+      .gh-multi-track { height: 7px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .gh-multi-fill { height: 100%; border-radius: 4px; }
+      .gh-multi-fill.stars { background: linear-gradient(90deg, #d8b76a, #f0d99a); }
+      .gh-multi-fill.forks { background: linear-gradient(90deg, #7fa6d8, #a8c4e8); }
+      .gh-multi-fill.activity { background: linear-gradient(90deg, #7fd8a6, #a8e8c4); }
+      .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
       /* ── AI STATUS MONITOR ───────────────────────────── */
-      .ai-monitor { margin: 18px 0; }
+      .tod-monitor-row { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 20px; }
+      .tod-monitor-row > .tod-panel { margin: 0; }
+      .tod-monitor-row > .ai-monitor { margin: 0; }
+      @media (max-width: 960px) { .tod-monitor-row { grid-template-columns: 1fr; } }
+      .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
       .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
       .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
       .aimon-title-wrap h2 { margin: 2px 0 0; font-size: 22px; }
@@ -74,8 +104,9 @@
       .aimon-summary { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--text); }
       .aimon-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; }
       .aimon-sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
-      .aimon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-      .aimon-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
+      .aimon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+      @media (max-width: 1200px) { .aimon-grid { grid-template-columns: 1fr; } }
+      .aimon-card { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
       .aimon-card:hover { transform: translateY(-2px); border-color: rgba(216,183,106,0.4); }
       .aimon-card-logo { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; }
       .aimon-card-body { flex: 1; min-width: 0; }
@@ -422,6 +453,8 @@
         <!-- TOOLS -->
         
 
+        <!-- TOP ROW: Tool of the Day (left) | AI Monitor (right) -->
+        <div class="tod-monitor-row">
         <!-- TOOL OF THE DAY -->
         <section id="toolOfDay" class="panel tod-panel">
           <div class="tod-inner">
@@ -491,6 +524,8 @@
           </div>
         </section>
         <!-- /AI STATUS MONITOR -->
+        </div>
+        <!-- /TOP ROW -->
 
         <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
@@ -561,6 +596,7 @@
               <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
               <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
               <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
+              <button class="chart-tab" data-metric="multi" id="chartTabMulti">Multi-metric</button>
             </div>
             <div class="chart-live-bar">
               <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
@@ -570,6 +606,20 @@
               </button>
             </div>
           </div>
+
+          <!-- summary stat cards -->
+          <div class="gh-summary" id="ghSummary"></div>
+
+          <!-- sort + search controls -->
+          <div class="gh-controls">
+            <div class="gh-sort" id="ghSort">
+              <button class="gh-sort-btn active" data-sort="value">Highest</button>
+              <button class="gh-sort-btn" data-sort="growth">Most active</button>
+              <button class="gh-sort-btn" data-sort="name">A–Z</button>
+            </div>
+            <input id="ghSearch" class="gh-search" type="text" placeholder="Filter tools…" />
+          </div>
+
           <div id="performanceChart" class="performance-chart"></div>
           <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
         </section>
@@ -1374,7 +1424,7 @@
       } else { loadFonts(); }
     })();
     </script>
-    <script src="app.js?v=v260"></script>
+    <script src="app.js?v=v262"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
