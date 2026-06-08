@@ -1,3 +1,8 @@
+// Pollinations API key — unlocks the strong text/image models on the free
+// tier. NOTE: this is visible in the public source; if its credit is ever
+// drained, generate a new key at enter.pollinations.ai and replace it here.
+const VS_POLLINATIONS_KEY = "sk_fxKqS1gG6wVVttINlEowCNP3ktoJ0TtD";
+
 const i18n = {
   en: {
     navGroupExplore: "Explore",
@@ -4149,9 +4154,11 @@ async function vsAutoAiChat(prompt, opts) {
     const target = viaProxy
       ? "https://corsproxy.io/?url=" + encodeURIComponent(endpoint)
       : endpoint;
+    const headers = { "Content-Type": "application/json" };
+    if (VS_POLLINATIONS_KEY) headers["Authorization"] = "Bearer " + VS_POLLINATIONS_KEY;
     const resp = await fetch(target, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify(body)
     });
     if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -4161,12 +4168,14 @@ async function vsAutoAiChat(prompt, opts) {
     return t;
   }
 
-  // Strongest free Pollinations models first — these are far smarter than the
-  // default "openai" (gpt-4.1-mini). All free, no key, no login.
-  const models = ["openai-large", "gemini", "claude", "openai-reasoning", "openai"];
+  // With an API key, the strong models unlock. Try them in order of quality,
+  // then fall back to the always-free default.
+  const models = VS_POLLINATIONS_KEY
+    ? ["openai-large", "gemini", "claude", "openai-reasoning", "openai"]
+    : ["openai"];
   const endpoints = [
-    "https://text.pollinations.ai/openai",
-    "https://gen.pollinations.ai/v1/chat/completions"
+    "https://gen.pollinations.ai/v1/chat/completions",
+    "https://text.pollinations.ai/openai"
   ];
   // Try each model on each endpoint (json first, then without).
   for (const model of models) {
@@ -4177,9 +4186,9 @@ async function vsAutoAiChat(prompt, opts) {
       }
     }
   }
-  // proxied last resort with the strongest model
+  // proxied last resort
   for (const useJson of (wantJson ? [true, false] : [false])) {
-    try { return await postChat("https://text.pollinations.ai/openai", "openai-large", useJson, true); }
+    try { return await postChat("https://text.pollinations.ai/openai", "openai", useJson, true); }
     catch (e) { /* next */ }
   }
 
@@ -4647,15 +4656,16 @@ async function vsGenerateImage(promptText, aspect) {
   const enc = encodeURIComponent(styled);
   // Build a list of candidate URLs across hosts + models. Pollinations
   // sometimes errors anonymously on one model/host but works on another.
+  const tok = VS_POLLINATIONS_KEY ? ("&token=" + encodeURIComponent(VS_POLLINATIONS_KEY)) : "";
   const candidates = [];
   const seeds = [Math.floor(Math.random() * 1e6), Math.floor(Math.random() * 1e6)];
   for (const sd of seeds) {
     candidates.push("https://image.pollinations.ai/prompt/" + enc +
-      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux&nologo=true");
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux&nologo=true" + tok);
     candidates.push("https://image.pollinations.ai/prompt/" + enc +
-      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=turbo&nologo=true");
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=turbo&nologo=true" + tok);
     candidates.push("https://gen.pollinations.ai/image/" + enc +
-      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux");
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux" + tok);
   }
 
   // Load an image URL. Try WITHOUT crossOrigin first (most reliable for mere
