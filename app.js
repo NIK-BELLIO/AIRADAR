@@ -1458,10 +1458,13 @@ function setLanguage(lang) {
   renderTools();
   renderCompare();
   render3DChart();
-  // refresh the AI monitor labels (Operational/فعال etc.) on language switch
-  if (typeof aiMonRenderAll === "function" && document.querySelector("#aimonGrid")) {
+  // refresh the AI monitor labels (Operational/فعال etc.) on language switch.
+  // _aiMonInited (a hoisted var) is only true AFTER the monitor consts exist,
+  // so calling this during early startup can't hit a const TDZ error.
+  if (typeof _aiMonInited !== "undefined" && _aiMonInited &&
+      document.querySelector("#aimonGrid")) {
     aiMonRenderAll();
-    if (typeof aiMonUpdateSummary === "function") aiMonUpdateSummary();
+    aiMonUpdateSummary();
   }
 }
 
@@ -9749,6 +9752,9 @@ const AI_MONITOR_SERVICES = [
 
 // keep a short latency history per service for the sparkline
 const _aiMonHistory = {};
+// hoisted flag (var, not const) so setLanguage can safely check it during
+// early startup before these consts are initialized.
+var _aiMonInited = true;
 
 // Ping one service by fetching its favicon (no-cors) and timing it.
 // Resolves to { ok, latency }. Always resolves (never hangs) thanks to the
