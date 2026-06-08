@@ -1458,6 +1458,11 @@ function setLanguage(lang) {
   renderTools();
   renderCompare();
   render3DChart();
+  // refresh the AI monitor labels (Operational/فعال etc.) on language switch
+  if (typeof aiMonRenderAll === "function" && document.querySelector("#aimonGrid")) {
+    aiMonRenderAll();
+    if (typeof aiMonUpdateSummary === "function") aiMonUpdateSummary();
+  }
 }
 
 function formatPrice(price) {
@@ -9394,6 +9399,9 @@ function bindEvents() {
       const onBox = $("#vsInfoOn");
       if (onBox) onBox.checked = true;
       vsInfoFormToJson();
+      // persist to the active slide so it doesn't vanish on preview/redraw
+      if (vstudio.slides.length) vsSaveActiveSlide();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
       vsPushHistory();
       if (status) { status.className = "vstudio-note vs-ok";
         status.textContent = state.lang === "fa"
@@ -9444,6 +9452,9 @@ function bindEvents() {
       const onBox = $("#vsNewsOn");
       if (onBox) onBox.checked = true;
       vsInfoLiveRefresh();
+      // persist to the active slide so it doesn't vanish on preview/redraw
+      if (vstudio.slides.length) vsSaveActiveSlide();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
       vsPushHistory();
       if (status) { status.className = "vstudio-note vs-ok";
         status.textContent = state.lang === "fa"
@@ -9614,3 +9625,158 @@ window.addEventListener("load", () => renderLiveChart());
 // (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
 // repos per refresh, a 5-minute interval stays well within budget.)
 setInterval(fetchLiveChartData, 5 * 60 * 1000);
+
+// ─────────────────────────────────────────────────────────────────────────
+// AI SERVICE STATUS MONITOR
+// Measures real-time reachability + latency of major AI platforms from the
+// visitor's browser. We can't read their private status APIs (CORS), so we
+// time a tiny no-cors request to each service's public favicon/CDN: a fast
+// response = operational, a slow one = degraded, a failure = likely down.
+// This reflects what the user's own connection to each service looks like.
+// ─────────────────────────────────────────────────────────────────────────
+const AI_MONITOR_SERVICES = [
+  { id: "openai",     name: "ChatGPT",     logo: "GP", url: "https://chat.openai.com/favicon.ico" },
+  { id: "claude",     name: "Claude",      logo: "Cl", url: "https://claude.ai/favicon.ico" },
+  { id: "gemini",     name: "Gemini",      logo: "Ge", url: "https://gemini.google.com/favicon.ico" },
+  { id: "grok",       name: "Grok",        logo: "Gr", url: "https://grok.com/favicon.ico" },
+  { id: "perplexity", name: "Perplexity",  logo: "Px", url: "https://www.perplexity.ai/favicon.ico" },
+  { id: "deepseek",   name: "DeepSeek",    logo: "Ds", url: "https://www.deepseek.com/favicon.ico" },
+  { id: "mistral",    name: "Mistral",     logo: "Mi", url: "https://mistral.ai/favicon.ico" },
+  { id: "midjourney", name: "Midjourney",  logo: "Mj", url: "https://www.midjourney.com/favicon.ico" },
+  { id: "huggingface",name: "Hugging Face",logo: "HF", url: "https://huggingface.co/favicon.ico" },
+  { id: "pollinations",name:"Pollinations",logo: "Po", url: "https://pollinations.ai/favicon.ico" }
+];
+
+// keep a short latency history per service for the sparkline
+const _aiMonHistory = {};
+
+// Ping one service by loading its favicon and timing it. Resolves to
+// { ok, latency } — ok=false means it didn't respond before the timeout.
+function aiMonPing(service) {
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const img = new Image();
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return; settled = true;
+      const latency = Math.round(performance.now() - start);
+      resolve({ ok, latency });
+    };
+    const timer = setTimeout(() => finish(false), 8000);
+    img.onload = () => { clearTimeout(timer); finish(true); };
+    img.onerror = () => {
+      // favicon may 404 or be blocked, but a fast error still means the host
+      // answered — treat a quick error as "reachable", a timeout as "down".
+      clearTimeout(timer);
+      const latency = performance.now() - start;
+      finish(latency < 8000);
+    };
+    // cache-bust so we measure a fresh round-trip each time
+    img.src = service.url + "?_=" + Date.now();
+  });
+}
+
+function aiMonStatusFromLatency(ok, latency) {
+  if (!ok) return "down";
+  if (latency > 2500) return "slow";
+  return "up";
+}
+
+function aiMonRenderCard(service, state2) {
+  const st = state2.status; // up | slow | down | checking
+  const stTxt = {
+    up: state.lang === "fa" ? "فعال" : "Operational",
+    slow: state.lang === "fa" ? "کند" : "Degraded",
+    down: state.lang === "fa" ? "قطع" : "Unreachable",
+    checking: state.lang === "fa" ? "بررسی…" : "Checking…"
+  }[st];
+  const hist = _aiMonHistory[service.id] || [];
+  const maxL = Math.max(120, ...hist);
+  const spark = hist.map(l => {
+    const h = Math.max(3, Math.round((l / maxL) * 18));
+    return `<i style="height:${h}px"></i>`;
+  }).join("");
+  const latTxt = (st === "up" || st === "slow")
+    ? `<span class="aimon-latency">${state2.latency} ms</span>` : "";
+  return `
+    <div class="aimon-card" data-id="${service.id}">
+      <div class="aimon-card-logo">${service.logo}</div>
+      <div class="aimon-card-body">
+        <div class="aimon-card-name">${service.name}</div>
+        <div class="aimon-card-meta">
+          <span class="aimon-status aimon-st-${st}">
+            <span class="aimon-dot ${st}"></span>${stTxt}
+          </span>
+          ${latTxt}
+        </div>
+      </div>
+      <div class="aimon-spark">${spark}</div>
+    </div>`;
+}
+
+let _aiMonState = {};
+function aiMonRenderAll() {
+  const grid = document.querySelector("#aimonGrid");
+  if (!grid) return;
+  grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
+    aiMonRenderCard(s, _aiMonState[s.id] || { status: "checking", latency: 0 })
+  ).join("");
+}
+
+function aiMonUpdateSummary() {
+  const states = AI_MONITOR_SERVICES.map(s => (_aiMonState[s.id] || {}).status);
+  const up = states.filter(s => s === "up").length;
+  const slow = states.filter(s => s === "slow").length;
+  const down = states.filter(s => s === "down").length;
+  const total = AI_MONITOR_SERVICES.length;
+  const dot = document.querySelector(".aimon-summary-dot");
+  const txt = document.querySelector("#aimonSummaryText");
+  if (!txt) return;
+  let color = "#35d07f", msg;
+  if (down > total / 2) { color = "#e0533d"; msg = state.lang === "fa" ? "اختلال گسترده" : "Major outage"; }
+  else if (down > 0 || slow > 1) { color = "#e8b339"; msg = state.lang === "fa" ? "اختلال جزئی" : "Partial issues"; }
+  else { msg = state.lang === "fa" ? "همه سیستم‌ها فعال" : "All systems operational"; }
+  if (dot) dot.style.background = color;
+  const pulse = document.querySelector(".aimon-pulse");
+  if (pulse) pulse.style.background = color;
+  txt.textContent = `${msg}  ·  ${up}/${total}`;
+}
+
+async function aiMonRunChecks() {
+  // mark all as checking
+  AI_MONITOR_SERVICES.forEach(s => {
+    _aiMonState[s.id] = _aiMonState[s.id] || { status: "checking", latency: 0 };
+  });
+  aiMonRenderAll();
+  // ping all in parallel
+  await Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
+    const { ok, latency } = await aiMonPing(s);
+    const status = aiMonStatusFromLatency(ok, latency);
+    _aiMonState[s.id] = { status, latency };
+    // record history (keep last 12)
+    const h = _aiMonHistory[s.id] || (_aiMonHistory[s.id] = []);
+    h.push(ok ? latency : 0);
+    if (h.length > 12) h.shift();
+  }));
+  aiMonRenderAll();
+  aiMonUpdateSummary();
+  const upd = document.querySelector("#aimonUpdated");
+  if (upd) {
+    const now = new Date();
+    upd.textContent = (state.lang === "fa" ? "آخرین بروزرسانی: " : "Last updated: ") +
+      now.toLocaleTimeString();
+  }
+}
+
+function initAiMonitor() {
+  if (!document.querySelector("#aimonGrid")) return;
+  aiMonRenderAll();
+  aiMonRunChecks();
+  const btn = document.querySelector("#aimonRefresh");
+  if (btn) btn.addEventListener("click", () => aiMonRunChecks());
+  // auto-refresh every 60s
+  setInterval(aiMonRunChecks, 60000);
+}
+
+// kick off after load so it doesn't compete with first paint
+window.addEventListener("load", () => setTimeout(initAiMonitor, 800));
