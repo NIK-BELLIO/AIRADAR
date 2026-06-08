@@ -9920,3 +9920,177 @@ if (document.readyState === "loading") {
 } else {
   setTimeout(_aiMonBoot, 200);
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// FULLSCREEN LIVE DASHBOARD (second-monitor mode)
+// Reuses the monitor + GitHub data + tool-of-day, refreshed on a timer, with
+// a live clock and a scrolling AI news/feed ticker.
+// ─────────────────────────────────────────────────────────────────────────
+let _ldClockTimer = null, _ldRefreshTimer = null, _ldTickerLoaded = false;
+
+function ldFmt(v) {
+  if (v == null) return "—";
+  if (v >= 1000) return (v / 1000).toFixed(1) + "k";
+  return String(Math.round(v));
+}
+
+function ldRenderMonitor() {
+  const grid = document.querySelector("#ldMonitorGrid");
+  if (!grid) return;
+  const fa = state.lang === "fa";
+  const stTxt = { up: fa?"فعال":"Operational", slow: fa?"کند":"Degraded", down: fa?"قطع":"Down", checking: fa?"…":"…" };
+  grid.innerHTML = AI_MONITOR_SERVICES.map(s => {
+    const st = (_aiMonState[s.id] || {}).status || "checking";
+    const lat = (_aiMonState[s.id] || {}).latency || 0;
+    return `<div class="ld-mon-item">
+      <div class="ld-mon-logo">${s.logo}</div>
+      <div class="ld-mon-body">
+        <div class="ld-mon-name">${s.name}</div>
+        <div class="ld-mon-meta"><span class="ld-mon-dot ${st}"></span>${stTxt[st]}${(st==="up"||st==="slow")?` · ${lat}ms`:""}</div>
+      </div>
+    </div>`;
+  }).join("");
+  // summary
+  const states = AI_MONITOR_SERVICES.map(s => (_aiMonState[s.id]||{}).status);
+  const up = states.filter(s => s === "up").length;
+  const txt = document.querySelector("#ldMonSummaryTxt");
+  const dot = document.querySelector(".ld-summary-dot");
+  if (txt) txt.textContent = `${up}/${AI_MONITOR_SERVICES.length} ${fa?"فعال":"online"}`;
+  if (dot) dot.style.background = up > AI_MONITOR_SERVICES.length/2 ? "#35d07f" : "#e8b339";
+}
+
+function ldRenderChart() {
+  const body = document.querySelector("#ldChartBody");
+  if (!body) return;
+  const list = liveChartData.filter(d => (d.stars||0) > 0)
+    .sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0, 10);
+  const max = Math.max(...list.map(d => d.stars||0), 1);
+  if (!list.length) { body.innerHTML = `<p style="color:#b9a98a">Loading…</p>`; return; }
+  body.innerHTML = list.map(d => `
+    <div class="ld-chart-row">
+      <span class="ld-chart-name">${d.name}</span>
+      <div class="ld-chart-track"><div class="ld-chart-fill" style="width:${Math.min(100,(d.stars/max)*100)}%"></div></div>
+      <span class="ld-chart-val">${ldFmt(d.stars)}</span>
+    </div>`).join("");
+}
+
+function ldRenderTod() {
+  const body = document.querySelector("#ldTodBody");
+  if (!body) return;
+  // reuse tool-of-day pick if available
+  const name = (document.querySelector("#todName") || {}).textContent || "";
+  const cat = (document.querySelector("#todCategory") || {}).textContent || "";
+  const desc = (document.querySelector("#todDesc") || {}).textContent || "";
+  body.innerHTML = `
+    <div class="ld-tod-name">${name || "—"}</div>
+    <div class="ld-tod-cat">${cat}</div>
+    <div class="ld-tod-desc">${desc}</div>`;
+}
+
+function ldRenderStats() {
+  const body = document.querySelector("#ldStatsBody");
+  if (!body) return;
+  const fa = state.lang === "fa";
+  const withData = liveChartData.filter(d => (d.stars||0) > 0);
+  const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
+  const totalForks = withData.reduce((s,d) => s + (d.forks||0), 0);
+  const upCount = AI_MONITOR_SERVICES.filter(s => (_aiMonState[s.id]||{}).status === "up").length;
+  const stats = [
+    { v: (typeof tools !== "undefined" ? tools.length : withData.length), l: fa?"ابزار":"AI tools" },
+    { v: ldFmt(totalStars), l: fa?"ستاره":"Stars" },
+    { v: ldFmt(totalForks), l: fa?"فورک":"Forks" },
+    { v: `${upCount}/${AI_MONITOR_SERVICES.length}`, l: fa?"آنلاین":"Online" }
+  ];
+  body.innerHTML = stats.map(s => `
+    <div class="ld-stat"><div class="ld-stat-val">${s.v}</div><div class="ld-stat-label">${s.l}</div></div>`).join("");
+}
+
+function ldUpdateClock() {
+  const c = document.querySelector("#ldClock");
+  const d = document.querySelector("#ldDate");
+  const now = new Date();
+  if (c) c.textContent = now.toLocaleTimeString();
+  if (d) d.textContent = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+
+async function ldLoadTicker() {
+  const track = document.querySelector("#ldTickerTrack");
+  if (!track || _ldTickerLoaded) return;
+  _ldTickerLoaded = true;
+  // ask the free AI for a few short AI-industry headlines
+  let items = [];
+  try {
+    const reply = await vsAutoAiChat(
+      "Give me 8 short, punchy, plausible current AI-industry news headlines " +
+      "(max 9 words each), as a JSON array of strings only. No dates, no numbers " +
+      "that look fake. Topics: model releases, tools, research, adoption.",
+      { json: true });
+    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]") + 1));
+    if (Array.isArray(arr)) items = arr.filter(x => typeof x === "string").slice(0, 8);
+  } catch (e) { /* fallback below */ }
+  if (!items.length) {
+    items = [
+      "AI Radar tracking 45+ live tools",
+      "GitHub popularity refreshed every 5 minutes",
+      "Service status monitored in real time",
+      "Free AI video studio available in browser",
+      "Compare models side by side",
+      "Live charts powered by GitHub API"
+    ];
+  }
+  // duplicate the list so the scroll loops seamlessly
+  const html = items.map(t => `<span>◆ ${t}</span>`).join("");
+  track.innerHTML = html + html;
+}
+
+function ldRefreshAll() {
+  ldRenderMonitor();
+  ldRenderChart();
+  ldRenderTod();
+  ldRenderStats();
+}
+
+function openLiveDashboard() {
+  const dash = document.querySelector("#liveDashboard");
+  if (!dash) return;
+  dash.classList.add("open");
+  dash.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  ldUpdateClock();
+  ldRefreshAll();
+  ldLoadTicker();
+  // make sure monitor data is fresh
+  if (typeof aiMonRunChecks === "function") aiMonRunChecks().then(ldRenderMonitor);
+  _ldClockTimer = setInterval(ldUpdateClock, 1000);
+  _ldRefreshTimer = setInterval(() => {
+    if (typeof aiMonRunChecks === "function") aiMonRunChecks().then(ldRefreshAll);
+    else ldRefreshAll();
+  }, 30000);
+  // try to enter real browser fullscreen
+  try { if (dash.requestFullscreen) dash.requestFullscreen(); } catch (e) {}
+}
+
+function closeLiveDashboard() {
+  const dash = document.querySelector("#liveDashboard");
+  if (!dash) return;
+  dash.classList.remove("open");
+  dash.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+  clearInterval(_ldClockTimer);
+  clearInterval(_ldRefreshTimer);
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+}
+
+(function bindDashboard() {
+  function wire() {
+    const openBtn = document.querySelector("#openDashboardBtn");
+    const closeBtn = document.querySelector("#ldClose");
+    if (openBtn) openBtn.addEventListener("click", openLiveDashboard);
+    if (closeBtn) closeBtn.addEventListener("click", closeLiveDashboard);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.querySelector("#liveDashboard.open")) closeLiveDashboard();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
+  else wire();
+})();
