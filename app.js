@@ -9750,29 +9750,34 @@ const AI_MONITOR_SERVICES = [
 // keep a short latency history per service for the sparkline
 const _aiMonHistory = {};
 
-// Ping one service by loading its favicon and timing it. Resolves to
-// { ok, latency } — ok=false means it didn't respond before the timeout.
+// Ping one service by fetching its favicon (no-cors) and timing it.
+// Resolves to { ok, latency }. Always resolves (never hangs) thanks to the
+// AbortController timeout, so Promise.all can't get stuck on "Checking".
 function aiMonPing(service) {
   return new Promise((resolve) => {
     const start = performance.now();
-    const img = new Image();
     let settled = false;
-    const finish = (ok) => {
+    const done = (ok) => {
       if (settled) return; settled = true;
-      const latency = Math.round(performance.now() - start);
-      resolve({ ok, latency });
+      resolve({ ok, latency: Math.round(performance.now() - start) });
     };
-    const timer = setTimeout(() => finish(false), 6000);
-    // A load OR a fast error both mean the server answered our request.
-    // Only a full timeout (no response at all) counts as "down".
-    img.onload = () => { clearTimeout(timer); finish(true); };
-    img.onerror = () => {
+    // hard timeout regardless of fetch behaviour
+    const timer = setTimeout(() => done(false), 6000);
+    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    if (ctrl) setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 5500);
+    fetch(service.url + "?_=" + Date.now(), {
+      mode: "no-cors",
+      cache: "no-store",
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(() => {
+      clearTimeout(timer); done(true);
+    }).catch(() => {
+      // a fast rejection still means the host answered/exists; only a real
+      // timeout (caught by the 6s timer above) counts as down.
       clearTimeout(timer);
       const latency = performance.now() - start;
-      // if the host replied (even an error) within the window, it's reachable
-      finish(latency < 6000);
-    };
-    img.src = service.url + "?_=" + Date.now();
+      done(latency < 5400);
+    });
   });
 }
 
@@ -9859,16 +9864,27 @@ async function aiMonRunChecks() {
     _aiMonState[s.id] = _aiMonState[s.id] || { status: "checking", latency: 0 };
   });
   aiMonRenderAll();
-  // ping all in parallel
-  await Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
-    const { ok, latency } = await aiMonPing(s);
-    const status = aiMonStatusFromLatency(ok, latency);
-    _aiMonState[s.id] = { status, latency };
-    // record history (keep last 12)
-    const h = _aiMonHistory[s.id] || (_aiMonHistory[s.id] = []);
-    h.push(ok ? latency : 0);
-    if (h.length > 12) h.shift();
+  // ping all in parallel, but never wait longer than 7s total
+  const pingAll = Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
+    try {
+      const { ok, latency } = await aiMonPing(s);
+      const status = aiMonStatusFromLatency(ok, latency);
+      _aiMonState[s.id] = { status, latency };
+      const h = _aiMonHistory[s.id] || (_aiMonHistory[s.id] = []);
+      h.push(ok ? latency : 0);
+      if (h.length > 12) h.shift();
+    } catch (e) {
+      _aiMonState[s.id] = { status: "down", latency: 0 };
+    }
   }));
+  const guard = new Promise(res => setTimeout(res, 7000));
+  await Promise.race([pingAll, guard]);
+  // any service still "checking" → mark unknown so nothing stays spinning
+  AI_MONITOR_SERVICES.forEach(s => {
+    if (!_aiMonState[s.id] || _aiMonState[s.id].status === "checking") {
+      _aiMonState[s.id] = { status: "down", latency: 0 };
+    }
+  });
   aiMonRenderAll();
   aiMonUpdateSummary();
   const upd = document.querySelector("#aimonUpdated");
