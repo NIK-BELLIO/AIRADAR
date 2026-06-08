@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v258" />
+    <link rel="stylesheet" href="styles.css?v=v260" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -64,6 +64,41 @@
       @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
       @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
     
+      /* ── AI STATUS MONITOR ───────────────────────────── */
+      .ai-monitor { margin: 18px 0; }
+      .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
+      .aimon-title-wrap h2 { margin: 2px 0 0; font-size: 22px; }
+      .aimon-pulse { width: 12px; height: 12px; border-radius: 50%; background: #35d07f; position: relative; flex-shrink: 0; box-shadow: 0 0 0 0 rgba(53,208,127,0.6); animation: aimonPulse 2s infinite; }
+      @keyframes aimonPulse { 0% { box-shadow: 0 0 0 0 rgba(53,208,127,0.5); } 70% { box-shadow: 0 0 0 10px rgba(53,208,127,0); } 100% { box-shadow: 0 0 0 0 rgba(53,208,127,0); } }
+      .aimon-summary { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--text); }
+      .aimon-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; }
+      .aimon-sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
+      .aimon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+      .aimon-card { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
+      .aimon-card:hover { transform: translateY(-2px); border-color: rgba(216,183,106,0.4); }
+      .aimon-card-logo { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; }
+      .aimon-card-body { flex: 1; min-width: 0; }
+      .aimon-card-name { font-weight: 700; font-size: 14px; color: var(--text); }
+      .aimon-card-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+      .aimon-status { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; }
+      .aimon-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+      .aimon-dot.up   { background: #35d07f; box-shadow: 0 0 8px rgba(53,208,127,0.6); }
+      .aimon-dot.slow { background: #e8b339; box-shadow: 0 0 8px rgba(232,179,57,0.6); }
+      .aimon-dot.down { background: #e0533d; box-shadow: 0 0 8px rgba(224,83,61,0.6); }
+      .aimon-dot.checking { background: var(--muted); animation: aimonBlink 1s infinite; }
+      @keyframes aimonBlink { 50% { opacity: .3; } }
+      .aimon-st-up   { color: #35d07f; }
+      .aimon-st-slow { color: #e8b339; }
+      .aimon-st-down { color: #e0533d; }
+      .aimon-st-checking { color: var(--muted); }
+      .aimon-latency { font-variant-numeric: tabular-nums; }
+      .aimon-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: var(--muted); }
+      .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+      .aimon-refresh:hover { border-color: rgba(216,183,106,0.5); background: rgba(216,183,106,0.08); }
+      .aimon-spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
+      .aimon-spark i { width: 3px; background: var(--gold); border-radius: 1px; opacity: .5; display: block; }
+
       /* ── TOOL OF THE DAY ─────────────────────────────── */
       .tod-panel {
         background: linear-gradient(135deg,
@@ -432,6 +467,30 @@
           </div>
         </section>
         <!-- /TOOL OF THE DAY -->
+
+        <!-- AI STATUS MONITOR -->
+        <section id="aiMonitor" class="panel ai-monitor">
+          <div class="aimon-head">
+            <div class="aimon-title-wrap">
+              <span class="aimon-pulse"></span>
+              <div>
+                <p class="eyebrow" id="aimonEyebrow">Live system monitor</p>
+                <h2 id="aimonTitle">AI Service Status</h2>
+              </div>
+            </div>
+            <div class="aimon-summary" id="aimonSummary">
+              <span class="aimon-summary-dot"></span>
+              <span id="aimonSummaryText">Checking…</span>
+            </div>
+          </div>
+          <p class="aimon-sub" id="aimonSub">Real-time availability and response time of major AI platforms. Updates automatically.</p>
+          <div class="aimon-grid" id="aimonGrid"></div>
+          <div class="aimon-foot">
+            <span id="aimonUpdated">—</span>
+            <button class="aimon-refresh" id="aimonRefresh" type="button">↻ <span id="aimonRefreshTxt">Refresh</span></button>
+          </div>
+        </section>
+        <!-- /AI STATUS MONITOR -->
 
         <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
@@ -1315,7 +1374,7 @@
       } else { loadFonts(); }
     })();
     </script>
-    <script src="app.js?v=v258"></script>
+    <script src="app.js?v=v260"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
