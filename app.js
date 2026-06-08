@@ -5403,7 +5403,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
   const isOn = (typeof onVal === "boolean") ? onVal
              : ($("#vsNewsOn") && $("#vsNewsOn").checked);
   if (!isOn) { vstudio.newsBox = null; return; }
-  const kicker  = String(val("#vsNewsKicker",  "") || "").trim();
+  const kicker  = ""; // kicker tag removed by request — headline + source only
   const headline = String(val("#vsNewsHeadline","") || "").trim();
   const source   = String(val("#vsNewsSource",  "") || "").trim();
   if (!kicker && !headline && !source) { vstudio.newsBox = null; return; }
