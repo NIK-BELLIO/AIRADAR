@@ -2991,26 +2991,66 @@ function formatMetricValue(v) {
 
 let _chartFingerprint = "";
 let _chartAnimated = false;
+let _ghSort = "value";   // value | growth | name
+let _ghSearch = "";
+
+// Render the summary stat cards above the chart.
+function renderGhSummary() {
+  const box = $("#ghSummary");
+  if (!box) return;
+  const withData = liveChartData.filter(d => (d.stars || 0) > 0);
+  if (!withData.length) { box.innerHTML = ""; return; }
+  const totalStars = withData.reduce((s, d) => s + (d.stars || 0), 0);
+  const totalForks = withData.reduce((s, d) => s + (d.forks || 0), 0);
+  // most active = smallest activityDays (most recent push)
+  const mostActive = [...withData].sort((a, b) =>
+    (a.activityDays ?? 9999) - (b.activityDays ?? 9999))[0];
+  // top by stars
+  const topStar = [...withData].sort((a, b) => (b.stars || 0) - (a.stars || 0))[0];
+  const fa = state.lang === "fa";
+  const cards = [
+    { val: formatMetricValue(totalStars), label: fa ? "مجموع ستاره‌ها" : "Total stars", sub: `${withData.length} ${fa ? "ابزار" : "tools"}` },
+    { val: formatMetricValue(totalForks), label: fa ? "مجموع فورک‌ها" : "Total forks", sub: "" },
+    { val: topStar ? topStar.name : "—", label: fa ? "محبوب‌ترین" : "Most popular", sub: topStar ? formatMetricValue(topStar.stars) + " ★" : "" },
+    { val: mostActive ? mostActive.name : "—", label: fa ? "فعال‌ترین" : "Most active", sub: mostActive && mostActive.activityDays != null ? (mostActive.activityDays === 0 ? (fa ? "امروز" : "today") : `${mostActive.activityDays}${fa ? " روز پیش" : "d ago"}`) : "" }
+  ];
+  box.innerHTML = cards.map(c => `
+    <div class="gh-sum-card">
+      <div class="gh-sum-val">${c.val}</div>
+      <div class="gh-sum-label">${c.label}</div>
+      ${c.sub ? `<div class="gh-sum-sub">${c.sub}</div>` : ""}
+    </div>`).join("");
+}
+
 function renderLiveChart() {
   const container = $("#performanceChart");
   if (!container) return;
+  renderGhSummary();
 
-  const sorted = [...liveChartData]
-    .filter(item => metricValueOf(item) > 0)
-    .sort((a, b) => metricValueOf(b) - metricValueOf(a))
-    .slice(0, 12);
+  // multi-metric view is a different layout
+  if (activeMetric === "multi") { renderMultiMetric(container); return; }
+
+  let list = liveChartData.filter(item => metricValueOf(item) > 0);
+  // search filter
+  if (_ghSearch) {
+    const q = _ghSearch.toLowerCase();
+    list = list.filter(d => d.name.toLowerCase().includes(q));
+  }
+  // sort
+  if (_ghSort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
+  else if (_ghSort === "growth") list.sort((a, b) => (a.activityDays ?? 9999) - (b.activityDays ?? 9999));
+  else list.sort((a, b) => metricValueOf(b) - metricValueOf(a));
+  const sorted = list.slice(0, 14);
   const maxVal = Math.max(...sorted.map(metricValueOf), 1);
   const compared = new Set(state.compare);
 
-  // Skip a full rebuild (which restarts the bar animation and causes the
-  // "jumping" flicker) when nothing meaningful changed.
-  const fp = activeMetric + "|" + [...compared].join(",") + "|" +
+  const fp = "single|" + activeMetric + "|" + _ghSort + "|" + _ghSearch + "|" +
+    [...compared].join(",") + "|" +
     sorted.map(s => s.name + ":" + metricValueOf(s)).join("|");
   if (fp === _chartFingerprint && container.querySelector(".live-bar-row")) return;
   const firstPaint = !_chartAnimated;
   _chartFingerprint = fp;
 
-  // header label
   let label = $("#chart3DLabel");
   if (!label) {
     label = document.createElement("div");
@@ -3023,13 +3063,13 @@ function renderLiveChart() {
     : "Development activity (recent commits)";
   const comparedNote = state.compare.length
     ? ` — highlighted: ${state.compare.join(", ")}`
-    : " — add tools in the Compare section to highlight them here";
+    : "";
   label.textContent = sorted.length
     ? `${metricText}${comparedNote}`
     : `${metricText} — loading live data from GitHub…`;
 
   if (!sorted.length) {
-    container.innerHTML = `<div class="live-chart"><p class="empty">Loading live data from GitHub…</p></div>`;
+    container.innerHTML = `<div class="live-chart"><p class="empty">${_ghSearch ? "No tools match your filter." : "Loading live data from GitHub…"}</p></div>`;
     return;
   }
 
@@ -3051,6 +3091,49 @@ function renderLiveChart() {
     }).join("")}
   </div>`;
   _chartAnimated = true;
+}
+
+// Multi-metric view: each tool shows stars + forks + activity bars together,
+// normalized so you can compare the *shape* of each project's profile.
+function renderMultiMetric(container) {
+  let list = liveChartData.filter(d => (d.stars || 0) > 0);
+  if (_ghSearch) {
+    const q = _ghSearch.toLowerCase();
+    list = list.filter(d => d.name.toLowerCase().includes(q));
+  }
+  list.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+  list = list.slice(0, 12);
+  const maxStars = Math.max(...list.map(d => d.stars || 0), 1);
+  const maxForks = Math.max(...list.map(d => d.forks || 0), 1);
+  const maxAct = Math.max(...list.map(d => d.activityDays != null ? (90 - Math.min(90, d.activityDays)) : 0), 1);
+  const fp = "multi|" + _ghSearch + "|" + list.map(d => d.name + d.stars).join("|");
+  if (fp === _chartFingerprint && container.querySelector(".gh-multi-row")) return;
+  _chartFingerprint = fp;
+
+  const label = $("#chart3DLabel");
+  if (label) label.textContent = state.lang === "fa"
+    ? "مقایسه چندمعیاره — ستاره، فورک، فعالیت" : "Multi-metric comparison — stars, forks, activity";
+
+  if (!list.length) {
+    container.innerHTML = `<div class="live-chart"><p class="empty">${_ghSearch ? "No tools match." : "Loading…"}</p></div>`;
+    return;
+  }
+  const fa = state.lang === "fa";
+  const row = (d) => {
+    const sPct = Math.min(100, ((d.stars || 0) / maxStars) * 100);
+    const fPct = Math.min(100, ((d.forks || 0) / maxForks) * 100);
+    const aScore = d.activityDays != null ? (90 - Math.min(90, d.activityDays)) : 0;
+    const aPct = Math.min(100, (aScore / maxAct) * 100);
+    return `<div class="gh-multi-row">
+      <div class="gh-multi-name">${d.name}</div>
+      <div class="gh-multi-bars">
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"ستاره":"Stars"}</span><div class="gh-multi-track"><div class="gh-multi-fill stars" style="width:${sPct}%"></div></div><span class="gh-multi-val">${formatMetricValue(d.stars||0)}</span></div>
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"فورک":"Forks"}</span><div class="gh-multi-track"><div class="gh-multi-fill forks" style="width:${fPct}%"></div></div><span class="gh-multi-val">${formatMetricValue(d.forks||0)}</span></div>
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"فعالیت":"Activity"}</span><div class="gh-multi-track"><div class="gh-multi-fill activity" style="width:${aPct}%"></div></div><span class="gh-multi-val">${d.activityDays!=null?(d.activityDays===0?(fa?"امروز":"today"):`${d.activityDays}${fa?"ر":"d"}`):"—"}</span></div>
+      </div>
+    </div>`;
+  };
+  container.innerHTML = `<div class="live-chart gh-multi">${list.map(row).join("")}</div>`;
 }
 
 
@@ -9094,6 +9177,23 @@ function bindEvents() {
   // Refresh button does a real new fetch from GitHub.
   on("#refreshChartBtn", "click", fetchLiveChartData);
 
+  // Dashboard sort buttons
+  document.querySelectorAll(".gh-sort-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".gh-sort-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _ghSort = btn.dataset.sort;
+      _chartFingerprint = ""; // force re-render
+      renderLiveChart();
+    });
+  });
+  // Dashboard search filter
+  on("#ghSearch", "input", (e) => {
+    _ghSearch = (e.target.value || "").trim();
+    _chartFingerprint = "";
+    renderLiveChart();
+  });
+
   // Advanced Video Studio
   const picker = $("#templatePicker");
   if (picker) {
@@ -9662,16 +9762,16 @@ function aiMonPing(service) {
       const latency = Math.round(performance.now() - start);
       resolve({ ok, latency });
     };
-    const timer = setTimeout(() => finish(false), 8000);
+    const timer = setTimeout(() => finish(false), 6000);
+    // A load OR a fast error both mean the server answered our request.
+    // Only a full timeout (no response at all) counts as "down".
     img.onload = () => { clearTimeout(timer); finish(true); };
     img.onerror = () => {
-      // favicon may 404 or be blocked, but a fast error still means the host
-      // answered — treat a quick error as "reachable", a timeout as "down".
       clearTimeout(timer);
       const latency = performance.now() - start;
-      finish(latency < 8000);
+      // if the host replied (even an error) within the window, it's reachable
+      finish(latency < 6000);
     };
-    // cache-bust so we measure a fresh round-trip each time
     img.src = service.url + "?_=" + Date.now();
   });
 }
@@ -9769,7 +9869,8 @@ async function aiMonRunChecks() {
 }
 
 function initAiMonitor() {
-  if (!document.querySelector("#aimonGrid")) return;
+  const grid = document.querySelector("#aimonGrid");
+  if (!grid) { console.warn("[aimon] grid not found"); return; }
   aiMonRenderAll();
   aiMonRunChecks();
   const btn = document.querySelector("#aimonRefresh");
@@ -9778,5 +9879,17 @@ function initAiMonitor() {
   setInterval(aiMonRunChecks, 60000);
 }
 
-// kick off after load so it doesn't compete with first paint
-window.addEventListener("load", () => setTimeout(initAiMonitor, 800));
+// kick off as soon as the DOM is usable (works whether or not 'load' fired)
+function _aiMonBoot() {
+  if (document.querySelector("#aimonGrid")) {
+    initAiMonitor();
+  } else {
+    // grid not in DOM yet — retry shortly
+    setTimeout(_aiMonBoot, 300);
+  }
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(_aiMonBoot, 200));
+} else {
+  setTimeout(_aiMonBoot, 200);
+}
