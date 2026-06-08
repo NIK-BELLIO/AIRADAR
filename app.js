@@ -3030,7 +3030,7 @@ function renderLiveChart() {
   // multi-metric view is a different layout
   if (activeMetric === "multi") { renderMultiMetric(container); return; }
 
-  let list = liveChartData.filter(item => metricValueOf(item) > 0);
+  let list = liveChartData.filter(item => (item.stars || 0) > 0);
   // search filter
   if (_ghSearch) {
     const q = _ghSearch.toLowerCase();
@@ -9818,9 +9818,20 @@ let _aiMonState = {};
 function aiMonRenderAll() {
   const grid = document.querySelector("#aimonGrid");
   if (!grid) return;
-  grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
-    aiMonRenderCard(s, _aiMonState[s.id] || { status: "checking", latency: 0 })
-  ).join("");
+  try {
+    grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
+      aiMonRenderCard(s, _aiMonState[s.id] || { status: "checking", latency: 0 })
+    ).join("");
+  } catch (e) {
+    console.warn("[aimon] render error", e);
+    // minimal fallback so the panel is never blank
+    grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
+      `<div class="aimon-card"><div class="aimon-card-logo">${s.logo}</div>
+       <div class="aimon-card-body"><div class="aimon-card-name">${s.name}</div>
+       <div class="aimon-card-meta"><span class="aimon-status aimon-st-checking">
+       <span class="aimon-dot checking"></span>—</span></div></div></div>`
+    ).join("");
+  }
 }
 
 function aiMonUpdateSummary() {
