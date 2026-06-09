@@ -9759,29 +9759,43 @@ const AI_HUBS = [
 ];
 
 // Continent regions (lon/lat boxes) used to scatter dots into a world map.
-// Rough but recognizable silhouettes — enough for a cinematic dotted globe.
+// More, smaller boxes = more accurate, recognizable continent silhouettes.
 const AI_MAP_REGIONS = [
   // North America
-  {x1:-168,y1:60,x2:-52,y2:25, dense:0.55},
-  {x1:-128,y1:50,x2:-66,y2:30, dense:0.85},
-  {x1:-118,y1:32,x2:-80,y2:14, dense:0.5},  // Mexico/CentralAm
+  {x1:-165,y1:68,x2:-140,y2:60},            // Alaska
+  {x1:-140,y1:70,x2:-60,y2:60},             // Canada north
+  {x1:-130,y1:60,x2:-58,y2:49},             // Canada
+  {x1:-125,y1:49,x2:-66,y2:30},             // USA
+  {x1:-115,y1:30,x2:-86,y2:15},             // Mexico
+  {x1:-92,y1:18,x2:-77,y2:7},               // Central America
   // South America
-  {x1:-82,y1:10,x2:-35,y2:-20, dense:0.7},
-  {x1:-76,y1:-20,x2:-48,y2:-55, dense:0.6},
+  {x1:-79,y1:11,x2:-60,y2:0},               // Colombia/Venezuela
+  {x1:-75,y1:0,x2:-34,y2:-18},              // Brazil north
+  {x1:-72,y1:-18,x2:-40,y2:-34},            // Brazil south/Bolivia
+  {x1:-74,y1:-34,x2:-53,y2:-55},            // Argentina/Chile
   // Europe
-  {x1:-10,y1:60,x2:30,y2:36, dense:0.9},
-  {x1:5,y1:71,x2:30,y2:55, dense:0.5}, // Scandinavia
+  {x1:-10,y1:59,x2:30,y2:43},               // West/Central Europe
+  {x1:5,y1:71,x2:32,y2:55},                 // Scandinavia
+  {x1:20,y1:60,x2:50,y2:44},                // East Europe
+  {x1:-10,y1:44,x2:28,y2:36},               // Mediterranean
   // Africa
-  {x1:-18,y1:35,x2:52,y2:8, dense:0.75},
-  {x1:8,y1:8,x2:42,y2:-35, dense:0.7},
-  // Middle East / Asia
-  {x1:30,y1:45,x2:80,y2:12, dense:0.7},
-  {x1:60,y1:55,x2:145,y2:30, dense:0.85}, // Central/East Asia
-  {x1:70,y1:30,x2:90,y2:8, dense:0.7}, // India
-  {x1:95,y1:25,x2:140,y2:-10, dense:0.6}, // SE Asia
-  {x1:130,y1:45,x2:146,y2:31, dense:0.6}, // Japan
-  // Australia
-  {x1:113,y1:-12,x2:154,y2:-39, dense:0.7}
+  {x1:-17,y1:35,x2:35,y2:18},               // North Africa
+  {x1:-17,y1:18,x2:50,y2:0},                // West/Central Africa
+  {x1:8,y1:0,x2:44,y2:-18},                 // Central Africa
+  {x1:11,y1:-18,x2:40,y2:-35},              // Southern Africa
+  // Middle East + Asia
+  {x1:35,y1:42,x2:62,y2:13},                // Middle East
+  {x1:45,y1:56,x2:90,y2:42},                // Central Asia
+  {x1:60,y1:78,x2:180,y2:55},              // Russia/Siberia
+  {x1:88,y1:53,x2:135,y2:30},               // China
+  {x1:68,y1:35,x2:90,y2:8},                 // India
+  {x1:92,y1:30,x2:110,y2:10},               // SE Asia mainland
+  {x1:95,y1:8,x2:142,y2:-10},               // Indonesia
+  {x1:129,y1:46,x2:146,y2:31},              // Japan
+  {x1:124,y1:40,x2:130,y2:34},              // Korea
+  // Australia + NZ
+  {x1:113,y1:-11,x2:154,y2:-39},            // Australia
+  {x1:166,y1:-34,x2:179,y2:-47}             // New Zealand
 ];
 
 let _aiMapActive = null;
@@ -9790,20 +9804,25 @@ let _aiMapActive = null;
 var _aiMonInited = true;
 
 // Build a dotted world map (cinematic command-center style). Returns SVG inner.
+// A single uniform lon/lat grid; a dot is drawn only where it falls inside a
+// continent box — this yields clean, evenly-spaced, recognizable continents.
 function aiMapDots(W, H, dotColor) {
   const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
-  const step = 3.2; // degrees between dots
+  const step = 2.4; // smaller = denser, crisper continents
+  const inRegion = (lon, lat) => {
+    for (const r of AI_MAP_REGIONS) {
+      const xMin = Math.min(r.x1,r.x2), xMax = Math.max(r.x1,r.x2);
+      const yMin = Math.min(r.y1,r.y2), yMax = Math.max(r.y1,r.y2);
+      if (lon >= xMin && lon <= xMax && lat >= yMin && lat <= yMax) return true;
+    }
+    return false;
+  };
   let dots = "";
-  for (const r of AI_MAP_REGIONS) {
-    const xMin = Math.min(r.x1,r.x2), xMax = Math.max(r.x1,r.x2);
-    const yMin = Math.min(r.y1,r.y2), yMax = Math.max(r.y1,r.y2);
-    for (let lon = xMin; lon <= xMax; lon += step) {
-      for (let lat = yMin; lat <= yMax; lat += step) {
-        if (Math.random() > r.dense) continue;
-        const p = proj(lon, lat);
-        const rad = (Math.random()*0.4 + 0.5).toFixed(2);
-        dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${rad}"/>`;
-      }
+  for (let lat = 80; lat >= -56; lat -= step) {
+    for (let lon = -178; lon <= 180; lon += step) {
+      if (!inRegion(lon, lat)) continue;
+      const p = proj(lon, lat);
+      dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="0.7"/>`;
     }
   }
   return `<g fill="${dotColor}">${dots}</g>`;
@@ -9821,10 +9840,16 @@ function renderAiMap() {
   // glowing connection arcs between key hubs
   const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
   const linkPairs = [[0,4],[0,3],[4,5],[4,7],[7,9],[3,11],[0,2],[7,8],[4,6],[10,7],[0,11]];
-  const links = linkPairs.map(([a,b]) => {
+  const links = linkPairs.map(([a,b], idx) => {
     if (!pts[a]||!pts[b]) return "";
     const mx=(pts[a].x+pts[b].x)/2, my=Math.min(pts[a].y,pts[b].y)-14;
-    return `<path class="aimap-link" d="M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}"/>`;
+    const d = `M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}`;
+    const dur = (3 + (idx % 4)).toFixed(1);
+    // a glowing packet that travels the arc, like live data transfer
+    return `<path class="aimap-link" id="aimapLink${idx}" d="${d}"/>
+      <circle class="aimap-packet" r="1.3">
+        <animateMotion dur="${dur}s" repeatCount="indefinite" begin="${(idx*0.4).toFixed(1)}s" path="${d}"/>
+      </circle>`;
   }).join("");
   const hubs = AI_HUBS.map((hub, i) => {
     const p = pts[i];
@@ -9845,7 +9870,7 @@ function renderAiMap() {
       </radialGradient>
     </defs>
     <rect width="${W}" height="${H}" fill="url(#aimapVignette)"/>
-    ${aiMapDots(W, H, "rgba(216,183,106,0.32)")}
+    ${aiMapDots(W, H, "rgba(216,183,106,0.5)")}
     ${links}
     ${hubs}
   </svg>`;
