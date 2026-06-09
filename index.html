@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v267" />
+    <link rel="stylesheet" href="styles.css?v=v269" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -91,50 +91,67 @@
       .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 
       /* ── FULLSCREEN LIVE DASHBOARD ───────────────────── */
-      .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; }
+      .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; position: relative; border-color: rgba(216,183,106,0.5) !important; }
+      .dash-launch-btn:hover { background: rgba(216,183,106,0.12); box-shadow: 0 0 20px rgba(216,183,106,0.25); }
       .dash-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #35d07f; box-shadow: 0 0 8px rgba(53,208,127,0.7); animation: aimonPulse 2s infinite; }
-      .live-dash { position: fixed; inset: 0; z-index: 9999; background: radial-gradient(ellipse at top, #14110b 0%, #060606 70%); color: #f4f1ea; display: none; flex-direction: column; padding: 18px 22px; overflow: hidden; }
-      .live-dash.open { display: flex; }
-      .ld-topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid rgba(216,183,106,0.2); }
+      .dash-hint { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; color: var(--gold-2); font-size: 13px; font-weight: 600; opacity: .9; animation: dashHintFloat 2.4s ease-in-out infinite; }
+      .dash-hint-arrow { width: 44px; height: 18px; color: var(--gold); transform: scaleX(-1); }
+      @keyframes dashHintFloat { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+      @media (max-width: 700px) { .dash-hint { display: none; } }
+      .live-dash { position: fixed; inset: 0; z-index: 9999; color: #f4f1ea; display: none; flex-direction: column; padding: 18px 22px; overflow: hidden;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% 0%, rgba(216,183,106,0.10) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 40% at 80% 100%, rgba(127,166,216,0.08) 0%, transparent 60%),
+          linear-gradient(160deg, #100d08 0%, #060606 60%, #0a0a0f 100%);
+      }
+      /* subtle grid overlay for the ops-room feel */
+      .live-dash::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.4;
+        background-image: linear-gradient(rgba(216,183,106,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(216,183,106,0.04) 1px, transparent 1px);
+        background-size: 44px 44px; mask-image: radial-gradient(ellipse 100% 80% at 50% 40%, #000 40%, transparent 100%); }
+      .live-dash.open { display: flex; animation: ldFadeIn .4s ease both; }
+      @keyframes ldFadeIn { from { opacity:0; transform: scale(1.02); } to { opacity:1; transform: scale(1); } }
+      .ld-topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid rgba(216,183,106,0.2); position: relative; z-index:1; }
       .ld-brand { display: flex; align-items: center; gap: 12px; }
-      .ld-logo { font-size: 22px; color: #d8b76a; }
+      .ld-logo { font-size: 22px; color: #d8b76a; animation: ldSpin 8s linear infinite; }
+      @keyframes ldSpin { to { transform: rotate(360deg); } }
       .ld-title { font-family: Prata, serif; font-size: 20px; color: #f0d99a; letter-spacing: .02em; }
       .ld-clock-wrap { text-align: center; }
-      .ld-clock { font-family: Prata, serif; font-size: 34px; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; display: block; }
+      .ld-clock { font-family: Prata, serif; font-size: 38px; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; display: block; text-shadow: 0 0 24px rgba(216,183,106,0.4); }
       .ld-date { font-size: 12px; color: #b9a98a; text-transform: uppercase; letter-spacing: .1em; }
-      .ld-close { background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.3); color: #d8b76a; border-radius: 9px; padding: 9px 16px; font-weight: 700; cursor: pointer; font-size: 14px; }
-      .ld-close:hover { background: rgba(216,183,106,0.2); }
-      .ld-grid { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; grid-template-rows: 1.3fr 1fr; gap: 16px; padding: 16px 0; min-height: 0; }
-      .ld-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(216,183,106,0.15); border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-      .ld-monitor { grid-row: span 1; }
+      .ld-close { background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.3); color: #d8b76a; border-radius: 9px; padding: 9px 16px; font-weight: 700; cursor: pointer; font-size: 14px; transition: all .15s; }
+      .ld-close:hover { background: rgba(224,83,61,0.15); border-color: rgba(224,83,61,0.4); color: #e0533d; }
+      .ld-grid { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; grid-template-rows: 1.3fr 1fr; gap: 16px; padding: 16px 0; min-height: 0; position: relative; z-index:1; }
+      .ld-card { background: linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid rgba(216,183,106,0.18); border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; backdrop-filter: blur(4px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 30px rgba(0,0,0,0.3); }
       .ld-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
       .ld-card-title { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #d8b76a; }
       .ld-summary { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; }
-      .ld-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; }
+      .ld-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; box-shadow: 0 0 8px rgba(53,208,127,0.7); }
       .ld-monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; align-content: start; }
-      .ld-mon-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
-      .ld-mon-logo { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #d8b76a; background: rgba(216,183,106,0.1); flex-shrink: 0; }
+      .ld-mon-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: border-color .2s; }
+      .ld-mon-item:hover { border-color: rgba(216,183,106,0.3); }
+      .ld-mon-logo { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #d8b76a; background: rgba(216,183,106,0.1); flex-shrink: 0; overflow: hidden; }
+      .ld-mon-logo img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
       .ld-mon-body { flex: 1; min-width: 0; }
       .ld-mon-name { font-size: 13px; font-weight: 700; }
       .ld-mon-meta { font-size: 10px; color: #b9a98a; display: flex; align-items: center; gap: 5px; }
       .ld-mon-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .ld-mon-dot.up { background: #35d07f; } .ld-mon-dot.slow { background: #e8b339; } .ld-mon-dot.down { background: #e0533d; } .ld-mon-dot.checking { background: #888; animation: aimonBlink 1s infinite; }
+      .ld-mon-dot.up { background: #35d07f; box-shadow:0 0 6px rgba(53,208,127,0.6);} .ld-mon-dot.slow { background: #e8b339; box-shadow:0 0 6px rgba(232,179,57,0.6);} .ld-mon-dot.down { background: #e0533d; box-shadow:0 0 6px rgba(224,83,61,0.6);} .ld-mon-dot.checking { background: #888; animation: aimonBlink 1s infinite; }
       .ld-chart-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; }
       .ld-chart-row { display: grid; grid-template-columns: 110px 1fr 64px; gap: 10px; align-items: center; }
       .ld-chart-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ld-chart-track { height: 12px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
-      .ld-chart-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #d8b76a, #f0d99a); }
+      .ld-chart-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #d8b76a, #f0d99a); box-shadow: 0 0 12px rgba(216,183,106,0.4); }
       .ld-chart-val { font-size: 12px; font-weight: 700; color: #f0d99a; text-align: right; font-variant-numeric: tabular-nums; }
       .ld-tod-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
       .ld-tod-name { font-family: Prata, serif; font-size: 32px; color: #f0d99a; }
       .ld-tod-cat { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #b9a98a; margin-top: 6px; }
       .ld-tod-desc { font-size: 14px; color: #d8d2c4; margin-top: 14px; line-height: 1.5; }
       .ld-stats-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: center; }
-      .ld-stat { text-align: center; }
+      .ld-stat { text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
       .ld-stat-val { font-family: Prata, serif; font-size: 30px; color: #f0d99a; line-height: 1; }
       .ld-stat-label { font-size: 11px; color: #b9a98a; text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
-      .ld-ticker { display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(216,183,106,0.2); padding-top: 12px; overflow: hidden; flex-shrink: 0; }
-      .ld-ticker-label { font-size: 12px; font-weight: 800; color: #d8b76a; letter-spacing: .1em; white-space: nowrap; flex-shrink: 0; }
+      .ld-ticker { display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(216,183,106,0.2); padding-top: 12px; overflow: hidden; flex-shrink: 0; position: relative; z-index:1; }
+      .ld-ticker-label { font-size: 12px; font-weight: 800; color: #060606; letter-spacing: .1em; white-space: nowrap; flex-shrink: 0; background: var(--gold); padding: 5px 12px; border-radius: 6px; }
       .ld-ticker-track { display: flex; gap: 40px; white-space: nowrap; animation: ldTicker 40s linear infinite; }
       .ld-ticker-track span { font-size: 14px; color: #d8d2c4; }
       @keyframes ldTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -159,7 +176,8 @@
       @media (max-width: 1200px) { .aimon-grid { grid-template-columns: 1fr; } }
       .aimon-card { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
       .aimon-card:hover { transform: translateY(-2px); border-color: rgba(216,183,106,0.4); }
-      .aimon-card-logo { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; }
+      .aimon-card-logo { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; overflow: hidden; }
+      .aimon-card-logo img { width: 22px; height: 22px; border-radius: 5px; object-fit: contain; }
       .aimon-card-body { flex: 1; min-width: 0; }
       .aimon-card-name { font-weight: 700; font-size: 14px; color: var(--text); }
       .aimon-card-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
@@ -175,6 +193,7 @@
       .aimon-st-down { color: #e0533d; }
       .aimon-st-checking { color: var(--muted); }
       .aimon-latency { font-variant-numeric: tabular-nums; }
+      .aimon-incident { color: #e8b339; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
       .aimon-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: var(--muted); }
       .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
       .aimon-refresh:hover { border-color: rgba(216,183,106,0.5); background: rgba(216,183,106,0.08); }
@@ -190,7 +209,11 @@
         border: 1px solid rgba(216,183,106,0.25);
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
+      .tod-panel .tod-inner { flex: 1; align-content: center; }
       .tod-panel::before {
         content: '';
         position: absolute;
@@ -480,6 +503,10 @@
                 <button class="button ghost dash-launch-btn" id="openDashboardBtn" type="button">
                   <span class="dash-live-dot"></span> <span id="dashLaunchTxt">Live Dashboard</span>
                 </button>
+                <span class="dash-hint" id="dashHint">
+                  <svg viewBox="0 0 60 24" class="dash-hint-arrow" aria-hidden="true"><path d="M2 12 H50 M50 12 L42 6 M50 12 L42 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span id="dashHintTxt">Turn any screen into a live war-room</span>
+                </span>
               </div>
             </div>
             <div class="luxury-hero-visual">
@@ -1532,7 +1559,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v267"></script>
+    <script src="app.js?v=v269"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
