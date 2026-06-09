@@ -10161,43 +10161,75 @@ function ldRenderTod() {
   const body = document.querySelector("#ldTodBody");
   if (!body) return;
   const fa = state.lang === "fa";
-  // prefer reading the actual tool object for rich data
+  const txtVal = v => !v ? "" : (typeof v === "string" ? v : (v[fa?"fa":"en"] || v.en || ""));
+  // find today's tool by the NAME shown in the main panel (robust — no
+  // dependency on inline-script helpers)
+  let name = ((document.querySelector("#todName")||{}).textContent || "").trim();
   let tool = null;
   try {
-    if (typeof getDayIndex === "function" && typeof tools !== "undefined" && tools.length) {
-      tool = tools[getDayIndex(tools.length)];
+    if (typeof tools !== "undefined" && tools.length) {
+      if (name && name !== "Loading…") tool = tools.find(t => t.name === name) || null;
+      if (!tool) {
+        // same day-based pick as the main panel: stable index from the date
+        const d = new Date();
+        const seed = d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate();
+        tool = tools[seed % tools.length];
+        name = tool ? tool.name : name;
+      }
     }
-  } catch (e) {}
-  const txtVal = v => !v ? "" : (typeof v === "string" ? v : (v[fa?"fa":"en"] || v.en || ""));
-  const name = tool ? (tool.name || "—") : ((document.querySelector("#todName")||{}).textContent || "—");
+  } catch(e) {}
+  const live = (typeof liveChartData !== "undefined" ? liveChartData : []).find(d => d.name === name) || {};
   const cat = tool ? txtVal(tool.category) : ((document.querySelector("#todCategory")||{}).textContent || "");
   const desc = tool ? txtVal(tool.useCase) : ((document.querySelector("#todDesc")||{}).textContent || "");
   const score = tool && tool.score ? tool.score : "";
-  const stars = tool && tool.stars ? ldFmt(tool.stars) : "";
+  const stars = live.stars ?? (tool ? tool.stars : null);
+  const forks = live.forks ?? (tool ? tool.forks : null);
+  const issues = live.issues ?? (tool ? tool.issues : null);
+  const actDays = live.activityDays ?? (tool ? tool.activityDays : null);
   const isFree = tool && (tool.price === 0 || tool.plan === "free" || tool.plan === "freemium");
   const price = tool ? (isFree ? (fa?"رایگان":"Free") : (tool.price ? "$"+tool.price : "—")) : "—";
   const url = tool ? (tool.url || "") : "";
   let dom = ""; try { dom = new URL(url).hostname; } catch(e) {}
   const tags = tool && Array.isArray(tool.tags) ? tool.tags.slice(0,4) : [];
   const initial = (name || "?").trim().charAt(0).toUpperCase();
+  // rank among all tools by stars + share vs the #1 tool
+  const ranked = (typeof liveChartData !== "undefined" ? liveChartData : [])
+    .filter(d => (d.stars||0) > 0).sort((a,b)=>(b.stars||0)-(a.stars||0));
+  const rankIdx = ranked.findIndex(d => d.name === name);
+  const rank = rankIdx >= 0 ? rankIdx + 1 : null;
+  const maxStars = ranked.length ? (ranked[0].stars||1) : 1;
+  const sharePct = stars ? Math.max(2, Math.round((stars/maxStars)*100)) : 0;
+  const lastUpd = actDays == null ? "—"
+    : actDays === 0 ? (fa?"امروز":"today")
+    : actDays === 1 ? (fa?"دیروز":"1d ago")
+    : actDays + (fa?" روز":"d");
+
   body.innerHTML = `
     <div class="ld-tod-top">
-      <div class="ld-tod-badge">${dom
+      <div class="ld-tod-badge ld-tod-badge-xl">${dom
         ? `<img src="https://www.google.com/s2/favicons?domain=${dom}&sz=128" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'"/>`
         : initial}</div>
       <div>
-        <div class="ld-tod-name">${name}</div>
+        <div class="ld-tod-name">${name || "—"}</div>
         <div class="ld-tod-cat">${cat}</div>
+        ${tags.length ? `<div class="ld-tod-tags">${tags.map(t=>`<span>${t}</span>`).join("")}</div>` : ""}
       </div>
       ${score ? `<div class="ld-tod-score"><b>${score}</b><span>${fa?"امتیاز":"SCORE"}</span></div>` : ""}
     </div>
-    ${tags.length ? `<div class="ld-tod-tags">${tags.map(t=>`<span>${t}</span>`).join("")}</div>` : ""}
     <div class="ld-tod-desc">${desc}</div>
-    <div class="ld-tod-statsrow">
-      <div class="ld-tod-mini"><b>${stars || "—"}</b><span>${fa?"ستاره":"Stars"}</span></div>
+    <div class="ld-tod-metrics">
+      <div class="ld-tod-mini"><b>★ ${stars!=null?ldFmt(stars):"—"}</b><span>${fa?"ستاره":"Stars"}</span></div>
+      <div class="ld-tod-mini"><b>⑂ ${forks!=null?ldFmt(forks):"—"}</b><span>${fa?"فورک":"Forks"}</span></div>
+      <div class="ld-tod-mini"><b>${issues!=null?ldFmt(issues):"—"}</b><span>${fa?"ایشو باز":"Open issues"}</span></div>
+      <div class="ld-tod-mini"><b>${lastUpd}</b><span>${fa?"آخرین آپدیت":"Last update"}</span></div>
       <div class="ld-tod-mini"><b>${price}</b><span>${fa?"قیمت":"Price"}</span></div>
-      <div class="ld-tod-mini"><b>#1</b><span>${fa?"امروز":"Today"}</span></div>
+      <div class="ld-tod-mini"><b>${rank?"#"+rank:"—"}</b><span>${fa?"رتبه ستاره":"Star rank"}</span></div>
     </div>
+    ${sharePct ? `
+    <div class="ld-tod-share">
+      <div class="ld-tod-share-head"><span>${fa?"محبوبیت نسبت به ابزار #۱":"Popularity vs #1 tool"}</span><b>${sharePct}%</b></div>
+      <div class="ld-tod-share-track"><div class="ld-tod-share-fill" style="width:${sharePct}%"></div></div>
+    </div>` : ""}
     <div class="ld-tod-actions">
       ${url ? `<a class="ld-tod-visit" href="${url}" target="_blank" rel="noopener">${fa?"مشاهده ابزار":"Visit tool"} ↗</a>` : ""}
       <span class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Featured by AI Radar today"}</span>
