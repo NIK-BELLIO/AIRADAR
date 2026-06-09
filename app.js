@@ -10161,20 +10161,47 @@ function ldRenderTod() {
   const body = document.querySelector("#ldTodBody");
   if (!body) return;
   const fa = state.lang === "fa";
-  const name = (document.querySelector("#todName") || {}).textContent || "";
-  const cat = (document.querySelector("#todCategory") || {}).textContent || "";
-  const desc = (document.querySelector("#todDesc") || {}).textContent || "";
-  const score = (document.querySelector("#todScoreNum") || {}).textContent
-    || (document.querySelector("#todScore") || {}).textContent || "";
+  // prefer reading the actual tool object for rich data
+  let tool = null;
+  try {
+    if (typeof getDayIndex === "function" && typeof tools !== "undefined" && tools.length) {
+      tool = tools[getDayIndex(tools.length)];
+    }
+  } catch (e) {}
+  const txtVal = v => !v ? "" : (typeof v === "string" ? v : (v[fa?"fa":"en"] || v.en || ""));
+  const name = tool ? (tool.name || "—") : ((document.querySelector("#todName")||{}).textContent || "—");
+  const cat = tool ? txtVal(tool.category) : ((document.querySelector("#todCategory")||{}).textContent || "");
+  const desc = tool ? txtVal(tool.useCase) : ((document.querySelector("#todDesc")||{}).textContent || "");
+  const score = tool && tool.score ? tool.score : "";
+  const stars = tool && tool.stars ? ldFmt(tool.stars) : "";
+  const isFree = tool && (tool.price === 0 || tool.plan === "free" || tool.plan === "freemium");
+  const price = tool ? (isFree ? (fa?"رایگان":"Free") : (tool.price ? "$"+tool.price : "—")) : "—";
+  const url = tool ? (tool.url || "") : "";
+  let dom = ""; try { dom = new URL(url).hostname; } catch(e) {}
+  const tags = tool && Array.isArray(tool.tags) ? tool.tags.slice(0,4) : [];
   const initial = (name || "?").trim().charAt(0).toUpperCase();
   body.innerHTML = `
     <div class="ld-tod-top">
-      <div class="ld-tod-badge">${initial}</div>
-      <div><div class="ld-tod-name">${name || "—"}</div><div class="ld-tod-cat">${cat}</div></div>
+      <div class="ld-tod-badge">${dom
+        ? `<img src="https://www.google.com/s2/favicons?domain=${dom}&sz=128" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'"/>`
+        : initial}</div>
+      <div>
+        <div class="ld-tod-name">${name}</div>
+        <div class="ld-tod-cat">${cat}</div>
+      </div>
       ${score ? `<div class="ld-tod-score"><b>${score}</b><span>${fa?"امتیاز":"SCORE"}</span></div>` : ""}
     </div>
+    ${tags.length ? `<div class="ld-tod-tags">${tags.map(t=>`<span>${t}</span>`).join("")}</div>` : ""}
     <div class="ld-tod-desc">${desc}</div>
-    <div class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Featured by AI Radar today"}</div>`;
+    <div class="ld-tod-statsrow">
+      <div class="ld-tod-mini"><b>${stars || "—"}</b><span>${fa?"ستاره":"Stars"}</span></div>
+      <div class="ld-tod-mini"><b>${price}</b><span>${fa?"قیمت":"Price"}</span></div>
+      <div class="ld-tod-mini"><b>#1</b><span>${fa?"امروز":"Today"}</span></div>
+    </div>
+    <div class="ld-tod-actions">
+      ${url ? `<a class="ld-tod-visit" href="${url}" target="_blank" rel="noopener">${fa?"مشاهده ابزار":"Visit tool"} ↗</a>` : ""}
+      <span class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Featured by AI Radar today"}</span>
+    </div>`;
 }
 
 function ldSpark() {
