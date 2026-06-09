@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v276" />
+    <link rel="stylesheet" href="styles.css?v=v277" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -173,7 +173,8 @@
       .ld-map-land { fill: rgba(255,255,255,0.05); stroke: rgba(244,213,141,0.22); stroke-width:.4; }
       .ld-map-link { stroke: rgba(0,212,255,0.35); stroke-width:.5; fill:none; stroke-dasharray: 3 4; animation: ldDash 18s linear infinite; }
       @keyframes ldDash { to { stroke-dashoffset: -200; } }
-      .ld-map-core { fill:#F4D58D; }
+      .ld-map-core { fill:#F4D58D; filter: drop-shadow(0 0 4px rgba(244,213,141,0.9)); }
+      .ld-map-glow { fill: rgba(0,212,255,0.22); }
       .ld-map-ring { fill:none; stroke:#00D4FF; }
       .ld-map-hub { cursor:pointer; }
       .ld-map-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; max-height:54px; overflow-y:auto; }
@@ -261,10 +262,14 @@
       .aimap { position: relative; width: 100%; aspect-ratio: 2.6 / 1; max-height: 340px; }
       .aimap svg { width: 100%; height: 100%; display: block; }
       .aimap-land { fill: rgba(216,183,106,0.10); stroke: rgba(216,183,106,0.22); stroke-width: 0.4; }
+      .aimap-link { stroke: rgba(0,212,255,0.4); stroke-width: 0.5; fill: none; stroke-dasharray: 3 4; animation: aimapDash 16s linear infinite; }
+      @keyframes aimapDash { to { stroke-dashoffset: -200; } }
       .aimap-hub { cursor: pointer; }
-      .aimap-hub-core { fill: #d8b76a; }
-      .aimap-hub-ring { fill: none; stroke: #d8b76a; opacity: 0.7; transform-origin: center; }
+      .aimap-hub-glow { fill: rgba(216,183,106,0.25); }
+      .aimap-hub-core { fill: #d8b76a; filter: drop-shadow(0 0 3px rgba(216,183,106,0.9)); }
+      .aimap-hub-ring { fill: none; stroke: #00d4ff; opacity: 0.7; transform-origin: center; }
       .aimap-hub.active .aimap-hub-core { fill: #fff0b8; }
+      .aimap-hub.active .aimap-hub-glow { fill: rgba(0,212,255,0.4); }
       .aimap-info { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(8,8,10,0.82); backdrop-filter: blur(8px); border: 1px solid rgba(216,183,106,0.3); border-radius: 11px; padding: 11px 14px; pointer-events: none; opacity: 0; transform: translateY(8px); transition: all .2s; }
       .aimap-info.show { opacity: 1; transform: translateY(0); }
       .aimap-info-city { font-weight: 800; font-size: 14px; color: var(--gold-2); }
@@ -1685,7 +1690,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v276"></script>
+    <script src="app.js?v=v277"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
