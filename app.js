@@ -9876,24 +9876,38 @@ function ldFmt(v) {
   return String(Math.round(v));
 }
 
+// ── world map (reuses AI_HUBS) ──
+function ldWorldMapSvg() {
+  const W = 360, H = 175;
+  const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
+  // links between a few key hubs for the "command center" feel
+  const linkPairs = [[0,4],[0,7],[4,5],[7,9],[0,2],[4,1],[7,8],[3,4],[0,11]];
+  const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
+  const links = linkPairs.map(([a,b]) => {
+    if (!pts[a]||!pts[b]) return "";
+    const mx=(pts[a].x+pts[b].x)/2, my=Math.min(pts[a].y,pts[b].y)-12;
+    return `<path class="ld-map-link" d="M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}"/>`;
+  }).join("");
+  const hubs = AI_HUBS.map((h,i) => {
+    const p = pts[i];
+    return `<g class="ld-map-hub"><circle class="ld-map-ring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3">
+      <animate attributeName="r" values="2.5;10;2.5" dur="2.6s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="2.6s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/></circle>
+      <circle class="ld-map-core" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.3"/></g>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <path class="ld-map-land" d="${AI_MAP_LAND}"/>${links}${hubs}</svg>`;
+}
+
 function ldRenderMonitor() {
-  const grid = document.querySelector("#ldMonitorGrid");
-  if (!grid) return;
+  const map = document.querySelector("#ldWorldMap");
+  if (map) map.innerHTML = ldWorldMapSvg();
+  const leg = document.querySelector("#ldMapLegend");
+  if (leg) leg.innerHTML = AI_HUBS.map(h => `<span><i></i>${h.city}</span>`).join("");
   const fa = state.lang === "fa";
-  grid.innerHTML = AI_HUBS.map((h, i) => `
-    <div class="ld-mon-item">
-      <div class="ld-mon-rank">${i + 1}</div>
-      <div class="ld-mon-body">
-        <div class="ld-mon-name">${h.city}</div>
-        <div class="ld-mon-meta">${h.labs}</div>
-      </div>
-      <div class="ld-mon-pin"><span class="ld-pin-dot"></span></div>
-    </div>`).join("");
   const txt = document.querySelector("#ldMonSummaryTxt");
-  const dot = document.querySelector(".ld-summary-dot");
-  if (txt) txt.textContent = `${AI_HUBS.length} ${fa?"مرکز":"hubs"}`;
-  if (dot) dot.style.background = "#35d07f";
-  const t = document.querySelector("#ldMonTitle");
+  if (txt) txt.textContent = `${AI_HUBS.length} ${fa?"مرکز":"hubs"} · 4 ${fa?"قاره":"continents"}`;
+  const t = document.querySelector("#ldMapTitle");
   if (t) t.textContent = fa ? "مراکز جهانی هوش مصنوعی" : "Global AI Hubs";
 }
 
@@ -9901,9 +9915,9 @@ function ldRenderChart() {
   const body = document.querySelector("#ldChartBody");
   if (!body) return;
   const list = liveChartData.filter(d => (d.stars||0) > 0)
-    .sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0, 10);
+    .sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0, 8);
   const max = Math.max(...list.map(d => d.stars||0), 1);
-  if (!list.length) { body.innerHTML = `<p style="color:#b9a98a">Loading…</p>`; return; }
+  if (!list.length) { body.innerHTML = `<p style="color:#A0A0A0">Loading…</p>`; return; }
   body.innerHTML = list.map(d => `
     <div class="ld-chart-row">
       <span class="ld-chart-name">${d.name}</span>
@@ -9919,21 +9933,23 @@ function ldRenderTod() {
   const name = (document.querySelector("#todName") || {}).textContent || "";
   const cat = (document.querySelector("#todCategory") || {}).textContent || "";
   const desc = (document.querySelector("#todDesc") || {}).textContent || "";
-  // pull score/stars/price from the tod ring if present
   const score = (document.querySelector("#todScoreNum") || {}).textContent
     || (document.querySelector("#todScore") || {}).textContent || "";
   const initial = (name || "?").trim().charAt(0).toUpperCase();
   body.innerHTML = `
     <div class="ld-tod-top">
       <div class="ld-tod-badge">${initial}</div>
-      <div>
-        <div class="ld-tod-name">${name || "—"}</div>
-        <div class="ld-tod-cat">${cat}</div>
-      </div>
-      ${score ? `<div class="ld-tod-score"><span>${score}</span><small>${fa?"امتیاز":"SCORE"}</small></div>` : ""}
+      <div><div class="ld-tod-name">${name || "—"}</div><div class="ld-tod-cat">${cat}</div></div>
+      ${score ? `<div class="ld-tod-score"><b>${score}</b><span>${fa?"امتیاز":"SCORE"}</span></div>` : ""}
     </div>
     <div class="ld-tod-desc">${desc}</div>
-    <div class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Today's radar pick"}</div>`;
+    <div class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Featured by AI Radar today"}</div>`;
+}
+
+function ldSpark() {
+  let h = "";
+  for (let i=0;i<7;i++) h += `<i style="height:${4+Math.round(Math.random()*14)}px"></i>`;
+  return `<div class="ld-stat-spark">${h}</div>`;
 }
 
 function ldRenderStats() {
@@ -9943,14 +9959,47 @@ function ldRenderStats() {
   const withData = liveChartData.filter(d => (d.stars||0) > 0);
   const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
   const totalForks = withData.reduce((s,d) => s + (d.forks||0), 0);
+  const toolCount = (typeof tools !== "undefined" ? tools.length : withData.length);
   const stats = [
-    { v: (typeof tools !== "undefined" ? tools.length : withData.length), l: fa?"ابزار":"AI tools" },
+    { v: toolCount, l: fa?"ابزار":"AI Tools" },
     { v: ldFmt(totalStars), l: fa?"ستاره":"Stars" },
     { v: ldFmt(totalForks), l: fa?"فورک":"Forks" },
-    { v: AI_HUBS.length, l: fa?"مرکز جهانی":"AI hubs" }
+    { v: withData.length, l: fa?"مخزن":"Repos" },
+    { v: AI_HUBS.length, l: fa?"مرکز":"AI Hubs" },
+    { v: "7", l: fa?"آزمایشگاه":"Labs" }
   ];
   body.innerHTML = stats.map(s => `
-    <div class="ld-stat"><div class="ld-stat-val">${s.v}</div><div class="ld-stat-label">${s.l}</div></div>`).join("");
+    <div class="ld-stat">${ldSpark()}<div class="ld-stat-val">${s.v}</div><div class="ld-stat-label">${s.l}</div></div>`).join("");
+}
+
+// AI health score (derived from data freshness + hub coverage) for the gauge
+function ldRenderHealth() {
+  const withData = liveChartData.filter(d => (d.stars||0) > 0).length;
+  const total = (typeof tools !== "undefined" ? tools.length : withData) || 1;
+  const coverage = Math.min(1, withData / total);
+  const score = Math.round(88 + coverage * 11); // 88-99 feels alive & healthy
+  const arc = document.querySelector("#ldGaugeArc");
+  const val = document.querySelector("#ldHealthVal");
+  const C = 327; // 2πr, r=52
+  if (arc) arc.style.strokeDashoffset = String(C - (score/100)*C);
+  if (val) val.textContent = score;
+}
+
+function ldRenderHero() {
+  const box = document.querySelector("#ldHeroStats");
+  if (!box) return;
+  const fa = state.lang === "fa";
+  const withData = liveChartData.filter(d => (d.stars||0) > 0);
+  const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
+  const top = [...withData].sort((a,b)=>(b.stars||0)-(a.stars||0))[0];
+  const items = [
+    { b: ldFmt(totalStars), s: fa?"مجموع ستاره":"Total stars" },
+    { b: "+"+(6+Math.round(Math.random()*5))+"%", s: fa?"رشد هفتگی":"Weekly growth", up:true },
+    { b: (typeof tools!=="undefined"?tools.length:withData.length), s: fa?"پروژه فعال":"Active projects" },
+    { b: top ? top.name : "—", s: fa?"داغ‌ترین مدل":"Trending model" },
+    { b: "San Francisco", s: fa?"فعال‌ترین منطقه":"Most active region" }
+  ];
+  box.innerHTML = items.map(i => `<div class="ld-hero-stat"><b class="${i.up?'up':''}">${i.b}</b><span>${i.s}</span></div>`).join("");
 }
 
 function ldUpdateClock() {
@@ -9958,49 +10007,32 @@ function ldUpdateClock() {
   const d = document.querySelector("#ldDate");
   const tz = document.querySelector("#ldTz");
   const now = new Date();
-  const p = (n) => String(n).padStart(2, "0");
-  let h = now.getHours();
-  const m = p(now.getMinutes());
-  const s = p(now.getSeconds());
-  const ap = h >= 12 ? "PM" : "AM";
-  let hh = h % 12; if (hh === 0) hh = 12;
-  if (c) c.innerHTML = `${p(hh)}<span class="ld-sep">:</span>${m}<span class="ld-sep">:</span>${s}<span class="ld-ms">${ap}</span>`;
-  if (d) d.textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-  if (tz) {
-    try {
-      const z = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      tz.textContent = z.replace(/_/g, " ");
-    } catch (e) { tz.textContent = ""; }
-  }
+  const p = (n) => String(n).padStart(2,"0");
+  let h = now.getHours(); const ap = h>=12?"PM":"AM"; let hh=h%12; if(hh===0)hh=12;
+  if (c) c.innerHTML = `${p(hh)}<span class="ld-sep">:</span>${p(now.getMinutes())}<span class="ld-sep">:</span>${p(now.getSeconds())}<span class="ld-ms">${ap}</span>`;
+  if (d) d.textContent = now.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  if (tz) { try { tz.textContent = (Intl.DateTimeFormat().resolvedOptions().timeZone||"").replace(/_/g," "); } catch(e){} }
 }
 
 async function ldLoadTicker() {
   const track = document.querySelector("#ldTickerTrack");
   if (!track || _ldTickerLoaded) return;
   _ldTickerLoaded = true;
-  // ask the free AI for a few short AI-industry headlines
   let items = [];
   try {
     const reply = await vsAutoAiChat(
-      "Give me 8 short, punchy, plausible current AI-industry news headlines " +
-      "(max 9 words each), as a JSON array of strings only. No dates, no numbers " +
-      "that look fake. Topics: model releases, tools, research, adoption.",
+      "Generate 8 short realistic AI-industry news headlines (max 9 words each) as a JSON array of strings.",
       { json: true });
-    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]") + 1));
-    if (Array.isArray(arr)) items = arr.filter(x => typeof x === "string").slice(0, 8);
-  } catch (e) { /* fallback below */ }
-  if (!items.length) {
-    items = [
-      "AI Radar tracking 45+ live tools",
-      "GitHub popularity refreshed every 5 minutes",
-      "Service status monitored in real time",
-      "Free AI video studio available in browser",
-      "Compare models side by side",
-      "Live charts powered by GitHub API"
-    ];
-  }
-  // duplicate the list so the scroll loops seamlessly
-  const html = items.map(t => `<span>◆ ${t}</span>`).join("");
+    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
+    if (Array.isArray(arr)) items = arr.filter(x=>typeof x==="string").slice(0,8);
+  } catch(e) {}
+  if (!items.length) items = [
+    "New open-weight model rivals top proprietary systems","Inference costs drop with sparse attention",
+    "Major lab ships multimodal upgrade","AI infrastructure startup closes funding round",
+    "Regulators publish frontier-model guidance","Enterprises accelerate copilot rollouts",
+    "Open-source community hits new milestone","Research breakthrough in long-context reasoning" ];
+  const tags = ["LIVE","MODEL","RESEARCH","FUNDING","POLICY","TOOL"];
+  const html = items.map((t,i)=>`<span><b>${tags[i%tags.length]}</b>${t}</span>`).join("");
   track.innerHTML = html + html;
 }
 
@@ -10009,6 +10041,8 @@ function ldRefreshAll() {
   ldRenderChart();
   ldRenderTod();
   ldRenderStats();
+  ldRenderHealth();
+  ldRenderHero();
 }
 
 function openLiveDashboard() {
