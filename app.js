@@ -9758,13 +9758,56 @@ const AI_HUBS = [
   { city: "Toronto", lon: -79.4, lat: 43.7, labs: "Vector Institute · Cohere", note: "Deep-learning roots" }
 ];
 
-// A lightweight simplified world landmass path (equirectangular, 360x180 box).
-const AI_MAP_LAND = "M50 55 L95 50 L120 58 L130 78 L110 110 L95 130 L80 120 L70 95 L58 80 Z M150 40 L210 38 L240 50 L250 75 L235 100 L215 120 L195 110 L185 130 L170 120 L165 95 L155 70 L150 55 Z M300 45 L325 48 L320 70 L305 80 L298 65 Z M270 95 L300 92 L312 115 L300 150 L285 158 L278 130 L268 110 Z";
+// Continent regions (lon/lat boxes) used to scatter dots into a world map.
+// Rough but recognizable silhouettes — enough for a cinematic dotted globe.
+const AI_MAP_REGIONS = [
+  // North America
+  {x1:-168,y1:60,x2:-52,y2:25, dense:0.55},
+  {x1:-128,y1:50,x2:-66,y2:30, dense:0.85},
+  {x1:-118,y1:32,x2:-80,y2:14, dense:0.5},  // Mexico/CentralAm
+  // South America
+  {x1:-82,y1:10,x2:-35,y2:-20, dense:0.7},
+  {x1:-76,y1:-20,x2:-48,y2:-55, dense:0.6},
+  // Europe
+  {x1:-10,y1:60,x2:30,y2:36, dense:0.9},
+  {x1:5,y1:71,x2:30,y2:55, dense:0.5}, // Scandinavia
+  // Africa
+  {x1:-18,y1:35,x2:52,y2:8, dense:0.75},
+  {x1:8,y1:8,x2:42,y2:-35, dense:0.7},
+  // Middle East / Asia
+  {x1:30,y1:45,x2:80,y2:12, dense:0.7},
+  {x1:60,y1:55,x2:145,y2:30, dense:0.85}, // Central/East Asia
+  {x1:70,y1:30,x2:90,y2:8, dense:0.7}, // India
+  {x1:95,y1:25,x2:140,y2:-10, dense:0.6}, // SE Asia
+  {x1:130,y1:45,x2:146,y2:31, dense:0.6}, // Japan
+  // Australia
+  {x1:113,y1:-12,x2:154,y2:-39, dense:0.7}
+];
 
 let _aiMapActive = null;
 // hoisted flag (var) — undefined during early startup, true once these consts
 // are initialized, so setLanguage's renderAiMap call can't hit a const TDZ.
 var _aiMonInited = true;
+
+// Build a dotted world map (cinematic command-center style). Returns SVG inner.
+function aiMapDots(W, H, dotColor) {
+  const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
+  const step = 3.2; // degrees between dots
+  let dots = "";
+  for (const r of AI_MAP_REGIONS) {
+    const xMin = Math.min(r.x1,r.x2), xMax = Math.max(r.x1,r.x2);
+    const yMin = Math.min(r.y1,r.y2), yMax = Math.max(r.y1,r.y2);
+    for (let lon = xMin; lon <= xMax; lon += step) {
+      for (let lat = yMin; lat <= yMax; lat += step) {
+        if (Math.random() > r.dense) continue;
+        const p = proj(lon, lat);
+        const rad = (Math.random()*0.4 + 0.5).toFixed(2);
+        dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${rad}"/>`;
+      }
+    }
+  }
+  return `<g fill="${dotColor}">${dots}</g>`;
+}
 
 function aiMapProject(lon, lat, w, h) {
   return { x: ((lon + 180) / 360) * w, y: ((90 - lat) / 180) * h };
@@ -9774,21 +9817,38 @@ function renderAiMap() {
   const box = document.querySelector("#aimap");
   if (!box) return;
   const W = 360, H = 180;
+  const proj = (lon, lat) => aiMapProject(lon, lat, W, H);
+  // glowing connection arcs between key hubs
+  const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
+  const linkPairs = [[0,4],[0,3],[4,5],[4,7],[7,9],[3,11],[0,2],[7,8],[4,6],[10,7],[0,11]];
+  const links = linkPairs.map(([a,b]) => {
+    if (!pts[a]||!pts[b]) return "";
+    const mx=(pts[a].x+pts[b].x)/2, my=Math.min(pts[a].y,pts[b].y)-14;
+    return `<path class="aimap-link" d="M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}"/>`;
+  }).join("");
   const hubs = AI_HUBS.map((hub, i) => {
-    const p = aiMapProject(hub.lon, hub.lat, W, H);
+    const p = pts[i];
     return `<g class="aimap-hub" data-i="${i}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
       <circle class="aimap-hub-ring" r="3">
-        <animate attributeName="r" values="2;9;2" dur="2.4s" begin="${(i*0.2).toFixed(1)}s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="0.7;0;0.7" dur="2.4s" begin="${(i*0.2).toFixed(1)}s" repeatCount="indefinite"/>
+        <animate attributeName="r" values="2.5;11;2.5" dur="2.8s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="2.8s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
       </circle>
-      <circle class="aimap-hub-core" r="2.2"/>
+      <circle class="aimap-hub-glow" r="4.5"/>
+      <circle class="aimap-hub-core" r="2.3"/>
     </g>`;
   }).join("");
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    <path class="aimap-land" d="${AI_MAP_LAND}"/>
+    <defs>
+      <radialGradient id="aimapVignette" cx="50%" cy="45%" r="65%">
+        <stop offset="0%" stop-color="rgba(0,212,255,0.07)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </radialGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#aimapVignette)"/>
+    ${aiMapDots(W, H, "rgba(216,183,106,0.32)")}
+    ${links}
     ${hubs}
   </svg>`;
-  // tap/hover to show hub info
   box.querySelectorAll(".aimap-hub").forEach(g => {
     const show = () => {
       const hub = AI_HUBS[+g.dataset.i];
@@ -9880,8 +9940,7 @@ function ldFmt(v) {
 function ldWorldMapSvg() {
   const W = 360, H = 175;
   const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
-  // links between a few key hubs for the "command center" feel
-  const linkPairs = [[0,4],[0,7],[4,5],[7,9],[0,2],[4,1],[7,8],[3,4],[0,11]];
+  const linkPairs = [[0,4],[0,7],[4,5],[7,9],[0,2],[4,1],[7,8],[3,4],[0,11],[10,7],[4,6]];
   const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
   const links = linkPairs.map(([a,b]) => {
     if (!pts[a]||!pts[b]) return "";
@@ -9891,12 +9950,13 @@ function ldWorldMapSvg() {
   const hubs = AI_HUBS.map((h,i) => {
     const p = pts[i];
     return `<g class="ld-map-hub"><circle class="ld-map-ring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3">
-      <animate attributeName="r" values="2.5;10;2.5" dur="2.6s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0.8;0;0.8" dur="2.6s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/></circle>
-      <circle class="ld-map-core" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.3"/></g>`;
+      <animate attributeName="r" values="2.5;11;2.5" dur="2.8s" begin="${(i*0.16).toFixed(1)}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0;0.9" dur="2.8s" begin="${(i*0.16).toFixed(1)}s" repeatCount="indefinite"/></circle>
+      <circle class="ld-map-glow" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5"/>
+      <circle class="ld-map-core" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.4"/></g>`;
   }).join("");
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    <path class="ld-map-land" d="${AI_MAP_LAND}"/>${links}${hubs}</svg>`;
+    ${aiMapDots(W, H, "rgba(0,212,255,0.28)")}${links}${hubs}</svg>`;
 }
 
 function ldRenderMonitor() {
