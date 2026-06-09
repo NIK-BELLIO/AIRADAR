@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v280" />
+    <link rel="stylesheet" href="styles.css?v=v281" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -226,8 +226,21 @@
          so there is no dead bottom gap even though the radar column is taller */
       .tod-radar-row { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; align-items: stretch; margin-bottom: 20px; }
       @media (max-width: 1100px) { .tod-radar-row { grid-template-columns: 1fr; } }
-      .tod-radar-row > .tod-panel { margin: 0 !important; display: flex !important; flex-direction: column; justify-content: center; }
-      .tod-radar-row > .ai-monitor { margin: 0 !important; }
+      /* min-width:0 is CRITICAL: without it the nowrap ticker forces the grid
+         column to expand to the ticker's full content width and breaks layout */
+      .tod-radar-row > * { min-width: 0; }
+      .tod-radar-row > .tod-panel { margin: 0 !important; display: flex !important; flex-direction: column; justify-content: center; min-width: 0; }
+      .tod-radar-row > .ai-monitor { margin: 0 !important; min-width: 0; max-width: 100%; overflow: hidden; }
+      /* similar tools block inside tod */
+      .tod-related { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+      .tod-related-head { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
+      .tod-related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      @media (max-width: 640px) { .tod-related-grid { grid-template-columns: 1fr; } }
+      .tod-rel-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+      .tod-rel-card:hover { border-color: rgba(216,183,106,0.45); transform: translateY(-2px); }
+      .tod-rel-card img { width: 26px; height: 26px; border-radius: 6px; }
+      .tod-rel-name { font-size: 13px; font-weight: 700; color: var(--text); }
+      .tod-rel-meta { font-size: 11px; color: var(--gold-2); }
       .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
       .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
       .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
@@ -275,7 +288,7 @@
       .aimon-chip-spark { position: absolute; right: 8px; bottom: 7px; width: 38px; height: 12px; opacity: .55; }
       .aimon-chip-spark polyline { fill: none; stroke: #00d4ff; stroke-width: 1; vector-effect: non-scaling-stroke; }
       /* live ticker */
-      .aimon-ticker { display: flex; align-items: center; gap: 10px; margin: 13px 0; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
+      .aimon-ticker { display: flex; align-items: center; gap: 10px; margin: 13px 0; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; max-width: 100%; min-width: 0; }
       .aimon-ticker-tag { font-size: 10px; font-weight: 800; color: #060606; background: #35d07f; padding: 4px 9px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: .04em; }
       .aimon-ticker-track { display: flex; gap: 36px; white-space: nowrap; animation: aimonTick 34s linear infinite; }
       .aimon-ticker-track span { font-size: 12px; color: var(--text); }
@@ -696,6 +709,11 @@
               </div>
               <div class="tod-stats" id="todStats"></div>
             </div>
+          </div>
+          <!-- similar tools — fills the lower space with useful content -->
+          <div class="tod-related">
+            <div class="tod-related-head" id="todRelatedHead">More from this category</div>
+            <div class="tod-related-grid" id="todRelated"></div>
           </div>
         </section>
         <!-- /TOOL OF THE DAY -->
@@ -1732,7 +1750,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v280"></script>
+    <script src="app.js?v=v281"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
@@ -1825,6 +1843,33 @@
         const start2 = new Date(now2.getFullYear(), 0, 0);
         const dayOfYear = Math.floor((now2 - start2) / 86400000);
         set('todDayNum', String(dayOfYear));
+
+        // ── Similar tools (same category) — fills the panel & is useful ──
+        const relWrap = get('todRelated');
+        if (relWrap) {
+          set('todRelatedHead', fa ? 'ابزارهای مشابه از همین دسته' : 'More from this category');
+          const catKey = txtVal(tool.category);
+          const related = tools
+            .filter(t2 => t2 !== tool && txtVal(t2.category) === catKey)
+            .slice(0, 3);
+          // if the category is small, fill with top-scored tools
+          if (related.length < 3) {
+            tools.filter(t2 => t2 !== tool && !related.includes(t2))
+              .sort((a,b) => (b.score||0)-(a.score||0))
+              .slice(0, 3 - related.length)
+              .forEach(t2 => related.push(t2));
+          }
+          relWrap.innerHTML = related.map(t2 => {
+            let dom = '';
+            try { dom = new URL(t2.url).hostname; } catch(e) {}
+            const isFree = t2.price === 0 || t2.plan === 'free' || t2.plan === 'freemium';
+            return '<a class="tod-rel-card" href="' + (t2.url||'#') + '" target="_blank" rel="noopener">' +
+              '<img src="https://www.google.com/s2/favicons?domain=' + dom + '&sz=64" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' +
+              '<span class="tod-rel-name">' + (t2.name||'') + '</span>' +
+              '<span class="tod-rel-meta">' + (t2.score ? '★ ' + t2.score : '') + (isFree ? (fa?' · رایگان':' · Free') : '') + '</span>' +
+              '</a>';
+          }).join('');
+        }
 
         // ── Stats ──
         const statsEl = get('todStats');
