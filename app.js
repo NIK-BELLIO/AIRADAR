@@ -1458,26 +1458,22 @@ function setLanguage(lang) {
   renderTools();
   renderCompare();
   render3DChart();
-  // refresh the AI monitor labels (Operational/فعال etc.) on language switch.
-  // _aiMonInited (a hoisted var) is only true AFTER the monitor consts exist,
-  // so calling this during early startup can't hit a const TDZ error.
+  // refresh AI map + news labels on language switch
+  const fa = lang === "fa";
+  const setTxt = (id, en, faTxt) => { const el = document.querySelector(id); if (el) el.textContent = fa ? faTxt : en; };
+  setTxt("#aimonEyebrow", "Live AI radar", "رادار زنده هوش مصنوعی");
+  setTxt("#aimonTitle", "Global AI Map", "نقشه جهانی هوش مصنوعی");
+  setTxt("#aimonSub", "The world's AI power centers, live. Tap a hub to see who's there.",
+    "مراکز قدرت هوش مصنوعی جهان، زنده. روی هر نقطه بزن تا ببینی چه شرکت‌هایی آنجا هستند.");
+  setTxt("#ainewsSub", "Latest in AI", "تازه‌ترین‌های هوش مصنوعی");
+  const dashTxt = document.querySelector("#dashLaunchTxt");
+  if (dashTxt) dashTxt.textContent = fa ? "داشبورد زنده" : "Live Dashboard";
+  const dashHint = document.querySelector("#dashHintTxt");
+  if (dashHint) dashHint.textContent = fa
+    ? "هر نمایشگری را به مرکز فرماندهی زنده تبدیل کن"
+    : "Turn any screen into a live war-room";
   if (typeof _aiMonInited !== "undefined" && _aiMonInited &&
-      document.querySelector("#aimonGrid")) {
-    const fa = lang === "fa";
-    const setTxt = (id, en, faTxt) => { const el = document.querySelector(id); if (el) el.textContent = fa ? faTxt : en; };
-    setTxt("#aimonEyebrow", "Live system monitor", "مانیتور زنده سیستم");
-    setTxt("#aimonTitle", "AI Service Status", "وضعیت سرویس‌های هوش مصنوعی");
-    setTxt("#aimonSub", "Real-time official status of major AI platforms. Updates automatically.", "وضعیت رسمی و زنده پلتفرم‌های بزرگ هوش مصنوعی. خودکار بروزرسانی می‌شود.");
-    setTxt("#aimonRefreshTxt", "Refresh", "بروزرسانی");
-    const dashTxt = document.querySelector("#dashLaunchTxt");
-    if (dashTxt) dashTxt.textContent = fa ? "داشبورد زنده" : "Live Dashboard";
-    const dashHint = document.querySelector("#dashHintTxt");
-    if (dashHint) dashHint.textContent = fa
-      ? "هر نمایشگری را به مرکز فرماندهی زنده تبدیل کن"
-      : "Turn any screen into a live war-room";
-    aiMonRenderAll();
-    aiMonUpdateSummary();
-  }
+      typeof renderAiMap === "function" && document.querySelector("#aimap")) renderAiMap();
 }
 
 function formatPrice(price) {
@@ -9742,205 +9738,124 @@ window.addEventListener("load", () => renderLiveChart());
 setInterval(fetchLiveChartData, 5 * 60 * 1000);
 
 // ─────────────────────────────────────────────────────────────────────────
-// AI SERVICE STATUS MONITOR
-// Measures real-time reachability + latency of major AI platforms from the
-// visitor's browser. We can't read their private status APIs (CORS), so we
-// time a tiny no-cors request to each service's public favicon/CDN: a fast
-// response = operational, a slow one = degraded, a failure = likely down.
-// This reflects what the user's own connection to each service looks like.
+// AI WORLD MAP + AI NEWS PULSE  (replaces the old status monitor)
+// A world map of major AI hubs with live pulsing markers, plus an AI-generated
+// news pulse. Both work offline-of-status-pages so they always render.
 // ─────────────────────────────────────────────────────────────────────────
-// Each service exposes an official Atlassian Statuspage summary endpoint that
-// returns REAL status: overall indicator, per-component health, uptime and the
-// latest incident. We read it through a CORS proxy (these block direct calls).
-const AI_MONITOR_SERVICES = [
-  { id: "openai",      name: "OpenAI",       logo: "AI", domain: "openai.com",       status: "https://status.openai.com/api/v2/summary.json" },
-  { id: "anthropic",   name: "Claude",       logo: "Cl", domain: "anthropic.com",    status: "https://status.anthropic.com/api/v2/summary.json" },
-  { id: "google",      name: "Google AI",    logo: "Ge", domain: "ai.google",        status: "https://status.cloud.google.com/incidents.json", kind: "gcp" },
-  { id: "perplexity",  name: "Perplexity",   logo: "Px", domain: "perplexity.ai",    status: "https://status.perplexity.com/api/v2/summary.json" },
-  { id: "mistral",     name: "Mistral",      logo: "Mi", domain: "mistral.ai",       status: "https://status.mistral.ai/api/v2/summary.json" },
-  { id: "cursor",      name: "Cursor",       logo: "Cu", domain: "cursor.com",       status: "https://status.cursor.com/api/v2/summary.json" },
-  { id: "github",      name: "GitHub",       logo: "Gh", domain: "github.com",       status: "https://www.githubstatus.com/api/v2/summary.json" },
-  { id: "huggingface", name: "Hugging Face", logo: "HF", domain: "huggingface.co",   status: "https://status.huggingface.co/api/v2/summary.json" },
-  { id: "elevenlabs",  name: "ElevenLabs",   logo: "El", domain: "elevenlabs.io",    status: "https://status.elevenlabs.io/api/v2/summary.json" },
-  { id: "replicate",   name: "Replicate",    logo: "Rp", domain: "replicate.com",    status: "https://www.replicatestatus.com/api/v2/summary.json" }
+// equirectangular projection: lon -180..180 -> 0..360, lat 90..-90 -> 0..180
+const AI_HUBS = [
+  { city: "San Francisco", lon: -122.4, lat: 37.8, labs: "OpenAI · Anthropic", note: "The dense heart of frontier AI" },
+  { city: "Mountain View", lon: -122.1, lat: 37.4, labs: "Google DeepMind", note: "Gemini & TPU research" },
+  { city: "Seattle", lon: -122.3, lat: 47.6, labs: "Microsoft AI · AWS", note: "Cloud + Copilot" },
+  { city: "New York", lon: -74.0, lat: 40.7, labs: "Hugging Face · Runway", note: "Applied & creative AI" },
+  { city: "London", lon: -0.13, lat: 51.5, labs: "Google DeepMind · Stability", note: "Europe's research capital" },
+  { city: "Paris", lon: 2.35, lat: 48.85, labs: "Mistral · Hugging Face", note: "Open-weight champions" },
+  { city: "Tel Aviv", lon: 34.78, lat: 32.08, labs: "AI21 · many startups", note: "Startup density" },
+  { city: "Beijing", lon: 116.4, lat: 39.9, labs: "DeepSeek · Baidu · Zhipu", note: "China's AI core" },
+  { city: "Hangzhou", lon: 120.2, lat: 30.3, labs: "Alibaba Qwen", note: "Qwen model family" },
+  { city: "Tokyo", lon: 139.7, lat: 35.7, labs: "Sakana AI · Sony AI", note: "Efficient model research" },
+  { city: "Bengaluru", lon: 77.6, lat: 13.0, labs: "Sarvam · Krutrim", note: "India's AI hub" },
+  { city: "Toronto", lon: -79.4, lat: 43.7, labs: "Vector Institute · Cohere", note: "Deep-learning roots" }
 ];
 
-// keep a short uptime/latency history per service for the sparkline
-const _aiMonHistory = {};
-// hoisted flag (var, not const) so setLanguage can safely check it during
-// early startup before these consts are initialized.
+// A lightweight simplified world landmass path (equirectangular, 360x180 box).
+const AI_MAP_LAND = "M50 55 L95 50 L120 58 L130 78 L110 110 L95 130 L80 120 L70 95 L58 80 Z M150 40 L210 38 L240 50 L250 75 L235 100 L215 120 L195 110 L185 130 L170 120 L165 95 L155 70 L150 55 Z M300 45 L325 48 L320 70 L305 80 L298 65 Z M270 95 L300 92 L312 115 L300 150 L285 158 L278 130 L268 110 Z";
+
+let _aiMapActive = null;
+// hoisted flag (var) — undefined during early startup, true once these consts
+// are initialized, so setLanguage's renderAiMap call can't hit a const TDZ.
 var _aiMonInited = true;
 
-// Fetch a service's official status JSON through a CORS proxy and normalise it
-// into { status, label, uptime, incident }. Statuspage "indicator" maps to:
-//   none → up, minor → slow, major/critical → down.
-async function aiMonFetchStatus(service) {
-  const proxies = [
-    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
-    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)
-  ];
-  for (const wrap of proxies) {
-    try {
-      const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-      const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (e) {} }, 7000);
-      const resp = await fetch(wrap(service.status), { signal: ctrl ? ctrl.signal : undefined });
-      clearTimeout(to);
-      if (!resp.ok) continue;
-      const data = await resp.json();
+function aiMapProject(lon, lat, w, h) {
+  return { x: ((lon + 180) / 360) * w, y: ((90 - lat) / 180) * h };
+}
 
-      // Google Cloud uses a different shape (array of incidents)
-      if (service.kind === "gcp") {
-        const open = Array.isArray(data) ? data.filter(i => !i.end) : [];
-        return open.length
-          ? { status: "slow", label: "Active incident", incident: open[0].external_desc || "Service event" }
-          : { status: "up", label: "Operational", incident: "" };
+function renderAiMap() {
+  const box = document.querySelector("#aimap");
+  if (!box) return;
+  const W = 360, H = 180;
+  const hubs = AI_HUBS.map((hub, i) => {
+    const p = aiMapProject(hub.lon, hub.lat, W, H);
+    return `<g class="aimap-hub" data-i="${i}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
+      <circle class="aimap-hub-ring" r="3">
+        <animate attributeName="r" values="2;9;2" dur="2.4s" begin="${(i*0.2).toFixed(1)}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.7;0;0.7" dur="2.4s" begin="${(i*0.2).toFixed(1)}s" repeatCount="indefinite"/>
+      </circle>
+      <circle class="aimap-hub-core" r="2.2"/>
+    </g>`;
+  }).join("");
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <path class="aimap-land" d="${AI_MAP_LAND}"/>
+    ${hubs}
+  </svg>`;
+  // tap/hover to show hub info
+  box.querySelectorAll(".aimap-hub").forEach(g => {
+    const show = () => {
+      const hub = AI_HUBS[+g.dataset.i];
+      box.querySelectorAll(".aimap-hub").forEach(x => x.classList.remove("active"));
+      g.classList.add("active");
+      const info = document.querySelector("#aimapInfo");
+      if (info) {
+        info.innerHTML = `<div class="aimap-info-city">${hub.city}</div>
+          <div class="aimap-info-labs">${hub.labs}</div>
+          <div class="aimap-info-note">${hub.note}</div>`;
+        info.classList.add("show");
       }
-
-      const ind = (data.status && data.status.indicator) || "none";
-      const desc = (data.status && data.status.description) || "";
-      // uptime: average of component values isn't in summary; use # operational
-      const comps = Array.isArray(data.components) ? data.components.filter(c => !c.group) : [];
-      const opCount = comps.filter(c => c.status === "operational").length;
-      const compTotal = comps.length || 1;
-      // latest unresolved incident if any
-      const inc = Array.isArray(data.incidents) && data.incidents.length
-        ? data.incidents[0].name : "";
-      const status = ind === "none" ? "up"
-        : (ind === "minor" ? "slow" : "down");
-      return {
-        status,
-        label: desc || (status === "up" ? "Operational" : status === "slow" ? "Degraded" : "Outage"),
-        opCount, compTotal,
-        incident: inc
-      };
-    } catch (e) { /* try next proxy */ }
-  }
-  return { status: "down", label: "Unknown", incident: "" };
+    };
+    g.addEventListener("click", show);
+    g.addEventListener("mouseenter", show);
+  });
+  const sum = document.querySelector("#aimonSummaryText");
+  if (sum) sum.textContent = (state.lang === "fa" ? AI_HUBS.length + " مرکز" : AI_HUBS.length + " hubs");
 }
 
-function aiMonRenderCard(service, state2) {
-  const st = state2.status; // up | slow | down | checking
-  const stTxt = {
-    up: state.lang === "fa" ? "فعال" : "Operational",
-    slow: state.lang === "fa" ? "اختلال" : "Degraded",
-    down: state.lang === "fa" ? "قطع" : "Outage",
-    checking: state.lang === "fa" ? "بررسی…" : "Checking…"
-  }[st];
-  // show the latest incident name if any, else the component count
-  let detail = "";
-  if (state2.incident) {
-    detail = `<span class="aimon-incident" title="${(state2.incident+"").replace(/"/g,"")}">⚠ ${(state2.incident+"").slice(0,32)}</span>`;
-  } else if (state2.opCount != null && state2.compTotal) {
-    detail = `<span class="aimon-latency">${state2.opCount}/${state2.compTotal} ${state.lang==="fa"?"سالم":"systems"}</span>`;
-  }
-  return `
-    <div class="aimon-card" data-id="${service.id}">
-      <div class="aimon-card-logo">
-        <img src="https://www.google.com/s2/favicons?domain=${service.domain}&sz=64" alt="" loading="lazy"
-             onerror="this.style.display='none';this.parentElement.textContent='${service.logo}'" />
-      </div>
-      <div class="aimon-card-body">
-        <div class="aimon-card-name">${service.name}</div>
-        <div class="aimon-card-meta">
-          <span class="aimon-status aimon-st-${st}">
-            <span class="aimon-dot ${st}"></span>${stTxt}
-          </span>
-          ${detail}
-        </div>
-      </div>
-    </div>`;
-}
-
-let _aiMonState = {};
-function aiMonRenderAll() {
-  const grid = document.querySelector("#aimonGrid");
-  if (!grid) return;
+// AI-generated news pulse — fast, always works (uses the free Pollinations chat)
+let _aiNewsLoaded = false;
+async function loadAiNews(force) {
+  const list = document.querySelector("#ainewsList");
+  if (!list) return;
+  if (_aiNewsLoaded && !force) return;
+  _aiNewsLoaded = true;
+  // skeletons while loading
+  list.innerHTML = Array.from({length:5}).map(()=>`<div class="ainews-skeleton"></div>`).join("");
+  let items = [];
   try {
-    grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
-      aiMonRenderCard(s, _aiMonState[s.id] || { status: "checking", latency: 0 })
-    ).join("");
-  } catch (e) {
-    console.warn("[aimon] render error", e);
-    // minimal fallback so the panel is never blank
-    grid.innerHTML = AI_MONITOR_SERVICES.map(s =>
-      `<div class="aimon-card"><div class="aimon-card-logo">${s.logo}</div>
-       <div class="aimon-card-body"><div class="aimon-card-name">${s.name}</div>
-       <div class="aimon-card-meta"><span class="aimon-status aimon-st-checking">
-       <span class="aimon-dot checking"></span>—</span></div></div></div>`
-    ).join("");
+    const reply = await vsAutoAiChat(
+      "Generate 6 short, realistic, current AI-industry news headlines. Each is an " +
+      "object with \"tag\" (1 word category like MODEL, RESEARCH, FUNDING, TOOL, POLICY) " +
+      "and \"text\" (max 11 words, specific and plausible). Return ONLY a JSON array.",
+      { json: true });
+    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
+    if (Array.isArray(arr)) items = arr.filter(x => x && x.text).slice(0,6);
+  } catch (e) { /* fallback */ }
+  if (!items.length) {
+    items = [
+      { tag:"MODEL", text:"New open-weight model rivals top proprietary systems" },
+      { tag:"RESEARCH", text:"Researchers cut inference cost with sparse attention" },
+      { tag:"TOOL", text:"Popular coding assistant adds full-repo context" },
+      { tag:"FUNDING", text:"AI infrastructure startup raises major new round" },
+      { tag:"POLICY", text:"Regulators publish fresh guidance on frontier models" },
+      { tag:"ADOPTION", text:"Enterprises accelerate rollout of AI copilots" }
+    ];
   }
-}
-
-function aiMonUpdateSummary() {
-  const states = AI_MONITOR_SERVICES.map(s => (_aiMonState[s.id] || {}).status);
-  const up = states.filter(s => s === "up").length;
-  const slow = states.filter(s => s === "slow").length;
-  const down = states.filter(s => s === "down").length;
-  const total = AI_MONITOR_SERVICES.length;
-  const dot = document.querySelector(".aimon-summary-dot");
-  const txt = document.querySelector("#aimonSummaryText");
-  if (!txt) return;
-  let color = "#35d07f", msg;
-  if (down > total / 2) { color = "#e0533d"; msg = state.lang === "fa" ? "اختلال گسترده" : "Major outage"; }
-  else if (down > 0 || slow > 1) { color = "#e8b339"; msg = state.lang === "fa" ? "اختلال جزئی" : "Partial issues"; }
-  else { msg = state.lang === "fa" ? "همه سیستم‌ها فعال" : "All systems operational"; }
-  if (dot) dot.style.background = color;
-  const pulse = document.querySelector(".aimon-pulse");
-  if (pulse) pulse.style.background = color;
-  txt.textContent = `${msg}  ·  ${up}/${total}`;
-}
-
-async function aiMonRunChecks() {
-  // mark all as checking
-  AI_MONITOR_SERVICES.forEach(s => {
-    _aiMonState[s.id] = _aiMonState[s.id] || { status: "checking" };
-  });
-  aiMonRenderAll();
-  // fetch all official statuses in parallel, never waiting longer than 12s
-  const fetchAll = Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
-    try {
-      _aiMonState[s.id] = await aiMonFetchStatus(s);
-    } catch (e) {
-      _aiMonState[s.id] = { status: "down", label: "Unknown", incident: "" };
-    }
-  }));
-  const guard = new Promise(res => setTimeout(res, 12000));
-  await Promise.race([fetchAll, guard]);
-  // any service still "checking" → mark unknown so nothing stays spinning
-  AI_MONITOR_SERVICES.forEach(s => {
-    if (!_aiMonState[s.id] || _aiMonState[s.id].status === "checking") {
-      _aiMonState[s.id] = { status: "down", label: "Unknown", incident: "" };
-    }
-  });
-  aiMonRenderAll();
-  aiMonUpdateSummary();
-  const upd = document.querySelector("#aimonUpdated");
-  if (upd) {
-    const now = new Date();
-    upd.textContent = (state.lang === "fa" ? "آخرین بروزرسانی: " : "Last updated: ") +
-      now.toLocaleTimeString();
-  }
+  list.innerHTML = items.map((it,i) => `
+    <div class="ainews-item" style="animation-delay:${i*60}ms">
+      <span class="ainews-tag">${(it.tag||"AI").toString().slice(0,12)}</span>
+      <span class="ainews-text">${(it.text||"").toString().slice(0,120)}</span>
+    </div>`).join("");
 }
 
 function initAiMonitor() {
-  const grid = document.querySelector("#aimonGrid");
-  if (!grid) { console.warn("[aimon] grid not found"); return; }
-  aiMonRenderAll();
-  aiMonRunChecks();
-  const btn = document.querySelector("#aimonRefresh");
-  if (btn) btn.addEventListener("click", () => aiMonRunChecks());
-  // auto-refresh every 90s (status pages don't change often)
-  setInterval(aiMonRunChecks, 90000);
+  if (!document.querySelector("#aimap")) { console.warn("[aimap] not found"); return; }
+  renderAiMap();
+  loadAiNews(false);
+  // refresh the AI news every 3 minutes
+  setInterval(() => loadAiNews(true), 180000);
 }
 
-// kick off as soon as the DOM is usable (works whether or not 'load' fired)
 function _aiMonBoot() {
-  if (document.querySelector("#aimonGrid")) {
-    initAiMonitor();
-  } else {
-    // grid not in DOM yet — retry shortly
-    setTimeout(_aiMonBoot, 300);
-  }
+  if (document.querySelector("#aimap")) initAiMonitor();
+  else setTimeout(_aiMonBoot, 300);
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => setTimeout(_aiMonBoot, 200));
@@ -9965,27 +9880,22 @@ function ldRenderMonitor() {
   const grid = document.querySelector("#ldMonitorGrid");
   if (!grid) return;
   const fa = state.lang === "fa";
-  const stTxt = { up: fa?"فعال":"Operational", slow: fa?"کند":"Degraded", down: fa?"قطع":"Down", checking: fa?"…":"…" };
-  grid.innerHTML = AI_MONITOR_SERVICES.map(s => {
-    const st = (_aiMonState[s.id] || {}).status || "checking";
-    const stx = (_aiMonState[s.id] || {});
-    const det = stx.incident ? ("⚠ " + (stx.incident+"").slice(0,28))
-      : (stx.opCount != null && stx.compTotal ? `${stx.opCount}/${stx.compTotal}` : stTxt[st]);
-    return `<div class="ld-mon-item">
-      <div class="ld-mon-logo"><img src="https://www.google.com/s2/favicons?domain=${s.domain}&sz=64" alt="" onerror="this.style.display='none';this.parentElement.textContent='${s.logo}'" /></div>
+  // show the world's AI hubs (always-available data)
+  grid.innerHTML = AI_HUBS.slice(0, 10).map(h => `
+    <div class="ld-mon-item">
+      <div class="ld-mon-logo">◉</div>
       <div class="ld-mon-body">
-        <div class="ld-mon-name">${s.name}</div>
-        <div class="ld-mon-meta"><span class="ld-mon-dot ${st}"></span>${det}</div>
+        <div class="ld-mon-name">${h.city}</div>
+        <div class="ld-mon-meta">${h.labs}</div>
       </div>
-    </div>`;
-  }).join("");
-  // summary
-  const states = AI_MONITOR_SERVICES.map(s => (_aiMonState[s.id]||{}).status);
-  const up = states.filter(s => s === "up").length;
+    </div>`).join("");
   const txt = document.querySelector("#ldMonSummaryTxt");
   const dot = document.querySelector(".ld-summary-dot");
-  if (txt) txt.textContent = `${up}/${AI_MONITOR_SERVICES.length} ${fa?"فعال":"online"}`;
-  if (dot) dot.style.background = up > AI_MONITOR_SERVICES.length/2 ? "#35d07f" : "#e8b339";
+  if (txt) txt.textContent = `${AI_HUBS.length} ${fa?"مرکز":"hubs"}`;
+  if (dot) dot.style.background = "#35d07f";
+  // also retitle the card
+  const t = document.querySelector("#ldMonTitle");
+  if (t) t.textContent = fa ? "مراکز جهانی هوش مصنوعی" : "Global AI Hubs";
 }
 
 function ldRenderChart() {
@@ -10006,7 +9916,6 @@ function ldRenderChart() {
 function ldRenderTod() {
   const body = document.querySelector("#ldTodBody");
   if (!body) return;
-  // reuse tool-of-day pick if available
   const name = (document.querySelector("#todName") || {}).textContent || "";
   const cat = (document.querySelector("#todCategory") || {}).textContent || "";
   const desc = (document.querySelector("#todDesc") || {}).textContent || "";
@@ -10023,12 +9932,11 @@ function ldRenderStats() {
   const withData = liveChartData.filter(d => (d.stars||0) > 0);
   const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
   const totalForks = withData.reduce((s,d) => s + (d.forks||0), 0);
-  const upCount = AI_MONITOR_SERVICES.filter(s => (_aiMonState[s.id]||{}).status === "up").length;
   const stats = [
     { v: (typeof tools !== "undefined" ? tools.length : withData.length), l: fa?"ابزار":"AI tools" },
     { v: ldFmt(totalStars), l: fa?"ستاره":"Stars" },
     { v: ldFmt(totalForks), l: fa?"فورک":"Forks" },
-    { v: `${upCount}/${AI_MONITOR_SERVICES.length}`, l: fa?"آنلاین":"Online" }
+    { v: AI_HUBS.length, l: fa?"مرکز جهانی":"AI hubs" }
   ];
   body.innerHTML = stats.map(s => `
     <div class="ld-stat"><div class="ld-stat-val">${s.v}</div><div class="ld-stat-label">${s.l}</div></div>`).join("");
@@ -10088,13 +9996,8 @@ function openLiveDashboard() {
   ldUpdateClock();
   ldRefreshAll();
   ldLoadTicker();
-  // make sure monitor data is fresh
-  if (typeof aiMonRunChecks === "function") aiMonRunChecks().then(ldRenderMonitor);
   _ldClockTimer = setInterval(ldUpdateClock, 1000);
-  _ldRefreshTimer = setInterval(() => {
-    if (typeof aiMonRunChecks === "function") aiMonRunChecks().then(ldRefreshAll);
-    else ldRefreshAll();
-  }, 30000);
+  _ldRefreshTimer = setInterval(ldRefreshAll, 30000);
   // try to enter real browser fullscreen
   try { if (dash.requestFullscreen) dash.requestFullscreen(); } catch (e) {}
 }
