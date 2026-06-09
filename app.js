@@ -1473,7 +1473,11 @@ function setLanguage(lang) {
     ? "هر نمایشگری را به مرکز فرماندهی زنده تبدیل کن"
     : "Turn any screen into a live war-room";
   if (typeof _aiMonInited !== "undefined" && _aiMonInited &&
-      typeof renderAiMap === "function" && document.querySelector("#aimap")) renderAiMap();
+      typeof renderAiMap === "function" && document.querySelector("#aimap")) {
+    renderAiMap();
+    if (typeof renderAiChips === "function") renderAiChips();
+    if (typeof renderAiTicker === "function") renderAiTicker();
+  }
 }
 
 function formatPrice(price) {
@@ -9894,27 +9898,85 @@ function renderAiMap() {
   if (sum) sum.textContent = (state.lang === "fa" ? AI_HUBS.length + " مرکز" : AI_HUBS.length + " hubs");
 }
 
-// AI-generated news pulse — fast, always works (uses the free Pollinations chat)
+// AI news — REAL headlines first (RSS from major tech outlets via CORS proxy),
+// AI-generated only as a fallback, static list as the last resort.
 let _aiNewsLoaded = false;
+let _aiNewsPool = [];   // larger pool we rotate through between refreshes
+let _aiNewsRealAt = 0;  // when we last got real RSS news
+
+const AI_NEWS_FEEDS = [
+  { src: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
+  { src: "VentureBeat", url: "https://venturebeat.com/category/ai/feed/" },
+  { src: "The Verge", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" }
+];
+
+async function aiFetchRssTitles(feed) {
+  const proxies = [
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u)
+  ];
+  for (const wrap of proxies) {
+    try {
+      const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch(e){} }, 8000);
+      const resp = await fetch(wrap(feed.url), { signal: ctrl ? ctrl.signal : undefined });
+      clearTimeout(to);
+      if (!resp.ok) continue;
+      const xml = await resp.text();
+      const doc = new DOMParser().parseFromString(xml, "text/xml");
+      // RSS <item><title> or Atom <entry><title>
+      const nodes = doc.querySelectorAll("item, entry");
+      const out = [];
+      nodes.forEach(n => {
+        const t = (n.querySelector("title") || {}).textContent || "";
+        const link = (n.querySelector("link") || {}).textContent
+          || (n.querySelector("link") || {getAttribute:()=>""}).getAttribute("href") || "";
+        if (t && t.length > 12) out.push({ tag: feed.src, text: t.trim(), link: (link||"").trim() });
+      });
+      if (out.length) return out.slice(0, 8);
+    } catch (e) { /* try next proxy */ }
+  }
+  return [];
+}
+
 async function loadAiNews(force) {
   const list = document.querySelector("#ainewsList");
   if (!list) return;
   if (_aiNewsLoaded && !force) return;
+  const firstTime = !_aiNewsLoaded;
   _aiNewsLoaded = true;
-  // skeletons while loading
-  list.innerHTML = Array.from({length:5}).map(()=>`<div class="ainews-skeleton"></div>`).join("");
-  let items = [];
-  try {
-    const reply = await vsAutoAiChat(
-      "Generate 6 short, realistic, current AI-industry news headlines. Each is an " +
-      "object with \"tag\" (1 word category like MODEL, RESEARCH, FUNDING, TOOL, POLICY) " +
-      "and \"text\" (max 11 words, specific and plausible). Return ONLY a JSON array.",
-      { json: true });
-    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
-    if (Array.isArray(arr)) items = arr.filter(x => x && x.text).slice(0,6);
-  } catch (e) { /* fallback */ }
-  if (!items.length) {
-    items = [
+  const refl = document.querySelector("#ainewsRefreshing");
+  if (refl) { refl.textContent = state.lang === "fa" ? "در حال بروزرسانی…" : "refreshing…"; refl.classList.add("on"); }
+  if (firstTime) list.innerHTML = Array.from({length:6}).map(()=>`<div class="ainews-skeleton"></div>`).join("");
+
+  // 1) REAL news via RSS — refresh at most every 5 minutes (feeds don't change faster)
+  const now = Date.now();
+  if (now - _aiNewsRealAt > 300000) {
+    try {
+      const results = await Promise.all(AI_NEWS_FEEDS.map(aiFetchRssTitles));
+      // interleave sources so the list feels varied
+      const merged = [];
+      const maxLen = Math.max(...results.map(r => r.length), 0);
+      for (let i = 0; i < maxLen; i++) for (const r of results) if (r[i]) merged.push(r[i]);
+      if (merged.length >= 4) { _aiNewsPool = merged; _aiNewsRealAt = now; }
+    } catch (e) { /* fall through */ }
+  }
+
+  // 2) AI-generated fallback only if we have no real news at all
+  if (!_aiNewsPool.length) {
+    try {
+      const reply = await vsAutoAiChat(
+        "Generate 10 short, realistic, current AI-industry news headlines. Each is an " +
+        "object with \"tag\" (1 word category like MODEL, RESEARCH, FUNDING, TOOL, POLICY) " +
+        "and \"text\" (max 11 words, specific and plausible). Return ONLY a JSON array.",
+        { json: true });
+      const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
+      if (Array.isArray(arr)) _aiNewsPool = arr.filter(x => x && x.text);
+    } catch (e) { /* fallback below */ }
+  }
+  // 3) static last resort
+  if (!_aiNewsPool.length) {
+    _aiNewsPool = [
       { tag:"MODEL", text:"New open-weight model rivals top proprietary systems" },
       { tag:"RESEARCH", text:"Researchers cut inference cost with sparse attention" },
       { tag:"TOOL", text:"Popular coding assistant adds full-repo context" },
@@ -9923,19 +9985,103 @@ async function loadAiNews(force) {
       { tag:"ADOPTION", text:"Enterprises accelerate rollout of AI copilots" }
     ];
   }
-  list.innerHTML = items.map((it,i) => `
-    <div class="ainews-item" style="animation-delay:${i*60}ms">
-      <span class="ainews-tag">${(it.tag||"AI").toString().slice(0,12)}</span>
-      <span class="ainews-text">${(it.text||"").toString().slice(0,120)}</span>
+
+  // show a rotating window of 6 from the pool so it feels fresh each cycle
+  const start = Math.floor(Math.random() * Math.max(1, _aiNewsPool.length - 6));
+  const show = _aiNewsPool.slice(start, start + 6);
+  list.innerHTML = show.map((it,i) => {
+    const inner = `<span class="ainews-tag">${(it.tag||"AI").toString().slice(0,14)}</span>
+      <span class="ainews-text">${(it.text||"").toString().slice(0,140)}</span>`;
+    return it.link
+      ? `<a class="ainews-item" style="animation-delay:${i*50}ms" href="${it.link}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="ainews-item" style="animation-delay:${i*50}ms">${inner}</div>`;
+  }).join("");
+  setTimeout(() => { if (refl) refl.classList.remove("on"); }, 700);
+  // also feed the ticker from the same pool
+  renderAiTicker();
+}
+
+// LIVE METRIC CHIPS — base values from real GitHub data, with a per-second
+// "live" jitter so the numbers visibly move like a real ops dashboard.
+let _chipBase = null;
+let _chipSpark = {};   // short rolling history per chip for mini sparklines
+function aiChipBase() {
+  const withData = (typeof liveChartData !== "undefined" ? liveChartData : []).filter(d => (d.stars||0) > 0);
+  const stars = withData.reduce((s,d)=>s+(d.stars||0),0) || 658000;
+  const forks = withData.reduce((s,d)=>s+(d.forks||0),0) || 104000;
+  return {
+    requests: 1.2e6 + Math.random()*4e5,   // simulated global inference req/min
+    tokens: 8.4e9 + Math.random()*1e9,       // tokens processed /min
+    stars: stars,
+    forks: forks,
+    active: 320 + Math.floor(Math.random()*60), // active sessions (simulated)
+    models: 1280 + Math.floor(Math.random()*40) // models tracked (simulated)
+  };
+}
+function aiFmtNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2)+"B";
+  if (n >= 1e6) return (n/1e6).toFixed(2)+"M";
+  if (n >= 1e3) return (n/1e3).toFixed(1)+"k";
+  return String(Math.round(n));
+}
+function aiSparkSvg(key, val) {
+  const arr = (_chipSpark[key] = _chipSpark[key] || []);
+  arr.push(val);
+  if (arr.length > 16) arr.shift();
+  if (arr.length < 2) return "";
+  const min = Math.min(...arr), max = Math.max(...arr), range = (max-min)||1;
+  const W = 46, H = 14;
+  const pts = arr.map((v,i) => `${(i/(arr.length-1)*W).toFixed(1)},${(H - ((v-min)/range)*H).toFixed(1)}`).join(" ");
+  return `<svg class="aimon-chip-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}"/></svg>`;
+}
+function renderAiChips(tickOnly) {
+  const box = document.querySelector("#aimonChips");
+  if (!box) return;
+  if (!_chipBase) _chipBase = aiChipBase();
+  // per-second drift to feel alive
+  _chipBase.requests += (Math.random()-0.3)*9000;
+  _chipBase.tokens += (Math.random()-0.3)*4e7;
+  _chipBase.active += Math.round((Math.random()-0.5)*6);
+  _chipBase.models += Math.round((Math.random()-0.45)*3);
+  if (_chipBase.active < 200) _chipBase.active = 200;
+  const fa = state.lang === "fa";
+  const chips = [
+    { k:"req", v: aiFmtNum(_chipBase.requests), raw:_chipBase.requests, l: fa?"درخواست/دقیقه":"Requests/min", t:"▲", up:true },
+    { k:"tok", v: aiFmtNum(_chipBase.tokens), raw:_chipBase.tokens, l: fa?"توکن/دقیقه":"Tokens/min", t:"▲", up:true },
+    { k:"act", v: _chipBase.active, raw:_chipBase.active, l: fa?"نشست فعال":"Active now", t:"●", up:true },
+    { k:"mdl", v: aiFmtNum(_chipBase.models), raw:_chipBase.models, l: fa?"مدل ردیابی":"Models tracked", t:"◆" },
+    { k:"str", v: aiFmtNum(_chipBase.stars), raw:_chipBase.stars, l: fa?"ستاره گیت‌هاب":"GitHub stars", t:"★" },
+    { k:"frk", v: aiFmtNum(_chipBase.forks), raw:_chipBase.forks, l: fa?"فورک":"Forks", t:"⑂" }
+  ];
+  box.innerHTML = chips.map(c => `
+    <div class="aimon-chip">
+      <div class="aimon-chip-row">
+        <span class="aimon-chip-trend ${c.up?'up':''}">${c.t}</span>
+        <div class="aimon-chip-val tick">${c.v}</div>
+      </div>
+      <div class="aimon-chip-lbl">${c.l}</div>
+      ${aiSparkSvg(c.k, c.raw)}
     </div>`).join("");
+  setTimeout(() => box.querySelectorAll(".aimon-chip-val").forEach(e=>e.classList.remove("tick")), 250);
+}
+
+function renderAiTicker() {
+  const track = document.querySelector("#aimonTickerTrack");
+  if (!track) return;
+  const pool = _aiNewsPool.length ? _aiNewsPool : [{tag:"LIVE",text:"AI Radar live feed"}];
+  const html = pool.map(it => `<span><b>${(it.tag||"AI")}</b>${it.text||""}</span>`).join("");
+  track.innerHTML = html + html;
 }
 
 function initAiMonitor() {
   if (!document.querySelector("#aimap")) { console.warn("[aimap] not found"); return; }
   renderAiMap();
+  renderAiChips();
   loadAiNews(false);
-  // refresh the AI news every 3 minutes
-  setInterval(() => loadAiNews(true), 180000);
+  // per-second live chip drift
+  setInterval(() => renderAiChips(true), 1000);
+  // fresh AI news + ticker every 20s (feels alive, stays within free limits)
+  setInterval(() => loadAiNews(true), 20000);
 }
 
 function _aiMonBoot() {
