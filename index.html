@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v271" />
+    <link rel="stylesheet" href="styles.css?v=v272" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -110,14 +110,25 @@
         background-size: 44px 44px; mask-image: radial-gradient(ellipse 100% 80% at 50% 40%, #000 40%, transparent 100%); }
       .live-dash.open { display: flex; animation: ldFadeIn .4s ease both; }
       @keyframes ldFadeIn { from { opacity:0; transform: scale(1.02); } to { opacity:1; transform: scale(1); } }
-      .ld-topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid rgba(216,183,106,0.2); position: relative; z-index:1; }
+      .ld-topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding-bottom: 16px; border-bottom: 1px solid rgba(216,183,106,0.2); position: relative; z-index:1; }
       .ld-brand { display: flex; align-items: center; gap: 12px; }
       .ld-logo { font-size: 22px; color: #d8b76a; animation: ldSpin 8s linear infinite; }
       @keyframes ldSpin { to { transform: rotate(360deg); } }
-      .ld-title { font-family: Prata, serif; font-size: 20px; color: #f0d99a; letter-spacing: .02em; }
-      .ld-clock-wrap { text-align: center; }
-      .ld-clock { font-family: Prata, serif; font-size: 38px; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; display: block; text-shadow: 0 0 24px rgba(216,183,106,0.4); }
-      .ld-date { font-size: 12px; color: #b9a98a; text-transform: uppercase; letter-spacing: .1em; }
+      .ld-title { font-family: Prata, serif; font-size: 22px; color: #f0d99a; letter-spacing: .02em; }
+      .ld-brand-sub { font-size: 11px; color: #8a7d63; text-transform: uppercase; letter-spacing: .18em; margin-top: 2px; }
+      /* striking centered clock */
+      .ld-clock-wrap { text-align: center; display:flex; align-items:center; justify-content:center; gap:14px; }
+      .ld-clock { font-family: Prata, serif; font-weight: 400; font-size: 52px; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; display: flex; align-items:baseline; gap:2px; letter-spacing: .01em;
+        text-shadow: 0 0 30px rgba(216,183,106,0.5), 0 0 60px rgba(216,183,106,0.2); }
+      .ld-clock .ld-ms { font-size: 20px; color: #d8b76a; width: 2.4ch; text-align:left; opacity:.85; }
+      .ld-clock .ld-sep { animation: ldBlink 1s steps(1) infinite; color:#d8b76a; }
+      @keyframes ldBlink { 50% { opacity:.25; } }
+      .ld-clock-side { display:flex; flex-direction:column; gap:5px; text-align:left; }
+      .ld-date { font-size: 12px; color: #d8d2c4; text-transform: uppercase; letter-spacing: .1em; }
+      .ld-tz { font-size: 10px; color: #8a7d63; text-transform: uppercase; letter-spacing: .14em; }
+      .ld-topright { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+      .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:800; letter-spacing:.06em; color:#35d07f; background:rgba(53,208,127,0.1); border:1px solid rgba(53,208,127,0.3); padding:7px 13px; border-radius:999px; }
+      .ld-live-chip .dot { width:8px; height:8px; border-radius:50%; background:#35d07f; box-shadow:0 0 8px #35d07f; animation: aimonPulse 2s infinite; }
       .ld-close { background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.3); color: #d8b76a; border-radius: 9px; padding: 9px 16px; font-weight: 700; cursor: pointer; font-size: 14px; transition: all .15s; }
       .ld-close:hover { background: rgba(224,83,61,0.15); border-color: rgba(224,83,61,0.4); color: #e0533d; }
       .ld-grid { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; grid-template-rows: 1.3fr 1fr; gap: 16px; padding: 16px 0; min-height: 0; position: relative; z-index:1; }
@@ -127,29 +138,34 @@
       .ld-summary { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; }
       .ld-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; box-shadow: 0 0 8px rgba(53,208,127,0.7); }
       .ld-monitor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-y: auto; flex: 1; align-content: start; }
-      .ld-mon-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: border-color .2s; }
-      .ld-mon-item:hover { border-color: rgba(216,183,106,0.3); }
-      .ld-mon-logo { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #d8b76a; background: rgba(216,183,106,0.1); flex-shrink: 0; overflow: hidden; }
-      .ld-mon-logo img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
+      .ld-mon-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: border-color .2s, transform .2s; }
+      .ld-mon-item:hover { border-color: rgba(216,183,106,0.35); transform: translateX(2px); }
+      .ld-mon-rank { width: 24px; height: 24px; border-radius: 6px; display:flex; align-items:center; justify-content:center; font-family: Prata, serif; font-size: 13px; color: #d8b76a; background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; }
       .ld-mon-body { flex: 1; min-width: 0; }
       .ld-mon-name { font-size: 13px; font-weight: 700; }
-      .ld-mon-meta { font-size: 10px; color: #b9a98a; display: flex; align-items: center; gap: 5px; }
-      .ld-mon-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .ld-mon-dot.up { background: #35d07f; box-shadow:0 0 6px rgba(53,208,127,0.6);} .ld-mon-dot.slow { background: #e8b339; box-shadow:0 0 6px rgba(232,179,57,0.6);} .ld-mon-dot.down { background: #e0533d; box-shadow:0 0 6px rgba(224,83,61,0.6);} .ld-mon-dot.checking { background: #888; animation: aimonBlink 1s infinite; }
+      .ld-mon-meta { font-size: 10px; color: #8a7d63; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .ld-mon-pin { flex-shrink:0; }
+      .ld-pin-dot { display:block; width:8px; height:8px; border-radius:50%; background:#d8b76a; box-shadow:0 0 8px rgba(216,183,106,0.7); animation: aimonPulse 2.4s infinite; }
       .ld-chart-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; }
       .ld-chart-row { display: grid; grid-template-columns: 110px 1fr 64px; gap: 10px; align-items: center; }
       .ld-chart-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ld-chart-track { height: 12px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
       .ld-chart-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #d8b76a, #f0d99a); box-shadow: 0 0 12px rgba(216,183,106,0.4); }
       .ld-chart-val { font-size: 12px; font-weight: 700; color: #f0d99a; text-align: right; font-variant-numeric: tabular-nums; }
-      .ld-tod-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-      .ld-tod-name { font-family: Prata, serif; font-size: 32px; color: #f0d99a; }
-      .ld-tod-cat { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #b9a98a; margin-top: 6px; }
-      .ld-tod-desc { font-size: 14px; color: #d8d2c4; margin-top: 14px; line-height: 1.5; }
+      .ld-tod-body { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+      .ld-tod-top { display: flex; align-items: center; gap: 14px; }
+      .ld-tod-badge { width: 58px; height: 58px; border-radius: 14px; display:flex; align-items:center; justify-content:center; font-family: Prata, serif; font-size: 28px; color:#060606; background: linear-gradient(135deg, #f0d99a, #d8b76a); flex-shrink:0; box-shadow: 0 6px 20px rgba(216,183,106,0.3); }
+      .ld-tod-name { font-family: Prata, serif; font-size: 30px; color: #f0d99a; line-height:1.1; }
+      .ld-tod-cat { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: #8a7d63; margin-top: 5px; }
+      .ld-tod-score { margin-left:auto; text-align:center; display:flex; flex-direction:column; }
+      .ld-tod-score span { font-family: Prata, serif; font-size: 26px; color:#fff; }
+      .ld-tod-score small { font-size:9px; letter-spacing:.12em; color:#8a7d63; }
+      .ld-tod-desc { font-size: 14px; color: #d8d2c4; line-height: 1.6; }
+      .ld-tod-foot { margin-top:auto; font-size:12px; font-weight:700; color:#d8b76a; letter-spacing:.04em; }
       .ld-stats-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: center; }
-      .ld-stat { text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
-      .ld-stat-val { font-family: Prata, serif; font-size: 30px; color: #f0d99a; line-height: 1; }
-      .ld-stat-label { font-size: 11px; color: #b9a98a; text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+      .ld-stat { text-align: center; padding: 16px 10px; border-radius: 14px; background: linear-gradient(160deg, rgba(216,183,106,0.08), rgba(255,255,255,0.02)); border:1px solid rgba(216,183,106,0.12); }
+      .ld-stat-val { font-family: Prata, serif; font-size: 34px; color: #f0d99a; line-height: 1; }
+      .ld-stat-label { font-size: 11px; color: #8a7d63; text-transform: uppercase; letter-spacing: .08em; margin-top: 8px; }
       .ld-ticker { display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(216,183,106,0.2); padding-top: 12px; overflow: hidden; flex-shrink: 0; position: relative; z-index:1; }
       .ld-ticker-label { font-size: 12px; font-weight: 800; color: #060606; letter-spacing: .1em; white-space: nowrap; flex-shrink: 0; background: var(--gold); padding: 5px 12px; border-radius: 6px; }
       .ld-ticker-track { display: flex; gap: 40px; white-space: nowrap; animation: ldTicker 40s linear infinite; }
@@ -1544,13 +1560,22 @@
       <div class="ld-topbar">
         <div class="ld-brand">
           <span class="ld-logo">◉</span>
-          <span class="ld-title" id="ldTitle">AI Radar — Live Operations</span>
+          <div>
+            <div class="ld-title" id="ldTitle">AI Radar — Live Operations</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-time intelligence center</div>
+          </div>
         </div>
         <div class="ld-clock-wrap">
           <span class="ld-clock" id="ldClock">--:--:--</span>
-          <span class="ld-date" id="ldDate"></span>
+          <div class="ld-clock-side">
+            <span class="ld-date" id="ldDate"></span>
+            <span class="ld-tz" id="ldTz"></span>
+          </div>
         </div>
-        <button class="ld-close" id="ldClose" type="button" aria-label="Close">✕ <span id="ldCloseTxt">Exit</span></button>
+        <div class="ld-topright">
+          <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
+          <button class="ld-close" id="ldClose" type="button" aria-label="Close">✕ <span id="ldCloseTxt">Exit</span></button>
+        </div>
       </div>
 
       <div class="ld-grid">
@@ -1593,7 +1618,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v271"></script>
+    <script src="app.js?v=v272"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
