@@ -1463,6 +1463,18 @@ function setLanguage(lang) {
   // so calling this during early startup can't hit a const TDZ error.
   if (typeof _aiMonInited !== "undefined" && _aiMonInited &&
       document.querySelector("#aimonGrid")) {
+    const fa = lang === "fa";
+    const setTxt = (id, en, faTxt) => { const el = document.querySelector(id); if (el) el.textContent = fa ? faTxt : en; };
+    setTxt("#aimonEyebrow", "Live system monitor", "مانیتور زنده سیستم");
+    setTxt("#aimonTitle", "AI Service Status", "وضعیت سرویس‌های هوش مصنوعی");
+    setTxt("#aimonSub", "Real-time official status of major AI platforms. Updates automatically.", "وضعیت رسمی و زنده پلتفرم‌های بزرگ هوش مصنوعی. خودکار بروزرسانی می‌شود.");
+    setTxt("#aimonRefreshTxt", "Refresh", "بروزرسانی");
+    const dashTxt = document.querySelector("#dashLaunchTxt");
+    if (dashTxt) dashTxt.textContent = fa ? "داشبورد زنده" : "Live Dashboard";
+    const dashHint = document.querySelector("#dashHintTxt");
+    if (dashHint) dashHint.textContent = fa
+      ? "هر نمایشگری را به مرکز فرماندهی زنده تبدیل کن"
+      : "Turn any screen into a live war-room";
     aiMonRenderAll();
     aiMonUpdateSummary();
   }
@@ -9737,91 +9749,105 @@ setInterval(fetchLiveChartData, 5 * 60 * 1000);
 // response = operational, a slow one = degraded, a failure = likely down.
 // This reflects what the user's own connection to each service looks like.
 // ─────────────────────────────────────────────────────────────────────────
+// Each service exposes an official Atlassian Statuspage summary endpoint that
+// returns REAL status: overall indicator, per-component health, uptime and the
+// latest incident. We read it through a CORS proxy (these block direct calls).
 const AI_MONITOR_SERVICES = [
-  { id: "openai",     name: "ChatGPT",     logo: "GP", url: "https://chat.openai.com/favicon.ico" },
-  { id: "claude",     name: "Claude",      logo: "Cl", url: "https://claude.ai/favicon.ico" },
-  { id: "gemini",     name: "Gemini",      logo: "Ge", url: "https://gemini.google.com/favicon.ico" },
-  { id: "grok",       name: "Grok",        logo: "Gr", url: "https://grok.com/favicon.ico" },
-  { id: "perplexity", name: "Perplexity",  logo: "Px", url: "https://www.perplexity.ai/favicon.ico" },
-  { id: "deepseek",   name: "DeepSeek",    logo: "Ds", url: "https://www.deepseek.com/favicon.ico" },
-  { id: "mistral",    name: "Mistral",     logo: "Mi", url: "https://mistral.ai/favicon.ico" },
-  { id: "midjourney", name: "Midjourney",  logo: "Mj", url: "https://www.midjourney.com/favicon.ico" },
-  { id: "huggingface",name: "Hugging Face",logo: "HF", url: "https://huggingface.co/favicon.ico" },
-  { id: "pollinations",name:"Pollinations",logo: "Po", url: "https://pollinations.ai/favicon.ico" }
+  { id: "openai",      name: "OpenAI",       logo: "AI", domain: "openai.com",       status: "https://status.openai.com/api/v2/summary.json" },
+  { id: "anthropic",   name: "Claude",       logo: "Cl", domain: "anthropic.com",    status: "https://status.anthropic.com/api/v2/summary.json" },
+  { id: "google",      name: "Google AI",    logo: "Ge", domain: "ai.google",        status: "https://status.cloud.google.com/incidents.json", kind: "gcp" },
+  { id: "perplexity",  name: "Perplexity",   logo: "Px", domain: "perplexity.ai",    status: "https://status.perplexity.com/api/v2/summary.json" },
+  { id: "mistral",     name: "Mistral",      logo: "Mi", domain: "mistral.ai",       status: "https://status.mistral.ai/api/v2/summary.json" },
+  { id: "cursor",      name: "Cursor",       logo: "Cu", domain: "cursor.com",       status: "https://status.cursor.com/api/v2/summary.json" },
+  { id: "github",      name: "GitHub",       logo: "Gh", domain: "github.com",       status: "https://www.githubstatus.com/api/v2/summary.json" },
+  { id: "huggingface", name: "Hugging Face", logo: "HF", domain: "huggingface.co",   status: "https://status.huggingface.co/api/v2/summary.json" },
+  { id: "elevenlabs",  name: "ElevenLabs",   logo: "El", domain: "elevenlabs.io",    status: "https://status.elevenlabs.io/api/v2/summary.json" },
+  { id: "replicate",   name: "Replicate",    logo: "Rp", domain: "replicate.com",    status: "https://www.replicatestatus.com/api/v2/summary.json" }
 ];
 
-// keep a short latency history per service for the sparkline
+// keep a short uptime/latency history per service for the sparkline
 const _aiMonHistory = {};
 // hoisted flag (var, not const) so setLanguage can safely check it during
 // early startup before these consts are initialized.
 var _aiMonInited = true;
 
-// Ping one service by fetching its favicon (no-cors) and timing it.
-// Resolves to { ok, latency }. Always resolves (never hangs) thanks to the
-// AbortController timeout, so Promise.all can't get stuck on "Checking".
-function aiMonPing(service) {
-  return new Promise((resolve) => {
-    const start = performance.now();
-    let settled = false;
-    const done = (ok) => {
-      if (settled) return; settled = true;
-      resolve({ ok, latency: Math.round(performance.now() - start) });
-    };
-    // hard timeout regardless of fetch behaviour
-    const timer = setTimeout(() => done(false), 6000);
-    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    if (ctrl) setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, 5500);
-    fetch(service.url + "?_=" + Date.now(), {
-      mode: "no-cors",
-      cache: "no-store",
-      signal: ctrl ? ctrl.signal : undefined
-    }).then(() => {
-      clearTimeout(timer); done(true);
-    }).catch(() => {
-      // a fast rejection still means the host answered/exists; only a real
-      // timeout (caught by the 6s timer above) counts as down.
-      clearTimeout(timer);
-      const latency = performance.now() - start;
-      done(latency < 5400);
-    });
-  });
-}
+// Fetch a service's official status JSON through a CORS proxy and normalise it
+// into { status, label, uptime, incident }. Statuspage "indicator" maps to:
+//   none → up, minor → slow, major/critical → down.
+async function aiMonFetchStatus(service) {
+  const proxies = [
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)
+  ];
+  for (const wrap of proxies) {
+    try {
+      const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (e) {} }, 7000);
+      const resp = await fetch(wrap(service.status), { signal: ctrl ? ctrl.signal : undefined });
+      clearTimeout(to);
+      if (!resp.ok) continue;
+      const data = await resp.json();
 
-function aiMonStatusFromLatency(ok, latency) {
-  if (!ok) return "down";
-  if (latency > 2500) return "slow";
-  return "up";
+      // Google Cloud uses a different shape (array of incidents)
+      if (service.kind === "gcp") {
+        const open = Array.isArray(data) ? data.filter(i => !i.end) : [];
+        return open.length
+          ? { status: "slow", label: "Active incident", incident: open[0].external_desc || "Service event" }
+          : { status: "up", label: "Operational", incident: "" };
+      }
+
+      const ind = (data.status && data.status.indicator) || "none";
+      const desc = (data.status && data.status.description) || "";
+      // uptime: average of component values isn't in summary; use # operational
+      const comps = Array.isArray(data.components) ? data.components.filter(c => !c.group) : [];
+      const opCount = comps.filter(c => c.status === "operational").length;
+      const compTotal = comps.length || 1;
+      // latest unresolved incident if any
+      const inc = Array.isArray(data.incidents) && data.incidents.length
+        ? data.incidents[0].name : "";
+      const status = ind === "none" ? "up"
+        : (ind === "minor" ? "slow" : "down");
+      return {
+        status,
+        label: desc || (status === "up" ? "Operational" : status === "slow" ? "Degraded" : "Outage"),
+        opCount, compTotal,
+        incident: inc
+      };
+    } catch (e) { /* try next proxy */ }
+  }
+  return { status: "down", label: "Unknown", incident: "" };
 }
 
 function aiMonRenderCard(service, state2) {
   const st = state2.status; // up | slow | down | checking
   const stTxt = {
     up: state.lang === "fa" ? "فعال" : "Operational",
-    slow: state.lang === "fa" ? "کند" : "Degraded",
-    down: state.lang === "fa" ? "قطع" : "Unreachable",
+    slow: state.lang === "fa" ? "اختلال" : "Degraded",
+    down: state.lang === "fa" ? "قطع" : "Outage",
     checking: state.lang === "fa" ? "بررسی…" : "Checking…"
   }[st];
-  const hist = _aiMonHistory[service.id] || [];
-  const maxL = Math.max(120, ...hist);
-  const spark = hist.map(l => {
-    const h = Math.max(3, Math.round((l / maxL) * 18));
-    return `<i style="height:${h}px"></i>`;
-  }).join("");
-  const latTxt = (st === "up" || st === "slow")
-    ? `<span class="aimon-latency">${state2.latency} ms</span>` : "";
+  // show the latest incident name if any, else the component count
+  let detail = "";
+  if (state2.incident) {
+    detail = `<span class="aimon-incident" title="${(state2.incident+"").replace(/"/g,"")}">⚠ ${(state2.incident+"").slice(0,32)}</span>`;
+  } else if (state2.opCount != null && state2.compTotal) {
+    detail = `<span class="aimon-latency">${state2.opCount}/${state2.compTotal} ${state.lang==="fa"?"سالم":"systems"}</span>`;
+  }
   return `
     <div class="aimon-card" data-id="${service.id}">
-      <div class="aimon-card-logo">${service.logo}</div>
+      <div class="aimon-card-logo">
+        <img src="https://www.google.com/s2/favicons?domain=${service.domain}&sz=64" alt="" loading="lazy"
+             onerror="this.style.display='none';this.parentElement.textContent='${service.logo}'" />
+      </div>
       <div class="aimon-card-body">
         <div class="aimon-card-name">${service.name}</div>
         <div class="aimon-card-meta">
           <span class="aimon-status aimon-st-${st}">
             <span class="aimon-dot ${st}"></span>${stTxt}
           </span>
-          ${latTxt}
+          ${detail}
         </div>
       </div>
-      <div class="aimon-spark">${spark}</div>
     </div>`;
 }
 
@@ -9867,28 +9893,23 @@ function aiMonUpdateSummary() {
 async function aiMonRunChecks() {
   // mark all as checking
   AI_MONITOR_SERVICES.forEach(s => {
-    _aiMonState[s.id] = _aiMonState[s.id] || { status: "checking", latency: 0 };
+    _aiMonState[s.id] = _aiMonState[s.id] || { status: "checking" };
   });
   aiMonRenderAll();
-  // ping all in parallel, but never wait longer than 7s total
-  const pingAll = Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
+  // fetch all official statuses in parallel, never waiting longer than 12s
+  const fetchAll = Promise.all(AI_MONITOR_SERVICES.map(async (s) => {
     try {
-      const { ok, latency } = await aiMonPing(s);
-      const status = aiMonStatusFromLatency(ok, latency);
-      _aiMonState[s.id] = { status, latency };
-      const h = _aiMonHistory[s.id] || (_aiMonHistory[s.id] = []);
-      h.push(ok ? latency : 0);
-      if (h.length > 12) h.shift();
+      _aiMonState[s.id] = await aiMonFetchStatus(s);
     } catch (e) {
-      _aiMonState[s.id] = { status: "down", latency: 0 };
+      _aiMonState[s.id] = { status: "down", label: "Unknown", incident: "" };
     }
   }));
-  const guard = new Promise(res => setTimeout(res, 7000));
-  await Promise.race([pingAll, guard]);
+  const guard = new Promise(res => setTimeout(res, 12000));
+  await Promise.race([fetchAll, guard]);
   // any service still "checking" → mark unknown so nothing stays spinning
   AI_MONITOR_SERVICES.forEach(s => {
     if (!_aiMonState[s.id] || _aiMonState[s.id].status === "checking") {
-      _aiMonState[s.id] = { status: "down", latency: 0 };
+      _aiMonState[s.id] = { status: "down", label: "Unknown", incident: "" };
     }
   });
   aiMonRenderAll();
@@ -9908,8 +9929,8 @@ function initAiMonitor() {
   aiMonRunChecks();
   const btn = document.querySelector("#aimonRefresh");
   if (btn) btn.addEventListener("click", () => aiMonRunChecks());
-  // auto-refresh every 60s
-  setInterval(aiMonRunChecks, 60000);
+  // auto-refresh every 90s (status pages don't change often)
+  setInterval(aiMonRunChecks, 90000);
 }
 
 // kick off as soon as the DOM is usable (works whether or not 'load' fired)
@@ -9947,12 +9968,14 @@ function ldRenderMonitor() {
   const stTxt = { up: fa?"فعال":"Operational", slow: fa?"کند":"Degraded", down: fa?"قطع":"Down", checking: fa?"…":"…" };
   grid.innerHTML = AI_MONITOR_SERVICES.map(s => {
     const st = (_aiMonState[s.id] || {}).status || "checking";
-    const lat = (_aiMonState[s.id] || {}).latency || 0;
+    const stx = (_aiMonState[s.id] || {});
+    const det = stx.incident ? ("⚠ " + (stx.incident+"").slice(0,28))
+      : (stx.opCount != null && stx.compTotal ? `${stx.opCount}/${stx.compTotal}` : stTxt[st]);
     return `<div class="ld-mon-item">
-      <div class="ld-mon-logo">${s.logo}</div>
+      <div class="ld-mon-logo"><img src="https://www.google.com/s2/favicons?domain=${s.domain}&sz=64" alt="" onerror="this.style.display='none';this.parentElement.textContent='${s.logo}'" /></div>
       <div class="ld-mon-body">
         <div class="ld-mon-name">${s.name}</div>
-        <div class="ld-mon-meta"><span class="ld-mon-dot ${st}"></span>${stTxt[st]}${(st==="up"||st==="slow")?` · ${lat}ms`:""}</div>
+        <div class="ld-mon-meta"><span class="ld-mon-dot ${st}"></span>${det}</div>
       </div>
     </div>`;
   }).join("");
