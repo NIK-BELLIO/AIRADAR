@@ -9880,20 +9880,19 @@ function ldRenderMonitor() {
   const grid = document.querySelector("#ldMonitorGrid");
   if (!grid) return;
   const fa = state.lang === "fa";
-  // show the world's AI hubs (always-available data)
-  grid.innerHTML = AI_HUBS.slice(0, 10).map(h => `
+  grid.innerHTML = AI_HUBS.map((h, i) => `
     <div class="ld-mon-item">
-      <div class="ld-mon-logo">◉</div>
+      <div class="ld-mon-rank">${i + 1}</div>
       <div class="ld-mon-body">
         <div class="ld-mon-name">${h.city}</div>
         <div class="ld-mon-meta">${h.labs}</div>
       </div>
+      <div class="ld-mon-pin"><span class="ld-pin-dot"></span></div>
     </div>`).join("");
   const txt = document.querySelector("#ldMonSummaryTxt");
   const dot = document.querySelector(".ld-summary-dot");
   if (txt) txt.textContent = `${AI_HUBS.length} ${fa?"مرکز":"hubs"}`;
   if (dot) dot.style.background = "#35d07f";
-  // also retitle the card
   const t = document.querySelector("#ldMonTitle");
   if (t) t.textContent = fa ? "مراکز جهانی هوش مصنوعی" : "Global AI Hubs";
 }
@@ -9916,13 +9915,25 @@ function ldRenderChart() {
 function ldRenderTod() {
   const body = document.querySelector("#ldTodBody");
   if (!body) return;
+  const fa = state.lang === "fa";
   const name = (document.querySelector("#todName") || {}).textContent || "";
   const cat = (document.querySelector("#todCategory") || {}).textContent || "";
   const desc = (document.querySelector("#todDesc") || {}).textContent || "";
+  // pull score/stars/price from the tod ring if present
+  const score = (document.querySelector("#todScoreNum") || {}).textContent
+    || (document.querySelector("#todScore") || {}).textContent || "";
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
   body.innerHTML = `
-    <div class="ld-tod-name">${name || "—"}</div>
-    <div class="ld-tod-cat">${cat}</div>
-    <div class="ld-tod-desc">${desc}</div>`;
+    <div class="ld-tod-top">
+      <div class="ld-tod-badge">${initial}</div>
+      <div>
+        <div class="ld-tod-name">${name || "—"}</div>
+        <div class="ld-tod-cat">${cat}</div>
+      </div>
+      ${score ? `<div class="ld-tod-score"><span>${score}</span><small>${fa?"امتیاز":"SCORE"}</small></div>` : ""}
+    </div>
+    <div class="ld-tod-desc">${desc}</div>
+    <div class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Today's radar pick"}</div>`;
 }
 
 function ldRenderStats() {
@@ -9945,9 +9956,22 @@ function ldRenderStats() {
 function ldUpdateClock() {
   const c = document.querySelector("#ldClock");
   const d = document.querySelector("#ldDate");
+  const tz = document.querySelector("#ldTz");
   const now = new Date();
-  if (c) c.textContent = now.toLocaleTimeString();
-  if (d) d.textContent = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const p = (n) => String(n).padStart(2, "0");
+  let h = now.getHours();
+  const m = p(now.getMinutes());
+  const s = p(now.getSeconds());
+  const ap = h >= 12 ? "PM" : "AM";
+  let hh = h % 12; if (hh === 0) hh = 12;
+  if (c) c.innerHTML = `${p(hh)}<span class="ld-sep">:</span>${m}<span class="ld-sep">:</span>${s}<span class="ld-ms">${ap}</span>`;
+  if (d) d.textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  if (tz) {
+    try {
+      const z = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      tz.textContent = z.replace(/_/g, " ");
+    } catch (e) { tz.textContent = ""; }
+  }
 }
 
 async function ldLoadTicker() {
