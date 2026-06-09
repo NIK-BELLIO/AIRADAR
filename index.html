@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v278" />
+    <link rel="stylesheet" href="styles.css?v=v280" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -222,9 +222,12 @@
 
       @media (max-width: 1000px) { .ld-grid { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; } .ld-nav { grid-template-columns: 1fr auto; } .ld-nav-center { display:none; } .ld-clock { font-size: 22px; } }
       /* ── AI STATUS MONITOR ───────────────────────────── */
-      /* tool-of-day and AI map now stack full-width — no stretching */
-      #toolOfDay.tod-panel { margin: 0 0 20px !important; }
-      .ai-monitor { margin: 0 0 20px; }
+      /* tool-of-day + live radar side by side; tod content centers vertically
+         so there is no dead bottom gap even though the radar column is taller */
+      .tod-radar-row { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; align-items: stretch; margin-bottom: 20px; }
+      @media (max-width: 1100px) { .tod-radar-row { grid-template-columns: 1fr; } }
+      .tod-radar-row > .tod-panel { margin: 0 !important; display: flex !important; flex-direction: column; justify-content: center; }
+      .tod-radar-row > .ai-monitor { margin: 0 !important; }
       .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
       .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
       .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
@@ -258,8 +261,30 @@
       .aimon-incident { color: #e8b339; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
       /* ── AI WORLD MAP ────────────────────────────────── */
+      /* live metric chips */
+      .aimon-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
+      @media (max-width: 980px) { .aimon-chips { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 640px) { .aimon-chips { grid-template-columns: 1fr 1fr; } }
+      .aimon-chip { position: relative; padding: 10px 11px 8px; border-radius: 12px; background: linear-gradient(160deg, rgba(216,183,106,0.08), rgba(255,255,255,0.02)); border: 1px solid var(--line); overflow: hidden; }
+      .aimon-chip-row { display: flex; align-items: baseline; gap: 5px; }
+      .aimon-chip-val { font-family: Prata, serif; font-size: 18px; color: var(--gold-2); line-height: 1; font-variant-numeric: tabular-nums; transition: color .25s; }
+      .aimon-chip-val.tick { color: #fff; }
+      .aimon-chip-lbl { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .aimon-chip-trend { font-size: 9px; font-weight: 800; color: var(--gold); }
+      .aimon-chip-trend.up { color: #35d07f; } .aimon-chip-trend.down { color: #e0533d; }
+      .aimon-chip-spark { position: absolute; right: 8px; bottom: 7px; width: 38px; height: 12px; opacity: .55; }
+      .aimon-chip-spark polyline { fill: none; stroke: #00d4ff; stroke-width: 1; vector-effect: non-scaling-stroke; }
+      /* live ticker */
+      .aimon-ticker { display: flex; align-items: center; gap: 10px; margin: 13px 0; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
+      .aimon-ticker-tag { font-size: 10px; font-weight: 800; color: #060606; background: #35d07f; padding: 4px 9px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: .04em; }
+      .aimon-ticker-track { display: flex; gap: 36px; white-space: nowrap; animation: aimonTick 34s linear infinite; }
+      .aimon-ticker-track span { font-size: 12px; color: var(--text); }
+      .aimon-ticker-track b { color: var(--gold); margin-right: 5px; }
+      @keyframes aimonTick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      .ainews-refreshing { margin-left: auto; font-size: 10px; color: #35d07f; opacity: 0; transition: opacity .3s; }
+      .ainews-refreshing.on { opacity: 1; }
       .aimap-wrap { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(ellipse at 50% 30%, rgba(127,166,216,0.08), transparent 70%), #0a0c12; margin-bottom: 14px; }
-      .aimap { position: relative; width: 100%; aspect-ratio: 2.6 / 1; max-height: 340px; }
+      .aimap { position: relative; width: 100%; aspect-ratio: 2.2 / 1; max-height: 300px; }
       .aimap svg { width: 100%; height: 100%; display: block; }
       .aimap-land { fill: rgba(216,183,106,0.10); stroke: rgba(216,183,106,0.22); stroke-width: 0.4; }
       .aimap-link { stroke: rgba(0,212,255,0.4); stroke-width: 0.5; fill: none; stroke-dasharray: 3 4; animation: aimapDash 16s linear infinite; }
@@ -281,8 +306,9 @@
       .ainews-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
       .ainews-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #060606; background: var(--gold); padding: 4px 10px; border-radius: 6px; }
       .ainews-sub { font-size: 12px; color: var(--muted); }
-      .ainews-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .ainews-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
       @media (max-width: 700px) { .ainews-list { grid-template-columns: 1fr; } }
+      a.ainews-item { text-decoration: none; color: inherit; cursor: pointer; }
       .ainews-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); transition: border-color .15s, transform .15s; animation: ainewsIn .4s ease both; }
       .ainews-item:hover { border-color: rgba(216,183,106,0.4); transform: translateX(2px); }
       @keyframes ainewsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -627,7 +653,8 @@
         
 
         <!-- TOP ROW: Tool of the Day (left) | AI Monitor (right) -->
-        <!-- TOOL OF THE DAY (full width, own row) -->
+        <!-- TOP ROW: Tool of the Day | Live AI Radar -->
+        <div class="tod-radar-row">
         <section id="toolOfDay" class="panel tod-panel">
           <div class="tod-inner">
             <div class="tod-left">
@@ -689,19 +716,33 @@
             </div>
           </div>
           <p class="aimon-sub" id="aimonSub">The world's AI power centers, live. Tap a hub to see who's there.</p>
+
+          <!-- LIVE METRIC CHIPS -->
+          <div class="aimon-chips" id="aimonChips"></div>
+
           <div class="aimap-wrap">
             <div class="aimap" id="aimap"></div>
             <div class="aimap-info" id="aimapInfo"></div>
           </div>
+
+          <!-- LIVE TICKER -->
+          <div class="aimon-ticker">
+            <span class="aimon-ticker-tag" id="aimonTickerTag">● LIVE</span>
+            <div class="aimon-ticker-track" id="aimonTickerTrack"></div>
+          </div>
+
           <div class="ainews">
             <div class="ainews-head">
               <span class="ainews-label" id="ainewsLabel">◆ AI PULSE</span>
               <span class="ainews-sub" id="ainewsSub">Latest in AI</span>
+              <span class="ainews-refreshing" id="ainewsRefreshing"></span>
             </div>
             <div class="ainews-list" id="ainewsList"></div>
           </div>
         </section>
         <!-- /AI WORLD MAP + NEWS -->
+        </div>
+        <!-- /TOP ROW -->
 
         <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
@@ -1691,7 +1732,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v278"></script>
+    <script src="app.js?v=v280"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
