@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v273" />
+    <link rel="stylesheet" href="styles.css?v=v274" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -175,10 +175,10 @@
 
       /* ── FULLSCREEN LIVE DASHBOARD end ───────────────── */
       /* ── AI STATUS MONITOR ───────────────────────────── */
-      .tod-monitor-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px; }
-      .tod-monitor-row > .tod-panel { margin: 0; align-self: start; height: fit-content; }
-      .tod-monitor-row > .ai-monitor { margin: 0; align-self: start; }
-      @media (max-width: 960px) { .tod-monitor-row { grid-template-columns: 1fr; } }
+      .tod-monitor-row { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+      .tod-monitor-row > .tod-panel { margin: 0 !important; flex: 1 1 0; min-width: 0; align-self: flex-start !important; height: auto !important; min-height: 0 !important; }
+      .tod-monitor-row > .ai-monitor { margin: 0 !important; flex: 1 1 0; min-width: 0; align-self: flex-start !important; }
+      @media (max-width: 960px) { .tod-monitor-row { flex-direction: column; } .tod-monitor-row > .tod-panel, .tod-monitor-row > .ai-monitor { width: 100%; } }
       .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
       .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
       .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
@@ -1618,7 +1618,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v273"></script>
+    <script src="app.js?v=v274"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
