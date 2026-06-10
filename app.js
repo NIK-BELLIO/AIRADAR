@@ -117,6 +117,10 @@ const i18n = {
     vTextAutoNote: "Text sits on an automatic dark panel, so it stays readable on any photo or video.",
     vLogoLabel: "Logo & cards",
     vLogoPosLabel: "Logo position",
+    vLogoMotionLabel: "Logo motion",
+    vLogoStyleLabel: "Logo frame style",
+    vLogoColorLabel: "Ring / badge color",
+    vLogoSizeLabel: "Logo size",
     vIntroLabel: "Intro — main text",
     vIntroSubLabel: "Intro — secondary text",
     vIntroMotionLabel: "Intro text motion",
@@ -406,6 +410,10 @@ const i18n = {
     vTextAutoNote: "متن روی یک پنل تیره خودکار قرار می‌گیرد تا روی هر عکس یا ویدیویی خوانا بماند.",
     vLogoLabel: "۵ · لوگو و کارت‌ها",
     vLogoPosLabel: "موقعیت لوگو",
+    vLogoMotionLabel: "موشن لوگو",
+    vLogoStyleLabel: "استایل قاب لوگو",
+    vLogoColorLabel: "رنگ حلقه / نشان",
+    vLogoSizeLabel: "اندازه لوگو",
     vIntroLabel: "اینترو — متن اصلی",
     vIntroSubLabel: "اینترو — متن فرعی",
     vIntroMotionLabel: "حرکت متن اینترو",
@@ -5124,6 +5132,7 @@ function loadStudioLogo(file) {
   const img = new Image();
   img.onload = () => {
     vstudio.logoEl = img;
+    vsAnalyzeLogo(img);   // detect letter segments for the Letter-cascade motion
     if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
     refreshTimelineClips();
     vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
@@ -5132,6 +5141,44 @@ function loadStudioLogo(file) {
     vsStatus(state.lang === "fa" ? "بارگذاری لوگو ناموفق بود." : "Could not load that logo.");
   };
   img.src = vstudio.logoUrl;
+}
+
+// Detect letter segments in a wordmark logo by scanning for empty columns
+// (transparent OR near-black). Enables the per-letter cascade motion for ANY
+// uploaded wordmark — segments are stored as source-rect slices.
+function vsAnalyzeLogo(img) {
+  vstudio.logoSegs = null;
+  try {
+    const w = img.naturalWidth, hgt = img.naturalHeight;
+    if (!w || !hgt || w * hgt > 4000000) return; // skip absurdly large images
+    const c = document.createElement("canvas");
+    c.width = w; c.height = hgt;
+    const cx = c.getContext("2d", { willReadFrequently: true });
+    cx.drawImage(img, 0, 0);
+    const data = cx.getImageData(0, 0, w, hgt).data;
+    const colHasInk = new Uint8Array(w);
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < hgt; y += 2) {           // sample every 2nd row
+        const i = (y * w + x) * 4;
+        const a = data[i + 3];
+        const lum = data[i] + data[i + 1] + data[i + 2];
+        if (a > 24 && lum > 60) { colHasInk[x] = 1; break; }
+      }
+    }
+    const segs = [];
+    let start = -1;
+    for (let x = 0; x < w; x++) {
+      if (colHasInk[x] && start < 0) start = x;
+      if (!colHasInk[x] && start >= 0) { segs.push({ x: start, w: x - start }); start = -1; }
+    }
+    if (start >= 0) segs.push({ x: start, w: w - start });
+    // only useful when the mark really splits into multiple glyphs
+    if (segs.length >= 3 && segs.length <= 24) {
+      vstudio.logoSegs = segs;
+      // keep a clean source canvas for slice drawing
+      vstudio.logoSrcCanvas = c;
+    }
+  } catch (e) { /* canvas tainted or too big — cascade silently unavailable */ }
 }
 
 function buildPreviewCanvas(exportLongEdge) {
@@ -7847,22 +7894,138 @@ function drawStudioFrame(elapsed) {
     ctx.restore();
   }
 
-  // logo overlay
+  // ── LOGO OVERLAY — professional motion + placement + frame styles ──
   if (vstudio.logoEl) {
     const logo = vstudio.logoEl;
     const lw0 = logo.naturalWidth || 1, lh0 = logo.naturalHeight || 1;
-    const targetW = W * 0.16;
+    const sizeF = parseFloat(vsVal("#vsLogoSize", "0.16")) || 0.16;
+    const targetW = W * sizeF;
     const lw = targetW, lh = targetW * (lh0 / lw0);
     const pad = W * 0.035;
     const pos = vsVal("#vsLogoPos", "tl");
-    let lx = pad, ly = pad;
-    if (pos === "tr") { lx = W - lw - pad; ly = pad; }
-    if (pos === "bl") { lx = pad; ly = H - lh - pad; }
-    if (pos === "br") { lx = W - lw - pad; ly = H - lh - pad; }
+    // 9-point placement grid
+    let lx, ly;
+    const cxs = { l: pad, c: (W - lw) / 2, r: W - lw - pad };
+    const cys = { t: pad, m: (H - lh) / 2, b: H - lh - pad };
+    const posMap = { tl:["l","t"], tc:["c","t"], tr:["r","t"], ml:["l","m"], c:["c","m"], mr:["r","m"], bl:["l","b"], bc:["c","b"], br:["r","b"] };
+    const pm = posMap[pos] || ["l","t"];
+    lx = cxs[pm[0]]; ly = cys[pm[1]];
+
+    // motion progress: animate over the first 0.9s of each slide
+    const motion = vsVal("#vsLogoMotion", "fade");
+    const mDur = 0.9;
+    const mp = Math.min(1, (dsLocal || elapsed) / mDur);          // 0..1
+    const mEase = 1 - Math.pow(1 - mp, 3);                          // easeOutCubic
+    let mAlpha = 1, mdx = 0, mdy = 0, mScale = 1, mRot = 0, glow = 0;
+    if (motion === "fade") { mAlpha = mEase; }
+    else if (motion === "pop") {
+      // bounce-in: overshoot then settle
+      const b = mp < 1 ? (1.2 - 0.2 * Math.cos(mp * Math.PI * 2.2) * (1 - mp)) * mEase : 1;
+      mScale = 0.4 + 0.6 * b; mAlpha = Math.min(1, mp * 2.4);
+    }
+    else if (motion === "slide") {
+      const fromLeft = pm[0] !== "r";
+      mdx = (fromLeft ? -1 : 1) * (1 - mEase) * W * 0.12; mAlpha = mEase;
+    }
+    else if (motion === "spin") { mRot = (1 - mEase) * Math.PI; mScale = 0.5 + 0.5 * mEase; mAlpha = mEase; }
+    else if (motion === "rise") { mdy = (1 - mEase) * H * 0.07; mAlpha = Math.pow(mEase, 1.4); mScale = 0.96 + 0.04 * mEase; }
+    else if (motion === "pulse") { mAlpha = 1; glow = 0.5 + 0.5 * Math.sin(elapsed * 2.4); }
+
+    // ── LETTER CASCADE — per-glyph staggered reveal (auto-detected slices) ──
+    if (motion === "letters" && vstudio.logoSegs && vstudio.logoSrcCanvas) {
+      const segs = vstudio.logoSegs;
+      const src = vstudio.logoSrcCanvas;
+      const scale = lw / (logo.naturalWidth || 1);
+      const t = (dsLocal || elapsed);
+      const per = 0.09, segDur = 0.55;
+      ctx.save();
+      for (let k = 0; k < segs.length; k++) {
+        const sp = Math.min(1, Math.max(0, (t - k * per) / segDur));
+        if (sp <= 0) continue;
+        const se = 1 - Math.pow(1 - sp, 3);
+        const seg = segs[k];
+        const dw = seg.w * scale, dh = lh;
+        const dx = lx + seg.x * scale;
+        const dy = ly + (1 - se) * H * 0.055;
+        ctx.globalAlpha = se;
+        try { ctx.drawImage(src, seg.x, 0, seg.w, src.height, dx, dy, dw, dh); } catch {}
+      }
+      ctx.restore();
+    } else {
+    // ── SHINE SWEEP — light band sweeps across the mark (loops every 3s) ──
+    let shineCanvas = null;
+    if (motion === "shine") {
+      mAlpha = Math.min(1, (dsLocal || elapsed) / 0.5);
+      try {
+        const oc = vstudio._logoShineCanvas || (vstudio._logoShineCanvas = document.createElement("canvas"));
+        const sw = Math.max(2, Math.round(lw)), sh = Math.max(2, Math.round(lh));
+        if (oc.width !== sw || oc.height !== sh) { oc.width = sw; oc.height = sh; }
+        const oc2 = oc.getContext("2d");
+        oc2.clearRect(0, 0, sw, sh);
+        oc2.drawImage(logo, 0, 0, sw, sh);
+        // moving highlight clipped to the logo's own pixels
+        const cyc = ((elapsed % 3) / 3);
+        const bandX = (cyc * 1.6 - 0.3) * sw;
+        const g = oc2.createLinearGradient(bandX - sw*0.18, 0, bandX + sw*0.18, 0);
+        g.addColorStop(0, "rgba(255,255,255,0)");
+        g.addColorStop(0.5, "rgba(255,255,255,0.85)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        oc2.globalCompositeOperation = "source-atop";
+        oc2.fillStyle = g;
+        oc2.fillRect(0, 0, sw, sh);
+        oc2.globalCompositeOperation = "source-over";
+        shineCanvas = oc;
+      } catch (e) { /* fall back to plain draw */ }
+    }
+
+    // frame style + color
+    const fstyle = vsVal("#vsLogoStyle", "none");
+    let fcolor = vsVal("#vsLogoColor", "auto");
+    if (fcolor === "auto") fcolor = tpl.accent;
+
     ctx.save();
-    ctx.globalAlpha = 0.92 * tEase + 0.08;
-    try { ctx.drawImage(logo, lx, ly, lw, lh); } catch {}
+    // move to logo center for rotation/scale, then back
+    const ccx = lx + lw / 2 + mdx, ccy = ly + lh / 2 + mdy;
+    ctx.translate(ccx, ccy);
+    if (mRot) ctx.rotate(mRot);
+    if (mScale !== 1) ctx.scale(mScale, mScale);
+    ctx.globalAlpha = Math.max(0, Math.min(1, mAlpha));
+
+    const halfW = lw / 2, halfH = lh / 2;
+    const frameR = Math.max(halfW, halfH) * 1.25;
+
+    // frame behind the logo
+    if (fstyle === "circle") {
+      ctx.beginPath(); ctx.arc(0, 0, frameR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(8,8,10,0.55)"; ctx.fill();
+      ctx.lineWidth = Math.max(2, W * 0.0035); ctx.strokeStyle = fcolor;
+      ctx.shadowColor = fcolor; ctx.shadowBlur = 14 + glow * 16;
+      ctx.stroke(); ctx.shadowBlur = 0;
+    } else if (fstyle === "glass") {
+      const gw = lw * 1.35, gh = lh * 1.45, gr = Math.min(gw, gh) * 0.2;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-gw/2, -gh/2, gw, gh, gr);
+      else ctx.rect(-gw/2, -gh/2, gw, gh);
+      ctx.fillStyle = "rgba(255,255,255,0.10)"; ctx.fill();
+      ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.stroke();
+    } else if (fstyle === "badge") {
+      const gw = lw * 1.3, gh = lh * 1.4, gr = Math.min(gw, gh) * 0.22;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-gw/2, -gh/2, gw, gh, gr);
+      else ctx.rect(-gw/2, -gh/2, gw, gh);
+      ctx.fillStyle = fcolor; ctx.shadowColor = fcolor; ctx.shadowBlur = 16 + glow * 14;
+      ctx.fill(); ctx.shadowBlur = 0;
+    } else if (fstyle === "shadow" || glow > 0) {
+      ctx.shadowColor = fstyle === "shadow" ? "rgba(0,0,0,0.6)" : fcolor;
+      ctx.shadowBlur = fstyle === "shadow" ? 22 : 10 + glow * 22;
+    }
+
+    try {
+      if (shineCanvas) ctx.drawImage(shineCanvas, -halfW, -halfH, lw, lh);
+      else ctx.drawImage(logo, -halfW, -halfH, lw, lh);
+    } catch {}
     ctx.restore();
+    } // end non-cascade path
   }
 
   // progress bar
@@ -8655,7 +8818,7 @@ const VS_CONTROLS = [
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
-  "#vsLogoPos", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
+  "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
   "#vsExportSize", "#vsExportQuality"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
@@ -9617,7 +9780,8 @@ function bindEvents() {
     "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
     "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
-    "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro", "#vsLogoPos"
+    "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
+    "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize"
   ];
   const vsRefresh = () => {
     refreshTimelineClips();
