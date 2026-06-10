@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v284" />
+    <link rel="stylesheet" href="styles.css?v=v286" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -1412,9 +1412,54 @@
                 <label><span data-i18n="vLogoPosLabel">Logo position</span>
                   <select id="vsLogoPos">
                     <option value="tl">Top left</option>
+                    <option value="tc">Top center</option>
                     <option value="tr">Top right</option>
+                    <option value="ml">Middle left</option>
+                    <option value="c">Center</option>
+                    <option value="mr">Middle right</option>
                     <option value="bl">Bottom left</option>
+                    <option value="bc">Bottom center</option>
                     <option value="br">Bottom right</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vLogoMotionLabel">Logo motion</span>
+                  <select id="vsLogoMotion">
+                    <option value="none">None (static)</option>
+                    <option value="fade" selected>Fade in</option>
+                    <option value="pop">Pop (bounce)</option>
+                    <option value="slide">Slide in</option>
+                    <option value="spin">Spin reveal</option>
+                    <option value="rise">Cinematic rise</option>
+                    <option value="pulse">Pulse glow (loop)</option>
+                    <option value="letters">Letter cascade (wordmarks)</option>
+                    <option value="shine">Shine sweep (loop)</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vLogoStyleLabel">Logo frame style</span>
+                  <select id="vsLogoStyle">
+                    <option value="none" selected>Clean (no frame)</option>
+                    <option value="circle">Circle + ring</option>
+                    <option value="glass">Glass card</option>
+                    <option value="badge">Accent badge</option>
+                    <option value="shadow">Soft shadow</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vLogoColorLabel">Ring / badge color</span>
+                  <select id="vsLogoColor">
+                    <option value="auto" selected>Match template</option>
+                    <option value="#d8b76a">Gold</option>
+                    <option value="#00d4ff">Cyan</option>
+                    <option value="#ffffff">White</option>
+                    <option value="#35d07f">Green</option>
+                    <option value="#e0533d">Red</option>
+                  </select>
+                </label>
+                <label><span data-i18n="vLogoSizeLabel">Logo size</span>
+                  <select id="vsLogoSize">
+                    <option value="0.10">Small</option>
+                    <option value="0.16" selected>Medium</option>
+                    <option value="0.24">Large</option>
+                    <option value="0.34">Extra large</option>
                   </select>
                 </label>
                 <label><span data-i18n="vIntroLabel">Intro — main text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
@@ -1705,7 +1750,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v284</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v286</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1779,7 +1824,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v284"></script>
+    <script src="app.js?v=v286"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
