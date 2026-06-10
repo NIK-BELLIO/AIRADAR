@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v286" />
+    <link rel="stylesheet" href="styles.css?v=v287" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -1406,9 +1406,13 @@
               <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
                 <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
                 <label class="upload-box small">
-                  <span data-i18n="vLogoHint">Optional: logo (transparent PNG recommended)</span>
-                  <input id="vsLogo" type="file" accept="image/*" />
+                  <span data-i18n="vLogoHint">Logo: PNG (transparent) or animated WebM/MP4</span>
+                  <input id="vsLogo" type="file" accept="image/*,video/*" />
                 </label>
+                <div class="vs-logo-timing">
+                  <label><span data-i18n="vLogoStartLabel">Logo start (s)</span><input id="vsLogoStart" type="number" min="0" step="0.5" value="0" /></label>
+                  <label><span data-i18n="vLogoDurLabel">Logo duration (s, 0 = end)</span><input id="vsLogoDur" type="number" min="0" step="0.5" value="0" /></label>
+                </div>
                 <label><span data-i18n="vLogoPosLabel">Logo position</span>
                   <select id="vsLogoPos">
                     <option value="tl">Top left</option>
@@ -1750,7 +1754,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v286</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v287</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1824,7 +1828,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v286"></script>
+    <script src="app.js?v=v287"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
