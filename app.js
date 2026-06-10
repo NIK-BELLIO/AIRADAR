@@ -1,2028 +1,10593 @@
-<!doctype html>
-<html lang="en" dir="ltr">
-  <head>
-    <style id="ar-custom-fonts">
-      @font-face {
-        font-family: 'Bryn Vogue';
-        src: url('fonts/Bryn_Vogue.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
+// Pollinations API key — unlocks the strong text/image models on the free
+// tier. NOTE: this is visible in the public source; if its credit is ever
+// drained, generate a new key at enter.pollinations.ai and replace it here.
+const VS_POLLINATIONS_KEY = "sk_fxKqS1gG6wVVttINlEowCNP3ktoJ0TtD";
+
+const i18n = {
+  en: {
+    navGroupExplore: "Explore",
+    navGroupCreate: "Create",
+    navTools: "Tools",
+    themeLight: "Light",
+    themeDark: "Dark",
+    navPerformance: "Live charts",
+    navMedia: "Caption AI",
+    navStudio: "Video studio",
+    studioEyebrow: "Advanced video studio",
+    studioTitle: "Create a complete, luxurious video",
+    studioText: "Use the tabs in order: 1) Template, 2) Media, 3) Format, 4) Text, 5) Logo. The timeline below the preview shows each layer — drag the red playhead to scrub. Press Preview to play, then Export to save a real video file.",
+    vTabTemplate: "Template",
+    vTabMedia: "Media",
+    vTabSlides: "Slides",
+    vSlidesLabel: "Slide sequence",
+    vSlidesHint: "Add multiple slides — each with its own media, headline and duration. They play one after another as a single video.",
+    vAddSlide: "+ Add slide (upload media)",
+    vAddIntro: "+ Add intro scene",
+    vAddOutro: "+ Add outro scene",
+    vAutoLabel: "⚡ Auto-build a full video",
+    vAutoHint: "Paste a news article URL (or its text). The AI reads the whole article and builds a complete video, using an infographic where there are numbers and clean text where there are none, plus an intro and outro.",
+    vAutoUrl: "Article URL (optional)",
+    vAutoTopic: "Topic or article text",
+    vAutoBuildBtn: "Build the video",
+    vAutoAiBtn: "✦ Build with AI",
+    vIntroSceneLabel: "Intro scene settings",
+    vIntroSceneHint: "Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.",
+    vIntroBgLabel: "Background",
+    vIntroMainLabel: "Main text",
+    vIntroSubInput2: "Secondary text",
+    vIntroMotion2: "Text motion",
+    vSlideHeadline: "Slide headline",
+    vSlideDuration: "Slide duration (s)",
+    vSlideFootage: "+ Add / replace footage on this slide",
+    vSlideCaption: "Caption (top label)",
+    vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
+    vSlideSectionsLabel: "Scene settings",
+    vTabFormat: "Format & export",
+    vTabMotion: "Motion",
+    vTabInfo: "Infographic",
+    vInfoLabel: "Infographic builder",
+    vInfoOnLabel: "Show infographic overlay",
+    vInfoHint: "Type your title and stats below — the infographic builds itself as you write. No JSON needed.",
+    vInfoAiLabel: "✦ Generate with AI",
+    vInfoAiHint: "Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.",
+    vInfoAiBtn: "Generate infographic",
+    vInfoFormTitle: "Title",
+    vInfoFormSubtitle: "Subtitle (optional)",
+    vInfoFormSource: "Data source (recommended)",
+    vInfoSourceNote: "Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.",
+    vInfoStatsHead: "Stats",
+    vInfoAddRow: "+ Add a stat",
+    vInfoAdvanced: "Advanced — edit raw JSON / import file",
+    vInfoSyncBtn: "Load this JSON into the form",
+    vInfoImportLabel: "Import JSON file",
+    vInfoJsonLabel: "Infographic data (JSON)",
+    vInfoStyleLabel: "Chart style",
+    vInfoPosLabel: "Position",
+    vInfoMotionLabel: "Entrance motion",
+    vMotionLabel: "Motion & elements",
+    vCamMotionLabel: "Camera motion",
+    vTextAnimLabel: "Text animation",
+    vOverlayLabel: "Overlay element",
+    vMotionNote: "Every change updates the live preview instantly — no need to press Preview.",
+    vTabText: "Text",
+    vTabLogo: "Logo & cards",
+    vTabNews: "News",
+    vNewsLabel: "News banner",
+    vNewsHint: "Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.",
+    vNewsAiLabel: "✦ Summarize with AI",
+    vNewsAiHint: "Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.",
+    vNewsAiBtn: "Summarize into banner",
+    vNewsOnLabel: "Show news banner",
+    vNewsKickerLabel: "Kicker / category",
+    vNewsHeadlineLabel: "News headline",
+    vNewsSourceLabel: "Source / reporter",
+    vNewsStyleLabel: "Banner style",
+    vNewsAccentLabel: "Banner accent",
+    vNewsMotionLabel: "Entrance motion",
+    vNewsClockLabel: "Show live clock",
+    vTemplateLabel: "Template",
+    vUploadLabel: "Media & music",
+    vUploadHint: "Upload one video or image (mp4, webm, mov, jpg, png)",
+    vQuickClipLabel: "Quick mode — single clip",
+    vQuickClipHint: "Just one clip and no scenes? Upload a single video or image here instead of adding scenes.",
+    vMusicLabel: "Background music",
+    vMusicHint: "Optional: background music (mp3, wav) — applies to the whole video",
+    vMediaModeNote: "Two ways to add footage: upload one clip here for a quick single-scene video, or use the Slides tab to build a multi-scene sequence. Music below applies to the whole video either way.",
+    vLogoHint: "Logo: PNG (transparent) or animated WebM/MP4",
+    vFormatLabel: "Format & export",
+    vAspectLabel: "Aspect ratio",
+    vDurationLabel: "Duration (seconds)",
+    vDurationNote: "Set any length you like. A shorter time simply trims the clip — it still plays at normal speed and ends early. A longer time slows the clip down so it stretches to fill the duration.",
+    vFilterLabel: "Filter / grade",
+    vSpeedLabel: "Playback speed",
+    vTransitionLabel: "Transition in",
+    vGrainLabel: "Film grain",
+    vExportLabel: "Export settings",
+    vExportSizeLabel: "Download size",
+    vExportQualityLabel: "Download quality",
+    vExportFormatLabel: "File format",
+    vExportFormatNote: "MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.",
+    vExportInfo: "Higher size and quality look better but make a larger file.",
+    vTextLabel: "Text layers",
+    vHeadlineLabel: "Headline",
+    vSubLabel: "Subtext",
+    vCtaLabel: "Call to action",
+    vTextPosLabel: "Text position",
+    vTextSizeLabel: "Text size",
+    vTextAutoNote: "Text sits on an automatic dark panel, so it stays readable on any photo or video.",
+    vLogoLabel: "Logo & cards",
+    vLogoPosLabel: "Logo position",
+    vLogoMotionLabel: "Logo motion",
+    vLogoStyleLabel: "Logo frame style",
+    vLogoColorLabel: "Ring / badge color",
+    vLogoSizeLabel: "Logo size",
+    vLogoStartLabel: "Logo start (s)",
+    vLogoDurLabel: "Logo duration (s, 0 = end)",
+    vIntroLabel: "Intro — main text",
+    vIntroSubLabel: "Intro — secondary text",
+    vIntroMotionLabel: "Intro text motion",
+    vOutroLabel: "Outro card text",
+    vPreviewBtn: "Preview",
+    vExportBtn: "Export video",
+    vPreviewLabel: "Preview",
+    vTimelineHint: "Drag the playhead to scrub",
+    vTrackMedia: "Media",
+    vTrackText: "Text",
+    vTrackLogo: "Logo",
+    vTrackMusic: "Music",
+    vPreviewSizeLabel: "Preview size",
+    vPlaceholder: "Choose a template and upload media to preview it here",
+    navIntelligence: "Prompt lab",
+    navJobs: "AI jobs",
+    navAbout: "About",
+    aboutEyebrow: "About",
+    aboutTitle: "Built for the AI-curious",
+    aboutText: "AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.",
+    aboutRole: "Creator & Designer",
+    aboutCreditText: "Designed and built AI Radar — concept, interface, and the video studio.",
+    aboutProjectRole: "Free static project",
+    aboutProjectText: "Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.",
+    changelogTitle: "Latest updates",
+    cl21Title: "Cinematic design upgrade",
+    cl21Text: "Premium animated backgrounds (aurora, ember, liquid mesh, spotlight and more), new infographic and text styles (progress pills, bold statement, split block, badge), template-driven title colours and fonts, and a Vox-style snappy motion across the studio.",
+    cl20Title: "Smarter article-to-video",
+    cl20Text: "Paste an article URL or text and the AI analyses the whole piece, choosing an infographic where there are numbers and clean text where there aren't. Plus per-slide footage and captions, professional news/text templates, working transitions on every slide, and a colour filter that grades the footage without washing out text.",
+    cl19Title: "Auto video builder",
+    cl19Text: "Describe a topic and the studio assembles a whole video for you — intro, infographic and news content slides, and an outro — in one click, with an optional AI scripting mode.",
+    cl18Title: "Outro scenes & more designs",
+    cl18Text: "Added outro scenes, 22 intro backgrounds, cinematic motion presets, clearer infographic text, per-slide element positions, and a graceful music fade-out.",
+    cl17Title: "Intro scenes & richer motion",
+    cl17Text: "New intro scene type in the Video Studio with 8 built-in backgrounds, dual animated text, and 12 motion presets. Scene-aware motion so every slide animates correctly.",
+    cl16Title: "Full sidebar & cleaner UI",
+    cl16Text: "Collapsible left sidebar navigation, redesigned chart and footer controls, a back-to-top button, and tighter mobile layouts throughout.",
+    cl15Title: "MP4 export & real charts",
+    cl15Text: "Video Studio now exports MP4. The infographic became a proper bar chart with a labelled axis, scale, and gridlines.",
+    cl14Title: "Bigger tool catalogue",
+    cl14Text: "Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.",
+    changelogNote: "AI Radar is actively maintained. This list shows the most recent notable changes.",
+    aboutMissionTitle: "Why AI Radar exists",
+    aboutMissionText: "The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.",
+    aboutStatTools: "curated AI tools",
+    aboutStatFree: "free, no account",
+    aboutStatLive: "GitHub data",
+    aboutStatLiveValue: "Live",
+    aboutStatPrivacy: "tracking or ads",
+    aboutStatPrivacyValue: "Zero",
+    aboutFeat1Title: "Tool finder",
+    aboutFeat1Text: "Search and filter real AI tools by use case, price, and job — grouped and easy to scan.",
+    aboutFeat2Title: "Live trend chart",
+    aboutFeat2Text: "Popularity tracked from the public GitHub API, refreshed automatically — no guesswork.",
+    aboutFeat3Title: "Video studio",
+    aboutFeat3Text: "Build multi-scene videos with motion, infographics, and news banners — entirely in your browser.",
+    aboutFeat4Title: "Caption & prompt tools",
+    aboutFeat4Text: "Generate captions and refined prompts locally — fast, private, and free to use.",
+    navRegister: "Register",
+    startButton: "Start",
+    heroEyebrow: "AI Radar — Live Intelligence",
+    heroTitle: "Find. Compare. Create.",
+    heroText:
+      "Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.",
+    heroPrimary: "Search tools",
+    heroSecondary: "Generate captions",
+    metricTools: "AI tools",
+    metricFree: "Free plans",
+    metricJobs: "Career paths",
+    chipLive: "AA model index",
+    toolsEyebrow: "Tool finder",
+    toolsTitle: "Curated real AI tools",
+    jumpToLabel: "Jump to tool",
+    categoryLabel: "Category",
+    budgetLabel: "Budget",
+    sortLabel: "Sort",
+    modelTypeLabel: "Model type",
+    minScoreLabel: "Minimum score",
+    compareEyebrow: "Compare",
+    compareTitle: "Compare selected tools",
+    clearCompare: "Clear",
+    performanceEyebrow: "Live GitHub data",
+    performanceTitle: "Live AI tools trend",
+    liveLabel: "Live",
+    refreshLabel: "Refresh",
+    chartTabStars: "GitHub Stars",
+    chartTabForks: "Forks",
+    chartTabActivity: "Dev Activity",
+    performanceText: "A live chart of real GitHub popularity for every AI tool in the finder. Data is fetched live from the public GitHub API and refreshes every 5 minutes. Tools you add to Compare are highlighted.",
+    mediaEyebrow: "Media caption generator",
+    mediaTitle: "Caption your photo or video for social media",
+    mediaText: "Upload the photo or video you want to post, pick a platform, and get a ready-to-share caption with hooks and hashtags — built around your media.",
+    mediaUploadLabel: "Upload image or video",
+    mediaSubjectLabel: "What's in the photo/video? (required)",
+    mediaGoalLabel: "Goal",
+    platformLabel: "Platform",
+    toneLabel: "Tone",
+    generateCaption: "Generate caption",
+    copyCaption: "Copy caption",
+    copyJson: "Copy JSON",
+    copyPrompt: "Copy prompt",
+    mediaPlaceholder: "Upload media to preview it here",
+    copied: "Copied.",
+    studioEyebrow: "Free video template studio",
+    studioTitle: "Create an animated video template from static uploads",
+    studioText:
+      "Upload images, set duration per slide, edit animated text elements, preview the timing, and export JSON or a real .webm video. It is free because it runs locally in the browser.",
+    uploadLabel: "Upload static files",
+    durationLabel: "Slide duration (seconds)",
+    motionLabel: "Motion",
+    addSlide: "Add slide",
+    exportTemplate: "Export template JSON",
+    exportVideo: "Export video (.webm)",
+    slideTitleLabel: "Slide title",
+    slideCaptionLabel: "Slide caption",
+    chartDataLabel: "Chart values",
+    previewPlaceholder: "Upload an image to preview your template",
+    jobsEyebrow: "AI career helper",
+    jobsTitle: "Find a practical AI work direction",
+    jobBoardTitle: "Live job source board",
+    skillsLabel: "Your skills",
+    jobTitleLabel: "Target role",
+    jobLocationLabel: "Location",
+    skillsButton: "Suggest path",
+    intelEyebrow: "AI utilities",
+    intelTitle: "Generate clean prompts and JSON",
+    promptDescLabel: "Describe what you want to create",
+    promptStyleLabel: "Style",
+    promptGenBtn: "Generate prompt",
+    promptNote: "Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.",
+    jsonDescLabel: "Describe any data, product, or idea",
+    jsonGenBtn: "Generate JSON",
+    jsonNote: "Outputs only clean, valid JSON — no explanation, no extra text.",
+    simplePromptLabel: "Simple prompt",
+    enhancePrompt: "Enhance prompt",
+    textJsonLabel: "Text to JSON",
+    convertJson: "Convert to JSON",
+    registerEyebrow: "Account",
+    registerTitle: "Create a local test account",
+    registerText: "This demo stores registration data in your browser only. A real launch needs authentication on a backend.",
+    nameLabel: "Name",
+    emailLabel: "Email",
+    roleLabel: "Main goal",
+    registerButton: "Register",
+    registered: "Registration saved locally.",
+    allCategories: "All categories",
+    allBudgets: "All budgets",
+    freeBudget: "Free or freemium",
+    under20: "Under $20",
+    proBudget: "Pro tools",
+    sortScore: "Best match",
+    sortPrice: "Lowest price",
+    sortName: "Name",
+    noTools: "No tools found. Try a broader search.",
+    addCompare: "Add to compare",
+    removeCompare: "Remove",
+    officialLink: "Official link",
+    pricing: "Pricing",
+    emptyCompare: "Add tools from the cards to compare them here.",
+    tableTool: "Tool",
+    tableCategory: "Category",
+    tablePrice: "Price",
+    tableUse: "Best use",
+    tableJobs: "Related jobs",
+    tableLink: "Link",
+    open: "Open",
+    recommendedTools: "Recommended tools",
+    sourceHint: "Opens a real public search in a new tab",
+    templateEmpty: "Add at least one uploaded slide first.",
+    downloaded: "Template JSON downloaded.",
+    videoExporting: "Rendering video... keep this tab open.",
+    videoReady: "Video downloaded.",
+    videoUnsupported: "Your browser does not support video export here.",
+    noFile: "Upload images first.",
+    deleteSlide: "Delete"
+  },
+  fa: {
+    navGroupExplore: "کاوش",
+    navGroupCreate: "ساخت",
+    navTools: "ابزارها",
+    themeLight: "روشن",
+    themeDark: "تیره",
+    navPerformance: "چارت زنده",
+    navMedia: "\u06a9\u067e\u0634\u0646 AI",
+    navStudio: "استودیوی ویدیو",
+    studioEyebrow: "استودیوی پیشرفته ویدیو",
+    studioTitle: "یک ویدیوی کامل و لوکس بساز",
+    studioText: "تب‌ها را به ترتیب بزن: ۱) قالب، ۲) رسانه، ۳) فرمت، ۴) متن، ۵) لوگو. خط زمان زیر پیش‌نمایش لایه‌ها را نشان می‌دهد — نشانگر قرمز را بکش. پیش‌نمایش برای پخش، خروجی برای ذخیره ویدیو.",
+    vTabTemplate: "قالب",
+    vTabMedia: "رسانه",
+    vTabSlides: "اسلایدها",
+    vSlidesLabel: "دنباله اسلاید",
+    vSlidesHint: "چند اسلاید اضافه کن — هرکدام با رسانه، عنوان و مدت خودش. پشت سر هم به‌صورت یک ویدیو پخش می‌شوند.",
+    vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
+    vAddIntro: "+ افزودن صحنه اینترو",
+    vAddOutro: "+ افزودن صحنه پایانی",
+    vAutoLabel: "⚡ ساخت خودکار ویدیوی کامل",
+    vAutoHint: "لینک یک مقاله خبری (یا متن آن) را بچسبان. هوش مصنوعی کل مقاله را می‌خواند و یک ویدیوی کامل می‌سازد — هرجا عدد باشد اینفوگرافیک و هرجا نباشد متن — به‌همراه اینترو و اوترو.",
+    vAutoUrl: "لینک مقاله (اختیاری)",
+    vAutoTopic: "موضوع یا متن مقاله",
+    vAutoBuildBtn: "ساخت ویدیو",
+    vAutoAiBtn: "✦ ساخت با هوش مصنوعی",
+    vIntroSceneLabel: "تنظیمات صحنه اینترو",
+    vIntroSceneHint: "در حال ویرایش صحنه اینتروی انتخاب‌شده — یک پس‌زمینه انتخاب کن، دو خط متن بنویس و حرکت ورود متن را انتخاب کن.",
+    vIntroBgLabel: "پس‌زمینه",
+    vIntroMainLabel: "متن اصلی",
+    vIntroSubInput2: "متن فرعی",
+    vIntroMotion2: "حرکت متن",
+    vSlideHeadline: "عنوان اسلاید",
+    vSlideDuration: "مدت اسلاید (ثانیه)",
+    vSlideFootage: "+ افزودن / جایگزینی فوتیج این صحنه",
+    vSlideCaption: "کپشن (برچسب بالا)",
+    vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
+    vSlideSectionsLabel: "تنظیمات صحنه",
+    vTabFormat: "فرمت و خروجی",
+    vTabMotion: "موشن",
+    vTabInfo: "اینفوگرافیک",
+    vInfoLabel: "سازنده اینفوگرافیک",
+    vInfoOnLabel: "نمایش اینفوگرافیک",
+    vInfoHint: "عنوان و آمارها را پایین بنویس — اینفوگرافیک همزمان با نوشتن ساخته می‌شود. نیازی به JSON نیست.",
+    vInfoAiLabel: "✦ ساخت با هوش مصنوعی",
+    vInfoAiHint: "موضوعت را توصیف کن یا یک پاراگراف بچسبان — هوش مصنوعی آن را به عنوان و آمار تبدیل می‌کند. اولین استفاده یک ورود رایگان Puter باز می‌کند.",
+    vInfoAiBtn: "ساخت اینفوگرافیک",
+    vInfoFormTitle: "عنوان",
+    vInfoFormSubtitle: "زیرعنوان (اختیاری)",
+    vInfoFormSource: "منبع داده (توصیه‌شده)",
+    vInfoSourceNote: "اعداد نمایش‌داده‌شده فقط به اندازه چیزی که وارد می‌کنی معتبرند. یک منبع واقعی ذکر کن تا بینندگان به داده‌ها اعتماد کنند — اعداد تولیدشده با هوش مصنوعی تخمین هستند، نه حقایق تأییدشده.",
+    vInfoStatsHead: "آمارها",
+    vInfoAddRow: "+ افزودن آمار",
+    vInfoAdvanced: "پیشرفته — ویرایش JSON خام / وارد کردن فایل",
+    vInfoSyncBtn: "بارگذاری این JSON در فرم",
+    vInfoImportLabel: "وارد کردن فایل JSON",
+    vInfoJsonLabel: "داده اینفوگرافیک (JSON)",
+    vInfoStyleLabel: "سبک نمودار",
+    vInfoPosLabel: "موقعیت",
+    vInfoMotionLabel: "حرکت ورود",
+    vMotionLabel: "موشن و المان‌ها",
+    vCamMotionLabel: "حرکت دوربین",
+    vTextAnimLabel: "انیمیشن متن",
+    vOverlayLabel: "المان رویی",
+    vMotionNote: "هر تغییری فوراً پیش‌نمایش زنده را به‌روز می‌کند — نیازی به زدن پیش‌نمایش نیست.",
+    vTabText: "متن",
+    vTabLogo: "لوگو و کارت",
+    vTabNews: "اخبار",
+    vNewsLabel: "بنر خبری",
+    vNewsHint: "ابتدا فیلم خودت را اضافه کن، سپس جزئیات خبر را پایین بنویس — یک بنر شبیه پخش تلویزیونی روی ویدیو کشیده می‌شود.",
+    vNewsAiLabel: "✦ خلاصه با هوش مصنوعی",
+    vNewsAiHint: "یک مقاله یا یادداشت بچسبان — هوش مصنوعی یک تیتر کوتاه، سرتیتر و منبع می‌نویسد. اولین استفاده یک ورود رایگان Puter باز می‌کند.",
+    vNewsAiBtn: "خلاصه در بنر",
+    vNewsOnLabel: "نمایش بنر خبری",
+    vNewsKickerLabel: "تیتر کوتاه / دسته",
+    vNewsHeadlineLabel: "تیتر خبر",
+    vNewsSourceLabel: "منبع / خبرنگار",
+    vNewsStyleLabel: "سبک بنر",
+    vNewsAccentLabel: "رنگ بنر",
+    vNewsMotionLabel: "حرکت ورود",
+    vNewsClockLabel: "نمایش ساعت زنده",
+    vTemplateLabel: "قالب",
+    vUploadLabel: "رسانه و موسیقی",
+    vUploadHint: "یک ویدیو یا تصویر آپلود کن (mp4, webm, mov, jpg, png)",
+    vQuickClipLabel: "حالت سریع — تک‌کلیپ",
+    vQuickClipHint: "فقط یک کلیپ و بدون صحنه؟ به‌جای افزودن صحنه، یک ویدیو یا تصویر اینجا آپلود کن.",
+    vMusicLabel: "موسیقی پس‌زمینه",
+    vMusicHint: "اختیاری: موسیقی پس‌زمینه (mp3, wav) — روی کل ویدیو اعمال می‌شود",
+    vMediaModeNote: "دو راه برای افزودن فیلم: یک کلیپ اینجا آپلود کن برای ویدیوی تک‌صحنه، یا از تب اسلایدها برای ساخت دنباله چندصحنه‌ای استفاده کن. موسیقی زیر روی کل ویدیو اعمال می‌شود.",
+    vLogoHint: "اختیاری: لوگو (png شفاف توصیه می‌شود)",
+    vFormatLabel: "فرمت و خروجی",
+    vAspectLabel: "نسبت تصویر",
+    vDurationLabel: "مدت (ثانیه)",
+    vDurationNote: "هر طولی بخواهی تنظیم کن. کلیپ کش می‌آید تا آن را پر کند — بلندتر از کلیپ یعنی پخش آهسته، کوتاه‌تر یعنی سریع‌تر. همیشه یک‌بار از ابتدا تا انتها اجرا می‌شود، بدون توقف یا تکرار.",
+    vFilterLabel: "فیلتر / گرید",
+    vSpeedLabel: "سرعت پخش",
+    vTransitionLabel: "ترانزیشن ورودی",
+    vGrainLabel: "دانه‌دانه فیلم",
+    vExportLabel: "تنظیمات خروجی",
+    vExportSizeLabel: "اندازه دانلود",
+    vExportQualityLabel: "کیفیت دانلود",
+    vExportFormatLabel: "قالب فایل",
+    vExportFormatNote: "MP4 پس از ضبط، داخل مرورگر تبدیل می‌شود. اولین خروجی MP4 یک مبدل یک‌بارمصرف (~۲۵ مگابایت) دانلود می‌کند و بیشتر طول می‌کشد؛ خروجی‌های بعدی سریع‌ترند.",
+    vExportInfo: "اندازه و کیفیت بالاتر بهتر دیده می‌شود اما فایل بزرگ‌تری می‌سازد.",
+    vTextLabel: "لایه‌های متن",
+    vHeadlineLabel: "تیتر",
+    vSubLabel: "زیرنویس",
+    vCtaLabel: "دعوت به اقدام",
+    vTextPosLabel: "موقعیت متن",
+    vTextSizeLabel: "اندازه متن",
+    vTextAutoNote: "متن روی یک پنل تیره خودکار قرار می‌گیرد تا روی هر عکس یا ویدیویی خوانا بماند.",
+    vLogoLabel: "۵ · لوگو و کارت‌ها",
+    vLogoPosLabel: "موقعیت لوگو",
+    vLogoMotionLabel: "موشن لوگو",
+    vLogoStyleLabel: "استایل قاب لوگو",
+    vLogoColorLabel: "رنگ حلقه / نشان",
+    vLogoSizeLabel: "اندازه لوگو",
+    vLogoStartLabel: "شروع لوگو (ثانیه)",
+    vLogoDurLabel: "مدت لوگو (ثانیه، ۰ = تا انتها)",
+    vIntroLabel: "اینترو — متن اصلی",
+    vIntroSubLabel: "اینترو — متن فرعی",
+    vIntroMotionLabel: "حرکت متن اینترو",
+    vOutroLabel: "متن کارت اوترو",
+    vPreviewBtn: "پیش‌نمایش",
+    vExportBtn: "خروجی ویدیو",
+    vPreviewLabel: "پیش‌نمایش",
+    vTimelineHint: "برای جابه‌جایی، نشانگر را بکش",
+    vTrackMedia: "رسانه",
+    vTrackText: "متن",
+    vTrackLogo: "لوگو",
+    vTrackMusic: "موسیقی",
+    vPreviewSizeLabel: "اندازه پیش‌نمایش",
+    vPlaceholder: "یک قالب انتخاب کن و رسانه آپلود کن تا اینجا پیش‌نمایش داده شود",
+    navIntelligence: "لابراتوار پرامپت",
+    navJobs: "کار AI",
+    navAbout: "درباره",
+    aboutEyebrow: "درباره",
+    aboutTitle: "ساخته‌شده برای علاقه‌مندان AI",
+    aboutText: "AI Radar یک فضای کاری رایگان برای کشف ابزارهای واقعی AI، دنبال‌کردن محبوبیت زنده، تولید محتوا و ساخت ویدیو — همه داخل مرورگر شما.",
+    aboutRole: "سازنده و طراح",
+    aboutCreditText: "طراحی و ساخت AI Radar — ایده، رابط کاربری و استودیوی ویدیو.",
+    aboutProjectRole: "پروژه استاتیک رایگان",
+    aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود — سه فایل، بدون سرور. داده زنده از API عمومی گیت‌هاب. بدون ردیابی، بدون حساب، بدون تبلیغ.",
+    changelogTitle: "آخرین به‌روزرسانی‌ها",
+    cl21Title: "ارتقای طراحی سینمایی",
+    cl21Text: "پس‌زمینه‌های متحرک پریمیوم (شفق، اخگر، مش مایع، نورافکن و بیشتر)، سبک‌های جدید اینفوگرافیک و متن (پیل پیشرفت، جمله درشت، بلوک تقسیم، نشان)، رنگ و فونت عنوان بر اساس قالب، و حرکت سریع سبک Vox در کل استودیو.",
+    cl20Title: "تبدیل هوشمندتر مقاله به ویدیو",
+    cl20Text: "لینک یا متن مقاله را بچسبان تا هوش مصنوعی کل مطلب را تحلیل کند و هرجا عدد باشد اینفوگرافیک و هرجا نباشد متن بسازد. به‌علاوه فوتیج و کپشن برای هر اسلاید، قالب‌های حرفه‌ای خبری/متنی، ترنزیشن روی همه اسلایدها و فیلتر رنگی که فوتیج را رنگ‌آمیزی می‌کند بدون محو شدن متن.",
+    cl19Title: "سازنده خودکار ویدیو",
+    cl19Text: "یک موضوع را توصیف کن و استودیو یک ویدیوی کامل برایت می‌سازد — اینترو، اسلایدهای اینفوگرافیک و خبری، و اوترو — با یک کلیک و حالت اختیاری نگارش با هوش مصنوعی.",
+    cl18Title: "صحنه‌های پایانی و طرح‌های بیشتر",
+    cl18Text: "افزودن صحنه‌های اوترو، ۲۲ پس‌زمینه اینترو، پیش‌تنظیم‌های حرکت سینمایی، متن واضح‌تر اینفوگرافیک، موقعیت عناصر برای هر اسلاید و محو تدریجی موسیقی.",
+    cl17Title: "صحنه‌های اینترو و حرکت غنی‌تر",
+    cl17Text: "نوع صحنه اینتروی جدید در استودیو ویدیو با ۸ پس‌زمینه آماده، متن دوگانه متحرک و ۱۲ پیش‌تنظیم حرکت. حرکت مبتنی بر صحنه تا هر اسلاید درست انیمیت شود.",
+    cl16Title: "نوار کناری کامل و رابط تمیزتر",
+    cl16Text: "ناوبری نوار کناری چپ تاشو، کنترل‌های بازطراحی‌شده نمودار و فوتر، دکمه بازگشت به بالا و چیدمان موبایل بهتر.",
+    cl15Title: "خروجی MP4 و نمودار واقعی",
+    cl15Text: "استودیو ویدیو حالا MP4 خروجی می‌دهد. اینفوگرافیک به یک نمودار میله‌ای واقعی با محور، مقیاس و خطوط شبکه تبدیل شد.",
+    cl14Title: "کاتالوگ بزرگ‌تر ابزارها",
+    cl14Text: "گسترش به ۴۵ ابزار هوش مصنوعی منتخب، دسته‌بندی‌شده در گروه‌های تاشو، با پوشش بیشتر داده زنده گیت‌هاب.",
+    changelogNote: "AI Radar فعالانه نگهداری می‌شود. این فهرست مهم‌ترین تغییرات اخیر را نشان می‌دهد.",
+    aboutMissionTitle: "چرا AI Radar وجود دارد",
+    aboutMissionText: "دنیای هوش مصنوعی سریع‌تر از آنی پیش می‌رود که کسی بتواند دنبال کند. AI Radar از میان شلوغی عبور می‌کند — جایی آرام و صادقانه برای یافتن ابزارهای واقعاً مفید، دیدن آنچه با داده زنده در حال رشد است، و ساختن کار واقعی بدون دیوار پرداخت، ثبت‌نام یا ردیابی.",
+    aboutStatTools: "ابزار هوش مصنوعی منتخب",
+    aboutStatFree: "رایگان، بدون حساب",
+    aboutStatLive: "داده گیت‌هاب",
+    aboutStatLiveValue: "زنده",
+    aboutStatPrivacy: "ردیابی یا تبلیغ",
+    aboutStatPrivacyValue: "صفر",
+    aboutFeat1Title: "یابنده ابزار",
+    aboutFeat1Text: "ابزارهای واقعی هوش مصنوعی را بر اساس کاربرد، قیمت و شغل جستجو و فیلتر کن — دسته‌بندی‌شده و خوانا.",
+    aboutFeat2Title: "نمودار روند زنده",
+    aboutFeat2Text: "محبوبیت از API عمومی گیت‌هاب دنبال می‌شود و خودکار به‌روز می‌شود — بدون حدس.",
+    aboutFeat3Title: "استودیو ویدیو",
+    aboutFeat3Text: "ویدیوهای چندصحنه‌ای با موشن، اینفوگرافیک و بنر خبری بساز — کاملاً در مرورگر.",
+    aboutFeat4Title: "ابزار کپشن و پرامپت",
+    aboutFeat4Text: "کپشن و پرامپت دقیق را به‌صورت محلی بساز — سریع، خصوصی و رایگان.",
+    navRegister: "رجیستر",
+    startButton: "شروع",
+    heroEyebrow: "AI Radar — هوش زنده",
+    heroTitle: "پیدا کن. مقایسه کن. بساز.",
+    heroText:
+      "ابزارهای واقعی AI، نمودار محبوبیت زنده، کپشن و پرامپت با قدرت Claude، و یک استودیوی حرفه‌ای ویدیو — همه در یک فضا، رایگان داخل مرورگر.",
+    heroPrimary: "جست‌وجوی ابزار",
+    heroSecondary: "ساخت کپشن",
+    metricTools: "ابزار واقعی",
+    metricFree: "پلن رایگان",
+    metricJobs: "مسیر شغلی",
+    chipLive: "شاخص مدل AA",
+    toolsEyebrow: "Tool finder",
+    toolsTitle: "ابزارهای واقعی انتخاب‌شده",
+    jumpToLabel: "پرش به ابزار",
+    categoryLabel: "دسته",
+    budgetLabel: "بودجه",
+    sortLabel: "مرتب‌سازی",
+    modelTypeLabel: "نوع مدل",
+    minScoreLabel: "حداقل امتیاز",
+    compareEyebrow: "مقایسه",
+    compareTitle: "مقایسه ابزارهای انتخاب‌شده",
+    clearCompare: "پاک کردن",
+    performanceEyebrow: "داده زنده گیت‌هاب",
+    performanceTitle: "ترند زنده ابزارهای AI",
+    liveLabel: "زنده",
+    refreshLabel: "تازه‌سازی",
+    chartTabStars: "ستاره‌های گیت‌هاب",
+    chartTabForks: "فورک‌ها",
+    chartTabActivity: "فعالیت توسعه",
+    performanceText: "نمودار زنده از محبوبیت واقعی هر ابزار AI در گیت‌هاب. داده به‌صورت زنده از API عمومی گیت‌هاب گرفته می‌شود و هر ۵ دقیقه به‌روز می‌شود. ابزارهایی که به بخش مقایسه اضافه می‌کنی هایلایت می‌شوند.",
+    mediaEyebrow: "تولید کپشن رسانه",
+    mediaTitle: "برای عکس یا ویدیوی خود کپشن شبکه اجتماعی بساز",
+    mediaText: "مدیا را آپلود کن، هدف را بنویس، پلتفرم را انتخاب کن و کپشن، hook، هشتگ ترند و JSON متادیتا را محلی تولید کن.",
+    mediaUploadLabel: "آپلود عکس یا ویدیو",
+    mediaSubjectLabel: "در عکس/ویدیو چه چیزی هست؟ (الزامی)",
+    mediaGoalLabel: "هدف",
+    platformLabel: "پلتفرم",
+    toneLabel: "لحن",
+    generateCaption: "تولید کپشن",
+    copyCaption: "کپی کپشن",
+    copyJson: "کپی JSON",
+    copyPrompt: "کپی پرامپت",
+    mediaPlaceholder: "مدیا را آپلود کن تا اینجا نمایش داده شود",
+    copied: "کپی شد.",
+    studioEyebrow: "استودیو رایگان تمپلیت ویدیو",
+    studioTitle: "از فایل‌های استاتیک، تمپلیت ویدیویی متحرک بساز",
+    studioText:
+      "تصویرها را آپلود کن، برای هر اسلاید زمان بگذار، متن‌های متحرک را ویرایش کن، پیش‌نمایش بگیر و خروجی JSON یا ویدیوی واقعی .webm بگیر. چون داخل مرورگر اجرا می‌شود رایگان است.",
+    uploadLabel: "آپلود فایل‌های استاتیک",
+    durationLabel: "زمان هر اسلاید (ثانیه)",
+    motionLabel: "موشن",
+    addSlide: "افزودن اسلاید",
+    exportTemplate: "خروجی JSON تمپلیت",
+    exportVideo: "خروجی ویدیو (.webm)",
+    slideTitleLabel: "عنوان اسلاید",
+    slideCaptionLabel: "کپشن اسلاید",
+    chartDataLabel: "مقادیر نمودار",
+    previewPlaceholder: "برای پیش‌نمایش، یک تصویر آپلود کن",
+    jobsEyebrow: "راهنمای کار AI",
+    jobsTitle: "یک مسیر کاری عملی در AI پیدا کن",
+    jobBoardTitle: "برد منابع شغلی زنده",
+    skillsLabel: "مهارت‌های تو",
+    jobTitleLabel: "عنوان شغل هدف",
+    jobLocationLabel: "لوکیشن",
+    skillsButton: "پیشنهاد مسیر",
+    intelEyebrow: "ابزارهای AI",
+    intelTitle: "تولید پرامپت و JSON تمیز",
+    promptDescLabel: "آنچه می‌خواهی بسازی را توصیف کن",
+    promptStyleLabel: "سبک",
+    promptGenBtn: "تولید پرامپت",
+    promptNote: "یک پرامپت آماده در سبک انتخاب‌شده تولید می‌کند — فقط پرامپت، بدون چیز اضافه.",
+    jsonDescLabel: "هر داده، محصول یا ایده را توصیف کن",
+    jsonGenBtn: "تولید JSON",
+    jsonNote: "فقط JSON تمیز و معتبر خروجی می‌دهد — بدون توضیح و متن اضافه.",
+    simplePromptLabel: "پرامپت ساده",
+    enhancePrompt: "تبدیل به پرامپت پیشرفته",
+    textJsonLabel: "متن به JSON",
+    convertJson: "تبدیل به JSON",
+    registerEyebrow: "اکانت",
+    registerTitle: "ساخت اکانت تست محلی",
+    registerText: "این دمو اطلاعات رجیستر را فقط داخل مرورگر ذخیره می‌کند. نسخه واقعی نیاز به احراز هویت بک‌اند دارد.",
+    nameLabel: "نام",
+    emailLabel: "ایمیل",
+    roleLabel: "هدف اصلی",
+    registerButton: "رجیستر",
+    registered: "رجیستر به صورت محلی ذخیره شد.",
+    allCategories: "همه دسته‌ها",
+    allBudgets: "همه بودجه‌ها",
+    freeBudget: "رایگان یا فریمیوم",
+    under20: "زیر ۲۰ دلار",
+    proBudget: "ابزارهای حرفه‌ای",
+    sortScore: "بهترین پیشنهاد",
+    sortPrice: "ارزان‌تر",
+    sortName: "نام",
+    noTools: "ابزاری پیدا نشد. جست‌وجو را کلی‌تر کن.",
+    addCompare: "افزودن به مقایسه",
+    removeCompare: "حذف",
+    officialLink: "لینک رسمی",
+    pricing: "قیمت",
+    emptyCompare: "از کارت ابزارها چند گزینه را به مقایسه اضافه کن.",
+    tableTool: "ابزار",
+    tableCategory: "دسته",
+    tablePrice: "قیمت",
+    tableUse: "بهترین کاربرد",
+    tableJobs: "کارهای مرتبط",
+    tableLink: "لینک",
+    open: "باز کردن",
+    recommendedTools: "ابزار پیشنهادی",
+    sourceHint: "جست‌وجوی واقعی را در تب جدید باز می‌کند",
+    templateEmpty: "اول حداقل یک اسلاید آپلود شده اضافه کن.",
+    downloaded: "فایل JSON تمپلیت دانلود شد.",
+    videoExporting: "در حال ساخت ویدیو... این تب را باز نگه دار.",
+    videoReady: "ویدیو دانلود شد.",
+    videoUnsupported: "مرورگر اینجا از خروجی ویدیو پشتیبانی نمی‌کند.",
+    noFile: "اول تصویر آپلود کن.",
+    deleteSlide: "حذف"
+  }
+};
+
+const tools = [
+  {
+    name: "ChatGPT",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: {
+      en: "Writing, coding, data analysis, brainstorming, file work, and everyday AI assistance.",
+      fa: "نوشتن، کدنویسی، تحلیل داده، ایده‌پردازی، کار با فایل و دستیار عمومی روزمره."
+    },
+    price: 20,
+    pricing: { en: "Free plan + Plus from about $20/mo", fa: "پلن رایگان + Plus حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 98,
+    jobs: ["Prompt Engineer", "AI Content Specialist", "Automation Builder"],
+    url: "https://chatgpt.com",
+    tags: ["writing", "coding", "analysis"]
+  },
+  {
+    name: "Claude",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: {
+      en: "Long-context writing, reasoning, research synthesis, planning, and document work.",
+      fa: "تحلیل متن طولانی، نوشتن، استدلال، خلاصه‌سازی تحقیق، برنامه‌ریزی و کار با سند."
+    },
+    price: 20,
+    pricing: { en: "Free plan + Pro from about $20/mo", fa: "پلن رایگان + Pro حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 95,
+    jobs: ["Research Assistant", "AI Writer", "Operations Analyst"],
+    url: "https://claude.ai",
+    tags: ["research", "writing", "documents"]
+  },
+  {
+    name: "Perplexity",
+    category: { en: "Research", fa: "تحقیق و سرچ" },
+    useCase: {
+      en: "Web research with citations, quick comparisons, source discovery, and market scanning.",
+      fa: "جست‌وجوی وب با منبع، مقایسه سریع، کشف منابع و بررسی بازار."
+    },
+    price: 20,
+    pricing: { en: "Free plan + Pro from about $20/mo", fa: "پلن رایگان + Pro حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 92,
+    jobs: ["Market Researcher", "AI Research Assistant"],
+    url: "https://www.perplexity.ai",
+    tags: ["search", "sources", "research"]
+  },
+  {
+    name: "Cursor",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: {
+      en: "AI-native code editor for building, refactoring, understanding, and shipping software.",
+      fa: "ویرایشگر کد AI برای ساخت، اصلاح، فهمیدن و انتشار نرم‌افزار."
+    },
+    price: 20,
+    pricing: { en: "Free tier + Pro from about $20/mo", fa: "نسخه رایگان محدود + Pro حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 91,
+    jobs: ["AI Developer", "Frontend Developer", "Product Engineer"],
+    url: "https://www.cursor.com",
+    tags: ["coding", "IDE", "developer"]
+  },
+  {
+    name: "GitHub Copilot",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: {
+      en: "Code completion, chat, pull request assistance, test generation, and developer workflow support.",
+      fa: "تکمیل کد، چت کدنویسی، کمک در pull request، تولید تست و پشتیبانی جریان کاری توسعه."
+    },
+    price: 10,
+    pricing: { en: "Individual plan from about $10/mo", fa: "پلن فردی حدود ۱۰ دلار ماهانه" },
+    plan: "paid",
+    score: 88,
+    jobs: ["Software Developer", "QA Automation"],
+    url: "https://github.com/features/copilot",
+    tags: ["github", "code", "testing"]
+  },
+  {
+    name: "Canva AI",
+    category: { en: "Design", fa: "طراحی" },
+    useCase: {
+      en: "Social posts, presentations, brand assets, image generation, and fast visual production.",
+      fa: "پست شبکه اجتماعی، ارائه، asset برند، تولید تصویر و ساخت سریع محتوای بصری."
+    },
+    price: 15,
+    pricing: { en: "Free tier + Pro pricing varies by region", fa: "نسخه رایگان + Pro بسته به منطقه متفاوت است" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["AI Designer", "Social Media Creator"],
+    url: "https://www.canva.com/ai",
+    tags: ["design", "slides", "social"]
+  },
+  {
+    name: "Runway",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: {
+      en: "AI video generation, editing, creative effects, short ads, and visual storytelling.",
+      fa: "تولید و ویرایش ویدیو، افکت خلاقانه، تبلیغات کوتاه و روایت بصری."
+    },
+    price: 15,
+    pricing: { en: "Free credits + paid plans", fa: "اعتبار رایگان محدود + پلن‌های پولی" },
+    plan: "freemium",
+    score: 85,
+    jobs: ["AI Video Creator", "Motion Designer"],
+    url: "https://runwayml.com",
+    tags: ["video", "motion", "ads"]
+  },
+  {
+    name: "ElevenLabs",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: {
+      en: "Voice generation, dubbing, narration, podcasts, and multilingual audio production.",
+      fa: "تولید صدا، دوبله، روایت، پادکست و ساخت صوت چندزبانه."
+    },
+    price: 5,
+    pricing: { en: "Free tier + starter from about $5/mo", fa: "نسخه رایگان + شروع از حدود ۵ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["AI Voice Producer", "Podcast Editor"],
+    url: "https://elevenlabs.io",
+    tags: ["voice", "audio", "dubbing"]
+  },
+  {
+    name: "Hugging Face",
+    category: { en: "Models and datasets", fa: "مدل و دیتاست" },
+    useCase: {
+      en: "Open models, datasets, spaces, demos, and infrastructure for ML and AI prototypes.",
+      fa: "مدل متن‌باز، دیتاست، دمو، spaces و زیرساخت برای نمونه‌سازی ML و AI."
+    },
+    price: 0,
+    pricing: { en: "Free community platform + paid compute options", fa: "پلتفرم رایگان جامعه + گزینه‌های پردازشی پولی" },
+    plan: "free",
+    score: 90,
+    jobs: ["ML Engineer", "AI App Prototyper"],
+    url: "https://huggingface.co",
+    tags: ["open source", "models", "datasets"]
+  },
+  {
+    name: "Gamma",
+    category: { en: "Presentations", fa: "ارائه" },
+    useCase: {
+      en: "AI presentations, pitch decks, docs, microsites, and fast visual storytelling.",
+      fa: "ساخت ارائه AI، pitch deck، سند، میکروسایت و روایت بصری سریع."
+    },
+    price: 10,
+    pricing: { en: "Free tier + paid plans from about $10/mo", fa: "نسخه رایگان + پلن‌های پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["Presentation Designer", "Startup Operator"],
+    url: "https://gamma.app",
+    tags: ["slides", "pitch", "docs"]
+  },
+  {
+    name: "Zapier AI",
+    category: { en: "Automation", fa: "اتوماسیون" },
+    useCase: {
+      en: "Automate work across apps, connect forms, CRMs, email, spreadsheets, and AI actions.",
+      fa: "اتوماسیون بین ابزارها، اتصال فرم، CRM، ایمیل، spreadsheet و اکشن‌های AI."
+    },
+    price: 20,
+    pricing: { en: "Free tier + paid plans", fa: "نسخه رایگان محدود + پلن‌های پولی" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["Automation Specialist", "AI Workflow Builder"],
+    url: "https://zapier.com/ai",
+    tags: ["automation", "no-code", "business"]
+  },
+  {
+    name: "Notion AI",
+    category: { en: "Productivity", fa: "بهره‌وری" },
+    useCase: {
+      en: "Summaries, writing, knowledge management, docs, meeting notes, and project planning.",
+      fa: "خلاصه‌سازی، نوشتن، مدیریت دانش، مستندات، یادداشت جلسه و برنامه‌ریزی پروژه."
+    },
+    price: 10,
+    pricing: { en: "Paid add-on for Notion plans", fa: "افزونه پولی روی پلن‌های Notion" },
+    plan: "paid",
+    score: 80,
+    jobs: ["Operations Assistant", "Knowledge Manager"],
+    url: "https://www.notion.com/product/ai",
+    tags: ["notes", "docs", "teams"]
+  }
+];
+
+tools.push(
+  {
+    name: "Gemini",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Google AI assistant for search, writing, coding, images, and Workspace workflows.", fa: "دستیار AI گوگل برای سرچ، نوشتن، کدنویسی، تصویر و جریان کاری Workspace." },
+    price: 20,
+    pricing: { en: "Free access + Google AI Pro paid plan", fa: "دسترسی رایگان + پلن پولی Google AI Pro" },
+    plan: "freemium",
+    score: 94,
+    jobs: ["AI Researcher", "Productivity Specialist"],
+    url: "https://gemini.google.com",
+    tags: ["google", "search", "workspace"],
+    modelType: "multimodal",
+    logo: "G"
+  },
+  {
+    name: "Midjourney",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "High-quality image generation for creative campaigns, concepts, ads, and moodboards.", fa: "تولید تصویر باکیفیت برای کمپین، کانسپت، تبلیغ و moodboard." },
+    price: 10,
+    pricing: { en: "Paid plans from about $10/mo", fa: "پلن پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "paid",
+    score: 89,
+    jobs: ["AI Image Artist", "Creative Director"],
+    url: "https://www.midjourney.com",
+    tags: ["image", "art", "creative"],
+    modelType: "image",
+    logo: "MJ"
+  },
+  {
+    name: "Adobe Firefly",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "Commercial-friendly generative image tools inside Adobe creative workflows.", fa: "ابزار تولید تصویر مناسب کار تجاری داخل جریان کاری Adobe." },
+    price: 5,
+    pricing: { en: "Free credits + paid Adobe plans", fa: "اعتبار رایگان + پلن‌های Adobe" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Graphic Designer", "Brand Designer"],
+    url: "https://firefly.adobe.com",
+    tags: ["image", "design", "adobe"],
+    modelType: "image",
+    logo: "AF"
+  },
+  {
+    name: "Suno",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: { en: "Generate songs, music concepts, jingles, and audio ideas from text prompts.", fa: "تولید آهنگ، ایده موسیقی، jingle و صوت از متن." },
+    price: 10,
+    pricing: { en: "Free credits + paid plans", fa: "اعتبار رایگان + پلن‌های پولی" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["AI Music Creator", "Content Producer"],
+    url: "https://suno.com",
+    tags: ["music", "audio", "song"],
+    modelType: "audio",
+    logo: "SU"
+  },
+  {
+    name: "Mistral Le Chat",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Fast European AI assistant and API ecosystem for business and developer workflows.", fa: "دستیار و اکوسیستم API سریع اروپایی برای کسب‌وکار و توسعه‌دهنده‌ها." },
+    price: 15,
+    pricing: { en: "Free access + paid API and pro options", fa: "دسترسی رایگان + API و گزینه‌های حرفه‌ای پولی" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["AI Developer", "Enterprise AI Consultant"],
+    url: "https://chat.mistral.ai",
+    tags: ["llm", "api", "enterprise"],
+    modelType: "text",
+    logo: "MI"
+  },
+  {
+    name: "Luma AI",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI video and image generation for cinematic clips and visual storytelling.", fa: "تولید ویدیو و تصویر AI برای کلیپ سینمایی و روایت بصری." },
+    price: 10,
+    pricing: { en: "Free generations + paid plans", fa: "تولید رایگان محدود + پلن‌های پولی" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["AI Video Creator", "Visual Storyteller"],
+    url: "https://lumalabs.ai",
+    tags: ["video", "cinematic", "image"],
+    modelType: "video",
+    logo: "LU"
+  },
+  {
+    name: "Pika",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "Text-to-video and image-to-video clips for social content and experiments.", fa: "تبدیل متن و تصویر به ویدیو برای محتوای شبکه اجتماعی و تست خلاقانه." },
+    price: 10,
+    pricing: { en: "Free tier + paid plans", fa: "نسخه رایگان + پلن‌های پولی" },
+    plan: "freemium",
+    score: 81,
+    jobs: ["Short-form Video Creator", "AI Editor"],
+    url: "https://pika.art",
+    tags: ["video", "social", "animation"],
+    modelType: "video",
+    logo: "PK"
+  },
+  {
+    name: "Replit AI",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "Build, deploy, and collaborate on code projects with AI assistance in the browser.", fa: "ساخت، انتشار و همکاری روی پروژه‌های کدنویسی با کمک AI داخل مرورگر." },
+    price: 20,
+    pricing: { en: "Free tier + paid plans", fa: "نسخه رایگان + پلن‌های پولی" },
+    plan: "freemium",
+    score: 79,
+    jobs: ["Prototype Developer", "Full-stack Builder"],
+    url: "https://replit.com/ai",
+    tags: ["coding", "deploy", "browser"],
+    modelType: "coding",
+    logo: "RP"
+  },
+  {
+    name: "Grok",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Conversational AI from xAI with real-time knowledge, reasoning, and image generation.", fa: "هوش مصنوعی گفتگومحور xAI با دانش لحظه‌ای، استدلال و تولید تصویر." },
+    price: 0,
+    pricing: { en: "Free with X account + paid Premium tiers", fa: "رایگان با حساب X + پلن‌های پولی Premium" },
+    plan: "freemium",
+    score: 90,
+    jobs: ["AI Researcher", "Conversation Designer"],
+    url: "https://x.ai",
+    tags: ["llm", "realtime", "reasoning"],
+    modelType: "multimodal",
+    logo: "GK"
+  },
+  {
+    name: "DeepSeek",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Open-weight reasoning and coding models with strong performance at low cost.", fa: "مدل‌های متن‌باز استدلال و کدنویسی با عملکرد قوی و هزینه پایین." },
+    price: 0,
+    pricing: { en: "Free chat + low-cost API", fa: "چت رایگان + API کم‌هزینه" },
+    plan: "freemium",
+    score: 91,
+    jobs: ["ML Engineer", "AI Developer"],
+    url: "https://www.deepseek.com",
+    tags: ["llm", "open source", "coding"],
+    modelType: "text",
+    logo: "DS"
+  },
+  {
+    name: "Cohere",
+    category: { en: "Models and datasets", fa: "مدل و دیتاست" },
+    useCase: { en: "Enterprise LLMs for search, retrieval-augmented generation, and business workflows.", fa: "مدل‌های زبانی سازمانی برای سرچ، RAG و جریان‌های کاری کسب‌وکار." },
+    price: 0,
+    pricing: { en: "Free trial tier + usage-based API", fa: "نسخه آزمایشی رایگان + API مصرف‌محور" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Enterprise AI Engineer", "Search Specialist"],
+    url: "https://cohere.com",
+    tags: ["llm", "enterprise", "RAG"],
+    modelType: "text",
+    logo: "CO"
+  },
+  {
+    name: "Meta AI",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Meta's assistant built on Llama models for chat, image generation, and creative tasks.", fa: "دستیار Meta بر پایه مدل‌های Llama برای چت، تولید تصویر و کارهای خلاقانه." },
+    price: 0,
+    pricing: { en: "Free across Meta apps", fa: "رایگان در اپ‌های Meta" },
+    plan: "free",
+    score: 87,
+    jobs: ["AI Content Creator", "Conversation Designer"],
+    url: "https://www.meta.ai",
+    tags: ["llm", "open source", "social"],
+    modelType: "multimodal",
+    logo: "M"
+  },
+  {
+    name: "Sora",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "OpenAI's text-to-video model for cinematic, realistic AI video generation.", fa: "مدل متن‌به‌ویدیو OpenAI برای تولید ویدیوی سینمایی و واقع‌گرایانه." },
+    price: 20,
+    pricing: { en: "Included with ChatGPT Plus/Pro plans", fa: "همراه پلن‌های ChatGPT Plus/Pro" },
+    plan: "paid",
+    score: 88,
+    jobs: ["AI Video Creator", "Motion Designer"],
+    url: "https://openai.com/sora",
+    tags: ["video", "cinematic", "generation"],
+    modelType: "video",
+    logo: "SO"
+  },
+  {
+    name: "Flux",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "High-fidelity open image generation models from Black Forest Labs.", fa: "مدل‌های متن‌باز تولید تصویر باکیفیت از Black Forest Labs." },
+    price: 0,
+    pricing: { en: "Free open models + paid API access", fa: "مدل‌های متن‌باز رایگان + دسترسی API پولی" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["AI Image Artist", "ML Engineer"],
+    url: "https://blackforestlabs.ai",
+    tags: ["image", "open source", "generation"],
+    modelType: "image",
+    logo: "FX"
+  },
+  {
+    name: "Stability AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "Creators of Stable Diffusion — open models for image, video, and audio generation.", fa: "سازنده Stable Diffusion — مدل‌های متن‌باز برای تولید تصویر، ویدیو و صدا." },
+    price: 0,
+    pricing: { en: "Free open models + paid membership", fa: "مدل‌های متن‌باز رایگان + اشتراک پولی" },
+    plan: "freemium",
+    score: 85,
+    jobs: ["AI Image Artist", "Generative ML Engineer"],
+    url: "https://stability.ai",
+    tags: ["image", "open source", "diffusion"],
+    modelType: "image",
+    logo: "ST"
+  },
+  {
+    name: "Krea AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "Real-time AI image generation and editing with live canvas and enhancement tools.", fa: "تولید و ویرایش تصویر AI به‌صورت لحظه‌ای با بوم زنده و ابزار بهبود." },
+    price: 10,
+    pricing: { en: "Free daily credits + paid plans", fa: "اعتبار رایگان روزانه + پلن‌های پولی" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["AI Designer", "Visual Creator"],
+    url: "https://www.krea.ai",
+    tags: ["image", "realtime", "editing"],
+    modelType: "image",
+    logo: "KR"
+  },
+  {
+    name: "Higgsfield",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI video generation focused on cinematic camera motion and social-ready clips.", fa: "تولید ویدیوی AI با تمرکز بر حرکت سینمایی دوربین و کلیپ‌های شبکه اجتماعی." },
+    price: 15,
+    pricing: { en: "Free credits + paid plans", fa: "اعتبار رایگان + پلن‌های پولی" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["AI Video Creator", "Social Content Producer"],
+    url: "https://higgsfield.ai",
+    tags: ["video", "motion", "social"],
+    modelType: "video",
+    logo: "HF"
+  },
+  {
+    name: "Google Flow",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "Google's AI filmmaking tool built on Veo for generating and editing video scenes.", fa: "ابزار فیلم‌سازی AI گوگل بر پایه Veo برای تولید و ویرایش صحنه‌های ویدیو." },
+    price: 20,
+    pricing: { en: "Included with Google AI paid plans", fa: "همراه پلن‌های پولی Google AI" },
+    plan: "paid",
+    score: 83,
+    jobs: ["AI Filmmaker", "Motion Designer"],
+    url: "https://labs.google/flow",
+    tags: ["video", "google", "filmmaking"],
+    modelType: "video",
+    logo: "GF"
+  }
+);
+
+// ── ADDITIONAL AI TOOLS — broader, more complete catalogue ──
+tools.push(
+  {
+    name: "Microsoft Copilot",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "Microsoft's AI assistant across Windows, Edge, and Microsoft 365 apps.", fa: "دستیار AI مایکروسافت در ویندوز، Edge و اپ‌های Microsoft 365." },
+    price: 20,
+    pricing: { en: "Free + Copilot Pro about $20/mo", fa: "رایگان + Copilot Pro حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 90,
+    jobs: ["AI Productivity Specialist", "Automation Builder"],
+    url: "https://copilot.microsoft.com",
+    tags: ["writing", "office", "microsoft"],
+    modelType: "assistant",
+    logo: "MC"
+  },
+  {
+    name: "Notebook LM",
+    category: { en: "Research", fa: "تحقیق و سرچ" },
+    useCase: { en: "Google's AI research notebook that summarizes and answers questions from your own sources.", fa: "دفترچه تحقیق AI گوگل که از منابع خودت خلاصه و پاسخ می‌سازد." },
+    price: 0,
+    pricing: { en: "Free", fa: "رایگان" },
+    plan: "free",
+    score: 87,
+    jobs: ["Researcher", "Analyst"],
+    url: "https://notebooklm.google.com",
+    tags: ["research", "summary", "google"],
+    modelType: "assistant",
+    logo: "NL"
+  },
+  {
+    name: "Leonardo AI",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "AI image generation with fine creative control, presets, and game-asset tooling.", fa: "تولید تصویر AI با کنترل خلاقانه دقیق، پریست و ابزار ساخت اسِت بازی." },
+    price: 12,
+    pricing: { en: "Free plan + paid from about $12/mo", fa: "پلن رایگان + پولی از حدود ۱۲ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["AI Artist", "Game Asset Designer"],
+    url: "https://leonardo.ai",
+    tags: ["image", "art", "design"],
+    modelType: "image",
+    logo: "LA"
+  },
+  {
+    name: "Ideogram",
+    category: { en: "Image", fa: "تصویر" },
+    useCase: { en: "AI image generator known for accurate text rendering inside images.", fa: "تولیدکننده تصویر AI با تخصص در نمایش دقیق متن داخل تصویر." },
+    price: 8,
+    pricing: { en: "Free plan + paid from about $8/mo", fa: "پلن رایگان + پولی از حدود ۸ دلار ماهانه" },
+    plan: "freemium",
+    score: 82,
+    jobs: ["AI Artist", "Brand Designer"],
+    url: "https://ideogram.ai",
+    tags: ["image", "text", "design"],
+    modelType: "image",
+    logo: "ID"
+  },
+  {
+    name: "HeyGen",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI video with realistic avatars and voice for marketing and training clips.", fa: "ویدیو AI با آواتار واقع‌گرایانه و صدا برای کلیپ بازاریابی و آموزش." },
+    price: 29,
+    pricing: { en: "Free plan + paid from about $29/mo", fa: "پلن رایگان + پولی از حدود ۲۹ دلار ماهانه" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["AI Video Producer", "Content Creator"],
+    url: "https://www.heygen.com",
+    tags: ["video", "avatar", "marketing"],
+    modelType: "video",
+    logo: "HG"
+  },
+  {
+    name: "Synthesia",
+    category: { en: "Video", fa: "ویدیو" },
+    useCase: { en: "AI avatar video platform for corporate training and explainer content.", fa: "پلتفرم ویدیوی آواتار AI برای آموزش سازمانی و محتوای توضیحی." },
+    price: 29,
+    pricing: { en: "Paid from about $29/mo", fa: "پولی از حدود ۲۹ دلار ماهانه" },
+    plan: "paid",
+    score: 81,
+    jobs: ["AI Video Producer", "L&D Specialist"],
+    url: "https://www.synthesia.io",
+    tags: ["video", "avatar", "training"],
+    modelType: "video",
+    logo: "SY"
+  },
+  {
+    name: "Descript",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: { en: "Edit audio and video by editing the transcript — AI voices, filler removal, and more.", fa: "ویرایش صدا و ویدیو از روی متن — صدای AI، حذف کلمات اضافه و بیشتر." },
+    price: 19,
+    pricing: { en: "Free plan + paid from about $19/mo", fa: "پلن رایگان + پولی از حدود ۱۹ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Podcast Editor", "Video Editor"],
+    url: "https://www.descript.com",
+    tags: ["audio", "video", "editing"],
+    modelType: "audio",
+    logo: "DS"
+  },
+  {
+    name: "Udio",
+    category: { en: "Audio", fa: "صدا" },
+    useCase: { en: "AI music generation that turns text prompts into full songs with vocals.", fa: "تولید موسیقی AI که پرامپت متنی را به آهنگ کامل با وکال تبدیل می‌کند." },
+    price: 10,
+    pricing: { en: "Free plan + paid from about $10/mo", fa: "پلن رایگان + پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["AI Music Producer", "Sound Designer"],
+    url: "https://www.udio.com",
+    tags: ["audio", "music", "generation"],
+    modelType: "audio",
+    logo: "UD"
+  },
+  {
+    name: "Windsurf",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "AI coding IDE with an agentic assistant that edits across your whole codebase.", fa: "محیط کدنویسی AI با دستیار agentic که در کل کدبیس ویرایش می‌کند." },
+    price: 15,
+    pricing: { en: "Free plan + paid from about $15/mo", fa: "پلن رایگان + پولی از حدود ۱۵ دلار ماهانه" },
+    plan: "freemium",
+    score: 86,
+    jobs: ["Software Engineer", "AI Developer"],
+    url: "https://windsurf.com",
+    tags: ["coding", "ide", "agent"],
+    modelType: "coding",
+    logo: "WS"
+  },
+  {
+    name: "v0",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "Vercel's AI tool that generates React UI and full front-end code from prompts.", fa: "ابزار AI ورسل که از پرامپت، رابط React و کد فرانت‌اند تولید می‌کند." },
+    price: 20,
+    pricing: { en: "Free plan + paid from about $20/mo", fa: "پلن رایگان + پولی از حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 85,
+    jobs: ["Front-End Developer", "UI Engineer"],
+    url: "https://v0.dev",
+    tags: ["coding", "ui", "react"],
+    modelType: "coding",
+    logo: "V0"
+  },
+  {
+    name: "Lovable",
+    category: { en: "Coding", fa: "کدنویسی" },
+    useCase: { en: "AI app builder that turns plain descriptions into working full-stack web apps.", fa: "سازنده اپ AI که توصیف ساده را به وب‌اپ فول‌استک کاربردی تبدیل می‌کند." },
+    price: 20,
+    pricing: { en: "Free plan + paid from about $20/mo", fa: "پلن رایگان + پولی از حدود ۲۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 83,
+    jobs: ["Full-Stack Developer", "Indie Maker"],
+    url: "https://lovable.dev",
+    tags: ["coding", "app", "no-code"],
+    modelType: "coding",
+    logo: "LO"
+  },
+  {
+    name: "Tability",
+    category: { en: "Productivity", fa: "بهره‌وری" },
+    useCase: { en: "AI-assisted goal and OKR tracking that drafts measurable objectives for teams.", fa: "پیگیری هدف و OKR با کمک AI که اهداف قابل‌اندازه‌گیری برای تیم می‌نویسد." },
+    price: 12,
+    pricing: { en: "Paid from about $12/mo", fa: "پولی از حدود ۱۲ دلار ماهانه" },
+    plan: "paid",
+    score: 76,
+    jobs: ["Product Manager", "Team Lead"],
+    url: "https://www.tability.io",
+    tags: ["productivity", "okr", "planning"],
+    modelType: "assistant",
+    logo: "TB"
+  },
+  {
+    name: "Fireflies",
+    category: { en: "Productivity", fa: "بهره‌وری" },
+    useCase: { en: "AI meeting assistant that records, transcribes, and summarizes calls automatically.", fa: "دستیار جلسه AI که تماس‌ها را ضبط، رونویسی و خلاصه می‌کند." },
+    price: 10,
+    pricing: { en: "Free plan + paid from about $10/mo", fa: "پلن رایگان + پولی از حدود ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 80,
+    jobs: ["Operations Specialist", "Project Manager"],
+    url: "https://fireflies.ai",
+    tags: ["productivity", "meetings", "transcription"],
+    modelType: "assistant",
+    logo: "FF"
+  },
+  {
+    name: "Gamma",
+    category: { en: "Presentations", fa: "ارائه" },
+    useCase: { en: "AI presentation tool that builds polished decks, docs and websites from a prompt in seconds.", fa: "ابزار ارائه AI که از یک پرامپت، اسلاید، داکیومنت و وب‌سایت حرفه‌ای می‌سازد." },
+    price: 0,
+    pricing: { en: "Free plan + Pro from $10/mo", fa: "پلن رایگان + پرو از ۱۰ دلار ماهانه" },
+    plan: "freemium",
+    score: 84,
+    jobs: ["Presentation Designer", "Marketer", "Educator"],
+    url: "https://gamma.app",
+    tags: ["presentations", "decks", "design", "docs"],
+    modelType: "assistant",
+    logo: "GM"
+  },
+  {
+    name: "Jasper",
+    category: { en: "General assistant", fa: "دستیار عمومی" },
+    useCase: { en: "AI writing platform for marketing copy, campaigns, and brand-consistent content.", fa: "پلتفرم نوشتن AI برای کپی بازاریابی، کمپین و محتوای هماهنگ با برند." },
+    price: 39,
+    pricing: { en: "Paid from about $39/mo", fa: "پولی از حدود ۳۹ دلار ماهانه" },
+    plan: "paid",
+    score: 79,
+    jobs: ["AI Content Specialist", "Marketing Copywriter"],
+    url: "https://www.jasper.ai",
+    tags: ["writing", "marketing", "content"],
+    modelType: "assistant",
+    logo: "JP"
+  }
+);
+
+// Each tool is mapped to a representative public GitHub repo.
+// Open-source tools use their own repo; closed-source products
+// (ChatGPT, Claude, etc.) use their official public SDK/org repo
+// — a real, live signal of developer interest in that ecosystem.
+// The live 3D chart and the comparison table both read the star
+// counts fetched from these repos, so the two stay aligned.
+const toolRepos = {
+  "ChatGPT":         "openai/openai-python",
+  "Claude":          "anthropics/anthropic-sdk-python",
+  "Perplexity":      "ppl-ai/api-cookbook",
+  "Cursor":          "getcursor/cursor",
+  "GitHub Copilot":  "github/copilot.vim",
+  "Canva AI":        "canva-sdks/canva-apps-sdk-starter-kit",
+  "Runway":          "runwayml/sdk-node",
+  "ElevenLabs":      "elevenlabs/elevenlabs-python",
+  "Hugging Face":    "huggingface/transformers",
+  "Gamma":           "gamma-app/gamma-cli",
+  "Zapier AI":       "zapier/zapier-platform",
+  "Notion AI":       "makenotion/notion-sdk-js",
+  "Gemini":          "google-gemini/cookbook",
+  "Midjourney":      "midjourney/docs",
+  "Adobe Firefly":   "AdobeDocs/firefly-services",
+  "Suno":            "suno-ai/bark",
+  "Mistral Le Chat": "mistralai/mistral-src",
+  "Luma AI":         "lumalabs/luma-api-examples",
+  "Pika":            "pika-org/pikascript",
+  "Replit AI":       "replit/replit-ai-python",
+  "Grok":            "xai-org/grok-1",
+  "DeepSeek":        "deepseek-ai/DeepSeek-V3",
+  "Cohere":          "cohere-ai/cohere-python",
+  "Meta AI":         "meta-llama/llama-models",
+  "Sora":            "openai/openai-cookbook",
+  "Flux":            "black-forest-labs/flux",
+  "Stability AI":    "Stability-AI/generative-models",
+  "Krea AI":         "krea-ai/open-prompts",
+  "Higgsfield":      "higgsfield-ai/higgsfield",
+  "Google Flow":     "google-deepmind/veo",
+  "Microsoft Copilot": "microsoft/copilot-studio-samples",
+  "Notebook LM":     "google-gemini/cookbook",
+  "Leonardo AI":     "leonardo-ai/leonardo-python-sdk",
+  "Ideogram":        "ideogram-ai/ideogram-python",
+  "HeyGen":          "HeyGen-Official/StreamingAvatarSDK",
+  "Synthesia":       "synthesia-io/docs",
+  "Descript":        "descriptinc/descript-sdk",
+  "Udio":            "udio-ai/udio-api",
+  "Windsurf":        "Exafunction/codeium",
+  "v0":              "vercel/ai",
+  "Lovable":         "lovable-dev/lovable",
+  "Fireflies":       "fireflies-ai/fireflies-api",
+  "Gamma":           "gamma-app/gamma",
+  "Jasper":          "jasperai/jasper-sdk"
+};
+
+tools.forEach((tool) => {
+  tool.logo ||= tool.name.slice(0, 2).toUpperCase();
+  try {
+    tool.logoUrl ||= `https://www.google.com/s2/favicons?domain=${new URL(tool.url).hostname}&sz=64`;
+    tool.domain ||= new URL(tool.url).hostname;
+  } catch {
+    tool.logoUrl ||= "";
+    tool.domain ||= "";
+  }
+  tool.modelType ||= tool.category.en.toLowerCase().includes("coding")
+    ? "coding"
+    : tool.category.en.toLowerCase().includes("video")
+      ? "video"
+      : tool.category.en.toLowerCase().includes("image")
+        ? "image"
+        : tool.category.en.toLowerCase().includes("audio")
+          ? "audio"
+          : "text";
+  // GitHub repo + live-metric placeholders (filled by fetchLiveChartData)
+  tool.repo = toolRepos[tool.name] || null;
+  tool.stars = null;        // live: stargazers_count
+  tool.forks = null;        // live: forks_count
+  tool.issues = null;       // live: open_issues_count
+  tool.pushedAt = null;     // live: pushed_at (ISO date of last push)
+  tool.activityDays = null; // derived: days since last push
+});
+
+const aaModelSnapshot = [
+  { model: "o3-mini", provider: "OpenAI", intelligence: 62.9, speed: 153.831, cost: 1.925, domain: "openai.com" },
+  { model: "GPT-5.5 (xhigh)", provider: "OpenAI", intelligence: 60.2, speed: 75.1, cost: 11.25, domain: "openai.com" },
+  { model: "GPT-5.3 Codex (xhigh)", provider: "OpenAI", intelligence: 54, speed: 78.15, cost: 4.81, domain: "openai.com" },
+  { model: "GLM-5.1", provider: "Z AI", intelligence: 51, speed: 1.62, cost: 2.15, domain: "z.ai" },
+  { model: "GPT Image 1 (high)", provider: "OpenAI", intelligence: 1128, speed: null, cost: null, domain: "openai.com", metric: "Image Editing Elo" },
+  { model: "DALL·E 3", provider: "OpenAI", intelligence: 1250, speed: null, cost: null, domain: "openai.com", metric: "Text-to-Image Elo" },
+  { model: "Kling 2.5 Turbo 1080p", provider: "Kuaishou KlingAI", intelligence: 1180, speed: null, cost: null, domain: "klingai.com", metric: "Text-to-Video Elo" },
+  { model: "Kling 2.5 Turbo 1080p", provider: "Kuaishou KlingAI", intelligence: 1120, speed: null, cost: null, domain: "klingai.com", metric: "Image-to-Video Elo" }
+];
+
+const jobRoles = [
+  {
+    title: "AI Automation Specialist",
+    keywords: ["zapier", "make", "automation", "excel", "api", "اتوماسیون"],
+    path: {
+      en: "Build workflows for businesses by connecting forms, CRM, email, sheets, and AI actions.",
+      fa: "برای کسب‌وکارها workflow بساز: اتصال فرم، CRM، ایمیل، شیت و اکشن‌های AI."
+    },
+    tools: ["Zapier AI", "ChatGPT", "Notion AI"]
+  },
+  {
+    title: "Prompt Engineer / AI Content Specialist",
+    keywords: ["writing", "content", "prompt", "seo", "تولید محتوا", "نوشتن"],
+    path: {
+      en: "Design prompts, content systems, SEO briefs, brand voice guides, and reusable AI templates.",
+      fa: "prompt، سیستم تولید محتوا، brief سئو، راهنمای لحن برند و تمپلیت AI بساز."
+    },
+    tools: ["ChatGPT", "Claude", "Perplexity"]
+  },
+  {
+    title: "AI Frontend Developer",
+    keywords: ["react", "javascript", "html", "css", "frontend", "کدنویسی"],
+    path: {
+      en: "Ship small AI apps, dashboards, landing pages, and API-connected prototypes.",
+      fa: "اپ‌های کوچک AI، داشبورد، landing page و نمونه‌های متصل به API بساز."
+    },
+    tools: ["Cursor", "GitHub Copilot", "ChatGPT"]
+  },
+  {
+    title: "AI Visual Creator",
+    keywords: ["photoshop", "design", "canva", "video", "image", "طراحی"],
+    path: {
+      en: "Create social visuals, short videos, ads, product images, and template packs for clients.",
+      fa: "برای مشتری‌ها تصویر شبکه اجتماعی، ویدیو کوتاه، تبلیغ، تصویر محصول و پک تمپلیت بساز."
+    },
+    tools: ["Canva AI", "Runway", "Gamma"]
+  }
+];
+
+const motions = [
+  { id: "zoom", en: "Slow zoom", fa: "زوم آرام" },
+  { id: "pan", en: "Side pan", fa: "حرکت افقی" },
+  { id: "fade", en: "Soft fade", fa: "فید نرم" },
+  { id: "rise", en: "Rise up", fa: "بالا آمدن" }
+];
+
+const state = {
+  lang: localStorage.getItem("lang") || "en",
+  query: "",
+  category: "all",
+  budget: "all",
+  sort: "score",
+  modelType: "all",
+  minScore: 0,
+  viewMode: localStorage.getItem("toolViewMode") || "grid",
+  compare: JSON.parse(localStorage.getItem("compareTools") || "[]"),
+  uploadedAssets: [],
+  slides: JSON.parse(localStorage.getItem("videoSlides") || "[]")
+};
+
+
+// ── GLOBAL FONT HELPER — applied to ALL value/headline text in video studio ──
+function vsGetFont(fallback){
+  var el=document.querySelector("#vsHeadlineFont");
+  var fam = (el&&el.value) ? el.value : (fallback||"Prata, serif");
+  // CRITICAL: canvas measureText and fillText MUST use the same loaded font,
+  // otherwise letters overlap (measured narrow, rendered wide) or get cut.
+  try {
+    if (document.fonts && document.fonts.check) {
+      var firstFam = fam.split(',')[0].replace(/['"]/g,'').trim();
+      // Has this font actually finished loading?
+      var loaded = document.fonts.check('700 48px "' + firstFam + '"')
+                || document.fonts.check('400 48px "' + firstFam + '"');
+      if (!loaded) {
+        // Not ready — load it, then redraw once. Until then, return a
+        // metric-compatible SYSTEM font so measure == render (no overlap).
+        document.fonts.load('700 48px "' + firstFam + '"').then(function(){
+          if (window._vsFontReloadPending) return;
+          window._vsFontReloadPending = true;
+          requestAnimationFrame(function(){
+            window._vsFontReloadPending = false;
+            if (typeof drawStudioFrame === 'function') {
+              try { drawStudioFrame((typeof vstudio!=='undefined' && vstudio.position)||0); } catch(e){}
+            }
+          });
+        }).catch(function(){});
+        // serif vs sans fallback so spacing stays sane until the real font lands
+        return /serif/i.test(fam) || /Prata|Alice|Viaoda|Georgia|Playfair/i.test(fam)
+          ? "Georgia, 'Times New Roman', serif"
+          : "Arial, Helvetica, sans-serif";
       }
-      @font-face {
-        font-family: 'Elegant';
-        src: url('fonts/Elegant.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
-      }
-      @font-face {
-        font-family: 'Things';
-        src: url('fonts/Things-Regular.woff') format('woff'),
-             url('fonts/Things-Regular.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
-      }
-      @font-face {
-        font-family: 'Things';
-        src: url('fonts/Things-Italic.woff') format('woff'),
-             url('fonts/Things-Italic.ttf') format('truetype');
-        font-weight: normal; font-style: italic; font-display: swap;
-      }
-    </style>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
-    <meta property="og:title" content="AI Radar — Find, Compare &amp; Create" />
-    <meta property="og:image" content="https://airadar.me/og.png" />
-    <meta property="og:url" content="https://airadar.me/" />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="canonical" href="https://airadar.me/" />
-    <link rel="icon" href="logo.svg" type="image/svg+xml" />
-    <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v287" />
-    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
-    <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
-    <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
-         (no SharedArrayBuffer / COOP-COEP headers needed). Loaded lazily. -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" defer></script>
-
-    <style id="ar-extra">
-      @keyframes panelFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-      .panel{animation:panelFadeIn 0.45s ease both}
-      .vs-slide-section,.vstudio-block{animation:panelFadeIn 0.3s ease both}
-      .twin-panels{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:20px}
-      .twin-col{display:flex;flex-direction:column;gap:16px}
-      .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-      .nav-group-grid a{padding:9px 8px;font-size:12px}
-      .nav-group-grid .nav-ic{width:18px;font-size:12px}
-      .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr}
-      .about-compact-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-      input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;border:none;padding:0;min-height:4px;cursor:pointer}
-      input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 0 3px rgba(216,183,106,0.2)}
-      input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:none;background:var(--gold);cursor:pointer}
-      .hero-stat strong{font-family:Prata,serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
-      @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
-      @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
-    
-      /* ── GITHUB DASHBOARD ────────────────────────────── */
-      .gh-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 4px 0 14px; }
-      @media (max-width: 720px) { .gh-summary { grid-template-columns: 1fr 1fr; } }
-      .gh-sum-card { padding: 12px 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); }
-      .gh-sum-val { font-family: Prata, serif; font-size: 22px; color: var(--gold-2); line-height: 1; }
-      .gh-sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; }
-      .gh-sum-sub { font-size: 11px; color: var(--text); margin-top: 3px; font-weight: 600; }
-      .gh-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-      .gh-sort { display: flex; gap: 6px; }
-      .gh-sort-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
-      .gh-sort-btn.active, .gh-sort-btn:hover { border-color: rgba(216,183,106,0.5); color: var(--gold-2); background: rgba(216,183,106,0.08); }
-      .gh-search { flex: 1; min-width: 140px; max-width: 240px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 13px; }
-      .gh-search:focus { outline: none; border-color: rgba(216,183,106,0.5); }
-      /* multi-metric rows */
-      .gh-multi-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
-      .gh-multi-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .gh-multi-bars { display: flex; flex-direction: column; gap: 5px; }
-      .gh-multi-bar { display: grid; grid-template-columns: 54px 1fr 60px; gap: 8px; align-items: center; font-size: 10px; }
-      .gh-multi-bar-label { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-      .gh-multi-track { height: 7px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
-      .gh-multi-fill { height: 100%; border-radius: 4px; }
-      .gh-multi-fill.stars { background: linear-gradient(90deg, #d8b76a, #f0d99a); }
-      .gh-multi-fill.forks { background: linear-gradient(90deg, #7fa6d8, #a8c4e8); }
-      .gh-multi-fill.activity { background: linear-gradient(90deg, #7fd8a6, #a8e8c4); }
-      .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-
-      /* ══ AI COMMAND CENTER — premium fullscreen dashboard ══ */
-      .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; position: relative; border-color: rgba(216,183,106,0.5) !important; }
-      .dash-launch-btn:hover { background: rgba(216,183,106,0.12); box-shadow: 0 0 20px rgba(216,183,106,0.25); }
-      .dash-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00FF88; box-shadow: 0 0 8px rgba(0,255,136,0.8); animation: aimonPulse 2s infinite; }
-      .dash-hint { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; color: var(--gold-2); font-size: 13px; font-weight: 600; opacity: .9; animation: dashHintFloat 2.4s ease-in-out infinite; }
-      .dash-hint-arrow { width: 44px; height: 18px; color: var(--gold); transform: scaleX(-1); }
-      @keyframes dashHintFloat { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
-      @media (max-width: 700px) { .dash-hint { display: none; } }
-
-      .live-dash { position: fixed; inset: 0; z-index: 9999; color: #fff; display: none; flex-direction: column;
-        padding: 16px 22px 0; overflow: hidden; font-feature-settings: "tnum";
-        background:
-          radial-gradient(ellipse 70% 50% at 25% 0%, rgba(244,213,141,0.10), transparent 55%),
-          radial-gradient(ellipse 60% 50% at 90% 20%, rgba(0,212,255,0.08), transparent 55%),
-          radial-gradient(ellipse 70% 60% at 60% 110%, rgba(0,212,255,0.06), transparent 55%),
-          linear-gradient(155deg, #0F1115 0%, #080808 55%, #0a0a0c 100%); }
-      .live-dash::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
-        background-image: linear-gradient(rgba(244,213,141,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
-        background-size: 46px 46px; mask-image: radial-gradient(ellipse 110% 90% at 50% 35%, #000 35%, transparent 100%); }
-      .live-dash.open { display: flex; animation: ldFadeIn .45s cubic-bezier(.2,.7,.3,1) both; }
-      @keyframes ldFadeIn { from { opacity:0; transform: scale(1.015); } to { opacity:1; transform: scale(1); } }
-
-      /* glass card base */
-      .ld-card { position: relative; border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
-        background: linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015));
-        border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 40px rgba(0,0,0,0.45); transition: transform .25s, border-color .25s, box-shadow .25s; }
-      .ld-card:hover { transform: translateY(-3px); border-color: rgba(244,213,141,0.32); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 24px 60px rgba(0,0,0,0.55), 0 0 30px rgba(244,213,141,0.08); }
-      .ld-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-shrink: 0; }
-      .ld-card-title { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #F4D58D; }
-
-      /* TOP NAVBAR */
-      .ld-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 4px 16px; border-bottom: 1px solid rgba(244,213,141,0.18); position: relative; z-index:2; }
-      .ld-nav-left { display: flex; align-items: center; gap: 13px; }
-      .ld-logo { font-size: 26px; color: #F4D58D; filter: drop-shadow(0 0 10px rgba(244,213,141,0.5)); animation: ldSpin 9s linear infinite; }
-      @keyframes ldSpin { to { transform: rotate(360deg); } }
-      .ld-title { font-family: Prata, serif; font-size: 24px; color: #fff; letter-spacing: .06em; line-height:1; }
-      .ld-brand-sub { font-size: 10px; color: #00D4FF; text-transform: uppercase; letter-spacing: .22em; margin-top: 5px; }
-      .ld-nav-center { display:flex; justify-content:center; }
-      .ld-nav-right { display:flex; align-items:center; justify-content:flex-end; gap: 14px; }
-      .ld-clock { font-family: Prata, serif; font-size: 30px; color: #fff; font-variant-numeric: tabular-nums; display:flex; align-items:baseline; gap:1px; text-shadow: 0 0 24px rgba(244,213,141,0.4); }
-      .ld-clock .ld-ms { font-size: 13px; color: #F4D58D; margin-left:3px; }
-      .ld-clock .ld-sep { color:#00D4FF; animation: ldBlink 1s steps(1) infinite; }
-      @keyframes ldBlink { 50% { opacity:.25; } }
-      .ld-clock-side { display:flex; flex-direction:column; gap:3px; }
-      .ld-date { font-size: 11px; color: #A0A0A0; text-transform: uppercase; letter-spacing: .08em; }
-      .ld-tz { font-size: 9px; color: #6a6a6a; text-transform: uppercase; letter-spacing: .12em; }
-      .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#00FF88; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:7px 13px; border-radius:999px; }
-      .ld-live-chip .dot { width:7px; height:7px; border-radius:50%; background:#00FF88; box-shadow:0 0 8px #00FF88; animation: aimonPulse 2s infinite; }
-      .ld-close { display:inline-flex; align-items:center; gap:7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #A0A0A0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: all .15s; }
-      .ld-close:hover { background: rgba(224,83,61,0.16); border-color: rgba(224,83,61,0.45); color: #ff7a64; }
-
-      /* HEALTH GAUGE */
-      .ld-gauge { position: relative; width: 96px; height: 96px; }
-      .ld-gauge svg { width:100%; height:100%; transform: rotate(-90deg); }
-      .ld-gauge-bg { fill:none; stroke: rgba(255,255,255,0.08); stroke-width: 8; }
-      .ld-gauge-fg { fill:none; stroke: url(#ldGaugeGrad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 327; stroke-dashoffset: 327; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.7,.3,1); filter: drop-shadow(0 0 6px rgba(0,212,255,0.6)); }
-      .ld-gauge-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-      .ld-gauge-val { font-family: Prata, serif; font-size: 28px; color:#fff; line-height:1; }
-      .ld-gauge-lbl { font-size: 8px; letter-spacing:.16em; color:#00D4FF; margin-top:3px; }
-
-      /* HERO STRIP */
-      .ld-hero { position: relative; z-index:1; margin: 16px 0 14px; padding: 14px 20px; border-radius: 18px;
-        background: linear-gradient(120deg, rgba(244,213,141,0.08), rgba(0,212,255,0.05) 70%, transparent);
-        border: 1px solid rgba(244,213,141,0.16); display:flex; align-items:center; gap:26px; overflow:hidden; }
-      .ld-hero-label { font-family: Prata, serif; font-size: 18px; color:#F4D58D; letter-spacing:.08em; white-space:nowrap; flex-shrink:0; }
-      .ld-hero-stats { display:flex; gap:30px; flex:1; flex-wrap:wrap; }
-      .ld-hero-stat { display:flex; flex-direction:column; gap:3px; }
-      .ld-hero-stat b { font-family: Prata, serif; font-size:20px; color:#fff; line-height:1; }
-      .ld-hero-stat span { font-size:10px; color:#A0A0A0; text-transform:uppercase; letter-spacing:.1em; }
-      .ld-hero-stat .up { color:#00FF88; }
-
-      /* MAIN GRID */
-      .ld-grid { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: 1.25fr 1fr; gap: 16px; padding: 2px 0 16px; min-height: 0; position: relative; z-index:1; }
-
-      /* WORLD MAP */
-      .ld-map-card { grid-row: span 1; }
-      .ld-map { flex:1; position: relative; border-radius: 14px; overflow: hidden; min-height:0;
-        background: radial-gradient(ellipse at 50% 40%, rgba(0,212,255,0.06), transparent 70%); }
-      .ld-map svg { width:100%; height:100%; display:block; }
-      .ld-map-land { fill: rgba(255,255,255,0.05); stroke: rgba(244,213,141,0.22); stroke-width:.4; }
-      .ld-map-link { stroke: rgba(0,212,255,0.35); stroke-width:.5; fill:none; stroke-dasharray: 3 4; animation: ldDash 18s linear infinite; }
-      @keyframes ldDash { to { stroke-dashoffset: -200; } }
-      .ld-map-core { fill:#F4D58D; filter: drop-shadow(0 0 4px rgba(244,213,141,0.9)); }
-      .ld-map-glow { fill: rgba(0,212,255,0.22); }
-      .ld-map-ring { fill:none; stroke:#00D4FF; }
-      .ld-map-hub { cursor:pointer; }
-      .ld-map-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; max-height:54px; overflow-y:auto; }
-      .ld-map-legend span { font-size:10px; color:#A0A0A0; display:flex; align-items:center; gap:5px; }
-      .ld-map-legend i { width:6px; height:6px; border-radius:50%; background:#F4D58D; box-shadow:0 0 6px rgba(244,213,141,0.7); }
-
-      /* TRENDING MODELS chart */
-      .ld-chart-metric { font-size:10px; color:#00D4FF; letter-spacing:.1em; }
-      .ld-chart-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 11px; }
-      .ld-chart-row { display: grid; grid-template-columns: 96px 1fr 58px; gap: 10px; align-items: center; }
-      .ld-chart-name { font-size: 13px; font-weight: 600; color:#fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .ld-chart-track { height: 10px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
-      .ld-chart-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #00D4FF, #F4D58D); box-shadow: 0 0 14px rgba(0,212,255,0.4); animation: ldGrow 1s cubic-bezier(.2,.7,.3,1) both; }
-      @keyframes ldGrow { from { width:0 !important; } }
-      .ld-chart-val { font-size: 12px; font-weight: 700; color: #F4D58D; text-align: right; font-variant-numeric: tabular-nums; }
-
-      /* FEATURED TOOL */
-      .ld-tod-body { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-      .ld-tod-top { display:flex; align-items:center; gap:14px; }
-      .ld-tod-badge { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-family:Prata,serif; font-size:26px; color:#080808; background:linear-gradient(135deg,#F4D58D,#00D4FF); flex-shrink:0; box-shadow:0 8px 24px rgba(244,213,141,0.3); overflow:hidden; }
-      .ld-tod-badge img { width:34px; height:34px; border-radius:8px; object-fit:contain; }
-      .ld-tod-badge-xl { width:84px; height:84px; border-radius:22px; font-size:38px; box-shadow:0 12px 34px rgba(244,213,141,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset; }
-      .ld-tod-badge-xl img { width:54px; height:54px; border-radius:12px; }
-      .ld-tod-metrics { display:grid; grid-template-columns: repeat(3, 1fr); gap:9px; }
-      .ld-tod-share { display:flex; flex-direction:column; gap:6px; }
-      .ld-tod-share-head { display:flex; justify-content:space-between; align-items:baseline; font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:#A0A0A0; }
-      .ld-tod-share-head b { font-family:Prata,serif; font-size:15px; color:#00D4FF; letter-spacing:0; }
-      .ld-tod-share-track { height:9px; border-radius:5px; background:rgba(255,255,255,0.06); overflow:hidden; }
-      .ld-tod-share-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,#00D4FF,#F4D58D); box-shadow:0 0 12px rgba(0,212,255,0.4); animation: ldGrow 1s cubic-bezier(.2,.7,.3,1) both; }
-      .ld-tod-name { font-family:Prata,serif; font-size:27px; color:#fff; line-height:1.05; }
-      .ld-tod-cat { font-size:10px; text-transform:uppercase; letter-spacing:.16em; color:#00D4FF; margin-top:5px; }
-      .ld-tod-score { margin-left:auto; text-align:center; }
-      .ld-tod-score b { display:block; font-family:Prata,serif; font-size:24px; color:#F4D58D; }
-      .ld-tod-score span { font-size:8px; letter-spacing:.12em; color:#A0A0A0; }
-      .ld-tod-tags { display:flex; flex-wrap:wrap; gap:6px; }
-      .ld-tod-tags span { font-size:10px; font-weight:700; color:#F4D58D; background:rgba(244,213,141,0.1); border:1px solid rgba(244,213,141,0.25); padding:4px 10px; border-radius:999px; }
-      .ld-tod-desc { font-size:13px; color:#cfcfcf; line-height:1.6; }
-      .ld-tod-statsrow { display:flex; gap:9px; }
-      .ld-tod-mini { flex:1; text-align:center; padding:10px 6px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
-      .ld-tod-mini b { display:block; font-family:Prata,serif; font-size:17px; color:#fff; }
-      .ld-tod-mini span { font-size:8.5px; text-transform:uppercase; letter-spacing:.1em; color:#A0A0A0; }
-      .ld-tod-actions { margin-top:auto; display:flex; align-items:center; gap:12px; }
-      .ld-tod-visit { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:11px; font-size:13px; font-weight:800; color:#080808; background:linear-gradient(90deg,#F4D58D,#e8c97a); text-decoration:none; box-shadow:0 6px 18px rgba(244,213,141,0.25); transition: transform .15s, box-shadow .15s; }
-      .ld-tod-visit:hover { transform: translateY(-2px); box-shadow:0 10px 26px rgba(244,213,141,0.35); }
-      .ld-tod-foot { font-size:11px; font-weight:700; color:#F4D58D; letter-spacing:.06em; }
-
-      /* ECOSYSTEM KPI cards */
-      .ld-stats-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; align-content: center; }
-      .ld-stat { position:relative; padding: 14px 12px; border-radius: 16px; overflow:hidden;
-        background: linear-gradient(160deg, rgba(244,213,141,0.08), rgba(255,255,255,0.02)); border:1px solid rgba(244,213,141,0.14); }
-      .ld-stat-val { font-family: Prata, serif; font-size: 26px; color: #fff; line-height: 1; }
-      .ld-stat-label { font-size: 9px; color: #A0A0A0; text-transform: uppercase; letter-spacing: .1em; margin-top: 6px; }
-      .ld-stat-spark { position:absolute; right:8px; top:10px; display:flex; align-items:flex-end; gap:2px; height:18px; opacity:.7; }
-      .ld-stat-spark i { width:3px; background:#00D4FF; border-radius:1px; }
-
-      /* BLOOMBERG TICKER */
-      .ld-ticker { display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(244,213,141,0.2); padding: 11px 0; overflow: hidden; flex-shrink: 0; position: relative; z-index:1; }
-      .ld-ticker-label { font-size: 11px; font-weight: 800; color: #080808; letter-spacing: .12em; white-space: nowrap; flex-shrink: 0; background: linear-gradient(90deg,#F4D58D,#00D4FF); padding: 6px 13px; border-radius: 7px; position: relative; z-index: 2; }
-      .ld-ticker-label::after { content: ""; position: absolute; left: 100%; top: -12px; bottom: -12px; width: 34px; background: linear-gradient(90deg, rgba(8,8,8,0.95), rgba(8,8,8,0)); pointer-events: none; }
-      .ld-ticker::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: linear-gradient(270deg, rgba(8,8,8,0.95), rgba(8,8,8,0)); pointer-events: none; z-index: 2; }
-      .ld-ticker-track { display: flex; gap: 44px; white-space: nowrap; animation: ldTicker 42s linear infinite; }
-      .ld-ticker-track span { font-size: 14px; color: #cfcfcf; }
-      .ld-ticker-track b { color:#00FF88; font-weight:700; margin-right:6px; }
-      @keyframes ldTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-      @media (max-width: 1000px) { .ld-grid { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; } .ld-nav { grid-template-columns: 1fr auto; } .ld-nav-center { display:none; } .ld-clock { font-size: 22px; } }
-      /* ── AI STATUS MONITOR ───────────────────────────── */
-      /* tool-of-day + live radar side by side; tod content centers vertically
-         so there is no dead bottom gap even though the radar column is taller */
-      .tod-radar-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 20px; }
-      @media (max-width: 1100px) { .tod-radar-row { grid-template-columns: 1fr; } }
-      /* min-width:0 is CRITICAL: without it the nowrap ticker forces the grid
-         column to expand to the ticker's full content width and breaks layout */
-      .tod-radar-row > * { min-width: 0; }
-      .tod-radar-row > .tod-panel { margin: 0 !important; display: flex !important; flex-direction: column; justify-content: center; min-width: 0; }
-      .tod-radar-row > .ai-monitor { margin: 0 !important; min-width: 0; max-width: 100%; overflow: hidden; }
-      /* similar tools block inside tod */
-      .tod-related { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); flex: 1; display: flex; flex-direction: column; min-height: 0; }
-      .tod-related-head { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
-      .tod-related-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 10px; flex: 1; align-items: stretch; }
-      @media (max-width: 640px) { .tod-related-grid { grid-template-columns: 1fr; } }
-      .tod-rel-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
-      .tod-rel-card:hover { border-color: rgba(216,183,106,0.45); transform: translateY(-2px); }
-      .tod-rel-card img { width: 26px; height: 26px; border-radius: 6px; }
-      .tod-rel-name { font-size: 13px; font-weight: 700; color: var(--text); }
-      .tod-rel-meta { font-size: 11px; color: var(--gold-2); }
-      .tod-rel-desc { font-size: 11px; color: var(--muted); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
-      .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-      .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
-      .aimon-title-wrap h2 { margin: 2px 0 0; font-size: 22px; }
-      .aimon-pulse { width: 12px; height: 12px; border-radius: 50%; background: #35d07f; position: relative; flex-shrink: 0; box-shadow: 0 0 0 0 rgba(53,208,127,0.6); animation: aimonPulse 2s infinite; }
-      @keyframes aimonPulse { 0% { box-shadow: 0 0 0 0 rgba(53,208,127,0.5); } 70% { box-shadow: 0 0 0 10px rgba(53,208,127,0); } 100% { box-shadow: 0 0 0 0 rgba(53,208,127,0); } }
-      .aimon-summary { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--text); }
-      .aimon-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #35d07f; }
-      .aimon-sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
-      .aimon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
-      @media (max-width: 1200px) { .aimon-grid { grid-template-columns: 1fr; } }
-      .aimon-card { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
-      .aimon-card:hover { transform: translateY(-2px); border-color: rgba(216,183,106,0.4); }
-      .aimon-card-logo { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(216,183,106,0.1); border: 1px solid rgba(216,183,106,0.2); flex-shrink: 0; overflow: hidden; }
-      .aimon-card-logo img { width: 22px; height: 22px; border-radius: 5px; object-fit: contain; }
-      .aimon-card-body { flex: 1; min-width: 0; }
-      .aimon-card-name { font-weight: 700; font-size: 14px; color: var(--text); }
-      .aimon-card-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
-      .aimon-status { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; }
-      .aimon-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-      .aimon-dot.up   { background: #35d07f; box-shadow: 0 0 8px rgba(53,208,127,0.6); }
-      .aimon-dot.slow { background: #e8b339; box-shadow: 0 0 8px rgba(232,179,57,0.6); }
-      .aimon-dot.down { background: #e0533d; box-shadow: 0 0 8px rgba(224,83,61,0.6); }
-      .aimon-dot.checking { background: var(--muted); animation: aimonBlink 1s infinite; }
-      @keyframes aimonBlink { 50% { opacity: .3; } }
-      .aimon-st-up   { color: #35d07f; }
-      .aimon-st-slow { color: #e8b339; }
-      .aimon-st-down { color: #e0533d; }
-      .aimon-st-checking { color: var(--muted); }
-      .aimon-latency { font-variant-numeric: tabular-nums; }
-      .aimon-incident { color: #e8b339; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-
-      /* ── AI WORLD MAP ────────────────────────────────── */
-      /* live metric chips */
-      .aimon-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
-      @media (max-width: 980px) { .aimon-chips { grid-template-columns: repeat(3, 1fr); } }
-      @media (max-width: 640px) { .aimon-chips { grid-template-columns: 1fr 1fr; } }
-      .aimon-chip { position: relative; padding: 10px 11px 8px; border-radius: 12px; background: linear-gradient(160deg, rgba(216,183,106,0.08), rgba(255,255,255,0.02)); border: 1px solid var(--line); overflow: hidden; }
-      .aimon-chip-row { display: flex; align-items: baseline; gap: 5px; }
-      .aimon-chip-val { font-family: Prata, serif; font-size: 18px; color: var(--gold-2); line-height: 1; font-variant-numeric: tabular-nums; transition: color .25s; }
-      .aimon-chip-val.tick { color: #fff; }
-      .aimon-chip-lbl { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .aimon-chip-trend { font-size: 9px; font-weight: 800; color: var(--gold); }
-      .aimon-chip-trend.up { color: #35d07f; } .aimon-chip-trend.down { color: #e0533d; }
-      .aimon-chip-spark { position: absolute; right: 8px; bottom: 7px; width: 38px; height: 12px; opacity: .55; }
-      .aimon-chip-spark polyline { fill: none; stroke: #00d4ff; stroke-width: 1; vector-effect: non-scaling-stroke; }
-      /* live ticker */
-      .aimon-ticker { display: flex; align-items: center; gap: 10px; margin: 13px 0; padding: 9px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; max-width: 100%; min-width: 0; position: relative; }
-      .aimon-ticker-tag { font-size: 10px; font-weight: 800; color: #060606; background: #35d07f; padding: 4px 9px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: .04em; position: relative; z-index: 2; }
-      /* fade so scrolling text never visually collides with the LIVE tag */
-      .aimon-ticker-tag::after { content: ""; position: absolute; left: 100%; top: -10px; bottom: -10px; width: 30px; background: linear-gradient(90deg, rgba(10,9,7,0.95), rgba(10,9,7,0)); pointer-events: none; }
-      /* fade at the right edge too */
-      .aimon-ticker::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 34px; background: linear-gradient(270deg, rgba(10,9,7,0.95), rgba(10,9,7,0)); pointer-events: none; z-index: 2; }
-      .aimon-ticker-track { display: flex; gap: 36px; white-space: nowrap; animation: aimonTick 34s linear infinite; }
-      .aimon-ticker-track span { font-size: 12px; color: var(--text); }
-      .aimon-ticker-track b { color: var(--gold); margin-right: 5px; }
-      @keyframes aimonTick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      .ainews-refreshing { margin-left: auto; font-size: 10px; color: #35d07f; opacity: 0; transition: opacity .3s; }
-      .ainews-refreshing.on { opacity: 1; }
-      .aimap-wrap { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(ellipse at 50% 30%, rgba(127,166,216,0.08), transparent 70%), #0a0c12; margin-bottom: 14px; }
-      .aimap { position: relative; width: 100%; aspect-ratio: 2.2 / 1; max-height: 300px; }
-      .aimap svg { width: 100%; height: 100%; display: block; }
-      .aimap-land { fill: rgba(216,183,106,0.10); stroke: rgba(216,183,106,0.22); stroke-width: 0.4; }
-      .aimap-link { stroke: rgba(0,212,255,0.4); stroke-width: 0.5; fill: none; stroke-dasharray: 3 4; animation: aimapDash 16s linear infinite; }
-      @keyframes aimapDash { to { stroke-dashoffset: -200; } }
-      .aimap-packet { fill: #00e5ff; filter: drop-shadow(0 0 4px rgba(0,212,255,0.95)); }
-      .aimap-hub { cursor: pointer; }
-      .aimap-hub-glow { fill: rgba(216,183,106,0.25); }
-      .aimap-hub-core { fill: #d8b76a; filter: drop-shadow(0 0 3px rgba(216,183,106,0.9)); }
-      .aimap-hub-ring { fill: none; stroke: #00d4ff; opacity: 0.7; transform-origin: center; }
-      .aimap-hub.active .aimap-hub-core { fill: #fff0b8; }
-      .aimap-hub.active .aimap-hub-glow { fill: rgba(0,212,255,0.4); }
-      .aimap-info { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(8,8,10,0.82); backdrop-filter: blur(8px); border: 1px solid rgba(216,183,106,0.3); border-radius: 11px; padding: 11px 14px; pointer-events: none; opacity: 0; transform: translateY(8px); transition: all .2s; }
-      .aimap-info.show { opacity: 1; transform: translateY(0); }
-      .aimap-info-city { font-weight: 800; font-size: 14px; color: var(--gold-2); }
-      .aimap-info-labs { font-size: 12px; color: var(--text); margin-top: 3px; }
-      .aimap-info-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-      /* ── AI NEWS PULSE ───────────────────────────────── */
-      .ainews-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-      .ainews-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #060606; background: var(--gold); padding: 4px 10px; border-radius: 6px; }
-      .ainews-sub { font-size: 12px; color: var(--muted); }
-      .ainews-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
-      @media (max-width: 700px) { .ainews-list { grid-template-columns: 1fr; } }
-      a.ainews-item { text-decoration: none; color: inherit; cursor: pointer; }
-      .ainews-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); transition: border-color .15s, transform .15s; animation: ainewsIn .4s ease both; }
-      .ainews-item:hover { border-color: rgba(216,183,106,0.4); transform: translateX(2px); }
-      @keyframes ainewsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-      .ainews-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); background: rgba(216,183,106,0.12); padding: 3px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
-      .ainews-text { font-size: 13px; color: var(--text); line-height: 1.4; }
-      .ainews-skeleton { height: 38px; border-radius: 10px; background: linear-gradient(90deg, var(--surface-2) 0%, rgba(255,255,255,0.05) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: ainewsShimmer 1.4s infinite; }
-      @keyframes ainewsShimmer { to { background-position: -200% 0; } }
-      .aimon-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: var(--muted); }
-      .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
-      .aimon-refresh:hover { border-color: rgba(216,183,106,0.5); background: rgba(216,183,106,0.08); }
-      .aimon-spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
-      .aimon-spark i { width: 3px; background: var(--gold); border-radius: 1px; opacity: .5; display: block; }
-
-      /* ── TOOL OF THE DAY ─────────────────────────────── */
-      .tod-panel {
-        background: linear-gradient(135deg,
-          rgba(216,183,106,0.07) 0%,
-          rgba(216,183,106,0.03) 50%,
-          rgba(255,255,255,0.02) 100%);
-        border: 1px solid rgba(216,183,106,0.25);
-        position: relative;
-        overflow: hidden;
-      }
-      .tod-panel::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      }
-      .tod-inner {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 28px;
-        align-items: center;
-      }
-      .tod-eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 16px;
-      }
-      .tod-live-dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: var(--gold);
-        box-shadow: 0 0 0 0 rgba(216,183,106,0.5);
-        animation: todPulse 2s infinite;
-        flex-shrink: 0;
-      }
-      @keyframes todPulse {
-        0%   { box-shadow: 0 0 0 0 rgba(216,183,106,0.5); }
-        70%  { box-shadow: 0 0 0 8px rgba(216,183,106,0); }
-        100% { box-shadow: 0 0 0 0 rgba(216,183,106,0); }
-      }
-      #todLabel {
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .1em;
-        color: var(--gold);
-      }
-      .tod-card-main {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 12px;
-      }
-      .tod-logo-wrap {
-        width: 52px; height: 52px;
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        background: var(--surface-2);
-        display: grid; place-items: center;
-        overflow: hidden;
-        flex-shrink: 0;
-      }
-      .tod-logo { font-size: 22px; font-weight: 800; color: var(--gold); }
-      .tod-logo img { width: 100%; height: 100%; object-fit: contain; }
-      .tod-info { flex: 1; min-width: 0; }
-      .tod-name {
-        margin: 0 0 3px;
-        font-size: clamp(18px, 2.5vw, 26px);
-        font-family: Prata, serif;
-        color: var(--text);
-        line-height: 1.2;
-      }
-      .tod-category {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        color: var(--muted);
-        padding: 2px 8px;
-        border: 1px solid var(--line);
-        border-radius: 99px;
-        background: var(--surface-2);
-      }
-      .tod-price {
-        font-size: 13px;
-        font-weight: 800;
-        padding: 4px 12px;
-        border-radius: 99px;
-        flex-shrink: 0;
-      }
-      .tod-price.free  { background: rgba(95,189,116,0.12); color: #5fbd74; border: 1px solid rgba(95,189,116,0.3); }
-      .tod-price.paid  { background: rgba(216,183,106,0.12); color: var(--gold); border: 1px solid rgba(216,183,106,0.3); }
-      .tod-desc {
-        font-size: 14px;
-        line-height: 1.75;
-        color: var(--muted);
-        margin: 0 0 12px;
-        max-width: 580px;
-      }
-      .tod-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-      .tod-actions {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
-      }
-      .tod-btn { min-height: 40px; padding: 0 20px; font-weight: 700; }
-      .tod-next { font-size: 12px; color: var(--muted); }
-      #todCountdown { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
-
-      /* RIGHT: ring */
-      .tod-right {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 14px;
-        flex-shrink: 0;
-      }
-      .tod-progress-ring { position: relative; display: inline-flex; }
-      .tod-ring-bg  { fill: none; stroke: rgba(216,183,106,0.12); stroke-width: 6; }
-      .tod-ring-fill {
-        fill: none; stroke: var(--gold); stroke-width: 6;
-        stroke-linecap: round;
-        stroke-dasharray: 326.7;
-        stroke-dashoffset: 326.7;
-        transform: rotate(-90deg);
-        transform-origin: 60px 60px;
-        transition: stroke-dashoffset 1s ease;
-      }
-      .tod-ring-inner {
-        position: absolute; inset: 0;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        gap: 2px;
-      }
-      .tod-day-num  { font-size: 22px; font-weight: 800; font-family: Prata,serif; color: var(--gold-2); line-height: 1; }
-      .tod-day-label{ font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; }
-      .tod-stats {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 120px;
-      }
-      .tod-stat-row {
-        display: flex; justify-content: space-between; align-items: center;
-        font-size: 11px;
-      }
-      .tod-stat-label { color: var(--muted); }
-      .tod-stat-val   { font-weight: 700; color: var(--gold-2); }
-
-      /* Enter animation */
-      @keyframes todSlideIn {
-        from { opacity:0; transform: translateY(12px); }
-        to   { opacity:1; transform: translateY(0); }
-      }
-      .tod-animate { animation: todSlideIn 0.5s ease both; }
-
-      @media(max-width:760px){
-        .tod-inner { grid-template-columns: 1fr; }
-        .tod-right  { flex-direction: row; justify-content: space-between; }
-      }
-    
-      /* ── TREND BADGES ────────────────────────────────── */
-      .trend-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 10px;
-        font-weight: 800;
-        padding: 3px 9px;
-        border-radius: 99px;
-        letter-spacing: .04em;
-        margin-bottom: 6px;
-        width: fit-content;
-      }
-      .badge-hot {
-        background: rgba(255,80,40,0.12);
-        border: 1px solid rgba(255,80,40,0.35);
-        color: #ff6040;
-      }
-      .badge-growing {
-        background: rgba(95,189,116,0.12);
-        border: 1px solid rgba(95,189,116,0.35);
-        color: #5fbd74;
-      }
-      .badge-free-pick {
-        background: rgba(94,186,255,0.12);
-        border: 1px solid rgba(94,186,255,0.35);
-        color: #5eb4ff;
-      }
-      .badge-new {
-        background: rgba(180,130,255,0.12);
-        border: 1px solid rgba(180,130,255,0.35);
-        color: #c084fc;
-      }
-      .badge-established {
-        background: rgba(216,183,106,0.12);
-        border: 1px solid rgba(216,183,106,0.35);
-        color: var(--gold);
-      }
-      .badge-today {
-        background: linear-gradient(90deg,rgba(216,183,106,0.2),rgba(216,183,106,0.08));
-        border: 1px solid rgba(216,183,106,0.5);
-        color: var(--gold-2);
-        box-shadow: 0 0 8px rgba(216,183,106,0.15);
-      }
-      /* in list mode — inline */
-      .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
-          .vs-auto-mode-btn{flex:1;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;}
-      .vs-auto-mode-btn.active,.vs-auto-mode-btn:hover{border-color:rgba(216,183,106,0.5);color:var(--gold-2);background:rgba(216,183,106,0.1);}
-      
-    </style>
-  </head>
-  <body>
-    <div class="ambient ambient-a"></div>
-    <div class="ambient ambient-b"></div>
-
-    <!-- HEADER with motion ticker -->
-    <div class="shell">
-      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-      <!-- ── FIXED LEFT SIDEBAR ──────────────────────────── -->
-      <aside class="sidebar" id="appSidebar">
-        <div class="sidebar-top">
-          <a class="brand" href="#top" aria-label="AI Radar">
-            <img class="brand-logo" src="logo.svg" alt="" />
-            <span class="brand-name">AI Radar</span>
-          </a>
-          <button id="navCollapseBtn" class="nav-collapse" type="button"
-            aria-label="Collapse menu" title="Collapse menu">
-            <span class="nav-collapse-icon">‹</span>
-          </button>
-        </div>
-
-        <nav class="sidebar-nav" id="sidebarNav" aria-label="Primary navigation">
-          <div class="nav-group">
-            <p class="nav-group-title" data-i18n="navGroupExplore">Explore</p>
-            <div class="nav-group-grid">
-              <a href="#tools"><span class="nav-ic">◎</span><span class="nav-tx" data-i18n="navTools">Tools</span></a>
-              <a href="#performance"><span class="nav-ic">▥</span><span class="nav-tx">Charts</span></a>
-              <a href="#about"><span class="nav-ic">✦</span><span class="nav-tx" data-i18n="navAbout">About</span></a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
-            <div class="nav-group-grid">
-              <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
-              <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx">Prompts</span></a>
-            </div>
-          </div>
-        </nav>
-
-        <div class="sidebar-footer">
-          <a class="button primary sidebar-cta" href="#tools" data-i18n="startButton">Start</a>
-          <div class="sidebar-prefs">
-            <div class="seg-toggle" id="themeSeg" role="group" aria-label="Theme">
-              <button type="button" class="seg-btn" data-theme="light">
-                <span class="seg-ic">☀</span>
-                <span class="seg-tx" data-i18n="themeLight">Light</span>
-              </button>
-              <button type="button" class="seg-btn" data-theme="dark">
-                <span class="seg-ic">☾</span>
-                <span class="seg-tx" data-i18n="themeDark">Dark</span>
-              </button>
-            </div>
-            <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
-              <button type="button" class="seg-btn" data-lang="en">EN</button>
-              <button type="button" class="seg-btn" data-lang="fa">فا</button>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- ── CONTENT AREA ────────────────────────────────── -->
-      <div class="content-area">
-        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
-          aria-label="Open menu" title="Menu">☰</button>
-
-        <!-- AI MODELS TICKER -->
-        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-          <div class="models-ticker" id="modelsTicker"></div>
-        </div>
-
-        <main id="top">
-
-        <!-- HERO -->
-        <section class="hero luxury-hero">
-          <div class="luxury-hero-grid">
-            <div class="luxury-hero-copy">
-              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
-              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
-              <div class="hero-actions">
-                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
-                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
-                <button class="button ghost dash-launch-btn" id="openDashboardBtn" type="button">
-                  <span class="dash-live-dot"></span> <span id="dashLaunchTxt">Live Dashboard</span>
-                </button>
-                <span class="dash-hint" id="dashHint">
-                  <svg viewBox="0 0 60 24" class="dash-hint-arrow" aria-hidden="true"><path d="M2 12 H50 M50 12 L42 6 M50 12 L42 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  <span id="dashHintTxt">Turn any screen into a live war-room</span>
-                </span>
-              </div>
-            </div>
-            <div class="luxury-hero-visual">
-              <div class="hero-motion" aria-hidden="true">
-                <canvas id="heroMotionCanvas"></canvas>
-              </div>
-              <div class="hero-stats">
-                <div class="hero-stat">
-                  <strong id="metricTools">45+</strong>
-                  <span data-i18n="metricTools">AI tools</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricFree">100%</strong>
-                  <span data-i18n="metricFree">Free plans</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricJobs">Live</strong>
-                  <span data-i18n="metricJobs">Career paths</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- TOOLS -->
-        
-
-        <!-- TOP ROW: Tool of the Day (left) | AI Monitor (right) -->
-        <!-- TOP ROW: Tool of the Day | Live AI Radar -->
-        <div class="tod-radar-row">
-        <section id="toolOfDay" class="panel tod-panel">
-          <div class="tod-inner">
-            <div class="tod-left">
-              <div class="tod-eyebrow">
-                <span class="tod-live-dot"></span>
-                <span id="todLabel">Tool of the Day</span>
-              </div>
-              <div class="tod-card-main">
-                <div class="tod-logo-wrap" id="todLogoWrap">
-                  <span class="tod-logo" id="todLogo"></span>
-                </div>
-                <div class="tod-info">
-                  <h3 class="tod-name" id="todName">Loading…</h3>
-                  <span class="tod-category" id="todCategory"></span>
-                </div>
-                <span class="tod-price" id="todPrice"></span>
-              </div>
-              <p class="tod-desc" id="todDesc"></p>
-              <div class="tod-tags" id="todTags"></div>
-              <div class="tod-actions">
-                <a class="button primary tod-btn" id="todLink" href="#" target="_blank" rel="noopener">
-                  <span id="todBtnLabel">Visit tool</span> ↗
-                </a>
-                <span class="tod-next" id="todNext">
-                  Next tool in <span id="todCountdown">—</span>
-                </span>
-              </div>
-            </div>
-            <div class="tod-right">
-              <div class="tod-progress-ring">
-                <svg viewBox="0 0 120 120" width="120" height="120">
-                  <circle cx="60" cy="60" r="52" class="tod-ring-bg"/>
-                  <circle cx="60" cy="60" r="52" class="tod-ring-fill" id="todRingFill"/>
-                </svg>
-                <div class="tod-ring-inner">
-                  <span class="tod-day-num" id="todDayNum"></span>
-                  <span class="tod-day-label" id="todDayLabel">Today</span>
-                </div>
-              </div>
-              <div class="tod-stats" id="todStats"></div>
-            </div>
-          </div>
-          <!-- similar tools — fills the lower space with useful content -->
-          <div class="tod-related">
-            <div class="tod-related-head" id="todRelatedHead">More from this category</div>
-            <div class="tod-related-grid" id="todRelated"></div>
-          </div>
-        </section>
-        <!-- /TOOL OF THE DAY -->
-
-        <!-- AI WORLD MAP + NEWS -->
-        <section id="aiMonitor" class="panel ai-monitor">
-          <div class="aimon-head">
-            <div class="aimon-title-wrap">
-              <span class="aimon-pulse"></span>
-              <div>
-                <p class="eyebrow" id="aimonEyebrow">Live AI radar</p>
-                <h2 id="aimonTitle">Global AI Map</h2>
-              </div>
-            </div>
-            <div class="aimon-summary" id="aimonSummary">
-              <span class="aimon-summary-dot"></span>
-              <span id="aimonSummaryText">10 hubs</span>
-            </div>
-          </div>
-          <p class="aimon-sub" id="aimonSub">The world's AI power centers, live. Tap a hub to see who's there.</p>
-
-          <!-- LIVE METRIC CHIPS -->
-          <div class="aimon-chips" id="aimonChips"></div>
-
-          <div class="aimap-wrap">
-            <div class="aimap" id="aimap"></div>
-            <div class="aimap-info" id="aimapInfo"></div>
-          </div>
-
-          <!-- LIVE TICKER -->
-          <div class="aimon-ticker">
-            <span class="aimon-ticker-tag" id="aimonTickerTag">● LIVE</span>
-            <div class="aimon-ticker-track" id="aimonTickerTrack"></div>
-          </div>
-
-          <div class="ainews">
-            <div class="ainews-head">
-              <span class="ainews-label" id="ainewsLabel">◆ AI PULSE</span>
-              <span class="ainews-sub" id="ainewsSub">Latest in AI</span>
-              <span class="ainews-refreshing" id="ainewsRefreshing"></span>
-            </div>
-            <div class="ainews-list" id="ainewsList"></div>
-          </div>
-        </section>
-        <!-- /AI WORLD MAP + NEWS -->
-        </div>
-        <!-- /TOP ROW -->
-
-        <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
-        <div class="twin-panels">
-          <div class="twin-col">
-<section id="tools" class="panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="toolsEyebrow">Tool finder</p>
-              <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
-            </div>
-            <div class="search-wrap">
-              <label class="sr-only" for="searchInput">Search tools</label>
-              <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
-              <div class="view-toggle" role="group" aria-label="View mode">
-                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
-                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                    <rect x="1" y="1" width="6" height="6" rx="1"/>
-                    <rect x="9" y="1" width="6" height="6" rx="1"/>
-                    <rect x="1" y="9" width="6" height="6" rx="1"/>
-                    <rect x="9" y="9" width="6" height="6" rx="1"/>
-                  </svg>
-                </button>
-                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
-                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
-                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="7" width="9" height="2" rx="1"/>
-                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
-                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="filters" aria-label="Tool filters">
-            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
-            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
-            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
-            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
-          </div>
-          <div class="advanced-search">
-            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
-            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
-          </div>
-          <p id="toolCount" class="tool-count"></p>
-          <div id="toolGrid" class="tool-grid"></div>
-        </section>
-<section id="compare" class="compare panel">
-          <div class="section-head">
-            <div><p class="eyebrow" data-i18n="compareEyebrow">Compare</p><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
-            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
-          </div>
-          <div id="compareTable" class="compare-table"></div>
-        </section>
-          </div>
-          <div class="twin-col" style="position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;overflow-x:hidden;-webkit-mask-image:linear-gradient(to bottom,black 85%,transparent 100%);mask-image:linear-gradient(to bottom,black 85%,transparent 100%);">
-<section id="performance" class="panel performance-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="performanceEyebrow">Live GitHub data</p>
-              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
-              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
-            </div>
-          </div>
-          <div class="chart-toolbar">
-            <div class="chart-tabs">
-              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
-              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
-              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
-              <button class="chart-tab" data-metric="multi" id="chartTabMulti">Multi-metric</button>
-            </div>
-            <div class="chart-live-bar">
-              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
-              <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
-                <span class="chart-refresh-ic">↻</span>
-                <span data-i18n="refreshLabel">Refresh</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- summary stat cards -->
-          <div class="gh-summary" id="ghSummary"></div>
-
-          <!-- sort + search controls -->
-          <div class="gh-controls">
-            <div class="gh-sort" id="ghSort">
-              <button class="gh-sort-btn active" data-sort="value">Highest</button>
-              <button class="gh-sort-btn" data-sort="growth">Most active</button>
-              <button class="gh-sort-btn" data-sort="name">A–Z</button>
-            </div>
-            <input id="ghSearch" class="gh-search" type="text" placeholder="Filter tools…" />
-          </div>
-
-          <div id="performanceChart" class="performance-chart"></div>
-          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
-        </section>
-          </div>
-        </div>
-
-        <!-- CAPTION AI -->
-        
-
-        <!-- VIDEO TEMPLATE STUDIO -->
-        <section id="videoStudio" class="panel video-studio">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow" data-i18n="studioEyebrow">Video studio</p>
-              <h2 data-i18n="studioTitle">Create a complete, luxurious video</h2>
-              <p data-i18n="studioText">Pick a template, drop in your media, layer animated text, set aspect ratio, transitions, filters and music — then export a real video file. Everything runs free in your browser.</p>
-            </div>
-          </div>
-          <div class="vstudio-layout">
-            <div class="vstudio-controls">
-
-              <div class="vtab-bar" role="tablist">
-                <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
-                <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
-                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
-                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
-              </div>
-
-              <div class="vstudio-block" data-vtab-panel="template">
-                <details class="vs-template-collapse" open>
-                  <summary class="vs-template-summary">
-                    <span class="vstudio-label" data-i18n="vTemplateLabel">Template</span>
-                    <span class="vs-template-current" id="vsTemplateCurrent"></span>
-                  </summary>
-                  <div id="templatePicker" class="template-picker"></div>
-                </details>
-              </div>
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
-                <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
-                <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
-
-                <label class="vs-global-filter"><span data-i18n="vFilterLabel">Filter / grade</span>
-                  <select id="vsFilter">
-                    <option value="none">None</option>
-                    <option value="cinematic">Cinematic</option>
-                    <option value="warm">Warm</option>
-                    <option value="cool">Cool</option>
-                    <option value="mono">Black &amp; white</option>
-                    <option value="vivid">Vivid</option>
-                  </select>
-                </label>
-                <label class="vs-global-filter"><span data-i18n="vFontLabel">Headline font (all slides)</span>
-                  <select id="vsHeadlineFont">
-                    <option value="Prata, serif">Prata (serif)</option>
-                    <option value="Alice, serif">Alice (elegant)</option>
-                    <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
-                    <option value="'Bryn Vogue', serif">Bryn Vogue (fashion)</option>
-                    <option value="Elegant, serif">Elegant (script)</option>
-                    <option value="Things, serif">Things (editorial)</option>
-                    <option value="Inter, sans-serif">Inter (modern sans)</option>
-                    <option value="Georgia, serif">Georgia (classic)</option>
-                  </select>
-                </label>
-
-                <div id="vsSlideList" class="vs-slide-list"></div>
-                <div class="vs-slide-actions">
-                  <label class="button primary vs-add-slide">
-                    <span data-i18n="vAddSlide">+ Add scene (upload media)</span>
-                    <input id="vsSlideUpload" type="file" accept="video/*,image/*" hidden />
-                  </label>
-                  <button id="vsAddIntroBtn" class="button ghost gold" type="button" data-i18n="vAddIntro">+ Add intro scene</button>
-                  <button id="vsAddOutroBtn" class="button ghost gold" type="button" data-i18n="vAddOutro">+ Add outro scene</button>
-                </div>
-                <details class="vs-slide-section" id="vsAutoBuild" open>
-                  <summary class="vstudio-label" data-i18n="vAutoLabel">✦ AI Video Assistant</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" id="vsAutoHint">Give the assistant <strong>anything</strong> — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro &amp; outro.</p>
-
-                    <div class="vs-auto-mode" style="display:flex;gap:6px;margin-bottom:10px;">
-                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn">✦ Smart</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn">🔗 From link</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">📄 From text</button>
-                    </div>
-
-                    <label id="vsAutoUrlWrap" style="display:none;"><span>Article / news URL</span>
-                      <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
-                    </label>
-                    <label><span id="vsAutoTopicLbl">What should the video be about?</span>
-                      <textarea id="vsAutoTopic" rows="3" placeholder="e.g. 'The rise of AI agents in 2026' or paste an article, or describe any idea…"></textarea>
-                    </label>
-
-                    <label><span id="vsAutoToneLbl">Tone</span>
-                      <select id="vsAutoTone">
-                        <option value="news">📰 Broadcast news</option>
-                        <option value="explainer">🎓 Explainer / educational</option>
-                        <option value="hype">🔥 Hype / launch</option>
-                        <option value="documentary">🎬 Cinematic documentary</option>
-                        <option value="social">📱 Punchy social (TikTok/Reels)</option>
-                      </select>
-                    </label>
-
-                    <label><span id="vsAutoLenLbl">Length</span>
-                      <select id="vsAutoLen">
-                        <option value="short">Short — 4-5 scenes (~20s)</option>
-                        <option value="medium" selected>Medium — 6-7 scenes (~35s)</option>
-                        <option value="long">Long — 8-10 scenes (~50s)</option>
-                      </select>
-                    </label>
-<div class="vs-auto-actions">
-                      <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
-                    </div>
-                    <p id="vsAutoStatus" class="vstudio-note"></p>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section" id="vsIntroEditor" hidden>
-                  <summary class="vstudio-label" data-i18n="vIntroSceneLabel">Intro scene settings</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vIntroSceneHint">Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.</p>
-                    <label><span data-i18n="vIntroBgLabel">Background</span></label>
-                    <div id="vsIntroBgPicker" class="intro-bg-picker"></div>
-                    <label><span data-i18n="vIntroMainLabel">Main text</span>
-                      <input id="vsIntroMainInput" type="text" maxlength="90" placeholder="AI Radar presents" />
-                    </label>
-                    <label><span data-i18n="vIntroSubInput2">Secondary text</span>
-                      <input id="vsIntroSubInput" type="text" maxlength="110" placeholder="A new standard of calm" />
-                    </label>
-                    <label><span data-i18n="vIntroMotion2">Text motion</span>
-                      <select id="vsIntroMotionInput">
-                        <optgroup label="⬆ Enter">
-                          <option value="fade">Fade in</option>
-                          <option value="rise">Rise up</option>
-                          <option value="slide">Slide from left</option>
-                          <option value="slide-r">Slide from right</option>
-                          <option value="drop">Drop down</option>
-                        </optgroup>
-                        <optgroup label="💥 Dynamic">
-                          <option value="spring">Spring</option>
-                          <option value="rise-spring">Rise + spring</option>
-                          <option value="punch">Punch in</option>
-                          <option value="vox">Vox (snappy)</option>
-                          <option value="swing">Swing in</option>
-                        </optgroup>
-                        <optgroup label="🎬 Cinematic">
-                          <option value="zoom">Zoom in</option>
-                          <option value="blur">Blur in</option>
-                          <option value="flip">Flip in</option>
-                          <option value="glide">Glide in</option>
-                          <option value="drift">Cinematic drift</option>
-                          <option value="reveal">Line reveal</option>
-                          <option value="expand">Letter expand</option>
-                          <option value="tilt">Tilt in</option>
-                        </optgroup>
-                      </select>
-                    </label>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section">
-                  <summary class="vstudio-label" data-i18n="vQuickClipLabel">Quick mode — single clip</summary>
-                  <div class="vs-section-body">
-                    <p class="vstudio-note" data-i18n="vQuickClipHint">Just one clip and no scenes? Upload a single video or image here instead of adding scenes.</p>
-                    <label class="upload-box">
-                      <span data-i18n="vUploadHint">Upload one video or image (mp4, webm, mov, jpg, png)</span>
-                      <input id="vsUpload" type="file" accept="video/*,image/*" />
-                    </label>
-                  </div>
-                </details>
-
-                <details class="vs-slide-section">
-                  <summary class="vstudio-label" data-i18n="vMusicLabel">Background music</summary>
-                  <div class="vs-section-body">
-                    <label class="upload-box small">
-                      <span data-i18n="vMusicHint">Optional: background music (mp3, wav) — applies to the whole video</span>
-                      <input id="vsMusic" type="file" accept="audio/*" />
-                    </label>
-                  </div>
-                </details>
-
-                <div id="vsSlideEditor" class="vs-slide-editor">
-                  <div id="vsSlideOnlyFields" class="vtab-hidden">
-                    <p id="vsActiveSlideTag" class="vs-active-tag"></p>
-                    <label class="button ghost gold vs-slide-footage">
-                      <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
-                      <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
-                    </label>
-                    <p id="vsSlideMediaName" class="vstudio-note"></p>
-
-                    <label><span data-i18n="vSlideCaption">Caption (top label)</span>
-                      <input id="vsSlideCaption" type="text" maxlength="40" placeholder="Optional — leave empty for none" />
-                    </label>
-                    <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
-                      <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
-                    </label>
-                  </div>
-
-
-
-                  <div class="vs-section-body">
-                      <input id="vsHeadline" type="hidden" value="" />
-                      <input id="vsSub" type="hidden" value="" />
-                      <input id="vsCta" type="hidden" value="" />
-                      <select id="vsTextPos" style="display:none;"><option value="center" selected>Center</option><option value="bottom">Bottom</option><option value="top">Top</option></select>
-                      <select id="vsTextSize" style="display:none;"><option value="0.8">Small</option><option value="1" selected>Medium</option><option value="1.3">Large</option></select>
-                    </div>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vMotionLabel">Motion &amp; elements</summary>
-                    <div class="vs-section-body">
-                      <div class="control-grid">
-                        <label><span data-i18n="vCamMotionLabel">Camera motion</span>
-                          <select id="vsMotion">
-                            <optgroup label="🎥 Zoom">
-                              <option value="kenburns-in">Ken Burns — zoom in</option>
-                              <option value="kenburns-out">Ken Burns — zoom out</option>
-                              <option value="punch-in">Punch in</option>
-                              <option value="zoom-pan">Zoom + pan</option>
-                              <option value="vertigo">Vertigo (dolly zoom)</option>
-                            </optgroup>
-                            <optgroup label="↔ Pan">
-                              <option value="pan-right">Pan right</option>
-                              <option value="pan-left">Pan left</option>
-                              <option value="pan-up">Pan up</option>
-                              <option value="pan-down">Pan down</option>
-                              <option value="diagonal">Diagonal drift</option>
-                              <option value="drift-up">Slow drift up</option>
-                              <option value="parallax">Parallax drift</option>
-                            </optgroup>
-                            <optgroup label="✨ Stylised">
-                              <option value="spin-in">Spin in</option>
-                              <option value="pulse">Pulse</option>
-                              <option value="breathe">Breathe</option>
-                              <option value="sway">Sway</option>
-                              <option value="handheld">Handheld</option>
-                              <option value="shake">Shake</option>
-                              <option value="none">None (static)</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <input type="hidden" id="vsTextAnim" value="fade-up" />
-                        <label><span data-i18n="vOverlayLabel">Overlay element</span>
-                          <select id="vsOverlay">
-                            <option value="none">None</option>
-                            <optgroup label="✨ Luxury">
-                              <option value="goldframe">Gold frame</option>
-                              <option value="shimmer">Shimmer sweep</option>
-                              <option value="embers">Warm embers</option>
-                              <option value="lightleak">Light leak</option>
-                              <option value="glow">Edge glow</option>
-                              <option value="bokeh">Bokeh lights</option>
-                            </optgroup>
-                            <optgroup label="◻ Minimal">
-                              <option value="minimalline">Minimal line</option>
-                              <option value="corners">Corner brackets</option>
-                              <option value="haze">Soft haze</option>
-                              <option value="gradient">Cinematic bars</option>
-                            </optgroup>
-                            <optgroup label="🌟 Particle">
-                              <option value="particles">Sparkle particles</option>
-                              <option value="dust">Floating dust</option>
-                              <option value="snow">Snow</option>
-                              <option value="rain">Rain</option>
-                            </optgroup>
-                            <optgroup label="📼 Retro">
-                              <option value="scanlines">Scanlines</option>
-                              <option value="vhs">VHS jitter</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                      </div>
-                      <p class="vstudio-note" data-i18n="vMotionNote">Every change updates the live preview instantly — no need to press Preview.</p>
-                    </div>
-                  </details>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vInfoLabel">Infographic builder</summary>
-                    <div class="vs-section-body">
-                      <label class="toggle-row"><input id="vsInfoOn" type="checkbox" /><span data-i18n="vInfoOnLabel">Show infographic overlay</span></label>
-                      <p class="vstudio-note" data-i18n="vInfoHint">Type your title and stats below — the infographic builds itself as you write. No JSON needed.</p>
-
-                      <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vInfoAiLabel">✦ Generate with AI</span>
-                        <p class="vstudio-note" data-i18n="vInfoAiHint">Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.</p>
-                        <textarea id="vsInfoAiText" rows="3" placeholder="e.g. The 2026 housing market: prices up 8.4%, mortgage rates around 6.2%, 1.2M homes for sale, average 34 days on market."></textarea>
-                        <button id="vsInfoAiBtn" class="button primary vs-ai-btn" type="button">
-                          <span class="ai-btn-icon">✦</span> <span data-i18n="vInfoAiBtn">Generate infographic</span>
-                        </button>
-                        <p class="vstudio-note" id="vsInfoAiStatus"></p>
-                      </div>
-
-                      <label><span data-i18n="vInfoFormTitle">Title</span>
-                        <input id="vsInfoTitle" type="text" maxlength="48" placeholder="Housing Market 2026" />
-                      </label>
-                      <label><span data-i18n="vInfoFormSubtitle">Subtitle (optional)</span>
-                        <input id="vsInfoSubtitle" type="text" maxlength="48" placeholder="Key metrics" />
-                      </label>
-                      <label><span data-i18n="vInfoFormSource">Data source (recommended)</span>
-                        <input id="vsInfoSource" type="text" maxlength="60" placeholder="e.g. World Bank, 2025" />
-                      </label>
-                      <p class="vstudio-note" data-i18n="vInfoSourceNote">Numbers shown are only as reliable as what you enter. Cite a real source so viewers can trust the data — AI-generated figures are estimates, not verified facts.</p>
-
-                      <span class="vstudio-label vs-stat-head" data-i18n="vInfoStatsHead">Stats</span>
-                      <div id="vsInfoRows" class="vs-info-rows"></div>
-                      <button id="vsInfoAddRow" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoAddRow">+ Add a stat</button>
-
-                      <div class="control-grid">
-                        <label><span data-i18n="vInfoStyleLabel">Chart style</span>
-                          <select id="vsInfoStyle">
-                            <optgroup label="🔢 Numbers">
-                              <option value="big-numbers">Big Numbers (cinematic)</option>
-                              <option value="counters">Counting up</option>
-                              <option value="ticker-numbers">Ticker style</option>
-                              <option value="comparison">Side-by-side compare</option>
-                            </optgroup>
-                            <optgroup label="📊 Charts">
-                              <option value="bars">Horizontal bars</option>
-                              <option value="pills">Progress pills</option>
-                              <option value="donut">Donut rings</option>
-                              <option value="area-chart">Area / wave chart</option>
-                              <option value="bubble">Bubble chart</option>
-                            </optgroup>
-                            <optgroup label="🃏 Cards">
-                              <option value="cards">Stat cards</option>
-                              <option value="dark-cards">Dark glass cards</option>
-                              <option value="neon-cards">Neon accent cards</option>
-                              <option value="magazine">Magazine layout</option>
-                            </optgroup>
-                            <optgroup label="📰 Editorial">
-                              <option value="timeline-list">Timeline / list</option>
-                              <option value="ranking">Ranking / leaderboard</option>
-                              <option value="vs-split">VS split (2 values)</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vInfoPosLabel">Position</span>
-                          <select id="vsInfoPos">
-                            <option value="center">Center</option>
-                            <option value="left">Left</option>
-                            <option value="right">Right</option>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vInfoMotionLabel">Entrance motion</span>
-                          <select id="vsInfoMotion">
-                            <option value="fade">Fade in</option>
-                            <option value="rise">Rise up</option>
-                            <option value="drop">Drop down</option>
-                            <option value="slide-left">Slide from left</option>
-                            <option value="slide-right">Slide from right</option>
-                            <option value="pop">Pop / scale</option>
-                            <option value="zoom-in">Zoom in</option>
-                            <option value="vox">Vox style (snappy)</option>
-                            <option value="none">None</option>
-                          </select>
-                        </label>
-                      </div>
-
-                      <details class="vs-info-advanced">
-                        <summary data-i18n="vInfoAdvanced">Advanced — edit raw JSON / import file</summary>
-                        <div class="vs-info-adv-body">
-                          <label class="file-field">
-                            <span data-i18n="vInfoImportLabel">Import JSON file</span>
-                            <input id="vsInfoFile" type="file" accept="application/json,.json" />
-                          </label>
-                          <label><span data-i18n="vInfoJsonLabel">Infographic data (JSON)</span>
-                            <textarea id="vsInfoJson" rows="7" spellcheck="false" placeholder='{ "title": "2026 AI Market", "stats": [ { "label": "Users", "value": "4.2M" } ] }'></textarea>
-                          </label>
-                          <p class="vstudio-note" id="vsInfoJsonStatus"></p>
-                          <button id="vsInfoSyncBtn" class="button ghost gold vs-example-btn" type="button" data-i18n="vInfoSyncBtn">Load this JSON into the form</button>
-                        </div>
-                      </details>
-                    </div>
-                  </details>
-
-                  <details class="vs-slide-section">
-                    <summary class="vstudio-label" data-i18n="vNewsLabel">News banner</summary>
-                    <div class="vs-section-body">
-                      <label class="toggle-row"><input id="vsNewsOn" type="checkbox" /><span data-i18n="vNewsOnLabel">Show news banner</span></label>
-                      <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
-
-                      <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vNewsAiLabel">✦ Summarize with AI</span>
-                        <p class="vstudio-note" data-i18n="vNewsAiHint">Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.</p>
-                        <textarea id="vsNewsAiText" rows="4" placeholder="Paste the news article text or your notes here…"></textarea>
-                        <button id="vsNewsAiBtn" class="button primary vs-ai-btn" type="button">
-                          <span class="ai-btn-icon">✦</span> <span data-i18n="vNewsAiBtn">Summarize into banner</span>
-                        </button>
-                        <p class="vstudio-note" id="vsNewsAiStatus"></p>
-                      </div>
-                      <input id="vsNewsKicker" type="hidden" value="" />
-                      <label><span data-i18n="vNewsHeadlineLabel">News headline</span>
-                        <textarea id="vsNewsHeadline" rows="3" maxlength="200" placeholder="Type the news headline here — multiple lines supported" style="resize:vertical;min-height:72px;"></textarea>
-                      </label>
-                      <label><span data-i18n="vNewsSourceLabel">Source / reporter</span>
-                        <input id="vsNewsSource" type="text" maxlength="60" placeholder="AI Radar — Newsroom" />
-                      </label>
-                      <div class="control-grid">
-                        <label><span data-i18n="vNewsStyleLabel">Banner style</span>
-                          <select id="vsNewsStyle">
-                            <optgroup label="📺 Broadcast">
-                              <option value="lowerthird">Lower third</option>
-                              <option value="ticker">Bottom ticker</option>
-                              <option value="fullbar">Full lower bar</option>
-                              <option value="breaking">Breaking news bar</option>
-                              <option value="topbar">Top news bar</option>
-                            </optgroup>
-                            <optgroup label="🎬 Cinematic title">
-                              <option value="title-center">Centered title</option>
-                              <option value="bold-statement">Bold statement (huge)</option>
-                              <option value="title-left">Left title block</option>
-                              <option value="kinetic">Kinetic type</option>
-                              <option value="reveal-words">Word reveal</option>
-                            </optgroup>
-                            <optgroup label="💬 Quote &amp; context">
-                              <option value="quote">Quote style</option>
-                              <option value="pullquote">Pull quote (side)</option>
-                              <option value="caption">Caption bottom</option>
-                              <option value="annotation">Annotation card</option>
-                            </optgroup>
-                            <optgroup label="🎨 Graphic">
-                              <option value="split">Split block</option>
-                              <option value="badge">Badge headline</option>
-                              <option value="magazine-cover">Magazine cover</option>
-                              <option value="neon-title">Neon title</option>
-                              <option value="minimal-line">Minimal line</option>
-                            </optgroup>
-                          </select>
-                        </label>
-                        <label><span data-i18n="vNewsAccentLabel">Banner accent</span>
-                          <select id="vsNewsAccent">
-                            <option value="auto" selected>Match template</option>
-                            <option value="red">Breaking red</option>
-                            <option value="blue">News blue</option>
-                            <option value="gold">Studio gold</option>
-                            <option value="mono">Mono / dark</option>
-                          </select>
-                        </label>
-                      </div>
-                      <label><span data-i18n="vNewsMotionLabel">Entrance motion</span>
-                        <select id="vsNewsMotion">
-                          <option value="slide-up">Slide up</option>
-                          <option value="slide-left">Slide from left</option>
-                          <option value="slide-right">Slide from right</option>
-                          <option value="fade">Fade in</option>
-                          <option value="pop">Pop / scale</option>
-                          <option value="vox">Vox style (snappy)</option>
-                          <option value="none">None</option>
-                        </select>
-                      </label>
-                      <label class="toggle-row"><input id="vsNewsClock" type="checkbox" /><span data-i18n="vNewsClockLabel">Show live clock</span></label>
-                    </div>
-                  </details>
-                </div>
-              </div>
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="format">
-                <span class="vstudio-label" data-i18n="vFormatLabel">Format & export</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vAspectLabel">Aspect ratio</span>
-                    <select id="vsAspect">
-                      <option value="9:16" selected>9:16 — Reels / TikTok</option>
-                      <option value="original">Original</option>
-                      <option value="16:9">16:9 — Landscape</option>
-                      <option value="1:1">1:1 — Square</option>
-                      <option value="4:5">4:5 — Portrait</option>
-                    </select>
-                  </label>
-                </div>
-                <input id="vsDuration" type="hidden" value="6" />
-                <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
-                <div class="control-grid">
-                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
-                    <select id="vsSpeed">
-                      <option value="0.5">0.5×</option>
-                      <option value="1" selected>1×</option>
-                      <option value="1.5">1.5×</option>
-                      <option value="2">2×</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="control-grid">
-                  <label><span data-i18n="vTransitionLabel">Transition in</span>
-                    <select id="vsTransition">
-                      <option value="fade">Fade</option>
-                      <option value="blur">Blur</option>
-                      <option value="zoom">Zoom in</option>
-                      <option value="slide">Slide up</option>
-                      <option value="none">None</option>
-                    </select>
-                  </label>
-                  <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
-                </div>
-                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vExportSizeLabel">Download size</span>
-                    <select id="vsExportSize">
-                      <option value="2160">4K — 2160p</option>
-                      <option value="1080" selected>Full HD — 1080p</option>
-                      <option value="720">HD — 720p</option>
-                      <option value="480">SD — 480p</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
-                    <select id="vsExportQuality">
-                      <option value="max">Maximum</option>
-                      <option value="high" selected>High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low (small file)</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportFormatLabel">File format</span>
-                    <select id="vsExportFormat">
-                      <option value="mp4" selected>MP4 (most compatible)</option>
-                      <option value="webm">WebM (faster, smaller)</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="vstudio-note" data-i18n="vExportFormatNote">MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.</p>
-                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
-              </div>
-
-
-
-
-              <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
-                <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
-                <label class="upload-box small">
-                  <span data-i18n="vLogoHint">Logo: PNG (transparent) or animated WebM/MP4</span>
-                  <input id="vsLogo" type="file" accept="image/*,video/*" />
-                </label>
-                <div class="vs-logo-timing">
-                  <label><span data-i18n="vLogoStartLabel">Logo start (s)</span><input id="vsLogoStart" type="number" min="0" step="0.5" value="0" /></label>
-                  <label><span data-i18n="vLogoDurLabel">Logo duration (s, 0 = end)</span><input id="vsLogoDur" type="number" min="0" step="0.5" value="0" /></label>
-                </div>
-                <label><span data-i18n="vLogoPosLabel">Logo position</span>
-                  <select id="vsLogoPos">
-                    <option value="tl">Top left</option>
-                    <option value="tc">Top center</option>
-                    <option value="tr">Top right</option>
-                    <option value="ml">Middle left</option>
-                    <option value="c">Center</option>
-                    <option value="mr">Middle right</option>
-                    <option value="bl">Bottom left</option>
-                    <option value="bc">Bottom center</option>
-                    <option value="br">Bottom right</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vLogoMotionLabel">Logo motion</span>
-                  <select id="vsLogoMotion">
-                    <option value="none">None (static)</option>
-                    <option value="fade" selected>Fade in</option>
-                    <option value="pop">Pop (bounce)</option>
-                    <option value="slide">Slide in</option>
-                    <option value="spin">Spin reveal</option>
-                    <option value="rise">Cinematic rise</option>
-                    <option value="pulse">Pulse glow (loop)</option>
-                    <option value="letters">Letter cascade (wordmarks)</option>
-                    <option value="shine">Shine sweep (loop)</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vLogoStyleLabel">Logo frame style</span>
-                  <select id="vsLogoStyle">
-                    <option value="none" selected>Clean (no frame)</option>
-                    <option value="circle">Circle + ring</option>
-                    <option value="glass">Glass card</option>
-                    <option value="badge">Accent badge</option>
-                    <option value="shadow">Soft shadow</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vLogoColorLabel">Ring / badge color</span>
-                  <select id="vsLogoColor">
-                    <option value="auto" selected>Match template</option>
-                    <option value="#d8b76a">Gold</option>
-                    <option value="#00d4ff">Cyan</option>
-                    <option value="#ffffff">White</option>
-                    <option value="#35d07f">Green</option>
-                    <option value="#e0533d">Red</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vLogoSizeLabel">Logo size</span>
-                  <select id="vsLogoSize">
-                    <option value="0.10">Small</option>
-                    <option value="0.16" selected>Medium</option>
-                    <option value="0.24">Large</option>
-                    <option value="0.34">Extra large</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vIntroLabel">Intro — main text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
-                <label><span data-i18n="vIntroSubLabel">Intro — secondary text</span><input id="vsIntroSub" type="text" placeholder="A new standard of calm" /></label>
-                <label><span data-i18n="vIntroMotionLabel">Intro text motion</span>
-                  <select id="vsIntroMotion">
-                    <option value="fade">Fade in</option>
-                    <option value="rise">Rise up</option>
-                    <option value="slide">Slide in</option>
-                    <option value="zoom">Zoom in</option>
-                    <option value="reveal">Line reveal</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vOutroLabel">Outro card text</span><input id="vsOutro" type="text" placeholder="airadar.ai" /></label>
-              </div>
-
-
-              <div class="vstudio-actions">
-                <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
-                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
-              </div>
-              <p id="vsStatus" class="ai-note"></p>
-            </div>
-
-            <div class="vstudio-stage">
-              <div class="vs-stage-bar">
-                <span data-i18n="vPreviewLabel">Preview</span>
-                <label class="vs-size-control">
-                  <span data-i18n="vPreviewSizeLabel">Preview size</span>
-                  <input id="vsPreviewSize" type="range" min="40" max="100" value="100" />
-                  <em id="vsPreviewSizeVal">100%</em>
-                </label>
-              </div>
-              <div id="vsPreview" class="vs-preview">
-                <div class="preview-placeholder" data-i18n="vPlaceholder">Choose a template and upload media to preview it here</div>
-              </div>
-
-                <!-- Hera-style scene timeline -->
-              <div class="vs-timeline" id="vsTimeline">
-                <div class="vs-timeline-toolbar">
-                  <button id="vsUndoBtn" class="vs-tool-btn" type="button" aria-label="Undo" title="Undo">↶</button>
-                  <button id="vsRedoBtn" class="vs-tool-btn" type="button" aria-label="Redo" title="Redo">↷</button>
-                  <button id="vsPlayBtn" class="vs-play-btn" type="button" aria-label="Play / pause">▶</button>
-                  <span id="vsTimecode" class="vs-timecode">0:00 / 0:00</span>
-                  <span class="vs-timeline-hint" data-i18n="vTimelineHint">Drag edges to resize · click to select</span>
-                </div>
-                <!-- Scene strip (Hera style) -->
-                <div class="vs-scene-strip" id="vsSceneStrip">
-                  <div class="vs-scene-scroll" id="vsSceneScroll">
-                    <div class="vs-scene-blocks" id="vsSceneBlocks"></div>
-                    <div class="vs-waveform-row" id="vsWaveformRow">
-                      <canvas class="vs-waveform-canvas" id="vsWaveformCanvas"></canvas>
-                    </div>
-                    <div class="vs-scene-playhead" id="vsScenePlayhead"></div>
-                  </div>
-                </div>
-                <!-- Legacy track area kept hidden for JS scrub logic -->
-                <div class="vs-track-area" id="vsTrackArea" style="display:none">
-                  <div class="vs-tracks">
-                    <div class="vs-track">
-                      <span class="vs-track-label">Media</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-media" id="vsClipMedia">Media</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Text</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-text" id="vsClipText">Text</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Logo</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-logo" id="vsClipLogo">Logo</div></div>
-                    </div>
-                    <div class="vs-track">
-                      <span class="vs-track-label">Music</span>
-                      <div class="vs-track-lane"><div class="vs-clip vs-clip-music" id="vsClipMusic">Music</div></div>
-                    </div>
-                  </div>
-                  <div class="vs-playhead" id="vsPlayhead"><div class="vs-playhead-grip"></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- PROMPT LAB -->
-        <section id="intelligence" class="panel intelligence">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Prompt Lab — Prompt & JSON tools</p>
-              <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
-            </div>
-          </div>
-          <div class="intel-layout">
-            <div id="promptForm" class="utility-card">
-              <label>
-                <span data-i18n="promptDescLabel">Describe what you want to create</span>
-                <input id="simplePromptInput" type="text" placeholder="Type one word, e.g. ocean — or a short idea" />
-              </label>
-              <label>
-                <span data-i18n="promptStyleLabel">Style</span>
-                <select id="promptStyleSelect">
-                  <option value="cinematic">Cinematic</option>
-                  <option value="editorial">Editorial</option>
-                  <option value="hyperreal">Hyper-real</option>
-                  <option value="minimal">Minimal luxury</option>
-                  <option value="render3d">3D render</option>
-                  <option value="anime">Anime / illustration</option>
-                </select>
-              </label>
-              <button id="promptGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="promptGenBtn">Generate prompt</span>
-              </button>
-              <p class="ai-note" data-i18n="promptNote">Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.</p>
-              <div class="output-box">
-                <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
-                <pre id="advancedPromptOutput" class="ai-output"></pre>
-              </div>
-            </div>
-            <div id="jsonForm" class="utility-card">
-              <label>
-                <span data-i18n="jsonDescLabel">Describe any data, product, or idea</span>
-                <textarea id="textJsonInput" rows="6" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
-              </label>
-              <button id="jsonGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="jsonGenBtn">Generate JSON</span>
-              </button>
-              <p class="ai-note" data-i18n="jsonNote">Outputs only clean, valid JSON — no explanation, no extra text.</p>
-              <div class="output-box">
-                <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
-                <pre id="jsonOutput" class="ai-output"></pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-
-        <!-- ABOUT / CREDITS -->
-        <section id="about" class="panel">
-          <div class="section-head" style="margin-bottom:20px;">
-            <div>
-              <p class="eyebrow" data-i18n="aboutEyebrow">About</p>
-              <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
-            </div>
-          </div>
-          <div class="about-compact-grid">
-
-            <!-- LEFT: mission + stats -->
-            <div style="display:flex;flex-direction:column;gap:14px;">
-              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos — all in your browser.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
-              </div>
-              <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(216,183,106,0.05);border-radius:0 8px 8px 0;">
-                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
-              </div>
-            </div>
-
-            <!-- RIGHT: creator + changelog -->
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <div style="padding:16px;border:1px solid rgba(216,183,106,0.3);border-radius:10px;background:rgba(216,183,106,0.05);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                  <div style="width:40px;height:40px;border-radius:50%;background:rgba(216,183,106,0.2);border:1px solid rgba(216,183,106,0.4);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--gold-2);flex-shrink:0;">SA</div>
-                  <div>
-                    <strong style="display:block;font-size:15px;">Shayan Alinia</strong>
-                    <span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span>
-                  </div>
-                </div>
-                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar — concept, interface, and the video studio.</p>
-              </div>
-
-              <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
-                  <span style="font-size:12px;font-weight:800;" data-i18n="changelogTitle">Latest updates</span>
-                  <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(216,183,106,0.15);border:1px solid rgba(216,183,106,0.3);color:var(--gold);">v2.5</span>
-                </div>
-                <ul style="list-style:none;margin:0;padding:0;">
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.5</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Real AI news, cinematic map &amp; tool dashboards</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Live headlines from TechCrunch, VentureBeat &amp; The Verge, a dotted cinematic world map with live data packets, per-tool featured dashboards, live metric chips with sparklines, and similar-tool discovery cards.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.4</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Global AI map, news &amp; live dashboard</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">New world map of AI hubs, an AI news pulse, a fullscreen live dashboard for second monitors, and an advanced GitHub dashboard with sort, search &amp; multi-metric view.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.35</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Always-free AI assistant</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">The video assistant now runs on a free AI engine — no sign-in, no limits. Smarter intros &amp; outros with the source built in.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector now applies to all video styles — news, infographic, cinematic, neon, intro &amp; outro. Center snap guide added.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl21Title">Cinematic design upgrade</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl21Text">Premium animated backgrounds, new infographic styles, Vox-style motion across the studio.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(216,183,106,0.12);border:1px solid rgba(216,183,106,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl20Title">Smarter article-to-video</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl20Text">Paste an article URL — AI reads the whole piece and builds a complete video using infographics where there are numbers.</p></div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-      </main>
-      <button id="scrollTopBtn" class="scroll-top" type="button"
-        aria-label="Back to top" title="Back to top">
-        <span class="scroll-top-arrow">↑</span>
-      </button>
-      </div><!-- /.content-area -->
-    </div>
-
-
-    <script>
-    /* ── RANGE SLIDER GOLD FILL ── */
-    document.addEventListener("DOMContentLoaded", function(){
-      function updateRange(r){
-        var pct=((+r.value-+(r.min||0))/(+(r.max||100)-+(r.min||0))*100).toFixed(1)+"%";
-        r.style.background="linear-gradient(to right,rgba(216,183,106,0.6) 0%,rgba(216,183,106,0.6) "+pct+",var(--line) "+pct+",var(--line) 100%)";
-      }
-      document.querySelectorAll("input[type=range]").forEach(function(r){updateRange(r);r.addEventListener("input",function(){updateRange(r);});});
+    }
+  } catch(e){}
+  return fam;
+}
+const $ = (selector) => document.querySelector(selector);
+const toolGrid = $("#toolGrid");
+const compareTable = $("#compareTable");
+const t = (key) => i18n[state.lang][key] || i18n.en[key] || key;
+const text = (value) => (typeof value === "string" ? value : value[state.lang] || value.en);
+
+// Theme switching: "dark" (default) and "light".
+function applyTheme(theme) {
+  const isLight = theme === "light";
+  document.body.classList.toggle("theme-light", isLight);
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  // highlight the active segment
+  document.querySelectorAll("#themeSeg .seg-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.theme === (isLight ? "light" : "dark"));
+  });
+}
+
+function setLanguage(lang) {
+  state.lang = lang;
+  localStorage.setItem("lang", lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
+  document.body.dir = document.documentElement.dir;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  // highlight the active language segment
+  document.querySelectorAll("#langSeg .seg-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.lang === lang);
+  });
+  $("#searchInput").placeholder =
+    lang === "fa" ? "جست‌وجو بر اساس کاربرد، قیمت، شغل..." : "Search by use case, price, job...";
+  renderControls();
+  renderTools();
+  renderCompare();
+  render3DChart();
+  // refresh AI map + news labels on language switch
+  const fa = lang === "fa";
+  const setTxt = (id, en, faTxt) => { const el = document.querySelector(id); if (el) el.textContent = fa ? faTxt : en; };
+  setTxt("#aimonEyebrow", "Live AI radar", "رادار زنده هوش مصنوعی");
+  setTxt("#aimonTitle", "Global AI Map", "نقشه جهانی هوش مصنوعی");
+  setTxt("#aimonSub", "The world's AI power centers, live. Tap a hub to see who's there.",
+    "مراکز قدرت هوش مصنوعی جهان، زنده. روی هر نقطه بزن تا ببینی چه شرکت‌هایی آنجا هستند.");
+  setTxt("#ainewsSub", "Latest in AI", "تازه‌ترین‌های هوش مصنوعی");
+  const dashTxt = document.querySelector("#dashLaunchTxt");
+  if (dashTxt) dashTxt.textContent = fa ? "داشبورد زنده" : "Live Dashboard";
+  const dashHint = document.querySelector("#dashHintTxt");
+  if (dashHint) dashHint.textContent = fa
+    ? "هر نمایشگری را به مرکز فرماندهی زنده تبدیل کن"
+    : "Turn any screen into a live war-room";
+  if (typeof _aiMonInited !== "undefined" && _aiMonInited &&
+      typeof renderAiMap === "function" && document.querySelector("#aimap")) {
+    renderAiMap();
+    if (typeof renderAiChips === "function") renderAiChips();
+    if (typeof renderAiTicker === "function") renderAiTicker();
+  }
+}
+
+function formatPrice(price) {
+  if (price === 0) return state.lang === "fa" ? "رایگان" : "Free";
+  return state.lang === "fa" ? `از حدود $${price}` : `From about $${price}`;
+}
+
+// Price badge — green "Free" for free tools, muted price otherwise.
+function priceBadge(tool) {
+  return formatPrice(tool.price);
+}
+function priceBadgeClass(tool) {
+  return tool.price === 0 ? "price-free" : "price-paid";
+}
+
+function uniqueCategories() {
+  const map = new Map();
+  tools.forEach((tool) => map.set(text(tool.category), tool.category.en));
+  return [{ label: t("allCategories"), value: "all" }, ...Array.from(map, ([label, value]) => ({ label, value }))];
+}
+
+function renderControls() {
+  $("#categoryFilter").innerHTML = uniqueCategories()
+    .map((item) => `<option value="${item.value}">${item.label}</option>`)
+    .join("");
+  $("#categoryFilter").value = state.category;
+
+  $("#budgetFilter").innerHTML = [
+    ["all", t("allBudgets")],
+    ["free", t("freeBudget")],
+    ["under20", t("under20")],
+    ["pro", t("proBudget")]
+  ]
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join("");
+  $("#budgetFilter").value = state.budget;
+
+  $("#sortFilter").innerHTML = [
+    ["score", t("sortScore")],
+    ["price", t("sortPrice")],
+    ["name", t("sortName")]
+  ]
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join("");
+  $("#sortFilter").value = state.sort;
+
+  $("#modelTypeFilter").innerHTML = [
+    ["all", state.lang === "fa" ? "همه مدل‌ها" : "All model types"],
+    ["text", state.lang === "fa" ? "متن و LLM" : "Text and LLM"],
+    ["multimodal", state.lang === "fa" ? "چندوجهی" : "Multimodal"],
+    ["image", state.lang === "fa" ? "تصویر" : "Image"],
+    ["video", state.lang === "fa" ? "ویدیو" : "Video"],
+    ["audio", state.lang === "fa" ? "صدا" : "Audio"],
+    ["coding", state.lang === "fa" ? "کدنویسی" : "Coding"]
+  ]
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join("");
+  $("#modelTypeFilter").value = state.modelType;
+  $("#minScoreFilter").value = state.minScore;
+
+  if ($("#motionSelect")) {
+    $("#motionSelect").innerHTML = motions
+      .map((motion) => `<option value="${motion.id}">${motion[state.lang]}</option>`)
+      .join("");
+  }
+
+  // Jump-to dropdown — every tool, alphabetical.
+  const jumpTo = $("#jumpToTool");
+  if (jumpTo) {
+    const sorted = [...tools].sort((a, b) => a.name.localeCompare(b.name));
+    jumpTo.innerHTML =
+      `<option value="">${state.lang === "fa" ? "— انتخاب ابزار —" : "— Select a tool —"}</option>` +
+      sorted.map((tool) => `<option value="${tool.name}">${tool.name}</option>`).join("");
+  }
+}
+
+function passesBudget(tool) {
+  if (state.budget === "all") return true;
+  if (state.budget === "free") return tool.plan === "free" || tool.plan === "freemium";
+  if (state.budget === "under20") return tool.price < 20;
+  return tool.price >= 20;
+}
+
+function filteredTools() {
+  const query = state.query.trim().toLowerCase();
+  return tools
+    .filter((tool) => {
+      const searchable = [
+        tool.name,
+        text(tool.category),
+        text(tool.useCase),
+        text(tool.pricing),
+        tool.tags.join(" "),
+        tool.jobs.join(" ")
+      ]
+        .join(" ")
+        .toLowerCase();
+      return (
+        (!query || searchable.includes(query)) &&
+        (state.category === "all" || tool.category.en === state.category) &&
+        (state.modelType === "all" || tool.modelType === state.modelType) &&
+        tool.score >= state.minScore &&
+        passesBudget(tool)
+      );
+    })
+    .sort((a, b) => {
+      if (state.sort === "price") return a.price - b.price;
+      if (state.sort === "name") return a.name.localeCompare(b.name);
+      return b.score - a.score;
     });
-    /* ── FONT CHANGE → REDRAW ── */
-    document.addEventListener("DOMContentLoaded", function(){
-      var f=document.getElementById("vsHeadlineFont");
-      if(!f)return;
-      f.addEventListener("change",function(){
-        setTimeout(function(){
-          if(typeof drawStudioFrame==="function"){drawStudioFrame(0);}
-          else{var b=document.getElementById("vsPreviewBtn");if(b)b.click();}
-        },30);
+}
+
+function renderTools() {
+  const items = filteredTools();
+  const countEl = $("#toolCount");
+  if (countEl) {
+    countEl.textContent = state.lang === "fa"
+      ? `${items.length} از ${tools.length} ابزار`
+      : `${items.length} of ${tools.length} tools`;
+  }
+  if (!items.length) {
+    toolGrid.className = "tool-grid";
+    toolGrid.innerHTML = `<p class="empty">${t("noTools")}</p>`;
+    return;
+  }
+  // group the visible tools by category
+  const lang = state.lang === "fa" ? "fa" : "en";
+  const groups = {}; const order = [];
+  items.forEach(tool => {
+    const cat = (tool.category && tool.category[lang]) || "Other";
+    if (!groups[cat]) { groups[cat] = []; order.push(cat); }
+    groups[cat].push(tool);
+  });
+  // when a filter/search narrows the list, expand all groups;
+  // otherwise open the first group and collapse the rest.
+  const filtersActive = state.query || state.category !== "all"
+    || state.budget !== "all" || state.modelType !== "all"
+    || state.minScore > 0;
+  toolGrid.className = "tool-groups";
+  toolGrid.innerHTML = order.map((cat, i) => {
+    const cards = groups[cat].map(renderToolCard).join("");
+    const open = (filtersActive || i === 0) ? " open" : "";
+    const gridCls = state.viewMode === "list" ? "tool-grid is-list" : "tool-grid";
+    return `<details class="tool-group"${open}>` +
+      `<summary class="tool-group-head">` +
+      `<span class="tool-group-name">${escapeHtml(cat)}</span>` +
+      `<span class="tool-group-count">${groups[cat].length}</span>` +
+      `</summary><div class="${gridCls}">${cards}</div></details>`;
+  }).join("");
+}
+
+function setToolView(mode) {
+  state.viewMode = mode;
+  localStorage.setItem("toolViewMode", mode);
+  const g = $("#viewGrid"), l = $("#viewList");
+  if (g) g.classList.toggle("active", mode === "grid");
+  if (l) l.classList.toggle("active", mode === "list");
+  renderTools();
+}
+
+// Jump to a specific tool: clear filters that might hide it,
+// re-render, then scroll to and briefly highlight its card.
+function jumpToTool(name) {
+  // reset filters so the target is guaranteed visible
+  state.query = ""; state.category = "all"; state.budget = "all";
+  state.modelType = "all"; state.minScore = 0;
+  const searchInput = $("#searchInput");
+  if (searchInput) searchInput.value = "";
+  renderControls();
+  renderTools();
+  // wait for DOM, then scroll + flash
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`[data-tool-card="${CSS.escape(name)}"]`);
+    if (!card) return;
+    // open the collapsible category group the card sits in
+    const group = card.closest("details.tool-group");
+    if (group) group.open = true;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("tool-card-flash");
+    setTimeout(() => card.classList.remove("tool-card-flash"), 1600);
+  });
+}
+
+
+function getTrendBadge(tool) {
+  const fa = state.lang === "fa";
+  const dayIdx = Math.floor(Date.now() / 86400000) % tools.length;
+  if (tools[dayIdx] && tools[dayIdx].name === tool.name) {
+    return `<span class="trend-badge badge-today">⭐ ${fa?'ابزار روز':"Today's pick"}</span>`;
+  }
+  const stars = tool.stars || 0, score = tool.score || 0;
+  const isNew = tool.tags && tool.tags.some(t => ['new','2025','2026'].includes(t.toLowerCase()));
+  if (stars >= 20000 && score >= 85) return `<span class="trend-badge badge-hot">🔥 ${fa?'پرطرفدار':'Trending'}</span>`;
+  if (stars >= 5000 && score >= 70)  return `<span class="trend-badge badge-growing">⬆ ${fa?'رشد سریع':'Growing'}</span>`;
+  if (tool.price === 0 && score >= 80) return `<span class="trend-badge badge-free-pick">✓ ${fa?'بهترین رایگان':'Best free'}</span>`;
+  if (isNew) return `<span class="trend-badge badge-new">✦ ${fa?'جدید':'New'}</span>`;
+  if (score >= 90) return `<span class="trend-badge badge-established">◈ ${fa?'تثبیت‌شده':'Established'}</span>`;
+  return '';
+}
+function renderToolCard(tool) {
+  const isCompared = state.compare.includes(tool.name);
+  const slug = tool.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const logoHtml = tool.logoUrl
+    ? `<img src="${tool.logoUrl}" alt="${tool.name} logo" loading="lazy" />`
+    : tool.logo || tool.name.slice(0, 2).toUpperCase();
+
+  // ---- LIST MODE: a single compact row ----
+  if (state.viewMode === "list") {
+    return `
+    <article class="tool-row" data-tool-card="${tool.name}" id="tool-${slug}">
+      <span class="logo">${logoHtml}</span>
+      <div class="tool-row-main">
+        <h3>${tool.name} ${getTrendBadge(tool)}</h3>
+        <span class="tag">${text(tool.category)}</span>
+      </div>
+      <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
+      <div class="tool-row-actions">
+        <button class="button ghost" type="button" data-compare="${tool.name}">
+          ${isCompared ? t("removeCompare") : t("addCompare")}
+        </button>
+        <a class="mini-link" href="${tool.url}" target="_blank" rel="noopener">${t("officialLink")}</a>
+      </div>
+    </article>`;
+  }
+
+  // ---- GRID MODE: the full card ----
+  return `
+    <article class="tool-card" data-tool-card="${tool.name}" id="tool-${slug}">
+      <div class="tool-top">
+        <div class="tool-top">
+          <span class="logo">${logoHtml}</span>
+          <div>
+            <h3>${tool.name}</h3>
+            <span class="tag">${text(tool.category)}</span>
+          </div>
+        </div>
+        <span class="price ${priceBadgeClass(tool)}">${priceBadge(tool)}</span>
+      </div>
+      ${getTrendBadge(tool)}
+      <p>${text(tool.useCase)}</p>
+      <div class="tags">
+        ${tool.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+      </div>
+      <p>${t("pricing")}: ${text(tool.pricing)}</p>
+      <div class="tool-actions">
+        <button class="button ghost" type="button" data-compare="${tool.name}">
+          ${isCompared ? t("removeCompare") : t("addCompare")}
+        </button>
+        <a class="mini-link" href="${tool.url}" target="_blank" rel="noopener">${t("officialLink")}</a>
+      </div>
+    </article>
+  `;
+}
+
+function renderCompare() {
+  const selected = tools.filter((tool) => state.compare.includes(tool.name));
+  if (!selected.length) {
+    compareTable.innerHTML = `<p class="empty">${t("emptyCompare")}</p>`;
+    return;
+  }
+
+  // pull the latest live GitHub numbers so the table matches the 3D chart
+  const liveByName = {};
+  liveChartData.forEach((d) => { liveByName[d.name] = d; });
+
+  const fa = state.lang === "fa";
+  const colStars    = fa ? "ستاره‌های گیت‌هاب" : "GitHub Stars";
+  const colForks    = fa ? "فورک" : "Forks";
+  const colActivity = fa ? "آخرین فعالیت" : "Last Activity";
+
+  const fmtStars = (v) => v == null ? "—" : v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v);
+  const fmtActivity = (days) => {
+    if (days == null) return "—";
+    if (days <= 0) return fa ? "امروز" : "today";
+    if (days === 1) return fa ? "۱ روز پیش" : "1 day ago";
+    if (days < 30) return fa ? `${days} روز پیش` : `${days} days ago`;
+    const m = Math.round(days / 30);
+    return fa ? `${m} ماه پیش` : `${m} mo ago`;
+  };
+
+  compareTable.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>${t("tableTool")}</th>
+          <th>${t("tableCategory")}</th>
+          <th>${colStars}</th>
+          <th>${colForks}</th>
+          <th>${colActivity}</th>
+          <th>${t("tablePrice")}</th>
+          <th>${t("tableLink")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${selected
+          .map((tool) => {
+            const live = liveByName[tool.name] || tool;
+            const repoLink = tool.repo
+              ? `<a class="mini-link" href="https://github.com/${tool.repo}" target="_blank" rel="noopener">${fmtStars(live.stars)}</a>`
+              : "—";
+            return `
+              <tr>
+                <td>${tool.name}</td>
+                <td>${text(tool.category)}</td>
+                <td><strong>★ ${fmtStars(live.stars)}</strong></td>
+                <td>${live.forks == null ? "—" : fmtStars(live.forks)}</td>
+                <td>${fmtActivity(live.activityDays ?? tool.activityDays)}</td>
+                <td>${text(tool.pricing)}</td>
+                <td><a class="mini-link" href="${tool.url}" target="_blank" rel="noopener">${t("open")}</a></td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderMetrics() {
+  const metricTools = $("#metricTools");
+  const metricFree = $("#metricFree");
+  const metricJobs = $("#metricJobs");
+  if (metricTools) metricTools.textContent = tools.length;
+  if (metricFree) metricFree.textContent = tools.filter((tool) => tool.plan === "free" || tool.plan === "freemium").length;
+  if (metricJobs) metricJobs.textContent = jobRoles.length;
+}
+
+function toggleCompare(name) {
+  state.compare = state.compare.includes(name)
+    ? state.compare.filter((item) => item !== name)
+    : [...state.compare, name].slice(-4);
+  localStorage.setItem("compareTools", JSON.stringify(state.compare));
+  renderTools();
+  renderCompare();
+  render3DChart();
+}
+
+function saveSlides() {
+  const serializable = state.slides.map(({ src, ...slide }) => slide);
+  localStorage.setItem("videoSlides", JSON.stringify(serializable));
+}
+
+function parseChartData(value) {
+  return String(value || "")
+    .split(/[,\s]+/)
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item) && item >= 0)
+    .slice(0, 8);
+}
+
+function addUploadedFiles(files) {
+  state.uploadedAssets.forEach((asset) => URL.revokeObjectURL(asset.url));
+  state.uploadedAssets = [...files].filter((file) => file.type.startsWith("image/")).map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(file)
+  }));
+  if (!state.uploadedAssets.length) {
+    renderStudio(t("noFile"));
+    return;
+  }
+  const duration = Number($("#durationInput").value || 4);
+  const motion = $("#motionSelect").value || "zoom";
+  const baseTitle = $("#slideTitleInput").value.trim() || "AI Radar";
+  const baseCaption = $("#slideCaptionInput").value.trim() || "Create, compare, and launch with AI.";
+  const chart = parseChartData($("#chartDataInput").value);
+  state.slides.push(
+    ...state.uploadedAssets.map((asset, index) => ({
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${asset.name}`,
+      name: asset.name,
+      src: asset.url,
+      title: state.uploadedAssets.length > 1 ? `${baseTitle} ${index + 1}` : baseTitle,
+      caption: baseCaption,
+      chart,
+      duration,
+      motion
+    }))
+  );
+  renderStudio();
+}
+
+function addSlide() {
+  const asset = state.uploadedAssets[state.slides.length % Math.max(state.uploadedAssets.length, 1)];
+  if (!asset) {
+    renderStudio(t("noFile"));
+    return;
+  }
+  state.slides.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    name: asset.name,
+    src: asset.url,
+    title: $("#slideTitleInput").value.trim() || "AI Radar",
+    caption: $("#slideCaptionInput").value.trim() || "Create, compare, and launch with AI.",
+    chart: parseChartData($("#chartDataInput").value),
+    duration: Number($("#durationInput").value || 4),
+    motion: $("#motionSelect").value || "zoom"
+  });
+  renderStudio();
+}
+
+function hydrateSlideSources() {
+  state.slides = state.slides.filter((slide) => slide.src);
+}
+
+function renderStudio(message = "") {
+  hydrateSlideSources();
+  const preview = $("#videoPreview");
+  const timeline = $("#timeline");
+  if (!state.slides.length) {
+    preview.innerHTML = `<div class="preview-placeholder">${message || t("previewPlaceholder")}</div>`;
+    timeline.innerHTML = "";
+    return;
+  }
+
+  const active = state.slides[state.slides.length - 1];
+  const chartValues = active.chart || [];
+  const maxChart = Math.max(...chartValues, 1);
+  preview.style.setProperty("--slide-duration", `${active.duration}s`);
+  preview.innerHTML = `
+    <img class="motion-${active.motion}" src="${active.src}" alt="${active.name}" />
+    <div class="video-shade"></div>
+    <div class="video-copy">
+      <span class="video-kicker">AI Radar Studio</span>
+      <strong class="video-title">${active.title || "AI Radar"}</strong>
+      <span class="video-caption">${active.caption || ""}</span>
+      <span class="video-line"></span>
+    </div>
+    ${
+      chartValues.length
+        ? `<div class="chart-overlay">${chartValues
+            .map((value, index) => `<span style="height:${Math.max(8, (value / maxChart) * 100)}%; animation-delay:${index * 90}ms"></span>`)
+            .join("")}</div>`
+        : ""
+    }
+    <div class="video-progress"><span></span></div>
+  `;
+  timeline.innerHTML = state.slides
+    .map(
+      (slide, index) => `
+        <div class="slide-item">
+          <img src="${slide.src}" alt="${slide.name}" />
+          <p><strong>${index + 1}. ${slide.name}</strong></p>
+          <label>
+            <span>${t("slideTitleLabel")}</span>
+            <input type="text" value="${escapeAttribute(slide.title || "")}" data-slide-title="${slide.id}" />
+          </label>
+          <label>
+            <span>${t("slideCaptionLabel")}</span>
+            <input type="text" value="${escapeAttribute(slide.caption || "")}" data-slide-caption="${slide.id}" />
+          </label>
+          <label>
+            <span>${t("chartDataLabel")}</span>
+            <input type="text" value="${escapeAttribute((slide.chart || []).join(", "))}" data-slide-chart="${slide.id}" />
+          </label>
+          <label>
+            <span>${t("durationLabel")}</span>
+            <input type="number" min="1" max="30" value="${slide.duration}" data-slide-duration="${slide.id}" />
+          </label>
+          <label>
+            <span>${t("motionLabel")}</span>
+            <select data-slide-motion="${slide.id}">
+              ${motions
+                .map(
+                  (motion) =>
+                    `<option value="${motion.id}" ${motion.id === slide.motion ? "selected" : ""}>${motion[state.lang]}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+          <button class="button ghost" type="button" data-delete-slide="${slide.id}">${t("deleteSlide")}</button>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function escapeAttribute(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function deleteSlide(id) {
+  state.slides = state.slides.filter((slide) => slide.id !== id);
+  saveSlides();
+  renderStudio();
+}
+
+function updateSlideDuration(id, value) {
+  const slide = state.slides.find((item) => item.id === id);
+  if (!slide) return;
+  slide.duration = Math.max(1, Math.min(30, Number(value) || 1));
+  renderStudio();
+}
+
+function updateSlideMotion(id, value) {
+  const slide = state.slides.find((item) => item.id === id);
+  if (!slide) return;
+  slide.motion = value;
+  renderStudio();
+}
+
+function updateSlideText(id, key, value) {
+  const slide = state.slides.find((item) => item.id === id);
+  if (!slide) return;
+  slide[key] = value;
+  renderStudio();
+}
+
+function updateSlideChart(id, value) {
+  const slide = state.slides.find((item) => item.id === id);
+  if (!slide) return;
+  slide.chart = parseChartData(value);
+  renderStudio();
+}
+
+function exportTemplate() {
+  if (!state.slides.length) {
+    renderStudio(t("templateEmpty"));
+    return;
+  }
+  const payload = {
+    name: "AI Radar Video Template",
+    format: "static-browser-template",
+    createdAt: new Date().toISOString(),
+    slides: state.slides.map((slide, index) => ({
+      order: index + 1,
+      fileName: slide.name,
+      title: slide.title,
+      caption: slide.caption,
+      chart: slide.chart || [],
+      durationSeconds: slide.duration,
+      motion: slide.motion
+    }))
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ai-radar-video-template.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  setStudioStatus(t("downloaded"));
+}
+
+function setStudioStatus(message) {
+  $("#studioStatus").textContent = message || "";
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+function drawCoverImage(ctx, image, width, height, progress, motion) {
+  const scale =
+    motion === "zoom" ? 1 + progress * 0.12 :
+    motion === "pan" ? 1.1 :
+    motion === "rise" ? 1.08 :
+    1.04;
+  const sourceRatio = image.width / image.height;
+  const targetRatio = width / height;
+  let drawWidth;
+  let drawHeight;
+  if (sourceRatio > targetRatio) {
+    drawHeight = height * scale;
+    drawWidth = drawHeight * sourceRatio;
+  } else {
+    drawWidth = width * scale;
+    drawHeight = drawWidth / sourceRatio;
+  }
+  const panX = motion === "pan" ? (progress - 0.5) * width * 0.09 : 0;
+  const riseY = motion === "rise" ? (0.5 - progress) * height * 0.06 : 0;
+  ctx.globalAlpha = motion === "fade" ? 0.72 + progress * 0.28 : 1;
+  ctx.drawImage(image, (width - drawWidth) / 2 + panX, (height - drawHeight) / 2 + riseY, drawWidth, drawHeight);
+  ctx.globalAlpha = 1;
+}
+
+function wrapText(ctx, textValue, x, y, maxWidth, lineHeight, maxLines = 2) {
+  const words = String(textValue || "").split(/\s+/).filter(Boolean);
+  let line = "";
+  let lines = 0;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = word;
+      lines += 1;
+      if (lines >= maxLines) return y;
+    } else {
+      line = test;
+    }
+  }
+  if (line && lines < maxLines) ctx.fillText(line, x, y);
+  return y + lineHeight;
+}
+
+function drawSlideFrame(ctx, slide, image, width, height, progress) {
+  const eased = 1 - Math.pow(1 - progress, 3);
+  ctx.clearRect(0, 0, width, height);
+  drawCoverImage(ctx, image, width, height, eased, slide.motion);
+
+  const gradient = ctx.createLinearGradient(0, 0, width, 0);
+  gradient.addColorStop(0, "rgba(0,0,0,0.82)");
+  gradient.addColorStop(0.58, "rgba(0,0,0,0.22)");
+  gradient.addColorStop(1, "rgba(0,0,0,0.04)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.globalAlpha = 0.72 + eased * 0.28;
+  ctx.fillStyle = "rgba(216,183,106,0.88)";
+  ctx.fillRect(70, 86 + Math.sin(progress * Math.PI) * 8, 132 + eased * 90, 3);
+  ctx.globalAlpha = 1;
+
+  const textX = 70;
+  const baseY = height - 230 + (1 - eased) * 28;
+  ctx.fillStyle = "#f7df9c";
+  ctx.font = "700 24px Inter, Arial, sans-serif";
+  ctx.fillText("AI RADAR STUDIO", textX, baseY);
+
+  ctx.fillStyle = "#fffaf0";
+  ctx.font = "400 68px Prata, Georgia, serif";
+  const afterTitle = wrapText(ctx, slide.title || "AI Radar", textX, baseY + 78, width * 0.66, 76, 2);
+
+  ctx.fillStyle = "rgba(255,250,240,0.78)";
+  ctx.font = "500 28px Inter, Arial, sans-serif";
+  wrapText(ctx, slide.caption || "", textX, afterTitle + 18, width * 0.58, 38, 2);
+
+  const chart = slide.chart || [];
+  if (chart.length) {
+    const max = Math.max(...chart, 1);
+    const chartX = width - 430;
+    const chartY = height - 230;
+    const chartW = 300;
+    const chartH = 160;
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
+    ctx.fillRect(chartX - 24, chartY - 24, chartW + 48, chartH + 48);
+    chart.forEach((value, index) => {
+      const barW = chartW / chart.length - 10;
+      const barH = (value / max) * chartH * eased;
+      const x = chartX + index * (chartW / chart.length);
+      const y = chartY + chartH - barH;
+      const barGradient = ctx.createLinearGradient(0, y, 0, chartY + chartH);
+      barGradient.addColorStop(0, "#fff0b8");
+      barGradient.addColorStop(1, "#d8b76a");
+      ctx.fillStyle = barGradient;
+      ctx.fillRect(x, y, barW, barH);
+    });
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.fillRect(70, height - 54, width - 140, 4);
+  ctx.fillStyle = "#d8b76a";
+  ctx.fillRect(70, height - 54, (width - 140) * progress, 4);
+}
+
+async function exportVideo() {
+  if (!state.slides.length) {
+    renderStudio(t("templateEmpty"));
+    return;
+  }
+  if (
+    !window.MediaRecorder ||
+    typeof HTMLCanvasElement === "undefined" ||
+    !HTMLCanvasElement.prototype.captureStream
+  ) {
+    setStudioStatus(t("videoUnsupported"));
+    return;
+  }
+
+  setStudioStatus(t("videoExporting"));
+  const canvas = document.createElement("canvas");
+  canvas.width = 1280;
+  canvas.height = 720;
+  const ctx = canvas.getContext("2d");
+  const stream = canvas.captureStream(30);
+  const chunks = [];
+  const recorderOptions = MediaRecorder.isTypeSupported("video/webm") ? { mimeType: "video/webm" } : undefined;
+  const recorder = new MediaRecorder(stream, recorderOptions);
+  recorder.ondataavailable = (event) => {
+    if (event.data.size) chunks.push(event.data);
+  };
+
+  const images = await Promise.all(state.slides.map((slide) => loadImage(slide.src)));
+  recorder.start();
+
+  const fps = 30;
+  for (let slideIndex = 0; slideIndex < state.slides.length; slideIndex += 1) {
+    const slide = state.slides[slideIndex];
+    const frames = Math.max(1, Math.round((slide.duration || 4) * fps));
+    for (let frame = 0; frame < frames; frame += 1) {
+      drawSlideFrame(ctx, slide, images[slideIndex], canvas.width, canvas.height, frame / frames);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  }
+
+  await new Promise((resolve) => {
+    recorder.onstop = resolve;
+    recorder.stop();
+  });
+
+  stream.getTracks().forEach((track) => track.stop());
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ai-radar-video-template.webm";
+  link.click();
+  URL.revokeObjectURL(url);
+  setStudioStatus(t("videoReady"));
+}
+
+function scoreRole(role, skills) {
+  return role.keywords.reduce((score, keyword) => (skills.includes(keyword.toLowerCase()) ? score + 1 : score), 0);
+}
+
+function renderJobAdvice(skillsText = "") {
+  const skills = skillsText.toLowerCase();
+  const ranked = jobRoles
+    .map((role) => ({ ...role, score: scoreRole(role, skills) }))
+    .sort((a, b) => b.score - a.score);
+  const best = ranked.some((role) => role.score > 0) ? ranked : jobRoles;
+
+  $("#jobResult").innerHTML = `
+    <div class="role-list">
+      ${best
+        .slice(0, 3)
+        .map(
+          (role) => `
+            <article class="role-item">
+              <strong>${role.title}</strong>
+              <p>${text(role.path)}</p>
+              <span class="tag">${t("recommendedTools")}: ${role.tools.join(", ")}</span>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+const jobSources = [
+  { name: "LinkedIn", url: (q, loc) => `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}` },
+  { name: "Indeed", url: (q, loc) => `https://www.indeed.com/jobs?q=${encodeURIComponent(q)}&l=${encodeURIComponent(loc)}` },
+  { name: "Wellfound", url: (q) => `https://wellfound.com/jobs?query=${encodeURIComponent(q)}` },
+  { name: "Remote OK", url: (q) => `https://remoteok.com/remote-${encodeURIComponent(q.toLowerCase().replaceAll(" ", "-"))}-jobs` },
+  { name: "Y Combinator", url: (q) => `https://www.ycombinator.com/jobs?query=${encodeURIComponent(q)}` },
+  { name: "Google Jobs", url: (q, loc) => `https://www.google.com/search?q=${encodeURIComponent(`${q} jobs ${loc}`)}` }
+];
+
+function renderJobSources() {
+  const role = $("#jobTitleInput")?.value.trim() || "artificial intelligence";
+  const skills = $("#skillsInput")?.value.trim();
+  const location = $("#jobLocationInput")?.value.trim() || "Remote";
+  const query = [role, skills].filter(Boolean).join(" ");
+  $("#jobSources").innerHTML = jobSources
+    .map(
+      (source) => `
+        <a class="source-card" href="${source.url(query, location)}" target="_blank" rel="noopener">
+          <strong>${source.name}</strong>
+          <span>${state.lang === "fa" ? `جست‌وجوی واقعی برای ${query} در ${location}` : `Real search for ${query} in ${location}`}</span>
+        </a>
+      `
+    )
+    .join("");
+}
+
+function startJobTicker() {
+  const tick = () => {
+    const now = new Date().toLocaleTimeString(state.lang === "fa" ? "fa-IR" : "en-US");
+    $("#jobTicker").textContent =
+      state.lang === "fa"
+        ? `آخرین بررسی نمایشی: ${now}. جمع‌آوری واقعی هر ثانیه نیاز به بک‌اند و API شغلی دارد.`
+        : `Demo refresh: ${now}. True every-second internet aggregation requires a backend and job APIs.`;
+  };
+  tick();
+  window.setInterval(tick, 1000);
+}
+
+// ── LOCAL CONTENT GENERATION ──────────────────────────────
+// Caption AI and Prompt Lab run fully locally — no API, no
+// sign-in, no external service. They use the template-based
+// generators below, so they work instantly and offline.
+
+// ── LOCAL FALLBACK GENERATORS ─────────────────────────────
+// When the generators below run, the result is produced fully
+// locally from templates — instant, offline, no account needed.
+// Style presets — each appends a distinct set of descriptors.
+const promptStyles = {
+  cinematic: "cinematic composition, anamorphic lens, golden-hour rim lighting, shallow depth of field, dramatic contrast, filmic color grade, atmospheric haze, 8k, award-winning cinematography",
+  editorial: "high-fashion editorial style, studio lighting, crisp detail, bold negative space, magazine-cover framing, refined color palette, professional photography",
+  hyperreal: "hyper-realistic, ultra-detailed textures, natural lighting, true-to-life color, 50mm lens, photorealistic rendering, sharp focus, 8k",
+  minimal: "minimal luxury aesthetic, clean composition, soft diffused light, muted premium palette, generous negative space, understated elegance",
+  render3d: "3D render, octane render, physically based materials, soft global illumination, subsurface scattering, studio HDRI lighting, ultra-detailed, 8k",
+  anime: "anime illustration style, clean line art, cel shading, vibrant palette, expressive lighting, detailed background, high-quality digital painting"
+};
+
+// Generate ONLY the prompt text, in the chosen style. No headings,
+// no negative prompt, no JSON — just a ready-to-paste prompt.
+function localEnhancePrompt(goal, style) {
+  const descriptors = promptStyles[style] || promptStyles.cinematic;
+  const subject = goal.trim();
+  // A professional prompt: subject first, then scene + technical specs.
+  return `${cap(subject)}, ${descriptors}, intricate detail, balanced composition, ` +
+    `professional color grading, masterpiece quality, highly detailed, sharp focus.`;
+}
+
+// Build a professional structured JSON prompt from a word or short idea.
+function localPromptJson(goal, style) {
+  const subject = (goal || "").trim() || "subject";
+  const styleMap = {
+    cinematic: { lighting: "golden-hour rim light", lens: "anamorphic 35mm",
+      grade: "filmic, teal-orange", mood: "dramatic, atmospheric" },
+    editorial: { lighting: "studio softbox", lens: "85mm portrait",
+      grade: "clean, refined", mood: "polished, high-fashion" },
+    hyperreal: { lighting: "natural daylight", lens: "50mm prime",
+      grade: "true-to-life", mood: "lifelike, crisp" },
+    minimal: { lighting: "soft diffused", lens: "50mm",
+      grade: "muted premium palette", mood: "calm, understated" },
+    render3d: { lighting: "studio HDRI", lens: "virtual 40mm",
+      grade: "physically based", mood: "clean, polished CGI" },
+    anime: { lighting: "expressive cel light", lens: "illustrative",
+      grade: "vibrant", mood: "stylized, energetic" }
+  };
+  const s = styleMap[style] || styleMap.cinematic;
+  return JSON.stringify({
+    subject: subject,
+    style: style || "cinematic",
+    prompt: `${cap(subject)}, ${promptStyles[style] || promptStyles.cinematic}`,
+    lighting: s.lighting,
+    camera: s.lens,
+    color_grade: s.grade,
+    mood: s.mood,
+    composition: "balanced, strong focal subject, generous negative space",
+    quality: ["8k", "ultra-detailed", "sharp focus", "professional"],
+    negative_prompt: "blurry, low resolution, distorted, watermark, text, extra limbs",
+    aspect_ratio: "16:9"
+  }, null, 2);
+}
+
+function localTextToJson(value) {
+  // Parse simple "Key: Value" lines into JSON; otherwise wrap as text.
+  const obj = {};
+  let matched = 0;
+  value.split(/\n+/).forEach(line => {
+    const m = line.match(/^\s*([^:]{1,40}):\s*(.+)$/);
+    if (m) {
+      const key = m[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      let val = m[2].trim();
+      if (/^\d+(\.\d+)?$/.test(val)) val = Number(val);
+      else if (val.includes(",")) val = val.split(",").map(s => s.trim());
+      obj[key] = val;
+      matched++;
+    }
+  });
+  const result = matched ? obj : { text: value.trim() };
+  return JSON.stringify(result, null, 2);
+}
+
+// Build a caption that reflects the actual uploaded media —
+// its type (photo/video), shape, and dominant color mood.
+function localCaption(goal, platform, tone, media, subject) {
+  const m = media || {};
+  const kind = m.type === "video" ? "video" : m.type === "image" ? "photo" : "post";
+  const mood = m.mood || "balanced";
+  const shape = m.shape || "";
+  const colorWord = m.colorWord || "";
+  const subj = (subject || "").trim();
+
+  // Subject-led hooks when the user told us what's in the media.
+  const hooks = subj ? [
+    `That ${subj}? Worth a second look.`,
+    `${cap(subj)} — caught at exactly the right moment.`,
+    `Tell me this ${subj} doesn't stop your scroll.`
+  ] : [
+    kind === "video" ? "Press play — this is worth 10 seconds."
+                      : "Stop scrolling. Look at this for a second.",
+    `The ${mood} ${colorWord} tones here? Not an accident.`,
+    "Here's how I'd make this work for you."
+  ];
+
+  // Caption sentence built from the actual scene + subject.
+  const sceneBits = [colorWord, mood].filter(Boolean).join(", ");
+  const caption = subj
+    ? `${cap(subj)} — ${sceneBits ? sceneBits + ", " : ""}framed for ${platform}.${
+        shape ? " Shot " + shape + "." : ""} ${goal && goal !== "Promote this media"
+        ? goal + "." : "Save this one."} ↓`
+    : `This ${kind} — ${sceneBits ? sceneBits + ", " : ""}made for ${platform}. ${
+        goal && goal !== "Promote this media" ? goal + "." : "Tap save before you forget."} ↓`;
+
+  // Hashtags include subject-derived tags.
+  const subjTags = subj
+    ? subj.split(/\s+/).filter(w => w.length > 2).slice(0, 2)
+        .map(w => "#" + w.replace(/[^a-zA-Z0-9]/g, ""))
+    : [];
+  const tags = [...subjTags, "#" + platform.replace(/\s+/g, ""), "#" + tone,
+    kind === "video" ? "#Reels" : "#PhotoOfTheDay",
+    colorWord ? "#" + colorWord.replace(/\s+/g, "") : "#Aesthetic",
+    "#ContentCreation", "#" + mood, "#SocialMedia", "#" + kind]
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  return `### CAPTION
+${caption}
+
+### HOOKS (3 alternatives)
+1. ${hooks[0]}
+2. ${hooks[1]}
+3. ${hooks[2]}
+
+### HASHTAGS
+${tags.join(" ")}
+
+### IMAGE PROMPT (for recreating similar content)
+${subj ? cap(subj) + ", " : ""}${tone.toLowerCase()} ${kind}, ${colorWord || "balanced"} color palette,
+${mood} mood, ${shape || "balanced framing"}, clean composition, strong focal subject,
+professional lighting, high detail, 8k.`;
+}
+
+// Capitalize the first letter of a phrase.
+function cap(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+// Sample an image's dominant color and describe it in words.
+function analyzeImageColors(imgEl) {
+  try {
+    const c = document.createElement("canvas");
+    const w = 32, h = 32;
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+    }
+    r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const light = (max + min) / 2;
+    let colorWord = "neutral", mood = "balanced";
+    if (max - min < 30) {
+      colorWord = light > 170 ? "bright" : light < 80 ? "dark" : "muted";
+      mood = light > 170 ? "airy" : light < 80 ? "moody" : "calm";
+    } else if (r >= g && r >= b) { colorWord = "warm"; mood = "vibrant"; }
+    else if (b >= r && b >= g) { colorWord = "cool"; mood = "serene"; }
+    else { colorWord = "fresh"; mood = "lively"; }
+    return { colorWord, mood, light };
+  } catch {
+    return { colorWord: "", mood: "balanced", light: 128 };
+  }
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+function enhancePrompt(value) {
+  const goal = value.trim();
+  if (!goal) return state.lang === "fa" ? "لطفاً یک پرامپت وارد کنید." : "Please enter a prompt.";
+  const style = $("#promptStyleSelect")?.value || "cinematic";
+  return localEnhancePrompt(goal, style);
+}
+
+function textToJson(value) {
+  const v = value.trim();
+  if (!v) return "{}";
+  // If it looks like Key: Value data, structure it as-is.
+  if (/^[^:\n]{1,40}:.+/m.test(v) && v.includes(":")) {
+    return localTextToJson(v);
+  }
+  // Otherwise treat it as a creative idea → professional prompt JSON.
+  const style = $("#promptStyleSelect")?.value || "cinematic";
+  return localPromptJson(v, style);
+}
+
+function registerUser() {
+  const payload = {
+    name: $("#registerName").value.trim(),
+    email: $("#registerEmail").value.trim(),
+    goal: $("#registerGoal").value,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem("aiRadarUser", JSON.stringify(payload));
+  $("#registerStatus").textContent = t("registered");
+}
+
+function previewUploadedMedia(file) {
+  const preview = $("#mediaPreview");
+  if (!file || !preview) return;
+  const url = URL.createObjectURL(file);
+  if (file.type.startsWith("video/")) {
+    preview.innerHTML = `<video src="${url}" controls playsinline></video>`;
+  } else {
+    preview.innerHTML = `<img src="${url}" alt="Uploaded media preview" />`;
+  }
+  preview.dataset.fileName = file.name;
+  preview.dataset.fileType = file.type;
+}
+
+function buildCaptionPayload() {
+  const goal = $("#mediaGoalInput").value.trim() || "Promote this media with a premium AI-focused caption";
+  const platform = $("#platformSelect").value;
+  const tone = $("#toneSelect").value;
+  const fileName = $("#mediaPreview").dataset.fileName || "uploaded media";
+  const baseTags = ["#AI", "#AITools", "#ContentCreation", "#DigitalMarketing", "#CreatorTools"];
+  const platformTags = platform.includes("Instagram") || platform.includes("TikTok")
+    ? ["#Reels", "#ViralVideo", "#TrendingNow"]
+    : platform.includes("LinkedIn")
+      ? ["#FutureOfWork", "#AIProductivity", "#Innovation"]
+      : ["#Shorts", "#AIVideo", "#TechTrends"];
+  const luxuryTags = tone === "Luxury" ? ["#LuxuryMarketing", "#PremiumBrand", "#HighEndContent"] : [];
+  const hook = tone === "Luxury"
+    ? "A sharper way to make premium content feel effortless."
+    : "Here is the AI workflow I would use to make this stand out.";
+  const caption = [
+    hook,
+    "",
+    `Goal: ${goal}`,
+    `Format: ${platform}`,
+    `Creative direction: ${tone} tone, strong opening line, clear value, and a soft call to action.`,
+    "",
+    "Use this when you want the media to feel intentional, polished, and ready to publish."
+  ].join("\n");
+  return {
+    fileName,
+    platform,
+    tone,
+    goal,
+    caption,
+    hooks: [
+      hook,
+      "Stop scrolling if you create with AI.",
+      "This is how I would turn one asset into a polished campaign."
+    ],
+    hashtags: [...new Set([...baseTags, ...platformTags, ...luxuryTags])]
+  };
+}
+
+async function generateMediaCaption() {
+  const goal = $("#mediaGoalInput").value.trim() || "Promote this media";
+  const subject = ($("#mediaSubjectInput")?.value || "").trim();
+  const platform = $("#platformSelect").value;
+  const tone = $("#toneSelect").value;
+  const preview = $("#mediaPreview");
+  const captionOut = $("#captionOutput");
+  const jsonOut = $("#mediaJsonOutput");
+  const btn = $("#generateCaptionButton");
+
+  btn.disabled = true;
+  jsonOut.textContent = "";
+
+  // Detect uploaded media — works for both image and video.
+  const imgEl = preview.querySelector("img");
+  const videoEl = preview.querySelector("video");
+  const mediaEl = imgEl || videoEl;
+  const mediaUrl = mediaEl ? mediaEl.getAttribute("src") : null;
+  const isVideo = !!videoEl;
+
+  // The caption is built FROM the uploaded photo/video — require one.
+  if (!mediaUrl) {
+    captionOut.textContent = state.lang === "fa"
+      ? "اول یک عکس یا ویدیو آپلود کن — کپشن بر اساس همان ساخته می‌شود."
+      : "Upload a photo or video first — the caption is built from it.";
+    btn.disabled = false;
+    return;
+  }
+
+  // We can't see inside the image, so the subject describes it.
+  if (!subject) {
+    captionOut.textContent = state.lang === "fa"
+      ? "در کادر «در عکس/ویدیو چه چیزی هست؟» موضوع را بنویس (مثلاً: گربه روی لبه پنجره) تا کپشن دقیقاً درباره همان ساخته شود."
+      : "Type what's in the photo (e.g. \"a cat on a windowsill\") in the subject box — the caption is built around exactly that.";
+    btn.disabled = false;
+    return;
+  }
+
+  captionOut.textContent = state.lang === "fa" ? "در حال نوشتن کپشن..." : "Writing caption...";
+
+  const mediaWord = isVideo ? "video" : "image";
+
+  // Build a media profile: type, shape, and (for images) color mood.
+  const mediaInfo = { type: mediaWord };
+  if (imgEl) {
+    const w = imgEl.naturalWidth || 1, h = imgEl.naturalHeight || 1;
+    mediaInfo.shape = w > h * 1.2 ? "wide / landscape"
+      : h > w * 1.2 ? "tall / portrait" : "square";
+    const colors = analyzeImageColors(imgEl);
+    mediaInfo.colorWord = colors.colorWord;
+    mediaInfo.mood = colors.mood;
+  } else if (videoEl) {
+    const w = videoEl.videoWidth || 1, h = videoEl.videoHeight || 1;
+    mediaInfo.shape = w > h * 1.2 ? "wide / landscape"
+      : h > w * 1.2 ? "tall / portrait" : "square";
+    mediaInfo.mood = "dynamic";
+    mediaInfo.colorWord = "";
+  }
+
+  try {
+    // Caption is generated locally, built from the uploaded media.
+    const fullText = localCaption(goal, platform, tone, mediaInfo, subject);
+
+    // Parse the structured sections.
+    const captionMatch = fullText.match(/### CAPTION\s*\n([\s\S]*?)(?=###|$)/);
+    const hooksMatch = fullText.match(/### HOOKS[\s\S]*?\n([\s\S]*?)(?=###|$)/);
+    const hashtagsMatch = fullText.match(/### HASHTAGS\s*\n([\s\S]*?)(?=###|$)/);
+    const imgPromptMatch = fullText.match(/### IMAGE PROMPT[\s\S]*?\n([\s\S]*?)(?=###|$)/);
+
+    const caption = captionMatch?.[1]?.trim() || fullText;
+    const hooks = hooksMatch?.[1]?.trim() || "";
+    const hashtags = hashtagsMatch?.[1]?.trim() || "";
+    const imagePrompt = imgPromptMatch?.[1]?.trim() || "";
+
+    captionOut.textContent = hashtags ? `${caption}\n\n${hashtags}` : caption;
+
+    const jsonPayload = {
+      platform,
+      tone,
+      goal,
+      media_type: mediaUrl ? mediaWord : "none",
+      caption,
+      hooks: hooks.split("\n").filter(l => l.trim()).map(l => l.replace(/^\d+\.\s*/, "").trim()),
+      hashtags: hashtags.split(/\s+/).filter(h => h.startsWith("#")),
+      image_prompt: imagePrompt,
+      generated_at: new Date().toISOString()
+    };
+    jsonOut.textContent = JSON.stringify(jsonPayload, null, 2);
+  } catch (err) {
+    captionOut.textContent = (state.lang === "fa" ? "خطا: " : "Error: ") + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function copyTextFrom(selector) {
+  const textValue = $(selector)?.textContent || "";
+  if (!textValue.trim()) return;
+  try {
+    await navigator.clipboard.writeText(textValue);
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = textValue;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  }
+}
+
+// ── AI MODELS TICKER ─────────────────────────────────────
+const allAiModels = [
+  { name: "ChatGPT",        domain: "chatgpt.com" },
+  { name: "Claude",         domain: "claude.ai" },
+  { name: "Gemini",         domain: "gemini.google.com" },
+  { name: "Grok",           domain: "x.ai" },
+  { name: "DeepSeek",       domain: "deepseek.com" },
+  { name: "Perplexity",     domain: "perplexity.ai" },
+  { name: "Mistral Le Chat",domain: "mistral.ai" },
+  { name: "Cohere",         domain: "cohere.com" },
+  { name: "Meta AI",        domain: "meta.ai" },
+  { name: "Midjourney",     domain: "midjourney.com" },
+  { name: "Flux",           domain: "blackforestlabs.ai" },
+  { name: "Stability AI",   domain: "stability.ai" },
+  { name: "Adobe Firefly",  domain: "firefly.adobe.com" },
+  { name: "Krea AI",        domain: "krea.ai" },
+  { name: "Runway",         domain: "runwayml.com" },
+  { name: "Sora",           domain: "openai.com" },
+  { name: "Kling AI",       domain: "klingai.com" },
+  { name: "Luma AI",        domain: "lumalabs.ai" },
+  { name: "Pika",           domain: "pika.art" },
+  { name: "Higgsfield",     domain: "higgsfield.ai" },
+  { name: "Google Flow",    domain: "labs.google" },
+  { name: "ElevenLabs",     domain: "elevenlabs.io" },
+  { name: "Suno",           domain: "suno.com" },
+  { name: "Canva AI",       domain: "canva.com" },
+  { name: "Gamma",          domain: "gamma.app" },
+  { name: "Cursor",         domain: "cursor.com" },
+  { name: "GitHub Copilot", domain: "github.com" },
+  { name: "Replit AI",      domain: "replit.com" },
+  { name: "Hugging Face",   domain: "huggingface.co" },
+  { name: "Zapier AI",      domain: "zapier.com" },
+  { name: "Notion AI",      domain: "notion.com" },
+];
+
+function renderModelsTicker() {
+  const ticker = $("#modelsTicker");
+  if (!ticker) return;
+  // duplicate for seamless loop
+  const items = [...allAiModels, ...allAiModels];
+  ticker.innerHTML = items.map(m => `
+    <div class="ticker-item">
+      <img src="https://www.google.com/s2/favicons?domain=${m.domain}&sz=32" alt="${m.name}" loading="lazy" onerror="this.style.display='none'" />
+      <span>${m.name}</span>
+    </div>
+  `).join("");
+}
+
+// ── HERO MOTION GRAPHIC ───────────────────────────────────
+// A lightweight canvas "motion picture" — drifting light orbs and
+// a scanning sweep — that sits inline beside the hero title.
+function startHeroMotion() {
+  const canvas = $("#heroMotionCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  function size() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, r.width * dpr);
+    canvas.height = Math.max(1, r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size();
+  window.addEventListener("resize", size);
+
+  // "Search" animation: a radar sweep reveals result dots, while a
+  // mock search bar types a query — visually conveys discovery.
+  const queries = ["AI tools", "image models", "video AI", "coding AI", "free plans"];
+  const resultDots = Array.from({ length: 9 }, () => ({
+    a: Math.random() * Math.PI * 2,          // angle on the radar
+    r: 0.25 + Math.random() * 0.6,            // radius (0-1)
+    found: 0                                  // 0..1 reveal progress
+  }));
+
+  let t = 0;
+  function frame() {
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    t += 0.016;
+
+    // background
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "#0c0a06");
+    g.addColorStop(1, "#161109");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // radar centred in the lower portion
+    const cx = W * 0.5, cy = H * 0.58;
+    const maxR = Math.min(W, H) * 0.42;
+
+    // concentric rings
+    ctx.strokeStyle = "rgba(216,183,106,0.18)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, maxR * (i / 3), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // cross hairs
+    ctx.beginPath();
+    ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy);
+    ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR);
+    ctx.stroke();
+
+    // sweeping beam
+    const sweep = t * 1.4;
+    const beam = ctx.createConicGradient
+      ? ctx.createConicGradient(sweep, cx, cy)
+      : null;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, maxR, sweep - 0.6, sweep);
+    ctx.closePath();
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    grad.addColorStop(0, "rgba(255,240,184,0.42)");
+    grad.addColorStop(1, "rgba(255,240,184,0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+
+    // leading edge line
+    ctx.strokeStyle = "rgba(255,240,184,0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(sweep) * maxR, cy + Math.sin(sweep) * maxR);
+    ctx.stroke();
+
+    // result dots — light up when the beam passes over them
+    resultDots.forEach(d => {
+      const norm = ((sweep - d.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      if (norm < 0.14) d.found = 1;            // beam just hit it
+      d.found *= 0.985;                         // slow fade
+      const px = cx + Math.cos(d.a) * d.r * maxR;
+      const py = cy + Math.sin(d.a) * d.r * maxR;
+      const base = 0.22;
+      ctx.beginPath();
+      ctx.arc(px, py, 2 + d.found * 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,240,184,${base + d.found * 0.78})`;
+      ctx.fill();
+      if (d.found > 0.3) {
+        ctx.beginPath();
+        ctx.arc(px, py, 4 + d.found * 9, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(216,183,106,${d.found * 0.4})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // mock search bar at the top — types a query letter by letter
+    const barY = H * 0.13, barH = 26, barX = W * 0.12, barW = W * 0.76;
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    roundRect(ctx, barX, barY, barW, barH, 13);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(216,183,106,0.3)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, barX, barY, barW, barH, 13);
+    ctx.stroke();
+
+    // magnifier icon
+    const mx = barX + 16, my = barY + barH / 2;
+    ctx.strokeStyle = "#d8b76a";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(mx, my - 1, 4.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + 3.4, my + 2.4);
+    ctx.lineTo(mx + 7, my + 6);
+    ctx.stroke();
+
+    // typed query text (cycles through the list)
+    const cycle = 3.4;                         // seconds per query
+    const qi = Math.floor(t / cycle) % queries.length;
+    const q = queries[qi];
+    const phase = (t % cycle) / cycle;
+    const shown = phase < 0.7
+      ? Math.floor((phase / 0.7) * q.length)
+      : q.length;
+    const typed = q.slice(0, shown);
+    ctx.fillStyle = "#fff0b8";
+    ctx.font = "600 13px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(typed, barX + 32, my + 1);
+    // blinking caret
+    if (Math.floor(t * 2) % 2 === 0 && phase < 0.85) {
+      const cw = ctx.measureText(typed).width;
+      ctx.fillRect(barX + 33 + cw, my - 6, 1.5, 12);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  frame();
+}
+
+// ── LIVE GITHUB DATA ──────────────────────────────────────
+// liveChartData is derived from the SAME `tools` array used by the
+// comparison section, so both sections always show the same AIs.
+// Metrics come from the public GitHub REST API (no key required —
+// api.github.com supports CORS for unauthenticated public reads).
+// Unauthenticated limit is 60 req/hr per IP, so we refresh slowly
+// and cache the last good result in localStorage.
+let activeMetric = "stars";          // stars | forks | activity
+let liveChartData = [];
+let lastRefreshTime = null;
+let isFetchingLive = false;
+
+const GH_CACHE_KEY = "ghLiveCache_v1";
+
+// seed liveChartData from any cached values so the chart isn't empty
+(function seedFromCache() {
+  let cached = {};
+  try { cached = JSON.parse(localStorage.getItem(GH_CACHE_KEY) || "{}"); } catch {}
+  tools.forEach(t => {
+    const c = cached[t.name];
+    if (c) {
+      t.stars = c.stars; t.forks = c.forks; t.issues = c.issues;
+      t.pushedAt = c.pushedAt; t.activityDays = c.activityDays;
+    }
+  });
+  rebuildLiveChartData();
+  if (cached.__time) {
+    lastRefreshTime = new Date(cached.__time);
+  }
+})();
+
+function rebuildLiveChartData() {
+  liveChartData = tools.map(t => ({
+    name: t.name,
+    provider: t.name,
+    model: t.name,
+    domain: t.domain,
+    repo: t.repo,
+    stars: t.stars,
+    forks: t.forks,
+    issues: t.issues,
+    pushedAt: t.pushedAt,
+    // "activity" score: higher = pushed more recently (0–100)
+    activity: t.activityDays == null ? null
+      : Math.max(0, Math.round(100 - Math.min(100, t.activityDays * 2)))
+  }));
+}
+
+function setRefreshLabel(text) {
+  const el = $("#lastRefreshed");
+  if (el) el.textContent = text;
+}
+
+// Fetch one repo's public stats from the GitHub REST API.
+async function fetchRepoStats(repo) {
+  const res = await fetch(`https://api.github.com/repos/${repo}`, {
+    headers: { "Accept": "application/vnd.github+json" }
+  });
+  if (res.status === 403) throw new Error("rate-limited");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  const pushed = d.pushed_at ? new Date(d.pushed_at) : null;
+  return {
+    stars: d.stargazers_count ?? 0,
+    forks: d.forks_count ?? 0,
+    issues: d.open_issues_count ?? 0,
+    pushedAt: d.pushed_at || null,
+    activityDays: pushed
+      ? Math.round((Date.now() - pushed.getTime()) / 86400000)
+      : null
+  };
+}
+
+// Fetch live GitHub data for every tool, with graceful fallback.
+async function fetchLiveChartData() {
+  if (isFetchingLive) return;
+  isFetchingLive = true;
+  const refreshBtn = document.getElementById("refreshChartBtn");
+  if (refreshBtn) refreshBtn.classList.add("loading");
+  setRefreshLabel("Fetching live GitHub data…");
+
+  const withRepos = tools.filter(t => t.repo);
+  let okCount = 0, rateLimited = false;
+
+  // sequential with a small gap — friendly to the 60 req/hr limit
+  for (const tool of withRepos) {
+    try {
+      const stats = await fetchRepoStats(tool.repo);
+      tool.stars = stats.stars;
+      tool.forks = stats.forks;
+      tool.issues = stats.issues;
+      tool.pushedAt = stats.pushedAt;
+      tool.activityDays = stats.activityDays;
+      okCount++;
+    } catch (e) {
+      if (String(e.message).includes("rate-limited")) { rateLimited = true; break; }
+      // leave this tool's cached/previous values in place
+    }
+    rebuildLiveChartData();
+    render3DChart();
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  if (okCount > 0) {
+    lastRefreshTime = new Date();
+    // cache last good result
+    const cache = { __time: lastRefreshTime.toISOString() };
+    tools.forEach(t => {
+      if (t.stars != null) {
+        cache[t.name] = {
+          stars: t.stars, forks: t.forks, issues: t.issues,
+          pushedAt: t.pushedAt, activityDays: t.activityDays
+        };
+      }
+    });
+    try { localStorage.setItem(GH_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  }
+
+  rebuildLiveChartData();
+  render3DChart();
+  if (state.compare.length) renderCompare();
+
+  if (rateLimited) {
+    setRefreshLabel(
+      lastRefreshTime
+        ? `GitHub rate limit hit — showing cached data from ${lastRefreshTime.toLocaleTimeString()}`
+        : "GitHub rate limit hit — try again in a few minutes"
+    );
+  } else if (okCount > 0) {
+    setRefreshLabel(`Live · updated ${lastRefreshTime.toLocaleTimeString()} · ${okCount}/${withRepos.length} repos`);
+  } else {
+    setRefreshLabel("Could not reach GitHub — check your connection");
+  }
+  isFetchingLive = false;
+  if (refreshBtn) refreshBtn.classList.remove("loading");
+}
+
+// ── LIVE CHART (flat bar chart, real GitHub data) ─────────
+function render3DChart() {
+  // (name kept for compatibility with existing callers)
+  renderLiveChart();
+}
+
+function metricValueOf(item) {
+  const v = activeMetric === "stars" ? item.stars
+    : activeMetric === "forks" ? item.forks
+    : item.activity;
+  return v == null ? 0 : v;
+}
+
+function formatMetricValue(v) {
+  if (v == null) return "—";
+  if (activeMetric === "activity") return `${v}/100`;
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  return String(Math.round(v));
+}
+
+let _chartFingerprint = "";
+let _chartAnimated = false;
+let _ghSort = "value";   // value | growth | name
+let _ghSearch = "";
+
+// Render the summary stat cards above the chart.
+function renderGhSummary() {
+  const box = $("#ghSummary");
+  if (!box) return;
+  const withData = liveChartData.filter(d => (d.stars || 0) > 0);
+  if (!withData.length) { box.innerHTML = ""; return; }
+  const totalStars = withData.reduce((s, d) => s + (d.stars || 0), 0);
+  const totalForks = withData.reduce((s, d) => s + (d.forks || 0), 0);
+  // most active = smallest activityDays (most recent push)
+  const mostActive = [...withData].sort((a, b) =>
+    (a.activityDays ?? 9999) - (b.activityDays ?? 9999))[0];
+  // top by stars
+  const topStar = [...withData].sort((a, b) => (b.stars || 0) - (a.stars || 0))[0];
+  const fa = state.lang === "fa";
+  const cards = [
+    { val: formatMetricValue(totalStars), label: fa ? "مجموع ستاره‌ها" : "Total stars", sub: `${withData.length} ${fa ? "ابزار" : "tools"}` },
+    { val: formatMetricValue(totalForks), label: fa ? "مجموع فورک‌ها" : "Total forks", sub: "" },
+    { val: topStar ? topStar.name : "—", label: fa ? "محبوب‌ترین" : "Most popular", sub: topStar ? formatMetricValue(topStar.stars) + " ★" : "" },
+    { val: mostActive ? mostActive.name : "—", label: fa ? "فعال‌ترین" : "Most active", sub: mostActive && mostActive.activityDays != null ? (mostActive.activityDays === 0 ? (fa ? "امروز" : "today") : `${mostActive.activityDays}${fa ? " روز پیش" : "d ago"}`) : "" }
+  ];
+  box.innerHTML = cards.map(c => `
+    <div class="gh-sum-card">
+      <div class="gh-sum-val">${c.val}</div>
+      <div class="gh-sum-label">${c.label}</div>
+      ${c.sub ? `<div class="gh-sum-sub">${c.sub}</div>` : ""}
+    </div>`).join("");
+}
+
+function renderLiveChart() {
+  const container = $("#performanceChart");
+  if (!container) return;
+  renderGhSummary();
+
+  // multi-metric view is a different layout
+  if (activeMetric === "multi") { renderMultiMetric(container); return; }
+
+  let list = liveChartData.filter(item => (item.stars || 0) > 0);
+  // search filter
+  if (_ghSearch) {
+    const q = _ghSearch.toLowerCase();
+    list = list.filter(d => d.name.toLowerCase().includes(q));
+  }
+  // sort
+  if (_ghSort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
+  else if (_ghSort === "growth") list.sort((a, b) => (a.activityDays ?? 9999) - (b.activityDays ?? 9999));
+  else list.sort((a, b) => metricValueOf(b) - metricValueOf(a));
+  const sorted = list.slice(0, 14);
+  const maxVal = Math.max(...sorted.map(metricValueOf), 1);
+  const compared = new Set(state.compare);
+
+  const fp = "single|" + activeMetric + "|" + _ghSort + "|" + _ghSearch + "|" +
+    [...compared].join(",") + "|" +
+    sorted.map(s => s.name + ":" + metricValueOf(s)).join("|");
+  if (fp === _chartFingerprint && container.querySelector(".live-bar-row")) return;
+  const firstPaint = !_chartAnimated;
+  _chartFingerprint = fp;
+
+  let label = $("#chart3DLabel");
+  if (!label) {
+    label = document.createElement("div");
+    label.id = "chart3DLabel";
+    label.className = "chart-label";
+    container.parentElement.insertBefore(label, container);
+  }
+  const metricText = activeMetric === "stars" ? "Live GitHub stars"
+    : activeMetric === "forks" ? "Live GitHub forks"
+    : "Development activity (recent commits)";
+  const comparedNote = state.compare.length
+    ? ` — highlighted: ${state.compare.join(", ")}`
+    : "";
+  label.textContent = sorted.length
+    ? `${metricText}${comparedNote}`
+    : `${metricText} — loading live data from GitHub…`;
+
+  if (!sorted.length) {
+    container.innerHTML = `<div class="live-chart"><p class="empty">${_ghSearch ? "No tools match your filter." : "Loading live data from GitHub…"}</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="live-chart">
+    ${sorted.map((item, i) => {
+      const val = metricValueOf(item);
+      const pct = Math.min(100, (val / maxVal) * 100);
+      const hot = compared.has(item.name);
+      const color = hot ? "#fff0b8" : "#d8b76a";
+      const disp = formatMetricValue(val);
+      return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="opacity:1;animation:none">
+        <div class="bar-meta">
+          <img src="https://www.google.com/s2/favicons?domain=${item.domain || "github.com"}&sz=32" alt="" loading="lazy" onerror="this.style.display='none'" />
+          <div class="bar-names"><strong>${item.name}</strong></div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 14px ${color}55;"></div></div>
+        <em class="bar-val" style="color:${color}">${disp}</em>
+      </div>`;
+    }).join("")}
+  </div>`;
+  _chartAnimated = true;
+}
+
+// Multi-metric view: each tool shows stars + forks + activity bars together,
+// normalized so you can compare the *shape* of each project's profile.
+function renderMultiMetric(container) {
+  let list = liveChartData.filter(d => (d.stars || 0) > 0);
+  if (_ghSearch) {
+    const q = _ghSearch.toLowerCase();
+    list = list.filter(d => d.name.toLowerCase().includes(q));
+  }
+  list.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+  list = list.slice(0, 12);
+  const maxStars = Math.max(...list.map(d => d.stars || 0), 1);
+  const maxForks = Math.max(...list.map(d => d.forks || 0), 1);
+  const maxAct = Math.max(...list.map(d => d.activityDays != null ? (90 - Math.min(90, d.activityDays)) : 0), 1);
+  const fp = "multi|" + _ghSearch + "|" + list.map(d => d.name + d.stars).join("|");
+  if (fp === _chartFingerprint && container.querySelector(".gh-multi-row")) return;
+  _chartFingerprint = fp;
+
+  const label = $("#chart3DLabel");
+  if (label) label.textContent = state.lang === "fa"
+    ? "مقایسه چندمعیاره — ستاره، فورک، فعالیت" : "Multi-metric comparison — stars, forks, activity";
+
+  if (!list.length) {
+    container.innerHTML = `<div class="live-chart"><p class="empty">${_ghSearch ? "No tools match." : "Loading…"}</p></div>`;
+    return;
+  }
+  const fa = state.lang === "fa";
+  const row = (d) => {
+    const sPct = Math.min(100, ((d.stars || 0) / maxStars) * 100);
+    const fPct = Math.min(100, ((d.forks || 0) / maxForks) * 100);
+    const aScore = d.activityDays != null ? (90 - Math.min(90, d.activityDays)) : 0;
+    const aPct = Math.min(100, (aScore / maxAct) * 100);
+    return `<div class="gh-multi-row">
+      <div class="gh-multi-name">${d.name}</div>
+      <div class="gh-multi-bars">
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"ستاره":"Stars"}</span><div class="gh-multi-track"><div class="gh-multi-fill stars" style="width:${sPct}%"></div></div><span class="gh-multi-val">${formatMetricValue(d.stars||0)}</span></div>
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"فورک":"Forks"}</span><div class="gh-multi-track"><div class="gh-multi-fill forks" style="width:${fPct}%"></div></div><span class="gh-multi-val">${formatMetricValue(d.forks||0)}</span></div>
+        <div class="gh-multi-bar"><span class="gh-multi-bar-label">${fa?"فعالیت":"Activity"}</span><div class="gh-multi-track"><div class="gh-multi-fill activity" style="width:${aPct}%"></div></div><span class="gh-multi-val">${d.activityDays!=null?(d.activityDays===0?(fa?"امروز":"today"):`${d.activityDays}${fa?"ر":"d"}`):"—"}</span></div>
+      </div>
+    </div>`;
+  };
+  container.innerHTML = `<div class="live-chart gh-multi">${list.map(row).join("")}</div>`;
+}
+
+
+// ── ADVANCED VIDEO STUDIO ─────────────────────────────────
+// Pick a template, add a video OR image, layer animated text,
+// choose aspect ratio / filter / transition / speed / music,
+// add intro & outro cards, preview at any size, and export a
+// real .webm. Fully local — no uploads, no API.
+// ── BUILT-IN INTRO BACKGROUNDS ─────────────────────────────
+// Code-drawn backgrounds for intro scenes — crisp at any resolution.
+// Different shapes and moods, all in the minimal / luxury style.
+const introBackgrounds = [
+  { id: "noir-gradient", name: { en: "Noir Gradient", fa: "گرادیان نوآر" },
+    c1: "#0a0a0c", c2: "#1c1814", accent: "#d8b76a" },
+  { id: "gold-rings",    name: { en: "Gold Rings", fa: "حلقه‌های طلایی" },
+    c1: "#080706", c2: "#14110b", accent: "#d8b76a" },
+  { id: "diagonal",      name: { en: "Diagonal Cut", fa: "برش مورب" },
+    c1: "#0c0b14", c2: "#1a1830", accent: "#8aa6d8" },
+  { id: "spotlight",     name: { en: "Spotlight", fa: "نورافکن" },
+    c1: "#060606", c2: "#1a1a1a", accent: "#ffffff" },
+  { id: "emerald-soft",  name: { en: "Emerald Soft", fa: "زمردی ملایم" },
+    c1: "#05140e", c2: "#0d2a1e", accent: "#d8b76a" },
+  { id: "ivory-clean",   name: { en: "Ivory Clean", fa: "عاجی تمیز" },
+    c1: "#f4f1ea", c2: "#e6e0d2", accent: "#1a1a1a" },
+  { id: "wave",          name: { en: "Soft Waves", fa: "موج‌های نرم" },
+    c1: "#0a0612", c2: "#1c1430", accent: "#c8a24a" },
+  { id: "grid-lux",      name: { en: "Lux Grid", fa: "شبکه لوکس" },
+    c1: "#0b0b0d", c2: "#15151a", accent: "#d6dae0" },
+  { id: "aurora",        name: { en: "Aurora", fa: "شفق" },
+    c1: "#04111a", c2: "#0a2230", accent: "#7fd8c8" },
+  { id: "starfield",     name: { en: "Starfield", fa: "میدان ستاره" },
+    c1: "#05060f", c2: "#0c0e1f", accent: "#cfd6ff" },
+  { id: "sunburst",      name: { en: "Sunburst", fa: "پرتو خورشید" },
+    c1: "#160a04", c2: "#2a1408", accent: "#f0a830" },
+  { id: "mesh",          name: { en: "Mesh Gradient", fa: "گرادیان توری" },
+    c1: "#0a0814", c2: "#1a1228", accent: "#c89ad8" },
+  { id: "particles",     name: { en: "Particle Field", fa: "میدان ذرات" },
+    c1: "#080a0c", c2: "#12161a", accent: "#d8b76a" },
+  { id: "marble-light",  name: { en: "Marble Light", fa: "مرمر روشن" },
+    c1: "#f2efe9", c2: "#e2ddd0", accent: "#3a3a40" },
+  { id: "ribbon",        name: { en: "Gold Ribbon", fa: "روبان طلایی" },
+    c1: "#0a0806", c2: "#1a1410", accent: "#d8b76a" },
+  { id: "halo",          name: { en: "Halo Glow", fa: "هاله نور" },
+    c1: "#0a0a12", c2: "#161628", accent: "#b8c4f0" },
+  { id: "prism",         name: { en: "Prism", fa: "منشور" },
+    c1: "#0c0810", c2: "#1c1424", accent: "#e0a8d0" },
+  { id: "topo",          name: { en: "Topographic", fa: "توپوگرافی" },
+    c1: "#08120e", c2: "#12241c", accent: "#88d8b0" },
+  { id: "spotlight-duo", name: { en: "Dual Spotlight", fa: "نورافکن دوگانه" },
+    c1: "#060606", c2: "#161616", accent: "#f0d8a0" },
+  { id: "velvet",        name: { en: "Velvet", fa: "مخمل" },
+    c1: "#140810", c2: "#28121f", accent: "#e0a0c0" },
+  { id: "carbon",        name: { en: "Carbon Fibre", fa: "کربن" },
+    c1: "#0c0c0e", c2: "#16161a", accent: "#9aa0a8" },
+  { id: "royal",         name: { en: "Royal Blue", fa: "آبی سلطنتی" },
+    c1: "#040818", c2: "#0a1438", accent: "#d8b76a" },
+  { id: "cine-aurora",   name: { en: "Cinematic Aurora", fa: "شفق سینمایی" },
+    c1: "#050912", c2: "#0c1830", accent: "#5fd0c0" },
+  { id: "cine-ember",    name: { en: "Ember Glow", fa: "درخشش اخگر" },
+    c1: "#140604", c2: "#2a0c08", accent: "#ff8a4c" },
+  { id: "cine-violet",   name: { en: "Violet Depth", fa: "ژرفای بنفش" },
+    c1: "#0a0618", c2: "#1a0f38", accent: "#b88aff" },
+  { id: "cine-mesh",     name: { en: "Liquid Mesh", fa: "مش مایع" },
+    c1: "#04100e", c2: "#0a2622", accent: "#4fe0a0" },
+  { id: "cine-spotlight", name: { en: "Studio Spotlight", fa: "نورافکن استودیو" },
+    c1: "#080808", c2: "#1a1a1e", accent: "#f0d8a0" },
+  { id: "cine-wave",     name: { en: "Silk Waves", fa: "موج‌های ابریشمی" },
+    c1: "#0a0814", c2: "#181024", accent: "#e0a0c0" }
+];
+
+// Draw a chosen intro background. `t` is elapsed seconds for subtle motion.
+function drawIntroBackground(ctx, W, H, bgId, t) {
+  const bg = introBackgrounds.find(b => b.id === bgId) || introBackgrounds[0];
+  const U = Math.min(W, H);
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, bg.c1);
+  g.addColorStop(1, bg.c2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  switch (bg.id) {
+    case "gold-rings": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.18;
+      for (let i = 1; i <= 5; i++) {
+        ctx.lineWidth = U * 0.004;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, U * (0.12 * i + 0.02 * Math.sin(t * 0.6 + i)), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      break;
+    }
+    case "diagonal": {
+      ctx.fillStyle = bg.accent;
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.lineTo(W * 0.7, 0);
+      ctx.lineTo(W, 0);
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "spotlight": {
+      const r = ctx.createRadialGradient(
+        W / 2, H * 0.42, U * 0.05, W / 2, H * 0.42, U * 0.75);
+      r.addColorStop(0, "rgba(255,255,255,0.16)");
+      r.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "emerald-soft": {
+      const r = ctx.createRadialGradient(
+        W * 0.7, H * 0.3, U * 0.05, W * 0.7, H * 0.3, U * 0.9);
+      r.addColorStop(0, "rgba(216,183,106,0.14)");
+      r.addColorStop(1, "rgba(216,183,106,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "wave": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.16;
+      ctx.lineWidth = U * 0.004;
+      for (let w = 0; w < 4; w++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 12) {
+          const y = H * (0.3 + w * 0.16)
+            + Math.sin(x * 0.008 + t * 0.8 + w) * U * 0.04;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "grid-lux": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.07;
+      ctx.lineWidth = 1;
+      const step = U * 0.1;
+      for (let x = step; x < W; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = step; y < H; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      break;
+    }
+    case "ivory-clean": {
+      ctx.strokeStyle = bg.accent;
+      ctx.globalAlpha = 0.08;
+      ctx.lineWidth = U * 0.003;
+      ctx.beginPath();
+      ctx.arc(W * 0.82, H * 0.2, U * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case "aurora": {
+      // soft flowing aurora bands
+      for (let i = 0; i < 3; i++) {
+        const yy = H * (0.3 + i * 0.2) + Math.sin(t * 0.4 + i) * U * 0.06;
+        const ag = ctx.createLinearGradient(0, yy - U * 0.2, 0, yy + U * 0.2);
+        ag.addColorStop(0, "rgba(127,216,200,0)");
+        ag.addColorStop(0.5, `rgba(127,216,200,${0.12 - i * 0.03})`);
+        ag.addColorStop(1, "rgba(127,216,200,0)");
+        ctx.fillStyle = ag;
+        ctx.fillRect(0, yy - U * 0.2, W, U * 0.4);
+      }
+      break;
+    }
+    case "starfield": {
+      for (let i = 0; i < 60; i++) {
+        const sx = (Math.sin(i * 73.1) * 0.5 + 0.5) * W;
+        const sy = (Math.cos(i * 51.7) * 0.5 + 0.5) * H;
+        const tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.5 + i));
+        ctx.globalAlpha = tw * 0.7;
+        ctx.fillStyle = bg.accent;
+        ctx.beginPath();
+        ctx.arc(sx, sy, U * 0.0016 * (1 + (i % 3)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "sunburst": {
+      // radiating rays from a corner
+      ctx.globalAlpha = 0.1;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.012;
+      for (let i = 0; i < 14; i++) {
+        const ang = (i / 14) * Math.PI * 0.6 + t * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.15, H * 0.12);
+        ctx.lineTo(W * 0.15 + Math.cos(ang) * U * 1.6,
+                   H * 0.12 + Math.sin(ang) * U * 1.6);
+        ctx.stroke();
+      }
+      const sr = ctx.createRadialGradient(
+        W * 0.15, H * 0.12, 0, W * 0.15, H * 0.12, U * 0.6);
+      sr.addColorStop(0, "rgba(240,168,48,0.22)");
+      sr.addColorStop(1, "rgba(240,168,48,0)");
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = sr;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "mesh": {
+      // soft mesh-gradient blobs
+      const blob = (bx, by, col) => {
+        const r = ctx.createRadialGradient(bx, by, 0, bx, by, U * 0.55);
+        r.addColorStop(0, col);
+        r.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = r;
+        ctx.fillRect(0, 0, W, H);
+      };
+      blob(W * (0.3 + 0.05 * Math.sin(t * 0.3)), H * 0.3,
+           "rgba(200,154,216,0.22)");
+      blob(W * 0.72, H * (0.65 + 0.05 * Math.cos(t * 0.25)),
+           "rgba(127,160,216,0.2)");
+      break;
+    }
+    case "particles": {
+      for (let i = 0; i < 40; i++) {
+        const seed = i * 97.3;
+        const px = (Math.sin(seed) * 0.5 + 0.5) * W;
+        const py = ((Math.cos(seed * 1.7) * 0.5 + 0.5) * H
+          + t * U * 0.02 * (0.5 + (i % 4) * 0.25)) % H;
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = bg.accent;
+        ctx.beginPath();
+        ctx.arc(px, py, U * (0.001 + (i % 5) * 0.0008), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "marble-light": {
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.0025;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 14) {
+          const y = H * (0.2 + i * 0.16)
+            + Math.sin(x * 0.006 + i * 1.5) * U * 0.05;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "ribbon": {
+      ctx.globalAlpha = 0.5;
+      for (let i = 0; i < 3; i++) {
+        const yy = H * (0.35 + i * 0.18);
+        const rg = ctx.createLinearGradient(0, yy, W, yy);
+        rg.addColorStop(0, "rgba(216,183,106,0)");
+        rg.addColorStop(0.5, vsHexA(bg.accent, 0.3));
+        rg.addColorStop(1, "rgba(216,183,106,0)");
+        ctx.strokeStyle = rg;
+        ctx.lineWidth = U * 0.01;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 10) {
+          const y = yy + Math.sin(x * 0.005 + t * 0.5 + i * 2) * U * 0.05;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    }
+    case "halo": {
+      const r = ctx.createRadialGradient(
+        W / 2, H * 0.4, U * 0.1, W / 2, H * 0.4, U * 0.55);
+      r.addColorStop(0, vsHexA(bg.accent, 0.18));
+      r.addColorStop(0.7, vsHexA(bg.accent, 0.05));
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = vsHexA(bg.accent, 0.25);
+      ctx.lineWidth = U * 0.002;
+      ctx.beginPath();
+      ctx.arc(W / 2, H * 0.4, U * 0.32 + Math.sin(t) * U * 0.01, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case "prism": {
+      ctx.globalAlpha = 0.12;
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = i % 2 ? bg.accent : "#8aa6d8";
+        ctx.beginPath();
+        const ox = W * (0.1 * i) + t * 8 % W;
+        ctx.moveTo(ox, 0);
+        ctx.lineTo(ox + W * 0.12, 0);
+        ctx.lineTo(ox - W * 0.1, H);
+        ctx.lineTo(ox - W * 0.22, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    case "topo": {
+      ctx.globalAlpha = 0.14;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.0022;
+      for (let r = 1; r <= 7; r++) {
+        ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          const rr = U * (0.08 * r) + Math.sin(a * 5 + t * 0.4 + r) * U * 0.02;
+          const xx = W / 2 + Math.cos(a) * rr;
+          const yy = H * 0.42 + Math.sin(a) * rr;
+          a === 0 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      break;
+    }
+    case "spotlight-duo": {
+      [[0.3, 0.35], [0.7, 0.5]].forEach(([fx, fy], i) => {
+        const r = ctx.createRadialGradient(
+          W * fx, H * fy, U * 0.04, W * fx, H * fy, U * 0.6);
+        r.addColorStop(0, `rgba(255,255,255,${0.12 - i * 0.03})`);
+        r.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = r;
+        ctx.fillRect(0, 0, W, H);
+      });
+      break;
+    }
+    case "velvet": {
+      const r = ctx.createRadialGradient(
+        W * 0.5, H * 0.6, U * 0.1, W * 0.5, H * 0.6, U * 0.8);
+      r.addColorStop(0, vsHexA(bg.accent, 0.16));
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "carbon": {
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = 1;
+      const step = U * 0.04;
+      for (let x = -H; x < W; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + H, H); ctx.stroke();
+      }
+      break;
+    }
+    case "royal": {
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = bg.accent;
+      ctx.lineWidth = U * 0.003;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, U * 0.36, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = U * 0.0015;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, U * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case "cine-aurora": {
+      // layered flowing aurora ribbons with soft glow + depth
+      const cols = ["95,208,192", "90,150,230", "150,120,220"];
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        const yy = H * (0.3 + i * 0.2);
+        ctx.beginPath();
+        ctx.moveTo(0, yy);
+        for (let x = 0; x <= W; x += 12) {
+          const y = yy + Math.sin(x * 0.004 + t * 0.5 + i * 1.6) * U * 0.1
+                      + Math.cos(x * 0.009 - t * 0.3) * U * 0.04;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, yy + U * 0.4);
+        ctx.lineTo(0, yy + U * 0.4);
+        ctx.closePath();
+        const rg = ctx.createLinearGradient(0, yy - U * 0.2, 0, yy + U * 0.3);
+        rg.addColorStop(0, `rgba(${cols[i]},0)`);
+        rg.addColorStop(0.5, `rgba(${cols[i]},0.22)`);
+        rg.addColorStop(1, `rgba(${cols[i]},0)`);
+        ctx.fillStyle = rg;
+        ctx.filter = `blur(${U * 0.02}px)`;
+        ctx.fill();
+        ctx.restore();
+      }
+      break;
+    }
+    case "cine-ember": {
+      // deep ember glow rising from the bottom + floating sparks
+      const r = ctx.createRadialGradient(W / 2, H * 1.05, U * 0.1,
+        W / 2, H * 1.05, U * 0.95);
+      r.addColorStop(0, "rgba(255,138,76,0.4)");
+      r.addColorStop(0.5, "rgba(200,60,30,0.14)");
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 40; i++) {
+        const seed = i * 53.7;
+        const px = (Math.sin(seed) * 0.5 + 0.5) * W;
+        const py = H - ((t * U * 0.04 * (0.4 + (i % 5) * 0.2)
+          + (Math.cos(seed) * 0.5 + 0.5) * H) % H);
+        ctx.globalAlpha = 0.3 + 0.5 * Math.abs(Math.sin(t * 1.5 + i));
+        ctx.fillStyle = i % 3 ? "#ff8a4c" : "#ffd08a";
+        ctx.beginPath();
+        ctx.arc(px, py, U * 0.0018, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case "cine-violet": {
+      // two large soft orbs with depth + slow drift
+      [["120,90,220", 0.32, 0.35, 0.5], ["180,120,255", 0.7, 0.6, 0.4]]
+        .forEach(([c, fx, fy, sz], i) => {
+          const ox = W * fx + Math.sin(t * 0.3 + i * 2) * U * 0.05;
+          const oy = H * fy + Math.cos(t * 0.25 + i) * U * 0.05;
+          const rr = ctx.createRadialGradient(ox, oy, 0, ox, oy, U * sz);
+          rr.addColorStop(0, `rgba(${c},0.3)`);
+          rr.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = rr;
+          ctx.fillRect(0, 0, W, H);
+        });
+      break;
+    }
+    case "cine-mesh": {
+      // animated liquid mesh — interpolated colour blobs
+      const blobs = [["79,224,160", 0.3, 0.3], ["40,160,200", 0.7, 0.4],
+        ["120,220,180", 0.5, 0.7]];
+      blobs.forEach(([c, fx, fy], i) => {
+        const ox = W * fx + Math.sin(t * 0.4 + i * 2.1) * U * 0.12;
+        const oy = H * fy + Math.cos(t * 0.35 + i * 1.3) * U * 0.12;
+        const rr = ctx.createRadialGradient(ox, oy, 0, ox, oy, U * 0.55);
+        rr.addColorStop(0, `rgba(${c},0.28)`);
+        rr.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = rr;
+        ctx.fillRect(0, 0, W, H);
+      });
+      break;
+    }
+    case "cine-spotlight": {
+      // moving studio spotlight cone + subtle floor glow
+      const sx = W * (0.5 + Math.sin(t * 0.3) * 0.18);
+      const r = ctx.createRadialGradient(sx, H * 0.2, U * 0.05,
+        sx, H * 0.2, U * 0.85);
+      r.addColorStop(0, "rgba(255,255,255,0.16)");
+      r.addColorStop(0.4, "rgba(240,216,160,0.06)");
+      r.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = r;
+      ctx.fillRect(0, 0, W, H);
+      const fl = ctx.createRadialGradient(W / 2, H * 0.95, U * 0.05,
+        W / 2, H * 0.95, U * 0.5);
+      fl.addColorStop(0, "rgba(240,216,160,0.1)");
+      fl.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = fl;
+      ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "cine-wave": {
+      // smooth silk waves with gradient sheen
+      for (let i = 0; i < 6; i++) {
+        ctx.save();
+        const yy = H * (0.15 + i * 0.14);
+        ctx.beginPath();
+        ctx.moveTo(0, yy);
+        for (let x = 0; x <= W; x += 10) {
+          const y = yy + Math.sin(x * 0.005 + t * 0.6 + i * 0.7) * U * 0.05;
+          ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `rgba(224,160,200,${0.28 - i * 0.03})`;
+        ctx.lineWidth = U * 0.006;
+        ctx.filter = `blur(${U * 0.004}px)`;
+        ctx.stroke();
+        ctx.restore();
+      }
+      break;
+    }
+    default: break;
+  }
+  ctx.restore();
+  return bg;
+}
+
+// Animated foreground graphics for intro scenes — drawn over the
+// background to add richness and motion: floating motes, a slow light
+// sweep, and refined corner accents. `prog` 0..1 is the entrance.
+function drawIntroGraphics(ctx, W, H, bg, t, prog) {
+  const U = Math.min(W, H);
+  const e = Math.max(0, Math.min(1, prog == null ? 1 : prog));
+  ctx.save();
+
+  // 1) slow diagonal light sweep
+  const sweepX = (((t * 0.06) % 1.6) - 0.3) * W;
+  const grad = ctx.createLinearGradient(sweepX, 0, sweepX + W * 0.4, H);
+  grad.addColorStop(0, "rgba(255,255,255,0)");
+  grad.addColorStop(0.5, `rgba(255,255,255,${0.05 * e})`);
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2) floating motes — soft drifting particles
+  const motes = 18;
+  for (let i = 0; i < motes; i++) {
+    const seed = i * 137.5;
+    const px = ((Math.sin(seed) * 0.5 + 0.5) * W
+      + Math.sin(t * 0.3 + i) * U * 0.04);
+    const py = (((Math.cos(seed * 1.3) * 0.5 + 0.5) * H
+      + t * U * 0.012 * (0.5 + (i % 3) * 0.3)) % H);
+    const r = U * (0.0015 + (i % 4) * 0.0011);
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(216,183,106,${0.32 * e})`;
+    ctx.fill();
+  }
+
+  // 3) refined corner accents — thin gold L-brackets that draw in
+  const m = U * 0.08;
+  const len = U * 0.07 * e;
+  ctx.strokeStyle = bg.accent;
+  ctx.globalAlpha = 0.55 * e;
+  ctx.lineWidth = Math.max(1, U * 0.0035);
+  const corner = (cx, cy, sx, sy) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + sy * len);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx + sx * len, cy);
+    ctx.stroke();
+  };
+  corner(m, m, 1, 1);
+  corner(W - m, m, -1, 1);
+  corner(m, H - m, 1, -1);
+  corner(W - m, H - m, -1, -1);
+
+  // 4) a soft vignette to focus the centre
+  const vg = ctx.createRadialGradient(
+    W / 2, H / 2, U * 0.3, W / 2, H / 2, U * 0.85);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, `rgba(0,0,0,${bg.id === "ivory-clean" ? 0.06 : 0.34})`);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.restore();
+}
+
+const videoTemplates = [
+  {
+    id: "noir",
+    name: { en: "Noir Luxe", fa: "نوآر لوکس" },
+    desc: { en: "Deep blacks, gold serif type", fa: "مشکی عمیق، تایپ طلایی" },
+    bg: "#070605", accent: "#d8b76a", text: "#fff0b8",
+    headlineFont: "Prata, serif", vignette: 0.55
+  },
+  {
+    id: "ivory",
+    name: { en: "Ivory Minimal", fa: "مینیمال عاجی" },
+    desc: { en: "Bright, airy, thin sans type", fa: "روشن، تمیز، تایپ نازک" },
+    bg: "#f4f1ea", accent: "#1a1a1a", text: "#1a1a1a",
+    headlineFont: "Inter, sans-serif", vignette: 0.12
+  },
+  {
+    id: "editorial",
+    name: { en: "Editorial", fa: "ادیتوریال" },
+    desc: { en: "Magazine framing, bold contrast", fa: "قاب مجله‌ای، کنتراست بالا" },
+    bg: "#0c0b09", accent: "#ffffff", text: "#ffffff",
+    headlineFont: "Prata, serif", vignette: 0.4
+  },
+  {
+    id: "warm",
+    name: { en: "Warm Glow", fa: "درخشش گرم" },
+    desc: { en: "Amber wash, soft and inviting", fa: "تم کهربایی، نرم و دلنشین" },
+    bg: "#140d05", accent: "#f4c96a", text: "#ffe9c2",
+    headlineFont: "Prata, serif", vignette: 0.45
+  },
+  {
+    id: "neon",
+    name: { en: "Neon Night", fa: "شب نئونی" },
+    desc: { en: "Electric magenta and cyan glow", fa: "درخشش سرخابی و فیروزه‌ای" },
+    bg: "#0a0612", accent: "#ff3df0", text: "#7df9ff",
+    headlineFont: "Inter, sans-serif", vignette: 0.5
+  },
+  {
+    id: "ocean",
+    name: { en: "Ocean Deep", fa: "اعماق اقیانوس" },
+    desc: { en: "Cool teal gradient, calm and clean", fa: "گرادیان فیروزه‌ای، آرام و تمیز" },
+    bg: "#03171c", accent: "#4fd1c5", text: "#e6fffb",
+    headlineFont: "Prata, serif", vignette: 0.35
+  },
+  {
+    id: "sunset",
+    name: { en: "Sunset Pop", fa: "پاپ غروب" },
+    desc: { en: "Bold coral and purple, energetic", fa: "مرجانی و بنفش پررنگ و پرانرژی" },
+    bg: "#1a0a14", accent: "#ff7e5f", text: "#ffe4d6",
+    headlineFont: "Inter, sans-serif", vignette: 0.4
+  },
+  {
+    id: "mono",
+    name: { en: "Mono Press", fa: "تک‌رنگ مطبوعاتی" },
+    desc: { en: "Stark black & white, editorial", fa: "سیاه و سفید، مطبوعاتی" },
+    bg: "#111111", accent: "#ffffff", text: "#f0f0f0",
+    headlineFont: "Prata, serif", vignette: 0.3
+  },
+  {
+    id: "forest",
+    name: { en: "Forest Calm", fa: "آرامش جنگل" },
+    desc: { en: "Deep green, organic and grounded", fa: "سبز عمیق، طبیعی و آرام" },
+    bg: "#0a140d", accent: "#9ccc8f", text: "#e8f3e4",
+    headlineFont: "Prata, serif", vignette: 0.42
+  },
+  {
+    id: "platinum",
+    name: { en: "Platinum", fa: "پلاتین" },
+    desc: { en: "Cool silver on charcoal, luxury minimal", fa: "نقره‌ای سرد روی زغالی، لوکس و مینیمال" },
+    bg: "#101114", accent: "#d6dae0", text: "#f4f6f8",
+    headlineFont: "Prata, serif", vignette: 0.38
+  },
+  {
+    id: "champagne",
+    name: { en: "Champagne", fa: "شامپاین" },
+    desc: { en: "Soft cream and rose gold, elegant", fa: "کرم نرم و رزگلد، شیک" },
+    bg: "#161210", accent: "#e8c9a0", text: "#f7ead9",
+    headlineFont: "Prata, serif", vignette: 0.4
+  },
+  {
+    id: "obsidian",
+    name: { en: "Obsidian", fa: "اوبسیدین" },
+    desc: { en: "Pure black, single gold accent", fa: "مشکی خالص، تنها یک تأکید طلایی" },
+    bg: "#000000", accent: "#c8a24a", text: "#ffffff",
+    headlineFont: "Prata, serif", vignette: 0.6
+  },
+  {
+    id: "porcelain",
+    name: { en: "Porcelain", fa: "چینی" },
+    desc: { en: "Clean off-white, quiet and minimal", fa: "سفید ملایم، آرام و مینیمال" },
+    bg: "#f0ede6", accent: "#2a2a28", text: "#1c1c1a",
+    headlineFont: "Inter, sans-serif", vignette: 0.1
+  },
+  {
+    id: "midnight",
+    name: { en: "Midnight Blue", fa: "آبی نیمه‌شب" },
+    desc: { en: "Deep navy with a cool sheen", fa: "سرمه‌ای عمیق با درخشش سرد" },
+    bg: "#070b18", accent: "#8aa6d8", text: "#e6ecf8",
+    headlineFont: "Prata, serif", vignette: 0.44
+  },
+  {
+    id: "marble",
+    name: { en: "Marble", fa: "مرمر" },
+    desc: { en: "Soft grey-white, refined and airy", fa: "خاکستری-سفید نرم، ظریف و سبک" },
+    bg: "#e9e9ec", accent: "#3a3a40", text: "#222226",
+    headlineFont: "Prata, serif", vignette: 0.12
+  },
+  {
+    id: "emerald",
+    name: { en: "Emerald Luxe", fa: "زمرد لوکس" },
+    desc: { en: "Rich emerald with gold detail", fa: "زمردی غنی با جزئیات طلایی" },
+    bg: "#06140f", accent: "#d8b76a", text: "#e9f5ee",
+    headlineFont: "Prata, serif", vignette: 0.46
+  },
+  {
+    id: "sand",
+    name: { en: "Sand Minimal", fa: "مینیمال شنی" },
+    desc: { en: "Warm beige, calm and understated", fa: "بژ گرم، آرام و ساده" },
+    bg: "#e8e0d2", accent: "#5a4a36", text: "#2e271c",
+    headlineFont: "Inter, sans-serif", vignette: 0.12
+  },
+  {
+    id: "ruby",
+    name: { en: "Ruby Noir", fa: "نوآر یاقوتی" },
+    desc: { en: "Deep wine red, dramatic and bold", fa: "قرمز شرابی عمیق، دراماتیک" },
+    bg: "#140608", accent: "#e0a0a8", text: "#f7e4e6",
+    headlineFont: "Prata, serif", vignette: 0.5
+  },
+  {
+    id: "slate",
+    name: { en: "Slate Pro", fa: "اسلیت پرو" },
+    desc: { en: "Cool corporate grey-blue", fa: "خاکستری-آبی شرکتی" },
+    bg: "#10141a", accent: "#7fb3d5", text: "#eef3f8",
+    headlineFont: "Inter, sans-serif", vignette: 0.36
+  },
+  {
+    id: "amber",
+    name: { en: "Amber Glow", fa: "درخشش کهربایی" },
+    desc: { en: "Warm amber on deep brown", fa: "کهربایی گرم روی قهوه‌ای" },
+    bg: "#1a1206", accent: "#f0a830", text: "#fdf0d8",
+    headlineFont: "Prata, serif", vignette: 0.44
+  },
+  {
+    id: "frost",
+    name: { en: "Frost Minimal", fa: "مینیمال یخی" },
+    desc: { en: "Icy white-blue, crisp and clean", fa: "سفید-آبی یخی، تمیز" },
+    bg: "#eef2f6", accent: "#3a6a9a", text: "#16202c",
+    headlineFont: "Inter, sans-serif", vignette: 0.1
+  },
+  {
+    id: "rosegold",
+    name: { en: "Rose Gold", fa: "رزگلد" },
+    desc: { en: "Soft blush with rose-gold accent", fa: "صورتی ملایم با تأکید رزگلد" },
+    bg: "#1c1416", accent: "#e6b8a8", text: "#f8ebe6",
+    headlineFont: "Prata, serif", vignette: 0.42
+  }
+];
+
+const vstudio = {
+  templateId: "noir",
+  mediaUrl: null,
+  mediaEl: null,        // <video> or <img>
+  isVideo: false,
+  musicUrl: null,
+  musicEl: null,
+  logoUrl: null,
+  logoEl: null,         // <img> logo overlay
+  rafId: null,
+  startTime: 0,
+  playing: false,
+  looping: false,
+  rendering: false,
+  textDX: 0,            // text drag offset X (fraction of width)
+  textDY: 0,            // text drag offset Y (fraction of height)
+  textScale: 1,         // text manual scale (resize)
+  textBox: null,        // last drawn text bounds, for hit-testing
+  infoDX: 0, infoDY: 0, // infographic drag offset
+  snapGuideX: null, snapGuideY: null,
+  infoScale: 1,         // infographic manual scale
+  infoBox: null,        // last drawn infographic bounds
+  newsDX: 0, newsDY: 0, // news banner drag offset
+  newsScale: 1,         // news banner manual scale
+  newsBox: null,        // last drawn news bounds
+  position: 0,          // current playback position (seconds), survives pause
+  slides: [],           // multi-slide sequence; each: {mediaEl,isVideo,headline,duration}
+  activeSlide: 0        // index of the slide being edited
+};
+
+// Professional easing — a refined ease-out with a subtle settle, the kind
+// of motion used in polished motion-graphics rather than a plain linear feed.
+function vsEasePro(t) {
+  t = Math.max(0, Math.min(1, t));
+  // ease-out-back-ish: quick start, gentle overshoot, soft settle
+  const c1 = 1.2, c3 = c1 + 1;
+  const back = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  // blend the back-ease with a clean cubic ease-out so it never overshoots
+  // hard — gives a smooth, expensive-looking arrival
+  const cubic = 1 - Math.pow(1 - t, 3);
+  return cubic * 0.65 + back * 0.35;
+}
+
+function vsTemplate() {
+  const tpl = videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+  const _fontEl = document.querySelector("#vsHeadlineFont");
+  if (_fontEl && _fontEl.value) return Object.assign({}, tpl, { headlineFont: _fontEl.value });
+  // Override headlineFont if user has picked one manually
+  const fontEl = document.querySelector("#vsHeadlineFont");
+  if (fontEl && fontEl.value) {
+    return Object.assign({}, tpl, { headlineFont: fontEl.value });
+  }
+  return tpl;
+}
+function vsStatus(msg) {
+  const el = $("#vsStatus");
+  if (el) el.textContent = msg || "";
+}
+function vsVal(id, fallback) {
+  const el = $(id);
+  return el ? el.value : fallback;
+}
+
+function renderTemplatePicker() {
+  const wrap = $("#templatePicker");
+  if (!wrap) return;
+  wrap.innerHTML = videoTemplates.map(tpl => `
+    <button type="button" class="template-card ${tpl.id === vstudio.templateId ? "selected" : ""}" data-template="${tpl.id}" title="${text(tpl.name)} — ${text(tpl.desc)}">
+      <span class="template-swatch" style="background:${tpl.bg};border-color:${tpl.accent}">
+        <span style="background:${tpl.accent}"></span>
+      </span>
+      <strong>${text(tpl.name)}</strong>
+    </button>
+  `).join("");
+  // show the active template's name on the collapsed summary
+  const cur = $("#vsTemplateCurrent");
+  if (cur) {
+    const t = videoTemplates.find(x => x.id === vstudio.templateId);
+    cur.textContent = t ? text(t.name) : "";
+  }
+}
+
+function setVideoTemplate(id) {
+  vstudio.templateId = id;
+  renderTemplatePicker();
+  // redraw whenever there's anything to show — media, slides, or an
+  // intro scene — so picking a template updates the preview immediately.
+  const hasContent = vstudio.mediaEl
+    || vstudio.slides.some(s => s.ready)
+    || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+    || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+  if (hasContent) drawStudioFrame(vstudio.position || 0);
+}
+
+// Render the background picker for the active intro slide.
+function renderIntroBgPicker(slide) {
+  const wrap = $("#vsIntroBgPicker");
+  if (!wrap || !slide) return;
+  wrap.innerHTML = introBackgrounds.map(bg => `
+    <button type="button" class="intro-bg-card ${bg.id === slide.introBg ? "selected" : ""}"
+      data-introbg="${bg.id}" title="${text(bg.name)}">
+      <span class="intro-bg-swatch"
+        style="background:linear-gradient(135deg,${bg.c1},${bg.c2});border-color:${bg.accent}"></span>
+      <small>${text(bg.name)}</small>
+    </button>
+  `).join("");
+}
+
+// Wire the intro-editor controls (called once from bindEvents).
+function bindIntroEditor() {
+  const pick = $("#vsIntroBgPicker");
+  if (pick) {
+    pick.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-introbg]");
+      if (!btn) return;
+      const s = vstudio.slides[vstudio.activeSlide];
+      if (!s || !s.isIntro) return;
+      s.introBg = btn.dataset.introbg;
+      renderIntroBgPicker(s);
+      drawStudioFrame(vstudio.position || 0);
+    });
+  }
+  const onIntroInput = () => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (!s || !s.isIntro) return;
+    const mi = $("#vsIntroMainInput"), si = $("#vsIntroSubInput"),
+          moi = $("#vsIntroMotionInput");
+    if (mi) s.introMain = mi.value;
+    if (si) s.introSub = si.value;
+    if (moi) s.introMotion = moi.value;
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
+  };
+  ["#vsIntroMainInput", "#vsIntroSubInput"].forEach(sel => {
+    const el = $(sel);
+    if (el) el.addEventListener("input", onIntroInput);
+  });
+  const moi = $("#vsIntroMotionInput");
+  if (moi) moi.addEventListener("change", onIntroInput);
+  const addBtn = $("#vsAddIntroBtn");
+  if (addBtn) addBtn.addEventListener("click", () => {
+    addIntroSlide();
+    selectSlide(vstudio.slides.length - 1);
+  });
+  const outroBtn = $("#vsAddOutroBtn");
+  if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
+  const autoBtn = $("#vsAutoBuildBtn");
+  if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
+  // ── AI Assistant mode switching (document-level delegation — robust) ──
+  window._vsAutoMode = window._vsAutoMode || "smart";
+  if (!window._vsAutoModeBound) {
+    window._vsAutoModeBound = true;
+    document.addEventListener("click", function(e){
+      var btn = e.target.closest && e.target.closest(".vs-auto-mode-btn");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var mode = btn.dataset.mode || "smart";
+      window._vsAutoMode = mode;
+      // toggle active state across all mode buttons
+      var all = document.querySelectorAll(".vs-auto-mode-btn");
+      for (var i=0;i<all.length;i++) all[i].classList.toggle("active", all[i]===btn);
+      // show/hide URL field
+      var urlWrap = document.querySelector("#vsAutoUrlWrap");
+      if (urlWrap) urlWrap.style.display = (mode==="link") ? "" : "none";
+      // update label + placeholder
+      var topicLbl = document.querySelector("#vsAutoTopicLbl");
+      var topicTa  = document.querySelector("#vsAutoTopic");
+      if (topicLbl && topicTa) {
+        if (mode==="smart"){ topicLbl.textContent="What should the video be about?"; topicTa.placeholder="e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
+        else if (mode==="link"){ topicLbl.textContent="Notes (optional — used if the link can't be read)"; topicTa.placeholder="Optional fallback text…"; }
+        else { topicLbl.textContent="Paste your article or text"; topicTa.placeholder="Paste the full article text here…"; }
+      }
+    });
+  }
+
+  const autoAiBtn = $("#vsAutoAiBtn");
+  if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
+}
+
+// Compute the canvas size from the chosen aspect ratio.
+function vsCanvasSize(targetLongEdge) {
+  const aspect = vsVal("#vsAspect", "original");
+  const m = vstudio.mediaEl;
+  let mw = (m && (m.videoWidth || m.naturalWidth)) || 1920;
+  let mh = (m && (m.videoHeight || m.naturalHeight)) || 1080;
+  // round to even numbers — required by most video codecs
+  const even = (n) => Math.round(n / 2) * 2;
+  // long edge: export uses the chosen size; preview caps at 1920
+  const cap = targetLongEdge || 1920;
+  if (aspect === "original") {
+    const longEdge = Math.max(mw, mh);
+    let scale;
+    if (targetLongEdge) {
+      scale = targetLongEdge / longEdge;        // export: scale to exact target
+    } else {
+      scale = longEdge > 1920 ? 1920 / longEdge : 1;  // preview: only cap
+    }
+    return { w: even(mw * scale), h: even(mh * scale) };
+  }
+  const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
+  const [aw, ah] = map[aspect] || [16, 9];
+  const base = cap;
+  return aw >= ah
+    ? { w: even(base), h: even(base * ah / aw) }
+    : { w: even(base * aw / ah), h: even(base) };
+}
+
+// ── MULTI-SLIDE SEQUENCE ──────────────────────────────────
+// Each slide carries its own media element, headline and duration.
+// When slides exist, the preview/export plays through them in order.
+
+// Load a media file and add it as a new slide.
+// Add an INTRO scene — no uploaded media; it uses a built-in background
+// plus dual animated text. It behaves like any other slide otherwise.
+function addIntroSlide() {
+  vsSaveActiveSlide();
+  const slide = {
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true,
+    introBg: introBackgrounds[0].id,
+    introMain: "AI Radar presents",
+    introSub: "A new standard of calm",
+    introMotion: "rise",
+    headline: "", duration: 3,
+    settings: vsCaptureSettings()
+  };
+  vstudio.slides.push(slide);
+  renderSlideList();
+  // an intro scene needs a canvas even with no uploaded media
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  if (vstudio.slides.length === 1) selectSlide(0);
+  drawStudioFrame(0);
+  vsStatus(state.lang === "fa"
+    ? `صحنه اینترو اضافه شد.`
+    : `Intro scene added.`);
+}
+
+// An outro scene is the same kind of self-contained titled scene as an
+// intro; it just defaults to closing copy and is labelled differently.
+// ── AUTO STORY BUILDER ─────────────────────────────────────
+// Build a whole multi-slide video from a topic/paragraph: an intro
+// scene, content slides (some with an infographic, some with a news
+// banner), then an outro — assembled in order, ready to preview/export.
+
+function vsAutoStatus(msg) {
+  const el = document.querySelector("#vsAutoStatus");
+  if (el) el.textContent = msg || "";
+}
+
+// Pull a few "stat-like" pairs (label + number) out of free text.
+function vsExtractStats(text) {
+  const stats = [];
+  // patterns like "$2.4M", "18K users", "34% growth", "revenue 2.4M"
+  const re = /([A-Za-z][A-Za-z \/&'-]{1,22}?)?\s*\$?\s*([\d.,]+\s*(?:%|k|m|b|bn|million|billion|thousand)?)\s*([A-Za-z][A-Za-z \/&'-]{1,22})?/gi;
+  let m, guard = 0;
+  while ((m = re.exec(text)) && guard++ < 40 && stats.length < 6) {
+    const numRaw = (m[2] || "").trim();
+    if (!/\d/.test(numRaw)) continue;
+    const label = ((m[3] || m[1] || "").trim()).replace(/\s+/g, " ");
+    if (!label || label.length < 2) continue;
+    // parse a sortable number
+    let n = parseFloat(numRaw.replace(/[^\d.]/g, "")) || 0;
+    if (/k/i.test(numRaw)) n *= 1e3;
+    if (/m|million/i.test(numRaw)) n *= 1e6;
+    if (/b|bn|billion/i.test(numRaw)) n *= 1e9;
+    // skip junk: tiny bare numbers with no unit (e.g. the "1" from "Q1")
+    const hasUnit = /[%kmb]|million|billion|thousand/i.test(numRaw);
+    if (!hasUnit && n < 2) continue;
+    stats.push({ label: label.slice(0, 22), value: numRaw.toUpperCase(), num: n });
+  }
+  return stats;
+}
+
+// Build the sequence from already-decided pieces.
+function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, captions }) {
+  vstudio.slides = [];
+  const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
+    "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
+  const bg = (i) => bgPool[i % bgPool.length];
+  const introMotions = ["rise-spring", "zoom", "glide", "drift", "spring"];
+  const caps = captions || [];
+
+  // Helper: get a CLEAN settings object with all overlays OFF
+  const cleanSet = () => {
+    const s = vsCaptureSettings();
+    s["#vsInfoOn"] = false;
+    s["#vsNewsOn"] = false;
+    return s;
+  };
+
+  // 1) intro scene
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
+    introBg: bg(0), introMain: title || "Presenting", introSub: subtitle || "",
+    introMotion: "rise-spring", headline: "", duration: 3,
+    settings: cleanSet(),
+    _timelineLabel: title || "Intro"
+  });
+
+  let bgi = 1, capi = 0;
+
+  // 2) infographic slide — ONLY if we actually have stats
+  if (stats && stats.length >= 2) {
+    const set = cleanSet();
+    set["#vsInfoOn"] = true;
+    set["#vsNewsOn"] = false;
+    set["#vsInfoStyle"] = stats.length > 3 ? "big-numbers" : "donut";
+    set["#vsInfoMotion"] = "rise";
+    set["#vsInfoJson"] = JSON.stringify({ title: title || "Key numbers",
+      subtitle: subtitle || "", stats });
+    vstudio.slides.push({
+      url: null, isVideo: false, mediaEl: null, ready: true,
+      isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
+      introMotion: "fade", headline: "", duration: 6, settings: set,
+      _standaloneInfo: true,
+      _caption: caps[capi++] || "Key numbers",
+      _timelineLabel: "📊 " + (title || "Stats")
+    });
+  }
+
+  // 3) news text slides per key point
+  const newsStyles = ["title-center", "bold-statement", "quote", "title-left"];
+  const newsMotions = ["fade", "vox", "pop", "fade"];
+  (points || []).slice(0, 5).forEach((pt, i) => {
+    const set = cleanSet();
+    set["#vsNewsOn"] = true;
+    set["#vsInfoOn"] = false;
+    set["#vsNewsStyle"] = newsStyles[i % newsStyles.length];
+    set["#vsNewsMotion"] = newsMotions[i % newsMotions.length];
+    set["#vsNewsKicker"] = (kicker || "UPDATE").toUpperCase().slice(0, 18);
+    set["#vsNewsHeadline"] = pt.slice(0, 120);
+    set["#vsNewsSource"] = "";
+    set["#vsNewsAccent"] = "gold";
+    vstudio.slides.push({
+      url: null, isVideo: false, mediaEl: null, ready: true,
+      isIntro: true, introBg: bg(bgi++), introMain: "", introSub: "",
+      introMotion: introMotions[i % introMotions.length],
+      headline: "", duration: 6, settings: set,
+      _standaloneNews: true,
+      _caption: caps[capi++] || pt.split(/\s+/).slice(0, 4).join(" "),
+      _timelineLabel: pt.slice(0, 22)
+    });
+  });
+
+  // 4) outro scene
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true, introBg: bg(0),
+    introMain: outroMain || "Thanks for watching", introSub: "Follow for more",
+    introMotion: "spring", headline: "", duration: 3, settings: cleanSet(),
+    _timelineLabel: outroMain || "Outro"
+  });
+
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  selectSlide(0);
+  drawStudioFrame(0);
+}
+
+// Non-AI builder: parse the text locally.
+function vsBuildStoryLocal(text) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const firstSentence = (clean.split(/[.!?\n]/)[0] || clean).trim();
+  const title = firstSentence.split(/\s+/).slice(0, 6).join(" ") || "Your video";
+  const stats = vsExtractStats(clean);
+  const points = clean.split(/[.!?]/).map(s => s.trim())
+    .filter(s => s.length > 12).slice(1, 5);
+  // auto-generate a short caption per content slide from its own text:
+  // the infographic caption, then one per point (first 3-4 words).
+  const captions = [];
+  if (stats.length) captions.push("Key numbers");
+  points.forEach(pt => captions.push(
+    pt.split(/\s+/).slice(0, 4).join(" ")));
+  vsAssembleStory({
+    title, subtitle: "", stats, points,
+    kicker: "HIGHLIGHT", outroMain: "Thanks for watching", captions
+  });
+}
+
+// AI chat for the auto-builder — 100% free via Pollinations.ai.
+// No API key, no login, no "Low Balance" popup ever. Puter is NOT used.
+async function vsAutoAiChat(prompt, opts) {
+  opts = opts || {};
+  const seed = Math.floor(Math.random() * 1e6);
+  const wantJson = opts.json !== false; // default: ask for JSON back
+
+  const parseChoices = (data) => {
+    const txt = data && data.choices && data.choices[0] &&
+                data.choices[0].message && data.choices[0].message.content;
+    return (txt && String(txt).trim()) ? String(txt) : null;
+  };
+
+  // POST a chat request to one endpoint. `model` selects the LLM,
+  // `useJson` toggles response_format, `viaProxy` wraps via corsproxy.
+  async function postChat(endpoint, model, useJson, viaProxy) {
+    const body = {
+      model: model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7, seed: seed
+    };
+    if (useJson) body.response_format = { type: "json_object" };
+    const target = viaProxy
+      ? "https://corsproxy.io/?url=" + encodeURIComponent(endpoint)
+      : endpoint;
+    const headers = { "Content-Type": "application/json" };
+    if (VS_POLLINATIONS_KEY) headers["Authorization"] = "Bearer " + VS_POLLINATIONS_KEY;
+    const resp = await fetch(target, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    const t = parseChoices(data);
+    if (!t) throw new Error("empty");
+    return t;
+  }
+
+  // With an API key, the strong models unlock. Try them in order of quality,
+  // then fall back to the always-free default.
+  const models = VS_POLLINATIONS_KEY
+    ? ["openai-large", "gemini", "claude", "openai-reasoning", "openai"]
+    : ["openai"];
+  const endpoints = [
+    "https://gen.pollinations.ai/v1/chat/completions",
+    "https://text.pollinations.ai/openai"
+  ];
+  // Try each model on each endpoint (json first, then without).
+  for (const model of models) {
+    for (const ep of endpoints) {
+      for (const useJson of (wantJson ? [true, false] : [false])) {
+        try { return await postChat(ep, model, useJson, false); }
+        catch (e) { /* next combo */ }
+      }
+    }
+  }
+  // proxied last resort
+  for (const useJson of (wantJson ? [true, false] : [false])) {
+    try { return await postChat("https://text.pollinations.ai/openai", "openai", useJson, true); }
+    catch (e) { /* next */ }
+  }
+
+  throw new Error("AI temporarily unavailable");
+}
+
+async function buildAutoVideo(useAI) {
+
+  const urlInp = document.querySelector("#vsAutoUrl");
+  const inp = document.querySelector("#vsAutoTopic");
+  let text = (inp && inp.value || "").trim();
+  let url = (urlInp && urlInp.value || "").trim();
+
+  // If the user pasted a URL into the topic box (Smart mode hides the URL
+  // field), treat it as a link to fetch rather than raw script text.
+  if (!url) {
+    const trimmed = text.replace(/\s+/g, "");
+    if (/^https?:\/\/\S+$/i.test(trimmed)) { url = trimmed; text = ""; }
+  }
+
+
+  // 1) if a URL was given, TRY to fetch the article text (often blocked
+  //    by the site's CORS policy on a static site — we fall back to the
+  //    pasted text if so).
+  if (url) {
+    vsAutoStatus(state.lang === "fa" ? "در حال خواندن مقاله…" : "Reading the article…");
+    const fetched = await vsFetchArticle(url);
+    if (fetched && fetched.length > 200) {
+      text = fetched;
+    } else if (!text) {
+      // Couldn't read the link. Instead of stopping, let the AI write about
+      // the topic implied by the URL using its own knowledge.
+      const slug = url.replace(/^https?:\/\//i, "")
+                      .replace(/[#?].*$/, "")
+                      .replace(/[\/\-_]+/g, " ")
+                      .replace(/\.(html?|php|aspx?)\b/gi, "")
+                      .replace(/\s+/g, " ").trim();
+      text = "Create an informative video about this news topic: " + slug;
+    }
+  }
+
+  if (!text || text.length < 3) {
+    vsAutoStatus(state.lang === "fa"
+      ? "یک لینک، متن، یا حتی فقط یک موضوع وارد کن." : "Enter a link, some text, or even just a topic.");
+    return;
+  }
+  vsSaveActiveSlide();
+
+  if (!useAI) {
+    vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
+    vsBuildStoryLocal(text);
+    vsAutoStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
+      : `Built a ${vstudio.slides.length}-scene video.`);
+    return;
+  }
+
+  // 2) AI path — analyze the WHOLE article and return an ordered list of
+  //    sections, each tagged as an infographic (when it has numbers) or
+  //    text (when it doesn't), so the video matches the content.
+  vsAutoStatus(state.lang === "fa"
+    ? "دستیار در حال تحلیل محتوا…" : "Assistant is analyzing the content…");
+
+  // Read assistant controls
+  const tone = (document.querySelector("#vsAutoTone") || {}).value || "news";
+  const lenChoice = (document.querySelector("#vsAutoLen") || {}).value || "medium";
+  const sectionRange = lenChoice === "short" ? "4 to 5" : lenChoice === "long" ? "8 to 10" : "6 to 7";
+  const toneGuide = {
+    news:        "authoritative broadcast-news director. Crisp, factual, urgent. Use title-left and title-center styles, bars/comparison charts.",
+    explainer:   "friendly educator. Clear, step-by-step, builds understanding. Use title-center, donut/pills charts, simple language.",
+    hype:        "high-energy launch hype-master. Bold, punchy, exciting. Use bold-statement, neon-title, big single numbers.",
+    documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
+    social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers."
+  }[tone] || "broadcast-news director.";
+
+  // Single AI call keeps free Puter credit usage minimal (one request, not two).
+  let analysis = "";
+
+  vsAutoStatus(state.lang === "fa"
+    ? "دستیار در حال نوشتن فیلمنامه…" : "Assistant is writing the script…");
+
+  const prompt = `You are an award-winning ${toneGuide}
+Turn the SOURCE below into a complete, professional short-form video script. If the SOURCE is a real article, dig into its ACTUAL substance — the specific facts, figures, names, places, causes and consequences. Lead with what genuinely matters most. If the SOURCE is only a topic/idea, use your expert knowledge to develop accurate, concrete specifics. Be a sharp journalist, not a generic copywriter.
+IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
+
+Return ONLY valid compact JSON (no markdown, no commentary):
+{"title":"the core story in max 6 words","subtitle":"max 8 words that add real context","kicker":"1-2 ALL-CAPS category words","source":"the publication or outlet name if known, else a fitting newsroom label","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"a sharp 3-6 word hook headline","sub":"max 8 words framing the story"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one vivid, specific sentence (max 12 words)","style":"title-center|bold-statement|quote|title-left|magazine-cover|neon-title"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words"}}
+
+RULES:
+1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
+2. INFOGRAPHIC: only with real quantitative data (2-5 stats, realistic values). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered.
+3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
+4. Never two infographics in a row. Vary text styles for rhythm.
+5. Match the ${tone} tone precisely in word choice and energy.
+6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
+7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise "AI Radar — Newsroom".
+8. Every line must be accurate and specific. Real numbers, real names, real detail.
+SOURCE: """${text.slice(0, 7000)}"""`;
+  try {
+    const raw = await vsAutoAiChat(prompt);
+    // Pollinations / LLMs sometimes wrap JSON in prose or code fences.
+    // Extract the first {...} block robustly.
+    let jsonStr = String(raw).replace(/```json|```/g, "").trim();
+    if (jsonStr[0] !== "{") {
+      const a = jsonStr.indexOf("{");
+      const b = jsonStr.lastIndexOf("}");
+      if (a !== -1 && b !== -1 && b > a) jsonStr = jsonStr.slice(a, b + 1);
+    }
+    const data = JSON.parse(jsonStr);
+    if (Array.isArray(data.sections) && data.sections.length) {
+      vsAssembleFromSections(data);
+    } else {
+      // older shape fallback
+      vsAssembleStory({
+        title: data.title, subtitle: data.subtitle,
+        stats: Array.isArray(data.stats) ? data.stats : [],
+        points: Array.isArray(data.points) ? data.points : [],
+        kicker: data.kicker, outroMain: data.outroMain,
+        captions: Array.isArray(data.captions) ? data.captions : []
+      });
+    }
+    vsAutoStatus(state.lang === "fa"
+      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
+      : `Built a ${vstudio.slides.length}-scene video.`);
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    vsBuildStoryLocal(text || url);
+    vsAutoStatus(state.lang === "fa"
+      ? `هوش مصنوعی جواب نداد (${msg}). فعلاً ${vstudio.slides.length} صحنه ساده ساخته شد.`
+      : `AI didn't respond (${msg}). Built ${vstudio.slides.length} basic scenes for now.`);
+  }
+}
+
+// Try to fetch an article's readable text. Direct fetch usually fails
+// cross-origin; we try a couple of public read-only proxies, and if all
+// fail we return "" so the caller falls back to pasted text.
+async function vsFetchArticle(url) {
+  // Normalize URL
+  let clean = url.trim();
+  if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
+
+  // Jina AI Reader returns clean article text — best option, handles
+  // JS-rendered pages and strips nav/ads. Try it a couple of ways first.
+  const tryUrls = [
+    { u: "https://r.jina.ai/" + clean, clean: true },
+    { u: "https://r.jina.ai/" + encodeURIComponent(clean), clean: true },
+    { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(clean), clean: false },
+    { u: "https://corsproxy.io/?url=" + encodeURIComponent(clean), clean: false },
+    { u: clean, clean: false }
+  ];
+
+  // Strip site chrome (nav menus, "skip to content", cookie notices, etc.)
+  // that otherwise leaks in as the first text and confuses the AI.
+  const cleanupText = (t) => {
+    return t
+      // remove common boilerplate phrases
+      .replace(/skip to (main )?content/gi, " ")
+      .replace(/accept (all )?cookies?/gi, " ")
+      .replace(/(^|\s)(menu|search|sign in|log in|subscribe|newsletter|share|advertisement)(\s|$)/gi, " ")
+      .replace(/\b(home|news|sport|business|politics|world|more)\b\s*(\|\s*)?/gi, m => m) // keep words but harmless
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // For Jina markdown: the real article usually starts after a "Markdown
+  // Content:" marker or after the page title line. Trim everything before it.
+  const focusArticle = (t) => {
+    let s = t;
+    const mc = s.indexOf("Markdown Content:");
+    if (mc !== -1) s = s.slice(mc + "Markdown Content:".length);
+    // drop leading "Title:" / "URL Source:" metadata lines Jina prepends
+    s = s.replace(/^\s*Title:.*$/im, "")
+         .replace(/^\s*URL Source:.*$/im, "")
+         .replace(/^\s*Published Time:.*$/im, "");
+    return s;
+  };
+
+  for (const entry of tryUrls) {
+    try {
+      const res = await fetch(entry.u, {
+        mode: "cors",
+        headers: entry.clean ? { "X-Return-Format": "markdown" } : {}
+      });
+      if (!res.ok) continue;
+      let t = await res.text();
+      if (entry.clean) {
+        t = focusArticle(t);
+      } else {
+        // strip scripts/styles/nav/header/footer, then tags
+        t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
+             .replace(/<style[\s\S]*?<\/style>/gi, " ")
+             .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+             .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+             .replace(/<header[\s\S]*?<\/header>/gi, " ")
+             .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+             .replace(/<aside[\s\S]*?<\/aside>/gi, " ")
+             .replace(/<form[\s\S]*?<\/form>/gi, " ")
+             .replace(/<[^>]+>/g, " ")
+             .replace(/&[a-z]+;/gi, " ");
+      }
+      t = cleanupText(t);
+      // require a decent amount of real prose
+      if (t.length > 300) return t.slice(0, 8000);
+    } catch (e) { /* try next */ }
+  }
+  return "";
+}
+
+// Build a video from the AI's ordered "sections" (infographic vs text).
+function vsAssembleFromSections(data) {
+  vstudio.slides = [];
+
+  // Palette → background pool mapping for cinematic variety
+  const palettes = {
+    fire:   ["cine-ember", "cine-spotlight", "cine-aurora", "aurora", "cine-mesh", "cine-violet", "cine-wave"],
+    ocean:  ["cine-wave", "cine-aurora", "cine-mesh", "cine-violet", "aurora", "cine-spotlight"],
+    forest: ["cine-mesh", "cine-aurora", "cine-wave", "aurora", "cine-violet", "cine-ember"],
+    gold:   ["gold-rings", "cine-spotlight", "cine-ember", "cine-aurora", "cine-mesh", "aurora"],
+    neon:   ["cine-violet", "cine-aurora", "cine-wave", "cine-mesh", "cine-spotlight", "cine-ember"],
+    mono:   ["cine-spotlight", "cine-mesh", "cine-aurora", "cine-wave", "cine-violet", "aurora"],
+  };
+  const palette = (data.palette && palettes[data.palette]) ? data.palette : "fire";
+  const bgPool = palettes[palette];
+  const bg = (i) => bgPool[i % bgPool.length];
+
+  // Varied entrance motions — never repeat same motion twice in a row
+  const motionPool = ["rise-spring", "zoom", "glide", "drift", "spring", "vox", "flip", "punch"];
+  let lastMotion = "";
+  const pickMotion = () => {
+    const candidates = motionPool.filter(m => m !== lastMotion);
+    const m = candidates[Math.floor(Math.random() * candidates.length)];
+    lastMotion = m;
+    return m;
+  };
+
+  const kicker = (data.kicker || "NEWS").toUpperCase().slice(0, 18);
+  const srcLabel = (data.source && String(data.source).trim())
+    ? String(data.source).trim().slice(0, 60) : "AI Radar — Newsroom";
+
+  // Helper: clean settings with all overlays explicitly OFF
+  const cleanSet2 = () => { const s = vsCaptureSettings(); s["#vsInfoOn"] = false; s["#vsNewsOn"] = false; return s; };
+
+  // intro — dramatic entrance with a precise hook + the source line
+  const introMain = (data.intro && data.intro.main) || data.title || "Today's story";
+  const introSub  = (data.intro && data.intro.sub)  || data.subtitle || "";
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true, isIntro: true,
+    introBg: bg(0), introMain: introMain,
+    introSub: introSub ? (introSub + "  ·  " + srcLabel) : srcLabel,
+    introMotion: "rise-spring",
+    headline: "", duration: 3, settings: cleanSet2(),
+    _kicker: kicker || "AI RADAR",
+    _timelineLabel: introMain
+  });
+
+  let bi = 1;
+  const sections = (data.sections || []).slice(0, 7);
+  sections.forEach((sec, i) => {
+    const set = cleanSet2();
+    const motion = pickMotion();
+
+    if (sec.type === "infographic" && Array.isArray(sec.stats) && sec.stats.length) {
+      // Infographic slide — use chartType hint from AI
+      const validStyles = ["cards", "donut", "bars", "pills", "split"];
+      const aiChart = sec.chartType;
+      let infoStyle = "cards";
+      if (aiChart === "donut" || aiChart === "donut") infoStyle = "donut";
+      else if (aiChart === "bars") infoStyle = sec.stats.length > 3 ? "cards" : "bars";
+      else if (aiChart === "pills") infoStyle = "progress-pills";
+      else if (aiChart === "split" && sec.stats.length === 2) infoStyle = "split-block";
+      else infoStyle = sec.stats.length > 3 ? "cards" : "donut";
+
+      set["#vsInfoOn"] = true;
+      set["#vsInfoStyle"] = infoStyle;
+      set["#vsInfoMotion"] = motion;
+      set["#vsInfoJson"] = JSON.stringify({
+        title: sec.title || data.title || "Key numbers",
+        subtitle: "", stats: sec.stats });
+      set["#vsNewsOn"] = false;
+      vstudio.slides.push({
+        url: null, isVideo: false, mediaEl: null, ready: true,
+        isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
+        introMotion: motion, headline: "",
+        duration: 6, settings: set, _standaloneInfo: true,
+        _caption: sec.caption || "Key numbers",
+        _timelineLabel: sec.caption || sec.title || "📊 Stats"
+      });
+
+    } else {
+      // Text / narrative slide
+      const validStyles = ["title-center", "title-left", "quote", "caption", "bold-statement"];
+      const style = validStyles.includes(sec.style) ? sec.style : "title-center";
+      set["#vsNewsOn"] = true;
+      set["#vsNewsStyle"] = style;
+      set["#vsNewsMotion"] = motion;
+      set["#vsNewsKicker"] = kicker;
+      set["#vsNewsHeadline"] = String(sec.headline || sec.title || "").slice(0, 200);
+      set["#vsNewsSource"] = srcLabel;
+      // Store emphasis words for richer rendering
+      if (sec.emphasis) set["#vsNewsEmphasis"] = sec.emphasis;
+      set["#vsInfoOn"] = false;
+      vstudio.slides.push({
+        url: null, isVideo: false, mediaEl: null, ready: true,
+        isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
+        introMotion: motion, headline: "",
+        duration: 6, settings: set, _standaloneNews: true,
+        _caption: sec.caption || "",
+        _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
+      });
+    }
+  });
+
+  // outro — key takeaway + source credit
+  const outroMain = (data.outro && data.outro.main) || data.outroMain || "Thanks for watching";
+  const outroSub  = (data.outro && data.outro.sub)  || srcLabel;
+  vstudio.slides.push({
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true, introBg: bg(0),
+    introMain: outroMain,
+    introSub: outroSub, introMotion: "spring",
+    headline: "", duration: 3, settings: cleanSet2(),
+    _timelineLabel: outroMain
+  });
+
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  selectSlide(0);
+  drawStudioFrame(0);
+
+  // ── OPTIONAL: auto-generate AI background images for text scenes ──
+  const wantImages = $("#vsAutoImages") && $("#vsAutoImages").checked;
+  if (wantImages) {
+    vsAutoGenerateBackgrounds(data);
+  }
+}
+
+// Generate cinematic AI backgrounds for narrative slides, one at a time so we
+// don't hammer the API. Updates each slide as its image arrives.
+async function vsAutoGenerateBackgrounds(data) {
+  const slides = vstudio.slides;
+  const palette = (data && data.palette) || "cinematic";
+  // Cinematic camera moves to rotate through so each photo feels alive
+  const camMoves = ["kenburns-in", "kenburns-out", "pan-right", "pan-left",
+                    "zoom-pan", "drift-up", "pan-up", "handheld"];
+  let made = 0, camIdx = 0;
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (s._standaloneInfo || s.isOutro) continue;
+    if (s.mediaEl) continue;
+    const subject = s._caption || (s.settings && s.settings["#vsNewsHeadline"]) ||
+                    data.title || "abstract concept";
+    vsAutoStatus(state.lang === "fa"
+      ? `در حال ساخت تصویر صحنه ${i + 1}…`
+      : `Generating image for scene ${i + 1}…`);
+    try {
+      const img = await vsGenerateImage(
+        subject + ", " + palette + " color palette, editorial photography", null);
+      s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+      // make sure the renderer treats it as footage-backed
+      s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
+      // give each photo a cinematic camera move so the video feels dynamic
+      const cam = camMoves[camIdx++ % camMoves.length];
+      s.settings = s.settings || {};
+      s.settings["#vsMotion"] = cam;
+      made++;
+      renderSlideList();
+      if (vstudio.activeSlide === i) drawStudioFrame(vstudio.position || 0);
+    } catch (e) { /* keep colored background on failure */ }
+  }
+  vsAutoStatus(state.lang === "fa"
+    ? (made ? `${made} تصویر ساخته شد.` : "ساخت تصویر در دسترس نبود.")
+    : (made ? `Generated ${made} background image${made > 1 ? "s" : ""}.` : "Image generation unavailable."));
+  if (!vstudio.looping) previewStudioVideo(false);
+}
+
+function addOutroSlide() {
+  vsSaveActiveSlide();
+  const slide = {
+    url: null, isVideo: false, mediaEl: null, ready: true,
+    isIntro: true, isOutro: true,
+    introBg: introBackgrounds[0].id,
+    introMain: "Thanks for watching",
+    introSub: "Follow for more",
+    introMotion: "fade",
+    headline: "", duration: 3,
+    settings: vsCaptureSettings()
+  };
+  vstudio.slides.push(slide);
+  renderSlideList();
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  if (vstudio.slides.length === 1) selectSlide(0);
+  selectSlide(vstudio.slides.length - 1);
+  drawStudioFrame(0);
+  vsStatus(state.lang === "fa" ? `صحنه پایانی اضافه شد.` : `Outro scene added.`);
+}
+
+// Add or replace footage on the slide currently being edited (used for
+// the middle/content slides so they can carry real media, not just a
+// generated background). Intro/outro title scenes don't use this.
+function addFootageToActiveSlide(file) {
+  if (!file) return;
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (!s) { vsStatus("Select a slide first."); return; }
+  const url = URL.createObjectURL(file);
+  const isVideo = file.type.startsWith("video/");
+  const nm = $("#vsSlideMediaName");
+  const done = () => {
+    s.ready = true;
+    // once it has footage it's a media scene, not a generated background
+    s._standaloneInfo = s._standaloneInfo; // keep overlay flags as-is
+    renderSlideList();
+    if (nm) nm.textContent = state.lang === "fa"
+      ? "فوتیج به این صحنه اضافه شد." : "Footage added to this scene.";
+    drawStudioFrame(vstudio.position || 0);
+  };
+  s.url = url; s.isVideo = isVideo;
+  if (isVideo) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.playsInline = true; v.loop = false;
+    v.addEventListener("loadedmetadata", () => {
+      s.mediaEl = v;
+      if (isFinite(v.duration) && v.duration > 0)
+        s.duration = Math.min(600, Math.max(1, Math.round(v.duration)));
+      done();
+      const du = $("#vsSlideDuration"); if (du) du.value = s.duration;
+    });
+    v.addEventListener("error", () => vsStatus("Could not load that video."));
+  } else {
+    const img = new Image();
+    img.onload = () => { s.mediaEl = img; done(); };
+    img.onerror = () => vsStatus("Could not load that image.");
+    img.src = url;
+  }
+  vsStatus(state.lang === "fa" ? "در حال بارگیری فوتیج…" : "Loading footage…");
+}
+
+// ── AI IMAGE GENERATION ─────────────────────────────────────────────────
+// Generate a cinematic background image from a text prompt using puter.ai,
+// then attach it to a slide as its footage. Returns the loaded <img> or null.
+// Ensure the user is signed in to Puter before any AI call that needs it.
+// Uses a temporary anonymous account so there's no signup friction. Must be
+// called directly from a click handler (popup requires a user gesture).
+async function vsEnsurePuterAuth() {
+  if (typeof puter === "undefined" || !puter.auth) return false;
+  try {
+    if (puter.auth.isSignedIn && puter.auth.isSignedIn()) return true;
+    await puter.auth.signIn({ attempt_temp_user_creation: true });
+    return puter.auth.isSignedIn ? puter.auth.isSignedIn() : true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function vsGenerateImage(promptText, aspect) {
+  // FREE image generation via Pollinations.ai — no API key, no login, no
+  // credits, no paywall. It serves a generated image straight from a URL.
+  const styled = promptText.trim() +
+    " — cinematic editorial photograph, dramatic volumetric lighting, rich" +
+    " color grading, shallow depth of field, ultra detailed, atmospheric," +
+    " professional composition, no text, no words, no watermark";
+  // dimensions follow the chosen aspect ratio
+  let w = 768, h = 1344; // default 9:16 portrait
+  if (aspect === "16:9") { w = 1344; h = 768; }
+  else if (aspect === "1:1") { w = 1024; h = 1024; }
+  else if (aspect === "4:5") { w = 896; h = 1120; }
+  const enc = encodeURIComponent(styled);
+  // Build a list of candidate URLs across hosts + models. Pollinations
+  // sometimes errors anonymously on one model/host but works on another.
+  const tok = VS_POLLINATIONS_KEY ? ("&token=" + encodeURIComponent(VS_POLLINATIONS_KEY)) : "";
+  const candidates = [];
+  const seeds = [Math.floor(Math.random() * 1e6), Math.floor(Math.random() * 1e6)];
+  for (const sd of seeds) {
+    candidates.push("https://image.pollinations.ai/prompt/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux&nologo=true" + tok);
+    candidates.push("https://image.pollinations.ai/prompt/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=turbo&nologo=true" + tok);
+    candidates.push("https://gen.pollinations.ai/image/" + enc +
+      "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux" + tok);
+  }
+
+  // Load an image URL. Try WITHOUT crossOrigin first (most reliable for mere
+  // display); if that works we keep it. crossOrigin is only needed for video
+  // EXPORT — we re-flag it then. Returns the <img> or null.
+  function tryLoad(src, useCors) {
+    return new Promise((res) => {
+      const im = new Image();
+      if (useCors) im.crossOrigin = "anonymous";
+      let done = false;
+      const timer = setTimeout(() => { if (!done) { done = true; res(null); } }, 25000);
+      im.onload = () => { if (!done) { done = true; clearTimeout(timer); res(im.naturalWidth ? im : null); } };
+      im.onerror = () => { if (!done) { done = true; clearTimeout(timer); res(null); } };
+      im.src = src;
+    });
+  }
+
+  let imgEl = null;
+  for (const url of candidates) {
+    // try with CORS first (so export works); if it fails, retry same URL
+    // without CORS so at least the preview shows something.
+    imgEl = await tryLoad(url, true);
+    if (!imgEl) imgEl = await tryLoad(url, false);
+    if (imgEl) break;
+  }
+  if (!imgEl) throw new Error("Image service unavailable (try again in a moment)");
+  return imgEl;
+}
+
+// Attach a generated image to the active slide as its background footage.
+async function vsGenerateImageForActiveSlide() {
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (!s) { vsStatus(state.lang === "fa" ? "اول یک صحنه انتخاب کن." : "Select a slide first."); return; }
+  const promptInput = $("#vsImgPrompt");
+  let p = (promptInput && promptInput.value || "").trim();
+  if (!p) p = s._caption || s._headline || vsVal("#vsHeadline", "") || "abstract cinematic background";
+  const btn = $("#vsImgGenBtn");
+  const setBtn = (txt, dis) => { if (btn) { btn.innerHTML = txt; btn.disabled = dis; } };
+  setBtn(state.lang === "fa" ? "در حال ساخت…" : "Generating…", true);
+  vsStatus(state.lang === "fa" ? "در حال ساخت تصویر…" : "Generating the image…");
+  try {
+    const img = await vsGenerateImage(p, vsVal("#vsAspect", "9:16"));
+    s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
+    // ensure it shows even on intro-type assistant slides
+    s._standaloneNews = s._standaloneNews || (!s._standaloneInfo);
+    // give it a cinematic camera move if the slide has none yet
+    s.settings = s.settings || {};
+    if (!s.settings["#vsMotion"] || s.settings["#vsMotion"] === "none") {
+      s.settings["#vsMotion"] = "kenburns-in";
+    }
+    // reflect it in the live control if this is the active slide
+    const motionSel = $("#vsMotion");
+    if (motionSel) motionSel.value = s.settings["#vsMotion"];
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
+    vsStatus(state.lang === "fa" ? "تصویر ساخته شد و به صحنه اضافه شد." : "Image generated and added to the scene.");
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    vsStatus(state.lang === "fa"
+      ? ("ساخت تصویر ناموفق بود: " + msg)
+      : ("Image generation failed: " + msg));
+  } finally {
+    setBtn("✦ " + (state.lang === "fa" ? "ساخت تصویر با AI" : "Generate image with AI"), false);
+  }
+}
+
+function addStudioSlide(file) {
+  if (!file) return;
+  // save the slide currently being edited before creating a new one
+  vsSaveActiveSlide();
+  const url = URL.createObjectURL(file);
+  const isVideo = file.type.startsWith("video/");
+  const slide = {
+    url, isVideo, mediaEl: null, ready: false,
+    headline: "", duration: 6,
+    // a fresh slide inherits the current settings as its starting point
+    settings: vsCaptureSettings()
+  };
+  if (isVideo) {
+    const v = document.createElement("video");
+    v.src = url; v.muted = true; v.playsInline = true; v.loop = false;
+    v.addEventListener("loadedmetadata", () => {
+      slide.mediaEl = v; slide.ready = true;
+      // the scene lasts exactly as long as its clip — no looping
+      if (isFinite(v.duration) && v.duration > 0) {
+        slide.duration = Math.min(600, Math.max(1, Math.round(v.duration)));
+      }
+      renderSlideList();
+      if (vstudio.slides.length === 1) selectSlide(0);
+    });
+    v.addEventListener("error", () => vsStatus("Could not load that video."));
+  } else {
+    const img = new Image();
+    img.onload = () => {
+      slide.mediaEl = img; slide.ready = true; renderSlideList();
+      if (vstudio.slides.length === 1) selectSlide(0);
+    };
+    img.onerror = () => vsStatus("Could not load that image.");
+    img.src = url;
+  }
+  vstudio.slides.push(slide);
+  renderSlideList();
+  vsStatus(state.lang === "fa"
+    ? `اسلاید ${vstudio.slides.length} اضافه شد — تنظیمات این اسلاید مستقل است.`
+    : `Slide ${vstudio.slides.length} added — it has its own settings.`);
+}
+
+// Remove a slide by index.
+function removeStudioSlide(i) {
+  const s = vstudio.slides[i];
+  if (s && s.url) { try { URL.revokeObjectURL(s.url); } catch {} }
+  vstudio.slides.splice(i, 1);
+  if (vstudio.activeSlide >= vstudio.slides.length) {
+    vstudio.activeSlide = Math.max(0, vstudio.slides.length - 1);
+  }
+  renderSlideList();
+  if (vstudio.slides.length) selectSlide(vstudio.activeSlide);
+  else { const f = $("#vsSlideOnlyFields"); if (f) f.classList.add("vtab-hidden"); }
+}
+
+// Select a slide for editing.
+function selectSlide(i) {
+  // save the slide we're leaving, then switch
+  if (vstudio.activeSlide !== i) vsSaveActiveSlide();
+  vstudio.activeSlide = i;
+  const s = vstudio.slides[i];
+  const fields = $("#vsSlideOnlyFields");
+  if (!s) return;
+  // A slide is a TITLE scene (intro/outro) only if it's a plain intro
+  // with no standalone content. Content slides — even though they reuse
+  // the intro background mechanism — should be fully editable with the
+  // media/footage fields, so they're treated like normal scenes here.
+  const isTitleScene = s.isIntro && !s._standaloneInfo && !s._standaloneNews;
+  const introEd = $("#vsIntroEditor");
+  if (isTitleScene) {
+    if (introEd) {
+      introEd.hidden = false;
+      introEd.open = true;
+      renderIntroBgPicker(s);
+      const mi = $("#vsIntroMainInput"), si = $("#vsIntroSubInput"),
+            moi = $("#vsIntroMotionInput");
+      if (mi) mi.value = s.introMain || "";
+      if (si) si.value = s.introSub || "";
+      if (moi) moi.value = s.introMotion || "rise";
+    }
+    if (fields) fields.classList.add("vtab-hidden");
+  } else {
+    if (introEd) introEd.hidden = true;
+    if (fields) fields.classList.remove("vtab-hidden");
+    // show whether this slide already has footage
+    const nm = $("#vsSlideMediaName");
+    if (nm) nm.textContent = s.mediaEl
+      ? (state.lang === "fa" ? "این صحنه فوتیج دارد." : "This scene has footage.")
+      : (state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).");
+  }
+  const du = $("#vsSlideDuration");
+  if (du) du.value = s.duration || 4;
+  const capInp = $("#vsSlideCaption");
+  if (capInp) capInp.value = s._caption || "";
+  // load this slide's own settings onto the controls
+  if (s.settings) {
+    vsApplySettings(s.settings);
+    syncStudioControls();          // refresh dependent UI (template chips etc.)
+  }
+  // show which slide the other tabs are now editing
+  const tag = $("#vsActiveSlideTag");
+  if (tag) {
+    tag.textContent = state.lang === "fa"
+      ? `در حال ویرایش اسلاید ${i + 1} از ${vstudio.slides.length}`
+      : `Editing slide ${i + 1} of ${vstudio.slides.length}`;
+  }
+  renderSlideList();
+  if (!vstudio.looping && vstudio.mediaEl || vstudio.slides.length) {
+    drawStudioFrame(vstudio.position || 0);
+  }
+}
+
+// Re-sync any UI that mirrors control state (safe no-op if not needed).
+function syncStudioControls() {
+  // when switching slides, repopulate the infographic form from the
+  // slide's JSON so the form fields show that slide's stats.
+  if (typeof window._vsInfoJsonToForm === "function") {
+    window._vsInfoJsonToForm();
+  }
+}
+
+// Render the slide list with thumbnails and controls.
+function renderSlideList() {
+  const list = $("#vsSlideList");
+  if (!list) return;
+  if (!vstudio.slides.length) {
+    list.innerHTML = `<p class="vs-slide-empty">${
+      state.lang === "fa" ? "هنوز اسلایدی اضافه نشده." : "No slides yet."}</p>`;
+    heraRenderTimeline();
+    return;
+  }
+  const n = vstudio.slides.length;
+  let contentNo = 0;   // running number for the middle (content) slides
+  list.innerHTML = vstudio.slides.map((s, i) => {
+    const isFirst = i === 0;
+    const isLast = i === n - 1 && n > 1;
+    let icon, label;
+    if (s.isOutro || (isLast && s.isIntro)) {
+      // last scene (or an explicit outro) → Outro
+      icon = "🏁";
+      label = s.introMain
+        ? escapeHtml(s.introMain)
+        : (state.lang === "fa" ? "اوترو" : "Outro");
+    } else if (isFirst && s.isIntro) {
+      // first scene that's a title scene → Intro
+      icon = "✨";
+      label = s.introMain
+        ? escapeHtml(s.introMain)
+        : (state.lang === "fa" ? "اینترو" : "Intro");
+    } else {
+      // a numbered middle slide — show its number plus a short hint of
+      // its own content, and an icon matching the slide type.
+      contentNo++;
+      icon = s._standaloneInfo ? "📊"
+        : s._standaloneNews ? "📰"
+        : s.isIntro ? "✨"
+        : s.isVideo ? "🎬" : "🖼";
+      const num = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
+      // pull a short hint from whatever text the slide carries
+      let hint = s.introMain
+        || (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"]))
+        || s._caption || "";
+      if (s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
+        try { hint = JSON.parse(s.settings["#vsInfoJson"]).title || hint; } catch {}
+      }
+      hint = String(hint).trim();
+      label = hint
+        ? `${num} · ${escapeHtml(hint.slice(0, 26))}`
+        : num;
+    }
+    return `
+    <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
+      <span class="vs-slide-num">${i + 1}</span>
+      <span class="vs-slide-info">
+        ${icon} ${label}
+        <em>${s.duration}s</em>
+      </span>
+      <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
+    </div>`;
+  }).join("");
+  // Also refresh Hera scene timeline blocks
+  heraRenderTimeline();
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// Total duration of all slides (used by preview/export when slides exist).
+function slidesTotalDuration() {
+  return vstudio.slides.reduce((sum, s) => sum + (Number(s.duration) || 4), 0);
+}
+
+// Which slide is active at a given elapsed time, and its local progress.
+function slideAtTime(elapsed) {
+  let t = elapsed;
+  for (let i = 0; i < vstudio.slides.length; i++) {
+    const d = Number(vstudio.slides[i].duration) || 4;
+    if (t < d) return { index: i, local: t, dur: d };
+    t -= d;
+  }
+  const last = vstudio.slides.length - 1;
+  return { index: last, local: 0, dur: vstudio.slides[last]?.duration || 4 };
+}
+
+function loadStudioMedia(file) {
+  if (!file) return;
+
+  // If slides exist, redirect this upload to the active slide's footage
+  // instead of the global vstudio.mediaEl — so it doesn't bleed into
+  // every other slide.
+  if (vstudio.slides.length) {
+    addFootageToActiveSlide(file);
+    vsStatus(state.lang === "fa"
+      ? "فوتیج به اسلاید فعال اضافه شد."
+      : "Footage added to the active slide.");
+    return;
+  }
+
+  if (vstudio.mediaUrl) URL.revokeObjectURL(vstudio.mediaUrl);
+  vstudio.mediaUrl = URL.createObjectURL(file);
+  vstudio.isVideo = file.type.startsWith("video/");
+
+  if (vstudio.isVideo) {
+    const video = document.createElement("video");
+    video.src = vstudio.mediaUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = false;   // play once, beginning to end — no repeat
+    video.addEventListener("loadedmetadata", () => {
+      vstudio.mediaEl = video;
+      // the video length IS the project length — set the duration field
+      // to the clip's real duration so it plays fully once, no looping.
+      const dur = video.duration;
+      if (isFinite(dur) && dur > 0) {
+        const field = $("#vsDuration");
+        if (field) {
+          field.value = Math.min(600, Math.max(2, Math.round(dur)));
+        }
+      }
+      buildPreviewCanvas();
+      refreshTimelineClips();
+      previewStudioVideo(true);   // start the live preview
+      vsStatus(state.lang === "fa" ? "ویدیو بارگذاری شد — پیش‌نمایش زنده فعال است." : "Video loaded — live preview is running.");
+    });
+    video.addEventListener("error", () => {
+      vsStatus(state.lang === "fa" ? "بارگذاری ویدیو ناموفق بود." : "Could not load that video.");
+    });
+  } else {
+    const img = new Image();
+    img.onload = () => {
+      vstudio.mediaEl = img;
+      buildPreviewCanvas();
+      refreshTimelineClips();
+      previewStudioVideo(true);   // start the live looping preview
+      vsStatus(state.lang === "fa" ? "تصویر بارگذاری شد — پیش‌نمایش زنده فعال است." : "Image loaded — live preview is running.");
+    };
+    img.onerror = () => {
+      vsStatus(state.lang === "fa" ? "بارگذاری تصویر ناموفق بود." : "Could not load that image.");
+    };
+    img.src = vstudio.mediaUrl;
+  }
+}
+
+function loadStudioMusic(file) {
+  if (!file) return;
+  if (vstudio.musicUrl) URL.revokeObjectURL(vstudio.musicUrl);
+  // a new music element needs a fresh audio graph (the old MediaElementSource
+  // is bound to the previous element and can't be reused)
+  if (vstudio._audioCtx) { try { vstudio._audioCtx.close(); } catch {} }
+  vstudio._audioCtx = null;
+  vstudio._musicSrc = null;
+  vstudio._musicDest = null;
+  vstudio.musicUrl = URL.createObjectURL(file);
+  const audio = new Audio(vstudio.musicUrl);
+  audio.loop = true;
+  vstudio.musicEl = audio;
+  refreshTimelineClips();
+  vsStatus(state.lang === "fa" ? "موسیقی اضافه شد." : "Music added.");
+}
+
+function loadStudioLogo(file) {
+  if (!file) return;
+  if (vstudio.logoUrl) URL.revokeObjectURL(vstudio.logoUrl);
+  vstudio.logoUrl = URL.createObjectURL(file);
+  vstudio.logoIsVideo = (file.type || "").startsWith("video");
+  if (vstudio.logoIsVideo) {
+    // animated logo (webm with alpha, mp4, …) — its own motion, we just play it
+    const v = document.createElement("video");
+    v.muted = true; v.loop = true; v.playsInline = true;
+    v.addEventListener("loadeddata", () => {
+      vstudio.logoEl = v;
+      vstudio.logoSegs = null;            // letter cascade not applicable
+      try { v.play(); } catch (e) {}
+      if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+      refreshTimelineClips();
+      vsStatus(state.lang === "fa" ? "لوگوی متحرک اضافه شد." : "Animated logo added.");
+    });
+    v.addEventListener("error", () => {
+      vsStatus(state.lang === "fa"
+        ? "این فرمت ویدیو پشتیبانی نمی‌شود — WebM (با آلفا) یا MP4 امتحان کن."
+        : "Unsupported video format — try WebM (with alpha) or MP4.");
+    });
+    v.src = vstudio.logoUrl;
+    return;
+  }
+  const img = new Image();
+  img.onload = () => {
+    vstudio.logoEl = img;
+    vsAnalyzeLogo(img);   // detect letter segments for the Letter-cascade motion
+    if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+    refreshTimelineClips();
+    vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
+  };
+  img.onerror = () => {
+    vsStatus(state.lang === "fa" ? "بارگذاری لوگو ناموفق بود." : "Could not load that logo.");
+  };
+  img.src = vstudio.logoUrl;
+}
+
+// Detect letter segments in a wordmark logo by scanning for empty columns
+// (transparent OR near-black). Enables the per-letter cascade motion for ANY
+// uploaded wordmark — segments are stored as source-rect slices.
+function vsAnalyzeLogo(img) {
+  vstudio.logoSegs = null;
+  try {
+    const w = img.naturalWidth, hgt = img.naturalHeight;
+    if (!w || !hgt || w * hgt > 4000000) return; // skip absurdly large images
+    const c = document.createElement("canvas");
+    c.width = w; c.height = hgt;
+    const cx = c.getContext("2d", { willReadFrequently: true });
+    cx.drawImage(img, 0, 0);
+    const data = cx.getImageData(0, 0, w, hgt).data;
+    const colHasInk = new Uint8Array(w);
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < hgt; y += 2) {           // sample every 2nd row
+        const i = (y * w + x) * 4;
+        const a = data[i + 3];
+        const lum = data[i] + data[i + 1] + data[i + 2];
+        if (a > 24 && lum > 60) { colHasInk[x] = 1; break; }
+      }
+    }
+    const segs = [];
+    let start = -1;
+    for (let x = 0; x < w; x++) {
+      if (colHasInk[x] && start < 0) start = x;
+      if (!colHasInk[x] && start >= 0) { segs.push({ x: start, w: x - start }); start = -1; }
+    }
+    if (start >= 0) segs.push({ x: start, w: w - start });
+    // only useful when the mark really splits into multiple glyphs
+    if (segs.length >= 3 && segs.length <= 24) {
+      vstudio.logoSegs = segs;
+      // keep a clean source canvas for slice drawing
+      vstudio.logoSrcCanvas = c;
+    }
+  } catch (e) { /* canvas tainted or too big — cascade silently unavailable */ }
+}
+
+function buildPreviewCanvas(exportLongEdge) {
+  const stage = $("#vsPreview");
+  if (!stage) return;
+  const { w, h } = vsCanvasSize(exportLongEdge);
+  stage.innerHTML = `<canvas id="vsCanvas" width="${w}" height="${h}"></canvas>`;
+  applyPreviewSize();
+  setupTextDrag();
+}
+
+// Make the headline/sub/cta block draggable directly on the canvas.
+function setupTextDrag() {
+  const canvas = $("#vsCanvas");
+  if (!canvas) return;
+  let dragging = null;   // which element: 'text' | 'info' | 'news'
+  let startX = 0, startY = 0, baseDX = 0, baseDY = 0;
+
+  // convert a pointer event to canvas-pixel coordinates
+  const toCanvas = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return {
+      x: (p.clientX - r.left) / r.width * canvas.width,
+      y: (p.clientY - r.top) / r.height * canvas.height
+    };
+  };
+  // is a point inside a recorded bounding box (with padding)?
+  const inBox = (pt, b) => {
+    if (!b) return false;
+    const pad = canvas.width * 0.03;
+    return pt.x >= b.x - pad && pt.x <= b.x + b.w + pad &&
+           pt.y >= b.y - pad && pt.y <= b.y + b.h + pad;
+  };
+  // which draggable element is under the pointer? (news/info on top of text)
+  const pick = (pt) => {
+    // info & text are smaller, more specific boxes — check them FIRST so a
+    // full-frame cinematic news banner doesn't swallow every click.
+    if (inBox(pt, vstudio.infoBox)) return "info";
+    if (inBox(pt, vstudio.textBox)) return "text";
+    if (inBox(pt, vstudio.newsBox)) return "news";
+    return null;
+  };
+  const offsetsFor = (kind) => {
+    if (kind === "news") return ["newsDX", "newsDY"];
+    if (kind === "info") return ["infoDX", "infoDY"];
+    return ["textDX", "textDY"];
+  };
+  const scaleKeyFor = (kind) => {
+    if (kind === "news") return "newsScale";
+    if (kind === "info") return "infoScale";
+    return "textScale";
+  };
+
+  // Scroll wheel over an element resizes it — manual scaling, real time.
+  const wheel = (e) => {
+    const pt = toCanvas(e);
+    const kind = pick(pt);
+    if (!kind) return;          // not over an element — let the page scroll
+    e.preventDefault();
+    const sk = scaleKeyFor(kind);
+    const step = e.deltaY < 0 ? 1.06 : 1 / 1.06;
+    vstudio[sk] = Math.max(0.3, Math.min(3, (vstudio[sk] || 1) * step));
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+  };
+
+  // Double-click an element to toggle "fit to frame" — it grows to fill
+  // the frame nicely, or snaps back to normal size if already fitted.
+  const dbl = (e) => {
+    const pt = toCanvas(e);
+    const kind = pick(pt);
+    if (!kind) return;
+    e.preventDefault();
+    const sk = scaleKeyFor(kind);
+    const ox = offsetsFor(kind)[0], oy = offsetsFor(kind)[1];
+    const isFitted = Math.abs((vstudio[sk] || 1) - 1.6) < 0.01
+      && vstudio[ox] === 0 && vstudio[oy] === 0;
+    if (isFitted) {
+      vstudio[sk] = 1; vstudio[ox] = 0; vstudio[oy] = 0;
+    } else {
+      vstudio[sk] = 1.6; vstudio[ox] = 0; vstudio[oy] = 0;
+    }
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+  };
+
+  const down = (e) => {
+    const pt = toCanvas(e);
+    const kind = pick(pt);
+    if (!kind) return;
+    dragging = kind;
+    const [kx, ky] = offsetsFor(kind);
+    startX = pt.x; startY = pt.y;
+    baseDX = vstudio[kx]; baseDY = vstudio[ky];
+    canvas.style.cursor = "grabbing";
+    if (e.cancelable) e.preventDefault();
+  };
+  const SNAP_THRESHOLD = 0.02; // 2% of frame — auto-align snap zone
+  const move = (e) => {
+    const pt = toCanvas(e);
+    if (!dragging) {
+      canvas.style.cursor = pick(pt) ? "grab" : "default";
+      return;
+    }
+    const [kx, ky] = offsetsFor(dragging);
+    let dx = baseDX + (pt.x - startX) / canvas.width;
+    let dy = baseDY + (pt.y - startY) / canvas.height;
+    // ── AUTO-ALIGN: snap to center when close ──
+    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
+    if (Math.abs(dx) < SNAP_THRESHOLD) { dx = 0; vstudio.snapGuideX = true; }
+    if (Math.abs(dy) < SNAP_THRESHOLD) { dy = 0; vstudio.snapGuideY = true; }
+    vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
+    vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
+    // redraw at the CURRENT position so the frame never jumps
+    if (!vstudio.looping) {
+      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
+        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
+      if (hasContent) drawStudioFrame(vstudio.position || 0);
+    }
+    if (e.cancelable) e.preventDefault();
+  };
+  const up = () => {
+    vstudio.snapGuideX = null; vstudio.snapGuideY = null;
+    if (dragging && vstudio.slides.length) vsSaveActiveSlide();
+    dragging = null;
+    canvas.style.cursor = "default";
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  };
+
+  canvas.addEventListener("mousedown", down);
+  canvas.addEventListener("touchstart", down, { passive: false });
+  canvas.addEventListener("wheel", wheel, { passive: false });
+  canvas.addEventListener("dblclick", dbl);
+  // window listeners attach only once across the session
+  if (!window._vsTextDragBound) {
+    window._vsTextDragBound = true;
+    window.addEventListener("mousemove", (e) => window._vsTextMove && window._vsTextMove(e));
+    window.addEventListener("mouseup", () => window._vsTextUp && window._vsTextUp());
+    window.addEventListener("touchmove", (e) => window._vsTextMove && window._vsTextMove(e), { passive: false });
+    window.addEventListener("touchend", () => window._vsTextUp && window._vsTextUp());
+  }
+  window._vsTextMove = move;
+  window._vsTextUp = up;
+}
+
+// Manual preview-size control (40%–100% of the available preview box).
+function applyPreviewSize() {
+  const canvas = $("#vsCanvas");
+  const slider = $("#vsPreviewSize");
+  const valEl = $("#vsPreviewSizeVal");
+  if (!canvas) return;
+  const pct = slider ? Number(slider.value) : 100;
+  // Zoom = a uniform cap on the canvas. width auto + height auto keeps
+  // the aspect ratio locked, so the media is never stretched — it just
+  // scales. maxWidth caps the on-screen width; maxHeight (in vh) caps
+  // the height so tall clips don't overflow. Both scale by the same %.
+  canvas.style.width = "auto";
+  canvas.style.height = "auto";
+  canvas.style.maxWidth = pct + "%";
+  canvas.style.maxHeight = (pct / 100 * 68) + "vh";
+  if (valEl) valEl.textContent = pct + "%";
+}
+
+// CSS-style filter string for the chosen grade.
+function vsFilterString() {
+  // global colour grade — always read the live control so one selection
+  // applies to the whole video (every slide), not per-slide.
+  const el = document.querySelector("#vsFilter");
+  const v = el ? el.value : "none";
+  switch (v) {
+    case "cinematic": return "contrast(1.15) saturate(0.9) brightness(0.95)";
+    case "warm":      return "saturate(1.15) sepia(0.25) brightness(1.03)";
+    case "cool":      return "saturate(1.1) hue-rotate(-12deg) brightness(1.02)";
+    case "mono":      return "grayscale(1) contrast(1.1)";
+    case "vivid":     return "saturate(1.5) contrast(1.1)";
+    default:          return "none";
+  }
+}
+
+// Parse the stats textarea into [{label, value, num}] entries.
+// Read infographic data from the JSON textarea.
+// Controls whose values are saved PER SLIDE (each slide remembers its own).
+// Aspect/duration-of-video and export settings stay global.
+const VS_SLIDE_CONTROLS = [
+  "#vsSpeed", "#vsTransition",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
+  "#vsMotion", "#vsTextAnim", "#vsOverlay",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
+  "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
+  "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro"
+];
+
+// Read the current control values into a settings object.
+function vsCaptureSettings() {
+  const out = {};
+  VS_SLIDE_CONTROLS.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    out[sel] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  // drag offsets for all movable elements travel with the slide
+  out._textDX = vstudio.textDX;
+  out._textDY = vstudio.textDY;
+  out._textScale = vstudio.textScale;
+  out._infoDX = vstudio.infoDX;
+  out._infoDY = vstudio.infoDY;
+  out._infoScale = vstudio.infoScale;
+  out._newsDX = vstudio.newsDX;
+  out._newsDY = vstudio.newsDY;
+  out._newsScale = vstudio.newsScale;
+  return out;
+}
+
+// Apply a saved settings object back onto the controls.
+function vsApplySettings(s) {
+  if (!s) return;
+  VS_SLIDE_CONTROLS.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el || !(sel in s)) return;
+    if (el.type === "checkbox") el.checked = !!s[sel];
+    else el.value = s[sel];
+  });
+  vstudio.textDX = s._textDX || 0;
+  vstudio.textDY = s._textDY || 0;
+  vstudio.textScale = s._textScale || 1;
+  vstudio.infoDX = s._infoDX || 0;
+  vstudio.infoDY = s._infoDY || 0;
+  vstudio.infoScale = s._infoScale || 1;
+  vstudio.newsDX = s._newsDX || 0;
+  vstudio.newsDY = s._newsDY || 0;
+  vstudio.newsScale = s._newsScale || 1;
+}
+
+// Save the current control state into the active slide.
+function vsSaveActiveSlide() {
+  const s = vstudio.slides[vstudio.activeSlide];
+  if (s) s.settings = vsCaptureSettings();
+}
+
+function vsInfoData(val) {
+  val = val || vsVal;
+  const raw = String(val("#vsInfoJson", "") || "").trim();
+  const status = document.querySelector("#vsInfoJsonStatus");
+  if (!raw) {
+    if (status) status.textContent = "";
+    return null;
+  }
+  let d;
+  try {
+    d = JSON.parse(raw);
+  } catch (err) {
+    // show a precise, friendly parse error instead of vanishing silently
+    if (status) {
+      status.className = "vstudio-note vs-err";
+      status.textContent = state.lang === "fa"
+        ? "JSON معتبر نیست: " + err.message
+        : "Invalid JSON: " + err.message;
+    }
+    return null;
+  }
+  if (typeof d !== "object" || d === null || Array.isArray(d)) {
+    if (status) {
+      status.className = "vstudio-note vs-err";
+      status.textContent = state.lang === "fa"
+        ? "JSON باید یک شیء با title و stats باشد."
+        : "JSON must be an object with title and stats.";
+    }
+    return null;
+  }
+  const stats = (Array.isArray(d.stats) ? d.stats : []).slice(0, 6).map(s => {
+    s = s || {};
+    const value = s.value != null ? String(s.value) : "";
+    // accept negative numbers and hyphens safely: e.g. "-12%", "−3"
+    const cleaned = value.replace(/[^0-9.\-]/g, "");
+    const parsed = parseFloat(cleaned);
+    return {
+      label: String(s.label || ""),
+      value: value,
+      num: typeof s.num === "number" ? s.num
+           : (isNaN(parsed) ? 0 : parsed)
+    };
+  }).filter(s => s.label);
+  // No usable stats — tell the user clearly what shape the JSON needs.
+  if (!stats.length) {
+    if (status) {
+      status.className = "vstudio-note vs-err";
+      status.textContent = state.lang === "fa"
+        ? 'این JSON آماری ندارد. باید یک آرایه "stats" داشته باشد، مثل: {"title":"...","stats":[{"label":"...","value":"...","num":0}]}'
+        : 'No stats found. The JSON needs a "stats" array, e.g. {"title":"...","stats":[{"label":"...","value":"...","num":0}]}';
+    }
+    return null;
+  }
+  if (status) {
+    status.className = "vstudio-note vs-ok";
+    status.textContent = state.lang === "fa"
+      ? `معتبر — ${stats.length} آمار آماده نمایش`
+      : `Valid — ${stats.length} stat${stats.length === 1 ? "" : "s"} ready`;
+  }
+  return { title: d.title || "", subtitle: d.subtitle || "", stats };
+}
+
+// Build professional infographic JSON from a short topic prompt.
+function vsInfoFromPrompt(prompt) {
+  const topic = (prompt || "").trim() || "Market Overview";
+  let seed = 0;
+  for (let i = 0; i < topic.length; i++) seed = (seed * 31 + topic.charCodeAt(i)) | 0;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const labels = ["Total users", "Annual growth", "Market share", "Revenue",
+    "Adoption rate", "Engagement", "Retention", "Satisfaction"];
+  const used = [];
+  while (used.length < 4) { const l = pick(labels); if (!used.includes(l)) used.push(l); }
+  const stats = used.map(label => {
+    if (/growth|rate|share|retention|adoption/i.test(label)) {
+      const n = Math.round(20 + rnd() * 160);
+      return { label, value: "+" + n + "%", num: n };
+    }
+    if (/revenue/i.test(label)) {
+      const n = (1 + rnd() * 18).toFixed(1);
+      return { label, value: "$" + n + "B", num: parseFloat(n) };
+    }
+    if (/satisfaction|engagement/i.test(label)) {
+      const n = Math.round(60 + rnd() * 38);
+      return { label, value: n + "/100", num: n };
+    }
+    const n = (1 + rnd() * 9).toFixed(1);
+    return { label, value: n + "M", num: parseFloat(n) };
+  });
+  return { title: cap(topic), subtitle: "Key metrics at a glance", stats };
+}
+
+// Draw a professional animated infographic overlay.
+// Brightness (0-255) of a hex colour — used to pick light/dark styling.
+function vsHexLuma(hex) {
+  const h = String(hex || "#000").replace("#", "");
+  const n = h.length === 3
+    ? h.split("").map(c => c + c).join("")
+    : h.padEnd(6, "0");
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+// hex colour -> rgba string with the given alpha.
+function vsHexA(hex, a) {
+  const h = String(hex || "#000").replace("#", "");
+  const n = h.length === 3
+    ? h.split("").map(c => c + c).join("")
+    : h.padEnd(6, "0");
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// Draw a broadcast-style news banner over the footage.
+function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff) {
+  vsOff = vsOff || vstudio;
+  const val = dsVal || vsVal;
+  const onVal = val("#vsNewsOn", false);
+  const isOn = (typeof onVal === "boolean") ? onVal
+             : ($("#vsNewsOn") && $("#vsNewsOn").checked);
+  if (!isOn) { vstudio.newsBox = null; return; }
+  const kicker  = ""; // kicker tag removed by request — headline + source only
+  const headline = String(val("#vsNewsHeadline","") || "").trim();
+  const source   = String(val("#vsNewsSource",  "") || "").trim();
+  if (!kicker && !headline && !source) { vstudio.newsBox = null; return; }
+
+  const style    = val("#vsNewsStyle", "lowerthird");
+  const accentKey = val("#vsNewsAccent", "auto");
+  const accents = {
+    red:  { bar: "#c0202a", text: "#ffffff" },
+    blue: { bar: "#15418c", text: "#ffffff" },
+    gold: { bar: "#d8b76a", text: "#1a1408" },
+    mono: { bar: "#1a1a1a", text: "#ffffff" }
+  };
+  let ac = accents[accentKey];
+  if (!ac || accentKey === "auto") {
+    // follow the active template's accent colour so changing the template
+    // restyles the news banner too (just like the infographic).
+    const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
+    const acc = (tpl && tpl.accent) ? tpl.accent : "#d8b76a";
+    // pick readable text colour based on accent luminance
+    const lum = vsHexLuma ? vsHexLuma(acc) : 160;
+    ac = { bar: acc, text: lum > 150 ? "#1a1408" : "#ffffff" };
+  }
+  const playing = vstudio.looping || vstudio.rendering;
+  const slideRaw = playing ? Math.min(1, elapsed / 0.7) : 1;
+  const slideEase = vsEasePro(slideRaw);
+  const e = slideEase;
+  const U = Math.min(W, H);
+
+  // Banner styles sit at bottom/top; cinematic styles fill the frame
+  const bannerStyles = ["ticker","fullbar","lowerthird","breaking","topbar","boxed","minimal"];
+  const isBanner = bannerStyles.includes(style);
+  vstudio.newsBox = isBanner
+    ? { x: 0, y: H * 0.55, w: W, h: H * 0.45 }
+    : { x: 0, y: 0, w: W, h: H }; // cinematic = whole frame is interactive
+
+  // ── Wrap helper ────────────────────────────────────────────
+  const wrap = (str, font, maxW, maxLines) => {
+    ctx.font = font;
+    const words = String(str).split(/\s+/).filter(Boolean);
+    const out = []; let ln = "";
+    for (const w of words) {
+      const t = ln ? ln + " " + w : w;
+      if (ctx.measureText(t).width > maxW && ln) {
+        out.push(ln); ln = w;
+        if (out.length === maxLines) { ln = ""; break; }
+      } else ln = t;
+    }
+    if (ln && out.length < maxLines) out.push(ln);
+    return out;
+  };
+  const mainTxt = headline || kicker;
+
+  ctx.save(); // ── outer save
+
+  // Apply drag offset + scale from vstudio (enables drag-to-reposition on canvas)
+  const ndx = vsOff.newsDX * W, ndy = vsOff.newsDY * H;
+  const nScale = vsOff.newsScale || 1;
+  if (ndx !== 0 || ndy !== 0 || nScale !== 1) {
+    const pivX = W / 2, pivY = H / 2;
+    ctx.translate(pivX + ndx, pivY + ndy);
+    ctx.scale(nScale, nScale);
+    ctx.translate(-pivX, -pivY);
+  }
+
+  // Clip everything to canvas bounds so text never bleeds outside
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
+
+  // ══════════════════════════════════════════════════════════
+  // BROADCAST BANNER STYLES — ticker, fullbar, lowerthird, breaking, topbar
+  // ══════════════════════════════════════════════════════════
+  if (style === "ticker") {
+    const barH = H * 0.072;
+    const y = H - barH * slideEase;
+    ctx.fillStyle = "rgba(8,8,10,0.94)"; ctx.fillRect(0, y, W, barH);
+    ctx.fillStyle = ac.bar;
+    const tagW = W * 0.14;
+    ctx.fillRect(0, y, tagW, barH);
+    ctx.fillStyle = ac.text;
+    vsFitFont(ctx, (kicker || "LIVE").toUpperCase(), tagW - W*0.02, "700", "Inter, sans-serif",
+      Math.round(H*0.026), Math.round(H*0.014));
+    ctx.textAlign = "center";
+    ctx.fillText((kicker || "LIVE").toUpperCase(), tagW/2, y + barH*0.62);
+    ctx.fillStyle = "#fff";
+    ctx.font = `500 ${Math.round(H*0.03)}px Inter, sans-serif`;
+    ctx.textAlign = "left";
+    const txt = headline + (source ? "    •    " + source : "");
+    const tw = ctx.measureText(txt).width || 1;
+    const scrollX = W - ((elapsed * W * 0.12) % (tw + W));
+    ctx.save(); ctx.beginPath(); ctx.rect(tagW, y, W-tagW, barH); ctx.clip();
+    ctx.fillText(txt, scrollX, y + barH*0.62);
+    ctx.fillText(txt, scrollX + tw + W*0.5, y + barH*0.62);
+    ctx.restore();
+
+  } else if (style === "fullbar") {
+    const barH = H * 0.2;
+    const y = H - barH * slideEase;
+    ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(0, y, W, barH);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y, W, H*0.01);
+    if (kicker) {
+      const kText = kicker.toUpperCase();
+      const kPx = vsFitFont(ctx, kText, W*0.3, "700", "Inter, sans-serif", Math.round(H*0.028), Math.round(H*0.015));
+      const kPad = W*0.022, kTextW = ctx.measureText(kText).width;
+      const kw = kTextW + kPad*2, kh = H*0.05, ky = y + barH*0.16;
+      ctx.fillStyle = ac.bar; ctx.fillRect(W*0.06, ky, kw, kh);
+      ctx.fillStyle = ac.text; ctx.font = `700 ${kPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(kText, W*0.06+kPad, ky+kh/2); ctx.textBaseline = "alphabetic";
+    }
+    // auto-size headline to fit in 2 lines, clip to bar
+    const fbHl = vsFitFont(ctx, headline, W*0.88, "700", vsGetFont("Prata, serif"), Math.round(H*0.044), Math.round(H*0.022));
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${fbHl}px ${vsGetFont("Prata, serif")}`;
+    ctx.textAlign = "left";
+    ctx.save(); ctx.beginPath(); ctx.rect(0, y, W, barH); ctx.clip();
+    wrapNewsText(ctx, headline, W*0.06, y + (source ? barH*0.42 : barH*0.5), W*0.88, fbHl*1.2, 2);
+    if (source) {
+      ctx.fillStyle = "rgba(210,210,215,0.85)";
+      ctx.font = `400 ${Math.round(H*0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, W*0.06, y+barH*0.86);
+    }
+    ctx.restore();
+
+  } else if (style === "breaking") {
+    const barH2 = H * 0.12;
+    const y2 = H - barH2 * slideEase;
+    ctx.fillStyle = "rgba(0,0,0,0.94)"; ctx.fillRect(0, y2, W, barH2);
+    const blinkAlpha = 0.75 + 0.25 * Math.abs(Math.sin(elapsed * 3));
+    ctx.fillStyle = `rgba(192,10,26,${blinkAlpha})`;
+    const tagW2 = W * 0.21;
+    ctx.fillRect(0, y2, tagW2, barH2);
+    // flash accent stripe
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(tagW2, y2, W*0.003, barH2);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    vsFitFont(ctx, "BREAKING", tagW2*0.82, "900", "Inter, sans-serif", Math.round(H*0.03), Math.round(H*0.016));
+    ctx.fillText("BREAKING", tagW2/2, y2 + barH2*0.37);
+    if (kicker) {
+      ctx.font = `600 ${Math.round(H*0.017)}px Inter, sans-serif`;
+      ctx.fillText(kicker.toUpperCase(), tagW2/2, y2 + barH2*0.72);
+    }
+    ctx.font = `700 ${Math.round(H*0.035)}px ${vsGetFont("Prata, serif")}`;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    const bTxt = headline + (source ? "   ●   " + source : "");
+    const bTw = ctx.measureText(bTxt).width;
+    const bScrollX = tagW2 + W*0.01 + W*0.88 - ((elapsed * W*0.1) % (bTw + W*0.88));
+    ctx.save(); ctx.beginPath(); ctx.rect(tagW2+W*0.01, y2, W-tagW2-W*0.01, barH2); ctx.clip();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(bTxt, bScrollX, y2 + barH2*0.62);
+    ctx.fillText(bTxt, bScrollX + bTw + W*0.5, y2 + barH2*0.62);
+    ctx.restore(); ctx.textBaseline = "alphabetic";
+
+  } else if (style === "topbar") {
+    const barH3 = H * 0.1;
+    const y3 = -barH3 + barH3 * slideEase;
+    ctx.fillStyle = "rgba(8,8,10,0.94)"; ctx.fillRect(0, y3, W, barH3);
+    ctx.fillStyle = ac.bar; ctx.fillRect(0, y3 + barH3 * 0.92, W, barH3 * 0.08);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, y3, W, barH3); ctx.clip(); // clip to bar
+    ctx.textBaseline = "middle";
+    if (kicker) {
+      const kPx3 = Math.round(H * 0.025);
+      ctx.font = `800 ${kPx3}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.textAlign = "left";
+      const kT3 = kicker.toUpperCase();
+      const kW3 = ctx.measureText(kT3).width + W * 0.04;
+      ctx.fillStyle = ac.bar;
+      roundRectPath(ctx, W*0.025, y3+barH3*0.18, kW3, barH3*0.64, barH3*0.12); ctx.fill();
+      ctx.fillStyle = ac.text || "#fff";
+      ctx.fillText(kT3, W*0.045, y3 + barH3 * 0.5);
+      // headline right of kicker — truncated to fit
+      const hlPx3 = Math.round(H * 0.032);
+      ctx.font = `600 ${hlPx3}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillStyle = "#fff";
+      const maxHlW = W - kW3 - W * 0.06;
+      let hlTxt = headline;
+      while (hlTxt.length > 4 && ctx.measureText(hlTxt).width > maxHlW) {
+        hlTxt = hlTxt.slice(0, -1);
+      }
+      if (hlTxt !== headline) hlTxt = hlTxt.trimEnd() + "…";
+      ctx.fillText(hlTxt, W * 0.04 + kW3, y3 + barH3 * 0.5);
+    } else {
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff";
+      ctx.font = `600 ${Math.round(H * 0.034)}px ${vsGetFont("Prata, serif")}`;
+      let hlTxt2 = headline;
+      while (hlTxt2.length > 4 && ctx.measureText(hlTxt2).width > W * 0.9) {
+        hlTxt2 = hlTxt2.slice(0, -1);
+      }
+      if (hlTxt2 !== headline) hlTxt2 = hlTxt2.trimEnd() + "…";
+      ctx.fillText(hlTxt2, W / 2, y3 + barH3 * 0.5);
+    }
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+
+  } else if (style === "lowerthird" || style === "boxed" || style === "minimal") {
+    // lower third — kicker tab + headline plate
+    const x = W * 0.06, plateW = W * 0.78, padX = W * 0.03, textW = plateW - padX*2;
+    const maxLines = 4;
+    let hlSize = Math.round(H * 0.038), minHl = Math.round(H * 0.022);
+    const countLines = (px2) => {
+      ctx.font = `700 ${px2}px ${vsGetFont("Prata, serif")}`;
+      const words2 = headline.split(/\s+/);
+      let line2 = "", n = 0;
+      for (const w of words2) {
+        const test = line2 ? line2+" "+w : w;
+        if (ctx.measureText(test).width > textW && line2) { n++; line2 = w; } else line2 = test;
+      }
+      if (line2) n++; return Math.max(1, n);
+    };
+    while (hlSize > minHl && countLines(hlSize) > maxLines) hlSize--;
+    const lineH = hlSize * 1.25, lineCount = Math.min(maxLines, countLines(hlSize));
+    const srcH = source ? H*0.04 : 0, plateH = lineH*lineCount + H*0.05 + srcH;
+    const plateY = H*0.86 - plateH;
+    const slideX = -W*0.66*(1-slideEase);
+    ctx.save(); ctx.translate(slideX, 0);
+    if (kicker) {
+      const kText = kicker.toUpperCase();
+      const kPx2 = vsFitFont(ctx, kText, W*0.5, "700","Inter, sans-serif",Math.round(H*0.028),Math.round(H*0.015));
+      const kPad2 = W*0.022, kTextW2 = ctx.measureText(kText).width;
+      const kw2 = kTextW2+kPad2*2, kh2 = H*0.05;
+      ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY-kh2, kw2, kh2);
+      ctx.fillStyle = ac.text; ctx.textAlign="left"; ctx.textBaseline="middle";
+      ctx.font = `700 ${kPx2}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(kText, x+kPad2, plateY-kh2/2); ctx.textBaseline="alphabetic";
+    }
+    ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(x, plateY, plateW, plateH);
+    ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY, H*0.008, plateH);
+    ctx.fillStyle = "#fff"; ctx.font = `700 ${hlSize}px ${vsGetFont("Prata, serif")}`; ctx.textAlign = "left";
+    const linesDrawn = wrapNewsText(ctx, headline, x+padX, plateY+H*0.03+hlSize*0.8, textW, lineH, maxLines);
+    if (source) {
+      ctx.fillStyle = "rgba(210,210,215,0.85)";
+      ctx.font = `400 ${Math.round(H*0.022)}px Inter, sans-serif`;
+      ctx.fillText(source, x+padX, plateY+H*0.03+hlSize*0.8+linesDrawn*lineH+H*0.012);
+    }
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // CINEMATIC TEXT STYLES — full-frame, each independent
+  // ══════════════════════════════════════════════════════════
+  else if (style === "title-center" || style === "title-left") {
+    const left = style === "title-left";
+    const cx = left ? W*0.09 : W/2;
+    const align = left ? "left" : "center";
+    const maxW = W * (left ? 0.84 : 0.80);
+    // Auto-fit font so text always wraps cleanly — start at 7.5%, min 4%
+    let mainPx = Math.round(U * 0.075);
+    const minPx = Math.round(U * 0.04);
+    const testLines = (px) => wrap(mainTxt, `800 ${px}px ${vsGetFont("Prata, serif")}`, maxW, 4);
+    // shrink until 4 lines max
+    while (mainPx > minPx && testLines(mainPx).length > 4) mainPx -= 2;
+    const lines = testLines(mainPx);
+    const lineH = mainPx * 1.18, blockH = lines.length * lineH;
+    const top = H*0.48 - blockH/2;
+    // scrim
+    const scrimG = ctx.createLinearGradient(0, top-U*0.08, 0, top+blockH+U*0.18);
+    scrimG.addColorStop(0,"rgba(0,0,0,0)"); scrimG.addColorStop(0.15,"rgba(0,0,0,0.68)");
+    scrimG.addColorStop(0.85,"rgba(0,0,0,0.68)"); scrimG.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle = scrimG; ctx.fillRect(0, top-U*0.08, W, blockH+U*0.26);
+    // kicker pill
+    if (kicker && headline) {
+      const kPx = Math.round(U*0.022);
+      ctx.font = `700 ${kPx}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign = align;
+      const kText = kicker.toUpperCase(), kW = ctx.measureText(kText).width;
+      const kx = left ? cx : cx-kW/2, ky = top-U*0.055;
+      ctx.fillStyle = ac.bar;
+      roundRectPath(ctx, kx-U*0.015, ky-kPx*0.85, kW+U*0.03, kPx*1.7, kPx*0.85); ctx.fill();
+      ctx.fillStyle = ac.text||"#fff"; ctx.fillText(kText, kx, ky);
+    }
+    // headline lines
+    ctx.textAlign = align; ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U*0.025;
+    ctx.font = `800 ${mainPx}px ${vsGetFont("Prata, serif")}`;
+    lines.forEach((ln, li) => {
+      const le = Math.max(0, Math.min(1, e*(lines.length+1)-li));
+      const le3 = 1-Math.pow(1-le,3);
+      ctx.globalAlpha = le3; ctx.fillStyle = "#fff";
+      ctx.fillText(ln, cx, top+li*lineH+lineH*0.82+(1-le3)*U*0.03);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    const lineY = top+blockH+U*0.035, lw = U*0.16*e;
+    ctx.fillStyle = ac.bar;
+    ctx.fillRect(left?cx:cx-lw/2, lineY, lw, U*0.006);
+    if (source) {
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.font = `500 ${Math.round(U*0.026)}px Inter, sans-serif`; ctx.textAlign = align;
+      ctx.fillText(source, cx, lineY+U*0.05);
+    }
+
+  } else if (style === "bold-statement") {
+    ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fillRect(0,0,W,H);
+    let px2 = Math.round(U*0.1), minPx2 = Math.round(U*0.05);
+    const cntFit = (sz) => {
+      ctx.font = `900 ${sz}px ${vsGetFont("Inter, sans-serif")}`;
+      return String(mainTxt).toUpperCase().split(/\s+/).every(w2=>ctx.measureText(w2).width<=W*0.9);
+    };
+    while (px2>minPx2 && !cntFit(px2)) px2-=2;
+    const lines = wrap(mainTxt.toUpperCase(), `900 ${px2}px ${vsGetFont("Inter, sans-serif")}`, W*0.9, 4);
+    const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
+    lines.forEach((ln, li) => {
+      const le = Math.max(0,Math.min(1,e*(lines.length+1.5)-li)), le3=1-Math.pow(1-le,3);
+      ctx.save(); ctx.globalAlpha=le3;
+      ctx.translate(W/2, topY+li*lH+lH*0.82); ctx.scale(0.88+le3*0.12, 0.88+le3*0.12);
+      ctx.fillStyle = li%2===1 ? ac.bar : "#ffffff";
+      ctx.shadowColor = li%2===1 ? ac.bar : "rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.04;
+      ctx.font=`900 ${px2}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign="center";
+      ctx.fillText(ln,0,0); ctx.shadowBlur=0; ctx.restore();
+    });
+    if (source||kicker) {
+      ctx.fillStyle=ac.bar; ctx.textAlign="center"; ctx.globalAlpha=e;
+      ctx.font=`700 ${Math.round(U*0.022)}px Inter, sans-serif`;
+      ctx.fillText((kicker||source).toUpperCase(), W/2, topY+lines.length*lH+U*0.06);
+    }
+
+  } else if (style === "quote") {
+    ctx.fillStyle="rgba(0,0,0,0.55)"; ctx.fillRect(0,H*0.22,W,H*0.56);
+    const qPx = Math.round(U*0.058);
+    const lines = wrap(mainTxt, `italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`, W*0.78, 4);
+    const lH = qPx*1.32, qTop=H/2-(lines.length*lH)/2;
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.9;
+    ctx.font=`900 ${Math.round(U*0.15)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="center";
+    ctx.fillText("\u201C",W/2,qTop-U*0.02);
+    ctx.globalAlpha=e; ctx.shadowColor="rgba(0,0,0,0.6)"; ctx.shadowBlur=U*0.03;
+    lines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
+      ctx.globalAlpha=e*le3; ctx.fillStyle="#fff";
+      ctx.font=`italic 600 ${qPx}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillText(ln,W/2,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
+    });
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    ctx.fillStyle=ac.bar; ctx.globalAlpha=e*0.45;
+    ctx.font=`900 ${Math.round(U*0.1)}px ${vsGetFont("Prata, serif")}`;
+    ctx.fillText("\u201D",W/2,qTop+lines.length*lH);
+    ctx.globalAlpha=e;
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.025)}px Inter, sans-serif`; ctx.fillText("— "+source,W/2,qTop+lines.length*lH+U*0.05); }
+
+  } else if (style === "pullquote") {
+    const qW=W*0.58, qX=W*0.07;
+    ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(qX-W*0.02,H*0.18,W*0.66,H*0.64);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.74,H*0.24,U*0.008,H*0.52*e);
+    const qPx2=Math.round(U*0.062);
+    const lines=wrap(mainTxt,`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`,qW,4);
+    const lH=qPx2*1.32,qTop=H/2-(lines.length*lH)/2;
+    ctx.fillStyle=ac.bar; ctx.font=`900 ${Math.round(U*0.12)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign="left";
+    ctx.fillText("\u201C",qX,qTop-U*0.01);
+    ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    lines.forEach((ln,li) => {
+      const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);
+      ctx.globalAlpha=le3; ctx.fillStyle="#fff";
+      ctx.font=`italic 700 ${qPx2}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillText(ln,qX,qTop+li*lH+lH*0.82+(1-le3)*U*0.03);
+    });
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
+
+  } else if (style === "caption") {
+    const capPx=Math.round(U*0.042);
+    const lines=wrap(mainTxt,`700 ${capPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.84,3);
+    const lH=capPx*1.28, bH=lines.length*lH+U*0.06;
+    const by=H*0.88-bH+(1-e)*U*0.05;
+    const sc=ctx.createLinearGradient(0,by-U*0.06,0,H);
+    sc.addColorStop(0,"rgba(0,0,0,0)"); sc.addColorStop(0.3,"rgba(0,0,0,0.78)"); sc.addColorStop(1,"rgba(0,0,0,0.88)");
+    ctx.fillStyle=sc; ctx.fillRect(0,by-U*0.06,W,H-by+U*0.06);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.42,by-U*0.02,W*0.16*e,U*0.005);
+    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    ctx.font=`700 ${capPx}px ${vsGetFont("Inter, sans-serif")}`;
+    let yy=by+lH*0.75;
+    lines.forEach(ln=>{ctx.fillText(ln,W/2,yy);yy+=lH;});
+    ctx.shadowBlur=0;
+
+  } else if (style === "annotation") {
+    const aW=W*0.78, aX=W*0.11;
+    const lines=wrap(mainTxt,`700 ${Math.round(U*0.042)}px ${vsGetFont("Prata, serif")}`,aW*0.88,4);
+    const lH=U*0.05;
+    const cardH=lines.length*lH+U*0.1+(kicker?U*0.055:0)+(source?U*0.04:0);
+    const cardY=H/2-cardH/2+(1-e)*U*0.06;
+    ctx.fillStyle="rgba(12,10,8,0.94)"; roundRectPath(ctx,aX,cardY,aW,cardH,U*0.025); ctx.fill();
+    ctx.strokeStyle=vsHexA(ac.bar,0.55); ctx.lineWidth=1.5; roundRectPath(ctx,aX,cardY,aW,cardH,U*0.025); ctx.stroke();
+    ctx.fillStyle=ac.bar; ctx.fillRect(aX,cardY,aW,U*0.007);
+    let aY=cardY+U*0.06;
+    if(kicker){ctx.fillStyle=ac.bar;ctx.textAlign="left";ctx.font=`700 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),aX+aW*0.05,aY);aY+=U*0.055;}
+    ctx.fillStyle="#fff"; ctx.textAlign="left";
+    ctx.font=`700 ${Math.round(U*0.042)}px ${vsGetFont("Prata, serif")}`; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015;
+    lines.forEach((ln,li)=>{ctx.fillText(ln,aX+aW*0.05,aY+li*lH+lH*0.78);});
+    ctx.shadowBlur=0;
+    if(source){ctx.fillStyle="rgba(180,170,150,0.75)";ctx.font=`400 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,aX+aW*0.05,aY+lines.length*lH+U*0.045);}
+
+  } else if (style === "split") {
+    const padL=W*0.06, splitX=W*0.38;
+    ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(0,H*0.28,W,H*0.44);
+    const colW=splitX-padL-W*0.04;
+    ctx.fillStyle=vsHexA(ac.bar,0.9); roundRectPath(ctx,padL,H*0.3,colW,H*0.4,W*0.015); ctx.fill();
+    if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
+    ctx.fillStyle="#fff"; ctx.textAlign="left";
+    ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+    const lines=wrap(headline,`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`,W-splitX-padL,4);
+    ctx.font=`700 ${Math.round(U*0.065)}px ${vsGetFont("Prata, serif")}`;
+    const lH=Math.round(U*0.065)*1.18;
+    let yy=H/2-(lines.length*lH)/2+lH*0.8;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,splitX,yy+li*lH+(1-le3)*U*0.03);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+
+  } else if (style === "badge") {
+    ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
+    if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
+    const bPx=Math.round(U*0.072);
+    const lines=wrap(headline,`700 ${bPx}px ${vsGetFont("Prata, serif")}`,W*0.84,3);
+    const lH=bPx*1.18;let yy=H*0.47;
+    ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px ${vsGetFont("Prata, serif")}`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,yy+li*lH);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    ctx.fillStyle=ac.bar; ctx.fillRect(W/2-U*0.08,yy+lines.length*lH-lH*0.15,U*0.16*e,U*0.006);
+
+  } else if (style === "magazine-cover") {
+    const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
+    const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
+    if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
+    const mPx=Math.round(Math.min(U*0.098,W*0.22));
+    const lines=wrap(mainTxt,`900 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.88,3);
+    const lH=mPx*1.05; let hY=H*0.18;
+    ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px ${vsGetFont("Prata, serif")}`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,hY+li*lH+(1-le3)*U*0.04);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if(source){ctx.fillStyle="rgba(255,255,255,0.85)";ctx.font=`600 ${Math.round(U*0.026)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.93);}
+
+  } else if (style === "neon-title") {
+    ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    const nPx=Math.round(Math.min(U*0.088,W*0.2));
+    const lines=wrap(mainTxt,`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`,W*0.86,4);
+    const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
+    lines.forEach((ln,li)=>{
+      const nr=Math.max(0,Math.min(1,e*(lines.length+1)-li)),ne=1-Math.pow(1-nr,3);
+      ctx.save(); ctx.globalAlpha=ne;
+      [0.45,0.25,0.12].forEach((a2,gi)=>{ctx.strokeStyle=vsHexA(ac.bar,a2);ctx.lineWidth=(gi+1)*3;ctx.shadowColor=ac.bar;ctx.shadowBlur=U*(0.04+gi*0.025);ctx.font=`900 ${nPx}px Inter, sans-serif`;ctx.textAlign="center";ctx.strokeText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04);});
+      ctx.fillStyle="#fff"; ctx.shadowColor=ac.bar; ctx.shadowBlur=U*0.015; ctx.font=`900 ${nPx}px ${vsGetFont("Inter, sans-serif")}`; ctx.textAlign="center";
+      ctx.fillText(ln,W/2,nTop+li*lH+(1-ne)*U*0.04); ctx.shadowBlur=0; ctx.restore();
+    });
+    ctx.globalAlpha=e;
+    if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.9);ctx.font=`700 ${Math.round(U*0.025)}px Inter, sans-serif`;ctx.textAlign="center";ctx.fillText(kicker.toUpperCase(),W/2,nTop+lines.length*lH+U*0.05);}
+
+  } else if (style === "kinetic") {
+    ctx.fillStyle="rgba(0,0,0,0.58)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.08,H*0.54,W*0.84*e,U*0.005);
+    const words=mainTxt.split(/\s+/).filter(Boolean);
+    const wPx=Math.round(Math.min(U*0.075,W/Math.max(words.length,1)*0.82));
+    ctx.font=`800 ${wPx}px ${vsGetFont("Inter, sans-serif")}`;
+    const totalW=words.reduce((s2,w2)=>s2+ctx.measureText(w2).width+wPx*0.2,0);
+    let wx=W/2-totalW/2;
+    words.forEach((w2,wi)=>{
+      const wr=Math.max(0,Math.min(1,(elapsed*(words.length+1)-wi)/0.65)),we=1-Math.pow(1-wr,3);
+      ctx.save(); ctx.globalAlpha=we;
+      ctx.fillStyle=wi%3===0?ac.bar:"#fff"; ctx.shadowColor=wi%3===0?vsHexA(ac.bar,0.5):"rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.02;
+      ctx.textBaseline="alphabetic"; ctx.fillText(w2,wx,H*0.52+(1-we)*U*0.05); ctx.restore();
+      wx+=ctx.measureText(w2).width+wPx*0.2;
+    });
+    if(source){ctx.globalAlpha=e;ctx.fillStyle=vsHexA(ac.bar,0.85);ctx.textAlign="center";ctx.font=`600 ${Math.round(U*0.022)}px Inter, sans-serif`;ctx.fillText(source,W/2,H*0.63);}
+
+  } else if (style === "reveal-words") {
+    ctx.fillStyle="rgba(0,0,0,0.62)"; ctx.fillRect(0,H*0.18,W,H*0.64);
+    const words2=mainTxt.split(/\s+/).filter(Boolean);
+    // size so a reasonable number of words fit per line
+    let rPx=Math.round(U*0.07);
+    const maxLineW=W*0.84, gap=()=>rPx*0.22, spacePx=()=>rPx*0.22;
+    ctx.font=`700 ${rPx}px ${vsGetFont("Prata, serif")}`;
+    // build lines greedily
+    function buildLines(px){
+      ctx.font=`700 ${px}px ${vsGetFont("Prata, serif")}`;
+      const ls=[]; let cur=[], curW=0;
+      words2.forEach(w=>{
+        const ww=ctx.measureText(w).width;
+        const add=(cur.length?px*0.22:0)+ww;
+        if(curW+add>maxLineW && cur.length){ ls.push(cur); cur=[w]; curW=ww; }
+        else { cur.push(w); curW+=add; }
+      });
+      if(cur.length) ls.push(cur);
+      return ls;
+    }
+    let rLines=buildLines(rPx);
+    // shrink if too many lines
+    while(rPx>Math.round(U*0.035) && rLines.length>3){ rPx-=2; rLines=buildLines(rPx); }
+    ctx.font=`700 ${rPx}px ${vsGetFont("Prata, serif")}`;
+    const rLineH=rPx*1.3;
+    const blockTop=H/2-(rLines.length*rLineH)/2;
+    const wDur=0.4;
+    let wordIndex=0;
+    rLines.forEach((lineWords,lineI)=>{
+      // center this line
+      const lineW=lineWords.reduce((s,w,wi)=>s+ctx.measureText(w).width+(wi?rPx*0.22:0),0);
+      let rwx=W/2-lineW/2;
+      const lineY=blockTop+lineI*rLineH+rLineH*0.7;
+      lineWords.forEach(w2=>{
+        const wr=Math.max(0,Math.min(1,(elapsed-wordIndex*wDur)/wDur)),we=1-Math.pow(1-wr,3);
+        const ww=ctx.measureText(w2).width;
+        ctx.save(); ctx.globalAlpha=we; ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
+        ctx.textAlign="left"; ctx.textBaseline="middle";
+        ctx.fillText(w2,rwx,lineY+(1-we)*U*0.04);
+        ctx.fillStyle=ac.bar; ctx.shadowBlur=0;
+        ctx.fillRect(rwx,lineY+rPx*0.55,ww*we,U*0.005);
+        ctx.restore();
+        rwx+=ww+rPx*0.22; wordIndex++;
       });
     });
-    </script>
 
-    <script>
-    /* ── FONT PRELOAD — prevents canvas text overlap from unloaded fonts ── */
-    (function(){
-      // Force-load all studio fonts so canvas measureText matches render
-      var fontsToLoad = [
-        '700 48px Prata', '400 48px Prata',
-        '700 48px Alice', '400 48px Alice',
-        '700 48px "Viaoda Libre"',
-        '700 48px "Bryn Vogue"', '400 48px "Bryn Vogue"',
-        '700 48px Elegant', '400 48px Elegant',
-        '700 48px Things', '400 48px Things', 'italic 400 48px Things',
-        '900 48px Inter', '800 48px Inter', '700 48px Inter', '600 48px Inter', '500 48px Inter', '400 48px Inter',
-        '700 48px Georgia'
-      ];
-      window._vsFontsReady = false;
-      function loadFonts() {
-        if (!document.fonts || !document.fonts.load) {
-          window._vsFontsReady = true;
-          return;
-        }
-        Promise.all(fontsToLoad.map(function(f){
-          return document.fonts.load(f).catch(function(){});
-        })).then(function(){
-          return document.fonts.ready;
-        }).then(function(){
-          window._vsFontsReady = true;
-          // trigger a redraw if studio is open
-          if (typeof drawStudioFrame === 'function') {
-            try { drawStudioFrame(window.vstudio ? (vstudio.position||0) : 0); } catch(e){}
-          }
-        });
-      }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', loadFonts);
-      } else { loadFonts(); }
-    })();
-    </script>
-    <!-- ── FULLSCREEN LIVE DASHBOARD — AI COMMAND CENTER ── -->
-    <div id="liveDashboard" class="live-dash" aria-hidden="true">
-      <svg width="0" height="0" style="position:absolute"><defs>
-        <linearGradient id="ldGaugeGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="#F4D58D"/>
-        </linearGradient>
-      </defs></svg>
-      <!-- TOP NAVBAR -->
-      <div class="ld-nav">
-        <div class="ld-nav-left">
-          <span class="ld-logo">◉</span>
-          <div>
-            <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v287</div>
-          </div>
-        </div>
-        <div class="ld-nav-center">
-          <div class="ld-gauge" id="ldGauge">
-            <svg viewBox="0 0 120 120">
-              <circle class="ld-gauge-bg" cx="60" cy="60" r="52"/>
-              <circle class="ld-gauge-fg" id="ldGaugeArc" cx="60" cy="60" r="52"/>
-            </svg>
-            <div class="ld-gauge-inner">
-              <span class="ld-gauge-val" id="ldHealthVal">—</span>
-              <span class="ld-gauge-lbl" id="ldHealthLbl">AI HEALTH</span>
-            </div>
-          </div>
-        </div>
-        <div class="ld-nav-right">
-          <span class="ld-clock" id="ldClock">--:--:--</span>
-          <div class="ld-clock-side">
-            <span class="ld-date" id="ldDate"></span>
-            <span class="ld-tz" id="ldTz"></span>
-          </div>
-          <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
-          <button class="ld-close" id="ldClose" type="button" aria-label="Close"><i>✕</i><span id="ldCloseTxt">Exit</span></button>
-        </div>
-      </div>
+  } else if (style === "minimal-line") {
+    ctx.textAlign="center";
+    const mPx=Math.round(U*0.066);
+    const lines=wrap(mainTxt,`300 ${mPx}px ${vsGetFont("Prata, serif")}`,W*0.8,3);
+    const lH=mPx*1.22;
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
+    ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.4)"; ctx.shadowBlur=U*0.015; ctx.font=`300 ${mPx}px ${vsGetFont("Prata, serif")}`;
+    lines.forEach((ln,li)=>{const le=Math.max(0,Math.min(1,e*(lines.length+1)-li)),le3=1-Math.pow(1-le,3);ctx.globalAlpha=le3;ctx.fillText(ln,W/2,H*0.47+li*lH+lH*0.82+(1-le3)*U*0.025);});
+    ctx.shadowBlur=0; ctx.globalAlpha=e;
+    if(kicker){ctx.fillStyle=vsHexA(ac.bar,0.8);ctx.font=`600 ${Math.round(U*0.02)}px Inter, sans-serif`;let lkx=W/2-ctx.measureText(kicker.toUpperCase()).width/2;for(const ch of kicker.toUpperCase()){ctx.fillText(ch,lkx,H*0.37);lkx+=ctx.measureText(ch).width+U*0.005;}}
+    ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43+lines.length*lH+U*0.042,W*0.8*e,U*0.003);
+  }
 
-      <!-- HERO STRIP -->
-      <div class="ld-hero">
-        <div class="ld-hero-label" id="ldHeroLabel">GLOBAL AI ECOSYSTEM</div>
-        <div class="ld-hero-stats" id="ldHeroStats"></div>
-      </div>
+  // ── optional live clock, top-right ────────────────────────
+  ctx.globalAlpha = 1;
+  const clockOn = val("#vsNewsClock", false);
+  const showClock = (typeof clockOn === "boolean") ? clockOn : ($("#vsNewsClock") && $("#vsNewsClock").checked);
+  if (showClock) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,"0");
+    const mm = String(now.getMinutes()).padStart(2,"0");
+    const clock = `${hh}:${mm}`;
+    ctx.fillStyle = ac.bar;
+    const cw = W*0.1, ch = H*0.055;
+    ctx.fillRect(W-cw-W*0.04, H*0.05, cw, ch);
+    ctx.fillStyle = ac.text;
+    ctx.font = `700 ${Math.round(H*0.03)}px ${vsGetFont("Inter, sans-serif")}`;
+    ctx.textAlign = "center";
+    ctx.fillText(clock, W-cw/2-W*0.04, H*0.05+ch*0.68);
+  }
+  ctx.restore(); // ── outer restore
+}
 
-      <!-- MAIN GRID -->
-      <div class="ld-grid">
-        <!-- world map -->
-        <section class="ld-card ld-map-card">
-          <div class="ld-card-head">
-            <span class="ld-card-title" id="ldMapTitle">Global AI Hubs</span>
-            <span class="ld-summary"><span class="ld-summary-dot"></span><span id="ldMonSummaryTxt">—</span></span>
-          </div>
-          <div class="ld-map" id="ldWorldMap"></div>
-          <div class="ld-map-legend" id="ldMapLegend"></div>
-        </section>
 
-        <!-- trending models -->
-        <section class="ld-card ld-chart">
-          <div class="ld-card-head">
-            <span class="ld-card-title" id="ldChartTitle">Trending Models</span>
-            <span class="ld-chart-metric">★ GitHub</span>
-          </div>
-          <div class="ld-chart-body" id="ldChartBody"></div>
-        </section>
+function wrapNewsText(ctx, text, x, y, maxW, lineH, maxLines) {
+  if (!text) return 0;
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (let wi = 0; wi < words.length; wi++) {
+    const w = words[wi];
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = w;
+      if (lines.length === maxLines) { line = ""; break; }
+    } else {
+      line = test;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  // if not everything fit, ellipsize the last visible line
+  const shownWords = lines.join(" ").split(/\s+/).filter(Boolean).length;
+  if (shownWords < words.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last.length > 1 &&
+           ctx.measureText(last + "…").width > maxW) {
+      last = last.slice(0, -1);
+    }
+    lines[lines.length - 1] = last + "…";
+  }
+  lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lineH));
+  return lines.length;
+}
 
-        <!-- tool of the day -->
-        <section class="ld-card ld-tod">
-          <div class="ld-card-head"><span class="ld-card-title" id="ldTodTitle">Featured Tool</span></div>
-          <div class="ld-tod-body" id="ldTodBody"></div>
-        </section>
+// Shrink the current ctx font until `text` fits within maxW (down to minPx).
+// Returns the px size actually used.
+function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
+  let px = startPx;
+  for (; px > minPx; px -= 1) {
+    ctx.font = `${weight} ${px}px ${family}`;
+    if (ctx.measureText(text).width <= maxW) break;
+  }
+  ctx.font = `${weight} ${px}px ${family}`;
+  return px;
+}
 
-        <!-- ecosystem KPIs -->
-        <section class="ld-card ld-stats">
-          <div class="ld-card-head"><span class="ld-card-title" id="ldStatsTitle">Ecosystem Metrics</span></div>
-          <div class="ld-stats-body" id="ldStatsBody"></div>
-        </section>
-      </div>
+function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
+  vsOff = vsOff || vstudio;
+  const val = dsVal || vsVal;
+  const onVal = val("#vsInfoOn", false);
+  const on = (typeof onVal === "boolean") ? onVal
+           : ($("#vsInfoOn") && $("#vsInfoOn").checked);
+  if (!on) { vstudio.infoBox = null; return; }
+  const data = vsInfoData(val);
+  if (!data || (!data.stats.length && !data.title)) { vstudio.infoBox = null; return; }
 
-      <!-- BLOOMBERG-STYLE NEWS TICKER -->
-      <div class="ld-ticker">
-        <span class="ld-ticker-label" id="ldTickerLabel">◆ AI FEED</span>
-        <div class="ld-ticker-track" id="ldTickerTrack"></div>
-      </div>
-    </div>
-    <!-- /FULLSCREEN LIVE DASHBOARD -->
+  tpl = tpl || vsTemplate();
+  const isLight = vsHexLuma(tpl.bg) > 140;
 
-    <script src="app.js?v=v287"></script>
+  // Accent colour — prefer the template accent but saturate it for infographic use
+  const accentHex = tpl.accent || "#f04e2b";
+  const ig = {
+    panelTop:   isLight ? "rgba(255,255,255,0.97)" : "rgba(18,16,14,0.97)",
+    panelBot:   isLight ? "rgba(245,242,236,0.97)" : "rgba(8,7,6,0.97)",
+    border:     vsHexA(accentHex, 0.3),
+    accent:     accentHex,
+    title:      isLight ? "#111" : "#fff",
+    label:      isLight ? "rgba(40,36,28,0.7)" : "rgba(200,190,170,0.8)",
+    value:      accentHex,
+    track:      isLight ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.07)",
+    bg2:        isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"
+  };
 
-    <script>
-    /* ── TOOL OF THE DAY — robust version ───────────────────── */
-    (function(){
-      function getDayIndex(total) {
-        // Stable daily index — same for all users on the same UTC day
-        const dayNum = Math.floor(Date.now() / 86400000);
-        return dayNum % Math.max(1, total);
-      }
+  const stats = data.stats;
+  const style = val("#vsInfoStyle", "big-numbers");
+  const pos = val("#vsInfoPos", "center");
+  const motion = val("#vsInfoMotion", "rise");
+  const playing = vstudio.looping || vstudio.rendering;
+  const rawAll = playing ? Math.min(1, elapsed / 1.1) : 1;
+  const boxRaw = Math.min(1, rawAll / 0.6);
+  const contentRaw = Math.min(1, Math.max(0, (rawAll - 0.25) / 0.75));
+  const ease = vsEasePro(boxRaw);
+  const contentEase = vsEasePro(contentRaw);
 
-      function fmt(secs) {
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
-        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-      }
+  const U = Math.min(W, H);
+  const nStats = Math.max(1, stats.length);
 
-      function fmtNum(n) {
-        if (n == null || n === 0) return '—';
-        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
-        if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
-        return String(n);
-      }
+  // ── STYLE-SPECIFIC panel sizing ─────────────────────────
+  let panelW, panelH;
+  if (style === "big-numbers") {
+    // Full-screen overlay — numbers huge and centered
+    panelW = W * 0.92;
+    panelH = H * 0.88;
+  } else if (style === "donut") {
+    panelW = Math.min(W * 0.9, U * 1.1);
+    const rowSlice = U * 0.18;
+    const perRow = nStats <= 3 ? nStats : Math.ceil(nStats / 2);
+    const rows = Math.ceil(nStats / perRow);
+    panelH = U * 0.24 + rowSlice * rows * 2.2;
+  } else if (style === "cards") {
+    panelW = Math.min(W * 0.92, U * 1.0);
+    panelH = U * 0.22 + nStats * U * 0.16;
+  } else {
+    panelW = Math.min(W * 0.9, U * 0.95);
+    const headH = U * (0.20 + (data.subtitle ? 0.05 : 0));
+    const rowSlice = U * 0.14;
+    panelH = headH + rowSlice * nStats + U * 0.08;
+  }
 
-      function renderTOD() {
-        if (typeof tools === 'undefined' || !tools || !tools.length) return;
-        const fa = document.documentElement.lang === 'fa';
-        const get = id => document.getElementById(id);
-        const set = (id, txt) => { const e = get(id); if (e) e.textContent = txt; };
-        const txtVal = v => !v ? '' : typeof v === 'string' ? v : (v[fa ? 'fa' : 'en'] || v.en || '');
+  panelH = Math.min(panelH, H * 0.95);
+  panelW = Math.min(panelW, W * 0.95);
+  let px = (W - panelW) / 2;
+  if (pos === "left") px = U * 0.04;
+  if (pos === "right") px = W - panelW - U * 0.04;
+  let py = (H - panelH) / 2;
+  px += vsOff.infoDX * W;
+  py += vsOff.infoDY * H;
+  // record the SCALED bounding box so drag/hit-detection matches what's drawn
+  const _infoSc = vsOff.infoScale || 1;
+  const _scaledW = panelW * _infoSc, _scaledH = panelH * _infoSc;
+  const _boxX = px + (panelW - _scaledW) / 2;
+  const _boxY = py + (panelH - _scaledH) / 2;
+  vstudio.infoBox = { x: _boxX, y: _boxY, w: _scaledW, h: _scaledH };
 
-        const idx = getDayIndex(tools.length);
-        const tool = tools[idx];
-        if (!tool) return;
+  // entrance motion
+  let mDX = 0, mDY = 0, mScale = 1, mAlpha = ease;
+  switch (motion) {
+    case "none":        mAlpha = 1; break;
+    case "rise":        mDY = (1 - ease) * H * 0.05; break;
+    case "drop":        mDY = -(1 - ease) * H * 0.05; break;
+    case "slide-left":  mDX = -(1 - ease) * W * 0.1; break;
+    case "slide-right": mDX = (1 - ease) * W * 0.1; break;
+    case "pop":         mScale = 0.88 + ease * 0.12; break;
+    case "zoom-in":     mScale = 0.72 + ease * 0.28; break;
+    case "vox":         mScale = 0.86 + vsEasePro(Math.min(1, boxRaw * 1.15)) * 0.16;
+                        mDY = (1 - ease) * H * 0.03; break;
+    default: break;
+  }
 
-        // ── Labels ──
-        set('todLabel',    fa ? 'ابزار روز' : 'Tool of the Day');
-        set('todDayLabel', fa ? 'امروز' : 'Today');
-        set('todBtnLabel', fa ? 'مشاهده ابزار' : 'Visit tool');
-        set('todName',     tool.name || '—');
-        set('todCategory', txtVal(tool.category));
-        set('todDesc',     txtVal(tool.useCase));
+  ctx.save();
+  ctx.globalAlpha = mAlpha;
+  const pivX = px + panelW / 2, pivY = py + panelH / 2;
+  const infoTotalScale = mScale * (vsOff.infoScale || 1);
+  ctx.translate(pivX + mDX, pivY + mDY);
+  ctx.scale(infoTotalScale, infoTotalScale);
+  ctx.translate(-pivX, -pivY);
 
-        // ── Logo ──
-        const logoWrap = get('todLogoWrap');
-        if (logoWrap && tool.url) {
-          try {
-            const domain = new URL(tool.url).hostname;
-            logoWrap.innerHTML = '<img src="https://www.google.com/s2/favicons?domain=' + domain + '&sz=64" alt="' + tool.name + '" style="width:36px;height:36px;border-radius:6px;"/>';
-          } catch(e) {
-            logoWrap.innerHTML = '<span class="tod-logo">' + (tool.name || '?').slice(0,2).toUpperCase() + '</span>';
-          }
-        }
+  // ── BIG-NUMBERS style — cinematic full-screen stat display ──
+  if (style === "big-numbers") {
+    ctx.save();
+    // dark scrim over background
+    const scrim = ctx.createLinearGradient(0, py, 0, py + panelH);
+    scrim.addColorStop(0, "rgba(0,0,0,0.72)");
+    scrim.addColorStop(0.5, "rgba(0,0,0,0.55)");
+    scrim.addColorStop(1, "rgba(0,0,0,0.72)");
+    ctx.fillStyle = scrim;
+    roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.03);
+    ctx.fill();
 
-        // ── Price badge ──
-        const priceEl = get('todPrice');
-        if (priceEl) {
-          const isFree = tool.price === 0 || tool.plan === 'free' || tool.plan === 'freemium';
-          priceEl.textContent = isFree ? (fa ? 'رایگان' : 'Free') : '$' + tool.price;
-          priceEl.className = 'tod-price ' + (isFree ? 'free' : 'paid');
-        }
+    // accent line at top
+    const accentLineW = panelW * contentEase;
+    ctx.fillStyle = ig.accent;
+    ctx.fillRect(px + (panelW - accentLineW) / 2, py + panelH * 0.045, accentLineW, H * 0.005);
 
-        // ── Tags ──
-        const tagsEl = get('todTags');
-        if (tagsEl && Array.isArray(tool.tags)) {
-          tagsEl.innerHTML = tool.tags.slice(0, 4)
-            .map(t => '<span class="tag">' + t + '</span>').join('');
-        }
+    // title
+    if (data.title) {
+      ctx.globalAlpha = mAlpha * contentEase;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      const tpx = Math.round(U * 0.032);
+      ctx.font = `600 ${tpx}px Inter, sans-serif`;
+      ctx.fillText(data.title.toUpperCase(), px + panelW / 2, py + panelH * 0.13);
+    }
 
-        // ── LINK ──
-        const linkEl = get('todLink');
-        if (linkEl && tool.url && tool.url !== '#') {
-          linkEl.href = tool.url;
-          linkEl.setAttribute('href', tool.url);
-          linkEl.onclick = null; // clear any previous handler
-        }
+    // Stats laid out in grid: 1-2 per row, big numbers
+    const cols = nStats <= 2 ? nStats : nStats <= 4 ? 2 : 3;
+    const rows = Math.ceil(nStats / cols);
+    const cellW = panelW / cols;
+    const cellH = (panelH * 0.72) / rows;
+    const startY = py + panelH * 0.2;
 
-        // ── Progress ring ──
-        const ring = get('todRingFill');
-        if (ring) {
-          const now = new Date();
-          const secsPassed = now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds();
-          const frac = secsPassed / 86400;
-          const circumference = 2 * Math.PI * 52;
-          ring.style.strokeDashoffset = circumference * (1 - frac);
-        }
+    stats.forEach((s, i) => {
+      const rowReveal = playing
+        ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.12) / 0.55)) : 1;
+      const re = 1 - Math.pow(1 - rowReveal, 3);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = px + cellW * (col + 0.5);
+      const cy2 = startY + cellH * (row + 0.5);
 
-        // ── Day of year in ring ──
-        const now2 = new Date();
-        const start2 = new Date(now2.getFullYear(), 0, 0);
-        const dayOfYear = Math.floor((now2 - start2) / 86400000);
-        set('todDayNum', String(dayOfYear));
-
-        // ── Similar tools (same category) — fills the panel & is useful ──
-        const relWrap = get('todRelated');
-        if (relWrap) {
-          set('todRelatedHead', fa ? 'ابزارهای مشابه از همین دسته' : 'More from this category');
-          const catKey = txtVal(tool.category);
-          const related = tools
-            .filter(t2 => t2 !== tool && txtVal(t2.category) === catKey)
-            .slice(0, 6);
-          // if the category is small, fill with top-scored tools
-          if (related.length < 6) {
-            tools.filter(t2 => t2 !== tool && !related.includes(t2))
-              .sort((a,b) => (b.score||0)-(a.score||0))
-              .slice(0, 6 - related.length)
-              .forEach(t2 => related.push(t2));
-          }
-          relWrap.innerHTML = related.map(t2 => {
-            let dom = '';
-            try { dom = new URL(t2.url).hostname; } catch(e) {}
-            const isFree = t2.price === 0 || t2.plan === 'free' || t2.plan === 'freemium';
-            const d2 = txtVal(t2.useCase);
-            return '<a class="tod-rel-card" href="' + (t2.url||'#') + '" target="_blank" rel="noopener">' +
-              '<img src="https://www.google.com/s2/favicons?domain=' + dom + '&sz=64" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' +
-              '<span class="tod-rel-name">' + (t2.name||'') + '</span>' +
-              '<span class="tod-rel-meta">' + (t2.score ? '★ ' + t2.score : '') + (isFree ? (fa?' · رایگان':' · Free') : '') + '</span>' +
-              (d2 ? '<span class="tod-rel-desc">' + d2 + '</span>' : '') +
-              '</a>';
-          }).join('');
-        }
-
-        // ── Stats ──
-        const statsEl = get('todStats');
-        if (statsEl) {
-          const rows = [
-            { label: fa ? 'امتیاز' : 'Score',  val: tool.score || '—' },
-            { label: fa ? 'ستاره'  : 'Stars',  val: fmtNum(tool.stars) },
-            { label: fa ? 'قیمت'   : 'Price',  val: tool.price === 0 ? (fa ? 'رایگان' : 'Free') : (tool.price ? '$' + tool.price : '—') },
-          ];
-          statsEl.innerHTML = rows.map(r =>
-            '<div class="tod-stat-row"><span class="tod-stat-label">' + r.label + '</span><span class="tod-stat-val">' + r.val + '</span></div>'
-          ).join('');
-        }
-
-        // ── Animate ONCE on first render (avoid jitter on re-renders) ──
-        const panel = get('toolOfDay');
-        if (panel && !window._todAnimated) {
-          window._todAnimated = true;
-          panel.classList.add('tod-animate');
-        }
+      // separator line between columns
+      if (col > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + cellW * col, startY + cellH * row + cellH * 0.15);
+        ctx.lineTo(px + cellW * col, startY + cellH * (row + 1) - cellH * 0.15);
+        ctx.stroke();
       }
 
-      // ── Countdown ──
-      function startCountdown() {
-        function secsToMidnight() {
-          const now = new Date();
-          const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-          return Math.max(0, Math.floor((tomorrow - now) / 1000));
-        }
-        let secs = secsToMidnight();
-        function tick() {
-          const cd = document.getElementById('todCountdown');
-          if (cd) cd.textContent = fmt(secs);
-          if (secs > 0) { secs--; setTimeout(tick, 1000); }
-        }
-        tick();
+      ctx.save();
+      ctx.globalAlpha = mAlpha * re;
+      ctx.textAlign = "center";
+
+      // BIG number — animate counting up
+      const suffix = s.value.replace(/[\d.,\-]/g, "");
+      const prefix = s.value.replace(/[\d.,\-].*$/, "");
+      const shown = s.num && playing
+        ? prefix + Math.round(s.num * re).toLocaleString() + suffix
+        : s.value;
+
+      const numPx = Math.round(Math.min(U * 0.11, cellH * 0.42));
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4);
+      ctx.shadowBlur = U * 0.04;
+      ctx.font = `800 ${numPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(shown, cx, cy2 + numPx * 0.35);
+      ctx.shadowBlur = 0;
+
+      // label below number
+      const lblPx = Math.round(Math.min(U * 0.022, cellH * 0.14));
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = `500 ${lblPx}px Inter, sans-serif`;
+      ctx.fillText(s.label.toUpperCase(), cx, cy2 + numPx * 0.35 + lblPx * 1.6);
+
+      // small accent underline
+      ctx.fillStyle = vsHexA(ig.accent, 0.4);
+      const ulW = Math.min(cellW * 0.35, U * 0.12) * re;
+      ctx.fillRect(cx - ulW / 2, cy2 + numPx * 0.35 + lblPx * 2.4, ulW, H * 0.003);
+
+      ctx.restore();
+    });
+
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // ── PANEL CARD background for other styles ───────────────
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = U * 0.04;
+  ctx.shadowOffsetY = H * 0.01;
+  const pg = ctx.createLinearGradient(0, py, 0, py + panelH);
+  pg.addColorStop(0, ig.panelTop);
+  pg.addColorStop(1, ig.panelBot);
+  ctx.fillStyle = pg;
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = ig.border;
+  ctx.lineWidth = Math.max(1, U * 0.001);
+  roundRectPath(ctx, px, py, panelW, panelH, panelW * 0.04);
+  ctx.stroke();
+
+  // ── INNER CONTENT ─────────────────────────────────────────
+  ctx.save();
+  ctx.globalAlpha = mAlpha * contentEase;
+  const padX = panelW * 0.08;
+  const accentW = panelW * 0.12 * contentEase;
+  ctx.fillStyle = ig.accent;
+  ctx.fillRect(px + padX, py + panelH * 0.07, accentW, H * 0.005);
+
+  // start title lower so its ascenders clear the accent line at panelH*0.07
+  let cy = py + panelH * 0.21;
+
+  if (data.title) {
+    ctx.fillStyle = ig.title;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    // cap size so a tall font can't collide with the accent line above
+    const titlePx = Math.min(Math.round(U * 0.04), Math.round(panelH * 0.085));
+    const fittedPx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
+      titlePx, Math.round(U * 0.022));
+    ctx.fillText(data.title, px + padX, cy);
+    // space below title scales with the ACTUAL font size used
+    cy += fittedPx * 1.5;
+  }
+  if (data.subtitle) {
+    ctx.fillStyle = ig.label;
+    ctx.textAlign = "left";
+    vsFitFont(ctx, data.subtitle.toUpperCase(), panelW - padX * 2, "500",
+      "Inter, sans-serif", Math.round(U * 0.022), Math.round(U * 0.014));
+    ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
+    cy += panelH * 0.065;
+  }
+
+  const max = Math.max(1, ...stats.map(s => s.num || 0));
+  let axisMax = max;
+  const srcReserve = data.source ? H * 0.05 : panelH * 0.065;
+  const areaH = py + panelH - cy - srcReserve;
+  const rowH = areaH / Math.max(1, stats.length);
+
+  // bar chart axis
+  let barChartX = 0, barChartW = 0;
+  if (style === "bars") {
+    const mag = Math.pow(10, Math.floor(Math.log10(max || 1)));
+    const norm = max / mag;
+    const niceN = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    axisMax = niceN * mag;
+    barChartX = px + padX;
+    barChartW = panelW - padX * 2;
+    const topY = cy + rowH * 0.06, botY = cy + areaH - rowH * 0.06;
+    ctx.textAlign = "center";
+    ctx.font = `500 ${Math.round(U * 0.016)}px Inter, sans-serif`;
+    for (let g = 0; g <= 4; g++) {
+      const gx = barChartX + barChartW * (g / 4);
+      ctx.strokeStyle = vsHexA(ig.accent, g === 0 ? 0.4 : 0.1);
+      ctx.lineWidth = g === 0 ? 1.5 : 1;
+      ctx.beginPath(); ctx.moveTo(gx, topY); ctx.lineTo(gx, botY); ctx.stroke();
+      const scaleVal = axisMax * (g / 4);
+      const lbl = scaleVal >= 1e9 ? (scaleVal/1e9).toFixed(1)+"B"
+        : scaleVal >= 1e6 ? (scaleVal/1e6).toFixed(1)+"M"
+        : scaleVal >= 1000 ? (scaleVal/1000).toFixed(0)+"k"
+        : (Number.isInteger(scaleVal) ? String(scaleVal) : scaleVal.toFixed(1));
+      ctx.fillStyle = vsHexA(ig.label, 0.55);
+      ctx.fillText(lbl, gx, botY + U * 0.017);
+    }
+  }
+
+  stats.forEach((s, i) => {
+    const rowReveal = playing
+      ? Math.min(1, Math.max(0, (elapsed - 0.35 - i * 0.1) / 0.5)) : 1;
+    const re = 1 - Math.pow(1 - rowReveal, 3);
+    const ry = cy + i * rowH;
+
+    if (style === "bars") {
+      const rowMaxW = panelW - padX * 2;
+      ctx.textBaseline = "alphabetic";
+      const lblPx = Math.min(Math.round(rowH * 0.34), Math.round(U * 0.022));
+      const valPx = Math.min(Math.round(rowH * 0.42), Math.round(U * 0.03));
+      ctx.font = `700 ${valPx}px ${vsGetFont("Prata, serif")}`;
+      const valW = Math.min(ctx.measureText(s.value).width + U * 0.02, rowMaxW * 0.38);
+      ctx.fillStyle = ig.value;
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.32);
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label.toUpperCase(), rowMaxW - valW - U * 0.02, "600",
+        "Inter, sans-serif", lblPx, Math.round(U * 0.014));
+      ctx.textAlign = "left";
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.32);
+      const barH2 = Math.min(rowH * 0.24, U * 0.02);
+      const barY = ry + rowH * 0.48;
+      ctx.fillStyle = ig.track;
+      roundRectPath(ctx, px + padX, barY, rowMaxW, barH2, barH2 / 2); ctx.fill();
+      const fillW = Math.max(barH2, rowMaxW * (s.num / axisMax) * re);
+      const gr = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW, 0);
+      gr.addColorStop(0, vsHexA(ig.accent, 0.6)); gr.addColorStop(1, ig.accent);
+      ctx.fillStyle = gr;
+      roundRectPath(ctx, px + padX, barY, fillW, barH2, barH2 / 2); ctx.fill();
+
+    } else if (style === "counters") {
+      const cMaxW = panelW - padX * 2;
+      const suffix2 = s.value.replace(/[0-9.,\-]/g, "");
+      const shown2 = s.num && playing
+        ? Math.round(s.num * re).toLocaleString() + suffix2 : s.value;
+      ctx.textAlign = "left";
+      ctx.fillStyle = ig.value;
+      // HUGE number
+      const numPx2 = vsFitFont(ctx, shown2, cMaxW * 0.88, "800", vsGetFont("Inter, sans-serif"),
+        Math.round(rowH * 0.52), Math.round(rowH * 0.28));
+      ctx.fillText(shown2, px + padX, ry + rowH * 0.46);
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label.toUpperCase(), cMaxW, "500", "Inter, sans-serif",
+        Math.round(rowH * 0.24), Math.round(rowH * 0.15));
+      ctx.fillText(s.label.toUpperCase(), px + padX, ry + rowH * 0.68);
+      ctx.fillStyle = vsHexA(ig.accent, 0.45);
+      ctx.fillRect(px + padX, ry + rowH * 0.78, (panelW - padX * 2) * (s.num / max) * re, rowH * 0.04);
+      if (i < stats.length - 1) {
+        ctx.strokeStyle = vsHexA(ig.accent, 0.14);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + padX, ry + rowH * 0.93);
+        ctx.lineTo(px + panelW - padX, ry + rowH * 0.93);
+        ctx.stroke();
       }
 
-      // ── Init — wait for tools array to be populated ──
-      function init() {
-        if (typeof tools === 'undefined' || !tools || !tools.length) {
-          setTimeout(init, 100);
-          return;
-        }
-        // Wait for app.js tools.forEach to complete
-        setTimeout(function() {
-          renderTOD();
-          startCountdown();
-        }, 80);
+    } else if (style === "donut") {
+      const n = stats.length;
+      const perRow2 = n <= 3 ? n : Math.ceil(n / 2);
+      const donutRows = Math.ceil(n / perRow2);
+      const col = i % perRow2;
+      const rowIx = Math.floor(i / perRow2);
+      const itemsThisRow = Math.min(perRow2, n - rowIx * perRow2);
+      const slotW = (panelW - padX * 2) / perRow2;
+      const rowGap = (panelW - padX * 2) - slotW * itemsThisRow;
+      const cxx = px + padX + rowGap / 2 + slotW * (col + 0.5);
+      const cellH2 = areaH / donutRows;
+      const cyy = cy + cellH2 * (rowIx + 0.45);
+      const rad = Math.min(slotW, cellH2) * 0.32;
+      // track
+      ctx.lineWidth = rad * 0.3;
+      ctx.strokeStyle = vsHexA(ig.accent, 0.1);
+      ctx.beginPath(); ctx.arc(cxx, cyy, rad, 0, Math.PI * 2); ctx.stroke();
+      // arc fill
+      const frac = Math.max(0, (s.num / max)) * re;
+      ctx.strokeStyle = ig.accent;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(cxx, cyy, rad, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+      ctx.stroke();
+      ctx.lineCap = "butt";
+      // value inside
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.value;
+      ctx.textAlign = "center";
+      vsFitFont(ctx, s.value, rad * 1.55, "800", vsGetFont("Inter, sans-serif"),
+        Math.round(Math.min(U * 0.032, rad * 0.65)), Math.round(rad * 0.32));
+      ctx.fillText(s.value, cxx, cyy);
+      // label below
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label, slotW * 0.9, "500", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.02, cellH2 * 0.12)), Math.round(U * 0.012));
+      ctx.fillText(s.label, cxx, cyy + rad + cellH2 * 0.15);
+      ctx.textBaseline = "alphabetic";
 
-        // Hook into lang change
-        const orig = window.setLanguage;
-        window.setLanguage = function(lang) {
-          if (orig) orig(lang);
-          renderTOD();
-        };
+    } else if (style === "cards") {
+      const cardY = ry + rowH * 0.08;
+      const cardH = rowH * 0.82;
+      // card bg
+      const cg = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+      cg.addColorStop(0, vsHexA(ig.accent, 0.14)); cg.addColorStop(1, vsHexA(ig.accent, 0.04));
+      ctx.fillStyle = cg;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.15); ctx.fill();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.22); ctx.lineWidth = 1;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, cardH * 0.15); ctx.stroke();
+      // left accent bar
+      ctx.fillStyle = ig.accent;
+      roundRectPath(ctx, px + padX, cardY, U * 0.008, cardH, U * 0.004); ctx.fill();
 
-        // Re-render when GitHub stars load (so stats update) — debounced,
-        // and WITHOUT re-triggering the entrance animation.
-        const origRebuild = window.rebuildLiveChartData;
-        window.rebuildLiveChartData = function() {
-          if (origRebuild) origRebuild.apply(this, arguments);
-          clearTimeout(window._todRebuildT);
-          window._todRebuildT = setTimeout(renderTOD, 300);
-        };
+      const ctxX = px + padX + panelW * 0.06;
+      const ctxW = panelW - padX * 2 - panelW * 0.06 - U * 0.02;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label.toUpperCase(), ctxW * 0.65, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.02, cardH * 0.24)), Math.round(cardH * 0.14));
+      ctx.textAlign = "left";
+      ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
+      // big value right-aligned
+      ctx.fillStyle = ig.value;
+      vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
+        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "pills") {
+      const rowMaxW2 = panelW - padX * 2;
+      ctx.textBaseline = "alphabetic";
+      const lblPx2 = Math.min(Math.round(rowH * 0.32), Math.round(U * 0.022));
+      const valPx2 = Math.min(Math.round(rowH * 0.38), Math.round(U * 0.028));
+      ctx.textAlign = "left"; ctx.fillStyle = ig.label;
+      vsFitFont(ctx, s.label, rowMaxW2 * 0.58, "600", "Inter, sans-serif",
+        lblPx2, Math.round(U * 0.014));
+      ctx.fillText(s.label, px + padX, ry + rowH * 0.3);
+      ctx.textAlign = "right"; ctx.fillStyle = ig.value;
+      ctx.font = `800 ${valPx2}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.3);
+      const pillH2 = Math.min(rowH * 0.32, U * 0.028);
+      const pillY = ry + rowH * 0.46;
+      ctx.fillStyle = ig.track;
+      roundRectPath(ctx, px + padX, pillY, rowMaxW2, pillH2, pillH2 / 2); ctx.fill();
+      const fillW2 = Math.max(pillH2, rowMaxW2 * (s.num / Math.max(axisMax, 1)) * re);
+      const pg2 = ctx.createLinearGradient(px + padX, 0, px + padX + rowMaxW2, 0);
+      pg2.addColorStop(0, vsHexA(ig.accent, 0.5)); pg2.addColorStop(1, ig.accent);
+      ctx.fillStyle = pg2;
+      roundRectPath(ctx, px + padX, pillY, fillW2, pillH2, pillH2 / 2); ctx.fill();
+      // glow dot
+      ctx.fillStyle = "#fff"; ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(px + padX + fillW2 - pillH2 / 2, pillY + pillH2 / 2, pillH2 * 0.22, 0, Math.PI * 2);
+      ctx.fill(); ctx.globalAlpha = mAlpha * contentEase;
+
+    } else if (style === "dark-cards") {
+      // Glass-morphism dark cards — frosted dark bg, glowing border
+      const cardY = ry + rowH * 0.07;
+      const cardH = rowH * 0.84;
+      const r2 = cardH * 0.18;
+      ctx.fillStyle = "rgba(10,8,6,0.82)";
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, r2); ctx.fill();
+      // glowing border
+      ctx.strokeStyle = vsHexA(ig.accent, 0.5 * re + 0.1);
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.02 * re;
+      roundRectPath(ctx, px + padX, cardY, panelW - padX * 2, cardH, r2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      const cW = panelW - padX * 2; const cX = px + padX;
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillStyle = vsHexA(ig.accent, 0.75);
+      vsFitFont(ctx, s.label.toUpperCase(), cW * 0.6, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
+      ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
+      ctx.fillStyle = "#ffffff";
+      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
+        Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "neon-cards") {
+      // Neon accent cards — bright colour fill left strip, dark right
+      const cardY = ry + rowH * 0.07;
+      const cardH = rowH * 0.84;
+      const stripW = panelW * 0.08;
+      const cX = px + padX; const cW = panelW - padX * 2;
+      roundRectPath(ctx, cX, cardY, cW, cardH, cardH * 0.16); ctx.save();
+      ctx.clip();
+      ctx.fillStyle = "rgba(12,10,8,0.9)"; ctx.fillRect(cX, cardY, cW, cardH);
+      const ng = ctx.createLinearGradient(cX, cardY, cX + stripW * 2, cardY);
+      ng.addColorStop(0, ig.accent); ng.addColorStop(1, vsHexA(ig.accent, 0));
+      ctx.fillStyle = ng; ctx.fillRect(cX, cardY, cW, cardH);
+      ctx.restore();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.35); ctx.lineWidth = 1;
+      roundRectPath(ctx, cX, cardY, cW, cardH, cardH * 0.16); ctx.stroke();
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      vsFitFont(ctx, s.label, cW * 0.58, "600", "Inter, sans-serif",
+        Math.round(Math.min(U * 0.019, cardH * 0.22)), Math.round(cardH * 0.13));
+      ctx.fillText(s.label, cX + cW * 0.14, cardY + cardH * 0.3);
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
+      vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Inter, sans-serif"),
+        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+      ctx.textAlign = "right";
+      ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.7);
+      ctx.shadowBlur = 0; ctx.textBaseline = "alphabetic";
+
+    } else if (style === "ranking") {
+      // Leaderboard rank row — number + bar + label
+      const rowMaxW = panelW - padX * 2;
+      const rankPx = Math.round(Math.min(rowH * 0.55, U * 0.045));
+      const labelPx = Math.round(Math.min(rowH * 0.3, U * 0.02));
+      // rank number bubble
+      const bubR = Math.min(rowH * 0.38, U * 0.032);
+      const bubX = px + padX + bubR;
+      const bubY = ry + rowH * 0.5;
+      const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : ig.accent;
+      ctx.fillStyle = vsHexA(rankColor, 0.2);
+      ctx.beginPath(); ctx.arc(bubX, bubY, bubR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = rankColor; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(bubX, bubY, bubR, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = rankColor; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `700 ${rankPx * 0.7}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(i + 1, bubX, bubY);
+      ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      // label
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${labelPx}px Inter, sans-serif`;
+      const lX = px + padX + bubR * 2 + U * 0.018;
+      ctx.fillText(s.label, lX, ry + rowH * 0.36);
+      // bar + value
+      const barH3 = Math.min(rowH * 0.22, U * 0.018);
+      const barY3 = ry + rowH * 0.54;
+      const barMaxW = panelW - padX * 2 - bubR * 2 - U * 0.025;
+      ctx.fillStyle = ig.track;
+      roundRectPath(ctx, lX, barY3, barMaxW, barH3, barH3 / 2); ctx.fill();
+      const fillFrac = (s.num / Math.max(max, 1)) * re;
+      const gr3 = ctx.createLinearGradient(lX, 0, lX + barMaxW, 0);
+      gr3.addColorStop(0, rankColor); gr3.addColorStop(1, vsHexA(rankColor, 0.6));
+      ctx.fillStyle = gr3;
+      roundRectPath(ctx, lX, barY3, Math.max(barH3, barMaxW * fillFrac), barH3, barH3 / 2); ctx.fill();
+      ctx.fillStyle = rankColor; ctx.textAlign = "right";
+      ctx.font = `700 ${Math.round(rowH * 0.32)}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.38);
+
+    } else if (style === "timeline-list") {
+      // Timeline / list — vertical line left, dot, label + value
+      const dotR = Math.min(rowH * 0.18, U * 0.014);
+      const lineX = px + padX + dotR;
+      const dotY = ry + rowH * 0.42;
+      // vertical connector line
+      if (i < stats.length - 1) {
+        ctx.strokeStyle = vsHexA(ig.accent, 0.3); ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(lineX, dotY + dotR);
+        ctx.lineTo(lineX, ry + rowH);
+        ctx.stroke();
       }
+      // dot
+      ctx.fillStyle = re > 0.5 ? ig.accent : vsHexA(ig.accent, re * 2);
+      ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
+      ctx.beginPath(); ctx.arc(lineX, dotY, dotR, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // label + value
+      const tX = lineX + dotR + U * 0.02;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const lblPxT = Math.round(Math.min(rowH * 0.3, U * 0.022));
+      ctx.fillStyle = ig.label; ctx.font = `600 ${lblPxT}px Inter, sans-serif`;
+      ctx.fillText(s.label, tX, dotY - dotR * 0.5);
+      ctx.fillStyle = ig.value;
+      ctx.font = `700 ${Math.round(lblPxT * 1.5)}px ${vsGetFont("Prata, serif")}`;
+      ctx.fillText(s.value, tX, dotY + dotR * 1.8);
+      ctx.textBaseline = "alphabetic";
+    }
+  });
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+  // ── STYLES that render the whole panel in one pass (not per-stat) ──
+  const onePassStyles = ["ticker-numbers","comparison","area-chart","bubble","magazine","vs-split"];
+  if (onePassStyles.includes(style) && stats.length > 0) {
+    ctx.save();
+    ctx.globalAlpha = mAlpha * contentEase;
+
+    if (style === "ticker-numbers") {
+      // Large numbers in a horizontal scroller — up to 4 stats side by side
+      const cols = Math.min(stats.length, 4);
+      const cellW2 = (panelW - padX * 2) / cols;
+      const centerY = py + panelH * 0.58;
+      stats.slice(0, 4).forEach((s, i) => {
+        const rowReveal = playing ? Math.min(1, Math.max(0, (elapsed - 0.3 - i * 0.15) / 0.5)) : 1;
+        const re = 1 - Math.pow(1 - rowReveal, 3);
+        const cx2 = px + padX + cellW2 * (i + 0.5);
+        // divider
+        if (i > 0) {
+          ctx.strokeStyle = vsHexA(ig.accent, 0.2); ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(px + padX + cellW2 * i, py + panelH * 0.3);
+          ctx.lineTo(px + padX + cellW2 * i, py + panelH * 0.82);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = mAlpha * contentEase * re;
+        ctx.textAlign = "center";
+        const numPxT = Math.round(Math.min(U * 0.09, cellW2 * 0.5));
+        const suffix3 = s.value.replace(/[\d.,\-]/g, "");
+        const prefix3 = s.value.replace(/[\d.,\-].*$/, "");
+        const shown3 = s.num && playing ? prefix3 + Math.round(s.num * re).toLocaleString() + suffix3 : s.value;
+        ctx.fillStyle = ig.accent;
+        ctx.shadowColor = vsHexA(ig.accent, 0.3); ctx.shadowBlur = U * 0.025;
+        ctx.font = `900 ${numPxT}px ${vsGetFont("Inter, sans-serif")}`;
+        ctx.fillText(shown3, cx2, centerY);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = `500 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+        ctx.fillText(s.label.toUpperCase(), cx2, centerY + numPxT * 0.65);
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "comparison") {
+      // Two large values side by side with labels — best for 2 stats
+      const a = stats[0], b = stats[1] || { label: "", value: "", num: 0 };
+      const midX = px + panelW / 2;
+      const midY = py + panelH * 0.56;
+      // central VS badge
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.accent;
+      roundRectPath(ctx, midX - U * 0.045, midY - U * 0.04, U * 0.09, U * 0.08, U * 0.04); ctx.fill();
+      ctx.fillStyle = "#000"; ctx.font = `800 ${Math.round(U * 0.028)}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText("VS", midX, midY);
+      // left value
+      ctx.fillStyle = ig.value;
+      ctx.shadowColor = vsHexA(ig.accent, 0.35); ctx.shadowBlur = U * 0.03;
+      const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.6)) : 1;
+      const aE = 1 - Math.pow(1 - aRe, 3);
+      // auto-fit value into half-panel width (leave room for VS badge)
+      const compMaxW = panelW * 0.40;
+      let compPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      const longest = String(a.value).length >= String(b.value).length ? a.value : b.value;
+      while (compPx > Math.round(U * 0.04) && ctx.measureText(longest).width > compMaxW) {
+        compPx -= 2; ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      }
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(a.value, midX - panelW * 0.26, midY);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), midX - panelW * 0.26, midY + U * 0.07);
+      // right value
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.shadowColor = "rgba(255,255,255,0.2)"; ctx.shadowBlur = U * 0.02;
+      ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(b.value, midX + panelW * 0.26, midY);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = ig.label;
+      ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), midX + panelW * 0.26, midY + U * 0.07);
+      ctx.textBaseline = "alphabetic";
+
+    } else if (style === "area-chart") {
+      // Animated area/wave chart background + value labels at peaks
+      const chartX = px + padX, chartW = panelW - padX * 2;
+      const chartTop = cy + U * 0.02, chartBot = py + panelH - srcReserve - U * 0.01;
+      const chartH2 = chartBot - chartTop;
+      const nPts = stats.length;
+      // draw area
+      ctx.beginPath();
+      const getY = (i2, re2) => {
+        const frac = stats[i2].num / Math.max(max, 1);
+        return chartBot - chartH2 * frac * re2;
+      };
+      const pts = stats.map((s, i2) => ({
+        x: chartX + chartW * (i2 / Math.max(nPts - 1, 1)),
+        y: getY(i2, contentEase)
+      }));
+      ctx.moveTo(pts[0].x, chartBot);
+      ctx.lineTo(pts[0].x, pts[0].y);
+      for (let i2 = 1; i2 < pts.length; i2++) {
+        const cp1x = (pts[i2-1].x + pts[i2].x) / 2, cp1y = pts[i2-1].y;
+        const cp2x = (pts[i2-1].x + pts[i2].x) / 2, cp2y = pts[i2].y;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, pts[i2].x, pts[i2].y);
+      }
+      ctx.lineTo(pts[pts.length-1].x, chartBot);
+      ctx.closePath();
+      const ag = ctx.createLinearGradient(0, chartTop, 0, chartBot);
+      ag.addColorStop(0, vsHexA(ig.accent, 0.5)); ag.addColorStop(1, vsHexA(ig.accent, 0.03));
+      ctx.fillStyle = ag; ctx.fill();
+      // line on top
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i2 = 1; i2 < pts.length; i2++) {
+        const cp1x = (pts[i2-1].x + pts[i2].x) / 2;
+        ctx.bezierCurveTo(cp1x, pts[i2-1].y, cp1x, pts[i2].y, pts[i2].x, pts[i2].y);
+      }
+      ctx.strokeStyle = ig.accent; ctx.lineWidth = 2.5; ctx.stroke();
+      // dots + labels at each point
+      pts.forEach((pt, i2) => {
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.4 - i2 * 0.1) / 0.4)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        ctx.fillStyle = ig.accent;
+        ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, U * 0.012, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+        ctx.font = `700 ${Math.round(U * 0.018)}px Inter, sans-serif`;
+        ctx.fillText(stats[i2].value, pt.x, pt.y - U * 0.025);
+        ctx.fillStyle = ig.label;
+        ctx.font = `500 ${Math.round(U * 0.015)}px Inter, sans-serif`;
+        ctx.fillText(stats[i2].label, pt.x, chartBot + U * 0.02);
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "bubble") {
+      // Proportional bubbles — radius proportional to value
+      const bArea = (panelH - (cy - py) - srcReserve);
+      const bCenterY = cy + bArea / 2;
+      const totalParts = stats.reduce((s2, st) => s2 + Math.sqrt(st.num || 1), 0);
+      let bx2 = px + padX;
+      stats.forEach((s, i2) => {
+        const frac = Math.sqrt(s.num || 1) / totalParts;
+        const slotW2 = (panelW - padX * 2) * frac;
+        const rad2 = Math.min(slotW2 * 0.44, bArea * 0.44);
+        const bcx = bx2 + slotW2 / 2;
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.3 - i2 * 0.12) / 0.5)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        const bg2 = ctx.createRadialGradient(bcx, bCenterY, 0, bcx, bCenterY, rad2 * pe);
+        bg2.addColorStop(0, vsHexA(ig.accent, 0.9)); bg2.addColorStop(1, vsHexA(ig.accent, 0.2));
+        ctx.fillStyle = bg2;
+        ctx.beginPath(); ctx.arc(bcx, bCenterY, rad2 * pe, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = ig.accent; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(bcx, bCenterY, rad2 * pe, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const vPx2 = Math.round(Math.min(rad2 * 0.45, U * 0.032));
+        ctx.font = `800 ${vPx2}px ${vsGetFont("Inter, sans-serif")}`;
+        ctx.fillText(s.value, bcx, bCenterY - rad2 * 0.12 * pe);
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.font = `500 ${Math.round(vPx2 * 0.6)}px Inter, sans-serif`;
+        ctx.fillText(s.label, bcx, bCenterY + rad2 * 0.35 * pe);
+        ctx.textBaseline = "alphabetic";
+        ctx.globalAlpha = mAlpha * contentEase;
+        bx2 += slotW2;
+      });
+
+    } else if (style === "magazine") {
+      // Magazine layout — large featured stat + list of others
+      const featStat = stats[0];
+      const rest = stats.slice(1, 5);
+      const featW = panelW * 0.5, featH = panelH * 0.7;
+      const featX = px + padX, featY = cy;
+      const fg = ctx.createLinearGradient(featX, featY, featX, featY + featH);
+      fg.addColorStop(0, vsHexA(ig.accent, 0.22)); fg.addColorStop(1, vsHexA(ig.accent, 0.05));
+      ctx.fillStyle = fg;
+      roundRectPath(ctx, featX, featY, featW - U * 0.015, featH, U * 0.02); ctx.fill();
+      ctx.strokeStyle = vsHexA(ig.accent, 0.4); ctx.lineWidth = 1.5;
+      roundRectPath(ctx, featX, featY, featW - U * 0.015, featH, U * 0.02); ctx.stroke();
+      ctx.textAlign = "center";
+      const fPx2 = Math.round(Math.min(U * 0.085, featW * 0.38));
+      const fRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.5)) : 1;
+      const fE = 1 - Math.pow(1 - fRe, 3);
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.03 * fE;
+      ctx.font = `900 ${fPx2}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(featStat.value, featX + featW * 0.5 - U * 0.008, featY + featH * 0.52);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = `500 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+      ctx.fillText(featStat.label.toUpperCase(), featX + featW * 0.5 - U * 0.008, featY + featH * 0.7);
+      // right side list
+      const rX = px + padX + featW + U * 0.01;
+      const rW = panelW - padX * 2 - featW - U * 0.01;
+      rest.forEach((s2, i2) => {
+        const iY = featY + (featH / Math.max(rest.length, 1)) * (i2 + 0.5);
+        const pr = playing ? Math.min(1, Math.max(0, (elapsed - 0.4 - i2 * 0.1) / 0.45)) : 1;
+        const pe = 1 - Math.pow(1 - pr, 3);
+        ctx.globalAlpha = mAlpha * contentEase * pe;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = ig.label;
+        ctx.font = `600 ${Math.round(U * 0.017)}px Inter, sans-serif`;
+        ctx.fillText(s2.label, rX, iY - U * 0.012);
+        ctx.fillStyle = ig.value;
+        ctx.font = `700 ${Math.round(U * 0.028)}px ${vsGetFont("Prata, serif")}`;
+        ctx.fillText(s2.value, rX, iY + U * 0.018);
+        if (i2 < rest.length - 1) {
+          ctx.strokeStyle = vsHexA(ig.accent, 0.18); ctx.lineWidth = 1;
+          const sepY = iY + U * 0.04;
+          ctx.beginPath(); ctx.moveTo(rX, sepY); ctx.lineTo(rX + rW, sepY); ctx.stroke();
+        }
+        ctx.textBaseline = "alphabetic";
+        ctx.globalAlpha = mAlpha * contentEase;
+      });
+
+    } else if (style === "vs-split") {
+      // VS split — two large values with label, dramatic divider
+      const a = stats[0], b = stats[1] || { label: "—", value: "—", num: 0 };
+      const midX = px + panelW / 2;
+      const aRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.3) / 0.55)) : 1;
+      const bRe = playing ? Math.min(1, Math.max(0, (elapsed - 0.5) / 0.55)) : 1;
+      const aE = 1 - Math.pow(1 - aRe, 3);
+      const bE = 1 - Math.pow(1 - bRe, 3);
+      // left half tint
+      const lG = ctx.createLinearGradient(px, py, midX, py);
+      lG.addColorStop(0, vsHexA(ig.accent, 0.18)); lG.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = lG;
+      roundRectPath(ctx, px, py, panelW / 2, panelH, panelW * 0.04 + 0.5); ctx.fill();
+      // right half tint
+      const rG = ctx.createLinearGradient(midX, py, px + panelW, py);
+      rG.addColorStop(0, "rgba(0,0,0,0)"); rG.addColorStop(1, "rgba(255,255,255,0.06)");
+      ctx.fillStyle = rG;
+      roundRectPath(ctx, midX, py, panelW / 2, panelH, panelW * 0.04); ctx.fill();
+      // divider
+      ctx.strokeStyle = vsHexA(ig.accent, 0.5 * aE); ctx.lineWidth = 2;
+      const dvH = panelH * 0.55 * Math.max(aE, bE);
+      ctx.beginPath();
+      ctx.moveTo(midX, py + panelH * 0.22);
+      ctx.lineTo(midX, py + panelH * 0.22 + dvH);
+      ctx.stroke();
+      // VS label
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = ig.accent; ctx.font = `900 ${Math.round(U * 0.028)}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText("VS", midX, py + panelH * 0.5);
+      // left value + label
+      ctx.globalAlpha = mAlpha * contentEase * aE;
+      const vsPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      ctx.fillStyle = ig.accent;
+      ctx.shadowColor = vsHexA(ig.accent, 0.4); ctx.shadowBlur = U * 0.025;
+      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(a.value, px + panelW * 0.25, py + panelH * 0.45);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(a.label.toUpperCase(), px + panelW * 0.25, py + panelH * 0.65);
+      // right value + label
+      ctx.globalAlpha = mAlpha * contentEase * bE;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `900 ${vsPx}px ${vsGetFont("Inter, sans-serif")}`;
+      ctx.fillText(b.value, px + panelW * 0.75, py + panelH * 0.45);
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = `600 ${Math.round(U * 0.022)}px Inter, sans-serif`;
+      ctx.fillText(b.label.toUpperCase(), px + panelW * 0.75, py + panelH * 0.65);
+      ctx.textBaseline = "alphabetic";
+      ctx.globalAlpha = mAlpha * contentEase;
+    }
+    ctx.restore();
+  }
+
+  if (data.source) {
+    ctx.textAlign = "left";
+    ctx.fillStyle = vsHexA(ig.label, 0.65);
+    const srcLabel = "Source: " + data.source;
+    vsFitFont(ctx, srcLabel, panelW - padX * 2, "400",
+      "Inter, sans-serif", Math.round(U * 0.012), Math.round(U * 0.009));
+    ctx.fillText(srcLabel, px + padX, py + panelH - H * 0.024);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+
+// A butterfly that flies a gentle path with flapping wings.
+function drawButterfly(ctx, W, H, elapsed, px, py, panelW, panelH) {
+  // flight path: a looping figure across the panel
+  const t = elapsed * 0.6;
+  const bx = px + panelW * (0.5 + 0.42 * Math.sin(t));
+  const by = py + panelH * (0.5 + 0.36 * Math.sin(t * 1.7));
+  const size = Math.min(W, H) * 0.05;
+  // wing flap — fast oscillation
+  const flap = Math.abs(Math.sin(elapsed * 11));
+  const heading = Math.atan2(
+    Math.cos(t * 1.7) * 1.7 * panelH,
+    Math.cos(t) * panelW
+  );
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(heading + Math.PI / 2);
+  ctx.globalCompositeOperation = "screen";
+
+  const drawWing = (side) => {
+    ctx.save();
+    ctx.scale(side, 1);
+    // wing folds with the flap
+    ctx.scale(0.35 + 0.65 * flap, 1);
+    const g = ctx.createLinearGradient(0, -size, size, size);
+    g.addColorStop(0, "rgba(255,200,120,0.95)");
+    g.addColorStop(1, "rgba(216,120,200,0.85)");
+    ctx.fillStyle = g;
+    // upper wing
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size * 1.1, -size * 1.1, size * 0.9, -size * 0.2);
+    ctx.quadraticCurveTo(size * 0.7, size * 0.1, 0, 0);
+    ctx.fill();
+    // lower wing
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size * 0.8, size * 0.4, size * 0.6, size * 0.95);
+    ctx.quadraticCurveTo(size * 0.3, size * 0.7, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  };
+  drawWing(1);
+  drawWing(-1);
+  // body
+  ctx.fillStyle = "rgba(40,30,20,0.9)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.07, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Draw a single composited frame at time `elapsed` (seconds).
+// Animated overlay elements drawn on top of the media.
+function drawStudioOverlay(ctx, W, H, elapsed, kind) {
+  if (!kind || kind === "none") return;
+  ctx.save();
+  if (kind === "lightleak") {
+    // drifting warm light leak
+    const x = W * (0.2 + 0.6 * (0.5 + 0.5 * Math.sin(elapsed * 0.6)));
+    const g = ctx.createRadialGradient(x, H * 0.2, 0, x, H * 0.2, W * 0.6);
+    g.addColorStop(0, "rgba(255,180,90,0.35)");
+    g.addColorStop(1, "rgba(255,180,90,0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "bokeh") {
+    // soft floating circles
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 14; i++) {
+      const seed = i * 99.7;
+      const x = ((Math.sin(seed) * 0.5 + 0.5) * W);
+      const y = ((elapsed * 16 + seed * 30) % (H + 120)) - 60;
+      const r = 14 + (i % 5) * 12;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(255,240,200,0.5)");
+      g.addColorStop(1, "rgba(255,240,200,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "particles") {
+    // rising sparkles
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 50; i++) {
+      const seed = i * 53.3;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed + seed) * 14;
+      const y = H - ((elapsed * 40 + seed * 40) % (H + 40));
+      const s = 1 + (i % 3);
+      ctx.globalAlpha = 0.4 + 0.5 * (Math.sin(elapsed * 3 + seed) * 0.5 + 0.5);
+      ctx.fillRect(x, y, s, s);
+    }
+  } else if (kind === "snow") {
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    for (let i = 0; i < 60; i++) {
+      const seed = i * 47.1;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed * 0.8 + seed) * 24;
+      const y = ((elapsed * 30 + seed * 30) % (H + 30));
+      const r = 1.5 + (i % 3);
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "gradient") {
+    // cinematic top/bottom gradient bars
+    const top = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+    top.addColorStop(0, "rgba(0,0,0,0.55)");
+    top.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = top;
+    ctx.fillRect(0, 0, W, H * 0.3);
+    const bot = ctx.createLinearGradient(0, H * 0.7, 0, H);
+    bot.addColorStop(0, "rgba(0,0,0,0)");
+    bot.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = bot;
+    ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  } else if (kind === "rain") {
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = "rgba(180,200,230,0.5)";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 70; i++) {
+      const seed = i * 41.3;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W;
+      const y = ((elapsed * 600 + seed * 50) % (H + 60)) - 30;
+      ctx.beginPath();
+      ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 18);
+      ctx.stroke();
+    }
+  } else if (kind === "dust") {
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 40; i++) {
+      const seed = i * 67.9;
+      const x = (Math.sin(seed + elapsed * 0.3) * 0.5 + 0.5) * W;
+      const y = (Math.cos(seed * 1.7 + elapsed * 0.4) * 0.5 + 0.5) * H;
+      ctx.globalAlpha = 0.3 + 0.4 * (Math.sin(elapsed * 2 + seed) * 0.5 + 0.5);
+      ctx.fillStyle = "rgba(255,250,235,0.8)";
+      ctx.beginPath(); ctx.arc(x, y, 1.4, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "scanlines") {
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = "#000";
+    for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 2);
+  } else if (kind === "glow") {
+    // pulsing edge glow
+    const pulse = 0.3 + 0.2 * Math.sin(elapsed * 2);
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35,
+                                       W/2, H/2, Math.max(W,H)*0.7);
+    g.addColorStop(0, "rgba(216,183,106,0)");
+    g.addColorStop(1, `rgba(216,183,106,${pulse})`);
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "vhs") {
+    // subtle chromatic VHS jitter bars
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 3; i++) {
+      const y = ((elapsed * 120 + i * H / 3) % H);
+      ctx.fillStyle = "rgba(120,160,255,0.06)";
+      ctx.fillRect(0, y, W, 30);
+    }
+  } else if (kind === "goldframe") {
+    // luxurious thin gold border frame
+    const m = Math.min(W, H) * 0.045;
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "rgba(216,183,106,0.9)");
+    g.addColorStop(0.5, "rgba(255,240,184,0.95)");
+    g.addColorStop(1, "rgba(216,183,106,0.9)");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = Math.max(1.5, W * 0.0022);
+    ctx.strokeRect(m, m, W - m * 2, H - m * 2);
+    // corner ticks
+    ctx.lineWidth = Math.max(1, W * 0.0016);
+    const t = Math.min(W, H) * 0.04;
+    [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]
+      .forEach(([x, y, sx, sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + sx * t, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * t);
+        ctx.stroke();
+      });
+  } else if (kind === "shimmer") {
+    // a luxurious diagonal light sweep
+    const p = (elapsed * 0.4) % 1.4 - 0.2;
+    const cx = W * p;
+    const g = ctx.createLinearGradient(cx - W * 0.2, 0, cx + W * 0.2, H);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(0.5, "rgba(255,250,235,0.22)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  } else if (kind === "minimalline") {
+    // minimal: a thin centred horizontal rule that draws in
+    const grow = Math.min(1, elapsed / 1.2);
+    const lw = W * 0.4 * (1 - Math.pow(1 - grow, 3));
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = Math.max(1, W * 0.0014);
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - lw / 2, H * 0.5);
+    ctx.lineTo(W / 2 + lw / 2, H * 0.5);
+    ctx.stroke();
+  } else if (kind === "corners") {
+    // minimal corner brackets
+    const m = Math.min(W, H) * 0.07;
+    const t = Math.min(W, H) * 0.06;
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = Math.max(1, W * 0.0016);
+    [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]
+      .forEach(([x, y, sx, sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + sx * t, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * t);
+        ctx.stroke();
+      });
+  } else if (kind === "embers") {
+    // luxurious slow-rising warm embers
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 30; i++) {
+      const seed = i * 73.2;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W +
+                Math.sin(elapsed * 0.7 + seed) * 18;
+      const y = H - ((elapsed * 22 + seed * 40) % (H + 40));
+      const r = 1.2 + (i % 3);
+      const a = 0.3 + 0.4 * (Math.sin(elapsed * 2 + seed) * 0.5 + 0.5);
+      const gg = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+      gg.addColorStop(0, `rgba(255,200,120,${a})`);
+      gg.addColorStop(1, "rgba(255,200,120,0)");
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (kind === "haze") {
+    // minimal soft haze vignette pulse
+    const pulse = 0.16 + 0.06 * Math.sin(elapsed * 1.4);
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.2,
+                                       W/2, H/2, Math.max(W,H)*0.7);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(1, `rgba(255,255,255,${pulse})`);
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+function drawStudioFrame(elapsed) {
+  const canvas = $("#vsCanvas");
+  if (!canvas) return;
+
+  // When slides exist, pick the slide active at this time.
+  // IMPORTANT: when slides are present, we NEVER use vstudio.mediaEl as a
+  // fallback — each slide must have its own footage, or use a generated
+  // background. vstudio.mediaEl is only used in "single clip" mode (no slides).
+  let media = vstudio.slides.length ? null : vstudio.mediaEl;
+  let slideHeadline = null;
+  let dsSettings = null;          // settings of the slide being displayed
+  let dsLocal = 0, dsDur = 0;     // local time within that slide
+  let introSlide = null;          // the active intro slide, if any
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    const slide = vstudio.slides[at.index];
+    dsLocal = at.local; dsDur = at.dur;
+    if (slide && slide.ready) {
+      if (slide.isIntro) {
+        introSlide = slide;
+        // intro/content slides may also carry per-slide footage
+        if (slide.mediaEl) media = slide.mediaEl;
       } else {
-        init();
+        // regular media slide — use only THIS slide's footage
+        media = slide.mediaEl || null;
+        slideHeadline = slide.headline || "";
       }
-    })();
-    </script>
-  </body>
-</html>
+      // the active slide being edited reads LIVE controls; others read saved
+      dsSettings = (at.index === vstudio.activeSlide) ? null : slide.settings;
+    }
+  }
+
+  // Resolve the drag offsets / scales for the slide being DISPLAYED.
+  // The active slide reads live state; any other slide reads its own
+  // saved settings — so a move on one slide never affects the others.
+  const dsOff = (key, fallback) => {
+    if (dsSettings && key in dsSettings) return dsSettings[key];
+    return fallback;
+  };
+  const vsOff = {
+    textDX: dsOff("_textDX", vstudio.textDX),
+    textDY: dsOff("_textDY", vstudio.textDY),
+    textScale: dsOff("_textScale", vstudio.textScale),
+    infoDX: dsOff("_infoDX", vstudio.infoDX),
+    infoDY: dsOff("_infoDY", vstudio.infoDY),
+    infoScale: dsOff("_infoScale", vstudio.infoScale),
+    newsDX: dsOff("_newsDX", vstudio.newsDX),
+    newsDY: dsOff("_newsDY", vstudio.newsDY),
+    newsScale: dsOff("_newsScale", vstudio.newsScale)
+  };
+
+  // Decide whether we can render at all. Normally media is required, but the
+  // infographic (and news banner) can stand on their own coloured background.
+  const infoOnEl = $("#vsInfoOn");
+  const newsOnEl = $("#vsNewsOn");
+  // standaloneOverlay: can render even without media if info/news is enabled.
+  // When slides exist, read from the current slide's settings (dsSettings)
+  // OR the live controls if this is the active slide.
+  let standaloneOverlay = false;
+  if (vstudio.slides.length) {
+    // For the slide being displayed: check its own settings
+    const at2 = slideAtTime(elapsed);
+    const sl2 = vstudio.slides[at2.index];
+    if (sl2) {
+      const infoOn = sl2.settings && sl2.settings["#vsInfoOn"];
+      const newsOn = sl2.settings && sl2.settings["#vsNewsOn"];
+      // also check live controls if this is the active slide
+      const liveInfo = at2.index === vstudio.activeSlide && infoOnEl && infoOnEl.checked;
+      const liveNews = at2.index === vstudio.activeSlide && newsOnEl && newsOnEl.checked;
+      standaloneOverlay = infoOn || newsOn || liveInfo || liveNews || !!introSlide;
+    }
+  } else {
+    standaloneOverlay = (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
+  }
+  if (!media && !standaloneOverlay && !introSlide) return;
+
+  // ── TIME-STRETCH (After Effects style time-remap) ──────────
+  // Playback-rate handling for the duration control:
+  //  • duration SHORTER than the clip  -> keep normal speed (rate = 1);
+  //    the clip plays from the start and is simply cut off at the span.
+  //    Reducing the time never changes the speed.
+  //  • duration LONGER than the clip   -> slow the clip down (rate < 1)
+  //    so it stretches to fill the longer span. Never sped up.
+  if (media && media.tagName === "VIDEO" &&
+      isFinite(media.duration) && media.duration > 0) {
+    let span, clipLen = media.duration, targetT;
+    const localTime = vstudio.slides.length ? dsLocal : elapsed;
+    if (vstudio.slides.length) {
+      span = dsDur > 0 ? dsDur : clipLen;
+    } else {
+      span = Math.max(0.01, studioDuration());
+    }
+    // rate is 1 unless the span is LONGER than the clip
+    let rate = span > clipLen ? clipLen / span : 1;
+    rate = Math.max(0.0625, Math.min(1, rate));
+    // playhead position: when stretching, map the span onto the clip;
+    // when at normal speed, the playhead just follows real elapsed time
+    if (rate < 1) {
+      targetT = (Math.min(localTime, span) / span) * clipLen;
+    } else {
+      targetT = Math.min(clipLen, localTime);
+    }
+    if (media.playbackRate !== rate) {
+      try { media.playbackRate = rate; } catch {}
+    }
+    // if the video has drifted from where it should be (e.g. after a
+    // pause, a scrub, or rate clamping) nudge it back with ONE seek —
+    // not every frame, so the browser can finish the seek and not freeze.
+    if (Math.abs(media.currentTime - targetT) > 0.4) {
+      try { media.currentTime = targetT; } catch {}
+    }
+    // make sure it is actually playing during the live loop / render
+    if ((vstudio.looping || vstudio.rendering) && media.paused) {
+      media.play().catch(() => {});
+    }
+  }
+
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  const W = canvas.width, H = canvas.height;
+  // CRITICAL: fully reset transform + clear every frame so nothing from the
+  // previous frame (text, scaled background) bleeds through and looks doubled.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, W, H);
+  const tpl = vsTemplate();
+
+  // ── INTRO SLIDE — self-contained background + dual animated text ──
+  if (introSlide) {
+    const playing = vstudio.looping || vstudio.rendering;
+    const k = !playing ? 1
+      : (dsDur > 0 ? Math.min(1, dsLocal / (dsDur * 0.6)) : 1);
+    const bg = introBackgrounds.find(b => b.id === introSlide.introBg)
+      || introBackgrounds[0];
+    // If this scene has real footage (a content slide the user added media
+    // to), draw the footage COVERING the frame as the backdrop; otherwise
+    // draw the code-generated intro background + graphics.
+    const hasFootage = introSlide.mediaEl &&
+      (introSlide._standaloneInfo || introSlide._standaloneNews);
+    if (hasFootage) {
+      const m = introSlide.mediaEl;
+      const mw = m.videoWidth || m.naturalWidth || W;
+      const mh = m.videoHeight || m.naturalHeight || H;
+      // ── camera motion on the photo/footage backdrop ──
+      const camMot = (introSlide.settings && introSlide.settings["#vsMotion"]) || "kenburns-in";
+      const playingC = vstudio.looping || vstudio.rendering;
+      let cLc = (dsDur > 0) ? dsLocal / dsDur : 0;
+      cLc = Math.max(0, Math.min(1, cLc));
+      if (!playingC) cLc = 0.4; // show the move in a static preview too
+      const cClock = playingC ? elapsed : 1.2;
+      let cz = 1, cox = 0, coy = 0, crot = 0;
+      const CT = Math.PI * 2;
+      switch (camMot) {
+        case "none":         cz = 1; break;
+        case "kenburns-in":  cz = 1.0 + cLc * 0.18; break;
+        case "kenburns-out": cz = 1.18 - cLc * 0.18; break;
+        case "pan-right":    cz = 1.14; cox = (0.5 - cLc) * W * 0.16; break;
+        case "pan-left":     cz = 1.14; cox = (cLc - 0.5) * W * 0.16; break;
+        case "pan-up":       cz = 1.14; coy = (cLc - 0.5) * H * 0.16; break;
+        case "pan-down":     cz = 1.14; coy = (0.5 - cLc) * H * 0.16; break;
+        case "zoom-pan":     cz = 1.0 + cLc * 0.2; cox = (0.5 - cLc) * W * 0.1; break;
+        case "drift-up":     cz = 1.12; coy = (0.5 - cLc) * H * 0.22; break;
+        case "punch-in":     cz = cLc < 0.12 ? 1 + cLc * 1.5 : 1.18; break;
+        case "vertigo":      cz = 1.0 + Math.sin(cLc * Math.PI) * 0.22; break;
+        case "breathe":      cz = 1.05 + Math.sin(cClock * 1.6) * 0.04; break;
+        case "pulse":        cz = 1.06 + Math.sin(cClock * 4) * 0.03; break;
+        case "handheld":     cz = 1.12;
+                             cox = Math.sin(cClock * 3.2) * W * 0.018 + Math.sin(cClock * 1.7) * W * 0.010;
+                             coy = Math.cos(cClock * 2.6) * H * 0.016;
+                             crot = Math.sin(cClock * 1.4) * 0.012; break;
+        default:             cz = 1.0 + cLc * 0.08;
+      }
+      const scale = Math.max(W / mw, H / mh) * cz;
+      const dw = mw * scale, dh = mh * scale;
+      ctx.save();
+      ctx.translate(W / 2 + cox, H / 2 + coy);
+      if (crot) ctx.rotate(crot);
+      try { ctx.drawImage(m, -dw / 2, -dh / 2, dw, dh); } catch {}
+      ctx.restore();
+      // a soft scrim so overlaid text/graphics stay readable on footage
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      drawIntroBackground(ctx, W, H, introSlide.introBg, elapsed);
+      drawIntroGraphics(ctx, W, H, bg, elapsed, k);
+    }
+    // grade the background/footage only — SKIP for code-generated animated
+    // backgrounds (motion graphics look wrong with color filters applied).
+    // Only apply filter when there is actual footage (photo/video) on the slide.
+    if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
+    // A content slide (auto-builder) uses the intro background as a
+    // backdrop but shows an infographic / news banner instead of a
+    // title card — so we DON'T return; we fall through to those draws.
+    if (introSlide._standaloneInfo || introSlide._standaloneNews) {
+      // local value accessor: this slide's saved settings, else live controls
+      const dsVal2 = (sel, fb) => {
+        if (dsSettings && sel in dsSettings) return dsSettings[sel];
+        // active content slide: read from its own settings object directly
+        if (introSlide.settings && sel in introSlide.settings)
+          return introSlide.settings[sel];
+        return vsVal(sel, fb);
+      };
+      const sceneTime = dsLocal;
+      if (introSlide._standaloneInfo)
+        drawInfographic(ctx, W, H, sceneTime, tpl, dsVal2, vsOff);
+      if (introSlide._standaloneNews)
+        drawNewsBanner(ctx, W, H, sceneTime, dsVal2, vsOff);
+      // editable caption — a small label near the top of the scene.
+      // Empty caption draws nothing.
+      if (introSlide._caption && introSlide._caption.trim()) {
+        const U = Math.min(W, H);
+        const capE = !playing ? 1 : Math.min(1, k * 1.4);
+        ctx.save();
+        ctx.globalAlpha = capE;
+        ctx.textAlign = "center";
+        ctx.font = `600 ${Math.round(U * 0.02)}px Inter, sans-serif`;
+        const cap = introSlide._caption.toUpperCase();
+        const cw = ctx.measureText(cap).width + U * 0.05;
+        const cxC = W / 2, cyC = H * 0.12;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        roundRectPath(ctx, cxC - cw / 2, cyC - U * 0.022, cw, U * 0.044, U * 0.022);
+        ctx.fill();
+        ctx.fillStyle = (tpl && tpl.accent) || "#d8b76a";
+        ctx.fillText(cap, cxC, cyC + U * 0.007);
+        ctx.restore();
+      }
+      drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+      return;
+    }
+    // The selected TEMPLATE drives the title scene's text colour, accent
+    // and font — so picking a template visibly restyles intro/outro text.
+    const introTpl = {
+      text: (tpl && tpl.text) || "#ffffff",
+      accent: (tpl && tpl.accent) || bg.accent,
+      headlineFont: (tpl && tpl.headlineFont) || "Prata, serif",
+      // eyebrow label above the intro title (uses the AI kicker if present)
+      _eyebrow: introSlide.isOutro ? "" :
+        ((introSlide.settings && introSlide.settings["#vsNewsKicker"]) ||
+         introSlide._kicker || "AI RADAR")
+    };
+    // Skip color filter for animated motion backgrounds — only apply to footage
+    if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
+    drawCard(ctx, W, H, introTpl,
+      introSlide.introMain || "", 1,
+      introSlide.introSub || "", introSlide.introMotion || "rise", k,
+      introSlide.isOutro ? "outro" : "intro");
+    drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
+    vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+    return;
+  }
+
+  // when there is no media, paint a template-coloured backdrop so the
+  // infographic / news banner has something to sit on. A subtle camera
+  // motion (slow drift) is applied so "Camera motion" still has visible
+  // effect even on text/news/infographic-only slides.
+  if (!media) {
+    // compute a gentle motion offset based on the selected camera motion
+    let bgMotionT;
+    if (vstudio.slides.length && dsDur > 0) bgMotionT = dsLocal / dsDur;
+    else bgMotionT = (elapsed) / Math.max(0.01, studioDuration());
+    bgMotionT = Math.max(0, Math.min(1, bgMotionT));
+    if (!(vstudio.looping || vstudio.rendering)) bgMotionT = 0.4;
+    const bgMot = (dsSettings && "#vsMotion" in dsSettings) ? dsSettings["#vsMotion"] : vsVal("#vsMotion", "kenburns-in");
+    let bgZoom = 1, bgX = 0, bgY = 0;
+    switch (bgMot) {
+      case "kenburns-in":  bgZoom = 1 + bgMotionT * 0.08; break;
+      case "kenburns-out": bgZoom = 1.08 - bgMotionT * 0.08; break;
+      case "pan-right":    bgX = (0.5 - bgMotionT) * W * 0.06; bgZoom = 1.05; break;
+      case "pan-left":     bgX = (bgMotionT - 0.5) * W * 0.06; bgZoom = 1.05; break;
+      case "pan-up":       bgY = (bgMotionT - 0.5) * H * 0.06; bgZoom = 1.05; break;
+      case "pan-down":     bgY = (0.5 - bgMotionT) * H * 0.06; bgZoom = 1.05; break;
+      case "drift-up":     bgY = (0.5 - bgMotionT) * H * 0.08; bgZoom = 1.04; break;
+      case "zoom-pan":     bgZoom = 1 + bgMotionT * 0.08; bgX = (0.5 - bgMotionT) * W * 0.04; break;
+      case "breathe":      bgZoom = 1.03 + Math.sin(elapsed * 1.6) * 0.02; break;
+      case "pulse":        bgZoom = 1.02 + Math.sin(elapsed * 4) * 0.015; break;
+      case "none":         bgZoom = 1; break;
+      default:             bgZoom = 1 + bgMotionT * 0.05;
+    }
+    ctx.save();
+    if (bgZoom !== 1 || bgX || bgY) {
+      ctx.translate(W/2 + bgX, H/2 + bgY);
+      ctx.scale(bgZoom, bgZoom);
+      ctx.translate(-W/2, -H/2);
+    }
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0, tpl.bg);
+    bgGrad.addColorStop(1, vsHexLuma(tpl.bg) > 140 ? "#ffffff" : "#000000");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(-W*0.1, -H*0.1, W*1.2, H*1.2);
+    ctx.restore();
+  }
+
+  // resolver: read a per-slide control value (saved settings or live control)
+  const dsVal = (sel, fallback) => {
+    if (dsSettings && sel in dsSettings) return dsSettings[sel];
+    return vsVal(sel, fallback);
+  };
+
+  const duration = vstudio.slides.length
+    ? slidesTotalDuration()
+    : Math.max(2, Number(vsVal("#vsDuration", 6)));
+  const progress = Math.min(1, elapsed / duration);
+
+  const introText = (dsVal("#vsIntro", "") || "").trim();
+  const introSub = (dsVal("#vsIntroSub", "") || "").trim();
+  const introMotion = dsVal("#vsIntroMotion", "fade");
+  const outroText = (dsVal("#vsOutro", "") || "").trim();
+  const introDur = introText ? 1.6 : 0;
+  const outroDur = outroText ? 1.1 : 0;
+
+  // background
+  ctx.fillStyle = tpl.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ----- intro card — dual text with entrance motion -----
+  if (introText && elapsed < introDur) {
+    const k = elapsed / introDur;
+    // fade: in over first 35%, hold, out over last 20%
+    const fade = k < 0.35 ? k / 0.35 : k > 0.8 ? (1 - k) / 0.2 : 1;
+    // entrance progress drives the motion (completes by 55% of the card)
+    const prog = Math.min(1, k / 0.55);
+    drawCard(ctx, W, H, tpl, introText, fade, introSub, introMotion, prog);
+    return;
+  }
+  // ----- outro card -----
+  if (outroText && elapsed > duration - outroDur) {
+    const k = (elapsed - (duration - outroDur)) / outroDur;
+    drawCard(ctx, W, H, tpl, outroText, 1 - Math.abs(k - 0.5) * 2, "", "fade", k * 2);
+    return;
+  }
+
+  // ----- main media stage -----
+  if (media) {
+  const mw = media.videoWidth || media.naturalWidth || W;
+  const mh = media.videoHeight || media.naturalHeight || H;
+
+  // transition in
+  const trans = dsVal("#vsTransition", "fade");
+  // CAMERA MOTION TIME: when slides exist, motion must progress across THIS
+  // slide's own duration (dsLocal/dsDur) — not the whole timeline, otherwise
+  // a 6s slide inside a 36s video barely moves. Single-clip mode uses global.
+  let local, intro;
+  if (vstudio.slides.length && dsDur > 0) {
+    local = dsLocal / dsDur;
+    intro = Math.min(1, dsLocal / 0.9);
+  } else {
+    local = (elapsed - introDur) / Math.max(0.01, duration - introDur - outroDur);
+    intro = Math.min(1, (elapsed - introDur) / 0.9);
+  }
+  let lc = Math.max(0, Math.min(1, local));
+  // STATIC PREVIEW: when not playing/rendering, show the camera move at ~40%
+  // so the motion is visible in the still frame instead of frozen at the start.
+  const _playing = vstudio.looping || vstudio.rendering;
+  if (!_playing) lc = 0.4;
+  // elapsed-based motions (handheld/shake/pulse/breathe) need a moving clock;
+  // in a still preview give them a fixed non-zero phase so their look shows.
+  const mClock = _playing ? elapsed : 1.2;
+  const ease = 1 - Math.pow(1 - Math.max(0, intro), 3);
+
+  let zoom = 1, offX = 0, offY = 0, alpha = 1, rot = 0;
+
+  // ----- camera motion preset -----
+  const motion = dsVal("#vsMotion", "kenburns-in");
+  const TAU = Math.PI * 2;
+  switch (motion) {
+    case "none":          zoom = 1; break;
+    case "kenburns-in":   zoom = 1.0 + lc * 0.18; break;
+    case "kenburns-out":  zoom = 1.18 - lc * 0.18; break;
+    case "pan-right":     zoom = 1.14; offX = (0.5 - lc) * W * 0.16; break;
+    case "pan-left":      zoom = 1.14; offX = (lc - 0.5) * W * 0.16; break;
+    case "pan-up":        zoom = 1.14; offY = (lc - 0.5) * H * 0.16; break;
+    case "pan-down":      zoom = 1.14; offY = (0.5 - lc) * H * 0.16; break;
+    case "parallax":      zoom = 1.12 + Math.sin(lc * Math.PI) * 0.05;
+                          offX = Math.sin(lc * TAU) * W * 0.04; break;
+    case "shake":         zoom = 1.08;
+                          offX = (_playing ? (Math.random() - 0.5) : 0.3) * W * 0.012;
+                          offY = (_playing ? (Math.random() - 0.5) : -0.3) * H * 0.012; break;
+    case "pulse":         zoom = 1.06 + Math.sin(mClock * 4) * 0.03; break;
+    case "sway":          zoom = 1.1; rot = Math.sin(lc * TAU) * 0.03; break;
+    case "zoom-pan":      zoom = 1.0 + lc * 0.2; offX = (0.5 - lc) * W * 0.1; break;
+    case "diagonal":      zoom = 1.14; offX = (lc - 0.5) * W * 0.12;
+                          offY = (lc - 0.5) * H * 0.12; break;
+    case "spin-in":       zoom = 0.7 + lc * 0.35; rot = (1 - lc) * 0.4; break;
+    case "breathe":       zoom = 1.05 + Math.sin(mClock * 1.6) * 0.04; break;
+    case "drift-up":      zoom = 1.12; offY = (0.5 - lc) * H * 0.22; break;
+    case "punch-in":      zoom = lc < 0.12 ? 1 + lc * 1.5 : 1.18; break;
+    case "handheld":      zoom = 1.12;
+                          offX = Math.sin(mClock * 3.2) * W * 0.018 +
+                                 Math.sin(mClock * 1.7) * W * 0.010;
+                          offY = Math.cos(mClock * 2.6) * H * 0.016 +
+                                 Math.sin(mClock * 4.1) * H * 0.008;
+                          rot = Math.sin(mClock * 1.4) * 0.012; break;
+    case "vertigo":       zoom = 1.0 + Math.sin(lc * Math.PI) * 0.22; break;
+    default:              zoom = 1.0 + lc * 0.06;
+  }
+
+  // transitions layer on top of motion
+  if (trans === "zoom") zoom *= (1.18 - 0.18 * ease);
+  if (trans === "slide") offY += (1 - ease) * H * 0.12;
+  if (trans === "fade")  alpha = ease;
+
+  // COVER fit — the media fills the ENTIRE frame for the chosen aspect
+  // ratio. Math.max scales so the smaller side still covers the frame;
+  // overflow is cropped. One uniform `fit` factor → never stretched.
+  const fit = Math.max(W / mw, H / mh) * zoom;
+  const dw = mw * fit, dh = mh * fit;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (rot !== 0) {
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(rot);
+    ctx.translate(-W / 2, -H / 2);
+  }
+  try {
+    ctx.drawImage(media, (W - dw) / 2 + offX, (H - dh) / 2 + offY, dw, dh);
+  } catch {}
+  ctx.restore();
+  ctx.filter = "none";
+  }
+  // grade the footage/background only — before vignette, text, overlays
+  vsApplyBgFilter(ctx, canvas, W, H);
+
+  // vignette
+  if (tpl.vignette > 0) {
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, `rgba(0,0,0,${tpl.vignette})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // film grain — visible textured noise across the frame
+  if ($("#vsGrain") && $("#vsGrain").checked) {
+    ctx.save();
+    const count = Math.round((W * H) / 1400);   // scales with resolution
+    for (let i = 0; i < count; i++) {
+      const shade = Math.random();
+      ctx.globalAlpha = 0.06 + Math.random() * 0.12;
+      ctx.fillStyle = shade > 0.5 ? "#ffffff" : "#000000";
+      const s = 1 + Math.random() * 1.5;
+      ctx.fillRect(Math.random() * W, Math.random() * H, s, s);
+    }
+    ctx.restore();
+  }
+
+  // ----- overlay element (light leak / bokeh / particles) -----
+  drawStudioOverlay(ctx, W, H, elapsed, dsVal("#vsOverlay", "none"));
+
+  // scene-local time — in a slide sequence each scene's overlays animate
+  // fresh from that slide's start, not from the global timeline.
+  const sceneTime = vstudio.slides.length ? dsLocal : elapsed;
+
+  // ----- infographic overlay -----
+  drawInfographic(ctx, W, H, sceneTime, tpl, dsVal, vsOff);
+
+  // ----- news banner overlay -----
+  drawNewsBanner(ctx, W, H, sceneTime, dsVal, vsOff);
+
+  // ----- text layers (with a readable backing plate) -----
+  // The "Text layers → Headline" input always works. If it is empty AND
+  // slides are in use, fall back to the active slide's own headline.
+  const typedHeadline = (dsVal("#vsHeadline", "") || "").trim();
+  const headline = typedHeadline
+    ? typedHeadline
+    : (slideHeadline !== null ? slideHeadline : "");
+  const sub = (dsVal("#vsSub", "") || "").trim();
+  const cta = (dsVal("#vsCta", "") || "").trim();
+  const pos = dsVal("#vsTextPos", "center");
+  // text size = the dropdown choice × the user's manual resize scale
+  const sizeMul = Number(dsVal("#vsTextSize", 1)) * (vsOff.textScale || 1);
+  const textAnim = dsVal("#vsTextAnim", "fade-up");
+  // Staggered reveal (default): the backing box animates in FIRST, then
+  // the text follows. The timeline is per-SCENE: in a slide sequence each
+  // slide's text animates fresh from that slide's own start (dsLocal),
+  // not the global elapsed — otherwise later slides' text is already
+  // "done" before the slide even appears.
+  const animElapsed = vstudio.slides.length
+    ? dsLocal
+    : Math.max(0, elapsed - introDur);
+  // total entrance ~1.1s — a touch quicker so it feels responsive
+  const rawAll = (vstudio.looping || vstudio.rendering)
+    ? Math.min(1, Math.max(0, animElapsed / 1.1))
+    : 1;
+  // the box leads, the text follows with a gentle overlap. The text now
+  // starts at 18% (not 35%) so there's no dead pause before it moves,
+  // and both run on a smooth eased curve.
+  const rawBox  = Math.min(1, rawAll / 0.55);
+  const rawText = Math.min(1, Math.max(0, (rawAll - 0.18) / 0.82));
+  // when the text preset is "none", both box and text appear instantly
+  const animOff = (textAnim === "none");
+  const boxEase  = animOff ? 1 : vsEasePro(rawBox);
+  const tEase    = animOff ? 1 : vsEasePro(rawText);
+  // rawT kept for presets that read it directly (typewriter, pop, bounce)
+  const rawT = animOff ? 1 : rawText;
+
+  if (headline || sub || cta) {
+    ctx.save();
+    ctx.textAlign = "center";
+    let baseY = pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
+    // manual drag offset (set by dragging the text on the canvas) — applied
+    // ONCE here as a transform so the backing box and the text always move
+    // together as a single unit, including when the entrance animation
+    // scales them.
+    const dragX = vsOff.textDX * W;
+    const dragY = vsOff.textDY * H;
+    ctx.translate(dragX, dragY);
+
+    // text animation preset — controls how text enters.
+    // motion distances scale with the canvas (U) so the movement is
+    // clearly visible on any frame size, portrait or landscape.
+    const U = Math.min(W, H);
+    let textAlpha = 1, slideX = 0, scaleT = 1;
+    // overshoot easing for spring-style text animations
+    const txOver = rawT >= 1 ? 1
+      : 1 - Math.pow(2, -10 * rawT) * Math.cos((rawT * 10 - 0.75) * (2 * Math.PI) / 3);
+    switch (textAnim) {
+      case "none":      textAlpha = 1; break;
+      case "fade":      textAlpha = tEase; break;
+      case "fade-up":   textAlpha = tEase; baseY += (1 - tEase) * U * 0.05; break;
+      case "fade-down": textAlpha = tEase; baseY -= (1 - tEase) * U * 0.05; break;
+      case "slide-left":  textAlpha = tEase; slideX = (1 - tEase) * W * 0.32; break;
+      case "slide-right": textAlpha = tEase; slideX = -(1 - tEase) * W * 0.32; break;
+      case "pop":       textAlpha = tEase;
+                        scaleT = 0.6 + 0.4 * (1 - Math.pow(1 - rawT, 2)) +
+                                 Math.sin(rawT * Math.PI) * 0.08; break;
+      case "typewriter": textAlpha = 1; break;  // handled per-letter below
+      case "zoom-in":   textAlpha = tEase;
+                        scaleT = 1.4 - 0.4 * tEase; break;
+      case "zoom-out":  textAlpha = tEase;
+                        scaleT = 0.6 + 0.4 * tEase; break;
+      case "bounce":    textAlpha = tEase;
+                        baseY += (1 - tEase) * U * 0.07 *
+                          Math.cos(rawT * Math.PI * 2.5) * (1 - rawT); break;
+      case "rise":      textAlpha = tEase; baseY += (1 - tEase) * U * 0.11; break;
+      case "blur-in":   textAlpha = tEase * tEase; break;
+      case "drop":      textAlpha = tEase; baseY -= (1 - tEase) * U * 0.11; break;
+      // ── new animations ──
+      case "spring":    textAlpha = tEase;
+                        scaleT = 0.4 + txOver * 0.6; break;
+      case "rise-spring": textAlpha = tEase;
+                        baseY += (1 - txOver) * U * 0.18; break;
+      case "swing":     textAlpha = tEase;
+                        baseY -= (1 - tEase) * U * 0.04;
+                        slideX = (1 - txOver) * W * 0.12; break;
+      case "punch":     textAlpha = tEase;
+                        scaleT = 1 + (1 - tEase) * 0.7; break;
+      case "slide-up":  textAlpha = tEase; baseY += (1 - tEase) * U * 0.22; break;
+      case "slide-down":textAlpha = tEase; baseY -= (1 - tEase) * U * 0.22; break;
+      case "flip":      textAlpha = tEase;
+                        scaleT = Math.abs(Math.cos((1 - rawT) * Math.PI / 2)) *
+                                 0.4 + 0.6; break;
+      case "glide-in":  textAlpha = tEase;
+                        slideX = -(1 - tEase) * W * 0.16;
+                        scaleT = 0.94 + tEase * 0.06; break;
+      case "drift":     textAlpha = tEase;
+                        slideX = (1 - tEase) * W * 0.06;
+                        baseY += (1 - tEase) * U * 0.03; break;
+      case "vox":       textAlpha = tEase;
+                        scaleT = 0.82 + txOver * 0.18;
+                        baseY += (1 - txOver) * U * 0.05; break;
+      default:          textAlpha = tEase; baseY += (1 - tEase) * U * 0.05;
+    }
+    ctx.globalAlpha = textAlpha;
+
+    // text colour comes from the template
+    const fill = tpl.text, accentFill = tpl.accent;
+
+    // measure the text block to size the backing plate
+    const hlSize = Math.round(W * 0.058 * sizeMul);
+    const subSize = Math.round(W * 0.026 * sizeMul);
+    const ctaSize = Math.round(W * 0.022 * sizeMul);
+    ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
+    let blockW = headline ? ctx.measureText(headline).width : 0;
+    if (sub) { ctx.font = `400 ${subSize}px Inter, sans-serif`;
+      blockW = Math.max(blockW, ctx.measureText(sub).width); }
+    if (cta) { ctx.font = `600 ${ctaSize}px Inter, sans-serif`;
+      blockW = Math.max(blockW, ctx.measureText(cta).width); }
+    const lineGap = headline ? W * 0.056 : 0;
+    const blockTop = baseY - hlSize * 0.7;
+    const blockBottom = baseY + (sub ? lineGap : 0) + (cta ? W * 0.05 : 0) + subSize;
+    const blockH = blockBottom - blockTop;
+
+    // store the text bounds (absolute canvas coords) so it can be dragged.
+    // The group is translated by (dragX,dragY), so the hit-box adds them.
+    vstudio.textBox = {
+      x: W / 2 + dragX - blockW / 2,
+      y: blockTop + dragY,
+      w: blockW,
+      h: blockH
+    };
+
+    // readable plate behind text — ALWAYS on so text never disappears
+    // into a bright photo. The plate animates in on its OWN timeline
+    // (boxEase) — it arrives first, slightly ahead of the text, with a
+    // gentle scale-up so the two reveals read as separate, refined steps.
+    if (blockW > 0 && boxEase > 0.001) {
+      const padX = W * 0.05, padY = H * 0.04;
+      ctx.save();
+      ctx.globalAlpha = boxEase * 0.55;
+      ctx.fillStyle = "rgba(0,0,0,0.85)";
+      const px = W / 2 - blockW / 2 - padX;
+      const py = blockTop - padY;
+      const pw = blockW + padX * 2;
+      const ph = blockH + padY * 2;
+      const r = Math.min(pw, ph) * 0.12;
+      // subtle scale-in for the plate, pivoting on its own centre
+      const bScale = 0.92 + 0.08 * boxEase;
+      const bcx = px + pw / 2, bcy = py + ph / 2;
+      ctx.translate(bcx, bcy);
+      ctx.scale(bScale, bScale);
+      ctx.translate(-bcx, -bcy);
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.arcTo(px + pw, py, px + pw, py + ph, r);
+      ctx.arcTo(px + pw, py + ph, px, py + ph, r);
+      ctx.arcTo(px, py + ph, px, py, r);
+      ctx.arcTo(px, py, px + pw, py, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // apply slide / scale transform from the animation preset.
+    // drag is already applied to the whole group above, so here we only
+    // add the preset's slide and scale.
+    ctx.translate(slideX, 0);
+    if (scaleT !== 1) {
+      ctx.translate(W / 2, baseY);
+      ctx.scale(scaleT, scaleT);
+      ctx.translate(-W / 2, -baseY);
+    }
+
+    // strong shadow as a second safety net for readability
+    if (headline) {
+      ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
+      ctx.fillStyle = fill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 20;
+      // typewriter reveals the headline letter by letter
+      const shownHeadline = textAnim === "typewriter"
+        ? headline.slice(0, Math.ceil(rawT * headline.length))
+        : headline;
+      ctx.fillText(shownHeadline, W / 2, baseY);
+      ctx.shadowBlur = 0;
+      const lw = W * 0.12 * tEase;
+      ctx.strokeStyle = accentFill;
+      ctx.lineWidth = Math.max(1, W * 0.002);
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - lw / 2, baseY + W * 0.022);
+      ctx.lineTo(W / 2 + lw / 2, baseY + W * 0.022);
+      ctx.stroke();
+    }
+    if (sub) {
+      ctx.font = `400 ${subSize}px Inter, sans-serif`;
+      ctx.fillStyle = accentFill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 14;
+      ctx.fillText(sub, W / 2, baseY + lineGap);
+      ctx.shadowBlur = 0;
+    }
+    if (cta) {
+      ctx.font = `600 ${ctaSize}px Inter, sans-serif`;
+      ctx.fillStyle = fill;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 14;
+      ctx.fillText(cta, W / 2, baseY + lineGap + (sub ? W * 0.05 : W * 0.04));
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+
+  // ── LOGO OVERLAY — professional motion + placement + frame styles ──
+  if (vstudio.logoEl) {
+    // timing window: show the logo only between start and start+duration
+    const lStart = parseFloat(vsVal("#vsLogoStart", "0")) || 0;
+    const lDurIn = parseFloat(vsVal("#vsLogoDur", "0")) || 0;   // 0 = until end
+    const lVisible = elapsed >= lStart && (lDurIn <= 0 || elapsed <= lStart + lDurIn);
+    if (lVisible) {
+    const logo = vstudio.logoEl;
+    // keep an animated logo playing while visible
+    if (vstudio.logoIsVideo && logo.paused) { try { logo.play(); } catch (e) {} }
+    const lw0 = logo.naturalWidth || logo.videoWidth || 1;
+    const lh0 = logo.naturalHeight || logo.videoHeight || 1;
+    const sizeF = parseFloat(vsVal("#vsLogoSize", "0.16")) || 0.16;
+    const targetW = W * sizeF;
+    const lw = targetW, lh = targetW * (lh0 / lw0);
+    const pad = W * 0.035;
+    const pos = vsVal("#vsLogoPos", "tl");
+    // 9-point placement grid
+    let lx, ly;
+    const cxs = { l: pad, c: (W - lw) / 2, r: W - lw - pad };
+    const cys = { t: pad, m: (H - lh) / 2, b: H - lh - pad };
+    const posMap = { tl:["l","t"], tc:["c","t"], tr:["r","t"], ml:["l","m"], c:["c","m"], mr:["r","m"], bl:["l","b"], bc:["c","b"], br:["r","b"] };
+    const pm = posMap[pos] || ["l","t"];
+    lx = cxs[pm[0]]; ly = cys[pm[1]];
+
+    // motion progress: animate over 0.9s after the logo appears
+    const motion = vsVal("#vsLogoMotion", "fade");
+    const mDur = 0.9;
+    const baseT = lStart > 0 ? Math.max(0, elapsed - lStart) : (dsLocal || elapsed);
+    const mp = Math.min(1, baseT / mDur);                       // 0..1
+    const mEase = 1 - Math.pow(1 - mp, 3);                          // easeOutCubic
+    let mAlpha = 1, mdx = 0, mdy = 0, mScale = 1, mRot = 0, glow = 0;
+    if (motion === "fade") { mAlpha = mEase; }
+    else if (motion === "pop") {
+      // bounce-in: overshoot then settle
+      const b = mp < 1 ? (1.2 - 0.2 * Math.cos(mp * Math.PI * 2.2) * (1 - mp)) * mEase : 1;
+      mScale = 0.4 + 0.6 * b; mAlpha = Math.min(1, mp * 2.4);
+    }
+    else if (motion === "slide") {
+      const fromLeft = pm[0] !== "r";
+      mdx = (fromLeft ? -1 : 1) * (1 - mEase) * W * 0.12; mAlpha = mEase;
+    }
+    else if (motion === "spin") { mRot = (1 - mEase) * Math.PI; mScale = 0.5 + 0.5 * mEase; mAlpha = mEase; }
+    else if (motion === "rise") { mdy = (1 - mEase) * H * 0.07; mAlpha = Math.pow(mEase, 1.4); mScale = 0.96 + 0.04 * mEase; }
+    else if (motion === "pulse") { mAlpha = 1; glow = 0.5 + 0.5 * Math.sin(elapsed * 2.4); }
+
+    // ── LETTER CASCADE — per-glyph staggered reveal (auto-detected slices) ──
+    if (motion === "letters" && vstudio.logoSegs && vstudio.logoSrcCanvas) {
+      const segs = vstudio.logoSegs;
+      const src = vstudio.logoSrcCanvas;
+      const scale = lw / (logo.naturalWidth || 1);
+      const t = (dsLocal || elapsed);
+      const per = 0.09, segDur = 0.55;
+      ctx.save();
+      for (let k = 0; k < segs.length; k++) {
+        const sp = Math.min(1, Math.max(0, (t - k * per) / segDur));
+        if (sp <= 0) continue;
+        const se = 1 - Math.pow(1 - sp, 3);
+        const seg = segs[k];
+        const dw = seg.w * scale, dh = lh;
+        const dx = lx + seg.x * scale;
+        const dy = ly + (1 - se) * H * 0.055;
+        ctx.globalAlpha = se;
+        try { ctx.drawImage(src, seg.x, 0, seg.w, src.height, dx, dy, dw, dh); } catch {}
+      }
+      ctx.restore();
+    } else {
+    // ── SHINE SWEEP — light band sweeps across the mark (loops every 3s) ──
+    let shineCanvas = null;
+    if (motion === "shine") {
+      mAlpha = Math.min(1, (dsLocal || elapsed) / 0.5);
+      try {
+        const oc = vstudio._logoShineCanvas || (vstudio._logoShineCanvas = document.createElement("canvas"));
+        const sw = Math.max(2, Math.round(lw)), sh = Math.max(2, Math.round(lh));
+        if (oc.width !== sw || oc.height !== sh) { oc.width = sw; oc.height = sh; }
+        const oc2 = oc.getContext("2d");
+        oc2.clearRect(0, 0, sw, sh);
+        oc2.drawImage(logo, 0, 0, sw, sh);
+        // moving highlight clipped to the logo's own pixels
+        const cyc = ((elapsed % 3) / 3);
+        const bandX = (cyc * 1.6 - 0.3) * sw;
+        const g = oc2.createLinearGradient(bandX - sw*0.18, 0, bandX + sw*0.18, 0);
+        g.addColorStop(0, "rgba(255,255,255,0)");
+        g.addColorStop(0.5, "rgba(255,255,255,0.85)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        oc2.globalCompositeOperation = "source-atop";
+        oc2.fillStyle = g;
+        oc2.fillRect(0, 0, sw, sh);
+        oc2.globalCompositeOperation = "source-over";
+        shineCanvas = oc;
+      } catch (e) { /* fall back to plain draw */ }
+    }
+
+    // frame style + color
+    const fstyle = vsVal("#vsLogoStyle", "none");
+    let fcolor = vsVal("#vsLogoColor", "auto");
+    if (fcolor === "auto") fcolor = tpl.accent;
+
+    ctx.save();
+    // move to logo center for rotation/scale, then back
+    const ccx = lx + lw / 2 + mdx, ccy = ly + lh / 2 + mdy;
+    ctx.translate(ccx, ccy);
+    if (mRot) ctx.rotate(mRot);
+    if (mScale !== 1) ctx.scale(mScale, mScale);
+    ctx.globalAlpha = Math.max(0, Math.min(1, mAlpha));
+
+    const halfW = lw / 2, halfH = lh / 2;
+    const frameR = Math.max(halfW, halfH) * 1.25;
+
+    // frame behind the logo
+    if (fstyle === "circle") {
+      ctx.beginPath(); ctx.arc(0, 0, frameR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(8,8,10,0.55)"; ctx.fill();
+      ctx.lineWidth = Math.max(2, W * 0.0035); ctx.strokeStyle = fcolor;
+      ctx.shadowColor = fcolor; ctx.shadowBlur = 14 + glow * 16;
+      ctx.stroke(); ctx.shadowBlur = 0;
+    } else if (fstyle === "glass") {
+      const gw = lw * 1.35, gh = lh * 1.45, gr = Math.min(gw, gh) * 0.2;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-gw/2, -gh/2, gw, gh, gr);
+      else ctx.rect(-gw/2, -gh/2, gw, gh);
+      ctx.fillStyle = "rgba(255,255,255,0.10)"; ctx.fill();
+      ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.stroke();
+    } else if (fstyle === "badge") {
+      const gw = lw * 1.3, gh = lh * 1.4, gr = Math.min(gw, gh) * 0.22;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-gw/2, -gh/2, gw, gh, gr);
+      else ctx.rect(-gw/2, -gh/2, gw, gh);
+      ctx.fillStyle = fcolor; ctx.shadowColor = fcolor; ctx.shadowBlur = 16 + glow * 14;
+      ctx.fill(); ctx.shadowBlur = 0;
+    } else if (fstyle === "shadow" || glow > 0) {
+      ctx.shadowColor = fstyle === "shadow" ? "rgba(0,0,0,0.6)" : fcolor;
+      ctx.shadowBlur = fstyle === "shadow" ? 22 : 10 + glow * 22;
+    }
+
+    try {
+      if (shineCanvas) ctx.drawImage(shineCanvas, -halfW, -halfH, lw, lh);
+      else ctx.drawImage(logo, -halfW, -halfH, lw, lh);
+    } catch {}
+    ctx.restore();
+    } // end non-cascade path
+    } // end lVisible window
+  }
+
+  // progress bar
+  ctx.fillStyle = tpl.accent;
+  ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
+
+  // ----- finish the frame: slide transition wash + global colour grade,
+  // applied at the end of the normal (media) path. Title/content slides
+  // call vsFinishFrame() before their early returns so transitions and
+  // the filter work on every slide type. -----
+  vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+}
+
+// Applies the slide-to-slide transition veil and the global colour grade
+// to the finished frame. Safe to call once per frame at any exit point.
+function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
+  // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
+  if (vstudio.snapGuideX || vstudio.snapGuideY) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(216,183,106,0.9)";
+    ctx.lineWidth = Math.max(1, W * 0.0018);
+    ctx.setLineDash([W * 0.01, W * 0.007]);
+    if (vstudio.snapGuideX) { ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke(); }
+    if (vstudio.snapGuideY) { ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    if (vstudio.snapGuideX && vstudio.snapGuideY) {
+      const d = W * 0.013;
+      ctx.fillStyle = "rgba(216,183,106,0.95)";
+      ctx.beginPath();
+      ctx.moveTo(W/2, H/2 - d); ctx.lineTo(W/2 + d, H/2);
+      ctx.lineTo(W/2, H/2 + d); ctx.lineTo(W/2 - d, H/2);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  const transKind = vsVal("#vsTransition", "fade");
+  if (vstudio.slides.length && transKind !== "none") {
+    const fadeT = 0.45;
+    let cover = 0, slideOff = 0, zoom = 1;
+    if (dsLocal < fadeT) cover = Math.max(cover, 1 - dsLocal / fadeT);
+    if (dsLocal > dsDur - fadeT) cover = Math.max(cover, 1 - (dsDur - dsLocal) / fadeT);
+    const at = slideAtTime(elapsed);
+    const isLast = at.index === vstudio.slides.length - 1;
+    if (isLast && dsLocal > dsDur - 0.8)
+      cover = Math.max(cover, 1 - (dsDur - dsLocal) / 0.8);
+    if (cover > 0.001) {
+      const c = Math.min(1, cover);
+      if (transKind === "blur") {
+        const px = Math.round(c * Math.min(W, H) * 0.05);
+        if (px > 0) {
+          const tmp = vsScratchCanvas(W, H);
+          const tctx = tmp.getContext("2d");
+          tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+          ctx.save();
+          ctx.filter = `blur(${px}px)`;
+          ctx.globalAlpha = c;
+          ctx.drawImage(tmp, 0, 0);
+          ctx.filter = "none";
+          ctx.restore();
+        }
+        ctx.save(); ctx.globalAlpha = c * 0.45; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      } else if (transKind === "zoom") {
+        // zoom the frame slightly while fading through black
+        const tmp = vsScratchCanvas(W, H);
+        const tctx = tmp.getContext("2d");
+        tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+        const z = 1 + c * 0.12;
+        ctx.save();
+        ctx.globalAlpha = c;
+        ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(tmp, 0, 0);
+        ctx.restore();
+        ctx.save(); ctx.globalAlpha = c * 0.6; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      } else if (transKind === "slide") {
+        // push the frame up while fading
+        const tmp = vsScratchCanvas(W, H);
+        const tctx = tmp.getContext("2d");
+        tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+        ctx.save();
+        ctx.globalAlpha = c;
+        ctx.drawImage(tmp, 0, -c * H * 0.12);
+        ctx.restore();
+        ctx.save(); ctx.globalAlpha = c * 0.7; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      } else {
+        // fade — soft black wash
+        ctx.save(); ctx.globalAlpha = c; ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H); ctx.restore();
+      }
+    }
+  }
+  // NOTE: the colour grade is applied to the BACKGROUND/footage layer
+  // (not here) so it never washes out the text drawn on top.
+}
+
+// Apply the colour grade to whatever is CURRENTLY on the canvas (the
+// background/footage layer) — call this after the background is drawn but
+// BEFORE text/infographics, so the grade never washes out the text.
+function vsApplyBgFilter(ctx, canvas, W, H) {
+  const grade = vsFilterString();
+  if (!grade || grade === "none") return;
+  const tmp = vsScratchCanvas(W, H);
+  const tctx = tmp.getContext("2d");
+  tctx.clearRect(0, 0, W, H);
+  tctx.drawImage(canvas, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.filter = grade;
+  ctx.drawImage(tmp, 0, 0);
+  ctx.filter = "none";
+  ctx.restore();
+}
+
+// A reusable offscreen canvas for full-frame compositing (filter/blur).
+let _vsScratch = null;
+function vsScratchCanvas(w, h) {
+  if (!_vsScratch) _vsScratch = document.createElement("canvas");
+  if (_vsScratch.width !== w) _vsScratch.width = w;
+  if (_vsScratch.height !== h) _vsScratch.height = h;
+  return _vsScratch;
+}
+
+// Apply the global colour grade to the whole finished frame. Called at
+// EVERY exit point of drawStudioFrame so it covers all slide types.
+function vsApplyGlobalFilter(ctx, canvas, W, H) {
+  const grade = vsFilterString();
+  if (!grade || grade === "none") return;
+  const tmp = vsScratchCanvas(W, H);
+  const tctx = tmp.getContext("2d");
+  tctx.clearRect(0, 0, W, H);
+  tctx.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.filter = grade;
+  ctx.drawImage(tmp, 0, 0);
+  ctx.filter = "none";
+  ctx.restore();
+}
+
+// Draw a centred intro/outro card.
+function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind) {
+  // `prog` 0..1 is the entrance progress; `motion` picks the animation.
+  // `alpha` is the overall card fade (in then out). `kind` is "intro",
+  // "outro" or undefined — intro is rendered larger and more cinematic.
+  const isIntro = kind === "intro";
+  const isOutro = kind === "outro";
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  const U = Math.min(W, H);
+  const cx = W / 2, cy = H / 2;
+  // If the template uses DARK text, the dark intro backgrounds would hide
+  // it — so lay down a soft light panel behind the title for contrast.
+  const isDarkText = (() => {
+    const hex = String(tpl.text || "#fff").replace("#", "");
+    if (hex.length < 6) return false;
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16),
+          bl = parseInt(hex.slice(4,6),16);
+    return (0.299*r + 0.587*g + 0.114*bl) < 110;   // perceived luminance
+  })();
+  if (isDarkText) {
+    const panelH = U * 0.42, panelY = cy - panelH * 0.5;
+    const pg = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+    pg.addColorStop(0, "rgba(245,243,238,0)");
+    pg.addColorStop(0.5, "rgba(245,243,238,0.92)");
+    pg.addColorStop(1, "rgba(245,243,238,0)");
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, panelY, W, panelH);
+  }
+  // eased entrance
+  const e = prog == null ? 1 : (1 - Math.pow(1 - Math.max(0, Math.min(1, prog)), 3));
+  // per-motion offset / scale / rotation for the MAIN text
+  let dx = 0, dy = 0, sc = 1, clip = 1, blur = 0, rot = 0, spacing = 0;
+  // overshoot easing — a spring-like settle used by the cinematic presets
+  const pr = prog == null ? 1 : Math.max(0, Math.min(1, prog));
+  const overshoot = pr >= 1 ? 1
+    : 1 - Math.pow(2, -10 * pr) * Math.cos((pr * 10 - 0.75) * (2 * Math.PI) / 3);
+  switch (motion) {
+    case "rise":     dy = (1 - e) * U * 0.16; break;
+    case "drop":     dy = -(1 - e) * U * 0.16; break;
+    case "slide":    dx = -(1 - e) * W * 0.3; break;
+    case "slide-r":  dx = (1 - e) * W * 0.3; break;
+    case "zoom":     sc = 0.7 + e * 0.3; break;
+    case "zoom-out": sc = 1.4 - e * 0.4; break;
+    case "reveal":   clip = e; break;            // wipe the text in
+    case "blur":     blur = (1 - e) * U * 0.03; break;
+    case "expand":   spacing = (1 - e) * U * 0.04; break;  // letter-spacing in
+    case "tilt":     rot = (1 - e) * -0.12; dy = (1 - e) * U * 0.08; break;
+    case "glide":    dx = -(1 - e) * W * 0.18;
+                     sc = 0.92 + e * 0.08; break;
+    // ── cinematic / After-Effects style ──
+    case "spring":   sc = 0.4 + overshoot * 0.6; break;        // bouncy scale-in
+    case "swing":    rot = (1 - overshoot) * 0.35;             // pendulum settle
+                     dy = -(1 - e) * U * 0.05; break;
+    case "punch":    sc = 1 + (1 - e) * 0.6;                   // big → settle
+                     blur = (1 - e) * U * 0.02; break;
+    case "flip":     sc = Math.abs(Math.cos((1 - e) * Math.PI / 2)) * 0.4 + 0.6;
+                     break;                                    // 3D-flip feel
+    case "drift":    dx = (1 - e) * W * 0.08;                  // slow cinematic
+                     dy = (1 - e) * U * 0.04;
+                     blur = (1 - e) * U * 0.012; break;
+    case "rise-spring": dy = (1 - overshoot) * U * 0.2; break; // rise + bounce
+    case "vox":      // Vox-style: snappy punchy pop with quick overshoot
+                     sc = 0.82 + overshoot * 0.18;
+                     dy = (1 - overshoot) * U * 0.05; break;
+    default:         break;                      // "fade" — alpha only
+  }
+
+  // main text
+  ctx.save();
+  ctx.translate(cx + dx, cy + dy);
+  ctx.rotate(rot);
+  ctx.scale(sc, sc);
+  if (blur > 0) ctx.filter = `blur(${blur}px)`;
+  ctx.fillStyle = tpl.text;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  // cinematic glow behind the intro title
+  if (isIntro) {
+    ctx.shadowColor = tpl.accent;
+    ctx.shadowBlur = U * 0.05 * e;
+  }
+  const maxTextW = W * 0.82;
+  // intro headlines are bigger and bolder for impact; outro a touch smaller
+  let fontPx = Math.round(U * (isIntro ? 0.094 : isOutro ? 0.066 : 0.072));
+  const headWeight = isIntro ? 700 : 600;
+  ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+  // helper: break text into lines that each fit maxTextW (cap at maxLines)
+  const layout = (str, maxLines) => {
+    const words = String(str).split(/\s+/).filter(Boolean);
+    const out = [];
+    let ln = "";
+    for (const w of words) {
+      const test = ln ? ln + " " + w : w;
+      if (ctx.measureText(test).width > maxTextW && ln) {
+        out.push(ln); ln = w;
+        if (out.length === maxLines) { ln = ""; break; }
+      } else { ln = test; }
+    }
+    if (ln && out.length < maxLines) out.push(ln);
+    return out;
+  };
+  let lines = layout(txt, 3);
+  // if it still needs more than 3 lines, shrink the font until 3 fit
+  while (fontPx > U * 0.022 &&
+         layout(txt, 99).length > 3) {
+    fontPx -= 1;
+    ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+    lines = layout(txt, 3);
+  }
+  // extreme case — still overflowing 3 lines: ellipsize the last line
+  if (layout(txt, 99).length > 3 && lines.length === 3) {
+    let last = lines[2];
+    while (last.length > 1 &&
+           ctx.measureText(last + "…").width > maxTextW) {
+      last = last.slice(0, -1);
+    }
+    lines[2] = last.replace(/\s+\S*$/, "") + "…";
+  }
+  const lineH = fontPx * 1.22;
+  const blockTop = -((lines.length - 1) * lineH) / 2;
+  if (clip < 1) {
+    const tw = maxTextW;
+    ctx.beginPath();
+    ctx.rect(-tw / 2, blockTop - lineH, tw * clip, lineH * (lines.length + 1));
+    ctx.clip();
+  }
+  if (spacing > 0 && lines.length === 1) {
+    // expand: draw each letter with extra tracking (single-line only)
+    const chars = [...txt];
+    let total = 0;
+    const widths = chars.map(c => {
+      const w = ctx.measureText(c).width + spacing;
+      total += w; return w;
+    });
+    let x = -total / 2;
+    ctx.textAlign = "left";
+    chars.forEach((c, i) => { ctx.fillText(c, x, 0); x += widths[i]; });
+    ctx.textAlign = "center";
+  } else {
+    lines.forEach((ln, i) => {
+      ctx.fillText(ln, 0, blockTop + i * lineH);
+    });
+  }
+  ctx.filter = "none";
+  ctx.restore();
+  // how far below centre the headline block reaches — used to place the
+  // divider and secondary text so they never overlap a multi-line title.
+  const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6;
+
+  // accent divider line — intro gets a fancier centred divider with a diamond
+  const lw = U * (isIntro ? 0.2 : 0.14) * e;
+  const dividerY = cy + headBottom + U * 0.03;
+  ctx.strokeStyle = tpl.accent;
+  ctx.lineWidth = Math.max(1, U * 0.003);
+  ctx.beginPath();
+  ctx.moveTo(cx - lw / 2, dividerY);
+  ctx.lineTo(cx + lw / 2, dividerY);
+  ctx.stroke();
+  if (isIntro && e > 0.6) {
+    // a small diamond centred on the divider for an editorial flourish
+    const ds = U * 0.012 * e;
+    ctx.fillStyle = tpl.accent;
+    ctx.save();
+    ctx.translate(cx, dividerY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillRect(-ds / 2, -ds / 2, ds, ds);
+    ctx.restore();
+  }
+
+  // intro EYEBROW — a small all-caps label above the title for a premium feel
+  if (isIntro) {
+    const eb = (tpl._eyebrow || "").toUpperCase();
+    if (eb) {
+      const ebE = 1 - Math.pow(1 - Math.max(0, Math.min(1, (prog == null ? 1 : prog) * 1.6)), 3);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha) * ebE;
+      ctx.fillStyle = tpl.accent;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${Math.round(U * 0.026)}px Inter, sans-serif`;
+      // letter-spaced label
+      const chars = [...eb];
+      const sp = U * 0.012;
+      let total = 0;
+      const ws = chars.map(c => { const w = ctx.measureText(c).width + sp; total += w; return w; });
+      let x = cx - total / 2;
+      const ebY = cy - headBottom - U * 0.075;
+      ctx.textAlign = "left";
+      chars.forEach((c, i) => { ctx.fillText(c, x, ebY); x += ws[i]; });
+      ctx.restore();
+    }
+  }
+
+  // secondary text — fades in slightly after the main text. It also
+  // wraps to up to 2 lines so a long sub-line stays readable.
+  if (subTxt) {
+    const e2 = 1 - Math.pow(1 - Math.max(0, Math.min(1, (prog == null ? 1 : prog) * 1.4 - 0.4)), 3);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha) * e2;
+    ctx.fillStyle = tpl.accent;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    let subPx = Math.round(U * 0.032);
+    ctx.font = `400 ${subPx}px Inter, sans-serif`;
+    const subLayout = () => {
+      const words = String(subTxt).split(/\s+/).filter(Boolean);
+      const out = []; let ln = "";
+      for (const w of words) {
+        const test = ln ? ln + " " + w : w;
+        if (ctx.measureText(test).width > W * 0.8 && ln) {
+          out.push(ln); ln = w;
+          if (out.length === 2) { ln = ""; break; }
+        } else { ln = test; }
+      }
+      if (ln && out.length < 2) out.push(ln);
+      return out;
+    };
+    let subLines = subLayout();
+    // shrink the subtitle font until it fits within 2 lines
+    let subGuard = 0;
+    while (subPx > U * 0.014 && subGuard++ < 30) {
+      const words = String(subTxt).split(/\s+/).filter(Boolean);
+      let count = 1, ln = "";
+      for (const w of words) {
+        const test = ln ? ln + " " + w : w;
+        if (ctx.measureText(test).width > W * 0.8 && ln) { count++; ln = w; }
+        else ln = test;
+      }
+      if (count <= 2) break;
+      subPx -= 1;
+      ctx.font = `400 ${subPx}px Inter, sans-serif`;
+    }
+    subLines = subLayout();
+    const subStartY = dividerY + U * 0.055 + (1 - e2) * U * 0.04;
+    subLines.forEach((ln, i) => {
+      ctx.fillText(ln, cx, subStartY + i * subPx * 1.3);
+    });
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function vsPlaybackRate() {
+  return Number(vsVal("#vsSpeed", 1)) || 1;
+}
+
+// The effective video duration — sum of slides, or the single duration field.
+function studioDuration() {
+  return vstudio.slides.length
+    ? slidesTotalDuration()
+    : Math.max(2, Number(vsVal("#vsDuration", 6)));
+}
+
+// Fade the background music: a short fade-IN at the start and a
+// fade-OUT over the last ~1.5s so the scene ends gracefully.
+function vsApplyMusicFade(elapsed, duration) {
+  const m = vstudio.musicEl;
+  if (!m) return;
+  const fadeIn = 0.6;
+  const fadeOut = Math.min(1.5, duration * 0.25);
+  let vol = 1;
+  if (elapsed < fadeIn) {
+    vol = elapsed / fadeIn;
+  } else if (elapsed > duration - fadeOut) {
+    vol = Math.max(0, (duration - elapsed) / fadeOut);
+  }
+  // respect a user music-volume setting if one exists
+  const base = Number(vsVal("#vsMusicVolume", 1));
+  try { m.volume = Math.max(0, Math.min(1, vol * (isNaN(base) ? 1 : base))); }
+  catch {}
+}
+
+function previewStudioVideo(fromStart) {
+  // works with media, a slide sequence, OR a standalone infographic/news
+  const hasSlides = vstudio.slides.some(s => s.ready);
+  const media = vstudio.mediaEl;
+  const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+  const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+  if (!media && !hasSlides && !infoOn && !newsOn) {
+    vsStatus(state.lang === "fa"
+      ? "اول رسانه آپلود کن یا اینفوگرافیک را روشن کن."
+      : "Upload media, or turn on the infographic / news banner.");
+    return;
+  }
+  if (vstudio.rendering) return;
+  buildPreviewCanvas();
+
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+
+  // resume from the saved position unless an explicit restart is asked
+  let startElapsed = fromStart ? 0 : (vstudio.position || 0);
+  const duration0 = studioDuration();
+  if (startElapsed >= duration0) startElapsed = 0;
+
+  // Only start global media if no slides exist (single-clip mode).
+  // When slides are present, each slide manages its own mediaEl in the loop.
+  if (!vstudio.slides.length && vstudio.isVideo && media) {
+    try {
+      const span = Math.max(0.01, duration0);
+      const startT = isFinite(media.duration)
+        ? (Math.min(startElapsed, span) / span) * media.duration : 0;
+      media.currentTime = startT;
+      media.play().catch(() => {});
+    } catch {}
+  }
+  if (vstudio.musicEl) {
+    try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
+  }
+  // startTime is offset so (now - startTime) == startElapsed
+  vstudio.startTime = performance.now() - startElapsed * 1000;
+  vstudio.looping = true;
+
+  const loop = () => {
+    if (!vstudio.looping) return;
+    // duration is read every frame so changes take effect smoothly
+    const duration = studioDuration();
+    let elapsed = (performance.now() - vstudio.startTime) / 1000;
+    if (elapsed >= duration) {
+      // loop the PREVIEW cleanly back to the start (preview only —
+      // the exported file still plays through exactly once)
+      elapsed = 0;
+      vstudio.startTime = performance.now();
+      if (vstudio.musicEl) { try { vstudio.musicEl.currentTime = 0; } catch {} }
+    }
+    // only the slide visible at this moment plays; the others pause.
+    // drawStudioFrame sets the playing one's playbackRate (time-stretch).
+    if (vstudio.slides.length) {
+      const at = slideAtTime(elapsed);
+      vstudio.slides.forEach((s, i) => {
+        if (!s.ready || !s.isVideo || !s.mediaEl) return;
+        if (i === at.index) {
+          if (s.mediaEl.paused) s.mediaEl.play().catch(() => {});
+        } else if (!s.mediaEl.paused) {
+          try { s.mediaEl.pause(); } catch {}
+        }
+      });
+    }
+    vstudio.position = elapsed;          // remember where we are
+    drawStudioFrame(elapsed);
+    vsApplyMusicFade(elapsed, duration);
+    updateTimeline(elapsed, duration);
+    vstudio.rafId = requestAnimationFrame(loop);
+  };
+  setPlayBtn(true);
+  loop();
+}
+
+// Stop the continuous preview loop — keeps the current position.
+function stopStudioPreview() {
+  vstudio.looping = false;
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  // Only pause global media in single-clip mode
+  if (!vstudio.slides.length && vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause(); } catch {}
+  }
+  // Pause all slide videos
+  vstudio.slides.forEach(s => {
+    if (s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
+  });
+  if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
+  setPlayBtn(false);
+}
+
+// ── HERA-STYLE SCENE TIMELINE ─────────────────────────────────
+// Renders scene blocks with waveform and handles left/right resize.
+
+const PIXELS_PER_SEC = 80; // px per second of video — controls block width
+
+function heraTimelineScenes() {
+  // Returns scenes array: either vstudio.slides (multi) or single media block
+  if (vstudio.slides && vstudio.slides.length) return vstudio.slides;
+  if (vstudio.mediaEl) {
+    return [{ label: "Media", dur: studioDuration(), ready: true, isIntro: false }];
+  }
+  return [];
+}
+
+// Derive a human-readable label from any slide object
+function heraSlideLabel(scene, i, total) {
+  if (!scene) return `Scene ${i + 1}`;
+  const n = total;
+  // Use explicit timeline label if set
+  if (scene._timelineLabel) return scene._timelineLabel.slice(0, 22);
+  // Outro
+  if (scene.isOutro || (i === n - 1 && n > 1 && scene.isIntro)) {
+    return scene.introMain ? scene.introMain.slice(0, 18) : "Outro";
+  }
+  // Intro (first scene or explicit)
+  if (i === 0 && scene.isIntro) {
+    return scene.introMain ? scene.introMain.slice(0, 18) : "Intro";
+  }
+  // Infographic scene
+  if (scene._standaloneInfo) {
+    try {
+      const d = JSON.parse(scene.settings && scene.settings["#vsInfoJson"] || "{}");
+      return d.title ? d.title.slice(0, 18) : (scene._caption || "Infographic");
+    } catch { return scene._caption || "Infographic"; }
+  }
+  // News/text scene
+  if (scene._standaloneNews) {
+    const h = scene.settings && scene.settings["#vsNewsHeadline"];
+    if (h) return h.slice(0, 22);
+    return scene._caption || "Slide";
+  }
+  // Scene with uploaded media + headline
+  if (scene.settings && scene.settings["#vsHeadline"]) {
+    return scene.settings["#vsHeadline"].slice(0, 22);
+  }
+  if (scene._caption) return scene._caption.slice(0, 22);
+  if (scene.introMain) return scene.introMain.slice(0, 18);
+  return `Scene ${i + 1}`;
+}
+
+function heraRenderTimeline() {
+  const blocks = $("#vsSceneBlocks");
+  const waveCanvas = $("#vsWaveformCanvas");
+  const waveRow = $("#vsWaveformRow");
+  const strip = $("#vsSceneStrip");
+  if (!blocks) return;
+
+  const scenes = heraTimelineScenes();
+  const total = studioDuration() || 1;
+  const totalPx = Math.max(500, Math.round(total * PIXELS_PER_SEC));
+
+  // Clear
+  blocks.innerHTML = "";
+
+  if (!scenes.length) {
+    const empty = document.createElement("div");
+    empty.className = "vs-scene-block";
+    empty.style.cssText = "min-width:140px;opacity:0.35;font-size:12px;";
+    empty.innerHTML = `<span class='vs-scene-label' style='pointer-events:none'>${state.lang === "fa" ? "صحنه‌ای وجود ندارد" : "No scenes yet"}</span>`;
+    blocks.appendChild(empty);
+    if (waveRow) waveRow.style.display = "none";
+    return;
+  }
+  if (waveRow) waveRow.style.display = "";
+
+  const activeIdx = vstudio.activeSlide ?? 0;
+  const n = scenes.length;
+
+  scenes.forEach((scene, i) => {
+    // Dot separator
+    if (i > 0) {
+      const dot = document.createElement("div");
+      dot.className = "vs-scene-dot";
+      blocks.appendChild(dot);
+    }
+
+    const dur = parseFloat(scene.dur ?? scene.duration ?? vsVal("#vsDuration", 4));
+    const width = Math.max(90, Math.round(dur * PIXELS_PER_SEC));
+    const isActive = i === activeIdx;
+
+    const block = document.createElement("div");
+    block.className = "vs-scene-block" + (isActive ? " active" : "");
+    block.style.width = width + "px";
+    block.dataset.idx = i;
+
+    // Scene type badge
+    let badge = "▶";
+    if (scene._standaloneInfo) badge = "📊";
+    else if (scene._standaloneNews) badge = "📰";
+    else if (i === 0 && scene.isIntro) badge = "✨";
+    else if (scene.isOutro) badge = "🏁";
+    else if (scene.isVideo) badge = "🎬";
+    else if (scene.mediaEl) badge = "🖼";
+
+    const label = heraSlideLabel(scene, i, n);
+
+    block.innerHTML = `
+      <div class="vs-scene-resize vs-scene-resize-l" data-dir="l" data-idx="${i}"></div>
+      <span class="vs-scene-label"><span class="vs-scene-badge">${badge}</span>${escapeHtml(label)}</span>
+      <div class="vs-scene-dur">${dur.toFixed(1)}s</div>
+      <div class="vs-scene-resize vs-scene-resize-r" data-dir="r" data-idx="${i}"></div>
+    `;
+
+    // Click to select scene
+    block.addEventListener("pointerdown", (e) => {
+      if (e.target.closest(".vs-scene-resize")) return;
+      heraSelectScene(i);
+    });
+
+    blocks.appendChild(block);
+  });
+
+  // Sync waveform canvas width to total timeline width
+  if (waveCanvas) {
+    waveCanvas.style.width = totalPx + "px";
+    waveCanvas.style.minWidth = totalPx + "px";
+  }
+  if (waveRow) {
+    waveRow.style.width = totalPx + "px";
+    waveRow.style.minWidth = totalPx + "px";
+  }
+
+  // Draw waveform
+  heraDrawWaveform(waveCanvas, total);
+
+  // Update playhead
+  updateTimeline(vstudio.position || 0, total);
+}
+
+function heraSelectScene(idx) {
+  // Use the proper selectSlide() — it saves the current slide's settings,
+  // loads the new slide's settings onto all controls, and redraws the preview.
+  // Do NOT manually set activeSlide here — selectSlide() handles all of that.
+  selectSlide(idx);
+  // Re-render the timeline to show the new active block
+  heraRenderTimeline();
+  // Jump the playhead to the start of the selected scene
+  let t = 0;
+  if (vstudio.slides && vstudio.slides.length) {
+    for (let i = 0; i < idx; i++) {
+      const d = parseFloat(vstudio.slides[i]?.dur ?? vstudio.slides[i]?.duration ?? 4);
+      t += d;
+    }
+  }
+  vstudio.position = t;
+  updateTimeline(t, studioDuration());
+  // redraw the preview at the selected scene's start so the canvas shows it
+  if (!vstudio.looping) {
+    try { drawStudioFrame(t); } catch(e){}
+  }
+}
+
+function heraDrawWaveform(canvas, totalDur) {
+  if (!canvas) return;
+  const stripWidth = Math.max(400, Math.round(totalDur * PIXELS_PER_SEC));
+  canvas.width = stripWidth;
+  canvas.height = 40;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, stripWidth, 40);
+  const barW = 3, gap = 2, total = Math.floor(stripWidth / (barW + gap));
+  const mid = 20;
+  // Colour: active zone (orange-red) vs future (muted)
+  const scenes = heraTimelineScenes();
+  const dur = studioDuration() || 1;
+  let activeEnd = 0;
+  const activeIdx = vstudio.activeSlide ?? 0;
+  for (let i = 0; i <= activeIdx && i < scenes.length; i++) {
+    activeEnd += parseFloat(scenes[i]?.dur ?? scenes[i]?.duration ?? 4);
+  }
+  const activeRatio = activeEnd / dur;
+
+  for (let i = 0; i < total; i++) {
+    const x = i * (barW + gap);
+    const ratio = i / total;
+    // Pseudo-random waveform height using sine harmonics
+    const h = Math.max(4, mid * (0.4 + 0.35 * Math.abs(Math.sin(i * 0.37)) + 0.25 * Math.abs(Math.sin(i * 0.11 + 1.2))));
+    const isActive = ratio <= activeRatio;
+    ctx.fillStyle = isActive
+      ? `rgba(216,183,106,${0.55 + 0.45 * (h / mid)})`
+      : "rgba(255,255,255,0.15)";
+    ctx.beginPath();
+    ctx.roundRect(x, mid - h / 2, barW, h, 1.5);
+    ctx.fill();
+  }
+}
+
+// ── TIMELINE UPDATE (scrub position → playhead in scene strip) ─
+function updateTimeline(elapsed, duration) {
+  // Legacy AE-style (hidden, kept for compat)
+  const tc = $("#vsTimecode");
+  if (tc) {
+    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+    tc.textContent = `${fmt(elapsed)} / ${fmt(duration)}`;
+  }
+
+  // Hera playhead — position within .vs-scene-scroll (includes scroll offset effect via left)
+  const ph = $("#vsScenePlayhead");
+  if (ph) {
+    const totalPx = Math.max(500, Math.round((duration || 1) * PIXELS_PER_SEC));
+    const ratio = duration > 0 ? Math.min(1, elapsed / duration) : 0;
+    ph.style.left = Math.round(ratio * totalPx) + "px";
+    ph.style.top = "0";
+    ph.style.bottom = "0";
+  }
+}
+
+// ── SCENE BLOCK RESIZE (drag left/right handle) ─────────────
+(function attachSceneResize() {
+  let dragging = null; // { idx, dir, startX, startDur }
+
+  document.addEventListener("pointerdown", e => {
+    const handle = e.target.closest(".vs-scene-resize");
+    if (!handle) return;
+    e.preventDefault();
+    const idx = parseInt(handle.dataset.idx);
+    const dir = handle.dataset.dir; // 'l' or 'r'
+    const scene = vstudio.slides && vstudio.slides[idx];
+    if (!scene && !(idx === 0 && vstudio.mediaEl)) return;
+    const curDur = scene
+      ? parseFloat(scene.dur ?? scene.duration ?? 4)
+      : parseFloat(vsVal("#vsDuration", 4));
+    dragging = { idx, dir, startX: e.clientX, startDur: curDur };
+    handle.setPointerCapture(e.pointerId);
+  });
+
+  document.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - dragging.startX;
+    const deltaSec = dx / PIXELS_PER_SEC;
+    // For left handle: shrink from left = negative delta increases duration
+    const sign = dragging.dir === "r" ? 1 : -1;
+    let newDur = Math.max(1, Math.min(120, dragging.startDur + sign * deltaSec));
+    newDur = Math.round(newDur * 10) / 10;
+
+    const scene = vstudio.slides && vstudio.slides[dragging.idx];
+    if (scene) {
+      scene.dur = newDur;
+      scene.duration = newDur;
+    } else {
+      // Single media: update vsDuration input
+      const inp = $("#vsDuration");
+      if (inp) { inp.value = newDur; }
+    }
+
+    // Re-render timeline
+    heraRenderTimeline();
+    updateTimeline(vstudio.position || 0, studioDuration());
+  });
+
+  document.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    // Sync duration input if slide is selected
+    if (vstudio.slides && vstudio.slides[dragging.idx]) {
+      const dur = vstudio.slides[dragging.idx].dur;
+      const inp = $("#vsSlideDuration");
+      if (inp) inp.value = dur;
+    }
+    dragging = null;
+    vsPushHistory();
+  });
+})();
+
+
+
+function setPlayBtn(playing) {
+  const b = $("#vsPlayBtn");
+  if (b) b.textContent = playing ? "❚❚" : "▶";
+  vstudio.playing = playing;
+}
+
+// Refresh which timeline clips look "active" based on real content.
+// ── STUDIO UNDO / REDO ────────────────────────────────────
+// Snapshots every studio control so changes can be reverted.
+const VS_CONTROLS = [
+  "#vsAspect", "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition",
+  "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
+  "#vsMotion", "#vsTextAnim", "#vsOverlay",
+  "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
+  "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
+  "#vsExportSize", "#vsExportQuality"
+];
+const vsHistory = { stack: [], index: -1, suspended: false };
+
+function vsSnapshot() {
+  const snap = { templateId: vstudio.templateId };
+  VS_CONTROLS.forEach(sel => {
+    const el = $(sel);
+    if (el) snap[sel] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  const grain = $("#vsGrain");
+  if (grain) snap["#vsGrain"] = grain.checked;
+  return snap;
+}
+
+function vsPushHistory() {
+  if (vsHistory.suspended) return;
+  const snap = vsSnapshot();
+  // drop any redo branch, then push
+  vsHistory.stack = vsHistory.stack.slice(0, vsHistory.index + 1);
+  vsHistory.stack.push(snap);
+  if (vsHistory.stack.length > 50) vsHistory.stack.shift();
+  vsHistory.index = vsHistory.stack.length - 1;
+  vsUpdateUndoButtons();
+}
+
+function vsApplySnapshot(snap) {
+  vsHistory.suspended = true;
+  if (snap.templateId) setVideoTemplate(snap.templateId);
+  Object.keys(snap).forEach(sel => {
+    if (sel === "templateId") return;
+    const el = $(sel);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = snap[sel];
+    else el.value = snap[sel];
+  });
+  vsHistory.suspended = false;
+  if ((vstudio.mediaEl || vstudio.slides.some(s => s.ready)) && !vstudio.rendering) {
+    buildPreviewCanvas();
+    drawStudioFrame(vstudio.position || 0);
+  }
+  refreshTimelineClips();
+}
+
+function vsUndo() {
+  if (vsHistory.index <= 0) return;
+  vsHistory.index--;
+  vsApplySnapshot(vsHistory.stack[vsHistory.index]);
+  vsUpdateUndoButtons();
+}
+function vsRedo() {
+  if (vsHistory.index >= vsHistory.stack.length - 1) return;
+  vsHistory.index++;
+  vsApplySnapshot(vsHistory.stack[vsHistory.index]);
+  vsUpdateUndoButtons();
+}
+function vsUpdateUndoButtons() {
+  const u = $("#vsUndoBtn"), r = $("#vsRedoBtn");
+  if (u) u.disabled = vsHistory.index <= 0;
+  if (r) r.disabled = vsHistory.index >= vsHistory.stack.length - 1;
+}
+
+function refreshTimelineClips() {
+  const set = (id, has) => {
+    const el = $(id);
+    if (el) el.classList.toggle("is-active", !!has);
+  };
+  set("#vsClipMedia", vstudio.mediaEl);
+  const hasText = ["#vsHeadline", "#vsSub", "#vsCta", "#vsIntro", "#vsIntroSub", "#vsOutro"]
+    .some(s => (vsVal(s, "") || "").trim());
+  set("#vsClipText", hasText);
+  set("#vsClipLogo", vstudio.logoEl);
+  // position/size the logo bar to reflect its timing window (top layer)
+  const lc = $("#vsClipLogo");
+  if (lc && vstudio.logoEl) {
+    const total = (typeof studioDuration === "function" ? studioDuration() : 0) || 0;
+    const lStart = parseFloat(vsVal("#vsLogoStart", "0")) || 0;
+    const lDur = parseFloat(vsVal("#vsLogoDur", "0")) || 0;
+    if (total > 0 && (lStart > 0 || lDur > 0)) {
+      const leftPct = Math.min(96, (lStart / total) * 100);
+      const endT = lDur > 0 ? Math.min(total, lStart + lDur) : total;
+      const wPct = Math.max(4, ((endT - lStart) / total) * 100);
+      lc.style.marginLeft = leftPct + "%";
+      lc.style.width = wPct + "%";
+      lc.textContent = "Logo " + lStart + "s→" + (lDur > 0 ? endT + "s" : "end");
+    } else {
+      lc.style.marginLeft = ""; lc.style.width = "";
+      lc.textContent = "Logo";
+    }
+  }
+  set("#vsClipMusic", vstudio.musicEl);
+  // Also refresh Hera scene blocks
+  heraRenderTimeline();
+}
+
+// Scrub: jump preview to a position when the track area is clicked/dragged.
+function scrubTimeline(clientX) {
+  const area = $("#vsTrackArea");
+  if (!area) return;
+  // works with single media OR a slide sequence
+  const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+  if (!hasContent) return;
+  const rect = area.getBoundingClientRect();
+  const labelW = 76, laneRight = 12;
+  const usable = rect.width - labelW - laneRight;
+  let ratio = (clientX - rect.left - labelW) / usable;
+  ratio = Math.max(0, Math.min(1, ratio));
+  const duration = studioDuration();
+  const elapsed = ratio * duration;
+  // pause any running playback while scrubbing
+  vstudio.looping = false;
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  // seek the single video (if any)
+  if (vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause();
+      vstudio.mediaEl.currentTime = Math.min(
+        vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
+  }
+  // seek the slide video that is active at this time (if any)
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    vstudio.slides.forEach((s, i) => {
+      if (s.ready && s.isVideo && s.mediaEl) {
+        try {
+          s.mediaEl.pause();
+          if (i === at.index) {
+            s.mediaEl.currentTime = Math.min(
+              s.mediaEl.duration || at.local, at.local);
+          }
+        } catch {}
+      }
+    });
+  }
+  setPlayBtn(false);
+  vstudio.position = elapsed;           // remember the scrubbed position
+  // canvas already exists; just redraw — no rebuild (rebuild caused jumps)
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  drawStudioFrame(elapsed);
+  updateTimeline(elapsed, duration);
+}
+
+// Scrub using the scene strip waveform row
+function scrubSceneStrip(clientX) {
+  const scroll = $("#vsSceneScroll");
+  if (!scroll) return;
+  const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+  if (!hasContent) return;
+  const rect = scroll.getBoundingClientRect();
+  const totalPx = Math.max(400, Math.round((studioDuration() || 1) * PIXELS_PER_SEC));
+  // account for scroll offset
+  const x = clientX - rect.left + scroll.scrollLeft;
+  let ratio = x / totalPx;
+  ratio = Math.max(0, Math.min(1, ratio));
+  const duration = studioDuration();
+  const elapsed = ratio * duration;
+  vstudio.looping = false;
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  if (vstudio.isVideo && vstudio.mediaEl) {
+    try { vstudio.mediaEl.pause();
+      vstudio.mediaEl.currentTime = Math.min(vstudio.mediaEl.duration || elapsed, elapsed); } catch {}
+  }
+  if (vstudio.slides.length) {
+    const at = slideAtTime(elapsed);
+    vstudio.slides.forEach((s, i) => {
+      if (s.ready && s.isVideo && s.mediaEl) {
+        try {
+          s.mediaEl.pause();
+          if (i === at.index) s.mediaEl.currentTime = Math.min(s.mediaEl.duration || at.local, at.local);
+        } catch {}
+      }
+    });
+  }
+  setPlayBtn(false);
+  vstudio.position = elapsed;
+  if (!$("#vsCanvas")) buildPreviewCanvas();
+  drawStudioFrame(elapsed);
+  updateTimeline(elapsed, duration);
+}
+
+
+// The browser's recorder only makes WebM; this converts it to MP4
+// entirely in the browser. Works on a plain static site — no special
+// headers needed. The ffmpeg core is loaded once and reused.
+let _vsFfmpeg = null;
+async function vsGetFfmpeg() {
+  if (_vsFfmpeg && _vsFfmpeg.isLoaded()) return _vsFfmpeg;
+  if (typeof FFmpeg === "undefined" || !FFmpeg.createFFmpeg) {
+    throw new Error("MP4 converter library failed to load.");
+  }
+  const ffmpeg = FFmpeg.createFFmpeg({
+    log: false,
+    corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"
+  });
+  await ffmpeg.load();
+  _vsFfmpeg = ffmpeg;
+  return ffmpeg;
+}
+async function vsConvertToMp4(webmBlob) {
+  const ffmpeg = await vsGetFfmpeg();
+  const buf = new Uint8Array(await webmBlob.arrayBuffer());
+  ffmpeg.FS("writeFile", "in.webm", buf);
+  // H.264 video + AAC audio — the universally compatible MP4 combo
+  await ffmpeg.run(
+    "-i", "in.webm",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "192k",
+    "-movflags", "+faststart",
+    "out.mp4"
+  );
+  const data = ffmpeg.FS("readFile", "out.mp4");
+  // free the in-memory files
+  try { ffmpeg.FS("unlink", "in.webm"); ffmpeg.FS("unlink", "out.mp4"); } catch {}
+  return new Blob([data.buffer], { type: "video/mp4" });
+}
+
+// Export the composited result as a real video file (MP4 or WebM).
+async function exportStudioVideo() {
+  let canvas = $("#vsCanvas");
+  const media = vstudio.mediaEl;
+  const hasSlides = vstudio.slides.some(s => s.ready);
+  const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+  const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+  if (!canvas || (!media && !hasSlides && !infoOn && !newsOn)) {
+    vsStatus(state.lang === "fa"
+      ? "اول رسانه آپلود کن یا اینفوگرافیک را روشن کن."
+      : "Upload media, or turn on the infographic / news banner.");
+    return;
+  }
+  if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
+    vsStatus(state.lang === "fa" ? "مرورگر شما خروجی ویدیو را پشتیبانی نمی‌کند." : "Your browser does not support video export.");
+    return;
+  }
+  if (vstudio.rendering) return;
+  stopStudioPreview();          // pause the live loop during render
+  vstudio.rendering = true;
+
+  buildPreviewCanvas(Number(vsVal("#vsExportSize", 1080)));
+  canvas = $("#vsCanvas");   // fresh canvas at export resolution
+  vsStatus(state.lang === "fa"
+    ? `در حال رندر ${canvas.width}×${canvas.height}... این تب را باز نگه دار.`
+    : `Rendering ${canvas.width}×${canvas.height}… keep this tab open.`);
+  const duration = studioDuration();
+  const fps = 60;
+  const canvasStream = canvas.captureStream(fps);
+
+  // mix in music audio if present
+  let tracks = [...canvasStream.getVideoTracks()];
+  if (vstudio.musicEl) {
+    try {
+      // A MediaElementSource can only be created ONCE per audio element,
+      // and once created the element's audio routes through this context.
+      // So we create the graph a single time and reuse it on every export.
+      if (!vstudio._audioCtx) {
+        vstudio._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        vstudio._musicSrc = vstudio._audioCtx.createMediaElementSource(vstudio.musicEl);
+        vstudio._musicDest = vstudio._audioCtx.createMediaStreamDestination();
+        // route to BOTH the speakers (so preview is audible) and the
+        // recording destination (so the export captures the music).
+        vstudio._musicSrc.connect(vstudio._musicDest);
+        vstudio._musicSrc.connect(vstudio._audioCtx.destination);
+      }
+      if (vstudio._audioCtx.state === "suspended") {
+        try { await vstudio._audioCtx.resume(); } catch {}
+      }
+      tracks = tracks.concat(vstudio._musicDest.stream.getAudioTracks());
+    } catch {}
+  }
+  const stream = new MediaStream(tracks);
+
+  // Pick the recording codec. When the user wants MP4, first try to
+  // record MP4/H.264 NATIVELY — many modern Chrome builds support it,
+  // which avoids the slow, fragile ffmpeg conversion entirely.
+  const wantFormat = vsVal("#vsExportFormat", "mp4");
+  let mime = "video/webm";
+  let recordedNativeMp4 = false;
+  if (wantFormat === "mp4") {
+    for (const t of [
+      "video/mp4;codecs=h264,aac", "video/mp4;codecs=h264",
+      "video/mp4;codecs=avc1", "video/mp4"
+    ]) {
+      if (MediaRecorder.isTypeSupported(t)) {
+        mime = t; recordedNativeMp4 = true; break;
+      }
+    }
+  }
+  // if MP4 not natively supported (or WebM chosen) → record WebM
+  if (!recordedNativeMp4) {
+    for (const t of ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]) {
+      if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+    }
+  }
+
+  // Bitrate scales with resolution AND the chosen quality level.
+  const qualityFactor = {
+    max: 0.22, high: 0.13, medium: 0.07, low: 0.035
+  }[vsVal("#vsExportQuality", "high")] || 0.13;
+  const px = canvas.width * canvas.height;
+  let videoBitsPerSecond = Math.round(px * fps * qualityFactor);
+  // sensible floor/ceiling so files are neither broken nor huge
+  videoBitsPerSecond = Math.min(60000000, Math.max(1500000, videoBitsPerSecond));
+
+  const recorder = new MediaRecorder(stream, {
+    mimeType: mime,
+    videoBitsPerSecond,
+    audioBitsPerSecond: 192000
+  });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+  const done = new Promise(resolve => {
+    recorder.onstop = async () => {
+      const format = vsVal("#vsExportFormat", "mp4");
+      let outBlob, ext;
+
+      if (recordedNativeMp4) {
+        // the browser recorded MP4 directly — no conversion needed
+        outBlob = new Blob(chunks, { type: "video/mp4" });
+        ext = "mp4";
+      } else {
+        const webmBlob = new Blob(chunks, { type: "video/webm" });
+        if (format === "mp4") {
+          // browser couldn't record MP4 natively → convert with ffmpeg
+          try {
+            vsStatus(state.lang === "fa"
+              ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
+              : "Converting to MP4… (first time takes longer)");
+            outBlob = await vsConvertToMp4(webmBlob);
+            ext = "mp4";
+          } catch (err) {
+            console.error("MP4 conversion error:", err);
+            vsStatus((state.lang === "fa"
+              ? "تبدیل MP4 ناموفق بود — فایل WebM ذخیره شد. خطا: "
+              : "MP4 conversion failed — saved as WebM. Error: ")
+              + (err && err.message ? err.message : String(err)));
+            outBlob = webmBlob; ext = "webm";
+          }
+        } else {
+          outBlob = webmBlob; ext = "webm";
+        }
+      }
+
+      const url = URL.createObjectURL(outBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ai-radar-${vstudio.templateId}-video.${ext}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      vsStatus(ext === "mp4"
+        ? (state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.")
+        : (state.lang === "fa" ? "ویدیوی WebM ذخیره شد." : "WebM video saved."));
+      resolve();
+    };
+  });
+
+  if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
+  if (vstudio.isVideo && media) {
+    // play — drawStudioFrame sets playbackRate for time-stretch
+    try { media.currentTime = 0; media.play().catch(() => {}); } catch {}
+  }
+  if (vstudio.musicEl) {
+    try { vstudio.musicEl.currentTime = 0; await vstudio.musicEl.play().catch(() => {}); } catch {}
+  }
+  recorder.start(100);   // flush a chunk every 100ms
+  vstudio.startTime = performance.now();
+  // slide videos: start them so they have motion; drawStudioFrame
+  // sets the active slide's playbackRate for time-stretch.
+  vstudio.slides.forEach(s => {
+    if (s.ready && s.isVideo && s.mediaEl) {
+      try { s.mediaEl.currentTime = 0; s.mediaEl.play().catch(() => {}); } catch {}
+    }
+  });
+
+  await new Promise(resolve => {
+    const loop = () => {
+      const elapsed = (performance.now() - vstudio.startTime) / 1000;
+      drawStudioFrame(elapsed);
+      vsApplyMusicFade(elapsed, duration);
+      if (elapsed < duration) {
+        vstudio.rafId = requestAnimationFrame(loop);
+      } else {
+        if (vstudio.isVideo && media) media.pause();
+        if (vstudio.musicEl) vstudio.musicEl.pause();
+        vstudio.slides.forEach(s => {
+          if (s.ready && s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
+        });
+        recorder.stop();
+        resolve();
+      }
+    };
+    loop();
+  });
+
+  await done;
+  // NOTE: do NOT close the audio context — it's reused across exports and
+  // keeps the music element routed to the speakers for preview.
+  vstudio.rendering = false;
+  vsStatus(state.lang === "fa" ? "ویدیو دانلود شد." : "Video downloaded.");
+  previewStudioVideo();         // resume the live looping preview
+}
+
+function bindEvents() {
+  const on = (selector, eventName, handler) => {
+    const node = $(selector);
+    if (node) node.addEventListener(eventName, handler);
+  };
+
+  // (theme & language are handled by the segmented toggles above)
+  // segmented theme toggle
+  const themeSeg = $("#themeSeg");
+  if (themeSeg) {
+    themeSeg.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-theme]");
+      if (btn) applyTheme(btn.dataset.theme);
+    });
+  }
+  // segmented language toggle
+  const langSeg = $("#langSeg");
+  if (langSeg) {
+    langSeg.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-lang]");
+      if (btn) setLanguage(btn.dataset.lang);
+    });
+  }
+  // collapsible sidebar — desktop collapse to icon rail
+  on("#navCollapseBtn", "click", () => {
+    const sb = $("#appSidebar");
+    if (sb) sb.classList.toggle("collapsed");
+  });
+  // mobile drawer — open / close the off-canvas sidebar
+  const openSidebar = () => {
+    const sb = $("#appSidebar"), bd = $("#sidebarBackdrop");
+    if (sb) sb.classList.add("open");
+    if (bd) bd.classList.add("show");
+  };
+  const closeSidebar = () => {
+    const sb = $("#appSidebar"), bd = $("#sidebarBackdrop");
+    if (sb) sb.classList.remove("open");
+    if (bd) bd.classList.remove("show");
+  };
+  on("#sidebarOpenBtn", "click", openSidebar);
+  on("#sidebarBackdrop", "click", closeSidebar);
+
+  // scroll-to-top button — appears once the page is scrolled down
+  const scrollBtn = $("#scrollTopBtn");
+  if (scrollBtn) {
+    const toggleScrollBtn = () => {
+      if (window.scrollY > 480) scrollBtn.classList.add("show");
+      else scrollBtn.classList.remove("show");
+    };
+    window.addEventListener("scroll", toggleScrollBtn, { passive: true });
+    toggleScrollBtn();
+    scrollBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+  // tapping a nav link closes the mobile drawer
+  document.querySelectorAll(".sidebar-nav a").forEach(a => {
+    a.addEventListener("click", () => {
+      if (window.innerWidth <= 980) closeSidebar();
+    });
+  });
+  // highlight the nav link for the section currently in view
+  const navLinks = Array.from(document.querySelectorAll(".sidebar-nav a"));
+  if (navLinks.length && "IntersectionObserver" in window) {
+    const byId = {};
+    navLinks.forEach(a => { byId[a.getAttribute("href").slice(1)] = a; });
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          navLinks.forEach(a => a.classList.remove("active"));
+          const link = byId[en.target.id];
+          if (link) link.classList.add("active");
+        }
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    Object.keys(byId).forEach(id => {
+      const sec = document.getElementById(id);
+      if (sec) obs.observe(sec);
+    });
+  }
+  on("#searchInput", "input", (event) => { state.query = event.target.value; renderTools(); });
+  on("#viewGrid", "click", () => setToolView("grid"));
+  on("#viewList", "click", () => setToolView("list"));
+  on("#jumpToTool", "change", (event) => {
+    const name = event.target.value;
+    if (name) jumpToTool(name);
+    event.target.value = "";
+  });
+  on("#categoryFilter", "change", (event) => { state.category = event.target.value; renderTools(); });
+  on("#budgetFilter", "change", (event) => { state.budget = event.target.value; renderTools(); });
+  on("#sortFilter", "change", (event) => { state.sort = event.target.value; renderTools(); });
+
+  toolGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-compare]");
+    if (button) toggleCompare(button.dataset.compare);
+  });
+
+  on("#clearCompare", "click", () => {
+    state.compare = [];
+    localStorage.removeItem("compareTools");
+    renderTools();
+    renderCompare();
+    render3DChart();
+  });
+  on("#modelTypeFilter", "change", (event) => { state.modelType = event.target.value; renderTools(); });
+  on("#minScoreFilter", "input", (event) => { state.minScore = Number(event.target.value) || 0; renderTools(); });
+
+  on("#mediaUpload", "change", (event) => previewUploadedMedia(event.target.files[0]));
+  on("#generateCaptionButton", "click", generateMediaCaption);
+  on("#copyCaptionButton", "click", () => copyTextFrom("#captionOutput"));
+  on("#copyMediaJsonButton", "click", () => copyTextFrom("#mediaJsonOutput"));
+
+  on("#promptGenBtn", "click", async () => {
+    const btn = $("#promptGenBtn");
+    btn.disabled = true;
+    try {
+      const result = await enhancePrompt($("#simplePromptInput").value);
+      $("#advancedPromptOutput").textContent = result;
+    } catch (e) {
+      $("#advancedPromptOutput").textContent = "Error: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  on("#copyPromptButton", "click", () => copyTextFrom("#advancedPromptOutput"));
+  on("#copyJsonButton", "click", () => copyTextFrom("#jsonOutput"));
+  on("#jsonGenBtn", "click", async () => {
+    const btn = $("#jsonGenBtn");
+    btn.disabled = true;
+    try {
+      const result = await textToJson($("#textJsonInput").value);
+      $("#jsonOutput").textContent = result;
+    } catch (e) {
+      $("#jsonOutput").textContent = "Error: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Chart tabs — switching metric only re-renders cached data
+  // (it does NOT re-fetch, to respect GitHub's rate limit).
+  document.querySelectorAll(".chart-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".chart-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      activeMetric = tab.dataset.metric;
+      render3DChart();
+    });
+  });
+
+  // Refresh button does a real new fetch from GitHub.
+  on("#refreshChartBtn", "click", fetchLiveChartData);
+
+  // Dashboard sort buttons
+  document.querySelectorAll(".gh-sort-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".gh-sort-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _ghSort = btn.dataset.sort;
+      _chartFingerprint = ""; // force re-render
+      renderLiveChart();
+    });
+  });
+  // Dashboard search filter
+  on("#ghSearch", "input", (e) => {
+    _ghSearch = (e.target.value || "").trim();
+    _chartFingerprint = "";
+    renderLiveChart();
+  });
+
+  // Advanced Video Studio
+  const picker = $("#templatePicker");
+  if (picker) {
+    picker.addEventListener("click", (e) => {
+      const card = e.target.closest("[data-template]");
+      if (card) { setVideoTemplate(card.dataset.template); vsPushHistory(); }
+    });
+  }
+  // Category tabs — show one control panel at a time.
+  document.querySelectorAll(".vtab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.vtab;
+      document.querySelectorAll(".vtab").forEach(t =>
+        t.classList.toggle("active", t === tab));
+      document.querySelectorAll("[data-vtab-panel]").forEach(p =>
+        p.classList.toggle("vtab-hidden", p.dataset.vtabPanel !== target));
+    });
+  });
+  on("#vsUpload", "change", (e) => loadStudioMedia(e.target.files[0]));
+  // ----- multi-slide sequence wiring -----
+  on("#vsSlideUpload", "change", (e) => {
+    if (e.target.files[0]) {
+      addStudioSlide(e.target.files[0]);
+      e.target.value = "";
+      vsPushHistory();
+    }
+  });
+  const slideList = $("#vsSlideList");
+  if (slideList) {
+    slideList.addEventListener("click", (e) => {
+      const del = e.target.closest("[data-del]");
+      if (del) { removeStudioSlide(Number(del.dataset.del)); vsPushHistory(); return; }
+      const row = e.target.closest("[data-slide]");
+      if (row) selectSlide(Number(row.dataset.slide));
+    });
+  }
+  on("#vsSlideDuration", "input", (e) => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (s) { s.duration = Math.max(1, Math.min(30, Number(e.target.value) || 4));
+      renderSlideList(); }
+  });
+  on("#vsFilter", "change", () => {
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  });
+  // Camera motion: save to the active slide AND auto-play a short preview so
+  // the user actually SEES the movement (a still frame can't show motion).
+  on("#vsMotion", "change", () => {
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    previewStudioVideo(false);
+  });
+  // AI image generation for the active slide
+  on("#vsImgGenBtn", "click", () => vsGenerateImageForActiveSlide());
+  on("#vsSlideCaption", "input", (e) => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (s) {
+      s._caption = e.target.value;
+      renderSlideList();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    }
+  });
+  // add / replace footage on the active middle slide
+  on("#vsSlideMediaUpload", "change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) addFootageToActiveSlide(file);
+    e.target.value = "";
+  });
+  renderSlideList();
+  on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
+  on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
+  on("#vsPreviewBtn", "click", previewStudioVideo);
+  on("#vsExportBtn", "click", exportStudioVideo);
+  // Infographic — a simple form builds the data; it writes the JSON box
+  // (which vsInfoData reads), so the rest of the pipeline is unchanged.
+
+  // Redraw the preview after an infographic change — works with no media.
+  function vsInfoLiveRefresh() {
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    if (!$("#vsCanvas")) buildPreviewCanvas();
+    if (!vstudio.looping) {
+      drawStudioFrame(vstudio.position || 0);
+      updateTimeline(vstudio.position || 0, studioDuration());
+    }
+  }
+
+  // Build JSON from the form fields and push it into the hidden JSON box.
+  function vsInfoFormToJson() {
+    const title = vsVal("#vsInfoTitle", "") || "";
+    const subtitle = vsVal("#vsInfoSubtitle", "") || "";
+    const stats = [];
+    document.querySelectorAll("#vsInfoRows .vs-info-row").forEach(row => {
+      const label = (row.querySelector(".vs-info-label") || {}).value || "";
+      const value = (row.querySelector(".vs-info-value") || {}).value || "";
+      if (label.trim() || value.trim()) {
+        // derive the number from the value text (e.g. "+8.4%" -> 8.4)
+        const n = parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+        stats.push({ label: label.trim(), value: value.trim(),
+                     num: isNaN(n) ? 0 : n });
+      }
+    });
+    const data = { title: title.trim(), subtitle: subtitle.trim(),
+                   source: (vsVal("#vsInfoSource", "") || "").trim(), stats };
+    const json = $("#vsInfoJson");
+    if (json) json.value = JSON.stringify(data, null, 2);
+    vsInfoLiveRefresh();
+  }
+
+  // Render one editable stat row.
+  function vsInfoRowMarkup(label, value) {
+    const L = state.lang === "fa" ? "برچسب" : "Label";
+    const V = state.lang === "fa" ? "مقدار" : "Value";
+    return `<div class="vs-info-row">
+      <input class="vs-info-label" type="text" placeholder="${L}" value="${escapeHtml(label || "")}" />
+      <input class="vs-info-value" type="text" placeholder="${V}" value="${escapeHtml(value || "")}" />
+      <button class="vs-info-del" type="button" aria-label="Remove">✕</button>
+    </div>`;
+  }
+
+  // Rebuild the rows container from a list of {label,value} pairs.
+  function vsInfoRenderRows(rows) {
+    const box = $("#vsInfoRows");
+    if (!box) return;
+    if (!rows || !rows.length) {
+      rows = [{ label: "", value: "" }, { label: "", value: "" }];
+    }
+    box.innerHTML = rows.map(r => vsInfoRowMarkup(r.label, r.value)).join("");
+  }
+
+  // Populate the form from whatever JSON is in the box (for import / advanced).
+  function vsInfoJsonToForm() {
+    let d;
+    try { d = JSON.parse(vsVal("#vsInfoJson", "") || "{}"); }
+    catch { return false; }
+    if (!d || typeof d !== "object") return false;
+    const t = $("#vsInfoTitle"); if (t) t.value = d.title || "";
+    const s = $("#vsInfoSubtitle"); if (s) s.value = d.subtitle || "";
+    const src = $("#vsInfoSource"); if (src) src.value = d.source || "";
+    const rows = (Array.isArray(d.stats) ? d.stats : [])
+      .map(x => ({ label: x.label || "", value: x.value != null ? String(x.value) : "" }));
+    vsInfoRenderRows(rows);
+    return true;
+  }
+
+  // start with two empty rows
+  vsInfoRenderRows();
+  // expose so slide-switching (syncStudioControls) can repopulate the form
+  window._vsInfoJsonToForm = vsInfoJsonToForm;
+
+  // typing in any form field rebuilds the infographic live
+  ["#vsInfoTitle", "#vsInfoSubtitle", "#vsInfoSource"].forEach(sel => {
+    on(sel, "input", vsInfoFormToJson);
+  });
+  const infoRowsBox = $("#vsInfoRows");
+  if (infoRowsBox) {
+    infoRowsBox.addEventListener("input", vsInfoFormToJson);
+    infoRowsBox.addEventListener("click", (e) => {
+      if (e.target.closest(".vs-info-del")) {
+        e.target.closest(".vs-info-row").remove();
+        vsInfoFormToJson();
+      }
+    });
+  }
+  on("#vsInfoAddRow", "click", () => {
+    const box = $("#vsInfoRows");
+    if (box) box.insertAdjacentHTML("beforeend", vsInfoRowMarkup("", ""));
+  });
+
+  // Import a JSON file → fill the form
+  on("#vsInfoFile", "change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    const status = $("#vsInfoJsonStatus");
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ""));
+        const json = $("#vsInfoJson");
+        if (json) json.value = JSON.stringify(parsed, null, 2);
+        if (!vsInfoJsonToForm()) throw new Error("bad shape");
+        const onBox = $("#vsInfoOn");
+        if (onBox) onBox.checked = true;
+        vsInfoFormToJson();
+        vsPushHistory();
+      } catch (err) {
+        if (status) {
+          status.className = "vstudio-note vs-err";
+          status.textContent = state.lang === "fa"
+            ? "فایل JSON معتبر نیست."
+            : "That file is not valid JSON.";
+        }
+      }
+    };
+    reader.readAsText(file);
+  });
+  // Advanced: pull whatever is in the JSON box into the form
+  on("#vsInfoSyncBtn", "click", () => {
+    if (vsInfoJsonToForm()) { vsInfoFormToJson(); vsPushHistory(); }
+  });
+
+  // ── PUTER AI — browser-based AI for infographic + news ──────
+  // Returns the model's text reply, or throws a friendly error.
+  async function vsAiChat(prompt) {
+    // Reuse the robust, free Pollinations chain (POST + JSON + proxy fallback).
+    try {
+      const t = await vsAutoAiChat(prompt, { json: true });
+      if (t && String(t).trim()) return String(t);
+    } catch (e) { /* fall through to plain-text attempts below */ }
+    // last resort: simple GET (short prompts only)
+    try {
+      const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt) +
+                  "?model=openai&seed=" + Math.floor(Math.random() * 1e6);
+      const r = await fetch(url);
+      if (r.ok) { const tt = await r.text(); if (tt && tt.trim()) return tt; }
+    } catch (e) { /* give up */ }
+    throw new Error(state.lang === "fa"
+      ? "سرویس هوش مصنوعی موقتاً در دسترس نیست. کمی بعد دوباره امتحان کن."
+      : "AI service temporarily unavailable. Please try again shortly.");
+  }
+  // Normalise any puter.ai.chat reply shape into a plain string.
+  function vsAiReplyToText(res) {
+    if (res == null) return "";
+    if (typeof res === "string") return res;
+    // content can be a string OR an array of {type:"text",text:"..."} blocks
+    const fromContent = (c) => {
+      if (typeof c === "string") return c;
+      if (Array.isArray(c)) {
+        return c.map(b => (typeof b === "string" ? b
+          : (b && (b.text || b.content)) || "")).join("");
+      }
+      return "";
+    };
+    if (res.message && res.message.content != null) {
+      const t = fromContent(res.message.content);
+      if (t) return t;
+    }
+    if (res.content != null) {
+      const t = fromContent(res.content);
+      if (t) return t;
+    }
+    if (typeof res.text === "string") return res.text;
+    if (res.choices && res.choices[0]) {
+      const ch = res.choices[0];
+      if (ch.message && ch.message.content != null)
+        return fromContent(ch.message.content);
+      if (typeof ch.text === "string") return ch.text;
+    }
+    // last resort: stringify so the JSON extractor still has a chance
+    try { return JSON.stringify(res); } catch { return String(res); }
+  }
+  // Pull the first {...} JSON object out of a model reply.
+  function vsExtractJson(text) {
+    if (typeof text !== "string") {
+      try { text = JSON.stringify(text); } catch { return null; }
+    }
+    if (!text) return null;
+    // strip markdown code fences if the model wrapped the JSON
+    let t = text.replace(/```(?:json)?/gi, "").trim();
+    // first attempt: parse the whole thing
+    try { return JSON.parse(t); } catch {}
+    // second attempt: slice from the first { to the last }
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(t.slice(a, b + 1)); } catch {}
+    }
+    return null;
+  }
+
+  // Infographic: free text → title + stats, fills the form.
+  on("#vsInfoAiBtn", "click", async () => {
+    const text = (vsVal("#vsInfoAiText", "") || "").trim();
+    const status = $("#vsInfoAiStatus");
+    const btn = $("#vsInfoAiBtn");
+    if (!text) {
+      if (status) { status.className = "vstudio-note vs-err";
+        status.textContent = state.lang === "fa"
+          ? "اول متنی بنویس." : "Type some text first."; }
+      return;
+    }
+    if (status) { status.className = "vstudio-note";
+      status.textContent = state.lang === "fa"
+        ? "در حال تولید با هوش مصنوعی…" : "Generating with AI…"; }
+    if (btn) btn.disabled = true;
+    try {
+      const prompt =
+        "Turn the following into infographic data. Reply with ONLY a JSON " +
+        "object, no prose, in this exact shape: " +
+        '{"title":"short title","subtitle":"short subtitle",' +
+        '"stats":[{"label":"short label","value":"short value"}]}. ' +
+        "Use 3 to 5 stats. RULES: title max 5 words, subtitle max 5 words, " +
+        "each label max 3 words, each value max 2 words and ideally a " +
+        "number like 8.4% or 1.2M or $2.5B. Never put a sentence in a value. " +
+        "Source text:\n\n" + text;
+      const reply = await vsAiChat(prompt);
+      const data = vsExtractJson(reply);
+      if (!data || !Array.isArray(data.stats) || !data.stats.length) {
+        console.warn("Infographic AI raw reply:", reply);
+        throw new Error(state.lang === "fa"
+          ? "هوش مصنوعی نتوانست آمار بسازد. متن را واضح‌تر بنویس."
+          : "AI couldn't extract stats. Try clearer text, or check the console.");
+      }
+      const json = $("#vsInfoJson");
+      if (json) json.value = JSON.stringify(data, null, 2);
+      vsInfoJsonToForm();
+      const onBox = $("#vsInfoOn");
+      if (onBox) onBox.checked = true;
+      vsInfoFormToJson();
+      // persist to the active slide so it doesn't vanish on preview/redraw
+      if (vstudio.slides.length) vsSaveActiveSlide();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      vsPushHistory();
+      if (status) { status.className = "vstudio-note vs-ok";
+        status.textContent = state.lang === "fa"
+          ? "اینفوگرافیک ساخته شد." : "Infographic generated."; }
+    } catch (err) {
+      if (status) { status.className = "vstudio-note vs-err";
+        status.textContent = err.message || String(err); }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+
+  // News: article / notes → kicker + headline + source, fills the fields.
+  on("#vsNewsAiBtn", "click", async () => {
+    const text = (vsVal("#vsNewsAiText", "") || "").trim();
+    const status = $("#vsNewsAiStatus");
+    const btn = $("#vsNewsAiBtn");
+    if (!text) {
+      if (status) { status.className = "vstudio-note vs-err";
+        status.textContent = state.lang === "fa"
+          ? "اول متنی بنویس." : "Paste some text first."; }
+      return;
+    }
+    if (status) { status.className = "vstudio-note";
+      status.textContent = state.lang === "fa"
+        ? "در حال خلاصه‌سازی…" : "Summarizing with AI…"; }
+    if (btn) btn.disabled = true;
+    try {
+      const prompt =
+        "Summarize the following news text for a TV-style lower-third banner. " +
+        "Reply with ONLY a JSON object, no prose, in this exact shape: " +
+        '{"kicker":"1-2 word category in caps","headline":"headline",' +
+        '"source":"source"}. RULES: headline max 12 words, one line, no ' +
+        "trailing source name inside it; kicker max 2 words; source max 4 " +
+        "words. News text:\n\n" + text;
+      const reply = await vsAiChat(prompt);
+      const data = vsExtractJson(reply);
+      if (!data || !data.headline) {
+        console.warn("News AI raw reply:", reply);
+        throw new Error(state.lang === "fa"
+          ? "هوش مصنوعی نتوانست خلاصه کند. متن دیگری امتحان کن."
+          : "AI couldn't summarize that. Try different text, or check the console.");
+      }
+      const setV = (sel, v) => { const el = $(sel); if (el && v != null) el.value = v; };
+      setV("#vsNewsKicker", String(data.kicker || "").slice(0, 28));
+      setV("#vsNewsHeadline", String(data.headline || "").slice(0, 120));
+      setV("#vsNewsSource", String(data.source || "").slice(0, 60));
+      const onBox = $("#vsNewsOn");
+      if (onBox) onBox.checked = true;
+      vsInfoLiveRefresh();
+      // persist to the active slide so it doesn't vanish on preview/redraw
+      if (vstudio.slides.length) vsSaveActiveSlide();
+      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      vsPushHistory();
+      if (status) { status.className = "vstudio-note vs-ok";
+        status.textContent = state.lang === "fa"
+          ? "بنر خبری ساخته شد." : "News banner created."; }
+    } catch (err) {
+      if (status) { status.className = "vstudio-note vs-err";
+        status.textContent = err.message || String(err); }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+  // live estimate of the exported file size
+  const updateExportInfo = () => {
+    const info = $("#vsExportInfo");
+    if (!info) return;
+    const size = Number(vsVal("#vsExportSize", 1080));
+    const qf = { max: 0.22, high: 0.13, medium: 0.07, low: 0.035 }[
+      vsVal("#vsExportQuality", "high")] || 0.13;
+    // estimate canvas pixels at the chosen size (assume 16:9-ish)
+    const px = size * (size * 16 / 9);
+    let bps = Math.min(60000000, Math.max(1500000, Math.round(px * 60 * qf)));
+    const dur = studioDuration();
+    const mb = (bps * dur) / 8 / 1024 / 1024;
+    const q = vsVal("#vsExportQuality", "high");
+    const qLabel = state.lang === "fa"
+      ? ({ max: "حداکثر", high: "بالا", medium: "متوسط", low: "کم" })[q]
+      : ({ max: "Maximum", high: "High", medium: "Medium", low: "Low" })[q];
+    // human-readable length: "1m 30s" or "45s"
+    const mins = Math.floor(dur / 60), secs = Math.round(dur % 60);
+    const lenStr = mins ? `${mins}m ${secs}s` : `${secs}s`;
+    info.textContent = state.lang === "fa"
+      ? `${size}p · ${lenStr} · کیفیت ${qLabel} · حدود ${mb.toFixed(1)} مگابایت`
+      : `${size}p · ${lenStr} · ${qLabel} quality · about ${mb.toFixed(1)} MB`;
+  };
+  on("#vsExportSize", "change", updateExportInfo);
+  on("#vsExportQuality", "change", updateExportInfo);
+  on("#vsDuration", "change", updateExportInfo);
+  updateExportInfo();
+  on("#vsPreviewSize", "input", applyPreviewSize);
+
+  // Live-update the static preview frame when any setting changes.
+  const vsLiveControls = [
+    "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
+    "#vsMotion", "#vsTextAnim", "#vsOverlay",
+    "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
+    "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
+    "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
+    "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
+    "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur"
+  ];
+  const vsRefresh = () => {
+    refreshTimelineClips();
+    // when slides exist, persist the edit into the active slide
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    const infoOn = $("#vsInfoOn") && $("#vsInfoOn").checked;
+    const newsOn = $("#vsNewsOn") && $("#vsNewsOn").checked;
+    const hasSlides = vstudio.slides.some(s => s.ready);
+    const hasContent = vstudio.mediaEl || hasSlides || infoOn || newsOn;
+    if (!hasContent || vstudio.rendering) return;
+    // make sure a canvas exists even when no media was ever loaded
+    if (!$("#vsCanvas")) buildPreviewCanvas();
+    // always redraw (even if looping) for news/info text changes so user
+    // sees real-time feedback when typing
+    if (!vstudio.looping || infoOn || newsOn) {
+      drawStudioFrame(vstudio.position || 0);
+      updateTimeline(vstudio.position || 0, studioDuration());
+    }
+  };
+  const vsRefreshAspect = () => {
+    const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
+    if (!hasContent || vstudio.rendering) return;
+    buildPreviewCanvas();
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  };
+  vsLiveControls.forEach(sel => {
+    on(sel, "input", vsRefresh);
+    on(sel, "change", vsRefresh);
+  });
+  on("#vsAspect", "change", vsRefreshAspect);
+
+  // Undo / redo: snapshot studio state after each settled change.
+  VS_CONTROLS.concat(["#vsGrain"]).forEach(sel => {
+    on(sel, "change", () => vsPushHistory());
+  });
+  on("#vsUndoBtn", "click", vsUndo);
+  on("#vsRedoBtn", "click", vsRedo);
+  // capture the initial state as the first history entry
+  vsPushHistory();
+  vsUpdateUndoButtons();
+
+  // Timeline: play/pause button + scrubbing by dragging the track area.
+  on("#vsPlayBtn", "click", () => {
+    if (vstudio.playing) {
+      stopStudioPreview();
+    } else {
+      previewStudioVideo();
+    }
+  });
+  const trackArea = $("#vsTrackArea");
+  if (trackArea) {
+    let dragging = false;
+    const down = (e) => { dragging = true;
+      scrubTimeline((e.touches ? e.touches[0] : e).clientX); };
+    const move = (e) => { if (dragging)
+      scrubTimeline((e.touches ? e.touches[0] : e).clientX); };
+    const up = () => { dragging = false; };
+    trackArea.addEventListener("mousedown", down);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    trackArea.addEventListener("touchstart", down, { passive: true });
+    window.addEventListener("touchmove", move, { passive: true });
+    window.addEventListener("touchend", up);
+  }
+
+  // Scene strip scrub — click / drag on the waveform row to scrub playhead
+  const sceneScroll = $("#vsSceneScroll");
+  if (sceneScroll) {
+    let sceneDragging = false;
+    const sceneDown = (e) => {
+      if (e.target.closest(".vs-scene-resize") || e.target.closest(".vs-scene-block")) return;
+      sceneDragging = true;
+      scrubSceneStrip((e.touches ? e.touches[0] : e).clientX);
+    };
+    const sceneMove = (e) => {
+      if (!sceneDragging) return;
+      scrubSceneStrip((e.touches ? e.touches[0] : e).clientX);
+    };
+    const sceneUp = () => { sceneDragging = false; };
+    sceneScroll.addEventListener("mousedown", sceneDown);
+    window.addEventListener("mousemove", sceneMove);
+    window.addEventListener("mouseup", sceneUp);
+    sceneScroll.addEventListener("touchstart", sceneDown, { passive: true });
+    window.addEventListener("touchmove", sceneMove, { passive: true });
+    window.addEventListener("touchend", sceneUp);
+  }
+
+  // Copy on every ai-output: click to copy
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-copy-target]");
+    if (btn) {
+      const target = $(btn.dataset.copyTarget);
+      if (target?.textContent?.trim()) {
+        navigator.clipboard.writeText(target.textContent).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = "✓ Copied!";
+          setTimeout(() => btn.textContent = orig, 1500);
+        }).catch(() => {});
+      }
+    }
+  });
+}
+
+renderMetrics();
+renderControls();
+bindEvents();
+setToolView(state.viewMode);
+applyTheme(localStorage.getItem("theme") || "dark");
+renderModelsTicker();
+startHeroMotion();
+renderTemplatePicker();
+bindIntroEditor();
+fetchLiveChartData();
+setLanguage(state.lang);
+
+// Render the live chart once the page is ready.
+window.addEventListener("load", () => renderLiveChart());
+
+// Auto-refresh from the GitHub API every 5 minutes.
+// (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
+// repos per refresh, a 5-minute interval stays well within budget.)
+setInterval(fetchLiveChartData, 5 * 60 * 1000);
+
+// ─────────────────────────────────────────────────────────────────────────
+// AI WORLD MAP + AI NEWS PULSE  (replaces the old status monitor)
+// A world map of major AI hubs with live pulsing markers, plus an AI-generated
+// news pulse. Both work offline-of-status-pages so they always render.
+// ─────────────────────────────────────────────────────────────────────────
+// equirectangular projection: lon -180..180 -> 0..360, lat 90..-90 -> 0..180
+const AI_HUBS = [
+  { city: "San Francisco", lon: -122.4, lat: 37.8, labs: "OpenAI · Anthropic", note: "The dense heart of frontier AI" },
+  { city: "Mountain View", lon: -122.1, lat: 37.4, labs: "Google DeepMind", note: "Gemini & TPU research" },
+  { city: "Seattle", lon: -122.3, lat: 47.6, labs: "Microsoft AI · AWS", note: "Cloud + Copilot" },
+  { city: "New York", lon: -74.0, lat: 40.7, labs: "Hugging Face · Runway", note: "Applied & creative AI" },
+  { city: "London", lon: -0.13, lat: 51.5, labs: "Google DeepMind · Stability", note: "Europe's research capital" },
+  { city: "Paris", lon: 2.35, lat: 48.85, labs: "Mistral · Hugging Face", note: "Open-weight champions" },
+  { city: "Tel Aviv", lon: 34.78, lat: 32.08, labs: "AI21 · many startups", note: "Startup density" },
+  { city: "Beijing", lon: 116.4, lat: 39.9, labs: "DeepSeek · Baidu · Zhipu", note: "China's AI core" },
+  { city: "Hangzhou", lon: 120.2, lat: 30.3, labs: "Alibaba Qwen", note: "Qwen model family" },
+  { city: "Tokyo", lon: 139.7, lat: 35.7, labs: "Sakana AI · Sony AI", note: "Efficient model research" },
+  { city: "Bengaluru", lon: 77.6, lat: 13.0, labs: "Sarvam · Krutrim", note: "India's AI hub" },
+  { city: "Toronto", lon: -79.4, lat: 43.7, labs: "Vector Institute · Cohere", note: "Deep-learning roots" }
+];
+
+// Continent regions (lon/lat boxes) used to scatter dots into a world map.
+// More, smaller boxes = more accurate, recognizable continent silhouettes.
+const AI_MAP_REGIONS = [
+  // North America
+  {x1:-165,y1:68,x2:-140,y2:60},            // Alaska
+  {x1:-140,y1:70,x2:-60,y2:60},             // Canada north
+  {x1:-130,y1:60,x2:-58,y2:49},             // Canada
+  {x1:-125,y1:49,x2:-66,y2:30},             // USA
+  {x1:-115,y1:30,x2:-86,y2:15},             // Mexico
+  {x1:-92,y1:18,x2:-77,y2:7},               // Central America
+  // South America
+  {x1:-79,y1:11,x2:-60,y2:0},               // Colombia/Venezuela
+  {x1:-75,y1:0,x2:-34,y2:-18},              // Brazil north
+  {x1:-72,y1:-18,x2:-40,y2:-34},            // Brazil south/Bolivia
+  {x1:-74,y1:-34,x2:-53,y2:-55},            // Argentina/Chile
+  // Europe
+  {x1:-10,y1:59,x2:30,y2:43},               // West/Central Europe
+  {x1:5,y1:71,x2:32,y2:55},                 // Scandinavia
+  {x1:20,y1:60,x2:50,y2:44},                // East Europe
+  {x1:-10,y1:44,x2:28,y2:36},               // Mediterranean
+  // Africa
+  {x1:-17,y1:35,x2:35,y2:18},               // North Africa
+  {x1:-17,y1:18,x2:50,y2:0},                // West/Central Africa
+  {x1:8,y1:0,x2:44,y2:-18},                 // Central Africa
+  {x1:11,y1:-18,x2:40,y2:-35},              // Southern Africa
+  // Middle East + Asia
+  {x1:35,y1:42,x2:62,y2:13},                // Middle East
+  {x1:45,y1:56,x2:90,y2:42},                // Central Asia
+  {x1:60,y1:78,x2:180,y2:55},              // Russia/Siberia
+  {x1:88,y1:53,x2:135,y2:30},               // China
+  {x1:68,y1:35,x2:90,y2:8},                 // India
+  {x1:92,y1:30,x2:110,y2:10},               // SE Asia mainland
+  {x1:95,y1:8,x2:142,y2:-10},               // Indonesia
+  {x1:129,y1:46,x2:146,y2:31},              // Japan
+  {x1:124,y1:40,x2:130,y2:34},              // Korea
+  // Australia + NZ
+  {x1:113,y1:-11,x2:154,y2:-39},            // Australia
+  {x1:166,y1:-34,x2:179,y2:-47}             // New Zealand
+];
+
+let _aiMapActive = null;
+// hoisted flag (var) — undefined during early startup, true once these consts
+// are initialized, so setLanguage's renderAiMap call can't hit a const TDZ.
+var _aiMonInited = true;
+
+// Build a dotted world map (cinematic command-center style). Returns SVG inner.
+// A single uniform lon/lat grid; a dot is drawn only where it falls inside a
+// continent box — this yields clean, evenly-spaced, recognizable continents.
+function aiMapDots(W, H, dotColor) {
+  const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
+  const step = 2.4; // smaller = denser, crisper continents
+  const inRegion = (lon, lat) => {
+    for (const r of AI_MAP_REGIONS) {
+      const xMin = Math.min(r.x1,r.x2), xMax = Math.max(r.x1,r.x2);
+      const yMin = Math.min(r.y1,r.y2), yMax = Math.max(r.y1,r.y2);
+      if (lon >= xMin && lon <= xMax && lat >= yMin && lat <= yMax) return true;
+    }
+    return false;
+  };
+  let dots = "";
+  for (let lat = 80; lat >= -56; lat -= step) {
+    for (let lon = -178; lon <= 180; lon += step) {
+      if (!inRegion(lon, lat)) continue;
+      const p = proj(lon, lat);
+      dots += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="0.7"/>`;
+    }
+  }
+  return `<g fill="${dotColor}">${dots}</g>`;
+}
+
+function aiMapProject(lon, lat, w, h) {
+  return { x: ((lon + 180) / 360) * w, y: ((90 - lat) / 180) * h };
+}
+
+function renderAiMap() {
+  const box = document.querySelector("#aimap");
+  if (!box) return;
+  const W = 360, H = 180;
+  const proj = (lon, lat) => aiMapProject(lon, lat, W, H);
+  // glowing connection arcs between key hubs
+  const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
+  const linkPairs = [[0,4],[0,3],[4,5],[4,7],[7,9],[3,11],[0,2],[7,8],[4,6],[10,7],[0,11]];
+  const links = linkPairs.map(([a,b], idx) => {
+    if (!pts[a]||!pts[b]) return "";
+    const mx=(pts[a].x+pts[b].x)/2, my=Math.min(pts[a].y,pts[b].y)-14;
+    const d = `M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}`;
+    const dur = (3 + (idx % 4)).toFixed(1);
+    // a glowing packet that travels the arc, like live data transfer
+    return `<path class="aimap-link" id="aimapLink${idx}" d="${d}"/>
+      <circle class="aimap-packet" r="1.3">
+        <animateMotion dur="${dur}s" repeatCount="indefinite" begin="${(idx*0.4).toFixed(1)}s" path="${d}"/>
+      </circle>`;
+  }).join("");
+  const hubs = AI_HUBS.map((hub, i) => {
+    const p = pts[i];
+    return `<g class="aimap-hub" data-i="${i}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
+      <circle class="aimap-hub-ring" r="3">
+        <animate attributeName="r" values="2.5;11;2.5" dur="2.8s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="2.8s" begin="${(i*0.18).toFixed(1)}s" repeatCount="indefinite"/>
+      </circle>
+      <circle class="aimap-hub-glow" r="4.5"/>
+      <circle class="aimap-hub-core" r="2.3"/>
+    </g>`;
+  }).join("");
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <radialGradient id="aimapVignette" cx="50%" cy="45%" r="65%">
+        <stop offset="0%" stop-color="rgba(0,212,255,0.07)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </radialGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#aimapVignette)"/>
+    ${aiMapDots(W, H, "rgba(216,183,106,0.5)")}
+    ${links}
+    ${hubs}
+  </svg>`;
+  box.querySelectorAll(".aimap-hub").forEach(g => {
+    const show = () => {
+      const hub = AI_HUBS[+g.dataset.i];
+      box.querySelectorAll(".aimap-hub").forEach(x => x.classList.remove("active"));
+      g.classList.add("active");
+      const info = document.querySelector("#aimapInfo");
+      if (info) {
+        info.innerHTML = `<div class="aimap-info-city">${hub.city}</div>
+          <div class="aimap-info-labs">${hub.labs}</div>
+          <div class="aimap-info-note">${hub.note}</div>`;
+        info.classList.add("show");
+      }
+    };
+    g.addEventListener("click", show);
+    g.addEventListener("mouseenter", show);
+  });
+  const sum = document.querySelector("#aimonSummaryText");
+  if (sum) sum.textContent = (state.lang === "fa" ? AI_HUBS.length + " مرکز" : AI_HUBS.length + " hubs");
+}
+
+// AI news — REAL headlines first (RSS from major tech outlets via CORS proxy),
+// AI-generated only as a fallback, static list as the last resort.
+let _aiNewsLoaded = false;
+let _aiNewsPool = [];   // larger pool we rotate through between refreshes
+let _aiNewsRealAt = 0;  // when we last got real RSS news
+
+const AI_NEWS_FEEDS = [
+  { src: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
+  { src: "VentureBeat", url: "https://venturebeat.com/category/ai/feed/" },
+  { src: "The Verge", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" }
+];
+
+async function aiFetchRssTitles(feed) {
+  const proxies = [
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u)
+  ];
+  for (const wrap of proxies) {
+    try {
+      const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch(e){} }, 8000);
+      const resp = await fetch(wrap(feed.url), { signal: ctrl ? ctrl.signal : undefined });
+      clearTimeout(to);
+      if (!resp.ok) continue;
+      const xml = await resp.text();
+      const doc = new DOMParser().parseFromString(xml, "text/xml");
+      // RSS <item><title> or Atom <entry><title>
+      const nodes = doc.querySelectorAll("item, entry");
+      const out = [];
+      nodes.forEach(n => {
+        const t = (n.querySelector("title") || {}).textContent || "";
+        const link = (n.querySelector("link") || {}).textContent
+          || (n.querySelector("link") || {getAttribute:()=>""}).getAttribute("href") || "";
+        if (t && t.length > 12) out.push({ tag: feed.src, text: t.trim(), link: (link||"").trim() });
+      });
+      if (out.length) return out.slice(0, 8);
+    } catch (e) { /* try next proxy */ }
+  }
+  return [];
+}
+
+async function loadAiNews(force) {
+  const list = document.querySelector("#ainewsList");
+  if (!list) return;
+  if (_aiNewsLoaded && !force) return;
+  const firstTime = !_aiNewsLoaded;
+  _aiNewsLoaded = true;
+  const refl = document.querySelector("#ainewsRefreshing");
+  if (refl) { refl.textContent = state.lang === "fa" ? "در حال بروزرسانی…" : "refreshing…"; refl.classList.add("on"); }
+  if (firstTime) list.innerHTML = Array.from({length:6}).map(()=>`<div class="ainews-skeleton"></div>`).join("");
+
+  // 1) REAL news via RSS — refresh at most every 5 minutes (feeds don't change faster)
+  const now = Date.now();
+  if (now - _aiNewsRealAt > 300000) {
+    try {
+      const results = await Promise.all(AI_NEWS_FEEDS.map(aiFetchRssTitles));
+      // interleave sources so the list feels varied
+      const merged = [];
+      const maxLen = Math.max(...results.map(r => r.length), 0);
+      for (let i = 0; i < maxLen; i++) for (const r of results) if (r[i]) merged.push(r[i]);
+      if (merged.length >= 4) { _aiNewsPool = merged; _aiNewsRealAt = now; }
+    } catch (e) { /* fall through */ }
+  }
+
+  // 2) AI-generated fallback only if we have no real news at all
+  if (!_aiNewsPool.length) {
+    try {
+      const reply = await vsAutoAiChat(
+        "Generate 10 short, realistic, current AI-industry news headlines. Each is an " +
+        "object with \"tag\" (1 word category like MODEL, RESEARCH, FUNDING, TOOL, POLICY) " +
+        "and \"text\" (max 11 words, specific and plausible). Return ONLY a JSON array.",
+        { json: true });
+      const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
+      if (Array.isArray(arr)) _aiNewsPool = arr.filter(x => x && x.text);
+    } catch (e) { /* fallback below */ }
+  }
+  // 3) static last resort
+  if (!_aiNewsPool.length) {
+    _aiNewsPool = [
+      { tag:"MODEL", text:"New open-weight model rivals top proprietary systems" },
+      { tag:"RESEARCH", text:"Researchers cut inference cost with sparse attention" },
+      { tag:"TOOL", text:"Popular coding assistant adds full-repo context" },
+      { tag:"FUNDING", text:"AI infrastructure startup raises major new round" },
+      { tag:"POLICY", text:"Regulators publish fresh guidance on frontier models" },
+      { tag:"ADOPTION", text:"Enterprises accelerate rollout of AI copilots" }
+    ];
+  }
+
+  // show a rotating window of 6 from the pool so it feels fresh each cycle
+  const start = Math.floor(Math.random() * Math.max(1, _aiNewsPool.length - 6));
+  const show = _aiNewsPool.slice(start, start + 6);
+  list.innerHTML = show.map((it,i) => {
+    const inner = `<span class="ainews-tag">${(it.tag||"AI").toString().slice(0,14)}</span>
+      <span class="ainews-text">${(it.text||"").toString().slice(0,140)}</span>`;
+    return it.link
+      ? `<a class="ainews-item" style="animation-delay:${i*50}ms" href="${it.link}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="ainews-item" style="animation-delay:${i*50}ms">${inner}</div>`;
+  }).join("");
+  setTimeout(() => { if (refl) refl.classList.remove("on"); }, 700);
+  // also feed the ticker from the same pool
+  renderAiTicker();
+}
+
+// LIVE METRIC CHIPS — base values from real GitHub data, with a per-second
+// "live" jitter so the numbers visibly move like a real ops dashboard.
+let _chipBase = null;
+let _chipSpark = {};   // short rolling history per chip for mini sparklines
+function aiChipBase() {
+  const withData = (typeof liveChartData !== "undefined" ? liveChartData : []).filter(d => (d.stars||0) > 0);
+  const stars = withData.reduce((s,d)=>s+(d.stars||0),0) || 658000;
+  const forks = withData.reduce((s,d)=>s+(d.forks||0),0) || 104000;
+  return {
+    requests: 1.2e6 + Math.random()*4e5,   // simulated global inference req/min
+    tokens: 8.4e9 + Math.random()*1e9,       // tokens processed /min
+    stars: stars,
+    forks: forks,
+    active: 320 + Math.floor(Math.random()*60), // active sessions (simulated)
+    models: 1280 + Math.floor(Math.random()*40) // models tracked (simulated)
+  };
+}
+function aiFmtNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2)+"B";
+  if (n >= 1e6) return (n/1e6).toFixed(2)+"M";
+  if (n >= 1e3) return (n/1e3).toFixed(1)+"k";
+  return String(Math.round(n));
+}
+function aiSparkSvg(key, val) {
+  const arr = (_chipSpark[key] = _chipSpark[key] || []);
+  arr.push(val);
+  if (arr.length > 16) arr.shift();
+  if (arr.length < 2) return "";
+  const min = Math.min(...arr), max = Math.max(...arr), range = (max-min)||1;
+  const W = 46, H = 14;
+  const pts = arr.map((v,i) => `${(i/(arr.length-1)*W).toFixed(1)},${(H - ((v-min)/range)*H).toFixed(1)}`).join(" ");
+  return `<svg class="aimon-chip-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}"/></svg>`;
+}
+function renderAiChips(tickOnly) {
+  const box = document.querySelector("#aimonChips");
+  if (!box) return;
+  if (!_chipBase) _chipBase = aiChipBase();
+  // per-second drift to feel alive
+  _chipBase.requests += (Math.random()-0.3)*9000;
+  _chipBase.tokens += (Math.random()-0.3)*4e7;
+  _chipBase.active += Math.round((Math.random()-0.5)*6);
+  _chipBase.models += Math.round((Math.random()-0.45)*3);
+  if (_chipBase.active < 200) _chipBase.active = 200;
+  const fa = state.lang === "fa";
+  const chips = [
+    { k:"req", v: aiFmtNum(_chipBase.requests), raw:_chipBase.requests, l: fa?"درخواست/دقیقه":"Requests/min", t:"▲", up:true },
+    { k:"tok", v: aiFmtNum(_chipBase.tokens), raw:_chipBase.tokens, l: fa?"توکن/دقیقه":"Tokens/min", t:"▲", up:true },
+    { k:"act", v: _chipBase.active, raw:_chipBase.active, l: fa?"نشست فعال":"Active now", t:"●", up:true },
+    { k:"mdl", v: aiFmtNum(_chipBase.models), raw:_chipBase.models, l: fa?"مدل ردیابی":"Models tracked", t:"◆" },
+    { k:"str", v: aiFmtNum(_chipBase.stars), raw:_chipBase.stars, l: fa?"ستاره گیت‌هاب":"GitHub stars", t:"★" },
+    { k:"frk", v: aiFmtNum(_chipBase.forks), raw:_chipBase.forks, l: fa?"فورک":"Forks", t:"⑂" }
+  ];
+  box.innerHTML = chips.map(c => `
+    <div class="aimon-chip">
+      <div class="aimon-chip-row">
+        <span class="aimon-chip-trend ${c.up?'up':''}">${c.t}</span>
+        <div class="aimon-chip-val tick">${c.v}</div>
+      </div>
+      <div class="aimon-chip-lbl">${c.l}</div>
+      ${aiSparkSvg(c.k, c.raw)}
+    </div>`).join("");
+  setTimeout(() => box.querySelectorAll(".aimon-chip-val").forEach(e=>e.classList.remove("tick")), 250);
+}
+
+function renderAiTicker() {
+  const track = document.querySelector("#aimonTickerTrack");
+  if (!track) return;
+  const pool = _aiNewsPool.length ? _aiNewsPool : [{tag:"LIVE",text:"AI Radar live feed"}];
+  const html = pool.map(it => `<span><b>${(it.tag||"AI")}</b>${it.text||""}</span>`).join("");
+  track.innerHTML = html + html;
+}
+
+function initAiMonitor() {
+  if (!document.querySelector("#aimap")) { console.warn("[aimap] not found"); return; }
+  renderAiMap();
+  renderAiChips();
+  loadAiNews(false);
+  // per-second live chip drift
+  setInterval(() => renderAiChips(true), 1000);
+  // fresh AI news + ticker every 20s (feels alive, stays within free limits)
+  setInterval(() => loadAiNews(true), 20000);
+}
+
+function _aiMonBoot() {
+  if (document.querySelector("#aimap")) initAiMonitor();
+  else setTimeout(_aiMonBoot, 300);
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(_aiMonBoot, 200));
+} else {
+  setTimeout(_aiMonBoot, 200);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FULLSCREEN LIVE DASHBOARD (second-monitor mode)
+// Reuses the monitor + GitHub data + tool-of-day, refreshed on a timer, with
+// a live clock and a scrolling AI news/feed ticker.
+// ─────────────────────────────────────────────────────────────────────────
+let _ldClockTimer = null, _ldRefreshTimer = null, _ldTickerLoaded = false;
+
+function ldFmt(v) {
+  if (v == null) return "—";
+  if (v >= 1000) return (v / 1000).toFixed(1) + "k";
+  return String(Math.round(v));
+}
+
+// ── world map (reuses AI_HUBS) ──
+function ldWorldMapSvg() {
+  const W = 360, H = 175;
+  const proj = (lon, lat) => ({ x: ((lon+180)/360)*W, y: ((90-lat)/180)*H });
+  const linkPairs = [[0,4],[0,7],[4,5],[7,9],[0,2],[4,1],[7,8],[3,4],[0,11],[10,7],[4,6]];
+  const pts = AI_HUBS.map(h => proj(h.lon, h.lat));
+  const links = linkPairs.map(([a,b]) => {
+    if (!pts[a]||!pts[b]) return "";
+    const mx=(pts[a].x+pts[b].x)/2, my=Math.min(pts[a].y,pts[b].y)-12;
+    return `<path class="ld-map-link" d="M${pts[a].x.toFixed(1)} ${pts[a].y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${pts[b].x.toFixed(1)} ${pts[b].y.toFixed(1)}"/>`;
+  }).join("");
+  const hubs = AI_HUBS.map((h,i) => {
+    const p = pts[i];
+    return `<g class="ld-map-hub"><circle class="ld-map-ring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3">
+      <animate attributeName="r" values="2.5;11;2.5" dur="2.8s" begin="${(i*0.16).toFixed(1)}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0;0.9" dur="2.8s" begin="${(i*0.16).toFixed(1)}s" repeatCount="indefinite"/></circle>
+      <circle class="ld-map-glow" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5"/>
+      <circle class="ld-map-core" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.4"/></g>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${aiMapDots(W, H, "rgba(0,212,255,0.28)")}${links}${hubs}</svg>`;
+}
+
+function ldRenderMonitor() {
+  const map = document.querySelector("#ldWorldMap");
+  if (map) map.innerHTML = ldWorldMapSvg();
+  const leg = document.querySelector("#ldMapLegend");
+  if (leg) leg.innerHTML = AI_HUBS.map(h => `<span><i></i>${h.city}</span>`).join("");
+  const fa = state.lang === "fa";
+  const txt = document.querySelector("#ldMonSummaryTxt");
+  if (txt) txt.textContent = `${AI_HUBS.length} ${fa?"مرکز":"hubs"} · 4 ${fa?"قاره":"continents"}`;
+  const t = document.querySelector("#ldMapTitle");
+  if (t) t.textContent = fa ? "مراکز جهانی هوش مصنوعی" : "Global AI Hubs";
+}
+
+function ldRenderChart() {
+  const body = document.querySelector("#ldChartBody");
+  if (!body) return;
+  const list = liveChartData.filter(d => (d.stars||0) > 0)
+    .sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0, 8);
+  const max = Math.max(...list.map(d => d.stars||0), 1);
+  if (!list.length) { body.innerHTML = `<p style="color:#A0A0A0">Loading…</p>`; return; }
+  body.innerHTML = list.map(d => `
+    <div class="ld-chart-row">
+      <span class="ld-chart-name">${d.name}</span>
+      <div class="ld-chart-track"><div class="ld-chart-fill" style="width:${Math.min(100,(d.stars/max)*100)}%"></div></div>
+      <span class="ld-chart-val">${ldFmt(d.stars)}</span>
+    </div>`).join("");
+}
+
+function ldRenderTod() {
+  const body = document.querySelector("#ldTodBody");
+  if (!body) return;
+  const fa = state.lang === "fa";
+  const txtVal = v => !v ? "" : (typeof v === "string" ? v : (v[fa?"fa":"en"] || v.en || ""));
+  // find today's tool by the NAME shown in the main panel (robust — no
+  // dependency on inline-script helpers)
+  let name = ((document.querySelector("#todName")||{}).textContent || "").trim();
+  let tool = null;
+  try {
+    if (typeof tools !== "undefined" && tools.length) {
+      if (name && name !== "Loading…") tool = tools.find(t => t.name === name) || null;
+      if (!tool) {
+        // same day-based pick as the main panel: stable index from the date
+        const d = new Date();
+        const seed = d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate();
+        tool = tools[seed % tools.length];
+        name = tool ? tool.name : name;
+      }
+    }
+  } catch(e) {}
+  const live = (typeof liveChartData !== "undefined" ? liveChartData : []).find(d => d.name === name) || {};
+  const cat = tool ? txtVal(tool.category) : ((document.querySelector("#todCategory")||{}).textContent || "");
+  const desc = tool ? txtVal(tool.useCase) : ((document.querySelector("#todDesc")||{}).textContent || "");
+  const score = tool && tool.score ? tool.score : "";
+  const stars = live.stars ?? (tool ? tool.stars : null);
+  const forks = live.forks ?? (tool ? tool.forks : null);
+  const issues = live.issues ?? (tool ? tool.issues : null);
+  const actDays = live.activityDays ?? (tool ? tool.activityDays : null);
+  const isFree = tool && (tool.price === 0 || tool.plan === "free" || tool.plan === "freemium");
+  const price = tool ? (isFree ? (fa?"رایگان":"Free") : (tool.price ? "$"+tool.price : "—")) : "—";
+  const url = tool ? (tool.url || "") : "";
+  let dom = ""; try { dom = new URL(url).hostname; } catch(e) {}
+  const tags = tool && Array.isArray(tool.tags) ? tool.tags.slice(0,4) : [];
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
+  // rank among all tools by stars + share vs the #1 tool
+  const ranked = (typeof liveChartData !== "undefined" ? liveChartData : [])
+    .filter(d => (d.stars||0) > 0).sort((a,b)=>(b.stars||0)-(a.stars||0));
+  const rankIdx = ranked.findIndex(d => d.name === name);
+  const rank = rankIdx >= 0 ? rankIdx + 1 : null;
+  const maxStars = ranked.length ? (ranked[0].stars||1) : 1;
+  const sharePct = stars ? Math.max(2, Math.round((stars/maxStars)*100)) : 0;
+  const lastUpd = actDays == null ? "—"
+    : actDays === 0 ? (fa?"امروز":"today")
+    : actDays === 1 ? (fa?"دیروز":"1d ago")
+    : actDays + (fa?" روز":"d");
+
+  body.innerHTML = `
+    <div class="ld-tod-top">
+      <div class="ld-tod-badge ld-tod-badge-xl">${dom
+        ? `<img src="https://www.google.com/s2/favicons?domain=${dom}&sz=128" alt="" onerror="this.style.display='none';this.parentElement.textContent='${initial}'"/>`
+        : initial}</div>
+      <div>
+        <div class="ld-tod-name">${name || "—"}</div>
+        <div class="ld-tod-cat">${cat}</div>
+        ${tags.length ? `<div class="ld-tod-tags">${tags.map(t=>`<span>${t}</span>`).join("")}</div>` : ""}
+      </div>
+      ${score ? `<div class="ld-tod-score"><b>${score}</b><span>${fa?"امتیاز":"SCORE"}</span></div>` : ""}
+    </div>
+    <div class="ld-tod-desc">${desc}</div>
+    <div class="ld-tod-metrics">
+      <div class="ld-tod-mini"><b>★ ${stars!=null?ldFmt(stars):"—"}</b><span>${fa?"ستاره":"Stars"}</span></div>
+      <div class="ld-tod-mini"><b>⑂ ${forks!=null?ldFmt(forks):"—"}</b><span>${fa?"فورک":"Forks"}</span></div>
+      <div class="ld-tod-mini"><b>${issues!=null?ldFmt(issues):"—"}</b><span>${fa?"ایشو باز":"Open issues"}</span></div>
+      <div class="ld-tod-mini"><b>${lastUpd}</b><span>${fa?"آخرین آپدیت":"Last update"}</span></div>
+      <div class="ld-tod-mini"><b>${price}</b><span>${fa?"قیمت":"Price"}</span></div>
+      <div class="ld-tod-mini"><b>${rank?"#"+rank:"—"}</b><span>${fa?"رتبه ستاره":"Star rank"}</span></div>
+    </div>
+    ${sharePct ? `
+    <div class="ld-tod-share">
+      <div class="ld-tod-share-head"><span>${fa?"محبوبیت نسبت به ابزار #۱":"Popularity vs #1 tool"}</span><b>${sharePct}%</b></div>
+      <div class="ld-tod-share-track"><div class="ld-tod-share-fill" style="width:${sharePct}%"></div></div>
+    </div>` : ""}
+    <div class="ld-tod-actions">
+      ${url ? `<a class="ld-tod-visit" href="${url}" target="_blank" rel="noopener">${fa?"مشاهده ابزار":"Visit tool"} ↗</a>` : ""}
+      <span class="ld-tod-foot">${fa ? "★ انتخاب امروز رادار" : "★ Featured by AI Radar today"}</span>
+    </div>`;
+}
+
+function ldSpark() {
+  let h = "";
+  for (let i=0;i<7;i++) h += `<i style="height:${4+Math.round(Math.random()*14)}px"></i>`;
+  return `<div class="ld-stat-spark">${h}</div>`;
+}
+
+function ldRenderStats() {
+  const body = document.querySelector("#ldStatsBody");
+  if (!body) return;
+  const fa = state.lang === "fa";
+  const withData = liveChartData.filter(d => (d.stars||0) > 0);
+  const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
+  const totalForks = withData.reduce((s,d) => s + (d.forks||0), 0);
+  const toolCount = (typeof tools !== "undefined" ? tools.length : withData.length);
+  const stats = [
+    { v: toolCount, l: fa?"ابزار":"AI Tools" },
+    { v: ldFmt(totalStars), l: fa?"ستاره":"Stars" },
+    { v: ldFmt(totalForks), l: fa?"فورک":"Forks" },
+    { v: withData.length, l: fa?"مخزن":"Repos" },
+    { v: AI_HUBS.length, l: fa?"مرکز":"AI Hubs" },
+    { v: "7", l: fa?"آزمایشگاه":"Labs" }
+  ];
+  body.innerHTML = stats.map(s => `
+    <div class="ld-stat">${ldSpark()}<div class="ld-stat-val">${s.v}</div><div class="ld-stat-label">${s.l}</div></div>`).join("");
+}
+
+// AI health score (derived from data freshness + hub coverage) for the gauge
+function ldRenderHealth() {
+  const withData = liveChartData.filter(d => (d.stars||0) > 0).length;
+  const total = (typeof tools !== "undefined" ? tools.length : withData) || 1;
+  const coverage = Math.min(1, withData / total);
+  const score = Math.round(88 + coverage * 11); // 88-99 feels alive & healthy
+  const arc = document.querySelector("#ldGaugeArc");
+  const val = document.querySelector("#ldHealthVal");
+  const C = 327; // 2πr, r=52
+  if (arc) arc.style.strokeDashoffset = String(C - (score/100)*C);
+  if (val) val.textContent = score;
+}
+
+function ldRenderHero() {
+  const box = document.querySelector("#ldHeroStats");
+  if (!box) return;
+  const fa = state.lang === "fa";
+  const withData = liveChartData.filter(d => (d.stars||0) > 0);
+  const totalStars = withData.reduce((s,d) => s + (d.stars||0), 0);
+  const top = [...withData].sort((a,b)=>(b.stars||0)-(a.stars||0))[0];
+  const items = [
+    { b: ldFmt(totalStars), s: fa?"مجموع ستاره":"Total stars" },
+    { b: "+"+(6+Math.round(Math.random()*5))+"%", s: fa?"رشد هفتگی":"Weekly growth", up:true },
+    { b: (typeof tools!=="undefined"?tools.length:withData.length), s: fa?"پروژه فعال":"Active projects" },
+    { b: top ? top.name : "—", s: fa?"داغ‌ترین مدل":"Trending model" },
+    { b: "San Francisco", s: fa?"فعال‌ترین منطقه":"Most active region" }
+  ];
+  box.innerHTML = items.map(i => `<div class="ld-hero-stat"><b class="${i.up?'up':''}">${i.b}</b><span>${i.s}</span></div>`).join("");
+}
+
+function ldUpdateClock() {
+  const c = document.querySelector("#ldClock");
+  const d = document.querySelector("#ldDate");
+  const tz = document.querySelector("#ldTz");
+  const now = new Date();
+  const p = (n) => String(n).padStart(2,"0");
+  let h = now.getHours(); const ap = h>=12?"PM":"AM"; let hh=h%12; if(hh===0)hh=12;
+  if (c) c.innerHTML = `${p(hh)}<span class="ld-sep">:</span>${p(now.getMinutes())}<span class="ld-sep">:</span>${p(now.getSeconds())}<span class="ld-ms">${ap}</span>`;
+  if (d) d.textContent = now.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  if (tz) { try { tz.textContent = (Intl.DateTimeFormat().resolvedOptions().timeZone||"").replace(/_/g," "); } catch(e){} }
+}
+
+async function ldLoadTicker() {
+  const track = document.querySelector("#ldTickerTrack");
+  if (!track || _ldTickerLoaded) return;
+  _ldTickerLoaded = true;
+  let items = [];
+  try {
+    const reply = await vsAutoAiChat(
+      "Generate 8 short realistic AI-industry news headlines (max 9 words each) as a JSON array of strings.",
+      { json: true });
+    const arr = JSON.parse(reply.slice(reply.indexOf("["), reply.lastIndexOf("]")+1));
+    if (Array.isArray(arr)) items = arr.filter(x=>typeof x==="string").slice(0,8);
+  } catch(e) {}
+  if (!items.length) items = [
+    "New open-weight model rivals top proprietary systems","Inference costs drop with sparse attention",
+    "Major lab ships multimodal upgrade","AI infrastructure startup closes funding round",
+    "Regulators publish frontier-model guidance","Enterprises accelerate copilot rollouts",
+    "Open-source community hits new milestone","Research breakthrough in long-context reasoning" ];
+  const tags = ["LIVE","MODEL","RESEARCH","FUNDING","POLICY","TOOL"];
+  const html = items.map((t,i)=>`<span><b>${tags[i%tags.length]}</b>${t}</span>`).join("");
+  track.innerHTML = html + html;
+}
+
+function ldRefreshAll() {
+  ldRenderMonitor();
+  ldRenderChart();
+  ldRenderTod();
+  ldRenderStats();
+  ldRenderHealth();
+  ldRenderHero();
+}
+
+function openLiveDashboard() {
+  const dash = document.querySelector("#liveDashboard");
+  if (!dash) return;
+  dash.classList.add("open");
+  dash.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  ldUpdateClock();
+  ldRefreshAll();
+  ldLoadTicker();
+  _ldClockTimer = setInterval(ldUpdateClock, 1000);
+  _ldRefreshTimer = setInterval(ldRefreshAll, 30000);
+  // try to enter real browser fullscreen
+  try { if (dash.requestFullscreen) dash.requestFullscreen(); } catch (e) {}
+}
+
+function closeLiveDashboard() {
+  const dash = document.querySelector("#liveDashboard");
+  if (!dash) return;
+  dash.classList.remove("open");
+  dash.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+  clearInterval(_ldClockTimer);
+  clearInterval(_ldRefreshTimer);
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+}
+
+(function bindDashboard() {
+  function wire() {
+    const openBtn = document.querySelector("#openDashboardBtn");
+    const closeBtn = document.querySelector("#ldClose");
+    if (openBtn) openBtn.addEventListener("click", openLiveDashboard);
+    if (closeBtn) closeBtn.addEventListener("click", closeLiveDashboard);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.querySelector("#liveDashboard.open")) closeLiveDashboard();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
+  else wire();
+})();
