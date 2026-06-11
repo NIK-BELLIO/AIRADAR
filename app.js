@@ -122,6 +122,7 @@ const i18n = {
     vLogoColorLabel: "Ring / badge color",
     vLogoSizeLabel: "Logo size",
     vLogoShowLbl: "Show logo on",
+    vLogoAdvLbl: "Advanced styling",
     vAutoBrandTxt: "Auto-brand (match template)",
     vLogoTip: "Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.",
     vLogoStartLabel: "Logo start (s)",
@@ -420,6 +421,7 @@ const i18n = {
     vLogoColorLabel: "رنگ حلقه / نشان",
     vLogoSizeLabel: "اندازه لوگو",
     vLogoShowLbl: "نمایش لوگو در",
+    vLogoAdvLbl: "تنظیمات پیشرفته",
     vAutoBrandTxt: "برندینگ خودکار (هماهنگ با تمپلیت)",
     vLogoTip: "لوگو را آپلود کن، سپس برندینگ خودکار را بزن تا فوراً یک جاگذاری حرفه‌ای هماهنگ با رنگ تمپلیت بگیری.",
     vLogoStartLabel: "شروع لوگو (ثانیه)",
@@ -7392,7 +7394,14 @@ function drawStudioFrame(elapsed) {
   } else {
     standaloneOverlay = (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
   }
-  if (!media && !standaloneOverlay && !introSlide) return;
+  if (!media && !standaloneOverlay && !introSlide) {
+    // nothing else to draw, but a logo alone should still appear
+    if (vstudio.logoEl) {
+      ctx.clearRect(0, 0, W, H);
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+    }
+    return;
+  }
 
   // ── TIME-STRETCH (After Effects style time-remap) ──────────
   // Playback-rate handling for the duration control:
@@ -7642,12 +7651,14 @@ function drawStudioFrame(elapsed) {
     // entrance progress drives the motion (completes by 55% of the card)
     const prog = Math.min(1, k / 0.55);
     drawCard(ctx, W, H, tpl, introText, fade, introSub, introMotion, prog);
+    vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
   }
   // ----- outro card -----
   if (outroText && elapsed > duration - outroDur) {
     const k = (elapsed - (duration - outroDur)) / outroDur;
     drawCard(ctx, W, H, tpl, outroText, 1 - Math.abs(k - 0.5) * 2, "", "fade", k * 2);
+    vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
   }
 
@@ -9622,23 +9633,33 @@ function bindEvents() {
     }
     const isVid = !!vstudio.logoIsVideo;
     const hasSegs = !!(vstudio.logoSegs && vstudio.logoSegs.length >= 3);
-    const setSel = (sel, val) => { const el = $(sel); if (el) { el.value = val; } };
-    // animated logo → let its own motion play, centered as a hero brand moment;
-    // wordmark image → letter cascade; else cinematic rise
+    const hasSlides = vstudio.slides && vstudio.slides.length > 1;
+    // setSel sets the value AND dispatches change so history + redraw run
+    const setSel = (sel, val) => {
+      const el = $(sel);
+      if (!el) return;
+      el.value = val;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    // Smart defaults based on what the logo actually is:
+    // • animated video  → play centered as a hero reveal, no extra motion
+    // • wordmark image  → letter cascade, sit at bottom-center like a signature
+    // • plain logo mark → cinematic rise
     setSel("#vsLogoMotion", isVid ? "none" : (hasSegs ? "letters" : "rise"));
-    setSel("#vsLogoPos", isVid ? "c" : "bc");        // video center, image bottom-center
-    setSel("#vsLogoSize", isVid ? "0.34" : "0.16");
-    setSel("#vsLogoStyle", "none");
-    setSel("#vsLogoColor", "auto");                   // match template accent
-    setSel("#vsLogoStart", "0");
-    setSel("#vsLogoDur", isVid ? "4" : "0");          // video plays ~4s, image stays
-    setSel("#vsLogoShow", "last");                    // brand reveal on the final slide
-    vsPushHistory();
-    refreshTimelineClips();
+    setSel("#vsLogoPos",    isVid ? "c"    : "bc");
+    setSel("#vsLogoSize",   isVid ? "0.34" : (hasSegs ? "0.24" : "0.16"));
+    setSel("#vsLogoStyle",  isVid ? "none" : "none");
+    setSel("#vsLogoColor",  "auto");
+    setSel("#vsLogoShow",   hasSlides ? "last" : "all");
+    setSel("#vsLogoStart",  "0");
+    setSel("#vsLogoDur",    "0");
+    // reset any manual drag so it lands exactly on the chosen position
+    vstudio.logoDX = 0; vstudio.logoDY = 0; vstudio.logoScaleManual = 1;
     vsRedrawPreview();
+    refreshTimelineClips();
     vsStatus(state.lang === "fa"
-      ? "برندینگ خودکار اعمال شد ✦"
-      : "Auto-brand applied ✦");
+      ? "برندینگ خودکار اعمال شد ✦ (روی پیش‌نمایش بکش تا جابه‌جا شود)"
+      : "Auto-brand applied ✦ (drag on the preview to reposition)");
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
