@@ -121,6 +121,8 @@ const i18n = {
     vLogoStyleLabel: "Logo frame style",
     vLogoColorLabel: "Ring / badge color",
     vLogoSizeLabel: "Logo size",
+    vAutoBrandTxt: "Auto-brand (match template)",
+    vLogoTip: "Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.",
     vLogoStartLabel: "Logo start (s)",
     vLogoDurLabel: "Logo duration (s, 0 = end)",
     vIntroLabel: "Intro — main text",
@@ -416,6 +418,8 @@ const i18n = {
     vLogoStyleLabel: "استایل قاب لوگو",
     vLogoColorLabel: "رنگ حلقه / نشان",
     vLogoSizeLabel: "اندازه لوگو",
+    vAutoBrandTxt: "برندینگ خودکار (هماهنگ با تمپلیت)",
+    vLogoTip: "لوگو را آپلود کن، سپس برندینگ خودکار را بزن تا فوراً یک جاگذاری حرفه‌ای هماهنگ با رنگ تمپلیت بگیری.",
     vLogoStartLabel: "شروع لوگو (ثانیه)",
     vLogoDurLabel: "مدت لوگو (ثانیه، ۰ = تا انتها)",
     vIntroLabel: "اینترو — متن اصلی",
@@ -7919,6 +7923,25 @@ function drawStudioFrame(elapsed) {
     ctx.restore();
   }
 
+
+  // progress bar
+  ctx.fillStyle = tpl.accent;
+  ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
+
+  // ----- finish the frame: slide transition wash + global colour grade,
+  // applied at the end of the normal (media) path. Title/content slides
+  // call vsFinishFrame() before their early returns so transitions and
+  // the filter work on every slide type. -----
+  vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+}
+
+// Applies the slide-to-slide transition veil and the global colour grade
+// to the finished frame. Safe to call once per frame at any exit point.
+// Draws the logo overlay. Called from vsFinishFrame so it appears on EVERY
+// slide type (media, intro, outro, content) — not just the media path.
+function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
+  if (!vstudio.logoEl) return;
+  try {
   // ── LOGO OVERLAY — professional motion + placement + frame styles ──
   if (vstudio.logoEl) {
     // timing window: show the logo only between start and start+duration
@@ -8062,21 +8085,17 @@ function drawStudioFrame(elapsed) {
     } // end non-cascade path
     } // end lVisible window
   }
-
-  // progress bar
-  ctx.fillStyle = tpl.accent;
-  ctx.fillRect(0, H - Math.max(3, H * 0.006), W * progress, Math.max(3, H * 0.006));
-
-  // ----- finish the frame: slide transition wash + global colour grade,
-  // applied at the end of the normal (media) path. Title/content slides
-  // call vsFinishFrame() before their early returns so transitions and
-  // the filter work on every slide type. -----
-  vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+  } catch (e) { /* logo draw failed — never break the frame */ }
 }
 
-// Applies the slide-to-slide transition veil and the global colour grade
-// to the finished frame. Safe to call once per frame at any exit point.
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
+  // Logo overlay — drawn here so it appears on EVERY slide (media, intro,
+  // outro, content), since all paths call vsFinishFrame before returning.
+  if (vstudio.logoEl) {
+    let _tpl = { accent: "#d8b76a" };
+    try { if (typeof vsTemplate === "function") _tpl = vsTemplate(); } catch (e) {}
+    vsDrawLogo(ctx, W, H, elapsed, dsLocal, _tpl);
+  }
   // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
   if (vstudio.snapGuideX || vstudio.snapGuideY) {
     ctx.save();
@@ -9494,6 +9513,32 @@ function bindEvents() {
   renderSlideList();
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
   on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
+
+  // Auto-brand: one tap → professional logo placement that matches the template.
+  on("#vsAutoBrand", "click", () => {
+    if (!vstudio.logoEl) {
+      vsStatus(state.lang === "fa" ? "اول یک لوگو آپلود کن." : "Upload a logo first.");
+      return;
+    }
+    const isVid = !!vstudio.logoIsVideo;
+    const hasSegs = !!(vstudio.logoSegs && vstudio.logoSegs.length >= 3);
+    const setSel = (sel, val) => { const el = $(sel); if (el) { el.value = val; } };
+    // animated logo → let its own motion play, centered as a hero brand moment;
+    // wordmark image → letter cascade; else cinematic rise
+    setSel("#vsLogoMotion", isVid ? "none" : (hasSegs ? "letters" : "rise"));
+    setSel("#vsLogoPos", isVid ? "c" : "bc");        // video center, image bottom-center
+    setSel("#vsLogoSize", isVid ? "0.34" : "0.16");
+    setSel("#vsLogoStyle", "none");
+    setSel("#vsLogoColor", "auto");                   // match template accent
+    setSel("#vsLogoStart", "0");
+    setSel("#vsLogoDur", isVid ? "4" : "0");          // video plays ~4s, image stays
+    vsPushHistory();
+    refreshTimelineClips();
+    if (!vstudio.rendering) drawStudioFrame(vstudio.previewTime || 0);
+    vsStatus(state.lang === "fa"
+      ? "برندینگ خودکار اعمال شد ✦"
+      : "Auto-brand applied ✦");
+  });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
   // Infographic — a simple form builds the data; it writes the JSON box
