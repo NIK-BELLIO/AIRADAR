@@ -124,8 +124,8 @@ const i18n = {
     vLogoShowLbl: "Show logo on",
     vLogoAdvLbl: "Advanced styling",
     vLogoSampleLbl: "Or try a sample logo",
-    vAutoBrandTxt: "Auto-brand (match template)",
-    vLogoTip: "Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.",
+    vPlaceLogoTxt: "Place logo on video",
+    vLogoTip: "بعد از آپلود، «افزودن لوگو» را بزن. سپس لوگو را روی پیش‌نمایش بکش تا جابه‌جا شود، و لبه‌های نوارش را روی تایم‌لاین بکش تا زمان نمایش را تعیین کنی.",
     vLogoStartLabel: "Logo start (s)",
     vLogoDurLabel: "Logo duration (s, 0 = end)",
     vIntroLabel: "Intro — main text",
@@ -424,7 +424,7 @@ const i18n = {
     vLogoShowLbl: "نمایش لوگو در",
     vLogoAdvLbl: "تنظیمات پیشرفته",
     vLogoSampleLbl: "یا یک لوگوی نمونه را امتحان کن",
-    vAutoBrandTxt: "برندینگ خودکار (هماهنگ با تمپلیت)",
+    vPlaceLogoTxt: "افزودن لوگو به ویدیو",
     vLogoTip: "لوگو را آپلود کن، سپس برندینگ خودکار را بزن تا فوراً یک جاگذاری حرفه‌ای هماهنگ با رنگ تمپلیت بگیری.",
     vLogoStartLabel: "شروع لوگو (ثانیه)",
     vLogoDurLabel: "مدت لوگو (ثانیه، ۰ = تا انتها)",
@@ -8839,7 +8839,7 @@ function heraRenderTimeline() {
   }
 
   // Draw waveform
-  heraDrawWaveform(waveCanvas, total);
+  heraDrawWaveform(waveCanvas, total, actualPx);
 
   // ── LOGO LAYER (top) — show the logo's time window above all scenes ──
   const logoLayer = $("#vsLogoLayer");
@@ -8875,6 +8875,83 @@ function heraRenderTimeline() {
 
   // Update playhead
   updateTimeline(vstudio.position || 0, total);
+  // wire the logo bar drag handles (once)
+  vsWireLogoBar(actualPx, total);
+}
+
+// After-Effects-style trimming of the logo's time window by dragging the bar
+// or its two end handles on the timeline.
+let _logoBarWired = false;
+function vsWireLogoBar(actualPx, total) {
+  const bar = document.querySelector("#vsLogoLayerBar");
+  const hL = document.querySelector("#vsLogoHandleL");
+  const hR = document.querySelector("#vsLogoHandleR");
+  if (!bar || !hL || !hR) return;
+  // keep latest scale on the element so handlers read fresh values
+  bar._px = actualPx; bar._total = total;
+  if (_logoBarWired) return;
+  _logoBarWired = true;
+
+  const setField = (sel, val) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  const curWindow = () => {
+    const lStart = parseFloat(vsVal("#vsLogoStart", "0")) || 0;
+    const lDur = parseFloat(vsVal("#vsLogoDur", "0")) || 0;
+    const tot = bar._total || 1;
+    return { from: lStart, to: lDur > 0 ? Math.min(tot, lStart + lDur) : tot, tot };
+  };
+  let mode = null, startX = 0, base = null;
+  const pxToSec = (dx) => (dx / (bar._px || 1)) * (bar._total || 1);
+
+  const down = (e, m) => {
+    e.preventDefault(); e.stopPropagation();
+    mode = m; startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    base = curWindow();
+    // switch to manual timing so dragging actually controls it
+    setField("#vsLogoShow", "all");
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchend", up);
+  };
+  const move = (e) => {
+    if (!mode) return;
+    if (e.cancelable) e.preventDefault();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    let dsec = pxToSec(x - startX);
+    const tot = base.tot;
+    let from = base.from, to = base.to;
+    if (mode === "move") { from = base.from + dsec; to = base.to + dsec;
+      const span = base.to - base.from;
+      from = Math.max(0, Math.min(tot - span, from)); to = from + span;
+    } else if (mode === "l") { from = Math.max(0, Math.min(to - 0.5, base.from + dsec)); }
+    else if (mode === "r") { to = Math.min(tot, Math.max(from + 0.5, base.to + dsec)); }
+    setField("#vsLogoStart", from.toFixed(1));
+    setField("#vsLogoDur", (to >= tot - 0.05 ? 0 : (to - from)).toFixed(1));
+  };
+  const up = () => {
+    mode = null;
+    window.removeEventListener("mousemove", move);
+    window.removeEventListener("mouseup", up);
+    window.removeEventListener("touchmove", move);
+    window.removeEventListener("touchend", up);
+  };
+  hL.addEventListener("mousedown", (e) => down(e, "l"));
+  hR.addEventListener("mousedown", (e) => down(e, "r"));
+  hL.addEventListener("touchstart", (e) => down(e, "l"), { passive: false });
+  hR.addEventListener("touchstart", (e) => down(e, "r"), { passive: false });
+  bar.addEventListener("mousedown", (e) => {
+    if (e.target === hL || e.target === hR) return;
+    down(e, "move");
+  });
+  bar.addEventListener("touchstart", (e) => {
+    if (e.target === hL || e.target === hR) return;
+    down(e, "move");
+  }, { passive: false });
 }
 
 function heraSelectScene(idx) {
@@ -8900,9 +8977,9 @@ function heraSelectScene(idx) {
   }
 }
 
-function heraDrawWaveform(canvas, totalDur) {
+function heraDrawWaveform(canvas, totalDur, forceWidth) {
   if (!canvas) return;
-  const stripWidth = Math.max(400, Math.round(totalDur * PIXELS_PER_SEC));
+  const stripWidth = forceWidth ? Math.round(forceWidth) : Math.max(400, Math.round(totalDur * PIXELS_PER_SEC));
   canvas.width = stripWidth;
   canvas.height = 40;
   const ctx = canvas.getContext("2d");
@@ -9694,40 +9771,31 @@ function bindEvents() {
   });
 
   // Auto-brand: one tap → professional logo placement that matches the template.
-  on("#vsAutoBrand", "click", () => {
+  on("#vsPlaceLogo", "click", () => {
     if (!vstudio.logoEl) {
       vsStatus(state.lang === "fa" ? "اول یک لوگو آپلود کن." : "Upload a logo first.");
       return;
     }
     const isVid = !!vstudio.logoIsVideo;
     const hasSegs = !!(vstudio.logoSegs && vstudio.logoSegs.length >= 3);
-    const hasSlides = vstudio.slides && vstudio.slides.length > 1;
-    // setSel sets the value AND dispatches change so history + redraw run
     const setSel = (sel, val) => {
       const el = $(sel);
       if (!el) return;
       el.value = val;
       el.dispatchEvent(new Event("change", { bubbles: true }));
     };
-    // Smart defaults based on what the logo actually is:
-    // • animated video  → play centered as a hero reveal, no extra motion
-    // • wordmark image  → letter cascade, sit at bottom-center like a signature
-    // • plain logo mark → cinematic rise
-    setSel("#vsLogoMotion", isVid ? "none" : (hasSegs ? "letters" : "rise"));
-    setSel("#vsLogoPos",    isVid ? "c"    : "bc");
-    setSel("#vsLogoSize",   isVid ? "0.34" : (hasSegs ? "0.24" : "0.16"));
-    setSel("#vsLogoStyle",  isVid ? "none" : "none");
-    setSel("#vsLogoColor",  "auto");
-    setSel("#vsLogoShow",   hasSlides ? "last" : "all");
-    setSel("#vsLogoStart",  "0");
-    setSel("#vsLogoDur",    "0");
-    // reset any manual drag so it lands exactly on the chosen position
-    vstudio.logoDX = 0; vstudio.logoDY = 0; vstudio.logoScaleManual = 1;
+    setSel("#vsLogoMotion", isVid ? "none" : (hasSegs ? "letters" : "fade"));
+    setSel("#vsLogoPos", "br");
+    setSel("#vsLogoShow", "all");
+    setSel("#vsLogoStart", "0");
+    setSel("#vsLogoDur", "0");
+    vstudio.logoPlaced = true;
+    vstudio.logoDX = 0; vstudio.logoDY = 0;
     vsRedrawPreview();
     refreshTimelineClips();
     vsStatus(state.lang === "fa"
-      ? "برندینگ خودکار اعمال شد ✦ (روی پیش‌نمایش بکش تا جابه‌جا شود)"
-      : "Auto-brand applied ✦ (drag on the preview to reposition)");
+      ? "لوگو اضافه شد ✦ روی پیش‌نمایش بکش، و لبه‌های نوار لوگو را روی تایم‌لاین بکش."
+      : "Logo placed ✦ Drag it on the preview; drag the ends of its timeline bar to set timing.");
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", exportStudioVideo);
