@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v287" />
+    <link rel="stylesheet" href="styles.css?v=v288" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -89,6 +89,11 @@
       .gh-multi-fill.forks { background: linear-gradient(90deg, #7fa6d8, #a8c4e8); }
       .gh-multi-fill.activity { background: linear-gradient(90deg, #7fd8a6, #a8e8c4); }
       .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+      /* logo auto-brand button + tip */
+      .vs-autobrand-btn { width: 100%; margin: 4px 0 2px; padding: 11px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 800; color: #060606; background: linear-gradient(90deg, var(--gold), #f0d99a); border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s, box-shadow .15s; }
+      .vs-autobrand-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(216,183,106,0.3); }
+      .vs-logo-tip { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 2px 0 6px; }
 
       /* ══ AI COMMAND CENTER — premium fullscreen dashboard ══ */
       .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; position: relative; border-color: rgba(216,183,106,0.5) !important; }
@@ -1409,6 +1414,10 @@
                   <span data-i18n="vLogoHint">Logo: PNG (transparent) or animated WebM/MP4</span>
                   <input id="vsLogo" type="file" accept="image/*,video/*" />
                 </label>
+                <button id="vsAutoBrand" class="vs-autobrand-btn" type="button">
+                  <span>✦</span> <span data-i18n="vAutoBrandTxt">Auto-brand (match template)</span>
+                </button>
+                <p class="vs-logo-tip" id="vsLogoTip" data-i18n="vLogoTip">Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.</p>
                 <div class="vs-logo-timing">
                   <label><span data-i18n="vLogoStartLabel">Logo start (s)</span><input id="vsLogoStart" type="number" min="0" step="0.5" value="0" /></label>
                   <label><span data-i18n="vLogoDurLabel">Logo duration (s, 0 = end)</span><input id="vsLogoDur" type="number" min="0" step="0.5" value="0" /></label>
@@ -1754,7 +1763,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v287</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v288</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1828,7 +1837,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v287"></script>
+    <script src="app.js?v=v288"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
