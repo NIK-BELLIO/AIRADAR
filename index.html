@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v291" />
+    <link rel="stylesheet" href="styles.css?v=v292" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -91,6 +91,13 @@
       .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 
       /* logo auto-brand button + tip */
+      .vs-logo-adv { margin: 2px 0 4px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+      .vs-logo-adv summary { cursor: pointer; padding: 9px 12px; font-size: 12px; font-weight: 700; color: var(--muted); list-style: none; user-select: none; display: flex; align-items: center; gap: 6px; }
+      .vs-logo-adv summary::-webkit-details-marker { display: none; }
+      .vs-logo-adv summary::before { content: "⚙"; font-size: 12px; }
+      .vs-logo-adv[open] summary { border-bottom: 1px solid var(--line); color: var(--gold); }
+      .vs-logo-adv > label { padding: 0 12px; }
+      .vs-logo-adv > label:last-child { padding-bottom: 10px; }
       .vs-logo-uprow { display: flex; align-items: stretch; gap: 8px; }
       .vs-logo-remove { flex-shrink: 0; width: 40px; border-radius: 10px; border: 1px solid rgba(224,83,61,0.4); background: rgba(224,83,61,0.12); color: #e0533d; font-size: 15px; font-weight: 800; cursor: pointer; transition: all .15s; }
       .vs-logo-remove:hover { background: rgba(224,83,61,0.25); }
@@ -1461,6 +1468,8 @@
                     <option value="shine">Shine sweep (loop)</option>
                   </select>
                 </label>
+                <details class="vs-logo-adv">
+                  <summary id="vsLogoAdvLbl" data-i18n="vLogoAdvLbl">Advanced styling</summary>
                 <label><span data-i18n="vLogoStyleLabel">Logo frame style</span>
                   <select id="vsLogoStyle">
                     <option value="none" selected>Clean (no frame)</option>
@@ -1488,6 +1497,7 @@
                     <option value="0.34">Extra large</option>
                   </select>
                 </label>
+                </details>
                 <label><span data-i18n="vIntroLabel">Intro — main text</span><input id="vsIntro" type="text" placeholder="AI Radar presents" /></label>
                 <label><span data-i18n="vIntroSubLabel">Intro — secondary text</span><input id="vsIntroSub" type="text" placeholder="A new standard of calm" /></label>
                 <label><span data-i18n="vIntroMotionLabel">Intro text motion</span>
@@ -1776,7 +1786,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v291</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v292</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1850,7 +1860,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v291"></script>
+    <script src="app.js?v=v292"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
