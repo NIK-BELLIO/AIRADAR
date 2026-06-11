@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v289" />
+    <link rel="stylesheet" href="styles.css?v=v291" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -91,6 +91,9 @@
       .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 
       /* logo auto-brand button + tip */
+      .vs-logo-uprow { display: flex; align-items: stretch; gap: 8px; }
+      .vs-logo-remove { flex-shrink: 0; width: 40px; border-radius: 10px; border: 1px solid rgba(224,83,61,0.4); background: rgba(224,83,61,0.12); color: #e0533d; font-size: 15px; font-weight: 800; cursor: pointer; transition: all .15s; }
+      .vs-logo-remove:hover { background: rgba(224,83,61,0.25); }
       .vs-autobrand-btn { width: 100%; margin: 4px 0 2px; padding: 11px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 800; color: #060606; background: linear-gradient(90deg, var(--gold), #f0d99a); border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s, box-shadow .15s; }
       .vs-autobrand-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(216,183,106,0.3); }
       .vs-logo-tip { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 2px 0 6px; }
@@ -1410,10 +1413,13 @@
 
               <div class="vstudio-block vtab-hidden" data-vtab-panel="logo">
                 <span class="vstudio-label" data-i18n="vLogoLabel">Logo &amp; cards</span>
-                <label class="upload-box small" id="vsLogoBox">
-                  <span id="vsLogoBoxTxt" data-i18n="vLogoHint">Click to upload logo — PNG (transparent) or animated WebM/MP4</span>
-                  <input id="vsLogo" type="file" accept="image/*,video/*" />
-                </label>
+                <div class="vs-logo-uprow">
+                  <label class="upload-box small" id="vsLogoBox" style="flex:1;margin:0;">
+                    <span id="vsLogoBoxTxt" data-i18n="vLogoHint">Click to upload logo — PNG (transparent) or animated WebM/MP4</span>
+                    <input id="vsLogo" type="file" accept="image/*,video/*" />
+                  </label>
+                  <button id="vsLogoRemove" class="vs-logo-remove" type="button" title="Remove logo" style="display:none;">✕</button>
+                </div>
                 <button id="vsAutoBrand" class="vs-autobrand-btn" type="button">
                   <span>✦</span> <span data-i18n="vAutoBrandTxt">Auto-brand (match template)</span>
                 </button>
@@ -1422,6 +1428,13 @@
                   <label><span data-i18n="vLogoStartLabel">Logo start (s)</span><input id="vsLogoStart" type="number" min="0" step="0.5" value="0" /></label>
                   <label><span data-i18n="vLogoDurLabel">Logo duration (s, 0 = end)</span><input id="vsLogoDur" type="number" min="0" step="0.5" value="0" /></label>
                 </div>
+                <label><span data-i18n="vLogoShowLbl">Show logo on</span>
+                  <select id="vsLogoShow">
+                    <option value="all" selected>All slides</option>
+                    <option value="last">Last slide only (outro)</option>
+                    <option value="first">First slide only (intro)</option>
+                  </select>
+                </label>
                 <label><span data-i18n="vLogoPosLabel">Logo position</span>
                   <select id="vsLogoPos">
                     <option value="tl">Top left</option>
@@ -1763,7 +1776,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v289</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v291</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1837,7 +1850,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v289"></script>
+    <script src="app.js?v=v291"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
