@@ -5338,6 +5338,12 @@ function setupTextDrag() {
   };
   // which draggable element is under the pointer? (news/info on top of text)
   const pick = (pt) => {
+    // When the user is on the "Logo & cards" tab, only the logo is draggable —
+    // so they can position it without accidentally moving text/news/info.
+    if (vstudio.activeVtab === "logo") {
+      if (vstudio.logoEl && inBox(pt, vstudio.logoBox)) return "logo";
+      return null;
+    }
     // info & text are smaller, more specific boxes — check them FIRST so a
     // full-frame cinematic news banner doesn't swallow every click.
     if (inBox(pt, vstudio.infoBox)) return "info";
@@ -8064,8 +8070,21 @@ function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
     const lVisible = elapsed >= lStart && (lDurIn <= 0 || elapsed <= lStart + lDurIn);
     if (lVisible) {
     const logo = vstudio.logoEl;
-    // keep an animated logo playing while visible
-    if (vstudio.logoIsVideo && logo.paused) { try { logo.play(); } catch (e) {} }
+    // For an animated (video) logo, drive its frame from the timeline so the
+    // motion ALWAYS starts at 0 when the logo appears (not from wherever the
+    // background-playing element happened to be).
+    if (vstudio.logoIsVideo) {
+      const localT = Math.max(0, elapsed - lStart);
+      const vd = logo.duration || 0;
+      if (vd > 0) {
+        const want = vstudio.logoLoopVideo === false ? Math.min(localT, vd - 0.05) : (localT % vd);
+        // only re-seek when off by a meaningful amount (avoids stutter)
+        if (Math.abs((logo.currentTime || 0) - want) > 0.08) {
+          try { logo.currentTime = want; } catch (e) {}
+        }
+      }
+      if (logo.paused) { try { logo.play(); } catch (e) {} }
+    }
     const lw0 = logo.naturalWidth || logo.videoWidth || 1;
     const lh0 = logo.naturalHeight || logo.videoHeight || 1;
     const sizeF = parseFloat(vsVal("#vsLogoSize", "0.16")) || 0.16;
@@ -8887,16 +8906,15 @@ function vsWireLogoBar(actualPx, total) {
   const hL = document.querySelector("#vsLogoHandleL");
   const hR = document.querySelector("#vsLogoHandleR");
   if (!bar || !hL || !hR) return;
-  // keep latest scale on the element so handlers read fresh values
   bar._px = actualPx; bar._total = total;
   if (_logoBarWired) return;
   _logoBarWired = true;
 
-  const setField = (sel, val) => {
+  // write a field WITHOUT triggering a full timeline re-render (which would
+  // fight the drag); we update the preview + bar position ourselves.
+  const writeField = (sel, val) => {
     const el = document.querySelector(sel);
-    if (!el) return;
-    el.value = val;
-    el.dispatchEvent(new Event("change", { bubbles: true }));
+    if (el) el.value = val;
   };
   const curWindow = () => {
     const lStart = parseFloat(vsVal("#vsLogoStart", "0")) || 0;
@@ -8907,38 +8925,63 @@ function vsWireLogoBar(actualPx, total) {
   let mode = null, startX = 0, base = null;
   const pxToSec = (dx) => (dx / (bar._px || 1)) * (bar._total || 1);
 
+  // reposition the bar + label live during a drag
+  const paint = (from, to, tot) => {
+    const px = bar._px || 1;
+    bar.style.left = ((from / tot) * px) + "px";
+    bar.style.width = Math.max(40, ((to - from) / tot) * px) + "px";
+    const txt = document.querySelector("#vsLogoLayerTxt");
+    if (txt) txt.textContent = (state.lang === "fa" ? "لوگو" : "Logo") + "  " +
+      from.toFixed(1) + "→" + (to >= tot - 0.05 ? (state.lang === "fa" ? "پایان" : "end") : to.toFixed(1) + "s");
+  };
+
   const down = (e, m) => {
     e.preventDefault(); e.stopPropagation();
-    mode = m; startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    // dragging the bar means manual timing — drop any slide-binding
+    const showEl = document.querySelector("#vsLogoShow");
+    if (showEl && showEl.value !== "all") showEl.value = "all";
+    mode = m;
+    startX = (e.touches ? e.touches[0].clientX : e.clientX);
     base = curWindow();
-    // switch to manual timing so dragging actually controls it
-    setField("#vsLogoShow", "all");
+    document.body.style.userSelect = "none";
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
     window.addEventListener("touchmove", move, { passive: false });
     window.addEventListener("touchend", up);
   };
   const move = (e) => {
-    if (!mode) return;
+    if (!mode || !base) return;
     if (e.cancelable) e.preventDefault();
     const x = (e.touches ? e.touches[0].clientX : e.clientX);
-    let dsec = pxToSec(x - startX);
+    const dsec = pxToSec(x - startX);
     const tot = base.tot;
     let from = base.from, to = base.to;
-    if (mode === "move") { from = base.from + dsec; to = base.to + dsec;
+    if (mode === "move") {
       const span = base.to - base.from;
-      from = Math.max(0, Math.min(tot - span, from)); to = from + span;
-    } else if (mode === "l") { from = Math.max(0, Math.min(to - 0.5, base.from + dsec)); }
-    else if (mode === "r") { to = Math.min(tot, Math.max(from + 0.5, base.to + dsec)); }
-    setField("#vsLogoStart", from.toFixed(1));
-    setField("#vsLogoDur", (to >= tot - 0.05 ? 0 : (to - from)).toFixed(1));
+      from = Math.max(0, Math.min(tot - span, base.from + dsec)); to = from + span;
+    } else if (mode === "l") {
+      from = Math.max(0, Math.min(base.to - 0.5, base.from + dsec)); to = base.to;
+    } else if (mode === "r") {
+      to = Math.min(tot, Math.max(base.from + 0.5, base.to + dsec)); from = base.from;
+    }
+    writeField("#vsLogoStart", from.toFixed(1));
+    writeField("#vsLogoDur", (to >= tot - 0.05 ? 0 : (to - from)).toFixed(1));
+    paint(from, to, tot);
+    // live-update the preview frame (logo appears/disappears as window changes)
+    if (!vstudio.rendering) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
   };
   const up = () => {
+    if (!mode) return;
     mode = null;
+    document.body.style.userSelect = "";
     window.removeEventListener("mousemove", move);
     window.removeEventListener("mouseup", up);
     window.removeEventListener("touchmove", move);
     window.removeEventListener("touchend", up);
+    // commit once: persist + redraw everything cleanly
+    if (vstudio.slides && vstudio.slides.length) { try { vsSaveActiveSlide(); } catch (e) {} }
+    try { vsPushHistory(); } catch (e) {}
+    refreshTimelineClips();
   };
   hL.addEventListener("mousedown", (e) => down(e, "l"));
   hR.addEventListener("mousedown", (e) => down(e, "r"));
@@ -9687,6 +9730,7 @@ function bindEvents() {
   document.querySelectorAll(".vtab").forEach(tab => {
     tab.addEventListener("click", () => {
       const target = tab.dataset.vtab;
+      vstudio.activeVtab = target;       // remember which panel is open
       document.querySelectorAll(".vtab").forEach(t =>
         t.classList.toggle("active", t === tab));
       document.querySelectorAll("[data-vtab-panel]").forEach(p =>
