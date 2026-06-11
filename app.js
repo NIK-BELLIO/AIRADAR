@@ -121,6 +121,7 @@ const i18n = {
     vLogoStyleLabel: "Logo frame style",
     vLogoColorLabel: "Ring / badge color",
     vLogoSizeLabel: "Logo size",
+    vLogoShowLbl: "Show logo on",
     vAutoBrandTxt: "Auto-brand (match template)",
     vLogoTip: "Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.",
     vLogoStartLabel: "Logo start (s)",
@@ -418,6 +419,7 @@ const i18n = {
     vLogoStyleLabel: "استایل قاب لوگو",
     vLogoColorLabel: "رنگ حلقه / نشان",
     vLogoSizeLabel: "اندازه لوگو",
+    vLogoShowLbl: "نمایش لوگو در",
     vAutoBrandTxt: "برندینگ خودکار (هماهنگ با تمپلیت)",
     vLogoTip: "لوگو را آپلود کن، سپس برندینگ خودکار را بزن تا فوراً یک جاگذاری حرفه‌ای هماهنگ با رنگ تمپلیت بگیری.",
     vLogoStartLabel: "شروع لوگو (ثانیه)",
@@ -5148,6 +5150,7 @@ function loadStudioLogo(file) {
       try { v.play(); } catch (e) {}
       vsRedrawPreview();
       refreshTimelineClips();
+      vsLogoLoadedUI(file);
       vsStatus(state.lang === "fa" ? "لوگوی متحرک اضافه شد." : "Animated logo added.");
     });
     v.addEventListener("error", () => {
@@ -5164,12 +5167,42 @@ function loadStudioLogo(file) {
     vsAnalyzeLogo(img);   // detect letter segments for the Letter-cascade motion
     vsRedrawPreview();
     refreshTimelineClips();
+    vsLogoLoadedUI(file);
     vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
   };
   img.onerror = () => {
+    const box = $("#vsLogoBoxTxt");
+    if (box) box.textContent = state.lang === "fa" ? "⚠ بارگذاری لوگو ناموفق بود" : "⚠ Could not load that logo";
     vsStatus(state.lang === "fa" ? "بارگذاری لوگو ناموفق بود." : "Could not load that logo.");
   };
   img.src = vstudio.logoUrl;
+}
+
+// Update the upload box + show the remove button after a logo is in place.
+function vsLogoLoadedUI(file) {
+  const box = $("#vsLogoBoxTxt");
+  if (box) box.textContent = (state.lang === "fa" ? "✓ بارگذاری شد: " : "✓ Loaded: ") + (file ? file.name : "logo");
+  const rm = $("#vsLogoRemove");
+  if (rm) rm.style.display = "";
+}
+
+// Remove the current logo and reset the UI so a new one can be uploaded.
+function removeStudioLogo() {
+  if (vstudio.logoUrl) { try { URL.revokeObjectURL(vstudio.logoUrl); } catch (e) {} }
+  vstudio.logoEl = null;
+  vstudio.logoUrl = null;
+  vstudio.logoIsVideo = false;
+  vstudio.logoSegs = null;
+  vstudio.logoSrcCanvas = null;
+  const inp = $("#vsLogo"); if (inp) inp.value = "";
+  const box = $("#vsLogoBoxTxt");
+  if (box) box.textContent = state.lang === "fa"
+    ? "برای آپلود لوگو کلیک کن — PNG شفاف یا WebM/MP4"
+    : "Click to upload logo — PNG (transparent) or animated WebM/MP4";
+  const rm = $("#vsLogoRemove"); if (rm) rm.style.display = "none";
+  refreshTimelineClips();
+  vsRedrawPreview();
+  vsStatus(state.lang === "fa" ? "لوگو حذف شد." : "Logo removed.");
 }
 
 // When an animated (video) logo is present but the preview isn't actively
@@ -5281,17 +5314,20 @@ function setupTextDrag() {
     // full-frame cinematic news banner doesn't swallow every click.
     if (inBox(pt, vstudio.infoBox)) return "info";
     if (inBox(pt, vstudio.textBox)) return "text";
+    if (vstudio.logoEl && inBox(pt, vstudio.logoBox)) return "logo";
     if (inBox(pt, vstudio.newsBox)) return "news";
     return null;
   };
   const offsetsFor = (kind) => {
     if (kind === "news") return ["newsDX", "newsDY"];
     if (kind === "info") return ["infoDX", "infoDY"];
+    if (kind === "logo") return ["logoDX", "logoDY"];
     return ["textDX", "textDY"];
   };
   const scaleKeyFor = (kind) => {
     if (kind === "news") return "newsScale";
     if (kind === "info") return "infoScale";
+    if (kind === "logo") return "logoScaleManual";
     return "textScale";
   };
 
@@ -7974,6 +8010,14 @@ function drawStudioFrame(elapsed) {
 // slide type (media, intro, outro, content) — not just the media path.
 function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
   if (!vstudio.logoEl) return;
+  // "Show logo on": all / last slide / first slide
+  const showOn = vsVal("#vsLogoShow", "all");
+  if (showOn !== "all" && vstudio.slides && vstudio.slides.length > 1) {
+    const at = slideAtTime(elapsed);
+    const lastIdx = vstudio.slides.length - 1;
+    if (showOn === "last" && at.index !== lastIdx) return;
+    if (showOn === "first" && at.index !== 0) return;
+  }
   try {
   // ── LOGO OVERLAY — professional motion + placement + frame styles ──
   if (vstudio.logoEl) {
@@ -7999,6 +8043,11 @@ function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
     const posMap = { tl:["l","t"], tc:["c","t"], tr:["r","t"], ml:["l","m"], c:["c","m"], mr:["r","m"], bl:["l","b"], bc:["c","b"], br:["r","b"] };
     const pm = posMap[pos] || ["l","t"];
     lx = cxs[pm[0]]; ly = cys[pm[1]];
+    // manual drag offset (set by dragging the logo on the preview)
+    lx += (vstudio.logoDX || 0) * W;
+    ly += (vstudio.logoDY || 0) * H;
+    // store hitbox so the logo can be picked/dragged like other elements
+    vstudio.logoBox = { x: lx, y: ly, w: lw, h: lh };
 
     // motion progress: animate over 0.9s after the logo appears
     const motion = vsVal("#vsLogoMotion", "fade");
@@ -8905,7 +8954,7 @@ const VS_CONTROLS = [
   "#vsHeadline", "#vsSub", "#vsCta", "#vsTextPos", "#vsTextSize", "#vsHeadlineFont",
   "#vsMotion", "#vsTextAnim", "#vsOverlay",
   "#vsInfoOn", "#vsInfoJson", "#vsInfoStyle", "#vsInfoPos", "#vsInfoMotion",
-  "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
+  "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur", "#vsLogoShow", "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
   "#vsExportSize", "#vsExportQuality"
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
@@ -9547,10 +9596,23 @@ function bindEvents() {
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
   on("#vsLogo", "change", (e) => {
     const f = e.target.files[0];
-    loadStudioLogo(f);
+    if (!f) return;
     const box = $("#vsLogoBoxTxt");
-    if (box && f) box.textContent = (state.lang === "fa" ? "✓ بارگذاری شد: " : "✓ Loaded: ") + f.name;
+    // QuickTime .mov (often qtrle/ProRes) can't decode in browsers — warn early
+    const isMov = /\.mov$/i.test(f.name) || f.type === "video/quicktime";
+    if (isMov) {
+      if (box) box.textContent = state.lang === "fa"
+        ? "⚠ فایل .mov در مرورگر پخش نمی‌شود — WebM یا MP4 بده"
+        : "⚠ .mov can't play in browsers — use WebM or MP4";
+      vsStatus(state.lang === "fa"
+        ? "این فایل .mov پشتیبانی نمی‌شود. نسخه‌ی WebM را آپلود کن."
+        : "That .mov can't be decoded. Upload the WebM version instead.");
+      return;
+    }
+    if (box) box.textContent = (state.lang === "fa" ? "در حال بارگذاری… " : "Loading… ") + f.name;
+    loadStudioLogo(f);
   });
+  on("#vsLogoRemove", "click", removeStudioLogo);
 
   // Auto-brand: one tap → professional logo placement that matches the template.
   on("#vsAutoBrand", "click", () => {
@@ -9570,6 +9632,7 @@ function bindEvents() {
     setSel("#vsLogoColor", "auto");                   // match template accent
     setSel("#vsLogoStart", "0");
     setSel("#vsLogoDur", isVid ? "4" : "0");          // video plays ~4s, image stays
+    setSel("#vsLogoShow", "last");                    // brand reveal on the final slide
     vsPushHistory();
     refreshTimelineClips();
     vsRedrawPreview();
@@ -9917,7 +9980,7 @@ function bindEvents() {
     "#vsNewsOn", "#vsNewsKicker", "#vsNewsHeadline", "#vsNewsSource", "#vsNewsStyle", "#vsNewsAccent", "#vsNewsClock", "#vsNewsMotion",
     "#vsDuration", "#vsFilter", "#vsSpeed", "#vsTransition", "#vsGrain",
     "#vsIntro", "#vsIntroSub", "#vsIntroMotion", "#vsOutro",
-    "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur"
+    "#vsLogoPos", "#vsLogoMotion", "#vsLogoStyle", "#vsLogoColor", "#vsLogoSize", "#vsLogoStart", "#vsLogoDur", "#vsLogoShow"
   ];
   const vsRefresh = () => {
     refreshTimelineClips();
