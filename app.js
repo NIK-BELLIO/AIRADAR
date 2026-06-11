@@ -123,6 +123,7 @@ const i18n = {
     vLogoSizeLabel: "Logo size",
     vLogoShowLbl: "Show logo on",
     vLogoAdvLbl: "Advanced styling",
+    vLogoSampleLbl: "Or try a sample logo",
     vAutoBrandTxt: "Auto-brand (match template)",
     vLogoTip: "Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.",
     vLogoStartLabel: "Logo start (s)",
@@ -422,6 +423,7 @@ const i18n = {
     vLogoSizeLabel: "اندازه لوگو",
     vLogoShowLbl: "نمایش لوگو در",
     vLogoAdvLbl: "تنظیمات پیشرفته",
+    vLogoSampleLbl: "یا یک لوگوی نمونه را امتحان کن",
     vAutoBrandTxt: "برندینگ خودکار (هماهنگ با تمپلیت)",
     vLogoTip: "لوگو را آپلود کن، سپس برندینگ خودکار را بزن تا فوراً یک جاگذاری حرفه‌ای هماهنگ با رنگ تمپلیت بگیری.",
     vLogoStartLabel: "شروع لوگو (ثانیه)",
@@ -5180,7 +5182,31 @@ function loadStudioLogo(file) {
   img.src = vstudio.logoUrl;
 }
 
-// Update the upload box + show the remove button after a logo is in place.
+// Load one of the sample logos shipped alongside the site (animated WebM).
+function loadSampleLogo(fileName) {
+  if (vstudio.logoUrl) { try { URL.revokeObjectURL(vstudio.logoUrl); } catch (e) {} }
+  vstudio.logoUrl = fileName;           // relative URL next to index.html
+  vstudio.logoIsVideo = true;
+  const v = document.createElement("video");
+  v.muted = true; v.loop = true; v.playsInline = true; v.crossOrigin = "anonymous";
+  v.addEventListener("loadeddata", () => {
+    vstudio.logoEl = v;
+    vstudio.logoSegs = null;
+    try { v.play(); } catch (e) {}
+    vsRedrawPreview();
+    refreshTimelineClips();
+    vsLogoLoadedUI({ name: fileName });
+    vsStatus(state.lang === "fa" ? "لوگوی نمونه بارگذاری شد." : "Sample logo loaded.");
+  });
+  v.addEventListener("error", () => {
+    vsStatus(state.lang === "fa"
+      ? "بارگذاری لوگوی نمونه ناموفق بود (فایل را کنار سایت آپلود کن)."
+      : "Couldn't load the sample (upload the .webm next to your site).");
+  });
+  v.src = fileName;
+}
+
+// Load one of the sample logos shipped alongside the site (animated WebM).
 function vsLogoLoadedUI(file) {
   const box = $("#vsLogoBoxTxt");
   if (box) box.textContent = (state.lang === "fa" ? "✓ بارگذاری شد: " : "✓ Loaded: ") + (file ? file.name : "logo");
@@ -8046,7 +8072,7 @@ function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
     const targetW = W * sizeF;
     const lw = targetW, lh = targetW * (lh0 / lw0);
     const pad = W * 0.035;
-    const pos = vsVal("#vsLogoPos", "tl");
+    const pos = vsVal("#vsLogoPos", "br");
     // 9-point placement grid
     let lx, ly;
     const cxs = { l: pad, c: (W - lw) / 2, r: W - lw - pad };
@@ -8799,18 +8825,53 @@ function heraRenderTimeline() {
     blocks.appendChild(block);
   });
 
-  // Sync waveform canvas width to total timeline width
+  // Sync waveform canvas width to the ACTUAL rendered blocks width (not the
+  // theoretical total) so the waveform's seconds line up with the scene blocks
+  // even when short scenes hit their min-width.
+  const actualPx = blocks.scrollWidth || totalPx;
   if (waveCanvas) {
-    waveCanvas.style.width = totalPx + "px";
-    waveCanvas.style.minWidth = totalPx + "px";
+    waveCanvas.style.width = actualPx + "px";
+    waveCanvas.style.minWidth = actualPx + "px";
   }
   if (waveRow) {
-    waveRow.style.width = totalPx + "px";
-    waveRow.style.minWidth = totalPx + "px";
+    waveRow.style.width = actualPx + "px";
+    waveRow.style.minWidth = actualPx + "px";
   }
 
   // Draw waveform
   heraDrawWaveform(waveCanvas, total);
+
+  // ── LOGO LAYER (top) — show the logo's time window above all scenes ──
+  const logoLayer = $("#vsLogoLayer");
+  const logoBar = $("#vsLogoLayerBar");
+  if (logoLayer && logoBar) {
+    if (vstudio.logoEl) {
+      logoLayer.style.display = "";
+      logoLayer.style.width = actualPx + "px";
+      const lStart = parseFloat(vsVal("#vsLogoStart", "0")) || 0;
+      const lDur = parseFloat(vsVal("#vsLogoDur", "0")) || 0;
+      const showOn = vsVal("#vsLogoShow", "all");
+      let from = lStart, to = lDur > 0 ? lStart + lDur : total;
+      // if bound to a specific slide, span that slide
+      if (showOn === "last" && scenes.length) {
+        let acc = 0; for (let i = 0; i < scenes.length - 1; i++) acc += parseFloat(scenes[i].dur ?? scenes[i].duration ?? 4);
+        from = acc; to = total;
+      } else if (showOn === "first" && scenes.length) {
+        from = 0; to = parseFloat(scenes[0].dur ?? scenes[0].duration ?? 4);
+      }
+      from = Math.max(0, Math.min(total, from));
+      to = Math.max(from, Math.min(total, to));
+      const leftPx = (from / total) * actualPx;
+      const wPx = Math.max(40, ((to - from) / total) * actualPx);
+      logoBar.style.left = leftPx + "px";
+      logoBar.style.width = wPx + "px";
+      const txt = $("#vsLogoLayerTxt");
+      if (txt) txt.textContent = (state.lang === "fa" ? "لوگو" : "Logo") +
+        "  " + from.toFixed(1) + "→" + (to >= total ? (state.lang==="fa"?"پایان":"end") : to.toFixed(1) + "s");
+    } else {
+      logoLayer.style.display = "none";
+    }
+  }
 
   // Update playhead
   updateTimeline(vstudio.position || 0, total);
@@ -9624,6 +9685,13 @@ function bindEvents() {
     loadStudioLogo(f);
   });
   on("#vsLogoRemove", "click", removeStudioLogo);
+
+  // Sample logos shipped with the site — load by URL (no upload needed).
+  on("#vsLogoSample", "change", (e) => {
+    const file = e.target.value;
+    if (!file) { removeStudioLogo(); return; }
+    loadSampleLogo(file);
+  });
 
   // Auto-brand: one tap → professional logo placement that matches the template.
   on("#vsAutoBrand", "click", () => {
