@@ -5146,7 +5146,7 @@ function loadStudioLogo(file) {
       vstudio.logoEl = v;
       vstudio.logoSegs = null;            // letter cascade not applicable
       try { v.play(); } catch (e) {}
-      if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+      vsRedrawPreview();
       refreshTimelineClips();
       vsStatus(state.lang === "fa" ? "لوگوی متحرک اضافه شد." : "Animated logo added.");
     });
@@ -5162,7 +5162,7 @@ function loadStudioLogo(file) {
   img.onload = () => {
     vstudio.logoEl = img;
     vsAnalyzeLogo(img);   // detect letter segments for the Letter-cascade motion
-    if (vstudio.mediaEl && !vstudio.rendering) drawStudioFrame(0);
+    vsRedrawPreview();
     refreshTimelineClips();
     vsStatus(state.lang === "fa" ? "لوگو اضافه شد." : "Logo added.");
   };
@@ -5170,6 +5170,39 @@ function loadStudioLogo(file) {
     vsStatus(state.lang === "fa" ? "بارگذاری لوگو ناموفق بود." : "Could not load that logo.");
   };
   img.src = vstudio.logoUrl;
+}
+
+// When an animated (video) logo is present but the preview isn't actively
+// playing, keep repainting so the logo's own motion is visible while editing.
+let _vsLogoIdleRAF = null;
+function vsLogoIdleLoop() {
+  const isVid = vstudio.logoEl && vstudio.logoIsVideo;
+  if (isVid && !vstudio.rendering && !vstudio.playing) {
+    try { drawStudioFrame(vstudio.position || 0); } catch (e) {}
+    _vsLogoIdleRAF = requestAnimationFrame(vsLogoIdleLoop);
+  } else {
+    _vsLogoIdleRAF = null;
+  }
+}
+function vsStartLogoIdleLoop() {
+  if (!_vsLogoIdleRAF) _vsLogoIdleRAF = requestAnimationFrame(vsLogoIdleLoop);
+}
+
+// Redraw the studio preview whenever there's anything to show (media OR slides
+// OR an intro/news scene) — used after a logo is added/changed so it appears
+// even in slide-based projects (which have no single vstudio.mediaEl).
+function vsRedrawPreview() {
+  if (vstudio.rendering) return;
+  const hasContent = vstudio.mediaEl
+    || (vstudio.slides && vstudio.slides.some(s => s.ready))
+    || ($("#vsInfoOn") && $("#vsInfoOn").checked)
+    || ($("#vsNewsOn") && $("#vsNewsOn").checked)
+    || vstudio.logoEl;
+  if (hasContent) {
+    try { drawStudioFrame(vstudio.position || 0); } catch (e) { console.warn("[logo] redraw failed", e); }
+  }
+  // keep animated logos moving while idle
+  if (vstudio.logoEl && vstudio.logoIsVideo) vsStartLogoIdleLoop();
 }
 
 // Detect letter segments in a wordmark logo by scanning for empty columns
@@ -9512,7 +9545,12 @@ function bindEvents() {
   });
   renderSlideList();
   on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
-  on("#vsLogo", "change", (e) => loadStudioLogo(e.target.files[0]));
+  on("#vsLogo", "change", (e) => {
+    const f = e.target.files[0];
+    loadStudioLogo(f);
+    const box = $("#vsLogoBoxTxt");
+    if (box && f) box.textContent = (state.lang === "fa" ? "✓ بارگذاری شد: " : "✓ Loaded: ") + f.name;
+  });
 
   // Auto-brand: one tap → professional logo placement that matches the template.
   on("#vsAutoBrand", "click", () => {
@@ -9534,7 +9572,7 @@ function bindEvents() {
     setSel("#vsLogoDur", isVid ? "4" : "0");          // video plays ~4s, image stays
     vsPushHistory();
     refreshTimelineClips();
-    if (!vstudio.rendering) drawStudioFrame(vstudio.previewTime || 0);
+    vsRedrawPreview();
     vsStatus(state.lang === "fa"
       ? "برندینگ خودکار اعمال شد ✦"
       : "Auto-brand applied ✦");
