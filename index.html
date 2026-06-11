@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v293" />
+    <link rel="stylesheet" href="styles.css?v=v294" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.11 — single-threaded, works on a plain static site
@@ -92,7 +92,12 @@
 
       /* logo auto-brand button + tip */
       .vs-logo-layer { position: relative; height: 26px; margin-bottom: 6px; }
-      .vs-logo-layer-bar { position: absolute; top: 0; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 7px; background: linear-gradient(90deg, rgba(0,212,255,0.25), rgba(216,183,106,0.25)); border: 1px solid rgba(0,212,255,0.5); font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+      .vs-logo-layer-bar { position: absolute; top: 0; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 7px; background: linear-gradient(90deg, rgba(0,212,255,0.3), rgba(216,183,106,0.3)); border: 1px solid rgba(0,212,255,0.6); font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: grab; user-select: none; overflow: hidden; }
+      .vs-logo-layer-bar:active { cursor: grabbing; }
+      .vs-logo-handle { position: absolute; top: 0; bottom: 0; width: 11px; cursor: ew-resize; z-index: 2; }
+      .vs-logo-handle::after { content: ""; position: absolute; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: rgba(255,255,255,0.85); }
+      .vs-logo-handle-l { left: 0; } .vs-logo-handle-l::after { left: 3px; }
+      .vs-logo-handle-r { right: 0; } .vs-logo-handle-r::after { right: 3px; }
       .vs-logo-layer-ico { color: #00d4ff; }
       .vs-logo-adv { margin: 2px 0 4px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
       .vs-logo-adv summary { cursor: pointer; padding: 9px 12px; font-size: 12px; font-weight: 700; color: var(--muted); list-style: none; user-select: none; display: flex; align-items: center; gap: 6px; }
@@ -1437,10 +1442,10 @@
                     <option value="sample-logo-roomvu-cascade.webm">roomvu — letter cascade</option>
                   </select>
                 </label>
-                <button id="vsAutoBrand" class="vs-autobrand-btn" type="button">
-                  <span>✦</span> <span data-i18n="vAutoBrandTxt">Auto-brand (match template)</span>
+                <button id="vsPlaceLogo" class="vs-autobrand-btn" type="button">
+                  <span>＋</span> <span data-i18n="vPlaceLogoTxt">Place logo on video</span>
                 </button>
-                <p class="vs-logo-tip" id="vsLogoTip" data-i18n="vLogoTip">Upload your logo, then tap Auto-brand for an instant professional placement that matches your template colors.</p>
+                <p class="vs-logo-tip" id="vsLogoTip" data-i18n="vLogoTip">After uploading, tap "Place logo". Then drag the logo on the preview to move it, and drag the ends of its bar on the timeline to set when it appears.</p>
                 <div class="vs-logo-timing">
                   <label><span data-i18n="vLogoStartLabel">Logo start (s)</span><input id="vsLogoStart" type="number" min="0" step="0.5" value="0" /></label>
                   <label><span data-i18n="vLogoDurLabel">Logo duration (s, 0 = end)</span><input id="vsLogoDur" type="number" min="0" step="0.5" value="0" /></label>
@@ -1557,8 +1562,10 @@
                   <div class="vs-scene-scroll" id="vsSceneScroll">
                     <div class="vs-logo-layer" id="vsLogoLayer" style="display:none;">
                       <div class="vs-logo-layer-bar" id="vsLogoLayerBar">
+                        <div class="vs-logo-handle vs-logo-handle-l" id="vsLogoHandleL"></div>
                         <span class="vs-logo-layer-ico">★</span>
                         <span id="vsLogoLayerTxt">Logo</span>
+                        <div class="vs-logo-handle vs-logo-handle-r" id="vsLogoHandleR"></div>
                       </div>
                     </div>
                     <div class="vs-scene-blocks" id="vsSceneBlocks"></div>
@@ -1802,7 +1809,7 @@
           <span class="ld-logo">◉</span>
           <div>
             <div class="ld-title" id="ldTitle">AI RADAR</div>
-            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v293</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v294</div>
           </div>
         </div>
         <div class="ld-nav-center">
@@ -1876,7 +1883,7 @@
     </div>
     <!-- /FULLSCREEN LIVE DASHBOARD -->
 
-    <script src="app.js?v=v293"></script>
+    <script src="app.js?v=v294"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
