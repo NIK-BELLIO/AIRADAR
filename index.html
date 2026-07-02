@@ -1069,7 +1069,7 @@
                         <span class="vs-switch-txt" id="vsMusicLbl" data-i18n="vMusicLbl">🎵 Background music (cinematic, auto-fades)</span>
                       </label>
                       <label class="vs-switch">
-                        <input id="vsVoiceover" type="checkbox" />
+                        <input id="vsVoiceover" type="checkbox" checked />
                         <span class="vs-switch-track"></span>
                         <span class="vs-switch-txt" id="vsVoiceoverLbl" data-i18n="vVoiceoverLbl">🎙️ AI voiceover narration (free)</span>
                       </label>
@@ -1090,8 +1090,7 @@
                         </select>
                       </div>
                     </div>
-                    <input id="vsPexelsKey" type="hidden" value="" />
-                    <details class="vs-smart-model" style="margin-top:10px;border:1px solid rgba(216,183,106,0.25);border-radius:10px;padding:8px 10px;">
+                    <details class="vs-smart-model" hidden>
                       <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#d8b76a;list-style:none;">⚡ Smarter model (optional)</summary>
                       <p style="font-size:11.5px;opacity:0.75;margin:8px 0 6px;">Paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#d8b76a;">OpenRouter</a> API key to write scripts with a top-tier model. Leave empty to keep using the free model. Your key stays in your browser.</p>
                       <input id="vsApiKey" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px;" />
@@ -1102,6 +1101,11 @@
                         <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
                         <option value="deepseek/deepseek-chat">DeepSeek V3</option>
                       </select>
+                      <label style="display:block;font-size:11.5px;margin:10px 0 4px;">Pollinations key — Voice-over &amp; AI music</label>
+                      <input id="vsPollinationsKey" type="password" placeholder="pk_... or sk_..." autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px;" />
+                      <label style="display:block;font-size:11.5px;margin:8px 0 4px;">Pexels key — matched video footage</label>
+                      <input id="vsPexelsKey" type="password" placeholder="Pexels API key" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px;" />
+                      <p style="font-size:10.5px;opacity:.7;margin:4px 0;">Keys stay in this tab and are never saved in the project.</p>
                     </details>
 <div class="vs-auto-actions">
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>

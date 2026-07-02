@@ -1,12 +1,13 @@
 // Pollinations API key — unlocks the strong text/image models on the free
 // tier. NOTE: this is visible in the public source; if its credit is ever
 // drained, generate a new key at enter.pollinations.ai and replace it here.
-const VS_POLLINATIONS_KEY = "sk_fxKqS1gG6wVVttINlEowCNP3ktoJ0TtD";
+const VS_POLLINATIONS_KEY = "";
 // Optional smarter-model key (used by the Video Studio when the in-UI key field
 // is empty). Sent to an OpenAI-compatible chat-completions endpoint. If this key
 // is from a provider other than OpenRouter, change VS_USER_API_BASE to its URL.
-const VS_USER_API_KEY = "sk-nry-JiO0YU1N_gtgzJdADDT3XcYUboNpEouFlUZDYrMuOOk";
+const VS_USER_API_KEY = "";
 const VS_USER_API_BASE = "https://openrouter.ai/api/v1/chat/completions";
+const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 const VS_BUILD = "v400-pro";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#d8b76a;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
@@ -4463,6 +4464,10 @@ function vsBuildStoryLocal(text) {
 
 // AI chat for the auto-builder — 100% free via Pollinations.ai.
 // No API key, no login, no "Low Balance" popup ever. Puter is NOT used.
+function vsPollinationsKey() {
+  return (((document.querySelector("#vsPollinationsKey") || {}).value || "").trim()) || VS_POLLINATIONS_KEY || "";
+}
+
 async function vsAutoAiChat(prompt, opts) {
   opts = opts || {};
   const seed = Math.floor(Math.random() * 1e6);
@@ -4485,11 +4490,8 @@ async function vsAutoAiChat(prompt, opts) {
       temperature: 0.7, seed: seed
     };
     if (useJson) body.response_format = { type: "json_object" };
-    const target = viaProxy
-      ? "https://corsproxy.io/?url=" + encodeURIComponent(endpoint)
-      : endpoint;
+    const target = VS_WORKER_BASE + "/chat";
     const headers = { "Content-Type": "application/json" };
-    if (VS_POLLINATIONS_KEY) headers["Authorization"] = "Bearer " + VS_POLLINATIONS_KEY;
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), timeoutMs);   // never hang forever
     let resp;
@@ -4544,15 +4546,8 @@ async function vsAutoAiChat(prompt, opts) {
   // With the built-in key, the strong free models unlock. Try them in order of
   // quality, then fall back to the always-free default. `opts.fast` (used by the
   // chat assistant) prefers the quickest models and does a single pass.
-  const models = opts.fast
-    ? ["openai", "gemini"]
-    : (VS_POLLINATIONS_KEY
-        ? ["openai-large", "claude", "openai-reasoning", "gemini", "openai"]
-        : ["openai"]);
-  const endpoints = [
-    "https://text.pollinations.ai/openai",
-    "https://gen.pollinations.ai/v1/chat/completions"
-  ];
+  const models = ["openai"];
+  const endpoints = [VS_WORKER_BASE + "/chat"];
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const passes = opts.fast ? 1 : 3;
   // Try every model/endpoint combo. The whole sweep is retried a couple of
@@ -4569,13 +4564,6 @@ async function vsAutoAiChat(prompt, opts) {
       }
     }
     // proxied last resort within each pass (skip in fast mode)
-    if (!opts.fast) {
-      for (const useJson of (wantJson ? [true, false] : [false])) {
-        if (vstudio._batchCancel) return null;
-        try { return await postChat("https://text.pollinations.ai/openai", "openai", useJson, true); }
-        catch (e) { /* next */ }
-      }
-    }
     if (vstudio._batchCancel) return null;
     if (pass < passes - 1) await sleep(1200 * (pass + 1));   // back off, then retry
   }
@@ -4671,9 +4659,10 @@ Turn the SOURCE below into a complete, professional short-form video script. If 
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"the core story in max 6 words","subtitle":"max 8 words that add real context","kicker":"1-2 ALL-CAPS category words","source":"the publication or outlet name if known, else a fitting newsroom label","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"a sharp 3-6 word hook headline","sub":"max 8 words framing the story"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline (max 5 words)","stats":[{"label":"short label","value":"formatted e.g. $2.4B or 34%","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"one vivid, specific sentence (max 12 words)","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences explaining the verified figures and why they matter","evidence":"short source-grounded supporting fact","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"short source-grounded supporting fact","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence"}}
 
 RULES:
+0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain the client implication, not merely repeat the headline.
 1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
 2. INFOGRAPHIC: only with real quantitative data (2-5 stats, realistic values). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered.
 3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
@@ -4682,6 +4671,10 @@ RULES:
 6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
 7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
 8. Every line must be accurate and specific. Real numbers, real names, real detail.
+9. Write narration for the ear: natural transitions, varied sentence length, no bullet-list rhythm, no generic hype.
+10. Separate fact from inference. Never invent numbers, quotes, dates, rankings or attribution.
+11. Keep the SOURCE language. Narration and on-screen copy must use the same language.
+12. Build a real arc: hook, context, strongest evidence, consequence, takeaway. Every scene must advance the story.
 SOURCE: """${text.slice(0, 7000)}"""`;
   try {
     const raw = await vsAutoAiChat(prompt);
@@ -4711,10 +4704,13 @@ SOURCE: """${text.slice(0, 7000)}"""`;
       : `Built a ${vstudio.slides.length}-scene video.`);
   } catch (e) {
     const msg = (e && e.message) ? e.message : String(e);
-    vsBuildStoryLocal(text || url);
+    vsAutoStatus(state.lang === "fa"
+      ? `مدل هوشمند پاسخ نداد (${msg}). یک کلید معتبر OpenRouter وارد کن؛ ویدئوی ساده ساخته نشد.`
+      : `The smart model failed (${msg}). Add a valid OpenRouter key; no basic fallback video was generated.`);
+    return;
     vsAutoStatus(state.lang === "fa"
       ? `هوش مصنوعی جواب نداد (${msg}). فعلاً ${vstudio.slides.length} صحنه ساده ساخته شد.`
-      : `AI didn't respond (${msg}). Built ${vstudio.slides.length} basic scenes for now.`);
+      : `The smart model failed (${msg}). Add a valid OpenRouter key; no basic fallback video was generated.`);
   }
 }
 
@@ -4796,6 +4792,13 @@ async function vsFetchArticle(url) {
 // Build a video from the AI's ordered "sections" (infographic vs text).
 function vsAssembleFromSections(data, skipFootage) {
   vstudio.slides = [];
+  vstudio.storyData = data;
+  const narrationDuration = (text, fallback) => {
+    const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+    if (!words) return fallback;
+    const speed = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
+    return Math.max(fallback, Math.min(14, (words / (145 * speed)) * 60 + 0.8));
+  };
 
   // Palette → background pool mapping for cinematic variety
   const palettes = {
@@ -4828,7 +4831,17 @@ function vsAssembleFromSections(data, skipFootage) {
   const srcLabel = srcRaw ? ("by " + srcRaw) : "";
 
   // Helper: clean settings with all overlays explicitly OFF
-  const cleanSet2 = () => { const s = vsCaptureSettings(); s["#vsInfoOn"] = false; s["#vsNewsOn"] = false; return s; };
+  const cleanSet2 = () => {
+    const s = vsCaptureSettings();
+    s["#vsInfoOn"] = false; s["#vsNewsOn"] = false;
+    // A newly assembled video must never inherit manual zoom/position from the
+    // previously opened batch item. Every scene starts clean and owns its state.
+    s._textDX = 0; s._textDY = 0; s._textScale = 1;
+    s._infoDX = 0; s._infoDY = 0; s._infoScale = 1;
+    s._newsDX = 0; s._newsDY = 0; s._newsScale = 1;
+    s._mediaDX = 0; s._mediaDY = 0; s._mediaScale = 1;
+    return s;
+  };
 
   // intro — dramatic entrance with a precise hook + the source line
   const introMain = (data.intro && data.intro.main) || data.title || "Today's story";
@@ -4839,7 +4852,7 @@ function vsAssembleFromSections(data, skipFootage) {
     introSub: "",                       // intro shows ONLY the source line (no subtitle)
     _sourceLine: srcLabel,              // "by X" rendered large under the title
     introMotion: "blur",
-    headline: "", duration: 3, settings: cleanSet2(),
+    headline: "", duration: narrationDuration(data.intro && data.intro.narration, 3), settings: cleanSet2(),
     _kicker: kicker || "AI RADAR",
     _timelineLabel: introMain
   });
@@ -4905,7 +4918,8 @@ function vsAssembleFromSections(data, skipFootage) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: 6, settings: set, _standaloneInfo: true,
+        duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
+        _narration: sec.narration || "", _evidence: sec.evidence || "",
         _caption: sec.caption || "Key numbers",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
@@ -4948,7 +4962,8 @@ function vsAssembleFromSections(data, skipFootage) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: 6, settings: set, _standaloneNews: true,
+        duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
+        _narration: sec.narration || "", _evidence: sec.evidence || "",
         _caption: sec.caption || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
@@ -4963,7 +4978,7 @@ function vsAssembleFromSections(data, skipFootage) {
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: outroMain,
     introSub: outroSub, introMotion: "rise",
-    headline: "", duration: 3, settings: cleanSet2(),
+    headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3), settings: cleanSet2(),
     _timelineLabel: outroMain
   });
 
@@ -5084,8 +5099,53 @@ function vsAudioBufferToWav(buffer) {
   return new Blob([buf], { type: "audio/wav" });
 }
 
-async function vsEnsureDefaultMusic() {
+async function vsGenerateAiMusic(data) {
+  const spec = (data && data.music) || {};
+  const duration = Math.max(8, Math.min(90, Math.ceil(studioDuration ? studioDuration() : 35)));
+  const mood = spec.mood || "investigative";
+  const energy = spec.energy || "medium";
+  const bpm = Number(spec.bpm) || 92;
+  const cacheKey = [mood, energy, bpm, duration].join(":");
+  vstudio._aiMusicCache = vstudio._aiMusicCache || {};
+  if (vstudio._aiMusicCache[cacheKey]) return vstudio._aiMusicCache[cacheKey];
+  const prompt = `${mood} ${energy}-energy cinematic news underscore, ${bpm} BPM, instrumental only, no vocals, clear opening, subtle build, restrained ending, mixed under spoken narration`;
   try {
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 90000);
+    let resp;
+    try {
+      resp = await fetch(VS_WORKER_BASE + "/music", {
+        method: "POST", signal: ctrl.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: prompt, duration })
+      });
+    } finally { clearTimeout(tm); }
+    const type = (resp.headers.get("content-type") || "").toLowerCase();
+    if (!resp.ok || type.includes("json") || type.includes("text/")) return null;
+    const blob = await resp.blob();
+    if (blob.size < 1000) return null;
+    if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = await vstudio._playCtx.decodeAudioData((await blob.arrayBuffer()).slice(0));
+    const result = { buffer, url: URL.createObjectURL(blob) };
+    vstudio._aiMusicCache[cacheKey] = result;
+    return result;
+  } catch (e) { return null; }
+}
+
+async function vsEnsureDefaultMusic(data) {
+  try {
+    const generated = await vsGenerateAiMusic(data || vstudio.storyData);
+    if (generated) {
+      vstudio._defaultMusicBuffer = generated.buffer;
+      vstudio._defaultMusicUrl = generated.url;
+      const aiEl = new Audio(generated.url);
+      aiEl.loop = true; aiEl.preload = "auto";
+      return aiEl;
+    }
+    vsStatus(state.lang === "fa"
+      ? "موسیقی AI ساخته نشد؛ اعتبار Audio در Pollinations فعال نیست."
+      : "AI music failed; Pollinations Audio credit is not enabled.");
+    return null;
     if (!vstudio._defaultMusicUrl) {
       const sr = 44100, dur = 20;
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -5217,6 +5277,55 @@ async function vsEnsureDefaultMusic() {
 // Build a short narration script from a video's data and turn it into a free
 // MP3 voiceover via Pollinations TTS. Returns {url, el} | null.
 async function vsGenerateNarration(data, voice) {
+  const parts = [];
+  if (data && data.intro) parts.push(data.intro.narration || data.intro.main || "");
+  ((data && data.sections) || []).forEach(sec => parts.push(sec.narration || sec.headline || sec.title || ""));
+  if (data && data.outro) parts.push(data.outro.narration || data.outro.main || "");
+  let script = parts.filter(Boolean).join(". ").replace(/[#*_`]/g, "").replace(/\.\.+/g, ".").trim();
+  if (!script) return null;
+  if (script.length > 3800) {
+    const cut = script.slice(0, 3800);
+    const stop = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+    script = cut.slice(0, stop > 2500 ? stop + 1 : 3800);
+  }
+  const v = voice || ((document.querySelector("#vsVoice") || {}).value) || "nova";
+  let blob = null;
+  try {
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 60000);
+    let resp;
+    try {
+      resp = await fetch(VS_WORKER_BASE + "/speech", {
+        method: "POST", signal: ctrl.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: script, voice: v, response_format: "mp3" })
+      });
+    } finally { clearTimeout(tm); }
+    const type = (resp.headers.get("content-type") || "").toLowerCase();
+    if (resp.ok && !type.includes("json") && !type.includes("text/")) {
+      const candidate = await resp.blob();
+      if (candidate.size > 800) blob = candidate;
+    }
+  } catch (e) {}
+  if (!blob) {
+    vsStatus(state.lang === "fa"
+      ? "Voice-over ساخته نشد؛ اعتبار Audio در Pollinations فعال نیست."
+      : "Voice-over failed; Pollinations Audio credit is not enabled.");
+    return null;
+  }
+  const objUrl = URL.createObjectURL(blob);
+  const el = new Audio(objUrl); el.preload = "auto";
+  let buffer = null;
+  try {
+    if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+    buffer = await vstudio._playCtx.decodeAudioData((await blob.arrayBuffer()).slice(0));
+  } catch (e) {}
+  return { url: objUrl, el, buffer, script };
+}
+
+// Original two-provider path remains as a fallback if the current TTS endpoint
+// is unavailable, preserving the reliability of the previous Studio build.
+async function vsGenerateNarrationLegacy(data, voice) {
   try {
     const parts = [];
     if (data.intro && data.intro.main) parts.push(String(data.intro.main).replace(/[#*_`]/g, ""));
@@ -5242,7 +5351,7 @@ async function vsGenerateNarration(data, voice) {
       // 2) Pollinations fallbacks
       "https://text.pollinations.ai/" + encodeURIComponent(script) + "?model=openai-audio&voice=" + encodeURIComponent(v)
     ];
-    if (VS_POLLINATIONS_KEY) urls.push(urls[1] + "&token=" + encodeURIComponent(VS_POLLINATIONS_KEY));
+    if (vsPollinationsKey()) urls.push(urls[1] + "&token=" + encodeURIComponent(vsPollinationsKey()));
     let blob = null;
     for (const u of urls) {
       try {
@@ -5290,7 +5399,7 @@ async function vsAutoGenerateBackgrounds(data) {
                       "new family home", "neighborhood houses", "front porch home", "modern house exterior",
                       "moving into home", "home for rent"];
   const pexelsOn = document.querySelector("#vsUsePexels") && document.querySelector("#vsUsePexels").checked;
-  const pexelsKey = (VS_PEXELS_KEY || (document.querySelector("#vsPexelsKey") || {}).value || "").trim();
+  const pexelsKey = (((document.querySelector("#vsPexelsKey") || {}).value || "").trim()) || VS_PEXELS_KEY || "";
   const aspect = vsVal("#vsAspect", "9:16");
   let made = 0;
 
@@ -5812,6 +5921,7 @@ Return ONLY valid compact JSON (no markdown):
 {"title":"a punchy headline that names ${shortName} AND echoes the article subject (e.g. \\"${shortName}: <angle of ${topic}>\\"), max 7 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"hook naming ${shortName} tied to the topic, 3-6 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover"},{"type":"infographic","caption":"2-3 words","title":"chart headline (max 30 chars)","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking"}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
 
 RULES:
+0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration interprets evidence and explains the client implication; it never just repeats the headline.
 1. EXACTLY ${contentCount} content sections (besides intro/outro).
 2. EVERY scene stays on "${topic}" for ${shortName}, each a DIFFERENT angle (e.g. home prices, affordability rank, income-to-cost, growth, why best/worst). NEVER repeat a fact, number, phrase, caption or headline across scenes — all UNIQUE.
 3. title AND intro.main must clearly name ${shortName} and echo the article subject "${topic}".
@@ -5831,7 +5941,10 @@ ${cityFound ? 'SOURCE TEXT about ' + name + ': """' + excerpt + '"""' : 'Write f
       aiFailStreak = 0;                                  // AI is working
     } else {
       aiFailStreak++;
-      data = vsBasicCityData(name, excerpt, topic, source, contentCount);   // guaranteed local build
+      vsAutoStatus(fa
+        ? "مدل هوشمند در دسترس نیست؛ ساخت نسخه‌های ساده متوقف شد. کلید معتبر OpenRouter وارد کن."
+        : "The smart model is unavailable. Basic batch videos were stopped; add a valid OpenRouter key.");
+      break;
     }
     if (data && Array.isArray(data.sections) && data.sections.length) {
       if (!data.title) data.title = name;
@@ -5883,16 +5996,27 @@ ${cityFound ? 'SOURCE TEXT about ' + name + ': """' + excerpt + '"""' : 'Write f
 async function vsLoadBatchVideo(i) {
   const v = vstudio.batchVideos[i];
   if (!v) return;
+  const previous = vstudio.batchVideos[vstudio.batchCurrent];
+  if (previous && previous !== v && vstudio.slides.length) {
+    vsSaveActiveSlide();
+    previous._slideSettings = vstudio.slides.map(s => JSON.parse(JSON.stringify(s.settings || {})));
+  }
   vstudio.batchCurrent = i;
   const fa = state.lang === "fa";
   vsAssembleFromSections(v.data, true);          // rebuilds slides (no media yet)
+  if (v._slideSettings) {
+    v._slideSettings.forEach((settings, idx) => {
+      if (vstudio.slides[idx] && settings) vstudio.slides[idx].settings = JSON.parse(JSON.stringify(settings));
+    });
+    if (vstudio.slides[0]) vsApplySettings(vstudio.slides[0].settings);
+  }
   vsRenderBatchList();
 
   // Background music (default ON) — cinematic rhythmic bed, ducked under voice.
   const musicTog = document.querySelector("#vsMusic");
   if (musicTog && musicTog.checked && !vstudio._userMusic) {
     vsAutoStatus(fa ? `ساخت موسیقی…` : `Building music…`);
-    const dm = await vsEnsureDefaultMusic();
+    const dm = await vsEnsureDefaultMusic(v.data);
     if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
       try { console.log("[audio] music ready for", v.name); } catch(e){} }
     else { vstudio._musicBuffer = null; try { console.warn("[audio] music generation FAILED"); } catch(e){} }
@@ -6184,7 +6308,7 @@ async function vsGenerateImage(promptText, aspect) {
   const enc = encodeURIComponent(styled);
   // Build a SHORT list of candidate URLs (fail fast — a hung image must not
   // freeze the whole build). Pollinations sometimes errors on one model/host.
-  const tok = VS_POLLINATIONS_KEY ? ("&token=" + encodeURIComponent(VS_POLLINATIONS_KEY)) : "";
+  const tok = vsPollinationsKey() ? ("&token=" + encodeURIComponent(vsPollinationsKey())) : "";
   const sd = Math.floor(Math.random() * 1e6);
   const candidates = [
     "https://image.pollinations.ai/prompt/" + enc + "?width=" + w + "&height=" + h + "&seed=" + sd + "&model=flux&nologo=true" + tok,
@@ -6796,7 +6920,9 @@ function setupTextDrag() {
     e.preventDefault();
     const sk = scaleKeyFor(kind);
     const step = e.deltaY < 0 ? 1.06 : 1 / 1.06;
-    vstudio[sk] = Math.max(0.3, Math.min(3, (vstudio[sk] || 1) * step));
+    const maxScale = kind === "footage" ? 3 : 1.6;
+    const minScale = kind === "footage" ? 1 : 0.55;
+    vstudio[sk] = Math.max(minScale, Math.min(maxScale, (vstudio[sk] || 1) * step));
     if (vstudio.slides.length) vsSaveActiveSlide();
     if (!vstudio.looping) {
       const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
@@ -11146,9 +11272,10 @@ async function exportStudioVideo() {
   // Make sure the chosen audio is actually present before recording, even if
   // the toggles were flipped after the video was built.
   try {
+    const cur = vstudio.batchVideos && vstudio.batchVideos[vstudio.batchCurrent];
     const musicTog = document.querySelector("#vsMusic");
     if (musicTog && musicTog.checked && !vstudio._userMusic) {
-      if (!vstudio.musicEl) { const dm = await vsEnsureDefaultMusic(); if (dm) vstudio.musicEl = dm; }
+      if (!vstudio.musicEl) { const dm = await vsEnsureDefaultMusic((cur && cur.data) || vstudio.storyData); if (dm) vstudio.musicEl = dm; }
       vstudio._musicBuffer = vstudio._defaultMusicBuffer || vstudio._musicBuffer || null;
     } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
       vstudio.musicEl = null; vstudio._musicBuffer = null;
@@ -11156,7 +11283,6 @@ async function exportStudioVideo() {
       vstudio._musicBuffer = vstudio._userMusicBuffer || null;
     }
     const voTog = document.querySelector("#vsVoiceover");
-    const cur = vstudio.batchVideos && vstudio.batchVideos[vstudio.batchCurrent];
     if (voTog && voTog.checked) {
       if (cur && !cur._narrationEl) {
         vsStatus(state.lang === "fa" ? "در حال ساخت روایت صوتی…" : "Recording voiceover…");
@@ -13155,10 +13281,10 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       event.target.value = "";
     });
     document.addEventListener("input", event => {
-      if (event.target.closest?.("#videoStudio") && event.target.id !== "vsApiKey" && event.target.id !== "vsPexelsKey") autosave();
+      if (event.target.closest?.("#videoStudio") && !["vsApiKey","vsPollinationsKey","vsPexelsKey"].includes(event.target.id)) autosave();
     });
     document.addEventListener("change", event => {
-      if (event.target.closest?.("#videoStudio") && event.target.id !== "vsApiKey" && event.target.id !== "vsPexelsKey") autosave();
+      if (event.target.closest?.("#videoStudio") && !["vsApiKey","vsPollinationsKey","vsPexelsKey"].includes(event.target.id)) autosave();
     });
     document.addEventListener("keydown", event => {
       const command = event.ctrlKey || event.metaKey, active = el("videoStudio")?.contains(document.activeElement);
