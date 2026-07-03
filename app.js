@@ -4585,6 +4585,20 @@ async function buildAutoVideo(useAI) {
     if (/^https?:\/\/\S+$/i.test(trimmed)) { url = trimmed; text = ""; }
   }
 
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      const categoryOnly = /^(investing|money|news|business|technology|finance|markets|world|politics|sports)$/i.test(parts[0] || "");
+      if (parts.length <= 1 && categoryOnly) {
+        vsAutoStatus(state.lang === "fa"
+          ? "این لینک صفحهٔ دسته‌بندی است، نه مقاله. لینک کامل یک خبر مشخص را وارد کن."
+          : "This is a category page, not an article. Paste the full URL of one specific story.");
+        return;
+      }
+    } catch (e) {}
+  }
+
 
   // 1) if a URL was given, TRY to fetch the article text (often blocked
   //    by the site's CORS policy on a static site — we fall back to the
@@ -4595,14 +4609,10 @@ async function buildAutoVideo(useAI) {
     if (fetched && fetched.length > 200) {
       text = fetched;
     } else if (!text) {
-      // Couldn't read the link. Instead of stopping, let the AI write about
-      // the topic implied by the URL using its own knowledge.
-      const slug = url.replace(/^https?:\/\//i, "")
-                      .replace(/[#?].*$/, "")
-                      .replace(/[\/\-_]+/g, " ")
-                      .replace(/\.(html?|php|aspx?)\b/gi, "")
-                      .replace(/\s+/g, " ").trim();
-      text = "Create an informative video about this news topic: " + slug;
+      vsAutoStatus(state.lang === "fa"
+        ? "متن مقاله خوانده نشد. برای جلوگیری از ساخت اطلاعات اشتباه، ویدئو ساخته نشد."
+        : "The article could not be read. Generation stopped to prevent invented facts.");
+      return;
     }
   }
 
@@ -4687,6 +4697,11 @@ SOURCE: """${text.slice(0, 7000)}"""`;
       if (a !== -1 && b !== -1 && b > a) jsonStr = jsonStr.slice(a, b + 1);
     }
     const data = JSON.parse(jsonStr);
+    const refusalText = JSON.stringify(data).toLowerCase();
+    if (!Array.isArray(data.sections) || !data.sections.length ||
+        /i can.?t write|i cannot write|can.?t help with|unable to (write|create)|cannot assist|not able to create/.test(refusalText)) {
+      throw new Error("The model did not return a usable article script");
+    }
     if (Array.isArray(data.sections) && data.sections.length) {
       vsAssembleFromSections(data);
     } else {
@@ -4749,13 +4764,27 @@ async function vsFetchArticle(url) {
   // Content:" marker or after the page title line. Trim everything before it.
   const focusArticle = (t) => {
     let s = t;
+    const titleMatch = s.match(/^Title:\s*(.+)$/im);
+    const pageTitle = titleMatch ? titleMatch[1].trim() : "";
     const mc = s.indexOf("Markdown Content:");
     if (mc !== -1) s = s.slice(mc + "Markdown Content:".length);
     // drop leading "Title:" / "URL Source:" metadata lines Jina prepends
     s = s.replace(/^\s*Title:.*$/im, "")
          .replace(/^\s*URL Source:.*$/im, "")
          .replace(/^\s*Published Time:.*$/im, "");
-    return s;
+    if (pageTitle) {
+      const at = s.toLowerCase().indexOf(pageTitle.toLowerCase());
+      if (at >= 0) s = s.slice(at);
+    }
+    const headings = [];
+    const headingRe = /^#{2,3}\s+(.+)$/gm;
+    let hm;
+    while ((hm = headingRe.exec(s))) {
+      const h = hm[1].replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").trim();
+      if (h && !headings.includes(h)) headings.push(h);
+    }
+    return (pageTitle ? "ARTICLE TITLE: " + pageTitle + "\n" : "") +
+      (headings.length ? "ARTICLE SECTIONS: " + headings.join(" | ") + "\n" : "") + s;
   };
 
   for (const entry of tryUrls) {
@@ -4783,7 +4812,7 @@ async function vsFetchArticle(url) {
       }
       t = cleanupText(t);
       // require a decent amount of real prose
-      if (t.length > 300) return t.slice(0, 8000);
+      if (t.length > 300) return t.slice(0, 18000);
     } catch (e) { /* try next */ }
   }
   return "";
@@ -5117,7 +5146,12 @@ async function vsGenerateAiMusic(data) {
       resp = await fetch(VS_WORKER_BASE + "/music", {
         method: "POST", signal: ctrl.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: prompt, duration })
+        body: JSON.stringify({
+          input: prompt,
+          duration,
+          model: mood === "hopeful" || mood === "inspiring" ? "stable-audio-3-medium" : "acestep",
+          style: `${mood}, ${energy} energy, cinematic editorial underscore, instrumental, no vocals, ${bpm} BPM`
+        })
       });
     } finally { clearTimeout(tm); }
     const type = (resp.headers.get("content-type") || "").toLowerCase();
@@ -5503,7 +5537,7 @@ function vsToneGuide(tone) {
     hype:        "high-energy launch hype-master. Bold, punchy, exciting. Use bold-statement, neon-title, big single numbers.",
     documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
     social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers.",
-    advisor:     "seasoned market analyst writing for a real-estate / insurance advisor to post for clients. Authoritative, data-driven and consultative — every line pairs a hard number with what it means for the client. Use title-center, comparison/bars charts, confident professional language, no hype."
+    advisor:     "seasoned housing-market analyst. Authoritative, source-grounded and consultative — explain what verified facts mean for buyers or sellers. Never introduce insurance unless the source explicitly discusses it."
   })[tone] || "broadcast-news director.";
 }
 
@@ -5553,7 +5587,8 @@ function vsCleanItemNames(names, fullText) {
     return s.trim();
   };
   const isPlace = (n) => /,\s*[A-Z]{2}\b/.test(n) ||
-    /,\s*(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/.test(n);
+    /,\s*(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/.test(n) ||
+    /\b(?:City|Suburbs)$/i.test(n);
 
   let out = (names || []).map(n => String(n).trim().replace(/^[\d.)\-\s]+/, ""))
     .map(n => isPlace(n) ? stripLead(n) : n)               // clean "Expo City, ST" → "City, ST"
@@ -5828,6 +5863,14 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
   }
 
   names = vsCleanItemNames(names, text);   // drop junk; for place lists keep only cities
+  // Grounding guard: a batch item must literally occur in the fetched article.
+  // This blocks plausible-sounding but hallucinated cities from the model.
+  names = names.filter(n => {
+    const full = String(n).toLowerCase();
+    const city = full.split(",")[0].trim();
+    const body = String(text).toLowerCase();
+    return body.includes(full) || (city.length >= 3 && body.includes(city));
+  });
 
   // 2) KNOWLEDGE-ASSISTED reconstruction. For a places listicle the real list
   //    usually lives on separate slides, so reconstruct it when we have fewer
@@ -5838,7 +5881,7 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
   const expectedN = (placesMode && numM) ? Number(numM[1]) : 0;
   const floor = expectedN || (placesMode ? 6 : 0);
   const needMore = names.length < 2 || (floor >= 4 && names.length < floor);
-  if (needMore && !vstudio._batchCancel) {
+  if (false && needMore && !vstudio._batchCancel) {
     vsAutoStatus(fa ? "متن کامل نبود — بازسازی فهرست با کمک مدل…"
                     : "Article was a teaser — reconstructing the list…");
     const hintN = expectedN || (placesMode ? 8 : ((String(text).match(/\b(\d{1,2})\s+[A-Za-z]+\b/) || [])[1] || ""));
@@ -5903,16 +5946,16 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
     vsBatchProgress(true, i, names.length, name);
     vsAutoStatus(fa ? `ساخت فیلمنامهٔ ${i + 1} از ${names.length}: ${name}…`
                     : `Scripting ${i + 1} of ${names.length}: ${name}…`);
-    const dataLine = cityFound
-      ? `Base every line on the SOURCE TEXT about ${name} below — use its real figures, prices, ranks and reasons that relate to "${topic}".`
-      : `The article is a slideshow and doesn't spell out ${name} in the text here, so use YOUR KNOWLEDGE of ${name} as a real US place to write SPECIFIC, accurate facts that relate to "${topic}" (home prices, affordability, relevant rankings/rates, why it's notable for this topic). Be concrete and realistic; don't fabricate false precision — approximate ranges are fine.`;
+    const dataLine = `Base every line on the SOURCE TEXT about ${name} below. Use only its verified figures, ranks and reasons that relate to "${topic}".`;
+    const groundingRule = `Use ONLY the supplied source excerpt for ${name}. Never add facts, figures, rankings, cities, prices, rates, or insurance claims from memory. If a fact is absent, deepen the interpretation of facts that are present.`;
     const sPrompt =
 `You are an award-winning ${guide}
 Create a short-form video about "${name}" for a news piece whose subject is: "${topic}".
+${groundingRule}
 The ENTIRE video must stay on that subject as it applies specifically to ${shortName} — every line ties ${shortName} to "${topic}" with region-specific facts and the data points that matter for it (prices, ranks, rates, why it's best/worst for this topic).
 ${dataLine}
-If the source doesn't give enough topic-relevant data for ${shortName}, ANALYZE it yourself: provide realistic, relevant figures/reasons tied to "${topic}" using your knowledge. Never write meta-commentary; forbidden phrases: "no data","not provided","excerpt","the article","the text","appear","provided".
-ANALYST MODE — this video is posted by a professional real-estate / insurance advisor for their clients, so make it advanced and analytical:
+If the source has limited data for ${shortName}, interpret the verified facts more deeply; never invent or approximate a missing number. Never write meta-commentary.
+ANALYST MODE — write as a senior housing-market analyst. Never mention insurance unless it explicitly appears in the source:
 • Every scene pairs a concrete figure with its IMPLICATION for the client — but keep each on-screen headline to ONE tight sentence (≤13 words); put the number itself in an infographic where it fits.
 • Add comparative context where it sharpens the point (vs the national average, vs a nearby metro, or year-over-year).
 • Surface the non-obvious insight, not just the raw number. Sound like a sharp, credible advisor — specific, useful, zero hype or filler.
@@ -5936,6 +5979,10 @@ ${cityFound ? 'SOURCE TEXT about ' + name + ': """' + excerpt + '"""' : 'Write f
         try { data = vsParseAiJson(await vsAutoAiChat(sPrompt)); } catch (e) { data = null; }
       }
     }
+    if (data && /i can.?t write|i cannot write|can.?t help with|unable to (write|create)|cannot assist|not able to create/.test(JSON.stringify(data).toLowerCase())) {
+      data = null;
+    }
+    if (data && /\binsurance\b/i.test(JSON.stringify(data)) && !/\binsurance\b/i.test(excerpt)) data = null;
     if (vstudio._batchCancel) break;                    // stop immediately on cancel
     if (data && Array.isArray(data.sections) && data.sections.length) {
       aiFailStreak = 0;                                  // AI is working
@@ -6028,7 +6075,7 @@ async function vsLoadBatchVideo(i) {
 
   // AI voiceover — generate once per video, cache it, set as the narration track.
   const voTog = document.querySelector("#vsVoiceover");
-  if (voTog && voTog.checked) {
+  if (false && voTog && voTog.checked) {
     if (!v._narrationEl && !vstudio._batchCancel) {
       vsAutoStatus(fa ? `در حال ساخت روایت صوتی برای ${v.name}…` : `Recording voiceover for ${v.name}…`);
       const nar = await vsGenerateNarration(v.data);
@@ -11283,7 +11330,7 @@ async function exportStudioVideo() {
       vstudio._musicBuffer = vstudio._userMusicBuffer || null;
     }
     const voTog = document.querySelector("#vsVoiceover");
-    if (voTog && voTog.checked) {
+    if (false && voTog && voTog.checked) {
       if (cur && !cur._narrationEl) {
         vsStatus(state.lang === "fa" ? "در حال ساخت روایت صوتی…" : "Recording voiceover…");
         const nar = await vsGenerateNarration(cur.data);

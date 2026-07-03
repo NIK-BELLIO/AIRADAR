@@ -1068,12 +1068,12 @@
                         <span class="vs-switch-track"></span>
                         <span class="vs-switch-txt" id="vsMusicLbl" data-i18n="vMusicLbl">🎵 Background music (cinematic, auto-fades)</span>
                       </label>
-                      <label class="vs-switch">
-                        <input id="vsVoiceover" type="checkbox" checked />
+                      <label class="vs-switch" hidden>
+                        <input id="vsVoiceover" type="checkbox" />
                         <span class="vs-switch-track"></span>
                         <span class="vs-switch-txt" id="vsVoiceoverLbl" data-i18n="vVoiceoverLbl">🎙️ AI voiceover narration (free)</span>
                       </label>
-                      <div id="vsVoiceRow" style="display:flex;gap:8px;margin:2px 0 6px;padding-left:4px;">
+                      <div id="vsVoiceRow" hidden style="display:none;">
                         <select id="vsVoice" title="Voice" style="flex:1;font-size:12.5px;">
                           <option value="nova">Female · Nova</option>
                           <option value="shimmer">Female · Shimmer</option>
