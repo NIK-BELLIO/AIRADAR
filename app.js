@@ -4784,6 +4784,34 @@ SOURCE: """${text.slice(0, 9000)}"""`;
         captions: Array.isArray(data.captions) ? data.captions : []
       });
     }
+
+    // Background music (default ON) — mirrors the batch pipeline so a single
+    // AI video gets music at PREVIEW time too, not just at export. Previously
+    // vsEnsureDefaultMusic was only ever called from inside exportStudioVideo
+    // for this path, so previewing a freshly generated single video played
+    // completely silent until you actually exported it.
+    const musicTog = document.querySelector("#vsMusic");
+    if (musicTog && musicTog.checked && !vstudio._userMusic) {
+      vsAutoStatus(state.lang === "fa" ? "ساخت موسیقی…" : "Building music…");
+      const dm = await vsEnsureDefaultMusic(data);
+      if (dm) {
+        vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+        vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
+        vsAttachMusicLoopTrim(dm);
+        // Footage generation (kicked off inside vsAssembleFromSections above)
+        // runs in the background and may have already started the preview
+        // before this music finished — if so, start it now rather than
+        // waiting for a preview restart that may never come.
+        if (vstudio.looping) {
+          try { dm.currentTime = vstudio.position || 0; dm.play().catch(() => {}); } catch (e) {}
+        }
+      } else {
+        vstudio._musicBuffer = null;
+      }
+    } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
+      vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null;
+    }
+
     vsAutoStatus(state.lang === "fa"
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
       : `Built a ${vstudio.slides.length}-scene video.`);
@@ -5215,6 +5243,39 @@ function vsAudioBufferToWav(buffer) {
   return new Blob([buf], { type: "audio/wav" });
 }
 
+// AI-generated music (from the paid Pollinations tier) sometimes under-fills
+// the exact duration it was asked for — the returned buffer is nominally the
+// right length, but the last stretch of it is near-silence, the model just
+// gave up early. Scan backward in short windows to find where real content
+// actually stops, so callers can loop just that portion (via
+// AudioBufferSourceNode.loopStart/loopEnd) instead of playing dead air for
+// the rest of the video. Returns the buffer's full duration untouched when
+// there's nothing to trim (which is always true for the local synth below,
+// since it composes all the way to its own requested length).
+function vsFindContentEnd(buffer, thresholdDb) {
+  try {
+    const thresh = Math.pow(10, (thresholdDb == null ? -40 : thresholdDb) / 20);
+    const sr = buffer.sampleRate;
+    const winLen = Math.max(1, Math.round(0.5 * sr));
+    const total = buffer.length;
+    const chans = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) chans.push(buffer.getChannelData(c));
+    for (let start = total - winLen; start >= 0; start -= winLen) {
+      const end = Math.min(total, start + winLen);
+      let sum = 0, n = 0;
+      for (let c = 0; c < chans.length; c++) {
+        const d = chans[c];
+        for (let i = start; i < end; i++) { sum += d[i] * d[i]; n++; }
+      }
+      if (Math.sqrt(sum / Math.max(1, n)) > thresh) {
+        // pad a little past this window so a note's tail isn't clipped
+        return Math.min(buffer.duration, end / sr + 0.4);
+      }
+    }
+    return buffer.duration;
+  } catch (e) { return buffer.duration; }
+}
+
 async function vsGenerateAiMusic(data) {
   const spec = (data && data.music) || {};
   const duration = Math.max(8, Math.min(90, Math.ceil(studioDuration ? studioDuration() : 35)));
@@ -5247,7 +5308,8 @@ async function vsGenerateAiMusic(data) {
     if (blob.size < 1000) return null;
     if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
     const buffer = await vstudio._playCtx.decodeAudioData((await blob.arrayBuffer()).slice(0));
-    const result = { buffer, url: URL.createObjectURL(blob) };
+    const contentEnd = vsFindContentEnd(buffer);
+    const result = { buffer, url: URL.createObjectURL(blob), contentEnd };
     vstudio._aiMusicCache[cacheKey] = result;
     return result;
   } catch (e) { return null; }
@@ -5259,6 +5321,8 @@ async function vsEnsureDefaultMusic(data) {
     if (generated) {
       vstudio._defaultMusicBuffer = generated.buffer;
       vstudio._defaultMusicUrl = generated.url;
+      // where the AI track's real content actually stops — see vsFindContentEnd.
+      vstudio._defaultMusicContentEnd = generated.contentEnd || generated.buffer.duration;
       const aiEl = new Audio(generated.url);
       aiEl.loop = true; aiEl.preload = "auto";
       return aiEl;
@@ -5297,6 +5361,7 @@ async function vsEnsureDefaultMusic(data) {
     if (cached) {
       vstudio._defaultMusicBuffer = cached.buffer;
       vstudio._defaultMusicUrl = cached.url;
+      vstudio._defaultMusicContentEnd = cached.buffer.duration;   // synth fills the whole buffer
     } else {
       const sr = 44100, dur = targetDur;
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -5423,6 +5488,7 @@ async function vsEnsureDefaultMusic(data) {
       vstudio._defaultMusicBuffer = rendered;     // raw buffer → reliably captured in export
       const blob = vsAudioBufferToWav(rendered);
       vstudio._defaultMusicUrl = URL.createObjectURL(blob);
+      vstudio._defaultMusicContentEnd = rendered.duration;   // synth fills the whole buffer
       vstudio._defaultMusicCache[cacheKey] = { buffer: rendered, url: vstudio._defaultMusicUrl };
     }
     // Return a FRESH element each time so createMediaElementSource (which can only
@@ -6275,6 +6341,8 @@ async function vsLoadBatchVideo(i) {
     vsAutoStatus(fa ? `ساخت موسیقی…` : `Building music…`);
     const dm = await vsEnsureDefaultMusic(v.data);
     if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+      vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
+      vsAttachMusicLoopTrim(dm);
       try { console.log("[audio] music ready for", v.name); } catch(e){} }
     else { vstudio._musicBuffer = null; try { console.warn("[audio] music generation FAILED"); } catch(e){} }
   } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
@@ -10769,6 +10837,20 @@ function studioDuration() {
     : Math.max(2, Number(vsVal("#vsDuration", 6)));
 }
 
+// During live preview the music is a plain <audio> element — unlike the
+// export's AudioBufferSourceNode it has no loopStart/loopEnd, so trim the
+// generator's trailing near-silence (see vsFindContentEnd) the same way by
+// jumping back to 0 a little before it, instead of letting the preview go
+// quiet near the end of a longer video.
+function vsAttachMusicLoopTrim(el) {
+  if (!el || el._vsLoopTrimAttached) return;
+  el._vsLoopTrimAttached = true;
+  el.addEventListener("timeupdate", () => {
+    const end = vstudio._musicContentEnd;
+    if (end && el.currentTime >= end) { try { el.currentTime = 0; } catch (e) {} }
+  });
+}
+
 // Fade the background music: a short fade-IN at the start and a
 // fade-OUT over the last ~1.5s so the scene ends gracefully.
 function vsApplyMusicFade(elapsed, duration) {
@@ -11566,10 +11648,14 @@ async function exportStudioVideo() {
     if (musicTog && musicTog.checked && !vstudio._userMusic) {
       if (!vstudio.musicEl) { const dm = await vsEnsureDefaultMusic((cur && cur.data) || vstudio.storyData); if (dm) vstudio.musicEl = dm; }
       vstudio._musicBuffer = vstudio._defaultMusicBuffer || vstudio._musicBuffer || null;
+      vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
     } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
-      vstudio.musicEl = null; vstudio._musicBuffer = null;
+      vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null;
     } else if (vstudio._userMusic) {
+      // a user's own upload — don't assume any trailing quiet part is
+      // unintentional generator under-fill, so no content-end trimming here.
       vstudio._musicBuffer = vstudio._userMusicBuffer || null;
+      vstudio._musicContentEnd = null;
     }
     const voTog = document.querySelector("#vsVoiceover");
     if (false && voTog && voTog.checked) {
@@ -11615,6 +11701,7 @@ async function exportStudioVideo() {
   let tracks = [...canvasStream.getVideoTracks()];
   vstudio._exportAudio = null;
   const mBuf = vstudio._musicBuffer || null;
+  const mBufContentEnd = vstudio._musicContentEnd || null;
   const nBuf = vstudio._narrationBuffer || null;
   if (mBuf || nBuf) {
     try {
@@ -11622,7 +11709,7 @@ async function exportStudioVideo() {
       const actx = vstudio._playCtx;
       if (actx.state === "suspended") { try { await actx.resume(); } catch (e) {} }
       const recDest = actx.createMediaStreamDestination();
-      vstudio._exportAudio = { actx, recDest, mBuf, nBuf, sources: [],
+      vstudio._exportAudio = { actx, recDest, mBuf, mBufContentEnd, nBuf, sources: [],
         dur: (typeof studioDuration === "function" ? studioDuration() : 20) || 20 };
       tracks = tracks.concat(recDest.stream.getAudioTracks());
       try { console.log("[audio] export graph ready — music:" + !!mBuf + " voice:" + !!nBuf); } catch (e) {}
@@ -11777,6 +11864,16 @@ async function exportStudioVideo() {
       const musicVol = (isNaN(vol) ? 0.5 : vol) * (ea.nBuf ? 0.5 : 1); // duck under voice
       if (ea.mBuf) {
         const s = actx.createBufferSource(); s.buffer = ea.mBuf; s.loop = true;
+        // The AI music generator sometimes under-fills the requested
+        // duration — the buffer is nominally long enough but trails into
+        // near-silence early. Loop only the real content (loopStart/loopEnd)
+        // so a video never goes musically dead near its own ending; without
+        // this the plain loop=true above would just play out the silence
+        // once and then stop, since s.stop() below cuts it off before a
+        // second full pass through the buffer would happen.
+        if (ea.mBufContentEnd && ea.mBufContentEnd < ea.mBuf.duration - 0.75) {
+          s.loopStart = 0; s.loopEnd = ea.mBufContentEnd;
+        }
         const g = actx.createGain();
         g.gain.setValueAtTime(0.0001, t0);
         g.gain.linearRampToValueAtTime(musicVol, t0 + 0.8);         // fade in
