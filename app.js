@@ -6225,13 +6225,13 @@ ANALYST MODE — write as a senior housing-market analyst. Never mention insuran
 • Surface the non-obvious insight, not just the raw number. Sound like a sharp, credible advisor — specific, useful, zero hype or filler.
 • The outro is one decisive, client-facing takeaway the advisor can stand behind.
 Return ONLY valid compact JSON (no markdown):
-{"title":"a punchy headline that names ${shortName} AND echoes the article subject (e.g. \\"${shortName}: <angle of ${topic}>\\"), max 7 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"hook naming ${shortName} tied to the topic, 3-6 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}${noExcerpt ? "" : `,{"type":"infographic","caption":"2-3 words","title":"chart headline (max 30 chars)","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}`}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
+{"title":"a question headline naming ${shortName} about \\"${topic}\\", in this exact format: \\"How Will ${shortName} Market End 2026?\\" (swap in the real forecast year), max 9 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"the SAME question headline as title, e.g. \\"How Will ${shortName} Market End 2026?\\", max 9 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}${noExcerpt ? "" : `,{"type":"infographic","caption":"2-3 words","title":"a question headline naming ${shortName}, same format as the top-level title (e.g. \\"How Will ${shortName} Market End 2026?\\"), max 40 chars","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}`}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration interprets evidence and explains the client implication; it never just repeats the headline.
 1. EXACTLY ${contentCount} content sections (besides intro/outro).
 2. EVERY scene stays on "${topic}" for ${shortName}, each a DIFFERENT angle (e.g. home prices, affordability rank, income-to-cost, growth, why best/worst). NEVER repeat a fact, number, phrase, caption or headline across scenes — all UNIQUE.
-3. title AND intro.main must clearly name ${shortName} and echo the article subject "${topic}".
+3. title AND intro.main must clearly name ${shortName}, echo the article subject "${topic}", and be phrased as a question in the "How Will ${shortName} Market End 2026?" format — always keep the "How Will ___ Market End ____?" shape, just swap in the real city and forecast year.
 4. ${noExcerpt ? `Every section MUST be "text" — do NOT include an "infographic" section, since no verified source excerpt exists for this location.` : `Use an "infographic" ONLY when the source excerpt supplies at least 2 directly comparable numeric facts. Copy each displayed value exactly from the excerpt. Otherwise every section must be "text".`}
 5. Never turn the article year, total market count, list inclusion or section order into a statistic or rank. Never claim the markets are ranked unless the excerpt explicitly ranks them.
 6. Forbidden wording: "listed among 10", "included", "rising label", "watchlist signal", "article proof", "confirmed inclusion", "verify locally", "no data", "not provided", "source", "excerpt", "article footnote".
@@ -7875,7 +7875,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const align = left ? "left" : "center";
     const maxW = W * (left ? 0.84 : 0.80);
     // Auto-fit font so the WHOLE headline shows (was capped/truncated at 4 lines)
-    const fit = fitWrap(mainTxt, "800", "Prata, serif", U * 0.075, Math.round(U * 0.03), maxW, H * 0.62, 1.18);
+    const fit = fitWrap(mainTxt, "800", "Prata, serif", U * 0.15, Math.round(U * 0.03), maxW, H * 0.62, 1.18);
     const lines = fit.lines, mainPx = fit.px;
     const lineH = mainPx * 1.18, blockH = lines.length * lineH;
     const top = H*0.48 - blockH/2;
@@ -7915,7 +7915,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "bold-statement") {
     ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fillRect(0,0,W,H);
-    const bsFit = fitWrap(mainTxt.toUpperCase(), "900", "Inter, sans-serif", U*0.1, Math.round(U*0.04), W*0.9, H*0.7, 1.05);
+    const bsFit = fitWrap(mainTxt.toUpperCase(), "900", "Inter, sans-serif", U*0.2, Math.round(U*0.04), W*0.9, H*0.7, 1.05);
     const lines = bsFit.lines, px2 = bsFit.px;
     const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
     lines.forEach((ln, li) => {
@@ -7992,7 +7992,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
 
   } else if (style === "caption") {
-    const capFit = fitWrap(mainTxt, "800", "Inter, sans-serif", U*0.064, Math.round(U*0.04), W*0.9, H*0.5, 1.24);
+    const capFit = fitWrap(mainTxt, "800", "Inter, sans-serif", U*0.128, Math.round(U*0.04), W*0.9, H*0.5, 1.24);
     const lines = capFit.lines, capPx = capFit.px;
     const lH=capPx*1.24, bH=lines.length*lH+U*0.06;
     const by=H*0.9-bH+(1-e)*U*0.05;
@@ -8009,7 +8009,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   } else if (style === "annotation") {
     const aW=W*0.82, aX=W*0.09;
     // +50% larger note; auto-fit so the whole thing still shows
-    const aFit = fitWrap(mainTxt, "700", "Prata, serif", U*0.063, Math.round(U*0.036), aW*0.88, H*0.6, 1.19);
+    const aFit = fitWrap(mainTxt, "700", "Prata, serif", U*0.126, Math.round(U*0.036), aW*0.88, H*0.6, 1.19);
     const lines = aFit.lines, aPx = aFit.px;
     const lH=aPx*1.19;
     const cardH=lines.length*lH+U*0.12+(kicker?U*0.07:0)+(source?U*0.05:0);
@@ -8033,7 +8033,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
     ctx.fillStyle="#fff"; ctx.textAlign="left";
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    const splitFit = fitWrap(headline, "700", "Prata, serif", U*0.065, Math.round(U*0.03), W-splitX-padL, H*0.5, 1.18);
+    const splitFit = fitWrap(headline, "700", "Prata, serif", U*0.13, Math.round(U*0.03), W-splitX-padL, H*0.5, 1.18);
     const lines = splitFit.lines, splitPx = splitFit.px;
     ctx.font=`700 ${splitPx}px ${vsGetFont("Prata, serif")}`;
     const lH=splitPx*1.18;
@@ -8044,7 +8044,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   } else if (style === "badge") {
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
-    const badgeFit = fitWrap(headline, "700", "Prata, serif", U*0.072, Math.round(U*0.034), W*0.84, H*0.5, 1.18);
+    const badgeFit = fitWrap(headline, "700", "Prata, serif", U*0.144, Math.round(U*0.034), W*0.84, H*0.5, 1.18);
     const lines = badgeFit.lines, bPx = badgeFit.px;
     const lH=bPx*1.18;let yy=H*0.47;
     ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px ${vsGetFont("Prata, serif")}`;
@@ -8056,7 +8056,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
     const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
     if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
-    const magFit = fitWrap(mainTxt, "900", "Prata, serif", Math.min(U*0.098,W*0.22), Math.round(U*0.04), W*0.88, H*0.4, 1.05);
+    const magFit = fitWrap(mainTxt, "900", "Prata, serif", Math.min(U*0.196,W*0.44), Math.round(U*0.04), W*0.88, H*0.4, 1.05);
     const lines = magFit.lines, mPx = magFit.px;
     const lH=mPx*1.05; let hY=H*0.18;
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px ${vsGetFont("Prata, serif")}`;
@@ -8066,7 +8066,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "neon-title") {
     ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    const neonFit = fitWrap(mainTxt, "900", "Inter, sans-serif", Math.min(U*0.088,W*0.2), Math.round(U*0.036), W*0.86, H*0.56, 1.18);
+    const neonFit = fitWrap(mainTxt, "900", "Inter, sans-serif", Math.min(U*0.176,W*0.4), Math.round(U*0.036), W*0.86, H*0.56, 1.18);
     const lines = neonFit.lines, nPx = neonFit.px;
     const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
     lines.forEach((ln,li)=>{
@@ -8168,7 +8168,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "minimal-line") {
     ctx.textAlign="center";
-    const minFit = fitWrap(mainTxt, "300", "Prata, serif", U*0.066, Math.round(U*0.032), W*0.8, H*0.4, 1.22);
+    const minFit = fitWrap(mainTxt, "300", "Prata, serif", U*0.132, Math.round(U*0.032), W*0.8, H*0.4, 1.22);
     const lines = minFit.lines, mPx = minFit.px;
     const lH=mPx*1.22;
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
@@ -8240,6 +8240,16 @@ function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
     if (ctx.measureText(text).width <= maxW) break;
   }
   ctx.font = `${weight} ${px}px ${family}`;
+  // minPx is a *preferred* floor, not a hard one — a long value (e.g. a
+  // stat like "-3.5% (-$23,100)") could still be wider than maxW even at
+  // that size, and this used to just stop and let it overflow past the
+  // card's edge, reading as a clipped/truncated number. Keep shrinking
+  // below the floor, down to a hard minimum, so it always fits instead.
+  const hardFloor = Math.max(6, Math.round(minPx * 0.5));
+  while (px > hardFloor && ctx.measureText(text).width > maxW) {
+    px -= 1;
+    ctx.font = `${weight} ${px}px ${family}`;
+  }
   return px;
 }
 
@@ -8479,7 +8489,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     // cap size so a tall font can't collide with the accent line above
-    const titlePx = Math.min(Math.round(U * 0.04), Math.round(panelH * 0.085));
+    const titlePx = Math.min(Math.round(U * 0.08), Math.round(panelH * 0.17));
     const fittedPx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
       titlePx, Math.round(U * 0.022));
     ctx.fillText(data.title, px + padX, cy);
@@ -8490,7 +8500,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     ctx.fillStyle = ig.label;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.subtitle.toUpperCase(), panelW - padX * 2, "500",
-      "Inter, sans-serif", Math.round(U * 0.022), Math.round(U * 0.014));
+      "Inter, sans-serif", Math.round(U * 0.044), Math.round(U * 0.014));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
     cy += panelH * 0.065;
   }
@@ -8649,13 +8659,13 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle";
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), ctxW * 0.65, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.02, cardH * 0.24)), Math.round(cardH * 0.14));
+        Math.round(Math.min(U * 0.028, cardH * 0.32)), Math.round(cardH * 0.14));
       ctx.textAlign = "left";
       ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
       // big value right-aligned
       ctx.fillStyle = ig.value;
       vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
-        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.072, cardH * 0.6)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
       ctx.textBaseline = "alphabetic";
@@ -8704,11 +8714,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle"; ctx.textAlign = "left";
       ctx.fillStyle = vsHexA(ig.accent, 0.75);
       vsFitFont(ctx, s.label.toUpperCase(), cW * 0.6, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
+        Math.round(Math.min(U * 0.026, cardH * 0.3)), Math.round(cardH * 0.13));
       ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
       ctx.fillStyle = "#ffffff";
       vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
-        Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.076, cardH * 0.58)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
       ctx.textBaseline = "alphabetic";
@@ -8731,12 +8741,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle"; ctx.textAlign = "left";
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       vsFitFont(ctx, s.label, cW * 0.58, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.019, cardH * 0.22)), Math.round(cardH * 0.13));
+        Math.round(Math.min(U * 0.027, cardH * 0.3)), Math.round(cardH * 0.13));
       ctx.fillText(s.label, cX + cW * 0.14, cardY + cardH * 0.3);
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
       vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Inter, sans-serif"),
-        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.074, cardH * 0.6)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.7);
       ctx.shadowBlur = 0; ctx.textBaseline = "alphabetic";
@@ -8868,10 +8878,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       const aE = 1 - Math.pow(1 - aRe, 3);
       // auto-fit value into half-panel width (leave room for VS badge)
       const compMaxW = panelW * 0.40;
-      let compPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      let compPx = Math.round(Math.min(U * 0.19, panelW * 0.4));
       ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       const longest = String(a.value).length >= String(b.value).length ? a.value : b.value;
-      while (compPx > Math.round(U * 0.04) && ctx.measureText(longest).width > compMaxW) {
+      // keep shrinking past the old floor if a long value still doesn't fit —
+      // same clipped-number bug class as vsFitFont, fixed the same way.
+      while (compPx > 6 && ctx.measureText(longest).width > compMaxW) {
         compPx -= 2; ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       }
       ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
@@ -10644,12 +10656,13 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
     ctx.shadowBlur = U * 0.05 * e;
   }
   const maxTextW = W * 0.82;
+  const maxLines = 4;
   // intro headlines are bigger and bolder for impact; outro a touch smaller
-  let fontPx = Math.round(U * (isIntro ? 0.118 : isOutro ? 0.072 : 0.075));
+  let fontPx = Math.round(U * (isIntro ? 0.236 : isOutro ? 0.144 : 0.15));
   const headWeight = isIntro ? 700 : 600;
   ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
   // helper: break text into lines that each fit maxTextW (cap at maxLines)
-  const layout = (str, maxLines) => {
+  const layout = (str, cap) => {
     const words = String(str).split(/\s+/).filter(Boolean).flatMap(w =>
       (w.length > 13 && w.includes("-")) ? w.split(/(?<=-)/) : [w]   // allow long hyphenated words to wrap
     );
@@ -10659,30 +10672,34 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
       const test = ln ? (/-$/.test(ln) ? ln + w : ln + " " + w) : w;
       if (ctx.measureText(test).width > maxTextW && ln) {
         out.push(ln); ln = w;
-        if (out.length === maxLines) { ln = ""; break; }
+        if (out.length === cap) { ln = ""; break; }
       } else { ln = test; }
     }
-    if (ln && out.length < maxLines) out.push(ln);
+    if (ln && out.length < cap) out.push(ln);
     return out;
   };
   const widestLine = (lns) => lns.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
-  let lines = layout(txt, 3);
-  // shrink the font until it fits in 3 lines AND the widest line fits the width
-  // (a single long word like "solo-homeownership" must not spill out the sides)
-  while (fontPx > U * 0.022 &&
-         (layout(txt, 99).length > 3 || widestLine(lines) > maxTextW)) {
+  let lines = layout(txt, maxLines);
+  // shrink the font until it fits in maxLines AND the widest line fits the
+  // width (a single long word like "solo-homeownership" must not spill out
+  // the sides). Keeps going well past the old floor — a smaller-but-whole
+  // title beats one that gets cut off with an ellipsis, which used to
+  // happen for longer titles (e.g. a full question-style headline).
+  while (fontPx > U * 0.01 &&
+         (layout(txt, 99).length > maxLines || widestLine(lines) > maxTextW)) {
     fontPx -= 1;
     ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
-    lines = layout(txt, 3);
+    lines = layout(txt, maxLines);
   }
-  // extreme case — still overflowing 3 lines: ellipsize the last line
-  if (layout(txt, 99).length > 3 && lines.length === 3) {
-    let last = lines[2];
+  // truly extreme case (a hard floor of U*0.01 still isn't enough) — ellipsize
+  // the last line rather than let it overflow the frame.
+  if (layout(txt, 99).length > maxLines && lines.length === maxLines) {
+    let last = lines[maxLines - 1];
     while (last.length > 1 &&
            ctx.measureText(last + "…").width > maxTextW) {
       last = last.slice(0, -1);
     }
-    lines[2] = last.replace(/\s+\S*$/, "") + "…";
+    lines[maxLines - 1] = last.replace(/\s+\S*$/, "") + "…";
   }
   const lineH = fontPx * 1.22;
   const blockTop = -((lines.length - 1) * lineH) / 2;
