@@ -4737,7 +4737,7 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
@@ -4745,6 +4745,7 @@ RULES:
 2. INFOGRAPHIC: only with real quantitative data (2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered.
 3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
 4. Never two infographics in a row. Vary text styles for rhythm.
+4b. "visual" on every section: a short, concrete, filmable stock-footage query for THAT scene's specific content (e.g. "engineers testing server racks", not "technology" or "innovation concept").
 5. Match the ${tone} tone precisely in word choice and energy.
 6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
 7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
@@ -4754,7 +4755,8 @@ RULES:
 11. Keep the SOURCE language. Narration and on-screen copy must use the same language.
 12. Build a real arc: hook, context, strongest evidence, consequence, takeaway. Every scene must advance the story — like a report, not a slideshow of trivia.
 13. "evidence" is mandatory on every section — a concrete detail a viewer could point back to in the SOURCE, never a paraphrase of the headline.
-14. Never write meta-commentary about missing data, sourcing or the production process (no "no data", "not provided", "verify locally", "article footnote" or similar).${revise ? "\n15. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
+14. Never write meta-commentary about missing data, sourcing or the production process (no "no data", "not provided", "verify locally", "article footnote" or similar).
+15. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).${revise ? "\n16. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
 SOURCE: """${text.slice(0, 9000)}"""`;
 
   let data = null, lastErr = null;
@@ -4800,6 +4802,34 @@ SOURCE: """${text.slice(0, 9000)}"""`;
         captions: Array.isArray(data.captions) ? data.captions : []
       });
     }
+
+    // Background music (default ON) — mirrors the batch pipeline so a single
+    // AI video gets music at PREVIEW time too, not just at export. Previously
+    // vsEnsureDefaultMusic was only ever called from inside exportStudioVideo
+    // for this path, so previewing a freshly generated single video played
+    // completely silent until you actually exported it.
+    const musicTog = document.querySelector("#vsMusic");
+    if (musicTog && musicTog.checked && !vstudio._userMusic) {
+      vsAutoStatus(state.lang === "fa" ? "ساخت موسیقی…" : "Building music…");
+      const dm = await vsEnsureDefaultMusic(data);
+      if (dm) {
+        vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+        vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
+        vsAttachMusicLoopTrim(dm);
+        // Footage generation (kicked off inside vsAssembleFromSections above)
+        // runs in the background and may have already started the preview
+        // before this music finished — if so, start it now rather than
+        // waiting for a preview restart that may never come.
+        if (vstudio.looping) {
+          try { dm.currentTime = vstudio.position || 0; dm.play().catch(() => {}); } catch (e) {}
+        }
+      } else {
+        vstudio._musicBuffer = null;
+      }
+    } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
+      vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null;
+    }
+
     vsAutoStatus(state.lang === "fa"
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
       : `Built a ${vstudio.slides.length}-scene video.`);
@@ -4885,6 +4915,13 @@ async function vsFetchArticle(url) {
       (headings.length ? "ARTICLE SECTIONS: " + headings.join(" | ") + "\n" : "") + s;
   };
 
+  // Bot-protection interstitials (Cloudflare "Just a moment...", PerimeterX,
+  // etc.) often come back as a normal HTTP 200 through a reader proxy — the
+  // proxy fetched *something*, just not the article — so a status/length
+  // check alone lets the challenge page's own text (site domain, "Cloudflare")
+  // through as if it were real content. Recognize it and try the next proxy.
+  const isBotChallenge = (s) => /just a moment|checking your browser|performing security verification|verify(?:ing)? you are human|enable javascript and cookies|requiring captcha|cf-browser-verification|ddos protection by|attention required[\s\S]{0,40}cloudflare/i.test(s);
+
   for (const entry of tryUrls) {
     try {
       const res = await fetch(entry.u, {
@@ -4893,6 +4930,7 @@ async function vsFetchArticle(url) {
       });
       if (!res.ok) continue;
       let t = await res.text();
+      if (isBotChallenge(t)) continue;
       if (entry.clean) {
         t = focusArticle(t);
       } else {
@@ -4920,12 +4958,9 @@ async function vsFetchArticle(url) {
 function vsAssembleFromSections(data, skipFootage) {
   vstudio.slides = [];
   vstudio.storyData = data;
-  const narrationDuration = (text, fallback) => {
-    const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
-    if (!words) return fallback;
-    const speed = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
-    return Math.max(fallback, Math.min(14, (words / (145 * speed)) * 60 + 0.8));
-  };
+  // Fixed scene lengths: intro/outro always 3s, every content scene always 6s
+  // — a consistent rhythm instead of stretching/shrinking with narration length.
+  const narrationDuration = (text, fallback) => fallback;
 
   // Palette → background pool mapping for cinematic variety
   const palettes = {
@@ -5047,7 +5082,7 @@ function vsAssembleFromSections(data, skipFootage) {
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "",
-        _caption: sec.caption || "Key numbers",
+        _caption: sec.caption || "Key numbers", _visual: sec.visual || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
 
@@ -5091,7 +5126,7 @@ function vsAssembleFromSections(data, skipFootage) {
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "",
-        _caption: sec.caption || "",
+        _caption: sec.caption || "", _visual: sec.visual || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
     }
@@ -5226,6 +5261,39 @@ function vsAudioBufferToWav(buffer) {
   return new Blob([buf], { type: "audio/wav" });
 }
 
+// AI-generated music (from the paid Pollinations tier) sometimes under-fills
+// the exact duration it was asked for — the returned buffer is nominally the
+// right length, but the last stretch of it is near-silence, the model just
+// gave up early. Scan backward in short windows to find where real content
+// actually stops, so callers can loop just that portion (via
+// AudioBufferSourceNode.loopStart/loopEnd) instead of playing dead air for
+// the rest of the video. Returns the buffer's full duration untouched when
+// there's nothing to trim (which is always true for the local synth below,
+// since it composes all the way to its own requested length).
+function vsFindContentEnd(buffer, thresholdDb) {
+  try {
+    const thresh = Math.pow(10, (thresholdDb == null ? -40 : thresholdDb) / 20);
+    const sr = buffer.sampleRate;
+    const winLen = Math.max(1, Math.round(0.5 * sr));
+    const total = buffer.length;
+    const chans = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) chans.push(buffer.getChannelData(c));
+    for (let start = total - winLen; start >= 0; start -= winLen) {
+      const end = Math.min(total, start + winLen);
+      let sum = 0, n = 0;
+      for (let c = 0; c < chans.length; c++) {
+        const d = chans[c];
+        for (let i = start; i < end; i++) { sum += d[i] * d[i]; n++; }
+      }
+      if (Math.sqrt(sum / Math.max(1, n)) > thresh) {
+        // pad a little past this window so a note's tail isn't clipped
+        return Math.min(buffer.duration, end / sr + 0.4);
+      }
+    }
+    return buffer.duration;
+  } catch (e) { return buffer.duration; }
+}
+
 async function vsGenerateAiMusic(data) {
   const spec = (data && data.music) || {};
   const duration = Math.max(8, Math.min(90, Math.ceil(studioDuration ? studioDuration() : 35)));
@@ -5258,7 +5326,8 @@ async function vsGenerateAiMusic(data) {
     if (blob.size < 1000) return null;
     if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
     const buffer = await vstudio._playCtx.decodeAudioData((await blob.arrayBuffer()).slice(0));
-    const result = { buffer, url: URL.createObjectURL(blob) };
+    const contentEnd = vsFindContentEnd(buffer);
+    const result = { buffer, url: URL.createObjectURL(blob), contentEnd };
     vstudio._aiMusicCache[cacheKey] = result;
     return result;
   } catch (e) { return null; }
@@ -5270,6 +5339,8 @@ async function vsEnsureDefaultMusic(data) {
     if (generated) {
       vstudio._defaultMusicBuffer = generated.buffer;
       vstudio._defaultMusicUrl = generated.url;
+      // where the AI track's real content actually stops — see vsFindContentEnd.
+      vstudio._defaultMusicContentEnd = generated.contentEnd || generated.buffer.duration;
       const aiEl = new Audio(generated.url);
       aiEl.loop = true; aiEl.preload = "auto";
       return aiEl;
@@ -5277,13 +5348,44 @@ async function vsEnsureDefaultMusic(data) {
     vsStatus(state.lang === "fa"
       ? "موسیقی AI ساخته نشد؛ اعتبار Audio در Pollinations فعال نیست."
       : "AI music failed; Pollinations Audio credit is not enabled.");
-    return null;
-    if (!vstudio._defaultMusicUrl) {
-      const sr = 44100, dur = 20;
+    // This offline synth composes its own intro swell / outro fade directly
+    // into the buffer (see the gain ramps below) — it's a one-shot cue, not a
+    // seamless loop bed. It used to always render a fixed 20s buffer and cache
+    // it globally, then loop that same clip under every video regardless of
+    // that video's real length; anything longer than ~20s looped mid-scene
+    // and you'd hear the composed fade-out/fade-in dip happen again in the
+    // middle of the video, on top of the real fade the export already applies
+    // at the true start/end. Render it to match this video's actual duration
+    // instead, cached per duration, so it only ever plays once, start to end.
+    const targetDur = Math.max(8, Math.min(90, Math.ceil(
+      (typeof studioDuration === "function" ? studioDuration() : 20) || 20)));
+    // This is the ONLY music most videos actually get (the AI generator above
+    // fails whenever the paid Pollinations audio tier is out of credit), yet
+    // it used to be a single fixed cue — always the same minor-key, 100bpm
+    // bed no matter the script's requested mood/energy. Read the same
+    // {mood, energy, bpm} spec the AI path uses so at least this fallback
+    // varies: major-key voicing for upbeat moods vs the original minor for
+    // serious/tense ones, tempo from the script, and an energy scale that
+    // thins out the beat for "low" and thickens it for "high".
+    const spec = (data && data.music) || {};
+    const mood = String(spec.mood || "investigative").toLowerCase();
+    const energyName = String(spec.energy || "medium").toLowerCase();
+    const upbeat = /hopeful|inspiring|upbeat|optimistic|excited/.test(mood);
+    const energyScale = energyName === "low" ? 0.65 : energyName === "high" ? 1.35 : 1;
+    const bpmSpec = Math.max(70, Math.min(132, Math.round(Number(spec.bpm)) || 100));
+    const cacheKey = [targetDur, mood, energyName, bpmSpec].join(":");
+    vstudio._defaultMusicCache = vstudio._defaultMusicCache || {};
+    const cached = vstudio._defaultMusicCache[cacheKey];
+    if (cached) {
+      vstudio._defaultMusicBuffer = cached.buffer;
+      vstudio._defaultMusicUrl = cached.url;
+      vstudio._defaultMusicContentEnd = cached.buffer.duration;   // synth fills the whole buffer
+    } else {
+      const sr = 44100, dur = targetDur;
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       if (!OAC) return null;
       const ctx = new OAC(2, sr * dur, sr);
-    const master = ctx.createGain(); master.gain.value = 0.28; master.connect(ctx.destination);
+    const master = ctx.createGain(); master.gain.value = 0.28 * (0.8 + energyScale * 0.2); master.connect(ctx.destination);
 
     // soft saturation/limiter so the bass stays warm, not clippy
     const comp = ctx.createDynamicsCompressor();
@@ -5318,7 +5420,10 @@ async function vsEnsureDefaultMusic(data) {
     const sweep = ctx.createOscillator(); sweep.type = "sine"; sweep.frequency.value = 0.05;
     const sweepAmt = ctx.createGain(); sweepAmt.gain.value = 700;
     sweep.connect(sweepAmt); sweepAmt.connect(padLP.frequency); sweep.start(0); sweep.stop(dur);
-    const chord = [130.81, 155.56, 196.00, 233.08, 311.13]; // C Eb G Bb Eb5 → Cm
+    // major voicing (brighter/hopeful) vs the original minor (serious/tense)
+    const chord = upbeat
+      ? [130.81, 164.81, 196.00, 246.94, 329.63] // C E G B D5 → Cmaj9
+      : [130.81, 155.56, 196.00, 233.08, 311.13]; // C Eb G Bb Eb5 → Cm9
     chord.forEach((f, i) => {
       [0, 2.2].forEach(det => {
         const o = ctx.createOscillator(); o.type = i % 2 ? "sine" : "triangle";
@@ -5345,8 +5450,8 @@ async function vsEnsureDefaultMusic(data) {
 
     // ── RHYTHM: an advertising-style beat (kick + hats + snare + pulsing bass)
     //    so the bed feels cinematic AND rhythmic, not just ambient ──
-    const bpm = 100, beat = 60 / bpm;
-    const drumBus = ctx.createGain(); drumBus.gain.value = 0.9; drumBus.connect(comp);
+    const bpm = bpmSpec, beat = 60 / bpm;
+    const drumBus = ctx.createGain(); drumBus.gain.value = 0.9 * energyScale; drumBus.connect(comp);
     const nbuf = ctx.createBuffer(1, sr * 0.5, sr);
     const nd = nbuf.getChannelData(0);
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
@@ -5379,24 +5484,30 @@ async function vsEnsureDefaultMusic(data) {
       o.connect(g); g.connect(lp); lp.connect(comp); o.start(t); o.stop(t + beat * 0.6);
     };
     const introT = 2.0, tailT = dur - 2.5;
+    // "low" energy skips every other kick and drops the off-beat hats/bass for
+    // a sparser, calmer bed; "high" keeps every hit (plus the full hat/bass
+    // pattern below) for a busier, more energetic feel.
+    const sparse = energyName === "low";
     let bidx = 0;
     for (let t = introT; t < tailT; t += beat, bidx++) {
       const env = Math.min(1, (t - introT) / 3) * Math.min(1, (tailT - t) / 3);
-      kickAt(t, 0.95 * env);
+      if (!sparse || bidx % 2 === 0) kickAt(t, 0.95 * env);
       // sidechain pump: duck the pads/bass on the kick, then recover
       sideGain.gain.setValueAtTime(0.5, t);
       sideGain.gain.linearRampToValueAtTime(1.0, t + Math.min(0.32, beat * 0.85));
-      if (bidx % 2 === 1) noiseAt(t, 0.14, 1800, 0.32 * env);
+      if (bidx % 2 === 1 && !sparse) noiseAt(t, 0.14, 1800, 0.32 * env);
       noiseAt(t, 0.04, 8000, 0.16 * env);
-      noiseAt(t + beat / 2, 0.04, 8000, 0.12 * env);
+      if (!sparse) noiseAt(t + beat / 2, 0.04, 8000, 0.12 * env);
       const root = bassRoots[Math.floor(bidx / 4) % bassRoots.length];
-      bassAt(t, root); bassAt(t + beat / 2, root * 1.5);
+      bassAt(t, root); if (!sparse) bassAt(t + beat / 2, root * 1.5);
     }
 
       const rendered = await ctx.startRendering();
       vstudio._defaultMusicBuffer = rendered;     // raw buffer → reliably captured in export
       const blob = vsAudioBufferToWav(rendered);
       vstudio._defaultMusicUrl = URL.createObjectURL(blob);
+      vstudio._defaultMusicContentEnd = rendered.duration;   // synth fills the whole buffer
+      vstudio._defaultMusicCache[cacheKey] = { buffer: rendered, url: vstudio._defaultMusicUrl };
     }
     // Return a FRESH element each time so createMediaElementSource (which can only
     // run once per element) always succeeds for every video's export.
@@ -5556,13 +5667,24 @@ async function vsAutoGenerateBackgrounds(data) {
                      || s.headline || "";
     const topicWords = String(headline || s._caption || "")
       .replace(/[^\w\s]/g, " ").split(/\s+/).filter(w => w.length > 3).slice(0, 4).join(" ");
-    // title scenes → a city view; content scenes → housing-themed (when relevant)
-    // + city, so footage is on-topic and locally grounded.
+    // The script writer sees the actual scene content, so its own "visual" query
+    // (a concrete, filmable B-roll idea for THIS scene) beats generic keyword
+    // extraction — fall back to the keyword/city-rotation logic when absent.
+    const visualHint = (!isTitle && s._visual) ? String(s._visual).trim() : "";
+    // title scenes → a city view; content scenes → the AI's own visual query
+    // (when given), else housing-themed (when relevant) + city, so footage
+    // stays on-topic and locally grounded.
     let query, fallbackQuery;
     if (isTitle) {
       query = firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length])
                          : (topicWords || data.title || "cinematic city");
       fallbackQuery = firstPlace ? (firstPlace + " skyline") : "city skyline";
+    } else if (visualHint) {
+      query = (firstPlace && !visualHint.toLowerCase().includes(firstPlace.toLowerCase()))
+        ? (firstPlace + " " + visualHint) : visualHint;
+      fallbackQuery = isHousing
+        ? (firstPlace ? (firstPlace + " " + houseViews[i % houseViews.length]) : "suburban homes")
+        : (firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length]) : "cinematic city");
     } else if (isHousing) {
       query = ((firstPlace ? firstPlace + " " : "") + houseViews[i % houseViews.length]);
       fallbackQuery = firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length]) : "suburban homes";
@@ -5593,7 +5715,7 @@ async function vsAutoGenerateBackgrounds(data) {
     if (vstudio._batchCancel) return;
     // 2) AI image fallback
     try {
-      const subject = headline || s._caption || data.title || "abstract concept";
+      const subject = visualHint || headline || s._caption || data.title || "abstract concept";
       const subjectCtx = (firstPlace && !String(subject).toLowerCase().includes(firstPlace.toLowerCase()))
         ? (firstPlace + " — " + subject) : subject;
       const img = await vsGenerateImage(subjectCtx + ", " + palette + " color palette, editorial photography", null);
@@ -5669,23 +5791,6 @@ function vsIsGroundedAnalystScript(data, excerpt) {
     }
   }
   return true;
-}
-
-// Find "City, ST" style items in the article WITHOUT any AI — the safety net
-// when the AI service is down, so batch mode still splits into separate videos.
-function vsExtractItemsLocal(text) {
-  const t = String(text || "");
-  const states = ("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN " +
-    "MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC").split(" ");
-  const re = new RegExp("\\b([A-Z][a-z]+(?:[ '\\-][A-Z][a-z]+){0,2}),\\s*(" + states.join("|") + ")\\b", "g");
-  const out = [];
-  let m;
-  while ((m = re.exec(t)) !== null) {
-    const name = m[1].trim() + ", " + m[2];
-    if (!out.includes(name)) out.push(name);
-    if (out.length >= 30) break;
-  }
-  return out;
 }
 
 // Strip website nav / section junk ("Home", "Local"…), data-source names
@@ -6038,7 +6143,7 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
   const expectedN = (placesMode && numM) ? Number(numM[1]) : 0;
   const floor = expectedN || (placesMode ? 6 : 0);
   const needMore = names.length < 2 || (floor >= 4 && names.length < floor);
-  if (false && needMore && !vstudio._batchCancel) {
+  if (needMore && !vstudio._batchCancel) {
     vsAutoStatus(fa ? "متن کامل نبود — بازسازی فهرست با کمک مدل…"
                     : "Article was a teaser — reconstructing the list…");
     const hintN = expectedN || (placesMode ? 8 : ((String(text).match(/\b(\d{1,2})\s+[A-Za-z]+\b/) || [])[1] || ""));
@@ -6062,6 +6167,18 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
     names = vsCleanItemNames(names, text);    // final clean + cap
   }
   usedLocalNames = names.length >= 3;
+
+  // Names with no real occurrence in `text` came from knowledge-assisted
+  // reconstruction above, not from the fetched article — the per-item loop
+  // below uses this to skip excerpt-grounding and keep their scripts
+  // text-only, since a fabricated infographic stat for a place with no real
+  // source excerpt would fail vsIsGroundedAnalystScript and abort the batch.
+  const bodyLower = String(text).toLowerCase();
+  const knowledgeNames = new Set(names.filter(n => {
+    const full = String(n).toLowerCase();
+    const city = full.split(",")[0].trim();
+    return !(bodyLower.includes(full) || (city.length >= 3 && bodyLower.includes(city)));
+  }).map(n => n.toLowerCase()));
 
   if (names.length < 2) {
     vsAutoStatus(fa ? "موارد کافی برای حالت دسته‌ای پیدا نشد — یک ویدئو می‌سازم."
@@ -6099,12 +6216,20 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
     if (vstudio._batchCancel) break;
     const name = names[i];
     const shortName = String(name).split(",")[0].trim();
-    const excerpt = vsExcerptFor(text, name);
+    // Reconstructed (knowledge-assisted) names have no real excerpt in `text` —
+    // an excerpt-grounded infographic for them would fail vsIsGroundedAnalystScript
+    // and abort the whole batch, so give them a different, text-only briefing.
+    const noExcerpt = knowledgeNames.has(String(name).toLowerCase());
+    const excerpt = noExcerpt ? "" : vsExcerptFor(text, name);
     vsBatchProgress(true, i, names.length, name);
     vsAutoStatus(fa ? `ساخت فیلمنامهٔ ${i + 1} از ${names.length}: ${name}…`
                     : `Scripting ${i + 1} of ${names.length}: ${name}…`);
-    const dataLine = `Build the report from documented evidence about ${name}: conditions, named drivers, comparisons, forecasts and verified figures.`;
-    const groundingRule = `Use ONLY the supplied excerpt for ${name}. Never invent a rank, price, rate, statistic or comparison. Never discuss missing data or tell the viewer to verify anything. If there are no usable numbers, use text scenes and analyze documented causes, market mechanics, risks and buyer/seller implications.`;
+    const dataLine = noExcerpt
+      ? `No excerpt for ${name} was found in the fetched article text (it was identified from your own knowledge of this widely-published piece). Draw only on well-established, verifiable general knowledge of ${shortName} in relation to "${topic}" — real, well-known facts you are genuinely confident about, never a specific invented figure.`
+      : `Build the report from documented evidence about ${name}: conditions, named drivers, comparisons, forecasts and verified figures.`;
+    const groundingRule = noExcerpt
+      ? `Never state a precise statistic, price, rate or rank you cannot verify — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead. Never discuss missing data or tell the viewer to verify anything.`
+      : `Use ONLY the supplied excerpt for ${name}. Never invent a rank, price, rate, statistic or comparison. Never discuss missing data or tell the viewer to verify anything. If there are no usable numbers, use text scenes and analyze documented causes, market mechanics, risks and buyer/seller implications.`;
     const sPrompt =
 `You are an award-winning ${guide} and rigorous research editor.
 Create a concise analyst briefing about "${name}" for a news piece whose subject is: "${topic}". Write as if you carefully read the excerpt, isolated its evidence, and developed a causal market thesis.
@@ -6118,19 +6243,20 @@ ANALYST MODE — write as a senior housing-market analyst. Never mention insuran
 • Surface the non-obvious insight, not just the raw number. Sound like a sharp, credible advisor — specific, useful, zero hype or filler.
 • The outro is one decisive, client-facing takeaway the advisor can stand behind.
 Return ONLY valid compact JSON (no markdown):
-{"title":"a punchy headline that names ${shortName} AND echoes the article subject (e.g. \\"${shortName}: <angle of ${topic}>\\"), max 7 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"hook naming ${shortName} tied to the topic, 3-6 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover"},{"type":"infographic","caption":"2-3 words","title":"chart headline (max 30 chars)","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking"}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
+{"title":"a question headline naming ${shortName} about \\"${topic}\\", in this exact format: \\"How Will ${shortName} Market End 2026?\\" (swap in the real forecast year), max 9 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"the SAME question headline as title, e.g. \\"How Will ${shortName} Market End 2026?\\", max 9 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}${noExcerpt ? "" : `,{"type":"infographic","caption":"2-3 words","title":"a question headline naming ${shortName}, same format as the top-level title (e.g. \\"How Will ${shortName} Market End 2026?\\"), max 40 chars","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}`}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration interprets evidence and explains the client implication; it never just repeats the headline.
 1. EXACTLY ${contentCount} content sections (besides intro/outro).
 2. EVERY scene stays on "${topic}" for ${shortName}, each a DIFFERENT angle (e.g. home prices, affordability rank, income-to-cost, growth, why best/worst). NEVER repeat a fact, number, phrase, caption or headline across scenes — all UNIQUE.
-3. title AND intro.main must clearly name ${shortName} and echo the article subject "${topic}".
-4. Use an "infographic" ONLY when the source excerpt supplies at least 2 directly comparable numeric facts. Copy each displayed value exactly from the excerpt. Otherwise every section must be "text".
+3. title AND intro.main must clearly name ${shortName}, echo the article subject "${topic}", and be phrased as a question in the "How Will ${shortName} Market End 2026?" format — always keep the "How Will ___ Market End ____?" shape, just swap in the real city and forecast year.
+4. ${noExcerpt ? `Every section MUST be "text" — do NOT include an "infographic" section, since no verified source excerpt exists for this location.` : `Use an "infographic" ONLY when the source excerpt supplies at least 2 directly comparable numeric facts. Copy each displayed value exactly from the excerpt. Otherwise every section must be "text".`}
 5. Never turn the article year, total market count, list inclusion or section order into a statistic or rank. Never claim the markets are ranked unless the excerpt explicitly ranks them.
 6. Forbidden wording: "listed among 10", "included", "rising label", "watchlist signal", "article proof", "confirmed inclusion", "verify locally", "no data", "not provided", "source", "excerpt", "article footnote".
 7. Build a logical arc: thesis, evidence/drivers, market mechanism, risk/constraint, then a decision takeaway. Every headline must make a causal claim or decision-relevant implication.
 8. "source" = the real outlet/publication name only (no "by", no URL); leave "" if unknown.
-SOURCE EXCERPT about ${name}: """${excerpt}"""`;
+9. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).
+${noExcerpt ? `No source excerpt is available for ${name} — rely on verified general knowledge only.` : `SOURCE EXCERPT about ${name}: """${excerpt}"""`}`;
 
     let data = null;
     if (aiFailStreak < 2) {   // only call the AI while it's responding
@@ -6204,6 +6330,13 @@ SOURCE EXCERPT about ${name}: """${excerpt}"""`;
 async function vsLoadBatchVideo(i) {
   const v = vstudio.batchVideos[i];
   if (!v) return;
+  // Stop the outgoing video's audio right away. A bare Audio element keeps
+  // playing even after vstudio.musicEl/narrationEl is pointed elsewhere, so
+  // without this every batch video opened in a row stacked its music track
+  // on top of the last one during live preview (export is unaffected — it
+  // renders from a fresh AudioBuffer per video, not these live elements).
+  if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
+  if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch {} }
   const previous = vstudio.batchVideos[vstudio.batchCurrent];
   if (previous && previous !== v && vstudio.slides.length) {
     vsSaveActiveSlide();
@@ -6226,6 +6359,8 @@ async function vsLoadBatchVideo(i) {
     vsAutoStatus(fa ? `ساخت موسیقی…` : `Building music…`);
     const dm = await vsEnsureDefaultMusic(v.data);
     if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+      vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
+      vsAttachMusicLoopTrim(dm);
       try { console.log("[audio] music ready for", v.name); } catch(e){} }
     else { vstudio._musicBuffer = null; try { console.warn("[audio] music generation FAILED"); } catch(e){} }
   } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
@@ -6264,7 +6399,13 @@ async function vsLoadBatchVideo(i) {
     });
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
-    if (!vstudio.looping) previewStudioVideo(false);
+    if (!vstudio.looping) {
+      previewStudioVideo(false);
+    } else if (vstudio.musicEl) {
+      // preview kept running across the switch (new slides just dropped in) —
+      // the fresh music element still needs an explicit play() to be heard.
+      try { vstudio.musicEl.currentTime = vstudio.position || 0; vstudio.musicEl.play().catch(() => {}); } catch {}
+    }
     vsAutoStatus(fa ? `«${v.name}» آماده است.` : `"${v.name}" is ready.`);
     return;
   }
@@ -6539,8 +6680,12 @@ async function vsGenerateImage(promptText, aspect) {
   let imgEl = null;
   for (const url of candidates) {
     if (vstudio._batchCancel) return null;          // bail immediately on cancel
-    imgEl = await tryLoad(url, true);               // CORS (export-safe) first
-    if (!imgEl && !vstudio._batchCancel) imgEl = await tryLoad(url, false);
+    // CORS-only. A non-CORS image taints the export <canvas> — captureStream()
+    // then silently produces a blank/broken recording and the download either
+    // never appears or comes out corrupt, with no error shown anywhere. Better
+    // to skip a stubborn image entirely (caller keeps a plain background) than
+    // to ship a video that can't be exported.
+    imgEl = await tryLoad(url, true);
     if (imgEl) break;
   }
   if (!imgEl) throw new Error("Image service unavailable (try again in a moment)");
@@ -6848,6 +6993,7 @@ function loadStudioMedia(file) {
 
 function loadStudioMusic(file) {
   if (!file) return;
+  if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
   if (vstudio.musicUrl) URL.revokeObjectURL(vstudio.musicUrl);
   // a new music element needs a fresh audio graph (the old MediaElementSource
   // is bound to the previous element and can't be reused)
@@ -7747,7 +7893,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const align = left ? "left" : "center";
     const maxW = W * (left ? 0.84 : 0.80);
     // Auto-fit font so the WHOLE headline shows (was capped/truncated at 4 lines)
-    const fit = fitWrap(mainTxt, "800", "Prata, serif", U * 0.075, Math.round(U * 0.03), maxW, H * 0.62, 1.18);
+    const fit = fitWrap(mainTxt, "800", "Prata, serif", U * 0.15, Math.round(U * 0.03), maxW, H * 0.62, 1.18);
     const lines = fit.lines, mainPx = fit.px;
     const lineH = mainPx * 1.18, blockH = lines.length * lineH;
     const top = H*0.48 - blockH/2;
@@ -7787,7 +7933,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "bold-statement") {
     ctx.fillStyle = "rgba(0,0,0,0.62)"; ctx.fillRect(0,0,W,H);
-    const bsFit = fitWrap(mainTxt.toUpperCase(), "900", "Inter, sans-serif", U*0.1, Math.round(U*0.04), W*0.9, H*0.7, 1.05);
+    const bsFit = fitWrap(mainTxt.toUpperCase(), "900", "Inter, sans-serif", U*0.2, Math.round(U*0.04), W*0.9, H*0.7, 1.05);
     const lines = bsFit.lines, px2 = bsFit.px;
     const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
     lines.forEach((ln, li) => {
@@ -7864,7 +8010,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     if (source) { ctx.fillStyle=vsHexA(ac.bar,0.9); ctx.font=`600 ${Math.round(U*0.024)}px Inter, sans-serif`; ctx.fillText("— "+source,qX,qTop+lines.length*lH+U*0.05); }
 
   } else if (style === "caption") {
-    const capFit = fitWrap(mainTxt, "800", "Inter, sans-serif", U*0.064, Math.round(U*0.04), W*0.9, H*0.5, 1.24);
+    const capFit = fitWrap(mainTxt, "800", "Inter, sans-serif", U*0.128, Math.round(U*0.04), W*0.9, H*0.5, 1.24);
     const lines = capFit.lines, capPx = capFit.px;
     const lH=capPx*1.24, bH=lines.length*lH+U*0.06;
     const by=H*0.9-bH+(1-e)*U*0.05;
@@ -7881,7 +8027,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   } else if (style === "annotation") {
     const aW=W*0.82, aX=W*0.09;
     // +50% larger note; auto-fit so the whole thing still shows
-    const aFit = fitWrap(mainTxt, "700", "Prata, serif", U*0.063, Math.round(U*0.036), aW*0.88, H*0.6, 1.19);
+    const aFit = fitWrap(mainTxt, "700", "Prata, serif", U*0.126, Math.round(U*0.036), aW*0.88, H*0.6, 1.19);
     const lines = aFit.lines, aPx = aFit.px;
     const lH=aPx*1.19;
     const cardH=lines.length*lH+U*0.12+(kicker?U*0.07:0)+(source?U*0.05:0);
@@ -7905,7 +8051,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     if(kicker){ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=ac.text||"#fff";ctx.font=`800 ${Math.round(U*0.032)}px Inter, sans-serif`;ctx.fillText(kicker.toUpperCase(),padL+colW/2,H*0.5);ctx.textBaseline="alphabetic";}
     ctx.fillStyle="#fff"; ctx.textAlign="left";
     ctx.shadowColor="rgba(0,0,0,0.5)"; ctx.shadowBlur=U*0.02;
-    const splitFit = fitWrap(headline, "700", "Prata, serif", U*0.065, Math.round(U*0.03), W-splitX-padL, H*0.5, 1.18);
+    const splitFit = fitWrap(headline, "700", "Prata, serif", U*0.13, Math.round(U*0.03), W-splitX-padL, H*0.5, 1.18);
     const lines = splitFit.lines, splitPx = splitFit.px;
     ctx.font=`700 ${splitPx}px ${vsGetFont("Prata, serif")}`;
     const lH=splitPx*1.18;
@@ -7916,7 +8062,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   } else if (style === "badge") {
     ctx.fillStyle="rgba(0,0,0,0.52)"; ctx.fillRect(0,H*0.28,W,H*0.44);
     if(kicker){const kPx=Math.round(U*0.026);ctx.font=`700 ${kPx}px Inter, sans-serif`;const kT=kicker.toUpperCase(),kw=ctx.measureText(kT).width+U*0.07;const bx=W/2-kw/2,byy=H*0.38-kPx*1.6;ctx.fillStyle=ac.bar;roundRectPath(ctx,bx,byy,kw,kPx*2.4,kPx*1.2);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kT,W/2,byy+kPx*1.2);ctx.textBaseline="alphabetic";}
-    const badgeFit = fitWrap(headline, "700", "Prata, serif", U*0.072, Math.round(U*0.034), W*0.84, H*0.5, 1.18);
+    const badgeFit = fitWrap(headline, "700", "Prata, serif", U*0.144, Math.round(U*0.034), W*0.84, H*0.5, 1.18);
     const lines = badgeFit.lines, bPx = badgeFit.px;
     const lH=bPx*1.18;let yy=H*0.47;
     ctx.shadowColor="rgba(0,0,0,0.55)"; ctx.shadowBlur=U*0.025; ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.font=`700 ${bPx}px ${vsGetFont("Prata, serif")}`;
@@ -7928,7 +8074,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const tG=ctx.createLinearGradient(0,0,0,H*0.55); tG.addColorStop(0,"rgba(0,0,0,0.9)"); tG.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=tG; ctx.fillRect(0,0,W,H*0.55);
     const bG=ctx.createLinearGradient(0,H*0.5,0,H); bG.addColorStop(0,"rgba(0,0,0,0)"); bG.addColorStop(1,"rgba(0,0,0,0.78)"); ctx.fillStyle=bG; ctx.fillRect(0,H*0.5,W,H*0.5);
     if(kicker){const kPx=Math.round(U*0.025);ctx.font=`800 ${kPx}px Inter, sans-serif`;const kW=ctx.measureText(kicker.toUpperCase()).width+U*0.07;ctx.fillStyle=ac.bar;roundRectPath(ctx,W/2-kW/2,H*0.06,kW,kPx*2.2,kPx*1.1);ctx.fill();ctx.fillStyle=ac.text||"#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(kicker.toUpperCase(),W/2,H*0.06+kPx*1.1);ctx.textBaseline="alphabetic";}
-    const magFit = fitWrap(mainTxt, "900", "Prata, serif", Math.min(U*0.098,W*0.22), Math.round(U*0.04), W*0.88, H*0.4, 1.05);
+    const magFit = fitWrap(mainTxt, "900", "Prata, serif", Math.min(U*0.196,W*0.44), Math.round(U*0.04), W*0.88, H*0.4, 1.05);
     const lines = magFit.lines, mPx = magFit.px;
     const lH=mPx*1.05; let hY=H*0.18;
     ctx.fillStyle="#fff"; ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=U*0.025; ctx.textAlign="center"; ctx.font=`900 ${mPx}px ${vsGetFont("Prata, serif")}`;
@@ -7938,7 +8084,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "neon-title") {
     ctx.fillStyle="rgba(0,0,0,0.72)"; ctx.fillRect(0,H*0.18,W,H*0.64);
-    const neonFit = fitWrap(mainTxt, "900", "Inter, sans-serif", Math.min(U*0.088,W*0.2), Math.round(U*0.036), W*0.86, H*0.56, 1.18);
+    const neonFit = fitWrap(mainTxt, "900", "Inter, sans-serif", Math.min(U*0.176,W*0.4), Math.round(U*0.036), W*0.86, H*0.56, 1.18);
     const lines = neonFit.lines, nPx = neonFit.px;
     const lH=nPx*1.18, nTop=H/2-(lines.length-1)*lH/2;
     lines.forEach((ln,li)=>{
@@ -8040,7 +8186,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "minimal-line") {
     ctx.textAlign="center";
-    const minFit = fitWrap(mainTxt, "300", "Prata, serif", U*0.066, Math.round(U*0.032), W*0.8, H*0.4, 1.22);
+    const minFit = fitWrap(mainTxt, "300", "Prata, serif", U*0.132, Math.round(U*0.032), W*0.8, H*0.4, 1.22);
     const lines = minFit.lines, mPx = minFit.px;
     const lH=mPx*1.22;
     ctx.fillStyle=ac.bar; ctx.fillRect(W*0.1,H*0.43,W*0.8*e,U*0.004);
@@ -8112,6 +8258,16 @@ function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
     if (ctx.measureText(text).width <= maxW) break;
   }
   ctx.font = `${weight} ${px}px ${family}`;
+  // minPx is a *preferred* floor, not a hard one — a long value (e.g. a
+  // stat like "-3.5% (-$23,100)") could still be wider than maxW even at
+  // that size, and this used to just stop and let it overflow past the
+  // card's edge, reading as a clipped/truncated number. Keep shrinking
+  // below the floor, down to a hard minimum, so it always fits instead.
+  const hardFloor = Math.max(6, Math.round(minPx * 0.5));
+  while (px > hardFloor && ctx.measureText(text).width > maxW) {
+    px -= 1;
+    ctx.font = `${weight} ${px}px ${family}`;
+  }
   return px;
 }
 
@@ -8351,7 +8507,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     // cap size so a tall font can't collide with the accent line above
-    const titlePx = Math.min(Math.round(U * 0.04), Math.round(panelH * 0.085));
+    const titlePx = Math.min(Math.round(U * 0.08), Math.round(panelH * 0.17));
     const fittedPx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
       titlePx, Math.round(U * 0.022));
     ctx.fillText(data.title, px + padX, cy);
@@ -8362,7 +8518,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     ctx.fillStyle = ig.label;
     ctx.textAlign = "left";
     vsFitFont(ctx, data.subtitle.toUpperCase(), panelW - padX * 2, "500",
-      "Inter, sans-serif", Math.round(U * 0.022), Math.round(U * 0.014));
+      "Inter, sans-serif", Math.round(U * 0.044), Math.round(U * 0.014));
     ctx.fillText(data.subtitle.toUpperCase(), px + padX, cy);
     cy += panelH * 0.065;
   }
@@ -8521,13 +8677,13 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle";
       ctx.fillStyle = ig.label;
       vsFitFont(ctx, s.label.toUpperCase(), ctxW * 0.65, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.02, cardH * 0.24)), Math.round(cardH * 0.14));
+        Math.round(Math.min(U * 0.028, cardH * 0.32)), Math.round(cardH * 0.14));
       ctx.textAlign = "left";
       ctx.fillText(s.label.toUpperCase(), ctxX, cardY + cardH * 0.28);
       // big value right-aligned
       ctx.fillStyle = ig.value;
       vsFitFont(ctx, s.value, ctxW * 0.55, "800", vsGetFont("Prata, serif"),
-        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.072, cardH * 0.6)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, px + panelW - padX - U * 0.01, cardY + cardH * 0.68);
       ctx.textBaseline = "alphabetic";
@@ -8576,11 +8732,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle"; ctx.textAlign = "left";
       ctx.fillStyle = vsHexA(ig.accent, 0.75);
       vsFitFont(ctx, s.label.toUpperCase(), cW * 0.6, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.018, cardH * 0.22)), Math.round(cardH * 0.13));
+        Math.round(Math.min(U * 0.026, cardH * 0.3)), Math.round(cardH * 0.13));
       ctx.fillText(s.label.toUpperCase(), cX + cW * 0.04, cardY + cardH * 0.3);
       ctx.fillStyle = "#ffffff";
       vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Prata, serif"),
-        Math.round(Math.min(U * 0.054, cardH * 0.44)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.076, cardH * 0.58)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.68);
       ctx.textBaseline = "alphabetic";
@@ -8603,12 +8759,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "middle"; ctx.textAlign = "left";
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       vsFitFont(ctx, s.label, cW * 0.58, "600", "Inter, sans-serif",
-        Math.round(Math.min(U * 0.019, cardH * 0.22)), Math.round(cardH * 0.13));
+        Math.round(Math.min(U * 0.027, cardH * 0.3)), Math.round(cardH * 0.13));
       ctx.fillText(s.label, cX + cW * 0.14, cardY + cardH * 0.3);
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = ig.accent; ctx.shadowBlur = U * 0.015 * re;
       vsFitFont(ctx, s.value, cW * 0.5, "800", vsGetFont("Inter, sans-serif"),
-        Math.round(Math.min(U * 0.052, cardH * 0.46)), Math.round(cardH * 0.28));
+        Math.round(Math.min(U * 0.074, cardH * 0.6)), Math.round(cardH * 0.28));
       ctx.textAlign = "right";
       ctx.fillText(s.value, cX + cW * 0.96, cardY + cardH * 0.7);
       ctx.shadowBlur = 0; ctx.textBaseline = "alphabetic";
@@ -8740,10 +8896,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       const aE = 1 - Math.pow(1 - aRe, 3);
       // auto-fit value into half-panel width (leave room for VS badge)
       const compMaxW = panelW * 0.40;
-      let compPx = Math.round(Math.min(U * 0.095, panelW * 0.2));
+      let compPx = Math.round(Math.min(U * 0.19, panelW * 0.4));
       ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       const longest = String(a.value).length >= String(b.value).length ? a.value : b.value;
-      while (compPx > Math.round(U * 0.04) && ctx.measureText(longest).width > compMaxW) {
+      // keep shrinking past the old floor if a long value still doesn't fit —
+      // same clipped-number bug class as vsFitFont, fixed the same way.
+      while (compPx > 6 && ctx.measureText(longest).width > compMaxW) {
         compPx -= 2; ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
       }
       ctx.font = `900 ${compPx}px ${vsGetFont("Inter, sans-serif")}`;
@@ -9221,6 +9379,8 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
 function drawStudioFrame(elapsed) {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
   vstudio._frameHasMedia = false;   // set true only when footage is drawn
 
   // When slides exist, pick the slide active at this time.
@@ -9346,10 +9506,8 @@ function drawStudioFrame(elapsed) {
     }
   }
 
-  const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  const W = canvas.width, H = canvas.height;
   // CRITICAL: fully reset transform + clear every frame so nothing from the
   // previous frame (text, scaled background) bleeds through and looks doubled.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -10516,12 +10674,13 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
     ctx.shadowBlur = U * 0.05 * e;
   }
   const maxTextW = W * 0.82;
+  const maxLines = 4;
   // intro headlines are bigger and bolder for impact; outro a touch smaller
-  let fontPx = Math.round(U * (isIntro ? 0.118 : isOutro ? 0.072 : 0.075));
+  let fontPx = Math.round(U * (isIntro ? 0.236 : isOutro ? 0.144 : 0.15));
   const headWeight = isIntro ? 700 : 600;
   ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
   // helper: break text into lines that each fit maxTextW (cap at maxLines)
-  const layout = (str, maxLines) => {
+  const layout = (str, cap) => {
     const words = String(str).split(/\s+/).filter(Boolean).flatMap(w =>
       (w.length > 13 && w.includes("-")) ? w.split(/(?<=-)/) : [w]   // allow long hyphenated words to wrap
     );
@@ -10531,30 +10690,34 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
       const test = ln ? (/-$/.test(ln) ? ln + w : ln + " " + w) : w;
       if (ctx.measureText(test).width > maxTextW && ln) {
         out.push(ln); ln = w;
-        if (out.length === maxLines) { ln = ""; break; }
+        if (out.length === cap) { ln = ""; break; }
       } else { ln = test; }
     }
-    if (ln && out.length < maxLines) out.push(ln);
+    if (ln && out.length < cap) out.push(ln);
     return out;
   };
   const widestLine = (lns) => lns.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
-  let lines = layout(txt, 3);
-  // shrink the font until it fits in 3 lines AND the widest line fits the width
-  // (a single long word like "solo-homeownership" must not spill out the sides)
-  while (fontPx > U * 0.022 &&
-         (layout(txt, 99).length > 3 || widestLine(lines) > maxTextW)) {
+  let lines = layout(txt, maxLines);
+  // shrink the font until it fits in maxLines AND the widest line fits the
+  // width (a single long word like "solo-homeownership" must not spill out
+  // the sides). Keeps going well past the old floor — a smaller-but-whole
+  // title beats one that gets cut off with an ellipsis, which used to
+  // happen for longer titles (e.g. a full question-style headline).
+  while (fontPx > U * 0.01 &&
+         (layout(txt, 99).length > maxLines || widestLine(lines) > maxTextW)) {
     fontPx -= 1;
     ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
-    lines = layout(txt, 3);
+    lines = layout(txt, maxLines);
   }
-  // extreme case — still overflowing 3 lines: ellipsize the last line
-  if (layout(txt, 99).length > 3 && lines.length === 3) {
-    let last = lines[2];
+  // truly extreme case (a hard floor of U*0.01 still isn't enough) — ellipsize
+  // the last line rather than let it overflow the frame.
+  if (layout(txt, 99).length > maxLines && lines.length === maxLines) {
+    let last = lines[maxLines - 1];
     while (last.length > 1 &&
            ctx.measureText(last + "…").width > maxTextW) {
       last = last.slice(0, -1);
     }
-    lines[2] = last.replace(/\s+\S*$/, "") + "…";
+    lines[maxLines - 1] = last.replace(/\s+\S*$/, "") + "…";
   }
   const lineH = fontPx * 1.22;
   const blockTop = -((lines.length - 1) * lineH) / 2;
@@ -10707,6 +10870,20 @@ function studioDuration() {
   return vstudio.slides.length
     ? slidesTotalDuration()
     : Math.max(2, Number(vsVal("#vsDuration", 6)));
+}
+
+// During live preview the music is a plain <audio> element — unlike the
+// export's AudioBufferSourceNode it has no loopStart/loopEnd, so trim the
+// generator's trailing near-silence (see vsFindContentEnd) the same way by
+// jumping back to 0 a little before it, instead of letting the preview go
+// quiet near the end of a longer video.
+function vsAttachMusicLoopTrim(el) {
+  if (!el || el._vsLoopTrimAttached) return;
+  el._vsLoopTrimAttached = true;
+  el.addEventListener("timeupdate", () => {
+    const end = vstudio._musicContentEnd;
+    if (end && el.currentTime >= end) { try { el.currentTime = 0; } catch (e) {} }
+  });
 }
 
 // Fade the background music: a short fade-IN at the start and a
@@ -11433,29 +11610,49 @@ function scrubSceneStrip(clientX) {
 }
 
 
-// The browser's recorder only makes WebM; this converts it to MP4
-// entirely in the browser. Works on a plain static site — no special
-// headers needed. The ffmpeg core is loaded once and reused.
+// The browser's recorder only makes WebM; this converts it to MP4 entirely
+// in the browser via ffmpeg.wasm v0.12, vendored same-origin (not pulled
+// from a CDN — v0.12's worker refuses to construct from a cross-origin
+// script URL, and blob-URL workarounds for that hang forever instead of
+// throwing). v0.11 from a CDN looked simpler but actually threw
+// "SharedArrayBuffer is not defined" on every run, since that core needs
+// cross-origin-isolation headers a plain static host (GitHub Pages) can't
+// send — every export was silently falling back to WebM. The ffmpeg
+// instance is loaded once (lazily, on first export) and reused.
 let _vsFfmpeg = null;
+let _vsFfmpegScriptPromise = null;
+function vsLoadFfmpegScript() {
+  if (window.FFmpegWASM) return Promise.resolve();
+  if (_vsFfmpegScriptPromise) return _vsFfmpegScriptPromise;
+  _vsFfmpegScriptPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "vendor/ffmpeg/ffmpeg.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("MP4 converter library failed to load."));
+    document.head.appendChild(s);
+  });
+  return _vsFfmpegScriptPromise;
+}
 async function vsGetFfmpeg() {
-  if (_vsFfmpeg && _vsFfmpeg.isLoaded()) return _vsFfmpeg;
-  if (typeof FFmpeg === "undefined" || !FFmpeg.createFFmpeg) {
+  if (_vsFfmpeg && _vsFfmpeg.loaded) return _vsFfmpeg;
+  await vsLoadFfmpegScript();
+  if (!window.FFmpegWASM || !window.FFmpegWASM.FFmpeg) {
     throw new Error("MP4 converter library failed to load.");
   }
-  const ffmpeg = FFmpeg.createFFmpeg({
-    log: false,
-    corePath: "https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"
-  });
-  await ffmpeg.load();
+  const ffmpeg = new window.FFmpegWASM.FFmpeg();
+  // must be an absolute (or "./") URL — a bare relative path like
+  // "vendor/ffmpeg/ffmpeg-core.js" fails as an unresolvable module specifier
+  // inside the core's own dynamic import.
+  await ffmpeg.load({ coreURL: new URL("vendor/ffmpeg/ffmpeg-core.js", document.baseURI).href });
   _vsFfmpeg = ffmpeg;
   return ffmpeg;
 }
 async function vsConvertToMp4(webmBlob) {
   const ffmpeg = await vsGetFfmpeg();
   const buf = new Uint8Array(await webmBlob.arrayBuffer());
-  ffmpeg.FS("writeFile", "in.webm", buf);
+  await ffmpeg.writeFile("in.webm", buf);
   // H.264 video + AAC audio — the universally compatible MP4 combo
-  await ffmpeg.run(
+  await ffmpeg.exec([
     "-i", "in.webm",
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
     "-r", "30", "-vsync", "cfr",
@@ -11463,10 +11660,10 @@ async function vsConvertToMp4(webmBlob) {
     "-c:a", "aac", "-b:a", "192k",
     "-movflags", "+faststart",
     "out.mp4"
-  );
-  const data = ffmpeg.FS("readFile", "out.mp4");
+  ]);
+  const data = await ffmpeg.readFile("out.mp4");
   // free the in-memory files
-  try { ffmpeg.FS("unlink", "in.webm"); ffmpeg.FS("unlink", "out.mp4"); } catch {}
+  try { await ffmpeg.deleteFile("in.webm"); await ffmpeg.deleteFile("out.mp4"); } catch {}
   return new Blob([data.buffer], { type: "video/mp4" });
 }
 
@@ -11486,10 +11683,14 @@ async function exportStudioVideo() {
     if (musicTog && musicTog.checked && !vstudio._userMusic) {
       if (!vstudio.musicEl) { const dm = await vsEnsureDefaultMusic((cur && cur.data) || vstudio.storyData); if (dm) vstudio.musicEl = dm; }
       vstudio._musicBuffer = vstudio._defaultMusicBuffer || vstudio._musicBuffer || null;
+      vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
     } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
-      vstudio.musicEl = null; vstudio._musicBuffer = null;
+      vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null;
     } else if (vstudio._userMusic) {
+      // a user's own upload — don't assume any trailing quiet part is
+      // unintentional generator under-fill, so no content-end trimming here.
       vstudio._musicBuffer = vstudio._userMusicBuffer || null;
+      vstudio._musicContentEnd = null;
     }
     const voTog = document.querySelector("#vsVoiceover");
     if (false && voTog && voTog.checked) {
@@ -11535,6 +11736,7 @@ async function exportStudioVideo() {
   let tracks = [...canvasStream.getVideoTracks()];
   vstudio._exportAudio = null;
   const mBuf = vstudio._musicBuffer || null;
+  const mBufContentEnd = vstudio._musicContentEnd || null;
   const nBuf = vstudio._narrationBuffer || null;
   if (mBuf || nBuf) {
     try {
@@ -11542,7 +11744,7 @@ async function exportStudioVideo() {
       const actx = vstudio._playCtx;
       if (actx.state === "suspended") { try { await actx.resume(); } catch (e) {} }
       const recDest = actx.createMediaStreamDestination();
-      vstudio._exportAudio = { actx, recDest, mBuf, nBuf, sources: [],
+      vstudio._exportAudio = { actx, recDest, mBuf, mBufContentEnd, nBuf, sources: [],
         dur: (typeof studioDuration === "function" ? studioDuration() : 20) || 20 };
       tracks = tracks.concat(recDest.stream.getAudioTracks());
       try { console.log("[audio] export graph ready — music:" + !!mBuf + " voice:" + !!nBuf); } catch (e) {}
@@ -11697,26 +11899,38 @@ async function exportStudioVideo() {
       const musicVol = (isNaN(vol) ? 0.5 : vol) * (ea.nBuf ? 0.5 : 1); // duck under voice
       if (ea.mBuf) {
         const s = actx.createBufferSource(); s.buffer = ea.mBuf; s.loop = true;
+        // The AI music generator sometimes under-fills the requested
+        // duration — the buffer is nominally long enough but trails into
+        // near-silence early. Loop only the real content (loopStart/loopEnd)
+        // so a video never goes musically dead near its own ending; without
+        // this the plain loop=true above would just play out the silence
+        // once and then stop, since s.stop() below cuts it off before a
+        // second full pass through the buffer would happen.
+        if (ea.mBufContentEnd && ea.mBufContentEnd < ea.mBuf.duration - 0.75) {
+          s.loopStart = 0; s.loopEnd = ea.mBufContentEnd;
+        }
         const g = actx.createGain();
         g.gain.setValueAtTime(0.0001, t0);
         g.gain.linearRampToValueAtTime(musicVol, t0 + 0.8);         // fade in
         g.gain.setValueAtTime(musicVol, Math.max(t0 + 1, end - 1.4));
         g.gain.linearRampToValueAtTime(0.0001, end);               // fade out
-        s.connect(g); g.connect(ea.recDest); g.connect(actx.destination);
+        s.connect(g); g.connect(ea.recDest);
         s.start(t0); try { s.stop(end + 0.1); } catch (e) {}
         ea.sources.push(s);
       }
       if (ea.nBuf) {
         const s = actx.createBufferSource(); s.buffer = ea.nBuf; s.playbackRate.value = spd;
         const g = actx.createGain(); g.gain.value = 1.0;
-        s.connect(g); g.connect(ea.recDest); g.connect(actx.destination);
+        s.connect(g); g.connect(ea.recDest);
         s.start(t0); ea.sources.push(s);
       }
       try { console.log("[audio] sources started:", ea.sources.length); } catch (e) {}
     } catch (e) { try { console.warn("[audio] start failed", e); } catch(_){} }
   }
   // (music/narration <audio> elements are NOT played here — the buffer sources
-  //  above carry the audio into both the speakers and the recording.)
+  //  above feed only the recording destination, not actx.destination, so the
+  //  soundtrack is captured into the file without also blasting out of the
+  //  user's speakers for the whole render.)
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
   // slide videos: start them so they have motion; drawStudioFrame
@@ -12019,7 +12233,7 @@ function bindEvents() {
     e.target.value = "";
   });
   renderSlideList();
-  on("#vsMusic", "change", (e) => loadStudioMusic(e.target.files[0]));
+  on("#vsMusicFile", "change", (e) => loadStudioMusic(e.target.files[0]));
   on("#vsLogo", "change", (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -12121,8 +12335,8 @@ function bindEvents() {
     const L = state.lang === "fa" ? "برچسب" : "Label";
     const V = state.lang === "fa" ? "مقدار" : "Value";
     return `<div class="vs-info-row">
-      <input class="vs-info-label" type="text" placeholder="${L}" value="${escapeHtml(label || "")}" />
-      <input class="vs-info-value" type="text" placeholder="${V}" value="${escapeHtml(value || "")}" />
+      <input class="vs-info-label" type="text" maxlength="20" placeholder="${L}" value="${escapeHtml(label || "")}" />
+      <input class="vs-info-value" type="text" maxlength="14" placeholder="${V}" value="${escapeHtml(value || "")}" />
       <button class="vs-info-del" type="button" aria-label="Remove">✕</button>
     </div>`;
   }
@@ -12138,16 +12352,21 @@ function bindEvents() {
   }
 
   // Populate the form from whatever JSON is in the box (for import / advanced).
+  // Enforced here (not just via the inputs' maxlength) because this also runs
+  // right after AI generation and JSON import/file-load, which set .value in
+  // JS and so never go through the browser's own maxlength clamp — the same
+  // way the News banner's AI path already slices its fields before filling them.
   function vsInfoJsonToForm() {
     let d;
     try { d = JSON.parse(vsVal("#vsInfoJson", "") || "{}"); }
     catch { return false; }
     if (!d || typeof d !== "object") return false;
-    const t = $("#vsInfoTitle"); if (t) t.value = d.title || "";
-    const s = $("#vsInfoSubtitle"); if (s) s.value = d.subtitle || "";
-    const src = $("#vsInfoSource"); if (src) src.value = d.source || "";
+    const t = $("#vsInfoTitle"); if (t) t.value = String(d.title || "").slice(0, 48);
+    const s = $("#vsInfoSubtitle"); if (s) s.value = String(d.subtitle || "").slice(0, 48);
+    const src = $("#vsInfoSource"); if (src) src.value = String(d.source || "").slice(0, 60);
     const rows = (Array.isArray(d.stats) ? d.stats : [])
-      .map(x => ({ label: x.label || "", value: x.value != null ? String(x.value) : "" }));
+      .map(x => ({ label: String(x.label || "").slice(0, 20), value: x.value != null ? String(x.value).slice(0, 14) : "" }))
+      .slice(0, 5);
     vsInfoRenderRows(rows);
     return true;
   }
