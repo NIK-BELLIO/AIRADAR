@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar Auto Post — پنل زمان‌بندی اینستاگرام</title>
-    <meta name="description" content="پنل چندکاربره AI Radar برای اتصال اینستاگرام، ساخت پست و زمان‌بندی انتشار خودکار." />
+    <meta name="description" content="پنل ساده و چندکاربره AI Radar برای نوشتن محتوا، انتخاب تاریخ و ساعت، اتصال اینستاگرام و انتشار خودکار پست‌ها." />
     <meta property="og:title" content="AI Radar Auto Post" />
     <meta property="og:url" content="https://airadar.me/auto-post/" />
     <meta property="og:type" content="website" />
@@ -14,14 +14,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-      :root{color-scheme:dark;--bg:#070605;--card:rgba(18,16,12,.90);--soft:rgba(32,28,20,.92);--line:rgba(255,255,255,.13);--text:#f8fbff;--muted:#a8b4c8;--gold:#d8b76a;--gold2:#fff0b8;--bad:#ff7a64;--ok:#8ff0c0;--shadow:0 28px 90px rgba(0,0,0,.48)}
-      *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 14% 7%,rgba(216,183,106,.22),transparent 30%),radial-gradient(circle at 90% 14%,rgba(141,98,255,.20),transparent 30%),linear-gradient(145deg,#070605,#101014 58%,#090807);color:var(--text);font-family:Vazirmatn,Inter,Tahoma,Arial,sans-serif}
-      a{color:inherit;text-decoration:none}.wrap{width:min(1160px,calc(100% - 28px));margin:0 auto;padding:24px 0 70px}.hidden{display:none!important}
-      .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0 20px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:11px;font-weight:800}.brand img{width:34px;height:34px}.nav a.link{padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--muted);font-size:13px;font-weight:700}
-      .top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:30px 0 18px}.eyebrow{color:var(--gold2);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.title{font-family:Prata,Vazirmatn,serif;font-size:clamp(34px,5vw,62px);line-height:1.05;margin:12px 0}.sub{color:var(--muted);line-height:1.9;max-width:760px;margin:0}.badge{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:10px 14px;color:var(--muted);white-space:nowrap}
-      .grid{display:grid;grid-template-columns:380px 1fr;gap:18px}.authGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:linear-gradient(155deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow)}h2,h3{margin-top:0}label{display:block;margin:14px 0 7px;color:#d9e0ee;font-size:13px}input,textarea,select,button{width:100%;border:1px solid var(--line);border-radius:14px;background:#111620;color:var(--text);padding:12px 13px;font:inherit}textarea{min-height:132px;resize:vertical;line-height:1.9}button{cursor:pointer;border:0;background:linear-gradient(90deg,var(--gold),#f0d99a);color:#080705;font-weight:800;margin-top:14px}button.secondary{background:var(--soft);color:var(--gold2);border:1px solid var(--line);font-weight:700}.hint{color:var(--muted);font-size:12px;line-height:1.8}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-      .notice{border:1px solid rgba(216,183,106,.24);background:rgba(216,183,106,.07);border-radius:18px;padding:14px;margin-bottom:14px;color:var(--gold2);line-height:1.8}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar button{width:auto;margin:0;padding:9px 12px}.posts{display:grid;gap:12px}.post{background:#111620;border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:10px}.postTop{display:flex;justify-content:space-between;gap:10px}.status{font-size:12px;border-radius:999px;padding:6px 10px;background:#273047;color:#cbd4e3}.status.published{background:rgba(143,240,192,.13);color:var(--ok)}.status.failed{background:rgba(255,122,100,.15);color:#ffb1a4}.caption{white-space:pre-wrap;line-height:1.9}.media{direction:ltr;text-align:left;color:#9fc2ff;word-break:break-all;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{width:auto;margin:0;padding:9px 12px}.empty{border:1px dashed var(--line);border-radius:18px;padding:32px;text-align:center;color:var(--muted)}dialog{border:1px solid var(--line);border-radius:22px;background:#171b24;color:var(--text);max-width:520px;width:calc(100% - 24px)}dialog::backdrop{background:rgba(0,0,0,.65)}.slot{padding:10px;border:1px solid var(--line);border-radius:14px;margin-top:8px;background:#111620}.slot small{display:block;color:var(--muted);margin-top:5px;line-height:1.8}
-      @media(max-width:880px){.grid,.authGrid{grid-template-columns:1fr}.top{flex-direction:column}.badge{white-space:normal}.nav{align-items:flex-start;flex-direction:column}}
+      :root{color-scheme:dark;--bg:#070605;--card:rgba(18,16,12,.92);--card2:rgba(32,28,20,.94);--line:rgba(255,255,255,.13);--text:#f8fbff;--muted:#a8b4c8;--gold:#d8b76a;--gold2:#fff0b8;--bad:#ff7a64;--ok:#8ff0c0;--blue:#9fc2ff;--shadow:0 28px 90px rgba(0,0,0,.48)}
+      *{box-sizing:border-box}
+      body{margin:0;min-height:100vh;background:radial-gradient(circle at 14% 7%,rgba(216,183,106,.22),transparent 30%),radial-gradient(circle at 90% 14%,rgba(141,98,255,.20),transparent 30%),linear-gradient(145deg,#070605,#101014 58%,#090807);color:var(--text);font-family:Vazirmatn,Inter,Tahoma,Arial,sans-serif}
+      a{color:inherit;text-decoration:none}.wrap{width:min(1180px,calc(100% - 28px));margin:0 auto;padding:24px 0 70px}.hidden{display:none!important}
+      .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0 20px;border-bottom:1px solid var(--line)}
+      .brand{display:flex;align-items:center;gap:11px;font-weight:800}.brand img{width:34px;height:34px}.nav a.link{padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--muted);font-size:13px;font-weight:700}
+      .top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:30px 0 18px}.eyebrow{color:var(--gold2);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.title{font-family:Prata,Vazirmatn,serif;font-size:clamp(34px,5vw,62px);line-height:1.05;margin:12px 0}.sub{color:var(--muted);line-height:1.9;max-width:780px;margin:0}.badge{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:10px 14px;color:var(--muted);white-space:nowrap}
+      .authGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.appGrid{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}.card{background:linear-gradient(155deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow)}h2,h3{margin-top:0}
+      label{display:block;margin:14px 0 7px;color:#d9e0ee;font-size:13px;font-weight:700}input,textarea,select,button{width:100%;border:1px solid var(--line);border-radius:14px;background:#111620;color:var(--text);padding:12px 13px;font:inherit}textarea{min-height:146px;resize:vertical;line-height:1.9}button{cursor:pointer;border:0;background:linear-gradient(90deg,var(--gold),#f0d99a);color:#080705;font-weight:800;margin-top:14px}button.secondary{background:var(--card2);color:var(--gold2);border:1px solid var(--line);font-weight:700}.hint{color:var(--muted);font-size:12px;line-height:1.8}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.step{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:18px;padding:14px}.step b{display:block;color:var(--gold2);margin-bottom:6px}.step span{display:block;color:var(--muted);font-size:12px;line-height:1.7}
+      .notice{border:1px solid rgba(216,183,106,.24);background:rgba(216,183,106,.07);border-radius:18px;padding:14px;margin-bottom:14px;color:var(--gold2);line-height:1.8}.ok{border-color:rgba(143,240,192,.28);background:rgba(143,240,192,.08);color:var(--ok)}.danger{border-color:rgba(255,122,100,.28);background:rgba(255,122,100,.08);color:#ffb1a4}
+      .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar button{width:auto;margin:0;padding:9px 12px}.posts{display:grid;gap:12px}.post{background:#111620;border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:10px}.postTop{display:flex;justify-content:space-between;gap:10px}.status{font-size:12px;border-radius:999px;padding:6px 10px;background:#273047;color:#cbd4e3}.status.published{background:rgba(143,240,192,.13);color:var(--ok)}.status.failed{background:rgba(255,122,100,.15);color:#ffb1a4}.caption{white-space:pre-wrap;line-height:1.9}.media{direction:ltr;text-align:left;color:var(--blue);word-break:break-all;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{width:auto;margin:0;padding:9px 12px}.empty{border:1px dashed var(--line);border-radius:18px;padding:32px;text-align:center;color:var(--muted)}
+      details{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.035);padding:0;margin-top:14px}summary{cursor:pointer;padding:14px;font-weight:800;color:var(--gold2)}details .inside{padding:0 14px 14px}
+      dialog{border:1px solid var(--line);border-radius:22px;background:#171b24;color:var(--text);max-width:520px;width:calc(100% - 24px)}dialog::backdrop{background:rgba(0,0,0,.65)}.slot{padding:10px;border:1px solid var(--line);border-radius:14px;margin-top:8px;background:#111620}.slot small{display:block;color:var(--muted);margin-top:5px;line-height:1.8}
+      @media(max-width:920px){.appGrid,.authGrid,.steps{grid-template-columns:1fr}.top{flex-direction:column}.badge{white-space:normal}.nav{align-items:flex-start;flex-direction:column}}
     </style>
   </head>
   <body>
@@ -35,70 +42,98 @@
         <div>
           <div class="eyebrow">Auto Post / Instagram Scheduler</div>
           <h1 class="title">پنل زمان‌بندی پست اینستاگرام</h1>
-          <p class="sub">هر کاربر حساب خودش را می‌سازد، اینستاگرام خودش را وصل می‌کند، پست‌ها را زمان‌بندی می‌کند و سیستم هر ۵ دقیقه پست‌های آماده را منتشر می‌کند.</p>
+          <p class="sub">بعد از ورود، محتوای پست، لینک عکس/ویدئو، تاریخ و ساعت انتشار را وارد کن. اگر اینستاگرام را وصل کرده باشی، سیستم خودش در زمان مشخص پست را منتشر می‌کند.</p>
         </div>
         <div class="badge" id="accountBadge">در حال بررسی...</div>
       </section>
 
       <section class="authGrid" id="authView">
         <form class="card" id="loginForm">
-          <h2>ورود</h2>
+          <h2>ورود به پنل</h2>
+          <p class="hint">اگر قبلاً حساب ساختی، وارد شو تا پنل زمان‌بندی را ببینی.</p>
           <label>ایمیل</label><input id="loginEmail" type="email" autocomplete="email" />
           <label>رمز</label><input id="loginPassword" type="password" autocomplete="current-password" />
-          <button type="submit">ورود</button>
+          <button type="submit">ورود و نمایش پنل</button>
           <p class="hint" id="loginMessage"></p>
         </form>
         <form class="card" id="registerForm">
-          <h2>ثبت‌نام</h2>
+          <h2>ساخت حساب جدید</h2>
+          <p class="hint">با حساب کاربری، پست‌های هر نفر جدا ذخیره می‌شود.</p>
           <label>نام</label><input id="registerName" autocomplete="name" />
           <label>ایمیل</label><input id="registerEmail" type="email" autocomplete="email" />
           <label>رمز</label><input id="registerPassword" type="password" autocomplete="new-password" />
-          <button type="submit">ساخت حساب</button>
-          <p class="hint">برای انتشار واقعی، بعد از ورود باید Instagram Business/Creator خودت را با توکن رسمی Meta وصل کنی.</p>
+          <button type="submit">ثبت‌نام و ورود به پنل</button>
           <p class="hint" id="registerMessage"></p>
         </form>
       </section>
 
-      <section class="grid hidden" id="appView">
-        <section>
-          <form class="card" id="connectForm">
-            <h2>اتصال اینستاگرام</h2>
-            <p class="hint">رمز اینستاگرام را وارد نکن. اتصال فعلاً با IG User ID و Access Token رسمی Meta انجام می‌شود.</p>
-            <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="1784..." />
-            <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="EAAB..." />
-            <button type="submit">ذخیره اتصال</button>
-            <p class="hint" id="connectMessage"></p>
-          </form>
+      <section class="hidden" id="appView">
+        <div class="steps">
+          <div class="step"><b>۱. محتوا را وارد کن</b><span>کپشن، لینک عکس/ویدئو و نوع پست را مشخص کن.</span></div>
+          <div class="step"><b>۲. تاریخ و ساعت بده</b><span>روز و ساعت انتشار را خودت انتخاب می‌کنی.</span></div>
+          <div class="step"><b>۳. اتصال اینستاگرام</b><span>اگر وصل باشد، انتشار خودکار انجام می‌شود؛ اگر نه، پست ذخیره می‌شود.</span></div>
+        </div>
 
-          <form class="card" id="postForm" style="margin-top:18px">
-            <h2>پست جدید</h2>
-            <label>نوع محتوا</label>
-            <select id="mediaType"><option value="IMAGE">عکس</option><option value="REELS">Reels / ویدئو</option></select>
-            <label>لینک عمومی عکس یا ویدئو</label>
-            <input id="mediaUrl" placeholder="https://example.com/photo.jpg" dir="ltr" />
-            <label>کپشن</label>
-            <textarea id="caption" placeholder="کپشن پست..." maxlength="2200"></textarea>
-            <div class="row">
-              <div><label>زمان انتشار</label><input id="scheduledAt" type="datetime-local" /></div>
-              <div><label>کمک هوشمند</label><button class="secondary" type="button" id="slotsBtn">پیشنهاد ساعت</button></div>
+        <section class="appGrid">
+          <section>
+            <form class="card" id="postForm">
+              <h2>زمان‌بندی پست جدید</h2>
+              <p class="hint">این فرم اصلی کاربر است؛ همینجا محتوا، تاریخ و ساعت را وارد می‌کند.</p>
+
+              <label>متن پست / کپشن</label>
+              <textarea id="caption" placeholder="مثلاً: امروز یه ابزار جدید برای تولید محتوا معرفی می‌کنیم..." maxlength="2200"></textarea>
+
+              <label>لینک عکس یا ویدئو</label>
+              <input id="mediaUrl" placeholder="https://example.com/photo.jpg" dir="ltr" />
+              <p class="hint">فعلاً فایل باید لینک عمومی داشته باشد. مرحله بعد می‌توانیم آپلود مستقیم فایل هم اضافه کنیم.</p>
+
+              <div class="row">
+                <div>
+                  <label>نوع محتوا</label>
+                  <select id="mediaType"><option value="IMAGE">عکس</option><option value="REELS">Reels / ویدئو</option></select>
+                </div>
+                <div>
+                  <label>کمک سریع</label>
+                  <button class="secondary" type="button" id="slotsBtn">پیشنهاد ساعت</button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div><label>تاریخ انتشار</label><input id="scheduleDate" type="date" /></div>
+                <div><label>ساعت انتشار</label><input id="scheduleTime" type="time" /></div>
+              </div>
+              <p class="hint">اگر تاریخ و ساعت را خالی بگذاری، پست به‌عنوان پیش‌نویس ذخیره می‌شود.</p>
+              <button type="submit">ذخیره در تقویم پست‌ها</button>
+              <p class="hint" id="postMessage"></p>
+            </form>
+
+            <details id="connectDetails">
+              <summary>فعال‌سازی انتشار خودکار اینستاگرام</summary>
+              <div class="inside">
+                <p class="hint">برای انتشار واقعی، حساب Instagram باید Business/Creator باشد و از Meta مقدارهای رسمی بگیری. رمز اینستاگرام را اینجا وارد نکن.</p>
+                <form id="connectForm">
+                  <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="1784..." />
+                  <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="EAAB..." />
+                  <button type="submit">ذخیره اتصال اینستاگرام</button>
+                  <p class="hint" id="connectMessage"></p>
+                </form>
+              </div>
+            </details>
+          </section>
+
+          <section class="card">
+            <div class="notice" id="instagramNotice"></div>
+            <div class="toolbar">
+              <button class="secondary" id="refreshBtn">تازه‌سازی</button>
+              <button class="secondary" data-filter="">همه</button>
+              <button class="secondary" data-filter="scheduled">زمان‌بندی‌شده</button>
+              <button class="secondary" data-filter="failed">خطادار</button>
+              <button class="secondary" data-filter="published">منتشرشده</button>
+              <button class="secondary" id="logoutBtn">خروج</button>
             </div>
-            <p class="hint">اگر زمان را خالی بگذاری، پست پیش‌نویس می‌شود.</p>
-            <button type="submit">ذخیره پست</button>
-            <p class="hint" id="postMessage"></p>
-          </form>
-        </section>
-
-        <section class="card">
-          <div class="notice" id="instagramNotice"></div>
-          <div class="toolbar">
-            <button class="secondary" id="refreshBtn">تازه‌سازی</button>
-            <button class="secondary" data-filter="">همه</button>
-            <button class="secondary" data-filter="scheduled">زمان‌بندی‌شده</button>
-            <button class="secondary" data-filter="failed">خطادار</button>
-            <button class="secondary" data-filter="published">منتشرشده</button>
-            <button class="secondary" id="logoutBtn">خروج</button>
-          </div>
-          <div class="posts" id="posts"></div>
+            <h2>تقویم و لیست پست‌ها</h2>
+            <div class="posts" id="posts"></div>
+          </section>
         </section>
       </section>
     </main>
@@ -121,6 +156,13 @@
       function setToken(next){token=next;localStorage.setItem("airadar_auto_post_token",token)}
       function showAuthed(isAuthed){$("authView").classList.toggle("hidden",isAuthed);$("appView").classList.toggle("hidden",!isAuthed)}
       function statusText(status){return {draft:"پیش‌نویس",scheduled:"زمان‌بندی‌شده",publishing:"در حال انتشار",published:"منتشرشده",failed:"خطادار",cancelled:"لغوشده"}[status]||status}
+      function buildScheduledAt(){
+        const date = $("scheduleDate").value;
+        const time = $("scheduleTime").value;
+        if(!date && !time) return "";
+        if(!date || !time) throw new Error("برای زمان‌بندی، هم تاریخ و هم ساعت را وارد کن.");
+        return date + "T" + time;
+      }
       async function api(path,options={}){
         const response=await fetch(API_BASE+path,{...options,headers:{...headers(),...(options.headers||{})}});
         const data=await response.json().catch(()=>({}));
@@ -133,16 +175,24 @@
           const data=await api("/api/me");
           showAuthed(true);
           $("accountBadge").textContent=data.user.name+" / "+data.user.email;
-          $("instagramNotice").textContent=data.instagram.connected?"اینستاگرام وصل است: "+data.instagram.igUserId:"هنوز اینستاگرام وصل نشده؛ پست‌ها ذخیره می‌شوند ولی منتشر نمی‌شوند.";
+          $("instagramNotice").className = data.instagram.connected ? "notice ok" : "notice danger";
+          $("instagramNotice").textContent=data.instagram.connected
+            ? "انتشار خودکار فعال است. اینستاگرام وصل است: "+data.instagram.igUserId
+            : "انتشار خودکار هنوز فعال نیست. می‌توانی پست‌ها را ذخیره کنی، اما برای انتشار باید اتصال اینستاگرام را فعال کنی.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadPosts();
-        }catch{localStorage.removeItem("airadar_auto_post_token");token="";showAuthed(false);$("accountBadge").textContent="لطفاً وارد شو"}
+        }catch{
+          localStorage.removeItem("airadar_auto_post_token");
+          token="";
+          showAuthed(false);
+          $("accountBadge").textContent="لطفاً وارد شو";
+        }
       }
       async function loadPosts(){
         const query=filter?"?status="+encodeURIComponent(filter):"";
         const data=await api("/api/posts"+query);
         const posts=$("posts");
-        if(!data.posts.length){posts.innerHTML='<div class="empty">هنوز پستی ثبت نشده.</div>';return}
+        if(!data.posts.length){posts.innerHTML='<div class="empty">هنوز پستی ثبت نشده. از فرم سمت راست/بالا یک پست بساز.</div>';return}
         posts.innerHTML=data.posts.map((post)=>`
           <article class="post">
             <div class="postTop"><span class="status ${post.status}">${statusText(post.status)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
@@ -157,11 +207,30 @@
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="در حال ورود...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="در حال ساخت حساب...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="در حال ذخیره اتصال...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="اتصال ذخیره شد.";await loadMe()}catch(error){$("connectMessage").textContent=error.message}});
-      $("postForm").addEventListener("submit",async(event)=>{event.preventDefault();$("postMessage").textContent="در حال ذخیره...";try{await api("/api/posts",{method:"POST",body:JSON.stringify({caption:$("caption").value,mediaUrl:$("mediaUrl").value,mediaType:$("mediaType").value,scheduledAt:$("scheduledAt").value})});$("postMessage").textContent="ذخیره شد.";$("caption").value="";$("mediaUrl").value="";$("scheduledAt").value="";await loadPosts()}catch(error){$("postMessage").textContent=error.message}});
+      $("postForm").addEventListener("submit",async(event)=>{
+        event.preventDefault();
+        $("postMessage").textContent="در حال ذخیره...";
+        try{
+          const scheduledAt = buildScheduledAt();
+          await api("/api/posts",{method:"POST",body:JSON.stringify({caption:$("caption").value,mediaUrl:$("mediaUrl").value,mediaType:$("mediaType").value,scheduledAt})});
+          $("postMessage").textContent=scheduledAt ? "پست زمان‌بندی شد." : "پست به‌عنوان پیش‌نویس ذخیره شد.";
+          $("caption").value=""; $("mediaUrl").value=""; $("scheduleDate").value=""; $("scheduleTime").value="";
+          await loadPosts();
+        }catch(error){$("postMessage").textContent=error.message}
+      });
       $("refreshBtn").addEventListener("click",loadPosts);
       $("logoutBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch{}localStorage.removeItem("airadar_auto_post_token");token="";showAuthed(false);$("accountBadge").textContent="خارج شدی"});
       document.querySelectorAll("[data-filter]").forEach((button)=>button.addEventListener("click",()=>{filter=button.dataset.filter;loadPosts()}));
-      $("slotsBtn").addEventListener("click",async()=>{const data=await api("/api/smart/slots");$("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="scheduledAt.value='${slot.value}';slotsDialog.close()">${escapeHtml(slot.label)}</button><small>${escapeHtml(slot.reason)}</small></div>`).join("");slotsDialog.showModal()});
+      $("slotsBtn").addEventListener("click",async()=>{
+        const data=await api("/api/smart/slots");
+        $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)}</button><small>${escapeHtml(slot.reason)}</small></div>`).join("");
+        slotsDialog.showModal();
+      });
+      function applySlot(value){
+        const parts = value.split("T");
+        $("scheduleDate").value = parts[0] || "";
+        $("scheduleTime").value = parts[1] || "";
+      }
       loadMe();
     </script>
   </body>
