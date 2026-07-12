@@ -45,23 +45,23 @@
         font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       }
       a{color:inherit;text-decoration:none}
-      .wrap{width:min(1240px,calc(100% - 32px));margin:0 auto;padding:26px 0 70px}
+      .wrap{width:min(1180px,calc(100% - 28px));margin:0 auto;padding:18px 0 50px}
       .hidden{display:none!important}
       .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0 22px;border-bottom:1px solid var(--line)}
       .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.02em}
       .brand img{width:36px;height:36px;filter:drop-shadow(0 12px 24px rgba(233,200,111,.25))}
       .navActions{display:flex;gap:10px;flex-wrap:wrap}
       .pill,.nav a.link{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.045);color:var(--soft);font-size:13px;font-weight:750}
-      .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:24px;align-items:end;margin:36px 0 24px}
+      .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;align-items:end;margin:24px 0 18px}
       .eyebrow{color:var(--gold2);font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
-      .title{font-family:Prata,Inter,serif;font-size:clamp(44px,6vw,82px);line-height:.98;margin:14px 0 16px;letter-spacing:-.06em}
+      .title{font-family:Prata,Inter,serif;font-size:clamp(38px,5vw,68px);line-height:.98;margin:10px 0 12px;letter-spacing:-.055em}
       .sub{color:var(--muted);line-height:1.8;max-width:760px;margin:0;font-size:16px}
-      .heroCard{border:1px solid var(--line);border-radius:30px;padding:20px;background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.03));box-shadow:var(--shadow)}
+      .heroCard{border:1px solid var(--line);border-radius:26px;padding:18px;background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.03));box-shadow:var(--shadow)}
       .metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
       .metric{border:1px solid var(--line);border-radius:20px;padding:14px;background:rgba(255,255,255,.035)}
       .metric b{display:block;color:var(--gold2);font-size:18px}.metric span{display:block;color:var(--muted);font-size:12px;margin-top:5px}
       .authGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-      .appGrid{display:grid;grid-template-columns:minmax(360px,430px) 1fr;gap:18px;align-items:start}
+      .appGrid{display:grid;grid-template-columns:minmax(430px,.92fr) minmax(500px,1.08fr);gap:18px;align-items:start}
       .card{background:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border:1px solid var(--line);border-radius:28px;padding:20px;box-shadow:var(--shadow);backdrop-filter:blur(16px)}
       h2,h3{margin:0 0 10px;letter-spacing:-.035em}
       .sectionLead{color:var(--muted);font-size:13px;line-height:1.75;margin:0 0 16px}
@@ -82,7 +82,8 @@
       button.secondary{background:rgba(255,255,255,.055);color:var(--gold2);border:1px solid var(--line);font-weight:800}
       button.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);font-weight:800}
       .hint{color:var(--muted);font-size:12px;line-height:1.75}
-      .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+      .row button{margin-top:0;min-height:52px}
       .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
       .step{position:relative;overflow:hidden;border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:16px}
       .step:before{content:"";position:absolute;inset:auto -20px -55px auto;width:110px;height:110px;border-radius:50%;background:rgba(233,200,111,.08)}
@@ -104,15 +105,26 @@
       .actions{display:flex;gap:8px;flex-wrap:wrap}
       .actions button{width:auto;margin:0;padding:9px 12px}
       .empty{border:1px dashed var(--line);border-radius:20px;padding:34px;text-align:center;color:var(--muted);background:rgba(255,255,255,.025)}
-      details{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.035);padding:0;margin-top:14px;overflow:hidden}
-      summary{cursor:pointer;padding:16px 18px;font-weight:900;color:var(--gold2);list-style:none}
-      summary::-webkit-details-marker{display:none}
-      details .inside{padding:0 18px 18px}
-      .guideGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-      .guideStep{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(0,0,0,.16)}
-      .guideStep strong{display:block;color:var(--text);margin-bottom:6px}
-      .guideStep p{margin:0;color:var(--muted);font-size:12px;line-height:1.65}
-      .codeBox{direction:ltr;text-align:left;border:1px solid var(--line);border-radius:16px;padding:12px;background:#090c14;color:#b8d0ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow:auto;margin:9px 0}
+      .setupPanel{display:grid;gap:14px}
+      .progressTrack{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 4px}
+      .progressFill{height:100%;width:25%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--violet));transition:width .2s ease}
+      .guideTabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+      .guideTab{margin:0;padding:10px 8px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid var(--line);color:var(--soft);font-size:12px}
+      .guideTab.active{background:linear-gradient(135deg,rgba(233,200,111,.22),rgba(157,124,255,.12));border-color:rgba(233,200,111,.42);color:var(--gold2)}
+      .guidePage{display:none;border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(0,0,0,.14)}
+      .guidePage.active{display:block}
+      .guidePage h3{margin-bottom:6px}
+      .taskList{display:grid;gap:9px;margin:12px 0}
+      .task{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(255,255,255,.035)}
+      .task > div{min-width:0}
+      .task b:first-child{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(233,200,111,.16);color:var(--gold2);font-size:12px}
+      .task strong{display:block;margin-bottom:4px}
+      .task span{display:block;color:var(--muted);font-size:12px;line-height:1.6}
+      .callout{border:1px solid rgba(233,200,111,.28);background:linear-gradient(135deg,rgba(233,200,111,.1),rgba(255,255,255,.025));border-radius:18px;padding:13px;color:var(--gold2);line-height:1.65}
+      .formActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+      .formActions button{width:auto;margin-top:0;padding:10px 13px}
+      .connectionBox{border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(255,255,255,.035)}
+      .codeBox{direction:ltr;text-align:left;border:1px solid var(--line);border-radius:16px;padding:12px;background:#090c14;color:#b8d0ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow:auto;margin:9px 0;white-space:pre-wrap;word-break:break-word}
       .quickLinks{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       .quickLinks a{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;padding:9px 11px;font-size:12px;font-weight:800;color:var(--soft)}
       dialog{border:1px solid var(--line);border-radius:24px;background:#171b24;color:var(--text);max-width:540px;width:calc(100% - 24px)}
@@ -120,7 +132,8 @@
       .slot{padding:10px;border:1px solid var(--line);border-radius:16px;margin-top:8px;background:#111620}
       .slot small{display:block;color:var(--muted);margin-top:5px;line-height:1.7}
       .message{min-height:20px}
-      @media(max-width:960px){.hero,.appGrid,.authGrid,.steps,.guideGrid{grid-template-columns:1fr}.nav{align-items:flex-start;flex-direction:column}.title{font-size:clamp(38px,12vw,62px)}}
+      @media(max-width:1080px){.hero,.appGrid,.authGrid,.steps{grid-template-columns:1fr}.nav{align-items:flex-start;flex-direction:column}.title{font-size:clamp(34px,10vw,58px)}}
+      @media(max-width:560px){.row,.guideTabs{grid-template-columns:1fr}.wrap{width:min(100% - 18px,1180px)}.card{padding:16px;border-radius:22px}}
     </style>
   </head>
   <body>
@@ -172,24 +185,101 @@
       </section>
 
       <section class="hidden" id="appView">
-        <div class="steps">
-          <div class="step"><b>1. Create the post</b><span>Write the caption and add a public image or video URL.</span></div>
-          <div class="step"><b>2. Pick date and time</b><span>Choose the exact day and hour for publishing.</span></div>
-          <div class="step"><b>3. Connect Meta</b><span>Paste your IG User ID and official Meta access token.</span></div>
-        </div>
-
         <section class="appGrid">
+          <section class="card setupPanel">
+            <div>
+              <div class="eyebrow">Setup assistant</div>
+              <h2>Connect Meta step by step</h2>
+              <p class="sectionLead">This assistant walks users through the exact flow. They do one step, click next, and keep moving.</p>
+              <div class="progressTrack"><div class="progressFill" id="guideProgress"></div></div>
+            </div>
+
+            <div class="guideTabs">
+              <button type="button" class="guideTab active" data-guide="prepare">1. Prepare</button>
+              <button type="button" class="guideTab" data-guide="token">2. Token</button>
+              <button type="button" class="guideTab" data-guide="connect">3. Connect</button>
+              <button type="button" class="guideTab" data-guide="publish">4. Publish</button>
+            </div>
+
+            <div class="notice" id="instagramNotice"></div>
+
+            <div class="guidePage active" data-page="prepare">
+              <h3>Step 1 — Prepare your Instagram account</h3>
+              <p class="sectionLead">Automatic publishing works only with an Instagram Business or Creator account connected to a Facebook Page.</p>
+              <div class="taskList">
+                <div class="task"><b>1</b><div><strong>Open Instagram settings</strong><span>Switch the account type to Business or Creator.</span></div></div>
+                <div class="task"><b>2</b><div><strong>Connect a Facebook Page</strong><span>The Page connection is how Meta exposes your Instagram Business Account ID.</span></div></div>
+                <div class="task"><b>3</b><div><strong>Keep this panel open</strong><span>You will paste the final ID and token into Step 3.</span></div></div>
+              </div>
+              <div class="formActions">
+                <button type="button" data-next="token">I finished this step</button>
+              </div>
+            </div>
+
+            <div class="guidePage" data-page="token">
+              <h3>Step 2 — Get the Meta token and IG User ID</h3>
+              <p class="sectionLead">Use Meta’s official tools. The panel does not ask for an Instagram password.</p>
+              <div class="quickLinks">
+                <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Open Meta Apps</a>
+                <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Open Graph API Explorer</a>
+                <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">Open Token Debugger</a>
+              </div>
+              <div class="taskList">
+                <div class="task"><b>1</b><div><strong>Select or create a Meta app</strong><span>In Meta Developers, choose the app that has Instagram Graph API access.</span></div></div>
+                <div class="task"><b>2</b><div><strong>Request these permissions</strong><div class="codeBox">instagram_basic
+instagram_content_publish
+pages_show_list
+pages_read_engagement</div></div></div>
+                <div class="task"><b>3</b><div><strong>Find the connected Instagram account</strong><span>Run these calls in Graph API Explorer:</span><div class="codeBox">GET /me/accounts
+GET /{page-id}?fields=instagram_business_account</div></div></div>
+              </div>
+              <div class="callout">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
+              <div class="formActions">
+                <button type="button" class="secondary" data-next="prepare">Back</button>
+                <button type="button" data-next="connect">I have the ID and token</button>
+              </div>
+            </div>
+
+            <div class="guidePage" data-page="connect">
+              <h3>Step 3 — Paste credentials here</h3>
+              <p class="sectionLead">Use the values from Graph API Explorer. Never paste your Instagram password.</p>
+              <form id="connectForm" class="connectionBox">
+                <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="Example: 17841400000000000" />
+                <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="Paste the Meta access token here" />
+                <button type="submit">Save Instagram connection</button>
+                <p class="hint message" id="connectMessage"></p>
+              </form>
+              <div class="formActions">
+                <button type="button" class="secondary" data-next="token">Back</button>
+                <button type="button" data-next="publish">Continue to publishing</button>
+              </div>
+            </div>
+
+            <div class="guidePage" data-page="publish">
+              <h3>Step 4 — Schedule your first post</h3>
+              <p class="sectionLead">Now create a post on the right. If Meta is connected, AI Radar will publish it automatically at the scheduled time.</p>
+              <div class="taskList">
+                <div class="task"><b>1</b><div><strong>Write caption</strong><span>Add the Instagram text and hashtags.</span></div></div>
+                <div class="task"><b>2</b><div><strong>Add media URL</strong><span>Use a public direct image/video URL.</span></div></div>
+                <div class="task"><b>3</b><div><strong>Pick date and time</strong><span>The system checks scheduled posts automatically.</span></div></div>
+              </div>
+              <div class="formActions">
+                <button type="button" class="secondary" data-next="connect">Back</button>
+                <button type="button" onclick="document.getElementById('caption').focus()">Start creating a post</button>
+              </div>
+            </div>
+          </section>
+
           <section>
             <form class="card" id="postForm">
               <h2>Schedule a new post</h2>
-              <p class="sectionLead">This is the main panel your users will see after login.</p>
+              <p class="sectionLead">Everything is aligned in one compact publishing form. Fill it from top to bottom.</p>
 
               <label>Caption</label>
               <textarea id="caption" placeholder="Write the Instagram caption here..." maxlength="2200"></textarea>
 
               <label>Public media URL</label>
               <input id="mediaUrl" placeholder="https://example.com/photo.jpg" dir="ltr" />
-              <p class="hint">Use a direct public image or video URL. Direct file upload can be added as the next upgrade.</p>
 
               <div class="row">
                 <div>
@@ -206,76 +296,24 @@
                 <div><label>Publish date</label><input id="scheduleDate" type="date" /></div>
                 <div><label>Publish time</label><input id="scheduleTime" type="time" /></div>
               </div>
-              <p class="hint">Leave date and time empty to save the post as a draft.</p>
+              <p class="hint">Leave date and time empty to save as a draft. Add both date and time to schedule.</p>
               <button type="submit">Save to publishing calendar</button>
               <p class="hint message" id="postMessage"></p>
             </form>
 
-            <details id="connectDetails" open>
-              <summary>Connect Instagram with Meta token</summary>
-              <div class="inside">
-                <div class="notice">
-                  Do not enter your Instagram password. You only need an official Meta access token and your Instagram Business Account ID.
-                </div>
-
-                <div class="quickLinks">
-                  <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta Apps</a>
-                  <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a>
-                  <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">Token Debugger</a>
-                  <a href="https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/content-publishing/" target="_blank" rel="noopener">Content Publishing Docs</a>
-                </div>
-
-                <div class="guideGrid">
-                  <div class="guideStep">
-                    <strong>1. Prepare the Instagram account</strong>
-                    <p>Switch Instagram to Business or Creator, then connect it to a Facebook Page.</p>
-                  </div>
-                  <div class="guideStep">
-                    <strong>2. Create or select a Meta app</strong>
-                    <p>Open Meta Developers, create/select an app, and add Instagram Graph API access.</p>
-                  </div>
-                  <div class="guideStep">
-                    <strong>3. Generate an access token</strong>
-                    <p>In Graph API Explorer, select your app and request these permissions:</p>
-                    <div class="codeBox">instagram_basic
-instagram_content_publish
-pages_show_list
-pages_read_engagement</div>
-                  </div>
-                  <div class="guideStep">
-                    <strong>4. Find the IG User ID</strong>
-                    <p>Run these Graph API calls in Explorer. First get your Pages:</p>
-                    <div class="codeBox">GET /me/accounts</div>
-                    <p>Then use the Page ID to get the connected Instagram account:</p>
-                    <div class="codeBox">GET /{page-id}?fields=instagram_business_account</div>
-                  </div>
-                </div>
-
-                <p class="hint">Copy <b>instagram_business_account.id</b> into IG User ID. Copy your generated Meta access token into Meta Access Token. For production, use a long-lived token and confirm it in Token Debugger.</p>
-
-                <form id="connectForm">
-                  <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="Example: 17841400000000000" />
-                  <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="Paste the Meta access token here" />
-                  <button type="submit">Save Instagram connection</button>
-                  <p class="hint message" id="connectMessage"></p>
-                </form>
+            <section class="card" style="margin-top:18px">
+              <div class="toolbar">
+                <button class="secondary" id="refreshBtn">Refresh</button>
+                <button class="secondary" data-filter="">All</button>
+                <button class="secondary" data-filter="scheduled">Scheduled</button>
+                <button class="secondary" data-filter="failed">Failed</button>
+                <button class="secondary" data-filter="published">Published</button>
+                <button class="ghost" id="logoutBtn">Log out</button>
               </div>
-            </details>
-          </section>
-
-          <section class="card">
-            <div class="notice" id="instagramNotice"></div>
-            <div class="toolbar">
-              <button class="secondary" id="refreshBtn">Refresh</button>
-              <button class="secondary" data-filter="">All</button>
-              <button class="secondary" data-filter="scheduled">Scheduled</button>
-              <button class="secondary" data-filter="failed">Failed</button>
-              <button class="secondary" data-filter="published">Published</button>
-              <button class="ghost" id="logoutBtn">Log out</button>
-            </div>
-            <h2>Publishing calendar</h2>
-            <p class="sectionLead">View drafts, scheduled posts, failed attempts, and published content.</p>
-            <div class="posts" id="posts"></div>
+              <h2>Publishing calendar</h2>
+              <p class="sectionLead">Drafts, scheduled posts, failed attempts, and published content.</p>
+              <div class="posts" id="posts"></div>
+            </section>
           </section>
         </section>
       </section>
@@ -294,6 +332,7 @@ pages_read_engagement</div>
       let token = localStorage.getItem("airadar_auto_post_token") || "";
       let filter = "";
       const htmlMap = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" };
+      const guideOrder = ["prepare","token","connect","publish"];
 
       function escapeHtml(value){return String(value ?? "").replace(/[&<>"']/g,(char)=>htmlMap[char]||char)}
       function cleanError(message){
@@ -310,6 +349,13 @@ pages_read_engagement</div>
       function setToken(next){token=next;localStorage.setItem("airadar_auto_post_token",token)}
       function showAuthed(isAuthed){$("authView").classList.toggle("hidden",isAuthed);$("appView").classList.toggle("hidden",!isAuthed)}
       function statusText(status){return {draft:"Draft",scheduled:"Scheduled",publishing:"Publishing",published:"Published",failed:"Failed",cancelled:"Cancelled"}[status]||status}
+      function showGuide(step){
+        const nextStep = guideOrder.includes(step) ? step : "prepare";
+        document.querySelectorAll("[data-page]").forEach((page)=>page.classList.toggle("active",page.dataset.page===nextStep));
+        document.querySelectorAll("[data-guide]").forEach((button)=>button.classList.toggle("active",button.dataset.guide===nextStep));
+        const index = guideOrder.indexOf(nextStep);
+        $("guideProgress").style.width = ((index + 1) / guideOrder.length * 100) + "%";
+      }
       function buildScheduledAt(){
         const date = $("scheduleDate").value;
         const time = $("scheduleTime").value;
@@ -360,7 +406,7 @@ pages_read_engagement</div>
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
-      $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe()}catch(error){$("connectMessage").textContent=error.message}});
+      $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
       $("postForm").addEventListener("submit",async(event)=>{
         event.preventDefault();
         $("postMessage").textContent="Saving...";
@@ -375,6 +421,8 @@ pages_read_engagement</div>
       $("refreshBtn").addEventListener("click",loadPosts);
       $("logoutBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch{}localStorage.removeItem("airadar_auto_post_token");token="";showAuthed(false);$("accountBadge").textContent="Signed out"});
       document.querySelectorAll("[data-filter]").forEach((button)=>button.addEventListener("click",()=>{filter=button.dataset.filter;loadPosts()}));
+      document.querySelectorAll("[data-guide]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.guide)));
+      document.querySelectorAll("[data-next]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.next)));
       $("slotsBtn").addEventListener("click",async()=>{
         const data=await api("/api/smart/slots");
         $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)}</button><small>${escapeHtml(cleanHint(slot.reason))}</small></div>`).join("");
@@ -385,6 +433,7 @@ pages_read_engagement</div>
         $("scheduleDate").value = parts[0] || "";
         $("scheduleTime").value = parts[1] || "";
       }
+      showGuide("prepare");
       loadMe();
     </script>
   </body>
