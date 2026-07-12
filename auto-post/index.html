@@ -489,8 +489,13 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       document.querySelectorAll("[data-guide]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.guide)));
       document.querySelectorAll("[data-next]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.next)));
       $("slotsBtn").addEventListener("click",async()=>{
-        const data=await api("/api/smart/slots");
-        $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)}</button><small>${escapeHtml(cleanHint(slot.reason))}</small></div>`).join("");
+        const params = new URLSearchParams({
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          mediaType: $("mediaType").value,
+          caption: $("caption").value.slice(0, 500)
+        });
+        const data=await api("/api/smart/slots?"+params.toString());
+        $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)} · ${escapeHtml(String(slot.score||""))}/100</button><small>${escapeHtml(cleanHint(slot.reason))}</small></div>`).join("");
         slotsDialog.showModal();
       });
       function applySlot(value){
