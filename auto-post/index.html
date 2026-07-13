@@ -281,11 +281,11 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
               <details class="connectionBox hidden" id="ownerInstagramSetup">
                 <summary>Owner setup: activate this button for all users</summary>
                 <form id="instagramAppForm">
-                  <label>Instagram Client ID</label><input id="instagramClientId" dir="ltr" placeholder="Your Instagram app client ID" />
+                  <label>Instagram Client ID</label><input id="instagramClientId" dir="ltr" inputmode="numeric" placeholder="Numeric Instagram App ID, e.g. 1234567890" />
                   <label>Instagram Client Secret</label><input id="instagramClientSecret" dir="ltr" type="password" placeholder="Your Instagram app client secret" />
                   <label>Redirect URI</label><input id="instagramRedirectUri" dir="ltr" readonly value="https://instagram-auto-poster.aliniashyn-9b4.workers.dev/api/instagram/oauth/callback" />
                   <button type="submit">Activate direct Instagram connect</button>
-                  <p class="hint">Use this exact Redirect URI in the Instagram app settings. Do not replace it with Instagram.com or the public panel URL.</p>
+                  <p class="hint">Client ID must be the numeric App ID from Meta/Instagram settings, not your Instagram username or app nickname. Use this exact Redirect URI in the app settings.</p>
                   <p class="hint message" id="instagramAppMessage"></p>
                 </form>
               </details>
