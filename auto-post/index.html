@@ -283,9 +283,9 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
                 <form id="instagramAppForm">
                   <label>Instagram Client ID</label><input id="instagramClientId" dir="ltr" placeholder="Your Instagram app client ID" />
                   <label>Instagram Client Secret</label><input id="instagramClientSecret" dir="ltr" type="password" placeholder="Your Instagram app client secret" />
-                  <label>Redirect URI</label><input id="instagramRedirectUri" dir="ltr" value="https://instagram-auto-poster.aliniashyn-9b4.workers.dev/api/instagram/oauth/callback" />
+                  <label>Redirect URI</label><input id="instagramRedirectUri" dir="ltr" readonly value="https://instagram-auto-poster.aliniashyn-9b4.workers.dev/api/instagram/oauth/callback" />
                   <button type="submit">Activate direct Instagram connect</button>
-                  <p class="hint">Add the same Redirect URI in your Instagram app settings. After saving, every user can connect with the single button above.</p>
+                  <p class="hint">Use this exact Redirect URI in the Instagram app settings. Do not replace it with Instagram.com or the public panel URL.</p>
                   <p class="hint message" id="instagramAppMessage"></p>
                 </form>
               </details>
@@ -568,12 +568,24 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
       function handleInstagramReturn(){
         const params = new URLSearchParams(location.search);
+        if(params.get("code") && params.get("state")){
+          const callbackUrl = new URL(API_BASE + "/api/instagram/oauth/callback");
+          callbackUrl.searchParams.set("code", params.get("code"));
+          callbackUrl.searchParams.set("state", params.get("state"));
+          location.replace(callbackUrl.toString());
+          return;
+        }
+        if(params.get("error") || params.get("error_description")){
+          showGuide("connect");
+          setTimeout(()=>$("oauthMessage").textContent=params.get("error_description") || params.get("error"),250);
+          return;
+        }
         if(params.get("instagram")==="connected"){showGuide("publish");setTimeout(()=>$("instagramNotice").textContent="Instagram connected successfully. Automatic publishing is enabled.",250)}
         if(params.get("instagram_error")){showGuide("connect");setTimeout(()=>$("oauthMessage").textContent=params.get("instagram_error"),250)}
       }
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
-      $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram authorization...";const data=await api("/api/instagram/oauth/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
+      $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram authorization...";sessionStorage.setItem("airadar_instagram_oauth_started","1");const data=await api("/api/instagram/oauth/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
       $("instagramAppForm").addEventListener("submit",async(event)=>{event.preventDefault();$("instagramAppMessage").textContent="Saving Instagram app settings...";try{await api("/api/admin/instagram-app",{method:"POST",body:JSON.stringify({clientId:$("instagramClientId").value,clientSecret:$("instagramClientSecret").value,redirectUri:$("instagramRedirectUri").value})});$("instagramClientSecret").value="";$("instagramAppMessage").textContent="Direct Instagram connect is active. Users can click the main button now.";await loadMe()}catch(error){$("instagramAppMessage").textContent=error.message}});
       $("publisherForm").addEventListener("submit",async(event)=>{event.preventDefault();$("publisherMessage").textContent="Connecting webhook publisher...";try{await api("/api/publisher/connect",{method:"POST",body:JSON.stringify({webhookUrl:$("webhookUrl").value,secret:$("webhookSecret").value})});$("webhookSecret").value="";$("publisherMessage").textContent="Webhook publisher connected. Scheduled posts will publish automatically through this provider.";await loadMe();showGuide("publish")}catch(error){$("publisherMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
