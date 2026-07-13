@@ -98,12 +98,15 @@
       .toolbar button{width:auto;margin:0;padding:9px 12px}
       .posts{display:grid;gap:12px}
       .post{background:rgba(13,18,30,.88);border:1px solid var(--line);border-radius:20px;padding:15px;display:grid;gap:10px}
+      .post.ready{border-color:rgba(233,200,111,.46);box-shadow:0 18px 60px rgba(233,200,111,.08)}
       .postTop{display:flex;justify-content:space-between;gap:10px}
       .status{font-size:12px;border-radius:999px;padding:6px 10px;background:#273047;color:#cbd4e3}
+      .status.ready{background:rgba(233,200,111,.15);color:var(--gold2)}
       .status.published{background:rgba(124,242,187,.13);color:var(--ok)}
       .status.failed{background:rgba(255,141,123,.15);color:#ffc1b8}
       .caption{white-space:pre-wrap;line-height:1.8}
       .media{direction:ltr;text-align:left;color:var(--blue);word-break:break-all;font-size:13px}
+      .manualAssist{border:1px solid rgba(233,200,111,.26);background:rgba(233,200,111,.07);border-radius:16px;padding:12px;color:var(--gold2);font-size:13px;line-height:1.65}
       .actions{display:flex;gap:8px;flex-wrap:wrap}
       .actions button{width:auto;margin:0;padding:9px 12px}
       .empty{border:1px dashed var(--line);border-radius:20px;padding:34px;text-align:center;color:var(--muted);background:rgba(255,255,255,.025)}
@@ -443,7 +446,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("instagramNotice").className = data.instagram.connected ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
             ? "Automatic publishing is enabled. Connected IG User ID: "+data.instagram.igUserId
-            : "Automatic publishing is not active yet. You can save drafts and scheduled posts, but publishing requires a Meta Instagram connection.";
+            : "Assisted publishing mode is active. Schedule posts here, then use Copy caption / Open media / Open Instagram when each post is ready.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
@@ -460,16 +463,45 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         const data=await api("/api/posts"+query);
         const posts=$("posts");
         if(!data.posts.length){posts.innerHTML='<div class="empty">No posts yet. Create your first scheduled post from the panel.</div>';await loadStats();return}
-        posts.innerHTML=data.posts.map((post)=>`
-          <article class="post">
-            <div class="postTop"><span class="status ${post.status}">${statusText(post.status)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
+        window.airadarPosts = data.posts;
+        posts.innerHTML=data.posts.map((post)=>{
+          const ready = isReadyToPost(post);
+          const label = ready && post.status === "scheduled" ? "Ready now" : statusText(post.status);
+          const statusClass = ready && post.status === "scheduled" ? "ready" : post.status;
+          return `
+          <article class="post ${ready ? "ready" : ""}">
+            <div class="postTop"><span class="status ${statusClass}">${escapeHtml(label)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
             <div class="caption">${escapeHtml(post.caption)}</div>
             <div class="media">${escapeHtml(post.media_url)}</div>
-            ${post.last_error?'<div class="hint" style="color:var(--bad)">Error: '+escapeHtml(cleanError(post.last_error))+'</div>':''}
-            <div class="actions"><button class="secondary" onclick="publishNow('${post.id}')">Publish now</button><button class="ghost" onclick="removePost('${post.id}')">Delete</button></div>
-          </article>`).join("");
+            ${ready?'<div class="manualAssist">Ready to publish without Meta token: copy the caption, open/download the media, publish in Instagram, then mark it as posted here.</div>':''}
+            ${post.last_error?'<div class="hint" style="color:var(--bad)">'+escapeHtml(cleanError(post.last_error))+'</div>':''}
+            <div class="actions">
+              <button class="secondary" onclick="copyCaption('${post.id}')">Copy caption</button>
+              <button class="secondary" onclick="openMedia('${post.id}')">Open media</button>
+              <button class="secondary" onclick="openInstagram()">Open Instagram</button>
+              <button class="secondary" onclick="publishNow('${post.id}')">Auto publish</button>
+              <button class="ghost" onclick="markPosted('${post.id}')">Mark as posted</button>
+              <button class="ghost" onclick="removePost('${post.id}')">Delete</button>
+            </div>
+          </article>`}).join("");
         await loadStats();
       }
+      function isReadyToPost(post){
+        if(post.status !== "scheduled" || !post.scheduled_at) return false;
+        const when = new Date(String(post.scheduled_at).replace(" ","T"));
+        return Number.isFinite(when.getTime()) && when.getTime() <= Date.now();
+      }
+      function findPost(id){return (window.airadarPosts||[]).find((post)=>post.id===id)}
+      async function copyCaption(id){
+        const post=findPost(id); if(!post) return;
+        await navigator.clipboard.writeText(post.caption || "");
+        alert("Caption copied. Now paste it in Instagram.");
+      }
+      function openMedia(id){
+        const post=findPost(id); if(post && post.media_url) window.open(post.media_url,"_blank","noopener");
+      }
+      function openInstagram(){window.open("https://www.instagram.com/","_blank","noopener")}
+      async function markPosted(id){if(!confirm("Mark this post as published in AI Radar?"))return;await api("/api/posts/"+id+"/mark-published",{method:"POST"});await loadPosts()}
       async function publishNow(id){if(!confirm("Publish this post now?"))return;await api("/api/posts/"+id+"/publish-now",{method:"POST"});await loadPosts()}
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
