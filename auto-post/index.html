@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar Auto Post - Instagram Scheduler</title>
-    <meta name="description" content="A professional AI Radar panel for scheduling Instagram posts and connecting Meta Instagram Graph API tokens." />
+    <meta name="description" content="A professional AI Radar panel for scheduling Instagram posts with direct Instagram connection." />
     <meta property="og:title" content="AI Radar Auto Post" />
     <meta property="og:url" content="https://airadar.me/auto-post/" />
     <meta property="og:type" content="website" />
@@ -167,7 +167,7 @@
         <div>
           <div class="eyebrow">Auto Post / Instagram Scheduler</div>
           <h1 class="title">Plan, schedule, and publish Instagram posts.</h1>
-          <p class="sub">A clean publishing workspace for creators and teams. Sign in, write your caption, upload media, choose the date and time, then connect a no-Meta publishing webhook for automatic posting.</p>
+          <p class="sub">A clean publishing workspace for creators and teams. Sign in, connect Instagram, upload media, write your caption, and schedule posts.</p>
         </div>
         <aside class="heroCard">
           <h3>Professional publishing flow</h3>
@@ -318,7 +318,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
 
             <div class="guidePage" data-page="publish">
               <h3>Step 4 — Schedule your first post</h3>
-              <p class="sectionLead">Now create a post on the right. If Meta is connected, AI Radar will publish it automatically at the scheduled time.</p>
+              <p class="sectionLead">Now create a post on the right. After Instagram is connected, AI Radar will publish it automatically at the scheduled time.</p>
               <div class="taskList">
                 <div class="task"><b>1</b><div><strong>Write caption</strong><span>Add the Instagram text and hashtags.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Add media URL</strong><span>Use a public direct image/video URL.</span></div></div>
@@ -432,10 +432,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         $("instagramOAuthBtn").disabled = !isReady;
         $("oauthMessage").textContent = isReady
           ? "Ready. Click the button to connect Instagram."
-          : isAdmin
-            ? "Enter the numeric Instagram App ID and Client Secret below first. Secret alone is not enough."
-            : "Instagram connection is not active yet.";
-        if(isAdmin && !isReady) $("instagramAppMessage").textContent = "Missing: numeric Instagram App ID. The Client Secret field alone cannot activate Instagram login.";
+          : "Instagram direct connection is not active for this site yet.";
       }
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
@@ -501,11 +498,10 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           const isAdmin = data.user.role === "admin";
           const directConfigured = data.instagramDirect && data.instagramDirect.configured;
           setDirectConnectState(directConfigured, isAdmin);
-          $("ownerInstagramSetup").classList.toggle("hidden", !isAdmin);
-          $("advancedWebhookSetup").classList.toggle("hidden", !isAdmin);
-          $("advancedTokenSetup").classList.toggle("hidden", !isAdmin);
-          if(isAdmin && !directConfigured){
-            $("ownerInstagramSetup").open = false;
+          $("ownerInstagramSetup").classList.add("hidden");
+          $("advancedWebhookSetup").classList.add("hidden");
+          $("advancedTokenSetup").classList.add("hidden");
+          if(!directConfigured){
             showGuide("connect");
           }
           const publisherConnected = data.publisher && data.publisher.connected;
@@ -517,9 +513,9 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
             ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
             : publisherConnected
               ? "Automatic publishing is enabled through webhook provider. Users do not need Meta Developer."
-              : isAdmin && !directConfigured
-                ? "Admin setup is not finished. This is only for the site owner; users will only click Connect Instagram after you activate it once."
-                : "Connect Instagram to use publishing. If you do not want to connect, this service is not available.";
+              : directConfigured
+                ? "Connect Instagram to use publishing. If you do not want to connect, this service is not available."
+                : "Instagram direct connection is being activated for this site.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
