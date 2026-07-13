@@ -68,6 +68,8 @@ const i18n = {
     vSlideDuration: "Slide duration (s)",
     vSlideFootage: "+ Add / replace footage on this slide",
     vFootageTip: "Tip: drag the footage on the preview to reframe it, and scroll over it to zoom. Each scene keeps its own framing.",
+    vSlideTextLabel: "Slide text (what viewers read)",
+    vSlideTextHint: "Edit this scene's text right here — no need to open News banner below.",
     vSlideCaption: "Caption (top label)",
     vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
     vSlideSectionsLabel: "Scene settings",
@@ -389,6 +391,8 @@ const i18n = {
     vSlideDuration: "مدت اسلاید (ثانیه)",
     vSlideFootage: "+ افزودن / جایگزینی فوتیج این صحنه",
     vFootageTip: "نکته: فوتیج را روی پیش‌نمایش بکش تا قاب‌بندی‌اش را تغییر دهی، و روی آن اسکرول کن تا زوم شود. هر صحنه قاب‌بندی مخصوص خودش را نگه می‌دارد.",
+    vSlideTextLabel: "متن اسلاید (چیزی که بیننده می‌بیند)",
+    vSlideTextHint: "متن این صحنه را همین‌جا ویرایش کن — نیازی به باز کردن بخش «نوار خبری» در پایین نیست.",
     vSlideCaption: "کپشن (برچسب بالا)",
     vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
     vSlideSectionsLabel: "تنظیمات صحنه",
@@ -5059,15 +5063,33 @@ function vsAssembleFromSections(data, skipFootage) {
       const aiChart = sec.chartType;
       let infoStyle;
       // Tight charts (donut / pills / split) only work with short numeric values.
-      // Otherwise fall back to roomy "cards" so nothing overflows or overlaps.
+      // Otherwise fall back to a roomy card layout so nothing overflows or
+      // overlaps. Batch runs feed near-identical stat shapes (similar stat
+      // count, similar $/% value formats) into this same logic city after
+      // city, so a single deterministic pick per bucket made every video in
+      // a batch land on the exact same chart style — pick from a pool sized
+      // to the SAME safety tier instead, and avoid repeating the last one.
       if (longText || n > 3) {
-        infoStyle = "cards";
-      } else if (aiChart === "donut") infoStyle = "donut";
-      else if (aiChart === "bars") infoStyle = "bars";
-      else if (aiChart === "pills") infoStyle = "progress-pills";
-      else if ((aiChart === "split" || aiChart === "comparison") && n === 2) infoStyle = "split-block";
-      else if (aiChart === "ranking") infoStyle = "cards";
-      else infoStyle = "donut";
+        const roomyPool = ["cards", "dark-cards", "neon-cards"];
+        infoStyle = roomyPool[0];
+        if (infoStyle === vstudio._lastInfoStyle) {
+          const alt = roomyPool.filter(s => s !== infoStyle);
+          infoStyle = alt[Math.floor(Math.random() * alt.length)];
+        }
+      } else {
+        const tightPool = ["donut", "bars", "progress-pills"];
+        if (aiChart === "donut") infoStyle = "donut";
+        else if (aiChart === "bars") infoStyle = "bars";
+        else if (aiChart === "pills") infoStyle = "progress-pills";
+        else if ((aiChart === "split" || aiChart === "comparison") && n === 2) infoStyle = "split-block";
+        else if (aiChart === "ranking") infoStyle = "cards";
+        else infoStyle = "donut";
+        if (infoStyle === vstudio._lastInfoStyle && tightPool.includes(infoStyle)) {
+          const alt = tightPool.filter(s => s !== infoStyle);
+          infoStyle = alt[Math.floor(Math.random() * alt.length)];
+        }
+      }
+      vstudio._lastInfoStyle = infoStyle;
 
       set["#vsInfoOn"] = true;
       set["#vsInfoStyle"] = infoStyle;
@@ -5105,10 +5127,14 @@ function vsAssembleFromSections(data, skipFootage) {
       if (len <= 34)       pool = ["bold-statement", "badge", "title-center", "magazine-cover", "quote"];
       else if (len <= 64)  pool = ["title-center", "title-left", "quote", "annotation", "split", "caption"];
       else                 pool = ["caption", "annotation", "title-center", "title-left"];   // long → roomy
-      let style = pool.includes(sec.style) ? sec.style : pool[0];
+      // When the AI's own style pick doesn't fit this headline's length, this
+      // used to always fall back to pool[0] — deterministic, so every video
+      // in a batch (near-identical headline lengths city to city) landed on
+      // the same style. Pick randomly within the length-safe pool instead.
+      let style = pool.includes(sec.style) ? sec.style : pool[Math.floor(Math.random() * pool.length)];
       if (style === vstudio._lastNewsStyle) {           // avoid two identical in a row
         const alt = pool.filter(s => s !== style);
-        if (alt.length) style = alt[i % alt.length];
+        if (alt.length) style = alt[Math.floor(Math.random() * alt.length)];
       }
       vstudio._lastNewsStyle = style;
       set["#vsNewsOn"] = true;
@@ -6815,6 +6841,11 @@ function selectSlide(i) {
     if (nm) nm.textContent = s.mediaEl
       ? (state.lang === "fa" ? "این صحنه فوتیج دارد." : "This scene has footage.")
       : (state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).");
+    // quick-access text field — mirrors the News banner headline (the
+    // field that actually renders) so editing a scene's text doesn't
+    // require scrolling down and opening that accordion section.
+    const txt = $("#vsSlideText");
+    if (txt) txt.value = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
   }
   const du = $("#vsSlideDuration");
   if (du) du.value = s.duration || 4;
@@ -7203,7 +7234,14 @@ function buildPreviewCanvas(exportLongEdge) {
   const stage = $("#vsPreview");
   if (!stage) return;
   const { w, h } = vsCanvasSize(exportLongEdge);
-  stage.innerHTML = `<canvas id="vsCanvas" width="${w}" height="${h}"></canvas>`;
+  // dir="ltr" is required, not cosmetic: canvas text direction inherits from
+  // the DOM by default, and in Persian UI mode <html dir="rtl"> flips it —
+  // every fillText() in this file assumes physical LTR positioning (kicker
+  // pills, quote marks, wrapped lines), so under RTL punctuation jumps to
+  // the front of lines and marks that should sit below a text block render
+  // overlapping it instead. Video content (English or otherwise) is laid
+  // out independently of the studio's own UI language.
+  stage.innerHTML = `<canvas id="vsCanvas" width="${w}" height="${h}" dir="ltr" style="direction:ltr"></canvas>`;
   applyPreviewSize();
   setupTextDrag();
 }
@@ -7967,10 +8005,14 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     // backdrop sized to the quote block (with room for the marks + source)
     const padV = U * 0.09;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(0, Math.max(0, qTop - padV), W, blockH + padV * 2 + U * 0.06);
+    ctx.fillRect(0, Math.max(0, qTop - padV), W, blockH + padV * 2 + U * 0.13);
     ctx.fillStyle = ac.bar; ctx.globalAlpha = e * 0.9;
     ctx.font = `900 ${Math.round(U * 0.15)}px ${vsGetFont("Prata, serif")}`; ctx.textAlign = "center";
+    // "bottom" baseline: the glyph ends AT this y and grows upward, so it
+    // can never dip down into the first line no matter the font's metrics.
+    ctx.textBaseline = "bottom";
     ctx.fillText("\u201C", W / 2, qTop - U * 0.02);
+    ctx.textBaseline = "alphabetic";
     ctx.globalAlpha = e; ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = U * 0.03;
     lines.forEach((ln, li) => {
       const le = Math.max(0, Math.min(1, e * (lines.length + 1) - li)), le3 = 1 - Math.pow(1 - le, 3);
@@ -7981,9 +8023,15 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     ctx.shadowBlur = 0; ctx.globalAlpha = e;
     ctx.fillStyle = ac.bar; ctx.globalAlpha = e * 0.45;
     ctx.font = `900 ${Math.round(U * 0.1)}px ${vsGetFont("Prata, serif")}`;
-    ctx.fillText("\u201D", W / 2, qTop + blockH);
+    // The old anchor (qTop + blockH, alphabetic baseline) sat barely below
+    // the last line's own baseline \u2014 the mark's ascent then reached back UP
+    // into that line. "top" baseline (grows downward from here) plus a real
+    // gap below the block guarantees it never touches the text above it.
+    ctx.textBaseline = "top";
+    ctx.fillText("\u201D", W / 2, qTop + blockH + U * 0.02);
+    ctx.textBaseline = "alphabetic";
     ctx.globalAlpha = e;
-    if (source) { ctx.fillStyle = vsHexA(ac.bar, 0.95); ctx.font = `700 ${Math.round(U * 0.033)}px Inter, sans-serif`; ctx.fillText("— " + source, W / 2, qTop + blockH + U * 0.06); }
+    if (source) { ctx.fillStyle = vsHexA(ac.bar, 0.95); ctx.font = `700 ${Math.round(U * 0.033)}px Inter, sans-serif`; ctx.fillText("— " + source, W / 2, qTop + blockH + U * 0.13); }
 
   } else if (style === "pullquote") {
     const qW=W*0.58, qX=W*0.07;
@@ -12669,6 +12717,25 @@ function bindEvents() {
     on(sel, "change", vsRefresh);
   });
   on("#vsAspect", "change", vsRefreshAspect);
+
+  // Quick-access "Slide text" field, shown right where scenes are picked —
+  // mirrors the News banner headline (the field that actually renders on
+  // screen) both ways, so typing here doesn't require scrolling down and
+  // opening the News banner section, but that section still works too.
+  on("#vsSlideText", "input", () => {
+    const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline"), newsOn = $("#vsNewsOn");
+    if (!txt || !newsHl) return;
+    newsHl.value = txt.value;
+    if (newsOn && !newsOn.checked && txt.value.trim()) {
+      newsOn.checked = true;
+      newsOn.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    newsHl.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  on("#vsNewsHeadline", "input", () => {
+    const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline");
+    if (txt && newsHl && txt.value !== newsHl.value) txt.value = newsHl.value;
+  });
 
   // Undo / redo: snapshot studio state after each settled change.
   VS_CONTROLS.concat(["#vsGrain"]).forEach(sel => {
