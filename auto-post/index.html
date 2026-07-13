@@ -210,9 +210,9 @@
             </div>
 
             <div class="guideTabs">
-              <button type="button" class="guideTab active" data-guide="prepare">1. Prepare</button>
-              <button type="button" class="guideTab" data-guide="token">2. Token</button>
-              <button type="button" class="guideTab" data-guide="connect">3. No-Meta</button>
+              <button type="button" class="guideTab active" data-guide="prepare">1. Start</button>
+              <button type="button" class="guideTab" data-guide="token">2. Simple</button>
+              <button type="button" class="guideTab" data-guide="connect">3. Connect</button>
               <button type="button" class="guideTab" data-guide="publish">4. Publish</button>
             </div>
 
@@ -222,24 +222,24 @@
               <h3>Step 1 — Prepare your Instagram account</h3>
               <p class="sectionLead">Automatic publishing works only with an Instagram Business or Creator account connected to a Facebook Page.</p>
               <div class="taskList">
-                <div class="task"><b>1</b><div><strong>Open Instagram settings</strong><span>Switch the account type to Business or Creator.</span></div></div>
-                <div class="task"><b>2</b><div><strong>Connect a Facebook Page</strong><span>The Page connection is how Meta exposes your Instagram Business Account ID.</span></div></div>
-                <div class="task"><b>3</b><div><strong>Keep this panel open</strong><span>You will paste the final ID and token into Step 3.</span></div></div>
+                <div class="task"><b>1</b><div><strong>Click Connect Instagram</strong><span>Approve access on Instagram's official page.</span></div></div>
+                <div class="task"><b>2</b><div><strong>Return to AI Radar</strong><span>The panel becomes active automatically.</span></div></div>
+                <div class="task"><b>3</b><div><strong>Schedule posts</strong><span>Upload media, write caption, choose time.</span></div></div>
               </div>
               <div class="formActions">
-                <button type="button" data-next="token">I finished this step</button>
+                <button type="button" data-next="connect">Connect Instagram</button>
               </div>
             </div>
 
             <div class="guidePage" data-page="token">
               <h3>Step 2 — Choose connection method</h3>
-              <p class="sectionLead">Fast path: skip Meta Developer and connect a no-Meta publishing webhook in Step 3. Meta token is only for advanced users.</p>
-              <div class="quickLinks">
+              <p class="sectionLead">No webhook, no token, no developer dashboard for users. Connect Instagram or do not use publishing.</p>
+              <div class="quickLinks hidden">
                 <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Open Meta Apps</a>
                 <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Open Graph API Explorer</a>
                 <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">Open Token Debugger</a>
               </div>
-              <div class="warningBox">
+              <div class="warningBox hidden">
                 <strong>If Meta says “not available in this location”</strong>
                 This is a Meta account/location restriction, not an AI Radar error. Changing VPN alone may not work because Meta can also use your account country, phone region, cookies, browser session, payment/business profile, device signals, and recent login history.
                 <div class="miniChecklist">
@@ -250,11 +250,11 @@
                   <span>5. You can still use AI Radar as a draft calendar until Meta Developer access is available.</span>
                 </div>
               </div>
-              <div class="callout">
+              <div class="callout hidden">
                 Want the option I added? Click this:
                 <div class="formActions"><button type="button" data-next="connect">Skip Meta — connect webhook publisher</button></div>
               </div>
-              <div class="taskList">
+              <div class="taskList hidden">
                 <div class="task"><b>1</b><div><strong>Select or create a Meta app</strong><span>In Meta Developers, choose the app that has Instagram Graph API access.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Request these permissions</strong><div class="codeBox">instagram_basic
 instagram_content_publish
@@ -263,10 +263,10 @@ pages_read_engagement</div></div></div>
                 <div class="task"><b>3</b><div><strong>Find the connected Instagram account</strong><span>Run these calls in Graph API Explorer:</span><div class="codeBox">GET /me/accounts
 GET /{page-id}?fields=instagram_business_account</div></div></div>
               </div>
-              <div class="callout">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
+              <div class="callout hidden">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
               <div class="formActions">
                 <button type="button" class="secondary" data-next="prepare">Back</button>
-                <button type="button" data-next="connect">Continue to no-Meta connector</button>
+                <button type="button" data-next="connect">Connect Instagram</button>
               </div>
             </div>
 
@@ -331,7 +331,12 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           </section>
 
           <section>
-            <form class="card" id="postForm">
+            <div class="card" id="connectGate">
+              <h2>Connect Instagram first</h2>
+              <p class="sectionLead">Publishing is available only after the user connects Instagram. If they do not want to connect, they cannot use this service.</p>
+              <button type="button" onclick="showGuide('connect')">Connect Instagram</button>
+            </div>
+            <form class="card hidden" id="postForm">
               <h2>Schedule a new post</h2>
               <p class="sectionLead">Everything is aligned in one compact publishing form. Fill it from top to bottom.</p>
 
@@ -485,14 +490,17 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
             showGuide("connect");
           }
           const publisherConnected = data.publisher && data.publisher.connected;
-          $("instagramNotice").className = (data.instagram.connected || publisherConnected || (isAdmin && !directConfigured)) ? "notice ok" : "notice danger";
+          const publishingConnected = data.instagram.connected || publisherConnected;
+          $("connectGate").classList.toggle("hidden", publishingConnected);
+          $("postForm").classList.toggle("hidden", !publishingConnected);
+          $("instagramNotice").className = (publishingConnected || (isAdmin && !directConfigured)) ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
             ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
             : publisherConnected
               ? "Automatic publishing is enabled through webhook provider. Users do not need Meta Developer."
               : isAdmin && !directConfigured
                 ? "Owner setup required: open Step 3 and enter Instagram Client ID and Client Secret once. After that, users connect with one button."
-                : "Instagram direct connect is being prepared. You can still schedule posts and use assisted publishing until it is active.";
+                : "Connect Instagram to use publishing. If you do not want to connect, this service is not available.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
@@ -519,7 +527,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
             <div class="postTop"><span class="status ${statusClass}">${escapeHtml(label)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
             <div class="caption">${escapeHtml(post.caption)}</div>
             <div class="media">${escapeHtml(post.media_url)}</div>
-            ${ready?'<div class="manualAssist">Ready to publish without Meta token: copy the caption, open/download the media, publish in Instagram, then mark it as posted here.</div>':''}
+            ${ready?'<div class="manualAssist">This post is ready. Connect Instagram to publish automatically, or mark it as posted if you already published it elsewhere.</div>':''}
             ${post.last_error?'<div class="hint" style="color:var(--bad)">'+escapeHtml(cleanError(post.last_error))+'</div>':''}
             <div class="actions">
               <button class="secondary" onclick="copyCaption('${post.id}')">Copy caption</button>
