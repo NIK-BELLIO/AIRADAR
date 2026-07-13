@@ -113,9 +113,10 @@
       .setupPanel{display:grid;gap:14px}
       .progressTrack{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 4px}
       .progressFill{height:100%;width:25%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--violet));transition:width .2s ease}
-      .guideTabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+      .guideTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
       .guideTab{margin:0;padding:10px 8px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid var(--line);color:var(--soft);font-size:12px}
       .guideTab.active{background:linear-gradient(135deg,rgba(233,200,111,.22),rgba(157,124,255,.12));border-color:rgba(233,200,111,.42);color:var(--gold2)}
+      .guideTab.done{border-color:rgba(124,242,187,.32);color:var(--ok);background:rgba(124,242,187,.08)}
       .guidePage{display:none;border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(0,0,0,.14)}
       .guidePage.active{display:block}
       .guidePage h3{margin-bottom:6px}
@@ -169,7 +170,7 @@
         </div>
         <aside class="heroCard">
           <h3>Professional publishing flow</h3>
-          <p class="sectionLead">No Instagram password is required. Use the no-Meta webhook connector first; the official Meta token flow is only an advanced fallback.</p>
+          <p class="sectionLead">No Instagram password is required. Users connect Instagram, then schedule posts. That's it.</p>
           <div class="metricGrid">
             <div class="metric"><b id="metricTotal">—</b><span>Total posts</span></div>
             <div class="metric"><b id="metricScheduled">—</b><span>Scheduled</span></div>
@@ -210,10 +211,9 @@
             </div>
 
             <div class="guideTabs">
-              <button type="button" class="guideTab active" data-guide="prepare">1. Start</button>
-              <button type="button" class="guideTab" data-guide="token">2. Simple</button>
-              <button type="button" class="guideTab" data-guide="connect">3. Connect</button>
-              <button type="button" class="guideTab" data-guide="publish">4. Publish</button>
+              <button type="button" class="guideTab active" data-guide="prepare">1. Account</button>
+              <button type="button" class="guideTab" data-guide="connect">2. Connect</button>
+              <button type="button" class="guideTab" data-guide="publish">3. Publish</button>
             </div>
 
             <div class="notice" id="instagramNotice"></div>
@@ -289,7 +289,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
                   <p class="hint message" id="instagramAppMessage"></p>
                 </form>
               </details>
-              <details class="connectionBox">
+              <details class="connectionBox hidden" id="advancedWebhookSetup">
                 <summary>Advanced: webhook/provider setup</summary>
               <form id="publisherForm">
                 <label>No-Meta publishing webhook URL</label><input id="webhookUrl" dir="ltr" placeholder="https://hook.example.com/instagram-publish" />
@@ -299,7 +299,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
                 <p class="hint message" id="publisherMessage"></p>
               </form>
               </details>
-              <details class="connectionBox">
+              <details class="connectionBox hidden" id="advancedTokenSetup">
                 <summary>Advanced: manual Meta token</summary>
               <p class="sectionLead">Official Meta token fallback. Never paste your Instagram password.</p>
               <form id="connectForm">
@@ -310,7 +310,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
               </form>
               </details>
               <div class="formActions">
-                <button type="button" class="secondary" data-next="token">Back</button>
+                <button type="button" class="secondary" data-next="prepare">Back</button>
                 <button type="button" data-next="publish">Continue to publishing</button>
               </div>
             </div>
@@ -407,7 +407,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       let filter = "";
       let uploadedMediaUrl = "";
       const htmlMap = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" };
-      const guideOrder = ["prepare","token","connect","publish"];
+      const guideOrder = ["prepare","connect","publish"];
 
       function escapeHtml(value){return String(value ?? "").replace(/[&<>"']/g,(char)=>htmlMap[char]||char)}
       function cleanError(message){
@@ -430,7 +430,13 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
         document.querySelectorAll("[data-page]").forEach((page)=>page.classList.toggle("active",page.dataset.page===nextStep));
-        document.querySelectorAll("[data-guide]").forEach((button)=>button.classList.toggle("active",button.dataset.guide===nextStep));
+        document.querySelectorAll("[data-guide]").forEach((button)=>{
+          const buttonIndex = guideOrder.indexOf(button.dataset.guide);
+          button.classList.toggle("active",button.dataset.guide===nextStep);
+          button.classList.toggle("done",buttonIndex >= 0 && buttonIndex < guideOrder.indexOf(nextStep));
+          if(buttonIndex >= 0 && !button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+          if(button.dataset.originalLabel) button.textContent = button.classList.contains("done") ? "✓ " + button.dataset.originalLabel.replace(/^✓\s*/,"") : button.dataset.originalLabel;
+        });
         const index = guideOrder.indexOf(nextStep);
         $("guideProgress").style.width = ((index + 1) / guideOrder.length * 100) + "%";
       }
@@ -485,6 +491,8 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           const isAdmin = data.user.role === "admin";
           const directConfigured = data.instagramDirect && data.instagramDirect.configured;
           $("ownerInstagramSetup").classList.toggle("hidden", !isAdmin);
+          $("advancedWebhookSetup").classList.toggle("hidden", !isAdmin);
+          $("advancedTokenSetup").classList.toggle("hidden", !isAdmin);
           if(isAdmin && !directConfigured){
             $("ownerInstagramSetup").open = true;
             showGuide("connect");
