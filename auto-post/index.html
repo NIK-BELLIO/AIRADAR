@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Radar Auto Post - Instagram Scheduler</title>
-    <meta name="description" content="A professional AI Radar panel for scheduling Instagram posts and connecting Meta Instagram Graph API tokens." />
+    <meta name="description" content="A professional AI Radar panel for scheduling Instagram posts with direct Instagram connection." />
     <meta property="og:title" content="AI Radar Auto Post" />
     <meta property="og:url" content="https://airadar.me/auto-post/" />
     <meta property="og:type" content="website" />
@@ -81,6 +81,7 @@
       input:focus,textarea:focus,select:focus{border-color:rgba(233,200,111,.7);box-shadow:0 0 0 4px rgba(233,200,111,.1)}
       textarea{min-height:154px;resize:vertical;line-height:1.7}
       button{cursor:pointer;border:0;background:linear-gradient(135deg,var(--gold),#fff0bd);color:#0b0b10;font-weight:900;margin-top:14px}
+      button:disabled{cursor:not-allowed;opacity:.52;filter:grayscale(.4)}
       button.secondary{background:rgba(255,255,255,.055);color:var(--gold2);border:1px solid var(--line);font-weight:800}
       button.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);font-weight:800}
       .hint{color:var(--muted);font-size:12px;line-height:1.75}
@@ -113,9 +114,10 @@
       .setupPanel{display:grid;gap:14px}
       .progressTrack{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 4px}
       .progressFill{height:100%;width:25%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--violet));transition:width .2s ease}
-      .guideTabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+      .guideTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
       .guideTab{margin:0;padding:10px 8px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid var(--line);color:var(--soft);font-size:12px}
       .guideTab.active{background:linear-gradient(135deg,rgba(233,200,111,.22),rgba(157,124,255,.12));border-color:rgba(233,200,111,.42);color:var(--gold2)}
+      .guideTab.done{border-color:rgba(124,242,187,.32);color:var(--ok);background:rgba(124,242,187,.08)}
       .guidePage{display:none;border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(0,0,0,.14)}
       .guidePage.active{display:block}
       .guidePage h3{margin-bottom:6px}
@@ -165,16 +167,16 @@
         <div>
           <div class="eyebrow">Auto Post / Instagram Scheduler</div>
           <h1 class="title">Plan, schedule, and publish Instagram posts.</h1>
-          <p class="sub">A clean publishing workspace for creators and teams. Sign in, write your caption, add a media URL, choose the date and time, then connect your official Meta Instagram Graph API token when you are ready to enable automatic publishing.</p>
+          <p class="sub">A clean publishing workspace for creators and teams. Sign in, connect Instagram, upload media, write your caption, and schedule posts.</p>
         </div>
         <aside class="heroCard">
           <h3>Professional publishing flow</h3>
-          <p class="sectionLead">No Instagram password is required. AI Radar uses the official Meta token flow for Business and Creator accounts.</p>
+          <p class="sectionLead">No Instagram password is required. Users connect Instagram, then schedule posts. That's it.</p>
           <div class="metricGrid">
             <div class="metric"><b id="metricTotal">—</b><span>Total posts</span></div>
             <div class="metric"><b id="metricScheduled">—</b><span>Scheduled</span></div>
             <div class="metric"><b id="metricPublished">—</b><span>Published</span></div>
-            <div class="metric"><b id="metricConnected">—</b><span>Meta connection</span></div>
+            <div class="metric"><b id="metricConnected">—</b><span>Publishing connection</span></div>
           </div>
         </aside>
       </section>
@@ -204,16 +206,15 @@
           <section class="card setupPanel">
             <div>
               <div class="eyebrow">Setup assistant</div>
-              <h2>Connect Meta step by step</h2>
+              <h2>Connect publishing step by step</h2>
               <p class="sectionLead">This assistant walks users through the exact flow. They do one step, click next, and keep moving.</p>
               <div class="progressTrack"><div class="progressFill" id="guideProgress"></div></div>
             </div>
 
             <div class="guideTabs">
-              <button type="button" class="guideTab active" data-guide="prepare">1. Prepare</button>
-              <button type="button" class="guideTab" data-guide="token">2. Token</button>
-              <button type="button" class="guideTab" data-guide="connect">3. Connect</button>
-              <button type="button" class="guideTab" data-guide="publish">4. Publish</button>
+              <button type="button" class="guideTab active" data-guide="prepare">1. Account</button>
+              <button type="button" class="guideTab" data-guide="connect">2. Connect</button>
+              <button type="button" class="guideTab" data-guide="publish">3. Publish</button>
             </div>
 
             <div class="notice" id="instagramNotice"></div>
@@ -222,24 +223,24 @@
               <h3>Step 1 — Prepare your Instagram account</h3>
               <p class="sectionLead">Automatic publishing works only with an Instagram Business or Creator account connected to a Facebook Page.</p>
               <div class="taskList">
-                <div class="task"><b>1</b><div><strong>Open Instagram settings</strong><span>Switch the account type to Business or Creator.</span></div></div>
-                <div class="task"><b>2</b><div><strong>Connect a Facebook Page</strong><span>The Page connection is how Meta exposes your Instagram Business Account ID.</span></div></div>
-                <div class="task"><b>3</b><div><strong>Keep this panel open</strong><span>You will paste the final ID and token into Step 3.</span></div></div>
+                <div class="task"><b>1</b><div><strong>Click Connect Instagram</strong><span>Approve access on Instagram's official page.</span></div></div>
+                <div class="task"><b>2</b><div><strong>Return to AI Radar</strong><span>The panel becomes active automatically.</span></div></div>
+                <div class="task"><b>3</b><div><strong>Schedule posts</strong><span>Upload media, write caption, choose time.</span></div></div>
               </div>
               <div class="formActions">
-                <button type="button" data-next="token">I finished this step</button>
+                <button type="button" data-next="connect">Connect Instagram</button>
               </div>
             </div>
 
             <div class="guidePage" data-page="token">
-              <h3>Step 2 — Get the Meta token and IG User ID</h3>
-              <p class="sectionLead">Use Meta’s official tools. The panel does not ask for an Instagram password.</p>
-              <div class="quickLinks">
+              <h3>Step 2 — Choose connection method</h3>
+              <p class="sectionLead">No webhook, no token, no developer dashboard for users. Connect Instagram or do not use publishing.</p>
+              <div class="quickLinks hidden">
                 <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Open Meta Apps</a>
                 <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Open Graph API Explorer</a>
                 <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">Open Token Debugger</a>
               </div>
-              <div class="warningBox">
+              <div class="warningBox hidden">
                 <strong>If Meta says “not available in this location”</strong>
                 This is a Meta account/location restriction, not an AI Radar error. Changing VPN alone may not work because Meta can also use your account country, phone region, cookies, browser session, payment/business profile, device signals, and recent login history.
                 <div class="miniChecklist">
@@ -250,7 +251,11 @@
                   <span>5. You can still use AI Radar as a draft calendar until Meta Developer access is available.</span>
                 </div>
               </div>
-              <div class="taskList">
+              <div class="callout hidden">
+                Want the option I added? Click this:
+                <div class="formActions"><button type="button" data-next="connect">Skip Meta — connect webhook publisher</button></div>
+              </div>
+              <div class="taskList hidden">
                 <div class="task"><b>1</b><div><strong>Select or create a Meta app</strong><span>In Meta Developers, choose the app that has Instagram Graph API access.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Request these permissions</strong><div class="codeBox">instagram_basic
 instagram_content_publish
@@ -259,31 +264,61 @@ pages_read_engagement</div></div></div>
                 <div class="task"><b>3</b><div><strong>Find the connected Instagram account</strong><span>Run these calls in Graph API Explorer:</span><div class="codeBox">GET /me/accounts
 GET /{page-id}?fields=instagram_business_account</div></div></div>
               </div>
-              <div class="callout">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
+              <div class="callout hidden">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
               <div class="formActions">
                 <button type="button" class="secondary" data-next="prepare">Back</button>
-                <button type="button" data-next="connect">I have the ID and token</button>
+                <button type="button" data-next="connect">Connect Instagram</button>
               </div>
             </div>
 
             <div class="guidePage" data-page="connect">
-              <h3>Step 3 — Paste credentials here</h3>
-              <p class="sectionLead">Use the values from Graph API Explorer. Never paste your Instagram password.</p>
-              <form id="connectForm" class="connectionBox">
+              <h3>Step 3 — Connect publishing</h3>
+              <p class="sectionLead">Users do not create apps. They only click Connect Instagram, approve access, and come back to AI Radar.</p>
+              <div class="connectionBox">
+                <button type="button" id="instagramOAuthBtn">Connect Instagram directly</button>
+                <p class="hint">Normal users click this button, approve Instagram, and return to AI Radar. No webhook, no token copy, no Meta Developer page.</p>
+                <p class="hint message" id="oauthMessage"></p>
+              </div>
+              <details class="connectionBox hidden" id="ownerInstagramSetup">
+                <summary>Admin only: one-time setup for the whole website</summary>
+                <form id="instagramAppForm">
+                  <label>Instagram Client ID</label><input id="instagramClientId" dir="ltr" inputmode="numeric" placeholder="Numeric Instagram App ID, e.g. 1234567890" />
+                  <label>Instagram Client Secret</label><input id="instagramClientSecret" dir="ltr" type="password" placeholder="Your Instagram app client secret" />
+                  <label>Redirect URI</label><input id="instagramRedirectUri" dir="ltr" readonly value="https://instagram-auto-poster.aliniashyn-9b4.workers.dev/api/instagram/oauth/callback" />
+                  <button type="submit">Activate direct Instagram connect</button>
+                  <p class="hint">Only the site owner does this once. Users never enter Client ID, Client Secret, webhook, or token. After activation, every user only sees the Connect Instagram button.</p>
+                  <p class="hint message" id="instagramAppMessage"></p>
+                </form>
+              </details>
+              <details class="connectionBox hidden" id="advancedWebhookSetup">
+                <summary>Advanced: webhook/provider setup</summary>
+              <form id="publisherForm">
+                <label>No-Meta publishing webhook URL</label><input id="webhookUrl" dir="ltr" placeholder="https://hook.example.com/instagram-publish" />
+                <label>Webhook secret / API key (optional)</label><input id="webhookSecret" dir="ltr" type="password" placeholder="Optional bearer token" />
+                <button type="submit">Connect webhook publisher</button>
+                <p class="hint">Recommended: AI Radar sends caption, mediaUrl, mediaType, and scheduledAt to this endpoint when a post is due. Use Make, Zapier, Pipedream, Ayrshare, or another approved Instagram publishing provider.</p>
+                <p class="hint message" id="publisherMessage"></p>
+              </form>
+              </details>
+              <details class="connectionBox hidden" id="advancedTokenSetup">
+                <summary>Advanced: manual Meta token</summary>
+              <p class="sectionLead">Official Meta token fallback. Never paste your Instagram password.</p>
+              <form id="connectForm">
                 <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="Example: 17841400000000000" />
                 <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="Paste the Meta access token here" />
                 <button type="submit">Save Instagram connection</button>
                 <p class="hint message" id="connectMessage"></p>
               </form>
+              </details>
               <div class="formActions">
-                <button type="button" class="secondary" data-next="token">Back</button>
+                <button type="button" class="secondary" data-next="prepare">Back</button>
                 <button type="button" data-next="publish">Continue to publishing</button>
               </div>
             </div>
 
             <div class="guidePage" data-page="publish">
               <h3>Step 4 — Schedule your first post</h3>
-              <p class="sectionLead">Now create a post on the right. If Meta is connected, AI Radar will publish it automatically at the scheduled time.</p>
+              <p class="sectionLead">Now create a post on the right. After Instagram is connected, AI Radar will publish it automatically at the scheduled time.</p>
               <div class="taskList">
                 <div class="task"><b>1</b><div><strong>Write caption</strong><span>Add the Instagram text and hashtags.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Add media URL</strong><span>Use a public direct image/video URL.</span></div></div>
@@ -297,7 +332,12 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           </section>
 
           <section>
-            <form class="card" id="postForm">
+            <div class="card" id="connectGate">
+              <h2>Connect Instagram first</h2>
+              <p class="sectionLead">Publishing is available only after the user connects Instagram. If they do not want to connect, they cannot use this service.</p>
+              <button type="button" onclick="showGuide('connect')">Connect Instagram</button>
+            </div>
+            <form class="card hidden" id="postForm">
               <h2>Schedule a new post</h2>
               <p class="sectionLead">Everything is aligned in one compact publishing form. Fill it from top to bottom.</p>
 
@@ -368,7 +408,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       let filter = "";
       let uploadedMediaUrl = "";
       const htmlMap = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" };
-      const guideOrder = ["prepare","token","connect","publish"];
+      const guideOrder = ["prepare","connect","publish"];
 
       function escapeHtml(value){return String(value ?? "").replace(/[&<>"']/g,(char)=>htmlMap[char]||char)}
       function cleanError(message){
@@ -388,10 +428,22 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       function statusText(status){return {draft:"Draft",scheduled:"Scheduled",publishing:"Publishing",published:"Published",failed:"Failed",cancelled:"Cancelled"}[status]||status}
       function setMetric(id,value){const element=$(id);if(element)element.textContent=value}
       function resetMetrics(){setMetric("metricTotal","—");setMetric("metricScheduled","—");setMetric("metricPublished","—");setMetric("metricConnected","—")}
+      function setDirectConnectState(isReady, isAdmin){
+        $("instagramOAuthBtn").disabled = !isReady;
+        $("oauthMessage").textContent = isReady
+          ? "Ready. Click the button to connect Instagram."
+          : "Instagram connection provider is not active for this site yet.";
+      }
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
         document.querySelectorAll("[data-page]").forEach((page)=>page.classList.toggle("active",page.dataset.page===nextStep));
-        document.querySelectorAll("[data-guide]").forEach((button)=>button.classList.toggle("active",button.dataset.guide===nextStep));
+        document.querySelectorAll("[data-guide]").forEach((button)=>{
+          const buttonIndex = guideOrder.indexOf(button.dataset.guide);
+          button.classList.toggle("active",button.dataset.guide===nextStep);
+          button.classList.toggle("done",buttonIndex >= 0 && buttonIndex < guideOrder.indexOf(nextStep));
+          if(buttonIndex >= 0 && !button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+          if(button.dataset.originalLabel) button.textContent = button.classList.contains("done") ? "✓ " + button.dataset.originalLabel.replace(/^✓\s*/,"") : button.dataset.originalLabel;
+        });
         const index = guideOrder.indexOf(nextStep);
         $("guideProgress").style.width = ((index + 1) / guideOrder.length * 100) + "%";
       }
@@ -443,10 +495,29 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           const data=await api("/api/me");
           showAuthed(true);
           $("accountBadge").textContent=data.user.name+" / "+data.user.email;
-          $("instagramNotice").className = data.instagram.connected ? "notice ok" : "notice danger";
+          const isAdmin = data.user.role === "admin";
+          const directConfigured = data.instagramDirect && data.instagramDirect.configured;
+          const providerConfigured = data.publisher && data.publisher.configured;
+          const connectAvailable = directConfigured || providerConfigured;
+          setDirectConnectState(connectAvailable, isAdmin);
+          $("ownerInstagramSetup").classList.add("hidden");
+          $("advancedWebhookSetup").classList.add("hidden");
+          $("advancedTokenSetup").classList.add("hidden");
+          if(!connectAvailable){
+            showGuide("connect");
+          }
+          const publisherConnected = data.publisher && data.publisher.connected;
+          const publishingConnected = data.instagram.connected || publisherConnected;
+          $("connectGate").classList.toggle("hidden", publishingConnected);
+          $("postForm").classList.toggle("hidden", !publishingConnected);
+          $("instagramNotice").className = publishingConnected ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
-            ? "Automatic publishing is enabled. Connected IG User ID: "+data.instagram.igUserId
-            : "Assisted publishing mode is active. Schedule posts here, then use Copy caption / Open media / Open Instagram when each post is ready.";
+            ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
+            : publisherConnected
+              ? "Instagram is connected. Automatic publishing is enabled."
+              : connectAvailable
+                ? "Connect Instagram to use publishing. If you do not want to connect, this service is not available."
+                : "Instagram connection provider is being activated for this site.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
@@ -473,7 +544,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
             <div class="postTop"><span class="status ${statusClass}">${escapeHtml(label)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
             <div class="caption">${escapeHtml(post.caption)}</div>
             <div class="media">${escapeHtml(post.media_url)}</div>
-            ${ready?'<div class="manualAssist">Ready to publish without Meta token: copy the caption, open/download the media, publish in Instagram, then mark it as posted here.</div>':''}
+            ${ready?'<div class="manualAssist">This post is ready. Connect Instagram to publish automatically, or mark it as posted if you already published it elsewhere.</div>':''}
             ${post.last_error?'<div class="hint" style="color:var(--bad)">'+escapeHtml(cleanError(post.last_error))+'</div>':''}
             <div class="actions">
               <button class="secondary" onclick="copyCaption('${post.id}')">Copy caption</button>
@@ -504,8 +575,29 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       async function markPosted(id){if(!confirm("Mark this post as published in AI Radar?"))return;await api("/api/posts/"+id+"/mark-published",{method:"POST"});await loadPosts()}
       async function publishNow(id){if(!confirm("Publish this post now?"))return;await api("/api/posts/"+id+"/publish-now",{method:"POST"});await loadPosts()}
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
+      function handleInstagramReturn(){
+        const params = new URLSearchParams(location.search);
+        if(params.get("code") && params.get("state")){
+          const callbackUrl = new URL(API_BASE + "/api/instagram/oauth/callback");
+          callbackUrl.searchParams.set("code", params.get("code"));
+          callbackUrl.searchParams.set("state", params.get("state"));
+          location.replace(callbackUrl.toString());
+          return;
+        }
+        if(params.get("error") || params.get("error_description")){
+          showGuide("connect");
+          setTimeout(()=>$("oauthMessage").textContent=params.get("error_description") || params.get("error"),250);
+          return;
+        }
+        if(params.get("instagram")==="connected"){showGuide("publish");setTimeout(()=>$("instagramNotice").textContent="Instagram connected successfully. Automatic publishing is enabled.",250)}
+        if(params.get("provider")==="connected"){showGuide("publish");setTimeout(()=>{$("instagramNotice").textContent="Instagram connection completed. If the form is still locked, click Refresh once.";$("oauthMessage").textContent="Instagram connection completed.";loadMe()},250)}
+        if(params.get("instagram_error")){showGuide("connect");setTimeout(()=>$("oauthMessage").textContent=params.get("instagram_error"),250)}
+      }
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
+      $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram connection...";sessionStorage.setItem("airadar_instagram_oauth_started","1");const data=await api("/api/provider/connect/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
+      $("instagramAppForm").addEventListener("submit",async(event)=>{event.preventDefault();const clientId=$("instagramClientId").value.trim();if(!/^\d{6,}$/.test(clientId)){$("instagramAppMessage").textContent="Paste the numeric Instagram App ID first. Do not use an Instagram username or app nickname.";return}$("instagramAppMessage").textContent="Saving Instagram app settings...";try{await api("/api/admin/instagram-app",{method:"POST",body:JSON.stringify({clientId,clientSecret:$("instagramClientSecret").value,redirectUri:$("instagramRedirectUri").value})});$("instagramClientSecret").value="";$("instagramAppMessage").textContent="Direct Instagram connect is active. Users can click the main button now.";await loadMe()}catch(error){$("instagramAppMessage").textContent=error.message}});
+      $("publisherForm").addEventListener("submit",async(event)=>{event.preventDefault();$("publisherMessage").textContent="Connecting webhook publisher...";try{await api("/api/publisher/connect",{method:"POST",body:JSON.stringify({webhookUrl:$("webhookUrl").value,secret:$("webhookSecret").value})});$("webhookSecret").value="";$("publisherMessage").textContent="Webhook publisher connected. Scheduled posts will publish automatically through this provider.";await loadMe();showGuide("publish")}catch(error){$("publisherMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
       $("postForm").addEventListener("submit",async(event)=>{
         event.preventDefault();
@@ -551,6 +643,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         $("scheduleTime").value = parts[1] || "";
       }
       showGuide("prepare");
+      handleInstagramReturn();
       loadMe();
     </script>
   </body>
