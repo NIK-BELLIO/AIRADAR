@@ -267,8 +267,16 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
             </div>
 
             <div class="guidePage" data-page="connect">
-              <h3>Step 3 — Paste credentials here</h3>
-              <p class="sectionLead">Use the values from Graph API Explorer. Never paste your Instagram password.</p>
+              <h3>Step 3 — Connect publishing</h3>
+              <p class="sectionLead">Use the no-Meta webhook connector first. Meta token is only an advanced fallback.</p>
+              <form id="publisherForm" class="connectionBox">
+                <label>No-Meta publishing webhook URL</label><input id="webhookUrl" dir="ltr" placeholder="https://hook.example.com/instagram-publish" />
+                <label>Webhook secret / API key (optional)</label><input id="webhookSecret" dir="ltr" type="password" placeholder="Optional bearer token" />
+                <button type="submit">Connect webhook publisher</button>
+                <p class="hint">Recommended: AI Radar sends caption, mediaUrl, mediaType, and scheduledAt to this endpoint when a post is due. Use Make, Zapier, Pipedream, Ayrshare, or another approved Instagram publishing provider.</p>
+                <p class="hint message" id="publisherMessage"></p>
+              </form>
+              <p class="sectionLead">Advanced fallback: official Meta token. Never paste your Instagram password.</p>
               <form id="connectForm" class="connectionBox">
                 <label>IG User ID</label><input id="igUserId" dir="ltr" placeholder="Example: 17841400000000000" />
                 <label>Meta Access Token</label><input id="accessToken" dir="ltr" type="password" placeholder="Paste the Meta access token here" />
@@ -443,10 +451,13 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           const data=await api("/api/me");
           showAuthed(true);
           $("accountBadge").textContent=data.user.name+" / "+data.user.email;
-          $("instagramNotice").className = data.instagram.connected ? "notice ok" : "notice danger";
+          const publisherConnected = data.publisher && data.publisher.connected;
+          $("instagramNotice").className = (data.instagram.connected || publisherConnected) ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
-            ? "Automatic publishing is enabled. Connected IG User ID: "+data.instagram.igUserId
-            : "Assisted publishing mode is active. Schedule posts here, then use Copy caption / Open media / Open Instagram when each post is ready.";
+            ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
+            : publisherConnected
+              ? "Automatic publishing is enabled through webhook provider. Users do not need Meta Developer."
+              : "Assisted publishing mode is active. Add a webhook publisher for no-Meta automatic posting, or use Copy caption / Open media / Open Instagram when each post is ready.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
@@ -506,6 +517,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
+      $("publisherForm").addEventListener("submit",async(event)=>{event.preventDefault();$("publisherMessage").textContent="Connecting webhook publisher...";try{await api("/api/publisher/connect",{method:"POST",body:JSON.stringify({webhookUrl:$("webhookUrl").value,secret:$("webhookSecret").value})});$("webhookSecret").value="";$("publisherMessage").textContent="Webhook publisher connected. Scheduled posts will publish automatically through this provider.";await loadMe();showGuide("publish")}catch(error){$("publisherMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
       $("postForm").addEventListener("submit",async(event)=>{
         event.preventDefault();
