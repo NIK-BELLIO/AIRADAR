@@ -273,20 +273,20 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
 
             <div class="guidePage" data-page="connect">
               <h3>Step 3 — Connect publishing</h3>
-              <p class="sectionLead">For normal users: click Connect Instagram directly. The webhook field is only for advanced admin/provider setups.</p>
+              <p class="sectionLead">Users do not create apps. They only click Connect Instagram, approve access, and come back to AI Radar.</p>
               <div class="connectionBox">
                 <button type="button" id="instagramOAuthBtn">Connect Instagram directly</button>
                 <p class="hint">Normal users click this button, approve Instagram, and return to AI Radar. No webhook, no token copy, no Meta Developer page.</p>
                 <p class="hint message" id="oauthMessage"></p>
               </div>
               <details class="connectionBox hidden" id="ownerInstagramSetup">
-                <summary>Owner setup: activate this button for all users</summary>
+                <summary>Admin only: one-time setup for the whole website</summary>
                 <form id="instagramAppForm">
                   <label>Instagram Client ID</label><input id="instagramClientId" dir="ltr" inputmode="numeric" placeholder="Numeric Instagram App ID, e.g. 1234567890" />
                   <label>Instagram Client Secret</label><input id="instagramClientSecret" dir="ltr" type="password" placeholder="Your Instagram app client secret" />
                   <label>Redirect URI</label><input id="instagramRedirectUri" dir="ltr" readonly value="https://instagram-auto-poster.aliniashyn-9b4.workers.dev/api/instagram/oauth/callback" />
                   <button type="submit">Activate direct Instagram connect</button>
-                  <p class="hint">Client ID must be the numeric App ID from Meta/Instagram settings, not your Instagram username or app nickname. Use this exact Redirect URI in the app settings.</p>
+                  <p class="hint">Only the site owner does this once. Users never enter Client ID, Client Secret, webhook, or token. After activation, every user only sees the Connect Instagram button.</p>
                   <p class="hint message" id="instagramAppMessage"></p>
                 </form>
               </details>
@@ -505,20 +505,20 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("advancedWebhookSetup").classList.toggle("hidden", !isAdmin);
           $("advancedTokenSetup").classList.toggle("hidden", !isAdmin);
           if(isAdmin && !directConfigured){
-            $("ownerInstagramSetup").open = true;
+            $("ownerInstagramSetup").open = false;
             showGuide("connect");
           }
           const publisherConnected = data.publisher && data.publisher.connected;
           const publishingConnected = data.instagram.connected || publisherConnected;
           $("connectGate").classList.toggle("hidden", publishingConnected);
           $("postForm").classList.toggle("hidden", !publishingConnected);
-          $("instagramNotice").className = (publishingConnected || (isAdmin && !directConfigured)) ? "notice ok" : "notice danger";
+          $("instagramNotice").className = publishingConnected ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
             ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
             : publisherConnected
               ? "Automatic publishing is enabled through webhook provider. Users do not need Meta Developer."
               : isAdmin && !directConfigured
-                ? "Owner setup required: open Step 3 and enter Instagram Client ID and Client Secret once. After that, users connect with one button."
+                ? "Admin setup is not finished. This is only for the site owner; users will only click Connect Instagram after you activate it once."
                 : "Connect Instagram to use publishing. If you do not want to connect, this service is not available.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
