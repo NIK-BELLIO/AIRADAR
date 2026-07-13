@@ -51,7 +51,9 @@
       .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.02em}
       .brand img{width:36px;height:36px;filter:drop-shadow(0 12px 24px rgba(233,200,111,.25))}
       .navActions{display:flex;gap:10px;flex-wrap:wrap}
-      .pill,.nav a.link{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.045);color:var(--soft);font-size:13px;font-weight:750}
+      .pill,.nav a.link,.nav button.link{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.045);color:var(--soft);font-size:13px;font-weight:750;margin:0;width:auto}
+      .nav button.link{cursor:pointer}
+      .nav button.logoutTop{background:rgba(255,141,123,.12);border-color:rgba(255,141,123,.34);color:#ffc1b8}
       .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;align-items:end;margin:24px 0 18px}
       .eyebrow{color:var(--gold2);font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
       .title{font-family:Prata,Inter,serif;font-size:clamp(38px,5vw,68px);line-height:.98;margin:10px 0 12px;letter-spacing:-.055em}
@@ -96,12 +98,15 @@
       .toolbar button{width:auto;margin:0;padding:9px 12px}
       .posts{display:grid;gap:12px}
       .post{background:rgba(13,18,30,.88);border:1px solid var(--line);border-radius:20px;padding:15px;display:grid;gap:10px}
+      .post.ready{border-color:rgba(233,200,111,.46);box-shadow:0 18px 60px rgba(233,200,111,.08)}
       .postTop{display:flex;justify-content:space-between;gap:10px}
       .status{font-size:12px;border-radius:999px;padding:6px 10px;background:#273047;color:#cbd4e3}
+      .status.ready{background:rgba(233,200,111,.15);color:var(--gold2)}
       .status.published{background:rgba(124,242,187,.13);color:var(--ok)}
       .status.failed{background:rgba(255,141,123,.15);color:#ffc1b8}
       .caption{white-space:pre-wrap;line-height:1.8}
       .media{direction:ltr;text-align:left;color:var(--blue);word-break:break-all;font-size:13px}
+      .manualAssist{border:1px solid rgba(233,200,111,.26);background:rgba(233,200,111,.07);border-radius:16px;padding:12px;color:var(--gold2);font-size:13px;line-height:1.65}
       .actions{display:flex;gap:8px;flex-wrap:wrap}
       .actions button{width:auto;margin:0;padding:9px 12px}
       .empty{border:1px dashed var(--line);border-radius:20px;padding:34px;text-align:center;color:var(--muted);background:rgba(255,255,255,.025)}
@@ -114,6 +119,10 @@
       .guidePage{display:none;border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(0,0,0,.14)}
       .guidePage.active{display:block}
       .guidePage h3{margin-bottom:6px}
+      .warningBox{border:1px solid rgba(255,198,87,.36);background:linear-gradient(135deg,rgba(255,198,87,.14),rgba(255,255,255,.045));border-radius:18px;padding:14px;margin:14px 0;color:var(--text)}
+      .warningBox strong{display:block;color:var(--gold2);margin-bottom:6px}
+      .miniChecklist{display:grid;gap:8px;margin-top:10px}
+      .miniChecklist span{display:block;color:var(--soft);font-size:13px;line-height:1.65}
       .taskList{display:grid;gap:9px;margin:12px 0}
       .task{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(255,255,255,.035)}
       .task > div{min-width:0}
@@ -124,6 +133,11 @@
       .formActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
       .formActions button{width:auto;margin-top:0;padding:10px 13px}
       .connectionBox{border:1px solid var(--line);border-radius:22px;padding:16px;background:rgba(255,255,255,.035)}
+      .uploadBox{border:1px dashed rgba(233,200,111,.36);border-radius:18px;padding:14px;background:rgba(233,200,111,.055);display:grid;gap:10px}
+      .uploadBox input[type=file]{padding:11px;background:rgba(9,12,20,.9);border-style:dashed}
+      .uploadMeta{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:12px}
+      .uploadPreview{display:none;border:1px solid var(--line);border-radius:16px;padding:10px;background:rgba(0,0,0,.14);color:var(--soft);font-size:12px;word-break:break-all}
+      .uploadPreview.ready{display:block}
       .codeBox{direction:ltr;text-align:left;border:1px solid var(--line);border-radius:16px;padding:12px;background:#090c14;color:#b8d0ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow:auto;margin:9px 0;white-space:pre-wrap;word-break:break-word}
       .quickLinks{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       .quickLinks a{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;padding:9px 11px;font-size:12px;font-weight:800;color:var(--soft)}
@@ -143,6 +157,7 @@
         <div class="navActions">
           <a class="link" href="/">Back to main site</a>
           <span class="pill" id="accountBadge">Checking session...</span>
+          <button class="link logoutTop hidden" type="button" id="topLogoutBtn">Log out</button>
         </div>
       </nav>
 
@@ -156,10 +171,10 @@
           <h3>Professional publishing flow</h3>
           <p class="sectionLead">No Instagram password is required. AI Radar uses the official Meta token flow for Business and Creator accounts.</p>
           <div class="metricGrid">
-            <div class="metric"><b>1</b><span>Account workspace</span></div>
-            <div class="metric"><b>2</b><span>Schedule posts</span></div>
-            <div class="metric"><b>3</b><span>Connect Meta token</span></div>
-            <div class="metric"><b>Auto</b><span>Publish on time</span></div>
+            <div class="metric"><b id="metricTotal">—</b><span>Total posts</span></div>
+            <div class="metric"><b id="metricScheduled">—</b><span>Scheduled</span></div>
+            <div class="metric"><b id="metricPublished">—</b><span>Published</span></div>
+            <div class="metric"><b id="metricConnected">—</b><span>Meta connection</span></div>
           </div>
         </aside>
       </section>
@@ -224,6 +239,17 @@
                 <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Open Graph API Explorer</a>
                 <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" rel="noopener">Open Token Debugger</a>
               </div>
+              <div class="warningBox">
+                <strong>If Meta says “not available in this location”</strong>
+                This is a Meta account/location restriction, not an AI Radar error. Changing VPN alone may not work because Meta can also use your account country, phone region, cookies, browser session, payment/business profile, device signals, and recent login history.
+                <div class="miniChecklist">
+                  <span>1. Try a clean browser profile or incognito window, then open Meta Developers again.</span>
+                  <span>2. Keep one stable allowed country/IP. Do not switch between many VPN countries quickly.</span>
+                  <span>3. Log in with the Facebook account that owns the Page connected to the Instagram Business/Creator account.</span>
+                  <span>4. If the same error remains, create/get the token from a trusted device or teammate located in an allowed region, then paste only the token and IG User ID here.</span>
+                  <span>5. You can still use AI Radar as a draft calendar until Meta Developer access is available.</span>
+                </div>
+              </div>
               <div class="taskList">
                 <div class="task"><b>1</b><div><strong>Select or create a Meta app</strong><span>In Meta Developers, choose the app that has Instagram Graph API access.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Request these permissions</strong><div class="codeBox">instagram_basic
@@ -278,8 +304,17 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
               <label>Caption</label>
               <textarea id="caption" placeholder="Write the Instagram caption here..." maxlength="2200"></textarea>
 
-              <label>Public media URL</label>
-              <input id="mediaUrl" placeholder="https://example.com/photo.jpg" dir="ltr" />
+              <label>Upload media</label>
+              <div class="uploadBox">
+                <input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" />
+                <div class="uploadMeta">
+                  <span>Upload JPG, PNG, WEBP, MP4, or MOV. Max 25 MB.</span>
+                  <button class="secondary" type="button" id="uploadBtn">Upload media</button>
+                </div>
+                <div class="uploadPreview" id="uploadPreview"></div>
+              </div>
+              <label>Media URL generated by AI Radar</label>
+              <input id="mediaUrl" placeholder="Upload a file to generate the URL" dir="ltr" readonly />
 
               <div class="row">
                 <div>
@@ -331,6 +366,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       const $ = (id) => document.getElementById(id);
       let token = localStorage.getItem("airadar_auto_post_token") || "";
       let filter = "";
+      let uploadedMediaUrl = "";
       const htmlMap = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" };
       const guideOrder = ["prepare","token","connect","publish"];
 
@@ -346,9 +382,12 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         return text;
       }
       function headers(){return {"content-type":"application/json","authorization":"Bearer "+token}}
+      function authHeaders(){return {"authorization":"Bearer "+token}}
       function setToken(next){token=next;localStorage.setItem("airadar_auto_post_token",token)}
-      function showAuthed(isAuthed){$("authView").classList.toggle("hidden",isAuthed);$("appView").classList.toggle("hidden",!isAuthed)}
+      function showAuthed(isAuthed){$("authView").classList.toggle("hidden",isAuthed);$("appView").classList.toggle("hidden",!isAuthed);$("topLogoutBtn").classList.toggle("hidden",!isAuthed)}
       function statusText(status){return {draft:"Draft",scheduled:"Scheduled",publishing:"Publishing",published:"Published",failed:"Failed",cancelled:"Cancelled"}[status]||status}
+      function setMetric(id,value){const element=$(id);if(element)element.textContent=value}
+      function resetMetrics(){setMetric("metricTotal","—");setMetric("metricScheduled","—");setMetric("metricPublished","—");setMetric("metricConnected","—")}
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
         document.querySelectorAll("[data-page]").forEach((page)=>page.classList.toggle("active",page.dataset.page===nextStep));
@@ -369,8 +408,37 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         if(!response.ok||data.ok===false) throw new Error(cleanError(data.error));
         return data;
       }
+      async function uploadSelectedMedia(){
+        const file = $("mediaFile").files && $("mediaFile").files[0];
+        if(!file) throw new Error("Choose an image or video file first.");
+        $("uploadPreview").className="uploadPreview ready";
+        $("uploadPreview").textContent="Uploading " + file.name + "...";
+        const form = new FormData();
+        form.append("file", file);
+        const response = await fetch(API_BASE + "/api/media/upload", { method:"POST", headers:authHeaders(), body:form });
+        const data = await response.json().catch(()=>({}));
+        if(!response.ok || data.ok===false) throw new Error(cleanError(data.error));
+        uploadedMediaUrl = data.media.url;
+        $("mediaUrl").value = uploadedMediaUrl;
+        $("mediaType").value = data.media.type || $("mediaType").value;
+        $("uploadPreview").innerHTML = "<b>Uploaded:</b> " + escapeHtml(file.name) + "<br><span>" + escapeHtml(uploadedMediaUrl) + "</span>";
+        return data.media;
+      }
+      async function loadStats(){
+        if(!token){resetMetrics();return}
+        try{
+          const data = await api("/api/stats");
+          const stats = data.stats || {};
+          setMetric("metricTotal", String(stats.totalPosts ?? 0));
+          setMetric("metricScheduled", String(stats.scheduledPosts ?? 0));
+          setMetric("metricPublished", String(stats.publishedPosts ?? 0));
+          setMetric("metricConnected", stats.instagramConnected ? "Connected" : "Not yet");
+        }catch{
+          resetMetrics();
+        }
+      }
       async function loadMe(){
-        if(!token){showAuthed(false);$("accountBadge").textContent="Account required";return}
+        if(!token){showAuthed(false);$("accountBadge").textContent="Account required";resetMetrics();return}
         try{
           const data=await api("/api/me");
           showAuthed(true);
@@ -378,30 +446,62 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("instagramNotice").className = data.instagram.connected ? "notice ok" : "notice danger";
           $("instagramNotice").textContent=data.instagram.connected
             ? "Automatic publishing is enabled. Connected IG User ID: "+data.instagram.igUserId
-            : "Automatic publishing is not active yet. You can save drafts and scheduled posts, but publishing requires a Meta Instagram connection.";
+            : "Assisted publishing mode is active. Schedule posts here, then use Copy caption / Open media / Open Instagram when each post is ready.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
+          await loadStats();
           await loadPosts();
         }catch{
           localStorage.removeItem("airadar_auto_post_token");
           token="";
           showAuthed(false);
           $("accountBadge").textContent="Please sign in";
+          resetMetrics();
         }
       }
       async function loadPosts(){
         const query=filter?"?status="+encodeURIComponent(filter):"";
         const data=await api("/api/posts"+query);
         const posts=$("posts");
-        if(!data.posts.length){posts.innerHTML='<div class="empty">No posts yet. Create your first scheduled post from the panel.</div>';return}
-        posts.innerHTML=data.posts.map((post)=>`
-          <article class="post">
-            <div class="postTop"><span class="status ${post.status}">${statusText(post.status)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
+        if(!data.posts.length){posts.innerHTML='<div class="empty">No posts yet. Create your first scheduled post from the panel.</div>';await loadStats();return}
+        window.airadarPosts = data.posts;
+        posts.innerHTML=data.posts.map((post)=>{
+          const ready = isReadyToPost(post);
+          const label = ready && post.status === "scheduled" ? "Ready now" : statusText(post.status);
+          const statusClass = ready && post.status === "scheduled" ? "ready" : post.status;
+          return `
+          <article class="post ${ready ? "ready" : ""}">
+            <div class="postTop"><span class="status ${statusClass}">${escapeHtml(label)}</span><small>${escapeHtml(post.scheduled_at||post.created_at)}</small></div>
             <div class="caption">${escapeHtml(post.caption)}</div>
             <div class="media">${escapeHtml(post.media_url)}</div>
-            ${post.last_error?'<div class="hint" style="color:var(--bad)">Error: '+escapeHtml(cleanError(post.last_error))+'</div>':''}
-            <div class="actions"><button class="secondary" onclick="publishNow('${post.id}')">Publish now</button><button class="ghost" onclick="removePost('${post.id}')">Delete</button></div>
-          </article>`).join("");
+            ${ready?'<div class="manualAssist">Ready to publish without Meta token: copy the caption, open/download the media, publish in Instagram, then mark it as posted here.</div>':''}
+            ${post.last_error?'<div class="hint" style="color:var(--bad)">'+escapeHtml(cleanError(post.last_error))+'</div>':''}
+            <div class="actions">
+              <button class="secondary" onclick="copyCaption('${post.id}')">Copy caption</button>
+              <button class="secondary" onclick="openMedia('${post.id}')">Open media</button>
+              <button class="secondary" onclick="openInstagram()">Open Instagram</button>
+              <button class="secondary" onclick="publishNow('${post.id}')">Auto publish</button>
+              <button class="ghost" onclick="markPosted('${post.id}')">Mark as posted</button>
+              <button class="ghost" onclick="removePost('${post.id}')">Delete</button>
+            </div>
+          </article>`}).join("");
+        await loadStats();
       }
+      function isReadyToPost(post){
+        if(post.status !== "scheduled" || !post.scheduled_at) return false;
+        const when = new Date(String(post.scheduled_at).replace(" ","T"));
+        return Number.isFinite(when.getTime()) && when.getTime() <= Date.now();
+      }
+      function findPost(id){return (window.airadarPosts||[]).find((post)=>post.id===id)}
+      async function copyCaption(id){
+        const post=findPost(id); if(!post) return;
+        await navigator.clipboard.writeText(post.caption || "");
+        alert("Caption copied. Now paste it in Instagram.");
+      }
+      function openMedia(id){
+        const post=findPost(id); if(post && post.media_url) window.open(post.media_url,"_blank","noopener");
+      }
+      function openInstagram(){window.open("https://www.instagram.com/","_blank","noopener")}
+      async function markPosted(id){if(!confirm("Mark this post as published in AI Radar?"))return;await api("/api/posts/"+id+"/mark-published",{method:"POST"});await loadPosts()}
       async function publishNow(id){if(!confirm("Publish this post now?"))return;await api("/api/posts/"+id+"/publish-now",{method:"POST"});await loadPosts()}
       async function removePost(id){if(!confirm("Delete this post?"))return;await api("/api/posts/"+id,{method:"DELETE"});await loadPosts()}
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
@@ -411,21 +511,38 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         event.preventDefault();
         $("postMessage").textContent="Saving...";
         try{
+          if($("mediaFile").files && $("mediaFile").files[0] && !$("mediaUrl").value) await uploadSelectedMedia();
           const scheduledAt = buildScheduledAt();
           await api("/api/posts",{method:"POST",body:JSON.stringify({caption:$("caption").value,mediaUrl:$("mediaUrl").value,mediaType:$("mediaType").value,scheduledAt})});
           $("postMessage").textContent=scheduledAt ? "Post scheduled successfully." : "Post saved as draft.";
-          $("caption").value=""; $("mediaUrl").value=""; $("scheduleDate").value=""; $("scheduleTime").value="";
+          $("caption").value=""; $("mediaUrl").value=""; $("mediaFile").value=""; $("uploadPreview").className="uploadPreview"; $("uploadPreview").textContent=""; uploadedMediaUrl=""; $("scheduleDate").value=""; $("scheduleTime").value="";
           await loadPosts();
         }catch(error){$("postMessage").textContent=error.message}
       });
+      $("uploadBtn").addEventListener("click",async()=>{try{await uploadSelectedMedia()}catch(error){$("uploadPreview").className="uploadPreview ready";$("uploadPreview").textContent=error.message}});
+      $("mediaFile").addEventListener("change",()=>{uploadedMediaUrl="";$("mediaUrl").value="";const file=$("mediaFile").files&&$("mediaFile").files[0];$("uploadPreview").className=file?"uploadPreview ready":"uploadPreview";$("uploadPreview").textContent=file?("Ready to upload: "+file.name):""});
+      async function logout(){
+        try{await api("/api/auth/logout",{method:"POST"})}catch{}
+        localStorage.removeItem("airadar_auto_post_token");
+        token="";
+        showAuthed(false);
+        $("accountBadge").textContent="Signed out";
+        resetMetrics();
+      }
       $("refreshBtn").addEventListener("click",loadPosts);
-      $("logoutBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch{}localStorage.removeItem("airadar_auto_post_token");token="";showAuthed(false);$("accountBadge").textContent="Signed out"});
+      $("logoutBtn").addEventListener("click",logout);
+      $("topLogoutBtn").addEventListener("click",logout);
       document.querySelectorAll("[data-filter]").forEach((button)=>button.addEventListener("click",()=>{filter=button.dataset.filter;loadPosts()}));
       document.querySelectorAll("[data-guide]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.guide)));
       document.querySelectorAll("[data-next]").forEach((button)=>button.addEventListener("click",()=>showGuide(button.dataset.next)));
       $("slotsBtn").addEventListener("click",async()=>{
-        const data=await api("/api/smart/slots");
-        $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)}</button><small>${escapeHtml(cleanHint(slot.reason))}</small></div>`).join("");
+        const params = new URLSearchParams({
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          mediaType: $("mediaType").value,
+          caption: $("caption").value.slice(0, 500)
+        });
+        const data=await api("/api/smart/slots?"+params.toString());
+        $("slots").innerHTML=data.slots.map((slot)=>`<div class="slot"><button class="secondary" onclick="applySlot('${slot.value}');slotsDialog.close()">${escapeHtml(slot.label)} · ${escapeHtml(String(slot.score||""))}/100</button><small>${escapeHtml(cleanHint(slot.reason))}</small></div>`).join("");
         slotsDialog.showModal();
       });
       function applySlot(value){
