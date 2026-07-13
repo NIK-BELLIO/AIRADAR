@@ -81,6 +81,7 @@
       input:focus,textarea:focus,select:focus{border-color:rgba(233,200,111,.7);box-shadow:0 0 0 4px rgba(233,200,111,.1)}
       textarea{min-height:154px;resize:vertical;line-height:1.7}
       button{cursor:pointer;border:0;background:linear-gradient(135deg,var(--gold),#fff0bd);color:#0b0b10;font-weight:900;margin-top:14px}
+      button:disabled{cursor:not-allowed;opacity:.52;filter:grayscale(.4)}
       button.secondary{background:rgba(255,255,255,.055);color:var(--gold2);border:1px solid var(--line);font-weight:800}
       button.ghost{background:transparent;color:var(--soft);border:1px solid var(--line);font-weight:800}
       .hint{color:var(--muted);font-size:12px;line-height:1.75}
@@ -427,6 +428,15 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       function statusText(status){return {draft:"Draft",scheduled:"Scheduled",publishing:"Publishing",published:"Published",failed:"Failed",cancelled:"Cancelled"}[status]||status}
       function setMetric(id,value){const element=$(id);if(element)element.textContent=value}
       function resetMetrics(){setMetric("metricTotal","—");setMetric("metricScheduled","—");setMetric("metricPublished","—");setMetric("metricConnected","—")}
+      function setDirectConnectState(isReady, isAdmin){
+        $("instagramOAuthBtn").disabled = !isReady;
+        $("oauthMessage").textContent = isReady
+          ? "Ready. Click the button to connect Instagram."
+          : isAdmin
+            ? "Enter the numeric Instagram App ID and Client Secret below first. Secret alone is not enough."
+            : "Instagram connection is not active yet.";
+        if(isAdmin && !isReady) $("instagramAppMessage").textContent = "Missing: numeric Instagram App ID. The Client Secret field alone cannot activate Instagram login.";
+      }
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
         document.querySelectorAll("[data-page]").forEach((page)=>page.classList.toggle("active",page.dataset.page===nextStep));
@@ -490,6 +500,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("accountBadge").textContent=data.user.name+" / "+data.user.email;
           const isAdmin = data.user.role === "admin";
           const directConfigured = data.instagramDirect && data.instagramDirect.configured;
+          setDirectConnectState(directConfigured, isAdmin);
           $("ownerInstagramSetup").classList.toggle("hidden", !isAdmin);
           $("advancedWebhookSetup").classList.toggle("hidden", !isAdmin);
           $("advancedTokenSetup").classList.toggle("hidden", !isAdmin);
@@ -586,7 +597,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
       $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram authorization...";sessionStorage.setItem("airadar_instagram_oauth_started","1");const data=await api("/api/instagram/oauth/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
-      $("instagramAppForm").addEventListener("submit",async(event)=>{event.preventDefault();$("instagramAppMessage").textContent="Saving Instagram app settings...";try{await api("/api/admin/instagram-app",{method:"POST",body:JSON.stringify({clientId:$("instagramClientId").value,clientSecret:$("instagramClientSecret").value,redirectUri:$("instagramRedirectUri").value})});$("instagramClientSecret").value="";$("instagramAppMessage").textContent="Direct Instagram connect is active. Users can click the main button now.";await loadMe()}catch(error){$("instagramAppMessage").textContent=error.message}});
+      $("instagramAppForm").addEventListener("submit",async(event)=>{event.preventDefault();const clientId=$("instagramClientId").value.trim();if(!/^\d{6,}$/.test(clientId)){$("instagramAppMessage").textContent="Paste the numeric Instagram App ID first. Do not use an Instagram username or app nickname.";return}$("instagramAppMessage").textContent="Saving Instagram app settings...";try{await api("/api/admin/instagram-app",{method:"POST",body:JSON.stringify({clientId,clientSecret:$("instagramClientSecret").value,redirectUri:$("instagramRedirectUri").value})});$("instagramClientSecret").value="";$("instagramAppMessage").textContent="Direct Instagram connect is active. Users can click the main button now.";await loadMe()}catch(error){$("instagramAppMessage").textContent=error.message}});
       $("publisherForm").addEventListener("submit",async(event)=>{event.preventDefault();$("publisherMessage").textContent="Connecting webhook publisher...";try{await api("/api/publisher/connect",{method:"POST",body:JSON.stringify({webhookUrl:$("webhookUrl").value,secret:$("webhookSecret").value})});$("webhookSecret").value="";$("publisherMessage").textContent="Webhook publisher connected. Scheduled posts will publish automatically through this provider.";await loadMe();showGuide("publish")}catch(error){$("publisherMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
       $("postForm").addEventListener("submit",async(event)=>{
