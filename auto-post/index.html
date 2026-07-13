@@ -165,16 +165,16 @@
         <div>
           <div class="eyebrow">Auto Post / Instagram Scheduler</div>
           <h1 class="title">Plan, schedule, and publish Instagram posts.</h1>
-          <p class="sub">A clean publishing workspace for creators and teams. Sign in, write your caption, add a media URL, choose the date and time, then connect your official Meta Instagram Graph API token when you are ready to enable automatic publishing.</p>
+          <p class="sub">A clean publishing workspace for creators and teams. Sign in, write your caption, upload media, choose the date and time, then connect a no-Meta publishing webhook for automatic posting.</p>
         </div>
         <aside class="heroCard">
           <h3>Professional publishing flow</h3>
-          <p class="sectionLead">No Instagram password is required. AI Radar uses the official Meta token flow for Business and Creator accounts.</p>
+          <p class="sectionLead">No Instagram password is required. Use the no-Meta webhook connector first; the official Meta token flow is only an advanced fallback.</p>
           <div class="metricGrid">
             <div class="metric"><b id="metricTotal">—</b><span>Total posts</span></div>
             <div class="metric"><b id="metricScheduled">—</b><span>Scheduled</span></div>
             <div class="metric"><b id="metricPublished">—</b><span>Published</span></div>
-            <div class="metric"><b id="metricConnected">—</b><span>Meta connection</span></div>
+            <div class="metric"><b id="metricConnected">—</b><span>Publishing connection</span></div>
           </div>
         </aside>
       </section>
@@ -204,7 +204,7 @@
           <section class="card setupPanel">
             <div>
               <div class="eyebrow">Setup assistant</div>
-              <h2>Connect Meta step by step</h2>
+              <h2>Connect publishing step by step</h2>
               <p class="sectionLead">This assistant walks users through the exact flow. They do one step, click next, and keep moving.</p>
               <div class="progressTrack"><div class="progressFill" id="guideProgress"></div></div>
             </div>
@@ -212,7 +212,7 @@
             <div class="guideTabs">
               <button type="button" class="guideTab active" data-guide="prepare">1. Prepare</button>
               <button type="button" class="guideTab" data-guide="token">2. Token</button>
-              <button type="button" class="guideTab" data-guide="connect">3. Connect</button>
+              <button type="button" class="guideTab" data-guide="connect">3. No-Meta</button>
               <button type="button" class="guideTab" data-guide="publish">4. Publish</button>
             </div>
 
@@ -232,8 +232,8 @@
             </div>
 
             <div class="guidePage" data-page="token">
-              <h3>Step 2 — Get the Meta token and IG User ID</h3>
-              <p class="sectionLead">Use Meta’s official tools. The panel does not ask for an Instagram password.</p>
+              <h3>Step 2 — Choose connection method</h3>
+              <p class="sectionLead">Fast path: skip Meta Developer and connect a no-Meta publishing webhook in Step 3. Meta token is only for advanced users.</p>
               <div class="quickLinks">
                 <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Open Meta Apps</a>
                 <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Open Graph API Explorer</a>
@@ -250,6 +250,10 @@
                   <span>5. You can still use AI Radar as a draft calendar until Meta Developer access is available.</span>
                 </div>
               </div>
+              <div class="callout">
+                Want the option I added? Click this:
+                <div class="formActions"><button type="button" data-next="connect">Skip Meta — connect webhook publisher</button></div>
+              </div>
               <div class="taskList">
                 <div class="task"><b>1</b><div><strong>Select or create a Meta app</strong><span>In Meta Developers, choose the app that has Instagram Graph API access.</span></div></div>
                 <div class="task"><b>2</b><div><strong>Request these permissions</strong><div class="codeBox">instagram_basic
@@ -262,7 +266,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
               <div class="callout">Copy <b>instagram_business_account.id</b> as your IG User ID. Copy the generated access token as your Meta Access Token.</div>
               <div class="formActions">
                 <button type="button" class="secondary" data-next="prepare">Back</button>
-                <button type="button" data-next="connect">I have the ID and token</button>
+                <button type="button" data-next="connect">Continue to no-Meta connector</button>
               </div>
             </div>
 
