@@ -68,6 +68,8 @@ const i18n = {
     vSlideDuration: "Slide duration (s)",
     vSlideFootage: "+ Add / replace footage on this slide",
     vFootageTip: "Tip: drag the footage on the preview to reframe it, and scroll over it to zoom. Each scene keeps its own framing.",
+    vSlideTextLabel: "Slide text (what viewers read)",
+    vSlideTextHint: "Edit this scene's text right here — no need to open News banner below.",
     vSlideCaption: "Caption (top label)",
     vSlideSettingsNote: "These settings apply to the slide selected above. With no slides, they apply to your single video. Add a slide to give it its own separate settings.",
     vSlideSectionsLabel: "Scene settings",
@@ -389,6 +391,8 @@ const i18n = {
     vSlideDuration: "مدت اسلاید (ثانیه)",
     vSlideFootage: "+ افزودن / جایگزینی فوتیج این صحنه",
     vFootageTip: "نکته: فوتیج را روی پیش‌نمایش بکش تا قاب‌بندی‌اش را تغییر دهی، و روی آن اسکرول کن تا زوم شود. هر صحنه قاب‌بندی مخصوص خودش را نگه می‌دارد.",
+    vSlideTextLabel: "متن اسلاید (چیزی که بیننده می‌بیند)",
+    vSlideTextHint: "متن این صحنه را همین‌جا ویرایش کن — نیازی به باز کردن بخش «نوار خبری» در پایین نیست.",
     vSlideCaption: "کپشن (برچسب بالا)",
     vSlideSettingsNote: "این تنظیمات روی اسلاید انتخاب‌شده اعمال می‌شود. بدون اسلاید، روی ویدیوی تکی شما اعمال می‌شود. برای تنظیمات جداگانه، اسلاید اضافه کن.",
     vSlideSectionsLabel: "تنظیمات صحنه",
@@ -6815,6 +6819,11 @@ function selectSlide(i) {
     if (nm) nm.textContent = s.mediaEl
       ? (state.lang === "fa" ? "این صحنه فوتیج دارد." : "This scene has footage.")
       : (state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).");
+    // quick-access text field — mirrors the News banner headline (the
+    // field that actually renders) so editing a scene's text doesn't
+    // require scrolling down and opening that accordion section.
+    const txt = $("#vsSlideText");
+    if (txt) txt.value = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
   }
   const du = $("#vsSlideDuration");
   if (du) du.value = s.duration || 4;
@@ -12669,6 +12678,25 @@ function bindEvents() {
     on(sel, "change", vsRefresh);
   });
   on("#vsAspect", "change", vsRefreshAspect);
+
+  // Quick-access "Slide text" field, shown right where scenes are picked —
+  // mirrors the News banner headline (the field that actually renders on
+  // screen) both ways, so typing here doesn't require scrolling down and
+  // opening the News banner section, but that section still works too.
+  on("#vsSlideText", "input", () => {
+    const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline"), newsOn = $("#vsNewsOn");
+    if (!txt || !newsHl) return;
+    newsHl.value = txt.value;
+    if (newsOn && !newsOn.checked && txt.value.trim()) {
+      newsOn.checked = true;
+      newsOn.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    newsHl.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  on("#vsNewsHeadline", "input", () => {
+    const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline");
+    if (txt && newsHl && txt.value !== newsHl.value) txt.value = newsHl.value;
+  });
 
   // Undo / redo: snapshot studio state after each settled change.
   VS_CONTROLS.concat(["#vsGrain"]).forEach(sel => {
