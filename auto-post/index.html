@@ -432,7 +432,7 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
         $("instagramOAuthBtn").disabled = !isReady;
         $("oauthMessage").textContent = isReady
           ? "Ready. Click the button to connect Instagram."
-          : "Instagram direct connection is not active for this site yet.";
+          : "Instagram connection provider is not active for this site yet.";
       }
       function showGuide(step){
         const nextStep = guideOrder.includes(step) ? step : "prepare";
@@ -497,11 +497,13 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("accountBadge").textContent=data.user.name+" / "+data.user.email;
           const isAdmin = data.user.role === "admin";
           const directConfigured = data.instagramDirect && data.instagramDirect.configured;
-          setDirectConnectState(directConfigured, isAdmin);
+          const providerConfigured = data.publisher && data.publisher.configured;
+          const connectAvailable = directConfigured || providerConfigured;
+          setDirectConnectState(connectAvailable, isAdmin);
           $("ownerInstagramSetup").classList.add("hidden");
           $("advancedWebhookSetup").classList.add("hidden");
           $("advancedTokenSetup").classList.add("hidden");
-          if(!directConfigured){
+          if(!connectAvailable){
             showGuide("connect");
           }
           const publisherConnected = data.publisher && data.publisher.connected;
@@ -512,10 +514,10 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           $("instagramNotice").textContent=data.instagram.connected
             ? "Automatic publishing is enabled through Meta. Connected IG User ID: "+data.instagram.igUserId
             : publisherConnected
-              ? "Automatic publishing is enabled through webhook provider. Users do not need Meta Developer."
-              : directConfigured
+              ? "Instagram is connected. Automatic publishing is enabled."
+              : connectAvailable
                 ? "Connect Instagram to use publishing. If you do not want to connect, this service is not available."
-                : "Instagram direct connection is being activated for this site.";
+                : "Instagram connection provider is being activated for this site.";
           if(data.instagram.connected) $("igUserId").value=data.instagram.igUserId;
           await loadStats();
           await loadPosts();
@@ -588,11 +590,12 @@ GET /{page-id}?fields=instagram_business_account</div></div></div>
           return;
         }
         if(params.get("instagram")==="connected"){showGuide("publish");setTimeout(()=>$("instagramNotice").textContent="Instagram connected successfully. Automatic publishing is enabled.",250)}
+        if(params.get("provider")==="connected"){showGuide("publish");setTimeout(()=>{$("instagramNotice").textContent="Instagram connection completed. If the form is still locked, click Refresh once.";$("oauthMessage").textContent="Instagram connection completed.";loadMe()},250)}
         if(params.get("instagram_error")){showGuide("connect");setTimeout(()=>$("oauthMessage").textContent=params.get("instagram_error"),250)}
       }
       $("loginForm").addEventListener("submit",async(event)=>{event.preventDefault();$("loginMessage").textContent="Signing in...";try{const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("loginEmail").value,password:$("loginPassword").value})});setToken(data.token);$("loginMessage").textContent="";await loadMe()}catch(error){$("loginMessage").textContent=error.message}});
       $("registerForm").addEventListener("submit",async(event)=>{event.preventDefault();$("registerMessage").textContent="Creating account...";try{const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("registerName").value,email:$("registerEmail").value,password:$("registerPassword").value})});setToken(data.token);$("registerMessage").textContent="";await loadMe()}catch(error){$("registerMessage").textContent=error.message}});
-      $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram authorization...";sessionStorage.setItem("airadar_instagram_oauth_started","1");const data=await api("/api/instagram/oauth/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
+      $("instagramOAuthBtn").addEventListener("click",async()=>{try{$("oauthMessage").textContent="Opening Instagram connection...";sessionStorage.setItem("airadar_instagram_oauth_started","1");const data=await api("/api/provider/connect/start");location.href=data.url}catch(error){$("oauthMessage").textContent=error.message}});
       $("instagramAppForm").addEventListener("submit",async(event)=>{event.preventDefault();const clientId=$("instagramClientId").value.trim();if(!/^\d{6,}$/.test(clientId)){$("instagramAppMessage").textContent="Paste the numeric Instagram App ID first. Do not use an Instagram username or app nickname.";return}$("instagramAppMessage").textContent="Saving Instagram app settings...";try{await api("/api/admin/instagram-app",{method:"POST",body:JSON.stringify({clientId,clientSecret:$("instagramClientSecret").value,redirectUri:$("instagramRedirectUri").value})});$("instagramClientSecret").value="";$("instagramAppMessage").textContent="Direct Instagram connect is active. Users can click the main button now.";await loadMe()}catch(error){$("instagramAppMessage").textContent=error.message}});
       $("publisherForm").addEventListener("submit",async(event)=>{event.preventDefault();$("publisherMessage").textContent="Connecting webhook publisher...";try{await api("/api/publisher/connect",{method:"POST",body:JSON.stringify({webhookUrl:$("webhookUrl").value,secret:$("webhookSecret").value})});$("webhookSecret").value="";$("publisherMessage").textContent="Webhook publisher connected. Scheduled posts will publish automatically through this provider.";await loadMe();showGuide("publish")}catch(error){$("publisherMessage").textContent=error.message}});
       $("connectForm").addEventListener("submit",async(event)=>{event.preventDefault();$("connectMessage").textContent="Saving connection...";try{await api("/api/instagram/connect",{method:"POST",body:JSON.stringify({igUserId:$("igUserId").value,accessToken:$("accessToken").value})});$("accessToken").value="";$("connectMessage").textContent="Instagram connection saved.";await loadMe();showGuide("publish")}catch(error){$("connectMessage").textContent=error.message}});
