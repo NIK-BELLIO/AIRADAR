@@ -279,6 +279,12 @@ textarea {
   width: auto;
   display: block;
 }
+.brand-mark-img {
+  width: 36px;
+  height: 36px;
+  display: block;
+  border-radius: 9px;
+}
 
 .nav {
   display: flex;
@@ -397,7 +403,7 @@ textarea {
 
 .button.primary {
   background: #2563ff;
-  color: #090805;
+  color: #ffffff;
   box-shadow: 0 18px 40px rgba(37, 99, 255, 0.2);
 }
 
