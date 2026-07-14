@@ -274,6 +274,11 @@ textarea {
   border-radius: 8px;
   box-shadow: 0 14px 30px rgba(37, 99, 255, 0.18);
 }
+.brand-lockup {
+  height: 30px;
+  width: auto;
+  display: block;
+}
 
 .nav {
   display: flex;
