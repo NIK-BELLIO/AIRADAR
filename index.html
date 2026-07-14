@@ -38,8 +38,8 @@
     <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Prata&family=Alice&family=Viaoda+Libre&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v299" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=v300" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -62,7 +62,7 @@
       input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;border:none;padding:0;min-height:4px;cursor:pointer}
       input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 0 3px rgba(37,99,255,0.2)}
       input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:none;background:var(--gold);cursor:pointer}
-      .hero-stat strong{font-family:Prata,serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
+      .hero-stat strong{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
       @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
       @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
     
@@ -70,7 +70,7 @@
       .gh-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 4px 0 14px; }
       @media (max-width: 720px) { .gh-summary { grid-template-columns: 1fr 1fr; } }
       .gh-sum-card { padding: 12px 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); }
-      .gh-sum-val { font-family: Prata, serif; font-size: 22px; color: var(--gold-2); line-height: 1; }
+      .gh-sum-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 22px; color: var(--gold-2); line-height: 1; }
       .gh-sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; }
       .gh-sum-sub { font-size: 11px; color: var(--text); margin-top: 3px; font-weight: 600; }
       .gh-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -151,11 +151,11 @@
       .ld-nav-left { display: flex; align-items: center; gap: 13px; }
       .ld-logo { font-size: 26px; color: #5fd5f0; filter: drop-shadow(0 0 10px rgba(244,213,141,0.5)); animation: ldSpin 9s linear infinite; }
       @keyframes ldSpin { to { transform: rotate(360deg); } }
-      .ld-title { font-family: Prata, serif; font-size: 24px; color: #fff; letter-spacing: .06em; line-height:1; }
+      .ld-title { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 24px; color: #fff; letter-spacing: .06em; line-height:1; }
       .ld-brand-sub { font-size: 10px; color: #00D4FF; text-transform: uppercase; letter-spacing: .22em; margin-top: 5px; }
       .ld-nav-center { display:flex; justify-content:center; }
       .ld-nav-right { display:flex; align-items:center; justify-content:flex-end; gap: 14px; }
-      .ld-clock { font-family: Prata, serif; font-size: 30px; color: #fff; font-variant-numeric: tabular-nums; display:flex; align-items:baseline; gap:1px; text-shadow: 0 0 24px rgba(244,213,141,0.4); }
+      .ld-clock { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 30px; color: #fff; font-variant-numeric: tabular-nums; display:flex; align-items:baseline; gap:1px; text-shadow: 0 0 24px rgba(244,213,141,0.4); }
       .ld-clock .ld-ms { font-size: 13px; color: #5fd5f0; margin-left:3px; }
       .ld-clock .ld-sep { color:#00D4FF; animation: ldBlink 1s steps(1) infinite; }
       @keyframes ldBlink { 50% { opacity:.25; } }
@@ -175,17 +175,17 @@
       .ld-gauge-bg { fill:none; stroke: rgba(255,255,255,0.08); stroke-width: 8; }
       .ld-gauge-fg { fill:none; stroke: url(#ldGaugeGrad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 327; stroke-dashoffset: 327; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.7,.3,1); filter: drop-shadow(0 0 6px rgba(0,212,255,0.6)); }
       .ld-gauge-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-      .ld-gauge-val { font-family: Prata, serif; font-size: 28px; color:#fff; line-height:1; }
+      .ld-gauge-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 28px; color:#fff; line-height:1; }
       .ld-gauge-lbl { font-size: 8px; letter-spacing:.16em; color:#00D4FF; margin-top:3px; }
 
       /* HERO STRIP */
       .ld-hero { position: relative; z-index:1; margin: 16px 0 14px; padding: 14px 20px; border-radius: 18px;
         background: linear-gradient(120deg, rgba(244,213,141,0.08), rgba(0,212,255,0.05) 70%, transparent);
         border: 1px solid rgba(244,213,141,0.16); display:flex; align-items:center; gap:26px; overflow:hidden; }
-      .ld-hero-label { font-family: Prata, serif; font-size: 18px; color:#5fd5f0; letter-spacing:.08em; white-space:nowrap; flex-shrink:0; }
+      .ld-hero-label { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 18px; color:#5fd5f0; letter-spacing:.08em; white-space:nowrap; flex-shrink:0; }
       .ld-hero-stats { display:flex; gap:30px; flex:1; flex-wrap:wrap; }
       .ld-hero-stat { display:flex; flex-direction:column; gap:3px; }
-      .ld-hero-stat b { font-family: Prata, serif; font-size:20px; color:#fff; line-height:1; }
+      .ld-hero-stat b { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size:20px; color:#fff; line-height:1; }
       .ld-hero-stat span { font-size:10px; color:#A0A0A0; text-transform:uppercase; letter-spacing:.1em; }
       .ld-hero-stat .up { color:#00FF88; }
 
@@ -221,27 +221,27 @@
       /* FEATURED TOOL */
       .ld-tod-body { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
       .ld-tod-top { display:flex; align-items:center; gap:14px; }
-      .ld-tod-badge { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-family:Prata,serif; font-size:26px; color:#080808; background:linear-gradient(135deg,#5fd5f0,#00D4FF); flex-shrink:0; box-shadow:0 8px 24px rgba(244,213,141,0.3); overflow:hidden; }
+      .ld-tod-badge { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:26px; color:#080808; background:linear-gradient(135deg,#5fd5f0,#00D4FF); flex-shrink:0; box-shadow:0 8px 24px rgba(244,213,141,0.3); overflow:hidden; }
       .ld-tod-badge img { width:34px; height:34px; border-radius:8px; object-fit:contain; }
       .ld-tod-badge-xl { width:84px; height:84px; border-radius:22px; font-size:38px; box-shadow:0 12px 34px rgba(244,213,141,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset; }
       .ld-tod-badge-xl img { width:54px; height:54px; border-radius:12px; }
       .ld-tod-metrics { display:grid; grid-template-columns: repeat(3, 1fr); gap:9px; }
       .ld-tod-share { display:flex; flex-direction:column; gap:6px; }
       .ld-tod-share-head { display:flex; justify-content:space-between; align-items:baseline; font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:#A0A0A0; }
-      .ld-tod-share-head b { font-family:Prata,serif; font-size:15px; color:#00D4FF; letter-spacing:0; }
+      .ld-tod-share-head b { font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:15px; color:#00D4FF; letter-spacing:0; }
       .ld-tod-share-track { height:9px; border-radius:5px; background:rgba(255,255,255,0.06); overflow:hidden; }
       .ld-tod-share-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,#00D4FF,#5fd5f0); box-shadow:0 0 12px rgba(0,212,255,0.4); animation: ldGrow 1s cubic-bezier(.2,.7,.3,1) both; }
-      .ld-tod-name { font-family:Prata,serif; font-size:27px; color:#fff; line-height:1.05; }
+      .ld-tod-name { font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:27px; color:#fff; line-height:1.05; }
       .ld-tod-cat { font-size:10px; text-transform:uppercase; letter-spacing:.16em; color:#00D4FF; margin-top:5px; }
       .ld-tod-score { margin-left:auto; text-align:center; }
-      .ld-tod-score b { display:block; font-family:Prata,serif; font-size:24px; color:#5fd5f0; }
+      .ld-tod-score b { display:block; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:24px; color:#5fd5f0; }
       .ld-tod-score span { font-size:8px; letter-spacing:.12em; color:#A0A0A0; }
       .ld-tod-tags { display:flex; flex-wrap:wrap; gap:6px; }
       .ld-tod-tags span { font-size:10px; font-weight:700; color:#5fd5f0; background:rgba(244,213,141,0.1); border:1px solid rgba(244,213,141,0.25); padding:4px 10px; border-radius:999px; }
       .ld-tod-desc { font-size:13px; color:#cfcfcf; line-height:1.6; }
       .ld-tod-statsrow { display:flex; gap:9px; }
       .ld-tod-mini { flex:1; text-align:center; padding:10px 6px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
-      .ld-tod-mini b { display:block; font-family:Prata,serif; font-size:17px; color:#fff; }
+      .ld-tod-mini b { display:block; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:17px; color:#fff; }
       .ld-tod-mini span { font-size:8.5px; text-transform:uppercase; letter-spacing:.1em; color:#A0A0A0; }
       .ld-tod-actions { margin-top:auto; display:flex; align-items:center; gap:12px; }
       .ld-tod-visit { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:11px; font-size:13px; font-weight:800; color:#080808; background:linear-gradient(90deg,#5fd5f0,#3b82f6); text-decoration:none; box-shadow:0 6px 18px rgba(244,213,141,0.25); transition: transform .15s, box-shadow .15s; }
@@ -252,7 +252,7 @@
       .ld-stats-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; align-content: center; }
       .ld-stat { position:relative; padding: 14px 12px; border-radius: 16px; overflow:hidden;
         background: linear-gradient(160deg, rgba(244,213,141,0.08), rgba(255,255,255,0.02)); border:1px solid rgba(244,213,141,0.14); }
-      .ld-stat-val { font-family: Prata, serif; font-size: 26px; color: #fff; line-height: 1; }
+      .ld-stat-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 26px; color: #fff; line-height: 1; }
       .ld-stat-label { font-size: 9px; color: #A0A0A0; text-transform: uppercase; letter-spacing: .1em; margin-top: 6px; }
       .ld-stat-spark { position:absolute; right:8px; top:10px; display:flex; align-items:flex-end; gap:2px; height:18px; opacity:.7; }
       .ld-stat-spark i { width:3px; background:#00D4FF; border-radius:1px; }
@@ -328,7 +328,7 @@
       @media (max-width: 640px) { .aimon-chips { grid-template-columns: 1fr 1fr; } }
       .aimon-chip { position: relative; padding: 10px 11px 8px; border-radius: 12px; background: linear-gradient(160deg, rgba(37,99,255,0.08), rgba(255,255,255,0.02)); border: 1px solid var(--line); overflow: hidden; }
       .aimon-chip-row { display: flex; align-items: baseline; gap: 5px; }
-      .aimon-chip-val { font-family: Prata, serif; font-size: 18px; color: var(--gold-2); line-height: 1; font-variant-numeric: tabular-nums; transition: color .25s; }
+      .aimon-chip-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 18px; color: var(--gold-2); line-height: 1; font-variant-numeric: tabular-nums; transition: color .25s; }
       .aimon-chip-val.tick { color: #fff; }
       .aimon-chip-lbl { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .aimon-chip-trend { font-size: 9px; font-weight: 800; color: var(--gold); }
@@ -457,7 +457,7 @@
       .tod-name {
         margin: 0 0 3px;
         font-size: clamp(18px, 2.5vw, 26px);
-        font-family: Prata, serif;
+        font-family: 'Space Grotesk', ui-sans-serif, sans-serif;
         color: var(--text);
         line-height: 1.2;
       }
@@ -524,7 +524,7 @@
         align-items: center; justify-content: center;
         gap: 2px;
       }
-      .tod-day-num  { font-size: 22px; font-weight: 800; font-family: Prata,serif; color: var(--gold-2); line-height: 1; }
+      .tod-day-num  { font-size: 22px; font-weight: 800; font-family: 'Space Grotesk',ui-sans-serif,sans-serif; color: var(--gold-2); line-height: 1; }
       .tod-day-label{ font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; }
       .tod-stats {
         display: flex;
@@ -962,7 +962,7 @@
                 </label>
                 <label class="vs-global-filter"><span data-i18n="vFontLabel">Headline font (all slides)</span>
                   <select id="vsHeadlineFont">
-                    <option value="Prata, serif">Prata (serif)</option>
+                    <option value="'Space Grotesk', ui-sans-serif, sans-serif">Space Grotesk</option>
                     <option value="Alice, serif">Alice (elegant)</option>
                     <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
                     <option value="'Bryn Vogue', serif">Bryn Vogue (fashion)</option>
@@ -1751,10 +1751,10 @@
             <div style="display:flex;flex-direction:column;gap:14px;">
               <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos — all in your browser.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:Prata,serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
+                <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
               </div>
               <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(37,99,255,0.05);border-radius:0 8px 8px 0;">
                 <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
@@ -1847,7 +1847,7 @@
     (function(){
       // Force-load all studio fonts so canvas measureText matches render
       var fontsToLoad = [
-        '700 48px Prata', '400 48px Prata',
+        '700 48px Space Grotesk', '400 48px Space Grotesk',
         '700 48px Alice', '400 48px Alice',
         '700 48px "Viaoda Libre"',
         '700 48px "Bryn Vogue"', '400 48px "Bryn Vogue"',
@@ -1982,7 +1982,7 @@
       @keyframes heroLive{0%{box-shadow:0 0 0 0 rgba(53,208,127,.55)}
         70%{box-shadow:0 0 0 7px rgba(53,208,127,0)}100%{box-shadow:0 0 0 0 rgba(53,208,127,0)}}
       /* headline — striking animated gold/cream shimmer */
-      .luxury-hero .motion-title{font-family:Prata,serif;font-weight:400;
+      .luxury-hero .motion-title{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-weight:400;
         font-size:clamp(40px,5.6vw,80px);line-height:1.02;letter-spacing:-.015em;margin:0 0 18px;
         background:linear-gradient(100deg,#ffffff 0%,#f6e8c6 26%,#ffe9a8 42%,#2563ff 54%,#f6e8c6 72%,#ffffff 100%);
         background-size:240% 100%;
@@ -2139,7 +2139,7 @@
       .ra-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(37,99,255,.18);background:rgba(37,99,255,.05)}
       .ra-head .ra-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
         background:linear-gradient(135deg,#2563ff,#8a6d2f);color:#1a1408;font-weight:800}
-      .ra-head h4{margin:0;font-family:Prata,serif;font-size:15px;color:#5fd5f0;line-height:1.1}
+      .ra-head h4{margin:0;font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-size:15px;color:#5fd5f0;line-height:1.1}
       .ra-head p{margin:1px 0 0;font-size:10.5px;color:#9c8f74;letter-spacing:.02em}
       .ra-head .ra-x{margin-inline-start:auto;background:transparent;border:0;color:#b6a987;font-size:20px;cursor:pointer;line-height:1;padding:4px}
       .ra-head .ra-x:hover{color:#fff}

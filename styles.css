@@ -33,7 +33,7 @@ body {
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 body[dir="rtl"] {
@@ -428,7 +428,7 @@ textarea {
 .hero-mini-copy h1 {
   max-width: 250px;
   margin-bottom: 14px;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
   font-size: 22px;
   font-weight: 800;
   line-height: 1.22;
@@ -475,7 +475,7 @@ h1 {
   font-size: clamp(44px, 6.4vw, 82px);
   line-height: 1.03;
   letter-spacing: 0;
-  font-family: Prata, Georgia, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
 }
 
@@ -483,7 +483,7 @@ h2 {
   margin-bottom: 14px;
   font-size: clamp(28px, 3.8vw, 46px);
   line-height: 1.14;
-  font-family: Prata, Georgia, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
 }
 
@@ -805,7 +805,7 @@ body[dir="rtl"] .panel-chip {
 .luxury-hero h1 {
   margin: 14px 0 22px;
   color: var(--text);
-  font-family: Prata, Georgia, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(44px, 5vw, 78px);
   font-weight: 400;
   line-height: 1.06;
@@ -878,7 +878,7 @@ body[dir="rtl"] .panel-chip {
   text-align: center;
 }
 .hero-stat strong {
-  font-family: Prata, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: 30px;
   color: var(--gold-2);
   line-height: 1;
@@ -1590,7 +1590,7 @@ body[dir="rtl"] .video-shade {
 
 .video-title {
   color: var(--ivory);
-  font-family: Prata, Georgia, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(30px, 5vw, 58px);
   line-height: 1.04;
   animation-name: titleReveal;
@@ -2691,7 +2691,7 @@ body.theme-light .theme-toggle-dot {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-family: Prata, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: 20px;
   color: var(--bg);
   background: linear-gradient(135deg, var(--gold), var(--gold-2));
@@ -3470,7 +3470,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 }
 .about-highlight h3 {
   margin: 0 0 6px;
-  font-family: Prata, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: 20px;
   color: var(--text);
 }
@@ -3495,7 +3495,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 }
 .about-stat strong {
   display: block;
-  font-family: Prata, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: 28px;
   color: var(--gold);
   line-height: 1;
@@ -3694,7 +3694,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 }
 .changelog-head h3 {
   margin: 0;
-  font-family: Prata, serif;
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   font-size: 20px;
   color: var(--text);
 }
