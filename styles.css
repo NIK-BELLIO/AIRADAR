@@ -3978,3 +3978,57 @@ textarea:focus {
   section.panel { padding-top: 32px; padding-bottom: 32px; }
   .section-head h2 { font-size: 20px; }
 }
+
+/* ══ HIGGSFIELD-STYLE TOP NAV (desktop ≥981px) ══════════════════ */
+@media (min-width: 981px) {
+  .shell { flex-direction: column; align-items: stretch; }
+  .sidebar {
+    position: sticky; top: 0;
+    flex: none; width: 100%; height: auto;
+    flex-direction: row; align-items: center; gap: 22px;
+    padding: 11px 26px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
+    background: rgba(11, 16, 32, 0.82);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    z-index: 50;
+  }
+  .sidebar-top { border-bottom: none; padding: 0; flex: 0 0 auto; }
+  .nav-collapse { display: none !important; }
+  .sidebar-nav {
+    flex-direction: row; align-items: center;
+    gap: 2px; padding-top: 0; flex: 1 1 auto; flex-wrap: wrap;
+  }
+  .nav-group { display: flex; align-items: center; gap: 2px; }
+  .nav-group + .nav-group {
+    border-left: 1px solid var(--line);
+    margin-left: 10px; padding-left: 12px;
+    border-top: none; padding-top: 0; margin-top: 0;
+  }
+  .nav-group-title { display: none !important; }
+  .nav-group-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    flex-direction: row; gap: 2px;
+  }
+  .nav-group-grid a {
+    padding: 8px 13px !important; font-size: 13px !important;
+    white-space: nowrap; border-radius: 9px;
+  }
+  .nav-group-grid .nav-ic { width: auto !important; font-size: 13px !important; margin-right: 5px; }
+  .sidebar-footer {
+    flex-direction: row; align-items: center; gap: 8px;
+    border-top: none; padding-top: 0; margin-top: 0;
+    flex: 0 0 auto;
+  }
+  .sidebar-prefs { margin: 0; }
+  .content-area { width: min(1240px, 100%); margin: 0 auto; padding-top: 12px; }
+}
+
+/* top-nav: keep everything on one row, push lang toggle to far right */
+@media (min-width: 981px) {
+  .sidebar-nav { flex-wrap: nowrap !important; }
+  .nav-group-grid { flex-wrap: nowrap !important; }
+  .sidebar-footer { margin-left: auto !important; }
+}
