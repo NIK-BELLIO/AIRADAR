@@ -222,7 +222,7 @@ const i18n = {
     navRegister: "Register",
     startButton: "Start",
     heroEyebrow: "AI Radar — Live Intelligence",
-    heroTitle: "Find. Compare. Create.",
+    heroTitle: "AI that sees ahead.",
     heroText:
       "Cut through the AI noise. Discover tools that actually work, track what's gaining traction in real time, and create studio-grade video and content — one calm workspace, free in your browser.",
     heroChip1: "Live GitHub data",
@@ -545,7 +545,7 @@ const i18n = {
     navRegister: "رجیستر",
     startButton: "شروع",
     heroEyebrow: "AI Radar — هوش زنده",
-    heroTitle: "پیدا کن. مقایسه کن. بساز.",
+    heroTitle: "هوشی که جلوتر را می‌بیند.",
     heroText:
       "از میان شلوغی هوش مصنوعی، چیزِ مهم را پیدا کن: ابزارهایی که واقعاً کار می‌کنند، روند محبوبیت‌شان را زنده دنبال کن، و ویدئو و محتوای حرفه‌ای بساز — همه در یک فضای کاری آرام و رایگان، داخل مرورگرت.",
     heroChip1: "دادهٔ زندهٔ گیت‌هاب",

@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v303" />
+    <link rel="stylesheet" href="styles.css?v=v304" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -668,7 +668,7 @@
           <div class="luxury-hero-grid">
             <div class="luxury-hero-copy">
               <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-              <h1 class="motion-title" data-i18n="heroTitle">Find. Compare. Create.</h1>
+              <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
               <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
               <ul class="hero-chips" aria-label="Highlights">
                 <li data-i18n="heroChip1">Live GitHub data</li>
@@ -1981,13 +1981,13 @@
       @keyframes heroLive{0%{box-shadow:0 0 0 0 rgba(53,208,127,.55)}
         70%{box-shadow:0 0 0 7px rgba(53,208,127,0)}100%{box-shadow:0 0 0 0 rgba(53,208,127,0)}}
       /* headline — striking animated gold/cream shimmer */
-      .luxury-hero .motion-title{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-weight:400;
-        font-size:clamp(40px,5.6vw,80px);line-height:1.02;letter-spacing:-.015em;margin:0 0 18px;
-        background:linear-gradient(100deg,#ffffff 0%,#f6e8c6 26%,#ffe9a8 42%,#2563ff 54%,#f6e8c6 72%,#ffffff 100%);
+      .luxury-hero .motion-title{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-weight:700;
+        font-size:clamp(64px,6.4vw,108px) !important;line-height:0.96;letter-spacing:-.035em;margin:0 0 22px;
+        background:linear-gradient(100deg,#ffffff 0%,#cfe0ff 28%,#22d3ee 48%,#5b8dff 68%,#ffffff 100%);
         background-size:240% 100%;
         -webkit-background-clip:text;background-clip:text;
         color:transparent;-webkit-text-fill-color:transparent;
-        text-shadow:0 1px 40px rgba(37,99,255,.12);
+        text-shadow:0 1px 60px rgba(37,99,255,.18);
         animation:heroTitleSheen 8s linear infinite}
       @keyframes heroTitleSheen{0%{background-position:0% 0}100%{background-position:240% 0}}
       @media (prefers-reduced-motion:reduce){.luxury-hero .motion-title{animation:none;background-position:30% 0}}
@@ -2017,14 +2017,14 @@
         70%{box-shadow:0 0 0 6px rgba(53,208,127,0)}100%{box-shadow:0 0 0 0 rgba(53,208,127,0)}}
       @media (max-width:880px){.luxury-hero .dash-hint{white-space:normal;position:static;margin-top:9px}}
       /* supporting line — readable measure + calm tone */
-      .luxury-hero .luxury-hero-copy > p[data-i18n="heroText"]{max-width:36rem;
-        color:#b7b1a4;font-size:clamp(15px,1.1vw,17.5px);line-height:1.72;margin:0 0 18px}
+      .luxury-hero .luxury-hero-copy > p[data-i18n="heroText"]{max-width:38rem;
+        color:#9db0d0;font-size:clamp(15px,1.1vw,18px);line-height:1.72;margin:0 0 18px}
       /* professional feature chips — that "AI product" feel */
       .luxury-hero .hero-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px;padding:0;list-style:none}
       .luxury-hero .hero-chips li{display:inline-flex;align-items:center;gap:7px;
-        font-size:12px;font-weight:600;color:#cdbf9f;letter-spacing:.015em;
-        padding:6px 13px;border-radius:999px;background:rgba(37,99,255,.06);
-        border:1px solid rgba(37,99,255,.18);backdrop-filter:blur(2px)}
+        font-size:12px;font-weight:600;color:#b8ccf0;letter-spacing:.015em;
+        padding:6px 13px;border-radius:999px;background:rgba(37,99,255,.08);
+        border:1px solid rgba(37,99,255,.22);backdrop-filter:blur(2px)}
       .luxury-hero .hero-chips li::before{content:"";width:6px;height:6px;border-radius:50%;
         background:#2563ff;box-shadow:0 0 8px rgba(37,99,255,.7)}
       /* polished action row */
@@ -2285,7 +2285,7 @@
       }
     </style>
 
-    <script src="app.js?v=v351"></script>
+    <script src="app.js?v=v352"></script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */

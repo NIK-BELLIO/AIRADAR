@@ -3997,12 +3997,12 @@ textarea:focus {
     position: sticky; top: 0;
     flex: none; width: 100%; height: auto;
     flex-direction: row; align-items: center; gap: 22px;
-    padding: 11px 26px;
+    padding: 13px clamp(22px, 4vw, 76px);
     border-right: none;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
     overflow: visible;
-    background: rgba(11, 16, 32, 0.82);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: rgba(9, 13, 27, 0.72);
+    backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3);
     z-index: 50;
   }
   .sidebar-top { border-bottom: none; padding: 0; flex: 0 0 auto; }
@@ -4034,7 +4034,7 @@ textarea:focus {
     flex: 0 0 auto;
   }
   .sidebar-prefs { margin: 0; }
-  .content-area { width: min(1240px, 100%); margin: 0 auto; padding-top: 12px; }
+  .content-area { width: 100%; max-width: 1720px; margin: 0 auto; padding: 12px clamp(22px, 4vw, 76px) 40px; }
 }
 
 /* top-nav: keep everything on one row, push lang toggle to far right */
