@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v304" />
+    <link rel="stylesheet" href="styles.css?v=v305" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -642,12 +642,14 @@
         </nav>
 
         <div class="sidebar-footer">
-          <div class="sidebar-prefs">
-            <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
-              <button type="button" class="seg-btn" data-lang="en">EN</button>
-              <button type="button" class="seg-btn" data-lang="fa">فا</button>
-            </div>
+          <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
+            <button type="button" class="seg-btn" data-lang="en">EN</button>
+            <button type="button" class="seg-btn" data-lang="fa">فا</button>
           </div>
+          <a class="nav-cta" href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="nav-cta-ic" aria-hidden="true"><path d="M12 2l2.2 6.2L20 10l-5.8 1.8L12 18l-2.2-6.2L4 10l5.8-1.8z"/></svg>
+            Open Studio
+          </a>
         </div>
       </aside>
 
@@ -663,52 +665,37 @@
 
         <main id="top">
 
-        <!-- HERO -->
-        <section class="hero luxury-hero">
-          <div class="luxury-hero-grid">
-            <div class="luxury-hero-copy">
-              <p class="eyebrow" data-i18n="heroEyebrow">AI Radar — Live Intelligence</p>
-              <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
-              <p data-i18n="heroText">Real AI tools, live popularity charts, Claude-powered captions and prompts, plus a professional video studio — one workspace, free in your browser.</p>
-              <ul class="hero-chips" aria-label="Highlights">
-                <li data-i18n="heroChip1">Live GitHub data</li>
-                <li data-i18n="heroChip2">Claude-powered</li>
-                <li data-i18n="heroChip3">45+ AI tools</li>
-                <li data-i18n="heroChip4">No sign-up · No tracking</li>
-              </ul>
-              <div class="hero-actions">
-                <a class="button primary" href="#tools" data-i18n="heroPrimary">Search tools</a>
-                <a class="button ghost" href="#performance" data-i18n="navPerformance">Live charts</a>
-                <a class="button ghost gold" href="/auto-post/">Auto Post</a>
-                <span class="dash-launch-wrap">
-                  <button class="button ghost dash-launch-btn" id="openDashboardBtn" type="button" title="Turn any screen into a live war-room">
-                    <span class="dash-live-dot"></span> <span id="dashLaunchTxt">Live Dashboard</span>
-                  </button>
-                  <span class="dash-hint" id="dashHint">
-                    <svg viewBox="0 0 60 24" class="dash-hint-arrow" aria-hidden="true"><path d="M52 12 H8 M8 12 L17 5 M8 12 L17 19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span id="dashHintTxt">Turn any screen into a live war-room</span>
-                  </span>
-                </span>
-              </div>
+        <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
+        <section class="hero-x" id="heroX">
+          <div class="hero-x-glow" aria-hidden="true"></div>
+          <div class="hero-x-inner">
+            <span class="hero-x-badge">
+              <span class="hero-x-badge-dot"></span>
+              <span data-i18n="heroEyebrow">Live AI intelligence · updated in real time</span>
+            </span>
+            <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
+            <p class="hero-x-sub" data-i18n="heroText">Discover the AI tools that actually work, track what's gaining traction live, and create studio-grade images and video — one workspace, free in your browser.</p>
+
+            <form class="hero-x-search" id="heroSearchForm" role="search">
+              <svg class="hero-x-search-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools — by name, use case, or price…" />
+              <button type="submit" class="hero-x-search-btn">Search</button>
+            </form>
+
+            <div class="hero-x-quick">
+              <span class="hero-x-quick-label">Jump to</span>
+              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="hero-x-chip">AI Studio</a>
+              <a href="#videoStudio" class="hero-x-chip">Video Studio</a>
+              <a href="#tools" class="hero-x-chip">Tool Finder</a>
+              <a href="#performance" class="hero-x-chip">Live Charts</a>
+              <a href="/auto-post/" class="hero-x-chip">Auto Post</a>
+              <button type="button" class="hero-x-chip hero-x-chip-live" id="openDashboardBtn"><span class="hero-x-live-dot"></span>Live Dashboard</button>
             </div>
-            <div class="luxury-hero-visual">
-              <div class="hero-motion" aria-hidden="true">
-                <canvas id="heroMotionCanvas"></canvas>
-              </div>
-              <div class="hero-stats">
-                <div class="hero-stat">
-                  <strong id="metricTools">45+</strong>
-                  <span data-i18n="metricTools">AI tools</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricFree">100%</strong>
-                  <span data-i18n="metricFree">Free plans</span>
-                </div>
-                <div class="hero-stat">
-                  <strong id="metricJobs">Live</strong>
-                  <span data-i18n="metricJobs">Career paths</span>
-                </div>
-              </div>
+
+            <div class="hero-x-metrics">
+              <div class="hero-x-metric"><strong id="metricTools">45+</strong><span data-i18n="metricTools">AI tools</span></div>
+              <div class="hero-x-metric"><strong id="metricFree">100%</strong><span data-i18n="metricFree">Free plans</span></div>
+              <div class="hero-x-metric"><strong id="metricJobs">Live</strong><span data-i18n="metricJobs">GitHub data</span></div>
             </div>
           </div>
         </section>
@@ -2286,6 +2273,27 @@
     </style>
 
     <script src="app.js?v=v352"></script>
+
+    <script>
+      /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
+      (function () {
+        var form = document.getElementById('heroSearchForm');
+        var heroInput = document.getElementById('heroSearchInput');
+        var finder = document.getElementById('searchInput');
+        if (!form || !heroInput) return;
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var q = heroInput.value.trim();
+          var tools = document.getElementById('tools');
+          if (finder) {
+            finder.value = q;
+            finder.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (tools) tools.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (finder) setTimeout(function () { finder.focus(); }, 500);
+        });
+      })();
+    </script>
 
     <script>
     /* ── TOOL OF THE DAY — robust version ───────────────────── */
