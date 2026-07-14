@@ -34,7 +34,7 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://airadar.me/" />
-    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link rel="icon" href="logo-mono.svg" type="image/svg+xml" />
     <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -636,7 +636,6 @@
               <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio"><span class="nav-ic">✦</span><span class="nav-tx">AI Studio</span></a>
               <a href="/prompt-lab/"><span class="nav-ic">↗</span><span class="nav-tx">Prompt Lab</span></a>
               <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
-              <a href="#intelligence"><span class="nav-ic">⚙</span><span class="nav-tx">Prompts</span></a>
             </div>
           </div>
         </nav>
@@ -1671,56 +1670,6 @@
           </div>
         </section>
 
-        <!-- PROMPT LAB -->
-        <section id="intelligence" class="panel intelligence">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Prompt Lab — Prompt & JSON tools</p>
-              <h2 data-i18n="intelTitle">Write anything → professional prompt + JSON</h2>
-            </div>
-          </div>
-          <div class="intel-layout">
-            <div id="promptForm" class="utility-card">
-              <label>
-                <span data-i18n="promptDescLabel">Describe what you want to create</span>
-                <input id="simplePromptInput" type="text" placeholder="Type one word, e.g. ocean — or a short idea" />
-              </label>
-              <label>
-                <span data-i18n="promptStyleLabel">Style</span>
-                <select id="promptStyleSelect">
-                  <option value="cinematic">Cinematic</option>
-                  <option value="editorial">Editorial</option>
-                  <option value="hyperreal">Hyper-real</option>
-                  <option value="minimal">Minimal luxury</option>
-                  <option value="render3d">3D render</option>
-                  <option value="anime">Anime / illustration</option>
-                </select>
-              </label>
-              <button id="promptGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="promptGenBtn">Generate prompt</span>
-              </button>
-              <p class="ai-note" data-i18n="promptNote">Generates a single ready-to-paste prompt in the chosen style — just the prompt, nothing else.</p>
-              <div class="output-box">
-                <button id="copyPromptButton" class="copy-mini" type="button">Copy</button>
-                <pre id="advancedPromptOutput" class="ai-output"></pre>
-              </div>
-            </div>
-            <div id="jsonForm" class="utility-card">
-              <label>
-                <span data-i18n="jsonDescLabel">Describe any data, product, or idea</span>
-                <textarea id="textJsonInput" rows="6" placeholder="e.g. Tool: Krea AI&#10;Category: Image generation&#10;Price: Free 100 credits/day&#10;Best for: Real-time editing"></textarea>
-              </label>
-              <button id="jsonGenBtn" class="button primary ai-btn" type="button">
-                <span class="ai-btn-icon">✦</span> <span data-i18n="jsonGenBtn">Generate JSON</span>
-              </button>
-              <p class="ai-note" data-i18n="jsonNote">Outputs only clean, valid JSON — no explanation, no extra text.</p>
-              <div class="output-box">
-                <button id="copyJsonButton" class="copy-mini" type="button">Copy JSON</button>
-                <pre id="jsonOutput" class="ai-output"></pre>
-              </div>
-            </div>
-          </div>
-        </section>
 
 
         <!-- ABOUT / CREDITS -->
