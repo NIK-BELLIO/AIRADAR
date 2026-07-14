@@ -1,11 +1,11 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Radar">
   <defs>
-    <linearGradient id="ar" x1="16" y1="52" x2="50" y2="12" gradientUnits="userSpaceOnUse">
+    <linearGradient id="ar" x1="18" y1="54" x2="48" y2="10" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2563ff"/>
       <stop offset="1" stop-color="#22d3ee"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="15" fill="#0b1020"/>
-  <path d="M23 52 L41 14" stroke="url(#ar)" stroke-width="13" stroke-linecap="round"/>
-  <path d="M45 43 L48 35" stroke="url(#ar)" stroke-width="13" stroke-linecap="round"/>
+  <path d="M19 51 L37 13" stroke="url(#ar)" stroke-width="13" stroke-linecap="round"/>
+  <path d="M43 51 L49 38" stroke="url(#ar)" stroke-width="13" stroke-linecap="round"/>
 </svg>
