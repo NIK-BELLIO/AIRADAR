@@ -11,8 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
 <style>
   :root{
-    --bg:#06060a; --panel:rgba(16,16,22,.72); --line:rgba(216,183,106,.16);
-    --ink:#efe9dc; --muted:#938d81; --gold:#d8b76a; --green:#35d07f;
+    --bg:#06060a; --panel:rgba(16,16,22,.72); --line:rgba(37,99,255,.16);
+    --ink:#efe9dc; --muted:#938d81; --gold:#2563ff; --green:#35d07f;
     --quake:#e8a13a; --crisis:#e0564b; --nat:#ff6b35; --news:#6aa9d8;
     --serif:'Prata',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
   }
@@ -32,7 +32,7 @@
   .brand{display:flex;align-items:center;gap:11px}
   .brand .mark{width:30px;height:30px;border-radius:8px;flex:none;
     background:radial-gradient(circle at 30% 30%,#241d10,#0c0a06);
-    border:1px solid rgba(216,183,106,.4);display:grid;place-items:center}
+    border:1px solid rgba(37,99,255,.4);display:grid;place-items:center}
   .brand .mark::before{content:"";width:9px;height:9px;border-radius:50%;
     background:var(--green);box-shadow:0 0 0 0 rgba(53,208,127,.6);animation:pulse 1.8s infinite}
   .brand .t{font-family:var(--serif);font-size:19px;line-height:1;white-space:nowrap}
@@ -50,7 +50,7 @@
   .btn{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;
     background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;
     padding:8px 13px;display:inline-flex;align-items:center;gap:7px;transition:.18s}
-  .btn:hover{background:rgba(216,183,106,.12);border-color:rgba(216,183,106,.4)}
+  .btn:hover{background:rgba(37,99,255,.12);border-color:rgba(37,99,255,.4)}
   .btn .ic{width:14px;height:14px}
 
   /* layout */
@@ -80,10 +80,10 @@
   .feed-head .sub{font-size:11px;color:var(--muted)}
   .feed{flex:1;overflow-y:auto;padding:2px 10px 16px}
   .feed::-webkit-scrollbar{width:8px}
-  .feed::-webkit-scrollbar-thumb{background:rgba(216,183,106,.2);border-radius:8px}
+  .feed::-webkit-scrollbar-thumb{background:rgba(37,99,255,.2);border-radius:8px}
   .item{display:grid;grid-template-columns:34px 1fr;gap:11px;padding:11px 8px;border-radius:11px;
     cursor:pointer;transition:.14s;border:1px solid transparent}
-  .item:hover{background:rgba(216,183,106,.06);border-color:var(--line)}
+  .item:hover{background:rgba(37,99,255,.06);border-color:var(--line)}
   .item .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;
     font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}
   .item.quake .ico{background:rgba(232,161,58,.14);color:var(--quake);border:1px solid rgba(232,161,58,.35)}
@@ -95,7 +95,7 @@
   .item .meta{font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
   .item .meta b{color:var(--gold);font-weight:600}
   .item.fresh{animation:flash 2.2s ease-out}
-  @keyframes flash{0%{background:rgba(216,183,106,.16)}100%{background:transparent}}
+  @keyframes flash{0%{background:rgba(37,99,255,.16)}100%{background:transparent}}
   .empty{padding:30px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 
   /* ticker */
@@ -191,7 +191,7 @@
     .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-dark.jpg")
     .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
     .backgroundColor("rgba(0,0,0,0)")
-    .showAtmosphere(true).atmosphereColor("#d8b76a").atmosphereAltitude(0.16)
+    .showAtmosphere(true).atmosphereColor("#2563ff").atmosphereAltitude(0.16)
     .pointsData([]).pointLat("lat").pointLng("lng").pointColor("color")
     .pointAltitude("alt").pointRadius("r").pointLabel("label").pointsMerge(false)
     .onPointClick(function(p){ focusItem(p.id, true); })
@@ -223,7 +223,7 @@
       list.forEach(function(x){
         if(x.lat==null||x.lng==null) return;
         pts.push({ id:x.id, lat:x.lat, lng:x.lng, color:col, alt:altF(x), r:rF(x),
-          label:'<div style="font:600 12px Inter;background:#14141a;color:#efe9dc;padding:7px 10px;border:1px solid rgba(216,183,106,.3);border-radius:9px;max-width:230px">'+esc(x.title)+'</div>' });
+          label:'<div style="font:600 12px Inter;background:#14141a;color:#efe9dc;padding:7px 10px;border:1px solid rgba(37,99,255,.3);border-radius:9px;max-width:230px">'+esc(x.title)+'</div>' });
       });
     }
     if(t.quake) add(store.quake, "#e8a13a", function(x){return Math.min(.5,x.mag*0.045);}, function(x){return Math.max(.18,x.mag*0.08);});
@@ -256,7 +256,7 @@
 
   // ── NATURAL EVENTS (NASA EONET) ──
   var EON={ wildfires:["Wildfire","#ff6b35"], volcanoes:["Volcano","#e0564b"],
-    severeStorms:["Storm","#6aa9d8"], floods:["Flood","#4aa3d8"], drought:["Drought","#d8b76a"],
+    severeStorms:["Storm","#6aa9d8"], floods:["Flood","#4aa3d8"], drought:["Drought","#2563ff"],
     seaLakeIce:["Ice","#9fd6e0"], snow:["Snow","#cfe6f0"], dustHaze:["Dust","#c8a96a"],
     landslides:["Landslide","#b07a4a"], manmade:["Manmade","#999"], earthquakes:["Quake","#e8a13a"],
     waterColor:["Water","#4aa3d8"], temperatureExtremes:["Heat","#e0564b"] };

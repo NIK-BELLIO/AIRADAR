@@ -9,7 +9,7 @@ const VS_USER_API_KEY = "";
 const VS_USER_API_BASE = "https://openrouter.ai/api/v1/chat/completions";
 const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 const VS_BUILD = "v400-pro";
-try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#d8b76a;font-weight:bold"); } catch(e){}
+try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 
 // OPTIONAL real-footage key. Paste your OWN free Pexels API key here ONCE
@@ -2192,7 +2192,7 @@ function drawSlideFrame(ctx, slide, image, width, height, progress) {
   ctx.fillRect(0, 0, width, height);
 
   ctx.globalAlpha = 0.72 + eased * 0.28;
-  ctx.fillStyle = "rgba(216,183,106,0.88)";
+  ctx.fillStyle = "rgba(37,99,255,0.88)";
   ctx.fillRect(70, 86 + Math.sin(progress * Math.PI) * 8, 132 + eased * 90, 3);
   ctx.globalAlpha = 1;
 
@@ -2225,8 +2225,8 @@ function drawSlideFrame(ctx, slide, image, width, height, progress) {
       const x = chartX + index * (chartW / chart.length);
       const y = chartY + chartH - barH;
       const barGradient = ctx.createLinearGradient(0, y, 0, chartY + chartH);
-      barGradient.addColorStop(0, "#fff0b8");
-      barGradient.addColorStop(1, "#d8b76a");
+      barGradient.addColorStop(0, "#22d3ee");
+      barGradient.addColorStop(1, "#2563ff");
       ctx.fillStyle = barGradient;
       ctx.fillRect(x, y, barW, barH);
     });
@@ -2234,7 +2234,7 @@ function drawSlideFrame(ctx, slide, image, width, height, progress) {
 
   ctx.fillStyle = "rgba(255,255,255,0.15)";
   ctx.fillRect(70, height - 54, width - 140, 4);
-  ctx.fillStyle = "#d8b76a";
+  ctx.fillStyle = "#2563ff";
   ctx.fillRect(70, height - 54, (width - 140) * progress, 4);
 }
 
@@ -2828,7 +2828,7 @@ function startHeroMotion() {
     const maxR = Math.min(W, H) * 0.42;
 
     // concentric rings
-    ctx.strokeStyle = "rgba(216,183,106,0.18)";
+    ctx.strokeStyle = "rgba(37,99,255,0.18)";
     ctx.lineWidth = 1;
     for (let i = 1; i <= 3; i++) {
       ctx.beginPath();
@@ -2881,7 +2881,7 @@ function startHeroMotion() {
       if (d.found > 0.3) {
         ctx.beginPath();
         ctx.arc(px, py, 4 + d.found * 9, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(216,183,106,${d.found * 0.4})`;
+        ctx.strokeStyle = `rgba(37,99,255,${d.found * 0.4})`;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -2892,14 +2892,14 @@ function startHeroMotion() {
     ctx.fillStyle = "rgba(255,255,255,0.06)";
     roundRect(ctx, barX, barY, barW, barH, 13);
     ctx.fill();
-    ctx.strokeStyle = "rgba(216,183,106,0.3)";
+    ctx.strokeStyle = "rgba(37,99,255,0.3)";
     ctx.lineWidth = 1;
     roundRect(ctx, barX, barY, barW, barH, 13);
     ctx.stroke();
 
     // magnifier icon
     const mx = barX + 16, my = barY + barH / 2;
-    ctx.strokeStyle = "#d8b76a";
+    ctx.strokeStyle = "#2563ff";
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.arc(mx, my - 1, 4.5, 0, Math.PI * 2);
@@ -2918,7 +2918,7 @@ function startHeroMotion() {
       ? Math.floor((phase / 0.7) * q.length)
       : q.length;
     const typed = q.slice(0, shown);
-    ctx.fillStyle = "#fff0b8";
+    ctx.fillStyle = "#22d3ee";
     ctx.font = "600 13px Inter, sans-serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
@@ -2994,7 +2994,7 @@ function startHeroBackground() {
   }
 
   const blobs = [
-    { c: "rgba(216,183,106,", a: 0.11, rx: 0.55, ry: 0.45, ph: 0, sp: 0.00020, amp: 0.18 },
+    { c: "rgba(37,99,255,", a: 0.11, rx: 0.55, ry: 0.45, ph: 0, sp: 0.00020, amp: 0.18 },
     { c: "rgba(232,194,105,", a: 0.08, rx: 0.74, ry: 0.32, ph: 2, sp: 0.00026, amp: 0.20 },
     { c: "rgba(120,90,42,",   a: 0.12, rx: 0.30, ry: 0.66, ph: 4, sp: 0.00022, amp: 0.20 }
   ];
@@ -3049,7 +3049,7 @@ function startHeroBackground() {
         const b = nodes[j];
         const dx = a.x - b.x, dy = a.y - b.y, dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < D) {
-          ctx.strokeStyle = "rgba(216,183,106," + ((1 - dist / D) * (hasVideo ? 0.15 : 0.26)).toFixed(3) + ")";
+          ctx.strokeStyle = "rgba(37,99,255," + ((1 - dist / D) * (hasVideo ? 0.15 : 0.26)).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(a.x + ox, a.y + oy); ctx.lineTo(b.x + ox, b.y + oy); ctx.stroke();
         }
       }
@@ -3366,7 +3366,7 @@ function renderLiveChart() {
       const val = metricValueOf(item);
       const pct = Math.min(100, (val / maxVal) * 100);
       const hot = compared.has(item.name);
-      const color = hot ? "#fff0b8" : "#d8b76a";
+      const color = hot ? "#22d3ee" : "#2563ff";
       const disp = formatMetricValue(val);
       return `<div class="live-bar-row ${hot ? "is-highlighted" : ""}" style="opacity:1;animation:none">
         <div class="bar-meta">
@@ -3435,15 +3435,15 @@ function renderMultiMetric(container) {
 // Different shapes and moods, all in the minimal / luxury style.
 const introBackgrounds = [
   { id: "noir-gradient", name: { en: "Noir Gradient", fa: "گرادیان نوآر" },
-    c1: "#0a0a0c", c2: "#1c1814", accent: "#d8b76a" },
+    c1: "#0a0a0c", c2: "#1c1814", accent: "#2563ff" },
   { id: "gold-rings",    name: { en: "Gold Rings", fa: "حلقه‌های طلایی" },
-    c1: "#080706", c2: "#14110b", accent: "#d8b76a" },
+    c1: "#080706", c2: "#14110b", accent: "#2563ff" },
   { id: "diagonal",      name: { en: "Diagonal Cut", fa: "برش مورب" },
     c1: "#0c0b14", c2: "#1a1830", accent: "#8aa6d8" },
   { id: "spotlight",     name: { en: "Spotlight", fa: "نورافکن" },
     c1: "#060606", c2: "#1a1a1a", accent: "#ffffff" },
   { id: "emerald-soft",  name: { en: "Emerald Soft", fa: "زمردی ملایم" },
-    c1: "#05140e", c2: "#0d2a1e", accent: "#d8b76a" },
+    c1: "#05140e", c2: "#0d2a1e", accent: "#2563ff" },
   { id: "ivory-clean",   name: { en: "Ivory Clean", fa: "عاجی تمیز" },
     c1: "#f4f1ea", c2: "#e6e0d2", accent: "#1a1a1a" },
   { id: "wave",          name: { en: "Soft Waves", fa: "موج‌های نرم" },
@@ -3459,11 +3459,11 @@ const introBackgrounds = [
   { id: "mesh",          name: { en: "Mesh Gradient", fa: "گرادیان توری" },
     c1: "#0a0814", c2: "#1a1228", accent: "#c89ad8" },
   { id: "particles",     name: { en: "Particle Field", fa: "میدان ذرات" },
-    c1: "#080a0c", c2: "#12161a", accent: "#d8b76a" },
+    c1: "#080a0c", c2: "#12161a", accent: "#2563ff" },
   { id: "marble-light",  name: { en: "Marble Light", fa: "مرمر روشن" },
     c1: "#f2efe9", c2: "#e2ddd0", accent: "#3a3a40" },
   { id: "ribbon",        name: { en: "Gold Ribbon", fa: "روبان طلایی" },
-    c1: "#0a0806", c2: "#1a1410", accent: "#d8b76a" },
+    c1: "#0a0806", c2: "#1a1410", accent: "#2563ff" },
   { id: "halo",          name: { en: "Halo Glow", fa: "هاله نور" },
     c1: "#0a0a12", c2: "#161628", accent: "#b8c4f0" },
   { id: "prism",         name: { en: "Prism", fa: "منشور" },
@@ -3477,7 +3477,7 @@ const introBackgrounds = [
   { id: "carbon",        name: { en: "Carbon Fibre", fa: "کربن" },
     c1: "#0c0c0e", c2: "#16161a", accent: "#9aa0a8" },
   { id: "royal",         name: { en: "Royal Blue", fa: "آبی سلطنتی" },
-    c1: "#040818", c2: "#0a1438", accent: "#d8b76a" },
+    c1: "#040818", c2: "#0a1438", accent: "#2563ff" },
   { id: "cine-aurora",   name: { en: "Cinematic Aurora", fa: "شفق سینمایی" },
     c1: "#050912", c2: "#0c1830", accent: "#5fd0c0" },
   { id: "cine-ember",    name: { en: "Ember Glow", fa: "درخشش اخگر" },
@@ -3539,8 +3539,8 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
     case "emerald-soft": {
       const r = ctx.createRadialGradient(
         W * 0.7, H * 0.3, U * 0.05, W * 0.7, H * 0.3, U * 0.9);
-      r.addColorStop(0, "rgba(216,183,106,0.14)");
-      r.addColorStop(1, "rgba(216,183,106,0)");
+      r.addColorStop(0, "rgba(37,99,255,0.14)");
+      r.addColorStop(1, "rgba(37,99,255,0)");
       ctx.fillStyle = r;
       ctx.fillRect(0, 0, W, H);
       break;
@@ -3679,9 +3679,9 @@ function drawIntroBackground(ctx, W, H, bgId, t) {
       for (let i = 0; i < 3; i++) {
         const yy = H * (0.35 + i * 0.18);
         const rg = ctx.createLinearGradient(0, yy, W, yy);
-        rg.addColorStop(0, "rgba(216,183,106,0)");
+        rg.addColorStop(0, "rgba(37,99,255,0)");
         rg.addColorStop(0.5, vsHexA(bg.accent, 0.3));
-        rg.addColorStop(1, "rgba(216,183,106,0)");
+        rg.addColorStop(1, "rgba(37,99,255,0)");
         ctx.strokeStyle = rg;
         ctx.lineWidth = U * 0.01;
         ctx.beginPath();
@@ -3934,7 +3934,7 @@ function drawIntroGraphics(ctx, W, H, bg, t, prog) {
     const r = U * (0.0015 + (i % 4) * 0.0011);
     ctx.beginPath();
     ctx.arc(px, py, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(216,183,106,${0.32 * e})`;
+    ctx.fillStyle = `rgba(37,99,255,${0.32 * e})`;
     ctx.fill();
   }
 
@@ -3959,7 +3959,7 @@ const videoTemplates = [
     id: "noir",
     name: { en: "Noir Luxe", fa: "نوآر لوکس" },
     desc: { en: "Deep blacks, gold serif type", fa: "مشکی عمیق، تایپ طلایی" },
-    bg: "#070605", accent: "#d8b76a", text: "#fff0b8",
+    bg: "#070605", accent: "#2563ff", text: "#22d3ee",
     headlineFont: "Prata, serif", vignette: 0.55
   },
   {
@@ -3980,7 +3980,7 @@ const videoTemplates = [
     id: "warm",
     name: { en: "Warm Glow", fa: "درخشش گرم" },
     desc: { en: "Amber wash, soft and inviting", fa: "تم کهربایی، نرم و دلنشین" },
-    bg: "#140d05", accent: "#f4c96a", text: "#ffe9c2",
+    bg: "#140d05", accent: "#60a5fa", text: "#ffe9c2",
     headlineFont: "Prata, serif", vignette: 0.45
   },
   {
@@ -4064,7 +4064,7 @@ const videoTemplates = [
     id: "emerald",
     name: { en: "Emerald Luxe", fa: "زمرد لوکس" },
     desc: { en: "Rich emerald with gold detail", fa: "زمردی غنی با جزئیات طلایی" },
-    bg: "#06140f", accent: "#d8b76a", text: "#e9f5ee",
+    bg: "#06140f", accent: "#2563ff", text: "#e9f5ee",
     headlineFont: "Prata, serif", vignette: 0.46
   },
   {
@@ -6024,21 +6024,21 @@ function vsPickCities(names, fa) {
       .vs-pick-ov{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
         background:rgba(4,4,6,.72);backdrop-filter:blur(6px);padding:18px;font-family:Inter,system-ui,sans-serif}
       .vs-pick{width:min(520px,96vw);max-height:88vh;display:flex;flex-direction:column;
-        background:#121016;border:1px solid rgba(216,183,106,.3);border-radius:18px;overflow:hidden;
+        background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:18px;overflow:hidden;
         box-shadow:0 30px 80px rgba(0,0,0,.6)}
       .vs-pick h3{margin:0;padding:18px 20px 4px;font-family:'Prata',Georgia,serif;font-weight:400;font-size:19px;color:#efe9dc}
       .vs-pick .sub{padding:0 20px 12px;font-size:12.5px;color:#9a9488}
       .vs-pick .bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;
-        border-top:1px solid rgba(216,183,106,.14);border-bottom:1px solid rgba(216,183,106,.14)}
-      .vs-pick .bar a{font-size:12.5px;color:#d8b76a;cursor:pointer;font-weight:600}
+        border-top:1px solid rgba(37,99,255,.14);border-bottom:1px solid rgba(37,99,255,.14)}
+      .vs-pick .bar a{font-size:12.5px;color:#2563ff;cursor:pointer;font-weight:600}
       .vs-pick .list{overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:2px}
       .vs-pick label{display:flex;align-items:center;gap:11px;padding:10px 10px;border-radius:10px;cursor:pointer;
         font-size:14px;color:#efe9dc;transition:.12s}
-      .vs-pick label:hover{background:rgba(216,183,106,.07)}
-      .vs-pick input{width:18px;height:18px;accent-color:#d8b76a;flex:none}
-      .vs-pick .foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid rgba(216,183,106,.14)}
+      .vs-pick label:hover{background:rgba(37,99,255,.07)}
+      .vs-pick input{width:18px;height:18px;accent-color:#2563ff;flex:none}
+      .vs-pick .foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid rgba(37,99,255,.14)}
       .vs-pick .foot button{flex:1;font:inherit;font-weight:700;font-size:14px;padding:12px;border-radius:11px;cursor:pointer;border:1px solid}
-      .vs-pick .go{background:#d8b76a;color:#1a1408;border-color:#d8b76a}
+      .vs-pick .go{background:#2563ff;color:#1a1408;border-color:#2563ff}
       .vs-pick .go:hover{background:#e6c87f}
       .vs-pick .cancel{background:transparent;color:#cfc8ba;border-color:rgba(255,255,255,.18)}`;
       document.head.appendChild(st);
@@ -7643,7 +7643,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   const accents = {
     red:  { bar: "#c0202a", text: "#ffffff" },
     blue: { bar: "#15418c", text: "#ffffff" },
-    gold: { bar: "#d8b76a", text: "#1a1408" },
+    gold: { bar: "#2563ff", text: "#1a1408" },
     mono: { bar: "#1a1a1a", text: "#ffffff" }
   };
   let ac = accents[accentKey];
@@ -7651,7 +7651,7 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     // follow the active template's accent colour so changing the template
     // restyles the news banner too (just like the infographic).
     const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
-    const acc = (tpl && tpl.accent) ? tpl.accent : "#d8b76a";
+    const acc = (tpl && tpl.accent) ? tpl.accent : "#2563ff";
     // pick readable text colour based on accent luminance
     const lum = vsHexLuma ? vsHexLuma(acc) : 160;
     ac = { bar: acc, text: lum > 150 ? "#1a1408" : "#ffffff" };
@@ -9329,8 +9329,8 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
     const pulse = 0.3 + 0.2 * Math.sin(elapsed * 2);
     const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35,
                                        W/2, H/2, Math.max(W,H)*0.7);
-    g.addColorStop(0, "rgba(216,183,106,0)");
-    g.addColorStop(1, `rgba(216,183,106,${pulse})`);
+    g.addColorStop(0, "rgba(37,99,255,0)");
+    g.addColorStop(1, `rgba(37,99,255,${pulse})`);
     ctx.globalCompositeOperation = "screen";
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
@@ -9346,9 +9346,9 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
     // luxurious thin gold border frame
     const m = Math.min(W, H) * 0.045;
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, "rgba(216,183,106,0.9)");
+    g.addColorStop(0, "rgba(37,99,255,0.9)");
     g.addColorStop(0.5, "rgba(255,240,184,0.95)");
-    g.addColorStop(1, "rgba(216,183,106,0.9)");
+    g.addColorStop(1, "rgba(37,99,255,0.9)");
     ctx.strokeStyle = g;
     ctx.lineWidth = Math.max(1.5, W * 0.0022);
     ctx.strokeRect(m, m, W - m * 2, H - m * 2);
@@ -9682,7 +9682,7 @@ function drawStudioFrame(elapsed) {
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         roundRectPath(ctx, cxC - cw / 2, cyC - ch / 2, cw, ch, ch / 2);
         ctx.fill();
-        ctx.fillStyle = (tpl && tpl.accent) || "#d8b76a";
+        ctx.fillStyle = (tpl && tpl.accent) || "#2563ff";
         ctx.textBaseline = "middle";
         ctx.fillText(cap, cxC, cyC);
         ctx.textBaseline = "alphabetic";
@@ -10282,7 +10282,7 @@ function vsDetectLogoKey(srcEl) {
 // Resolve the chosen logo tint colour ("original" | "match" | "#hex").
 function vsLogoTintColor(tpl) {
   const sel = vsVal("#vsLogoTint", "original");
-  if (sel === "match") return (tpl && tpl.accent) || "#d8b76a";
+  if (sel === "match") return (tpl && tpl.accent) || "#2563ff";
   if (sel && sel[0] === "#") return sel;
   return null;   // original colours
 }
@@ -10511,14 +10511,14 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
   // Logo overlay — drawn here so it appears on EVERY slide (media, intro,
   // outro, content), since all paths call vsFinishFrame before returning.
   if (vstudio.logoEl) {
-    let _tpl = { accent: "#d8b76a" };
+    let _tpl = { accent: "#2563ff" };
     try { if (typeof vsTemplate === "function") _tpl = vsTemplate(); } catch (e) {}
     vsDrawLogo(ctx, W, H, elapsed, dsLocal, _tpl);
   }
   // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
   if (vstudio.snapGuideX || vstudio.snapGuideY) {
     ctx.save();
-    ctx.strokeStyle = "rgba(216,183,106,0.9)";
+    ctx.strokeStyle = "rgba(37,99,255,0.9)";
     ctx.lineWidth = Math.max(1, W * 0.0018);
     ctx.setLineDash([W * 0.01, W * 0.007]);
     if (vstudio.snapGuideX) { ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke(); }
@@ -10526,7 +10526,7 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     ctx.setLineDash([]);
     if (vstudio.snapGuideX && vstudio.snapGuideY) {
       const d = W * 0.013;
-      ctx.fillStyle = "rgba(216,183,106,0.95)";
+      ctx.fillStyle = "rgba(37,99,255,0.95)";
       ctx.beginPath();
       ctx.moveTo(W/2, H/2 - d); ctx.lineTo(W/2 + d, H/2);
       ctx.lineTo(W/2, H/2 + d); ctx.lineTo(W/2 - d, H/2);
@@ -11377,7 +11377,7 @@ function heraDrawWaveform(canvas, totalDur, forceWidth) {
     const h = Math.max(4, mid * (0.4 + 0.35 * Math.abs(Math.sin(i * 0.37)) + 0.25 * Math.abs(Math.sin(i * 0.11 + 1.2))));
     const isActive = ratio <= activeRatio;
     ctx.fillStyle = isActive
-      ? `rgba(216,183,106,${0.55 + 0.45 * (h / mid)})`
+      ? `rgba(37,99,255,${0.55 + 0.45 * (h / mid)})`
       : "rgba(255,255,255,0.15)";
     ctx.beginPath();
     ctx.roundRect(x, mid - h / 2, barW, h, 1.5);
@@ -12813,7 +12813,7 @@ renderMetrics();
 renderControls();
 bindEvents();
 setToolView(state.viewMode);
-applyTheme(localStorage.getItem("theme") || "dark");
+applyTheme("dark"); // AI Radar is dark-only — light theme removed
 renderModelsTicker();
 startHeroMotion();
 renderTemplatePicker();
@@ -12962,7 +12962,7 @@ function renderAiMap() {
       </radialGradient>
     </defs>
     <rect width="${W}" height="${H}" fill="url(#aimapVignette)"/>
-    ${aiMapDots(W, H, "rgba(216,183,106,0.5)")}
+    ${aiMapDots(W, H, "rgba(37,99,255,0.5)")}
     ${links}
     ${hubs}
   </svg>`;
