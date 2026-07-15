@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v310" />
+    <link rel="stylesheet" href="styles.css?v=v312" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -631,9 +631,9 @@
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <div class="nav-group-grid">
-              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio"><span class="nav-ic">✦</span><span class="nav-tx">AI Studio</span></a>
-              <a href="/prompt-lab/"><span class="nav-ic">↗</span><span class="nav-tx">Prompt Lab</span></a>
-              <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video</span></a>
+              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio"><span class="nav-ic">✦</span><span class="nav-tx">AI Creator</span><span class="nav-new">NEW</span></a>
+              <a href="/prompt-lab/"><span class="nav-ic">↗</span><span class="nav-tx">Prompt Lab</span><span class="nav-new">NEW</span></a>
+              <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video Studio</span><span class="nav-new">NEW</span></a>
             </div>
           </div>
         </nav>
@@ -643,10 +643,6 @@
             <button type="button" class="seg-btn" data-lang="en">EN</button>
             <button type="button" class="seg-btn" data-lang="fa">فا</button>
           </div>
-          <a class="nav-cta" href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio">
-            <svg viewBox="0 0 24 24" fill="currentColor" class="nav-cta-ic" aria-hidden="true"><path d="M12 2l2.2 6.2L20 10l-5.8 1.8L12 18l-2.2-6.2L4 10l5.8-1.8z"/></svg>
-            Open Studio
-          </a>
         </div>
       </aside>
 
@@ -681,7 +677,7 @@
 
             <div class="hero-x-quick">
               <span class="hero-x-quick-label">Jump to</span>
-              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="hero-x-chip">AI Studio</a>
+              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="hero-x-chip">AI Creator</a>
               <a href="#videoStudio" class="hero-x-chip">Video Studio</a>
               <a href="#tools" class="hero-x-chip">Tool Finder</a>
               <a href="#performance" class="hero-x-chip">Live Charts</a>
@@ -2097,7 +2093,6 @@
         background:linear-gradient(135deg,#2563ff,#2563ff);color:#1a1408}
       .ra-input button:disabled{opacity:.5;cursor:default}
     </style>
-    <button id="raAsstBtn" type="button" aria-label="Help assistant"><span class="ra-dot"></span><span class="ra-spark">✦</span><span class="ra-badge" id="raAsstBadge">HELP</span></button>
     <div id="raAsstPanel" role="dialog" aria-label="Radar Assistant">
       <div class="ra-head">
         <div class="ra-av">✦</div>

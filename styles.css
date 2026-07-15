@@ -4300,3 +4300,55 @@ summary.vstudio-label:hover {
   color: #ffffff !important;
   box-shadow: 0 8px 20px -8px rgba(37,99,255,0.6) !important;
 }
+
+/* ══ HEADER v2 — centered studio nav, NEW badges, redesigned ticker ══ */
+@media (min-width: 981px) {
+  .sidebar-nav { justify-content: center !important; }
+}
+/* NEW badge on studio nav items */
+.nav-new {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: 1;
+  color: #fff;
+  background: linear-gradient(135deg, #22d3ee, #2563ff);
+  box-shadow: 0 3px 10px -3px rgba(37,99,255,0.7);
+  vertical-align: middle;
+}
+[dir="rtl"] .nav-new { margin-left: 0; margin-right: 6px; }
+
+/* Redesigned AI-models ticker → glassy pills that match the header */
+.models-ticker { gap: 10px !important; }
+.ticker-item {
+  border-right: none !important;
+  padding: 7px 15px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.035) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #b8c6e6 !important;
+  font-weight: 600 !important;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: color .18s, background .18s, border-color .18s !important;
+}
+.ticker-item:hover {
+  color: #ffffff !important;
+  border-color: rgba(91,141,255,0.42) !important;
+  background: rgba(59,120,255,0.12) !important;
+}
+.ticker-item img { opacity: 1 !important; }
+
+/* Persian font — force Vazirmatn everywhere in RTL (Space Grotesk lacks Persian glyphs) */
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4,
+[dir="rtl"] .motion-title, [dir="rtl"] .button, [dir="rtl"] .nav-tx,
+[dir="rtl"] .hero-x-chip, [dir="rtl"] .eyebrow, [dir="rtl"] p,
+[dir="rtl"] span, [dir="rtl"] a, [dir="rtl"] button, [dir="rtl"] label,
+[dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
+  font-family: 'Vazirmatn', 'Manrope', ui-sans-serif, sans-serif !important;
+}
+
+/* HELP launcher fully removed */
+#raAsstBtn { display: none !important; }
