@@ -4365,6 +4365,13 @@ summary.vstudio-label:hover {
   color: #5b8dff !important;
   margin: 0 0 8px !important;
 }
+/* #todLabel / #aimonEyebrow sit inside a dot+text row (.tod-eyebrow), not
+   directly above their own title — the row's own margin-bottom:16px
+   handles that spacing. A margin-bottom here would inflate the flex
+   item's margin-box and throw off centering against the dot. */
+.tod-eyebrow #todLabel, .tod-eyebrow #aimonEyebrow {
+  margin: 0 !important;
+}
 /* Section titles — big, consistent Space Grotesk */
 .panel > h2,
 .panel > .section-head h2,
@@ -4389,9 +4396,14 @@ summary.vstudio-label:hover {
 }
 
 /* ══ Unify the "live dot + eyebrow" pattern across Tool of the Day / Live AI Radar ══ */
-.eyebrow {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
+/* Both sections now share the identical markup:
+   .tod-eyebrow (flex row, centers cross-axis) > .tod-live-dot + eyebrow text.
+   The text itself must stay a plain inline box (not a flex container) so the
+   PARENT row can center it against the dot — line-height:1 keeps its box
+   tight to the glyphs instead of the font's default extra leading. */
 .aimon-title-wrap { align-items: flex-start !important; }
+.tod-eyebrow { gap: 8px !important; }
+#todLabel, #aimonEyebrow, .eyebrow {
+  line-height: 1 !important;
+  display: inline-block !important;
+}
