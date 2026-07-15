@@ -4352,3 +4352,38 @@ summary.vstudio-label:hover {
 
 /* HELP launcher fully removed */
 #raAsstBtn { display: none !important; }
+
+/* ══ UNIFIED SECTION HEADERS — one consistent, big style everywhere ══ */
+/* Eyebrows (small blue uppercase kicker above each title) */
+.eyebrow, #todLabel, .tod-eyebrow #todLabel, .aimon-head .eyebrow,
+.section-head .eyebrow {
+  font-family: 'Manrope', ui-sans-serif, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: .16em !important;
+  text-transform: uppercase !important;
+  color: #5b8dff !important;
+  margin: 0 0 8px !important;
+}
+/* Section titles — big, consistent Space Grotesk */
+.panel > h2,
+.panel > .section-head h2,
+.section-head h2,
+.aimon-head h2,
+.tod-name,
+#aimonTitle {
+  font-family: 'Space Grotesk', ui-sans-serif, sans-serif !important;
+  font-size: clamp(30px, 3.2vw, 46px) !important;
+  font-weight: 700 !important;
+  line-height: 1.06 !important;
+  letter-spacing: -.02em !important;
+  color: #f4f8ff !important;
+  margin: 2px 0 16px !important;
+}
+[dir="rtl"] .panel > h2,
+[dir="rtl"] .section-head h2,
+[dir="rtl"] .aimon-head h2,
+[dir="rtl"] .tod-name,
+[dir="rtl"] #aimonTitle {
+  font-family: 'Vazirmatn', sans-serif !important;
+}
