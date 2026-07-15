@@ -82,7 +82,6 @@
       <section class="hero" id="overview">
         <div class="heroMain simple">
           <div class="heroCopy">
-            <div class="eyebrow">1.2M+ prompt systems - 64 skill playbooks - model specific</div>
             <h1>Prompt Library</h1>
             <p class="lead">Search one word, choose the model, and copy a prompt that is written for that model’s real grammar — video, image, JSON, settings, and negative prompt included.</p>
             <div class="metricLine"><span>1,281,024 generated prompt systems</span><span>64 AI skills</span><span>Video / Image separated</span></div>
@@ -90,7 +89,6 @@
           </div>
         </div>
         <section class="builder" id="builder">
-          <div class="eyebrow">One-word builder</div>
           <h2>Create a strong prompt</h2>
           <p class="lead">Enter one word. The grammar changes by model; this is not a generic template.</p>
           <div class="field"><label>Your word / idea</label><input id="ideaInput" value="perfume" placeholder="perfume, cyberpunk girl, burger, villa" /></div>
@@ -102,17 +100,17 @@
       </section>
 
       <section class="section" id="packs">
-        <div class="sectionHead"><div><div class="eyebrow">Quick filters</div><h2>Pick a ready-made view</h2><p class="lead">These buttons instantly filter the library. Pick one, then search or choose a model.</p></div><span class="pill">Live filter</span></div>
+        <div class="sectionHead"><div><h2>Pick a ready-made view</h2><p class="lead">These buttons instantly filter the library. Pick one, then search or choose a model.</p></div><span class="pill">Live filter</span></div>
         <div class="packs" id="packGrid"></div>
       </section>
 
       <section class="section" id="skills">
-        <div class="sectionHead"><div><div class="eyebrow">Claude / GPT / Gemini skills</div><h2>Prompt skill playbooks</h2><p class="lead">This is the skills section: Claude-style task skills, GPT structured output, Gemini planning, Grok research, and visual/video model grammar.</p></div><span class="pill">Skill guides</span></div>
+        <div class="sectionHead"><div><h2>Prompt skill playbooks</h2><p class="lead">This is the skills section: Claude-style task skills, GPT structured output, Gemini planning, Grok research, and visual/video model grammar.</p></div><span class="pill">Skill guides</span></div>
         <div class="skillGrid" id="skillGrid"></div>
       </section>
 
       <section class="section" id="library">
-        <div class="sectionHead"><div><div class="eyebrow">Library</div><h2>Choose video or image prompts first</h2><p class="lead">Video and image prompts are separate. Start with one of these two cards, then choose the exact model and category.</p></div></div>
+        <div class="sectionHead"><div><h2>Choose video or image prompts first</h2><p class="lead">Video and image prompts are separate. Start with one of these two cards, then choose the exact model and category.</p></div></div>
         <div class="mediaSplit"><button class="mediaCard" type="button" onclick="chooseMedia('Video')"><b>Video prompts</b><span>Seedance, Kling, Veo, Sora and Runway. Shot structure, camera movement, motion, continuity and final frame.</span><small>800,640 video systems</small></button><button class="mediaCard" type="button" onclick="chooseMedia('Image')"><b>Image prompts</b><span>Midjourney, FLUX.1 and DALL-E. Subject, style, lighting, composition, negatives and settings.</span><small>480,384 image systems</small></button></div>
         <div class="libraryTop"><input id="searchInput" placeholder="Type one word: perfume, cyberpunk, food, travel, health..." /><select id="mediaFilter"><option>All media</option><option>Video</option><option>Image</option></select><select id="modelFilter"></select><select id="categoryFilter"></select></div>
         <div class="modelPickers" id="modelPickers"></div><div class="tabs" id="tabs"></div>
@@ -121,11 +119,11 @@
       </section>
 
       <section class="section" id="models">
-        <div class="sectionHead"><div><div class="eyebrow">Index</div><h2>Model and category map</h2></div></div>
+        <div class="sectionHead"><div><h2>Model and category map</h2></div></div>
         <div class="indexGrid" id="indexGrid"></div>
       </section>
     </main>
-    <div class="modal hidden" id="promptModal" onclick="if(event.target===this)closePromptModal()"><div class="modalPanel"><div class="modalHead"><div><div class="eyebrow" id="modalEyebrow">Model prompts</div><h2 id="modalTitle">Prompts</h2><p id="modalMeta"></p></div><button class="modalClose" onclick="closePromptModal()" type="button">Close</button></div><div class="modalGrid" id="modalGrid"></div></div></div>
+    <div class="modal hidden" id="promptModal" onclick="if(event.target===this)closePromptModal()"><div class="modalPanel"><div class="modalHead"><div><h2 id="modalTitle">Prompts</h2><p id="modalMeta"></p></div><button class="modalClose" onclick="closePromptModal()" type="button">Close</button></div><div class="modalGrid" id="modalGrid"></div></div></div>
     <div class="toast hidden" id="toast">Copied</div>
 
     <script>
@@ -239,7 +237,7 @@
       function clearModelLimits(){for(const k in modelLimits)delete modelLimits[k]}
       window.chooseMedia=media=>{activePack=null;clearModelLimits();$("mediaFilter").value=media;$("modelFilter").value="All models";renderPacks();renderPrompts();document.getElementById("library").scrollIntoView({behavior:"smooth",block:"start"})}
       window.chooseModel=model=>{activePack=null;clearModelLimits();$("modelFilter").value=model;$("mediaFilter").value=models[model].media;renderPacks();renderPrompts();document.getElementById("library").scrollIntoView({behavior:"smooth",block:"start"})}
-      window.openPromptModal=model=>{const q=$("searchInput").value.trim().toLowerCase(),cf=$("categoryFilter").value;const items=prompts.filter(x=>x.model==model&&(currentCategory=="All"||x.category==currentCategory)&&(cf=="All categories"||x.category==cf)&&(!q||`${x.model} ${x.media} ${x.category} ${x.title} ${x.idea} ${x.prompt}`.toLowerCase().includes(q)));$("modalTitle").textContent=`${models[model].logo} prompt library`;$("modalEyebrow").textContent=models[model].media+" model";$("modalMeta").textContent=`${items.length} prompts match your current filters. Scroll inside this popup; close it anytime.`;$("modalGrid").innerHTML=items.map(cardHtml).join("")||'<article class="card"><h3>No prompts found</h3><p>Try another filter.</p></article>';$("promptModal").classList.remove("hidden");document.body.style.overflow="hidden"}
+      window.openPromptModal=model=>{const q=$("searchInput").value.trim().toLowerCase(),cf=$("categoryFilter").value;const items=prompts.filter(x=>x.model==model&&(currentCategory=="All"||x.category==currentCategory)&&(cf=="All categories"||x.category==cf)&&(!q||`${x.model} ${x.media} ${x.category} ${x.title} ${x.idea} ${x.prompt}`.toLowerCase().includes(q)));$("modalTitle").textContent=`${models[model].logo} prompt library`;$("modalMeta").textContent=`${models[model].media} model · ${items.length} prompts match your current filters. Scroll inside this popup; close it anytime.`;$("modalGrid").innerHTML=items.map(cardHtml).join("")||'<article class="card"><h3>No prompts found</h3><p>Try another filter.</p></article>';$("promptModal").classList.remove("hidden");document.body.style.overflow="hidden"}
       window.closePromptModal=()=>{$("promptModal").classList.add("hidden");$("modalGrid").innerHTML="";document.body.style.overflow=""}
       window.applyPack=i=>{activePack=i;const p=packs[i];$("mediaFilter").value=p.media||"All media";$("categoryFilter").value="All categories";$("modelFilter").value="All models";currentCategory="All";clearModelLimits();document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.cat=="All"));renderPacks();renderPrompts();document.getElementById("library").scrollIntoView({behavior:"smooth",block:"start"})}
       window.clearPack=()=>{activePack=null;clearModelLimits();renderPacks();renderPrompts()}
