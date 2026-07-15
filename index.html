@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v318" />
+    <link rel="stylesheet" href="styles.css?v=v319" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -2421,6 +2421,77 @@
         init();
       }
     })();
+    </script>
+
+    <!-- ── FREE ANNOUNCEMENT POPUP ─────────────────────────── -->
+    <style>
+      .free-popup-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(5,8,18,.72);
+        backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+        display:flex;align-items:center;justify-content:center;padding:20px;
+        opacity:0;pointer-events:none;transition:opacity .25s ease;}
+      .free-popup-backdrop.show{opacity:1;pointer-events:auto;}
+      .free-popup{position:relative;width:100%;max-width:420px;border-radius:22px;
+        padding:32px 28px 26px;text-align:center;overflow:hidden;
+        background:linear-gradient(165deg,rgba(37,99,255,.16),rgba(11,16,32,.98) 55%);
+        border:1px solid rgba(91,141,255,.34);
+        box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 60px -20px rgba(37,99,255,.4);
+        transform:scale(.94) translateY(10px);transition:transform .28s cubic-bezier(.2,.8,.3,1.1);}
+      .free-popup-backdrop.show .free-popup{transform:scale(1) translateY(0);}
+      .free-popup-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;
+        border-radius:999px;background:rgba(53,208,127,.14);border:1px solid rgba(53,208,127,.4);
+        color:#6fe3a0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+        margin-bottom:16px;}
+      .free-popup-badge i{width:7px;height:7px;border-radius:50%;background:#35d07f;
+        box-shadow:0 0 8px #35d07f;animation:aimonPulse 2s infinite;}
+      .free-popup h3{margin:0 0 10px;font-size:26px;font-weight:700;color:#fff;line-height:1.15;}
+      .free-popup p{margin:0 0 22px;font-size:14px;line-height:1.65;color:#a8bde6;}
+      .free-popup-list{display:flex;flex-direction:column;gap:9px;margin:0 0 24px;text-align:left;}
+      .free-popup-list li{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#e6eeff;
+        padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);}
+      .free-popup-list li svg{flex-shrink:0;color:#5b8dff;}
+      .free-popup-actions{display:flex;flex-direction:column;gap:10px;}
+      .free-popup-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;
+        display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.1);color:#9db0d0;cursor:pointer;transition:all .15s;}
+      .free-popup-close:hover{background:rgba(255,255,255,.12);color:#fff;}
+      [dir="rtl"] .free-popup-close{right:auto;left:14px;}
+      [dir="rtl"] .free-popup-list{text-align:right;}
+    </style>
+    <div class="free-popup-backdrop" id="freePopupBackdrop">
+      <div class="free-popup">
+        <button class="free-popup-close" id="freePopupClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <span class="free-popup-badge"><i></i>Limited-time</span>
+        <h3>Everything is free right now</h3>
+        <p>AI Creator, Prompt Lab, and Video Studio — no payment, no card, no catch. Just sign in with your email and start creating.</p>
+        <ul class="free-popup-list">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>AI Creator — free image &amp; video generation</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Prompt Lab — free prompt &amp; JSON tools</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Video Studio — free in your browser</li>
+        </ul>
+        <div class="free-popup-actions">
+          <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="button primary" style="width:100%;">Try it free</a>
+          <button class="button ghost" id="freePopupDismiss" type="button" style="width:100%;">Maybe later</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function(){
+        try {
+          if (sessionStorage.getItem('freePopupSeen')) return;
+        } catch(e) {}
+        var backdrop = document.getElementById('freePopupBackdrop');
+        function open(){ backdrop.classList.add('show'); }
+        function close(){
+          backdrop.classList.remove('show');
+          try { sessionStorage.setItem('freePopupSeen', '1'); } catch(e) {}
+        }
+        document.getElementById('freePopupClose').addEventListener('click', close);
+        document.getElementById('freePopupDismiss').addEventListener('click', close);
+        backdrop.addEventListener('click', function(e){ if (e.target === backdrop) close(); });
+        setTimeout(open, 900);
+      })();
     </script>
   </body>
 </html>
