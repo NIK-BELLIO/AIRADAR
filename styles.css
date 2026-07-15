@@ -4387,3 +4387,11 @@ summary.vstudio-label:hover {
 [dir="rtl"] #aimonTitle {
   font-family: 'Vazirmatn', sans-serif !important;
 }
+
+/* ══ Unify the "live dot + eyebrow" pattern across Tool of the Day / Live AI Radar ══ */
+.eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.aimon-title-wrap { align-items: flex-start !important; }
