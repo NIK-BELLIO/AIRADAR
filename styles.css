@@ -4230,3 +4230,73 @@ textarea:focus {
   color: #fff !important;
   box-shadow: 0 6px 18px -4px rgba(37,99,255,0.55) !important;
 }
+
+/* ══ MODERN BUTTON SYSTEM — comprehensive (ghost/gold, accordions, pills) ══ */
+/* Secondary buttons: glassy blue instead of flat dark outlines */
+.button.ghost, .button.gold {
+  background: linear-gradient(180deg, rgba(59,120,255,0.16), rgba(37,99,255,0.05)) !important;
+  border: 1px solid rgba(91,141,255,0.34) !important;
+  color: #e6eeff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 18px -10px rgba(0,0,0,0.55) !important;
+}
+.button.ghost:hover, .button.gold:hover {
+  background: linear-gradient(180deg, rgba(59,120,255,0.30), rgba(37,99,255,0.13)) !important;
+  border-color: rgba(120,160,255,0.6) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Collapsible section headers (video-studio accordions) → modern bars */
+summary.vstudio-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  padding: 13px 16px !important;
+  margin: 0 0 6px !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  letter-spacing: .02em;
+  color: #dbe6ff !important;
+  transition: background .16s ease, border-color .16s ease;
+}
+summary.vstudio-label::-webkit-details-marker { display: none; }
+summary.vstudio-label::after {
+  content: "";
+  margin-left: auto;
+  width: 7px; height: 7px;
+  border-right: 2px solid rgba(147,180,255,0.85);
+  border-bottom: 2px solid rgba(147,180,255,0.85);
+  transform: rotate(45deg);
+  transition: transform .2s ease;
+}
+details[open] > summary.vstudio-label::after { transform: rotate(-135deg); }
+summary.vstudio-label:hover {
+  background: rgba(59,120,255,0.12) !important;
+  border-color: rgba(91,141,255,0.42) !important;
+}
+
+/* Utility pills: sort / chart tabs / refresh / auto-mode */
+.gh-sort-btn, .chart-tab, .chart-refresh-btn, .vs-auto-mode-btn {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: #b8c6e6 !important;
+  font-weight: 700 !important;
+  transition: all .15s ease !important;
+}
+.gh-sort-btn:hover, .chart-tab:hover, .chart-refresh-btn:hover, .vs-auto-mode-btn:hover {
+  border-color: rgba(91,141,255,0.45) !important;
+  background: rgba(59,120,255,0.12) !important;
+  color: #ffffff !important;
+}
+.gh-sort-btn.active, .chart-tab.active, .vs-auto-mode-btn.active {
+  background: linear-gradient(135deg, #3b78ff, #2563ff) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -8px rgba(37,99,255,0.6) !important;
+}
