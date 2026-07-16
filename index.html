@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v319" />
+    <link rel="stylesheet" href="styles.css?v=v322" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -623,7 +623,7 @@
           <div class="nav-group">
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <div class="nav-group-grid">
-              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio"><span class="nav-ic">✦</span><span class="nav-tx">AI Creator</span><span class="nav-new">NEW</span></a>
+              <a href="/studio"><span class="nav-ic">✦</span><span class="nav-tx">AI Creator</span><span class="nav-new">NEW</span></a>
               <a href="/prompt-lab/"><span class="nav-ic">↗</span><span class="nav-tx">Prompt Lab</span><span class="nav-new">NEW</span></a>
               <a href="#videoStudio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video Studio</span><span class="nav-new">NEW</span></a>
             </div>
@@ -634,6 +634,24 @@
           <div class="seg-toggle" id="langSeg" role="group" aria-label="Language">
             <button type="button" class="seg-btn" data-lang="en">EN</button>
             <button type="button" class="seg-btn" data-lang="fa">فا</button>
+          </div>
+          <!-- Unified auth: signed out shows "Sign in"; signed in shows an
+               account chip whose menu links to the shared dashboard / logs out.
+               All wired to the studio Worker's /api/* on the same domain. -->
+          <button type="button" id="authSignInBtn" class="auth-signin">Sign in</button>
+          <div id="authAccount" class="auth-account" hidden>
+            <button type="button" id="authAccountBtn" class="auth-account-btn" aria-haspopup="true" aria-expanded="false">
+              <span id="authInitial" class="auth-initial">?</span>
+            </button>
+            <div id="authMenu" class="auth-menu" hidden>
+              <div class="auth-menu-head">
+                <p id="authEmail" class="auth-menu-email"></p>
+                <p id="authCredits" class="auth-menu-credits"></p>
+              </div>
+              <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+              <a href="/studio" class="auth-menu-item">AI Creator</a>
+              <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -669,7 +687,7 @@
 
             <div class="hero-x-quick">
               <span class="hero-x-quick-label">Jump to</span>
-              <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="hero-x-chip">AI Creator</a>
+              <a href="/studio" class="hero-x-chip">AI Creator</a>
               <a href="#videoStudio" class="hero-x-chip">Video Studio</a>
               <a href="#tools" class="hero-x-chip">Tool Finder</a>
               <a href="#performance" class="hero-x-chip">Live Charts</a>
@@ -2205,6 +2223,167 @@
       }
     </style>
 
+    <!-- ══ Unified login modal (talks to the studio Worker's /api/auth on airadar.me) ══ -->
+    <div id="authModal" class="auth-modal" hidden>
+      <div class="auth-modal-backdrop" id="authModalBackdrop"></div>
+      <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">✕</button>
+        <div class="auth-brand"><img src="logo-mono.svg" alt="" class="auth-brand-logo" /><span>AI Radar</span></div>
+        <h3 id="authTitle" class="auth-title">Sign in to create</h3>
+        <p class="auth-sub">One account for AI Creator, Prompt Lab &amp; Video Studio. No password — we email you a code.</p>
+
+        <!-- Step 1: email -->
+        <form id="authEmailForm" class="auth-form">
+          <label class="auth-label" for="authEmailInput">Email</label>
+          <input id="authEmailInput" class="auth-input" type="email" required autocomplete="email" placeholder="you@example.com" />
+          <button type="submit" class="button primary auth-submit" id="authEmailSubmit">Send me a code</button>
+        </form>
+
+        <!-- Step 2: code -->
+        <form id="authCodeForm" class="auth-form" hidden>
+          <label class="auth-label" for="authCodeInput">Enter the 6-digit code sent to <b id="authSentTo"></b></label>
+          <input id="authCodeInput" class="auth-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="••••••" />
+          <button type="submit" class="button primary auth-submit" id="authCodeSubmit">Verify &amp; sign in</button>
+          <button type="button" class="auth-back" id="authBackBtn">← Use a different email</button>
+        </form>
+
+        <p id="authError" class="auth-error" hidden></p>
+      </div>
+    </div>
+
+    <script>
+      /* ── Unified auth for airadar.me — one login shared across the whole
+         domain (main site + /studio + /dashboard) via a host-only cookie the
+         studio Worker sets. All calls hit same-origin /api/* which Cloudflare
+         routes to the Worker. ───────────────────────────────────────────── */
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const modal = $("authModal");
+        const err = $("authError");
+        let email = "";
+
+        const showErr = (m) => { err.textContent = m; err.hidden = false; };
+        const clearErr = () => { err.hidden = true; };
+        const openModal = () => { modal.hidden = false; clearErr(); $("authEmailInput").focus(); };
+        const closeModal = () => { modal.hidden = true; };
+
+        async function api(path, body) {
+          const res = await fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            credentials: "include",
+          });
+          return res.json().catch(() => ({ ok: false, error: "Network error" }));
+        }
+
+        // Reflect signed-in state in the header
+        async function refreshAuth() {
+          try {
+            const me = await fetch("/api/me", { credentials: "include" }).then((r) => r.json());
+            if (me && me.ok && me.user) {
+              $("authSignInBtn").hidden = true;
+              $("authAccount").hidden = false;
+              $("authInitial").textContent = (me.user.email[0] || "?").toUpperCase();
+              $("authEmail").textContent = me.user.email;
+              $("authCredits").textContent = (me.credits ?? 0) + " credits";
+            } else {
+              $("authSignInBtn").hidden = false;
+              $("authAccount").hidden = true;
+            }
+          } catch (_) { /* offline — leave as signed-out */ }
+        }
+
+        // Header buttons
+        $("authSignInBtn").addEventListener("click", openModal);
+        $("authCloseBtn").addEventListener("click", closeModal);
+        $("authModalBackdrop").addEventListener("click", closeModal);
+
+        // Account menu
+        const menu = $("authMenu");
+        $("authAccountBtn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          menu.hidden = !menu.hidden;
+        });
+        document.addEventListener("click", (e) => {
+          if (!$("authAccount").contains(e.target)) menu.hidden = true;
+        });
+        $("authLogoutBtn").addEventListener("click", async () => {
+          await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+          menu.hidden = true;
+          refreshAuth();
+        });
+
+        // Step 1 — request code
+        $("authEmailForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr();
+          const btn = $("authEmailSubmit");
+          email = $("authEmailInput").value.trim();
+          btn.disabled = true; btn.textContent = "Sending…";
+          const r = await api("/api/auth/request-otp", { email });
+          btn.disabled = false; btn.textContent = "Send me a code";
+          if (!r.ok) return showErr(r.error || "Couldn't send the code. Try again.");
+          $("authSentTo").textContent = email;
+          $("authEmailForm").hidden = true;
+          $("authCodeForm").hidden = false;
+          $("authCodeInput").focus();
+        });
+
+        // Step 2 — verify
+        $("authCodeForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr();
+          const btn = $("authCodeSubmit");
+          const code = $("authCodeInput").value.trim();
+          btn.disabled = true; btn.textContent = "Verifying…";
+          const r = await api("/api/auth/verify-otp", { email, code });
+          btn.disabled = false; btn.textContent = "Verify & sign in";
+          if (!r.ok) return showErr(r.error || "That code didn't work.");
+          closeModal();
+          $("authCodeForm").hidden = true;
+          $("authEmailForm").hidden = false;
+          $("authCodeInput").value = "";
+          refreshAuth();
+        });
+
+        $("authBackBtn").addEventListener("click", () => {
+          clearErr();
+          $("authCodeForm").hidden = true;
+          $("authEmailForm").hidden = false;
+        });
+
+        // Let any element with data-requires-auth open the modal when signed out
+        document.addEventListener("click", (e) => {
+          const t = e.target.closest("[data-requires-auth]");
+          if (t && $("authSignInBtn").hidden === false) { e.preventDefault(); openModal(); }
+        });
+
+        // Wire the "free" promo popup's primary CTA to open this login modal
+        // (the popup is added separately; find its "Try it free" button by text).
+        function wireFreePopup() {
+          const btns = document.querySelectorAll(".free-popup-actions .button, .free-popup button, [id^='freePopup']");
+          btns.forEach((b) => {
+            const t = (b.textContent || "").trim().toLowerCase();
+            if (t.includes("try it free") || t.includes("sign in") || t.includes("start")) {
+              b.addEventListener("click", (e) => {
+                if (b.id === "freePopupDismiss") return;
+                e.preventDefault();
+                const pop = b.closest(".free-popup, [class*='free-popup']");
+                if (pop) pop.hidden = true;
+                openModal();
+              });
+            }
+          });
+        }
+        wireFreePopup();
+
+        // Expose so other scripts can trigger it
+        window.AIRadarAuth = { open: openModal, refresh: refreshAuth };
+        refreshAuth();
+      })();
+    </script>
+
     <script src="app.js?v=v352"></script>
 
     <script>
@@ -2471,7 +2650,7 @@
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Video Studio — free in your browser</li>
         </ul>
         <div class="free-popup-actions">
-          <a href="https://aistudio-web.aliniashyn-9b4.workers.dev/studio" class="button primary" style="width:100%;">Try it free</a>
+          <a href="/studio" class="button primary" style="width:100%;">Try it free</a>
           <button class="button ghost" id="freePopupDismiss" type="button" style="width:100%;">Maybe later</button>
         </div>
       </div>
