@@ -1615,7 +1615,9 @@
         // Expose so other scripts can trigger it
         window.AIRadarAuth = { open: openModal, refresh: refreshAuth };
         refreshAuth();
-      })();
+        // Sub-pages (Prompt Lab / AI Creator / Video Studio) send signed-out
+        // users here with ?signin=1 so the one shared login modal opens.
+        if (new URLSearchParams(location.search).get("signin")) openModal();
     </script>
 
     <script src="app.js?v=v352"></script>
