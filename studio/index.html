@@ -652,6 +652,28 @@
       box-shadow:0 2px 6px rgba(37,99,255,.5)}
     [dir=rtl] #videoStudio .template-card.selected::after{right:auto;left:4px}
 
+    /* After-Effects-style tab bar: 4 equal segments, icon over label */
+    #videoStudio .vtab-bar{display:grid!important;grid-template-columns:repeat(4,1fr);gap:6px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;padding:6px}
+    #videoStudio .vtab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:11px 4px 9px;min-height:60px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;text-align:center}
+    #videoStudio .vtab::before{font-size:19px;line-height:1;font-weight:400;opacity:.95}
+    #videoStudio .vtab[data-vtab="template"]::before{content:"▦"}
+    #videoStudio .vtab[data-vtab="slides"]::before{content:"❏"}
+    #videoStudio .vtab[data-vtab="logo"]::before{content:"★"}
+    #videoStudio .vtab[data-vtab="format"]::before{content:"⭳"}
+    #videoStudio .vtab:hover{color:#fff;background:rgba(255,255,255,.05)}
+    #videoStudio .vtab.active{background:linear-gradient(135deg,#3b78ff,#2563ff);color:#fff;border-color:rgba(255,255,255,.16);box-shadow:0 6px 18px rgba(37,99,255,.35)}
+    #videoStudio .vtab.active::before{opacity:1}
+
+    /* Current-page nav item lights up blue (the sidebar didn't before) */
+    .nav-group-grid a[aria-current="page"]{
+      background:linear-gradient(135deg,rgba(59,120,255,.22),rgba(37,99,255,.14))!important;
+      border-color:rgba(59,120,255,.5)!important;color:#fff!important;
+      box-shadow:inset 0 0 0 1px rgba(59,120,255,.25)}
+    .nav-group-grid a[aria-current="page"] .nav-ic{color:#8fbaff}
+
+    /* Prompt Lab flask icon sits neatly in the nav glyph slot */
+    .nav-ic .lab-ic,.arh-ic.lab-ic{width:1.12em;height:1.12em;vertical-align:-.18em;display:inline-block}
+
     /* Phones/tablets: fall back to normal scrolling so nothing is trapped */
     @media (max-width:860px){
       body{overflow:auto}
@@ -690,7 +712,7 @@
             <p class="nav-group-title" data-i18n="navGroupCreate">Create</p>
             <div class="nav-group-grid">
               <a href="/Creator"><span class="nav-ic">✦</span><span class="nav-tx">AI Creator</span><span class="nav-new">NEW</span></a>
-              <a href="/prompt-lab/"><span class="nav-ic">↗</span><span class="nav-tx">Prompt Lab</span><span class="nav-new">NEW</span></a>
+              <a href="/prompt-lab/"><span class="nav-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span><span class="nav-tx">Prompt Lab</span><span class="nav-new">NEW</span></a>
               <a href="/studio"><span class="nav-ic">▶</span><span class="nav-tx" data-i18n="navStudio">Video Studio</span><span class="nav-new">NEW</span></a>
             </div>
           </div>
@@ -987,8 +1009,8 @@
               <div class="vtab-bar" role="tablist">
                 <button class="vtab active" type="button" data-vtab="template" data-i18n="vTabTemplate">Template</button>
                 <button class="vtab" type="button" data-vtab="slides" data-i18n="vTabSlides">Slides</button>
-                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo &amp; cards</button>
-                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Format &amp; export</button>
+                <button class="vtab" type="button" data-vtab="logo" data-i18n="vTabLogo">Logo</button>
+                <button class="vtab" type="button" data-vtab="format" data-i18n="vTabFormat">Export</button>
               </div>
 
               <div class="vstudio-block" data-vtab-panel="template">
@@ -2451,7 +2473,38 @@
       })();
     </script>
 
-    <script src="/app.js?v=v352"></script>
+    <!-- Page fade in/out + current-page nav highlight (shared behaviour) -->
+    <style>
+      @keyframes pgFadeIn{from{opacity:0}to{opacity:1}}
+      body{animation:pgFadeIn .34s ease}
+      body.pg-leaving{opacity:0!important;transition:opacity .26s ease}
+    </style>
+    <script>
+      (function(){
+        try{
+          var here=location.pathname.replace(/index\.html$/,'');
+          document.querySelectorAll('.nav-group-grid a[href],.arh-nav a[href]').forEach(function(a){
+            var p;try{p=new URL(a.getAttribute('href'),location.href).pathname.replace(/index\.html$/,'');}catch(_){return;}
+            if(p==='/')return;
+            if(p===here||here.indexOf(p)===0)a.setAttribute('aria-current','page');
+          });
+        }catch(_){}
+        var b=document.body;
+        document.addEventListener('click',function(e){
+          var a=e.target.closest('a[href]');if(!a)return;
+          var raw=a.getAttribute('href')||'';if(!raw||raw.charAt(0)==='#')return;
+          if(a.target==='_blank'||a.hasAttribute('download')||e.metaKey||e.ctrlKey||e.shiftKey||e.button!==0)return;
+          var url;try{url=new URL(raw,location.href);}catch(_){return;}
+          if(url.origin!==location.origin||url.href===location.href)return;
+          if(url.pathname===location.pathname&&url.hash)return;
+          e.preventDefault();b.classList.add('pg-leaving');
+          setTimeout(function(){location.href=url.href;},260);
+        });
+        window.addEventListener('pageshow',function(){b.classList.remove('pg-leaving');});
+      })();
+    </script>
+
+    <script src="/app.js?v=v353"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

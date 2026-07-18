@@ -1,3 +1,19 @@
+/* Smooth page fade in / out (paired with the shared page-fx inline script) */
+@keyframes pgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+body { animation: pgFadeIn 0.34s ease; }
+body.pg-leaving { opacity: 0 !important; transition: opacity 0.26s ease; }
+
+/* Current-page nav item lights up blue */
+.nav-group-grid a[aria-current="page"] {
+  background: linear-gradient(135deg, rgba(59,120,255,0.22), rgba(37,99,255,0.14)) !important;
+  border-color: rgba(59,120,255,0.5) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(59,120,255,0.25);
+}
+.nav-group-grid a[aria-current="page"] .nav-ic { color: #8fbaff; }
+/* Prompt Lab flask icon fits the nav glyph slot */
+.nav-ic .lab-ic, .arh-ic .lab-ic { width: 1.12em; height: 1.12em; vertical-align: -0.18em; display: inline-block; }
+
 :root {
   color-scheme: dark;
   /* AI Radar brand — Midnight Navy base, Electric Blue + Cyan Glow accents */
