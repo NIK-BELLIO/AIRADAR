@@ -1,7 +1,10 @@
-/* Smooth page fade in / out (paired with the shared page-fx inline script) */
-@keyframes pgFadeIn { from { opacity: 0; } to { opacity: 1; } }
-body { animation: pgFadeIn 0.34s ease; }
-body.pg-leaving { opacity: 0 !important; transition: opacity 0.26s ease; }
+/* Smooth cross-document navigation: the nav bar stays put while the page
+   content transitions (Higgsfield-style). Native, and degrades to a normal
+   load on browsers without the View Transitions API. */
+@view-transition { navigation: auto; }
+.sidebar { view-transition-name: airadar-header; }
+.arh { view-transition-name: airadar-header; }
+::view-transition-group(airadar-header) { animation-duration: 0.28s; }
 
 /* Current-page nav item lights up blue */
 .nav-group-grid a[aria-current="page"] {

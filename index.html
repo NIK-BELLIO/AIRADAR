@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v323" />
+    <link rel="stylesheet" href="styles.css?v=v324" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1618,9 +1618,10 @@
         // Sub-pages (Prompt Lab / AI Creator / Video Studio) send signed-out
         // users here with ?signin=1 so the one shared login modal opens.
         if (new URLSearchParams(location.search).get("signin")) openModal();
+      })();
     </script>
 
-    <!-- Page fade in/out + current-page nav highlight (shared behaviour) -->
+    <!-- Current-page nav highlight (smooth nav handled by CSS @view-transition) -->
     <script>
       (function(){
         try{
@@ -1631,18 +1632,6 @@
             if(p===here||here.indexOf(p)===0)a.setAttribute('aria-current','page');
           });
         }catch(_){}
-        var b=document.body;
-        document.addEventListener('click',function(e){
-          var a=e.target.closest('a[href]');if(!a)return;
-          var raw=a.getAttribute('href')||'';if(!raw||raw.charAt(0)==='#')return;
-          if(a.target==='_blank'||a.hasAttribute('download')||e.metaKey||e.ctrlKey||e.shiftKey||e.button!==0)return;
-          var url;try{url=new URL(raw,location.href);}catch(_){return;}
-          if(url.origin!==location.origin||url.href===location.href)return;
-          if(url.pathname===location.pathname&&url.hash)return;
-          e.preventDefault();b.classList.add('pg-leaving');
-          setTimeout(function(){location.href=url.href;},260);
-        });
-        window.addEventListener('pageshow',function(){b.classList.remove('pg-leaving');});
       })();
     </script>
 
@@ -1870,9 +1859,10 @@
         backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
         display:flex;align-items:center;justify-content:center;padding:20px;
         opacity:0;pointer-events:none;transition:opacity .25s ease;}
-      .free-popup-backdrop.show{opacity:1;pointer-events:auto;}
+      .free-popup-backdrop.show{opacity:1;}
+      .free-popup-backdrop:not(.show){display:none;}
       .free-popup{position:relative;width:100%;max-width:420px;border-radius:22px;
-        padding:32px 28px 26px;text-align:center;overflow:hidden;
+        pointer-events:auto;padding:32px 28px 26px;text-align:center;overflow:hidden;
         background:linear-gradient(165deg,rgba(37,99,255,.16),rgba(11,16,32,.98) 55%);
         border:1px solid rgba(91,141,255,.34);
         box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 60px -20px rgba(37,99,255,.4);

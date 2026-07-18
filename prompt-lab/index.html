@@ -341,26 +341,14 @@
       init();
     </script>
   <style>
-    @keyframes pgFadeIn{from{opacity:0}to{opacity:1}}
-    body{animation:pgFadeIn .34s ease}
-    body.pg-leaving{opacity:0!important;transition:opacity .26s ease}
+    /* Smooth cross-document nav — the header stays put while content changes */
+    @view-transition{navigation:auto}
+    .arh{view-transition-name:airadar-header}
+    ::view-transition-group(airadar-header){animation-duration:.28s}
     .arh-ic .lab-ic{width:1.12em;height:1.12em;vertical-align:-.18em;display:inline-block}
   </style>
   <script id="arh-js">
 (function(){
-  // Smooth fade-out when navigating to another page.
-  var b=document.body;
-  document.addEventListener('click',function(e){
-    var a=e.target.closest('a[href]');if(!a)return;
-    var raw=a.getAttribute('href')||'';if(!raw||raw.charAt(0)==='#')return;
-    if(a.target==='_blank'||a.hasAttribute('download')||e.metaKey||e.ctrlKey||e.shiftKey||e.button!==0)return;
-    var url;try{url=new URL(raw,location.href);}catch(_){return;}
-    if(url.origin!==location.origin||url.href===location.href)return;
-    if(url.pathname===location.pathname&&url.hash)return;
-    e.preventDefault();b.classList.add('pg-leaving');
-    setTimeout(function(){location.href=url.href;},260);
-  });
-  window.addEventListener('pageshow',function(){b.classList.remove('pg-leaving');});
   var si=document.getElementById('arhSignIn'), av=document.getElementById('arhAvatar');
   fetch('/api/me',{credentials:'include'}).then(function(r){return r.json();}).then(function(me){
     if(me&&me.ok&&me.user){ if(si)si.hidden=true; if(av){av.hidden=false; av.textContent=(me.user.email[0]||'?').toUpperCase();} }
