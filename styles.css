@@ -5,10 +5,17 @@
 .arh { view-transition-name: airadar-header; }
 ::view-transition-group(airadar-header) { animation-duration: 0.28s; }
 
+/* Dark root kills the white flash between page loads (html was transparent).
+   Combined with the identical .arh header on every page, navigating reads as a
+   clean swap with no white flash. (An animated cross-page fade would need the
+   View Transitions API, which the browser is currently skipping, or an opacity
+   fade that risks getting stuck invisible when throttled — so we keep neither.) */
+html { background: #0b1020; }
+
 /* ── Unified top header (.arh) — identical on every page ───────── */
 .arh{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:22px;padding:13px clamp(18px,4vw,60px);background:rgba(9,13,27,.82);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.07)}
 .arh-logo{flex:0 0 auto;display:block}
-.arh-logo img{width:36px;height:36px;border-radius:9px;display:block}
+.arh-logo img{width:38px;height:38px;display:block}
 .arh-nav{flex:1 1 auto;display:flex;justify-content:center;align-items:center;gap:2px;flex-wrap:wrap}
 .arh-link{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;color:#b8c6e6;text-decoration:none;white-space:nowrap;transition:background .16s,color .16s}
 .arh-link:hover{background:rgba(59,120,255,.12);color:#fff}
