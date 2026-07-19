@@ -1,18 +1,29 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" class="pl-loading">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>Prompt Lab - Original AI prompt library</title>
+    <title>PROMPT LAB - ORIGINAL AI PROMPT LIBRARY</title>
     <meta name="description" content="A large original prompt library organized by AI model and category with copy-ready prompts, settings, and JSON." />
-    <meta property="og:title" content="Prompt Lab - Original AI prompt library" />
+    <meta property="og:title" content="PROMPT LAB - ORIGINAL AI PROMPT LIBRARY" />
     <meta property="og:url" content="https://airadar.me/prompt-lab/" />
     <meta property="og:type" content="website" />
     <link rel="canonical" href="https://airadar.me/prompt-lab/" />
-    <link rel="icon" href="./assets/logo.png" />
+    <link rel="icon" type="image/svg+xml" href="/prompt-lab/assets/favicon.svg" />
+    <link rel="shortcut icon" type="image/svg+xml" href="/prompt-lab/assets/favicon.svg" />
+    <style id="pl-critical">
+      html.pl-loading{background:#020611;color:#f8fafc}
+      html.pl-loading body{visibility:hidden;background:#020611}
+      html.pl-loading:before{content:"PROMPT LAB";position:fixed;inset:0;z-index:999999;display:grid;place-items:center;background:radial-gradient(circle at 50% 20%,rgba(34,211,238,.18),transparent 34%),linear-gradient(135deg,#020611,#07182f 70%,#020611);font:900 clamp(34px,7vw,78px)/1 Inter,system-ui,sans-serif;letter-spacing:-.06em;color:#fff}
+      html.pl-loading:after{content:"";position:fixed;left:50%;top:calc(50% + 72px);z-index:1000000;width:180px;height:3px;border-radius:99px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,#22d3ee,#2563ff,transparent);animation:plPulse .9s ease-in-out infinite alternate}
+      @keyframes plPulse{from{opacity:.35;filter:saturate(.8)}to{opacity:1;filter:saturate(1.4)}}
+    </style>
+    <script>
+      window.addEventListener("DOMContentLoaded",function(){requestAnimationFrame(function(){document.documentElement.classList.remove("pl-loading");document.documentElement.classList.add("pl-ready")})});
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet" />
@@ -98,7 +109,7 @@
       <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg" alt="AI Radar" /></a>
       <nav class="arh-nav">
         <a href="/Creator" class="arh-link" data-arh="creator"><span class="arh-ic">✦</span>AI Creator<span class="arh-new">NEW</span></a>
-        <a href="/prompt-lab/" class="arh-link" data-arh="prompt"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>Prompt Lab<span class="arh-new">NEW</span></a>
+        <a href="/prompt-lab/" class="arh-link" data-arh="prompt"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>PROMPT LAB<span class="arh-new">NEW</span></a>
         <a href="/studio/" class="arh-link" data-arh="studio"><span class="arh-ic">▶</span>Video Studio<span class="arh-new">NEW</span></a>
       </nav>
       <div class="arh-right">
@@ -111,7 +122,7 @@
       <section class="hero" id="overview">
         <div class="heroMain simple">
           <div class="heroCopy">
-            <h1><span class="heroTitleText">Prompt Lab</span></h1>
+            <h1><span class="heroTitleText">PROMPT LAB</span></h1>
             <p class="lead">Search one word, choose the model, and copy a prompt that is written for that model’s real grammar — video, image, JSON, settings, and negative prompt included.</p>
             <div class="metricLine"><span>1,281,024 generated prompt systems</span><span>84 AI skills and GitHub systems</span><span>Video / Image separated</span></div>
             <div class="heroActions"><a href="#builder">Build from one word</a><a href="#library">Video / Image library</a><a href="#skills">Claude / GPT skills</a></div>
