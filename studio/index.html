@@ -1117,7 +1117,42 @@
                             </optgroup>
                           </select>
                         </label>
-                        <input type="hidden" id="vsTextAnim" value="fade-up" />
+                        <label><span data-i18n="vTextAnimLabel">Text animation</span>
+                          <select id="vsTextAnim">
+                            <optgroup label="◦ Simple">
+                              <option value="none">None (instant)</option>
+                              <option value="fade">Fade</option>
+                              <option value="fade-up" selected>Fade up</option>
+                              <option value="fade-down">Fade down</option>
+                              <option value="blur-in">Blur in</option>
+                            </optgroup>
+                            <optgroup label="↔ Slide">
+                              <option value="slide-up">Slide up</option>
+                              <option value="slide-down">Slide down</option>
+                              <option value="slide-left">Slide left</option>
+                              <option value="slide-right">Slide right</option>
+                              <option value="glide-in">Glide</option>
+                              <option value="drift">Drift</option>
+                            </optgroup>
+                            <optgroup label="⬤ Scale &amp; pop">
+                              <option value="pop">Pop</option>
+                              <option value="spring">Spring</option>
+                              <option value="zoom-in">Zoom in</option>
+                              <option value="zoom-out">Zoom out</option>
+                              <option value="punch">Punch (impact)</option>
+                              <option value="drop">Drop</option>
+                            </optgroup>
+                            <optgroup label="✦ Kinetic / motion-graphic">
+                              <option value="rise">Rise</option>
+                              <option value="rise-spring">Rise + bounce</option>
+                              <option value="bounce">Bounce</option>
+                              <option value="swing">Swing</option>
+                              <option value="flip">Flip</option>
+                              <option value="vox">Vox snap</option>
+                              <option value="typewriter">Typewriter</option>
+                            </optgroup>
+                          </select>
+                        </label>
                         <label><span data-i18n="vOverlayLabel">Overlay element</span>
                           <select id="vsOverlay">
                             <option value="none">None</option>
@@ -2494,7 +2529,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v353"></script>
+    <script src="/app.js?v=v354"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

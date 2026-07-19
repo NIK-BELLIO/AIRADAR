@@ -12264,6 +12264,12 @@ function bindEvents() {
     if (vstudio.slides.length) vsSaveActiveSlide();
     previewStudioVideo(false);
   });
+  // Text animation: same as camera motion — save to the active slide and play
+  // a short preview so the chosen entrance is actually visible.
+  on("#vsTextAnim", "change", () => {
+    if (vstudio.slides.length) vsSaveActiveSlide();
+    previewStudioVideo(false);
+  });
   // AI image generation for the active slide
   on("#vsImgGenBtn", "click", () => vsGenerateImageForActiveSlide());
   on("#vsSlideCaption", "input", (e) => {
