@@ -4653,11 +4653,14 @@ async function buildAutoVideo(useAI) {
   let text = (inp && inp.value || "").trim();
   let url = (urlInp && urlInp.value || "").trim();
 
-  // "/motion_graphic <url>" — the motion-graphic skill command. Strip the
-  // command word (and lenient variants: /mg, /motion-graphic, /motion graphic),
-  // then pull the article URL out of whatever the user typed, e.g.
-  //   /motion_graphic build a motion video for this: https://example.com/story
-  text = text.replace(/^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b[:\s]*/i, "").trim();
+  // "/motion_graphic <url or topic>" — the motion-graphic skill command. Strip
+  // the command word (lenient variants: /mg, /motion-graphic, /motion graphic).
+  // When this command is used the video is built as a REAL motion graphic —
+  // every scene gets an animated generated background (Hera-style) instead of
+  // stock footage — whether the input is a link or just a topic.
+  const cmdRe = /^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b[:\s]*/i;
+  vstudio._motionGfxMode = cmdRe.test(text);
+  text = text.replace(cmdRe, "").trim();
 
   // If the user pasted a URL anywhere in the topic box (Smart mode hides the URL
   // field), treat it as the article link to fetch rather than raw script text.
@@ -5674,6 +5677,39 @@ async function vsGenerateNarrationLegacy(data, voice) {
 
 async function vsAutoGenerateBackgrounds(data) {
   const slides = vstudio.slides;
+
+  // ── Motion-graphic mode (the /motion_graphic skill) ──
+  // Instead of stock footage, give every content scene an animated generated
+  // background so the whole video is a real motion graphic. Backgrounds are
+  // varied and themed loosely by mood; the kinetic text + infographics render
+  // on top via the normal draw path.
+  if (vstudio._motionGfxMode) {
+    const themeStr = String((data && (data._topic || data.subtitle || data.title)) || "").toLowerCase();
+    // pick a background family that fits the mood of the topic
+    let pool;
+    if (/war|conflict|fire|crisis|attack|danger|dark|fantasy|apocalyp|dystop/.test(themeStr)) {
+      pool = ["cine-ember", "cine-violet", "royal", "noir-gradient", "starfield", "sunburst", "prism", "halo"];
+    } else if (/tech|ai|future|data|crypto|digital|cyber|space/.test(themeStr)) {
+      pool = ["particles", "starfield", "grid-lux", "mesh", "cine-mesh", "royal", "aurora", "halo"];
+    } else if (/nature|calm|health|wellness|ocean|green|climate/.test(themeStr)) {
+      pool = ["aurora", "cine-aurora", "topo", "emerald-soft", "cine-mesh", "wave", "mesh", "halo"];
+    } else {
+      pool = ["cine-aurora", "cine-violet", "aurora", "mesh", "prism", "royal", "sunburst", "halo", "starfield"];
+    }
+    slides.forEach((s, i) => {
+      s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
+      s.settings = s.settings || {};
+      s.settings["#vsMotionBg"] = pool[i % pool.length];
+      // ensure a lively overlay so it reads as motion graphic, not a still
+      if (!s.settings["#vsOverlay"] || s.settings["#vsOverlay"] === "none") {
+        s.settings["#vsOverlay"] = ["particles", "shimmer", "bokeh", "glow", "dust"][i % 5];
+      }
+    });
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
+    return;
+  }
+
   const palette = (data && data.palette) || "cinematic";
   const camMoves = ["kenburns-in", "kenburns-out", "pan-right", "pan-left",
                     "zoom-pan", "drift-up", "pan-up", "handheld"];
@@ -9751,6 +9787,23 @@ function drawStudioFrame(elapsed) {
     else bgMotionT = (elapsed) / Math.max(0.01, studioDuration());
     bgMotionT = Math.max(0, Math.min(1, bgMotionT));
     if (!(vstudio.looping || vstudio.rendering)) bgMotionT = 0.4;
+
+    // ── Animated motion-graphic background (Hera-style) ──
+    // A scene can carry a "#vsMotionBg" background id instead of stock footage;
+    // when set, draw the fully-animated generated background (gradients/waves/
+    // particles that actually move) with its graphics layer, and let the kinetic
+    // text / infographic render on top. This is what makes a real motion-graphic
+    // video rather than footage + text.
+    const motionBg = (dsSettings && dsSettings["#vsMotionBg"]) || "";
+    if (motionBg && motionBg !== "none") {
+      drawIntroBackground(ctx, W, H, motionBg, elapsed);
+      try {
+        const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
+        drawIntroGraphics(ctx, W, H, _mbg, elapsed, bgMotionT);
+      } catch (e) {}
+      // motion-graphic scenes get their entrance/overlay handled by the normal
+      // content path below — skip the flat template gradient.
+    } else {
     const bgMot = (dsSettings && "#vsMotion" in dsSettings) ? dsSettings["#vsMotion"] : vsVal("#vsMotion", "kenburns-in");
     let bgZoom = 1, bgX = 0, bgY = 0;
     switch (bgMot) {
@@ -9779,6 +9832,7 @@ function drawStudioFrame(elapsed) {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(-W*0.1, -H*0.1, W*1.2, H*1.2);
     ctx.restore();
+    }
   }
 
   // resolver: read a per-slide control value (saved settings or live control)
