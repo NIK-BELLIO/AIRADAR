@@ -4296,6 +4296,18 @@ function bindIntroEditor() {
 
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
+  // Skill command: typing "/motion_graphic <url>" and pressing Enter builds the
+  // motion-graphic video straight away (Shift+Enter still inserts a newline).
+  const autoTopic = $("#vsAutoTopic");
+  if (autoTopic) {
+    autoTopic.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      if (/^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b/i.test(autoTopic.value.trim())) {
+        e.preventDefault();
+        buildAutoVideo(true);
+      }
+    });
+  }
 }
 
 // Compute the canvas size from the chosen aspect ratio.
@@ -4641,11 +4653,20 @@ async function buildAutoVideo(useAI) {
   let text = (inp && inp.value || "").trim();
   let url = (urlInp && urlInp.value || "").trim();
 
-  // If the user pasted a URL into the topic box (Smart mode hides the URL
-  // field), treat it as a link to fetch rather than raw script text.
+  // "/motion_graphic <url>" — the motion-graphic skill command. Strip the
+  // command word (and lenient variants: /mg, /motion-graphic, /motion graphic),
+  // then pull the article URL out of whatever the user typed, e.g.
+  //   /motion_graphic build a motion video for this: https://example.com/story
+  text = text.replace(/^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b[:\s]*/i, "").trim();
+
+  // If the user pasted a URL anywhere in the topic box (Smart mode hides the URL
+  // field), treat it as the article link to fetch rather than raw script text.
   if (!url) {
-    const trimmed = text.replace(/\s+/g, "");
-    if (/^https?:\/\/\S+$/i.test(trimmed)) { url = trimmed; text = ""; }
+    const m = text.match(/https?:\/\/\S+/i);
+    if (m) {
+      url = m[0].replace(/[)>\]\.,]+$/, "");   // trim trailing punctuation
+      text = "";                                // the fetched article is the source
+    }
   }
 
   if (url) {
@@ -5721,6 +5742,10 @@ async function vsAutoGenerateBackgrounds(data) {
       fallbackQuery = firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length]) : "cinematic city";
     }
     const cam = camMoves[i % camMoves.length];
+    // Professional kinetic-typography rotation so each scene's text enters
+    // differently (the Hera-style motion-graphic feel), instead of every
+    // scene using the same fade-up.
+    const txAnim = ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"][i % 8];
 
     // 1) real Pexels footage — primary query, then a reliable fallback query
     if (pexelsOn && pexelsKey) {
@@ -5732,7 +5757,7 @@ async function vsAutoGenerateBackgrounds(data) {
         if (media && !vstudio._batchCancel) {
           s.mediaEl = media; s.isVideo = (media.tagName === "VIDEO");
           s.ready = true; s.url = media.currentSrc || media.src;
-          s.settings = s.settings || {}; s.settings["#vsMotion"] = cam;
+          s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
           made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
           return;
         }
@@ -5747,7 +5772,7 @@ async function vsAutoGenerateBackgrounds(data) {
       const img = await vsGenerateImage(subjectCtx + ", " + palette + " color palette, editorial photography", null);
       if (img && !vstudio._batchCancel) {
         s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
-        s.settings = s.settings || {}; s.settings["#vsMotion"] = cam;
+        s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
         made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
       }
     } catch (e) { /* keep colored background on failure */ }
