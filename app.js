@@ -11817,7 +11817,10 @@ function vsLoadFfmpegScript() {
   if (_vsFfmpegScriptPromise) return _vsFfmpegScriptPromise;
   _vsFfmpegScriptPromise = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "vendor/ffmpeg/ffmpeg.js";
+    // ROOT-absolute: the studio also runs from /studio/, where a relative
+    // "vendor/…" resolves to /studio/vendor/… and 404s — which silently broke
+    // every MP4 export (it fell back to WebM).
+    s.src = "/vendor/ffmpeg/ffmpeg.js";
     s.onload = () => resolve();
     s.onerror = () => reject(new Error("MP4 converter library failed to load."));
     document.head.appendChild(s);
@@ -11834,7 +11837,7 @@ async function vsGetFfmpeg() {
   // must be an absolute (or "./") URL — a bare relative path like
   // "vendor/ffmpeg/ffmpeg-core.js" fails as an unresolvable module specifier
   // inside the core's own dynamic import.
-  await ffmpeg.load({ coreURL: new URL("vendor/ffmpeg/ffmpeg-core.js", document.baseURI).href });
+  await ffmpeg.load({ coreURL: new URL("/vendor/ffmpeg/ffmpeg-core.js", location.origin).href });
   _vsFfmpeg = ffmpeg;
   return ffmpeg;
 }
