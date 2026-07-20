@@ -9507,6 +9507,73 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
   ctx.restore();
 }
 
+// ── Cinematic depth layers ────────────────────────────────────────────────
+// What lifts generated scenes ABOVE a flat template (MAISON/Hera are flat
+// compositions): three parallax depth planes of soft motifs that drift at
+// different rates, a travelling volumetric light sweep, and a breathing
+// vignette. Together they read as real depth + atmosphere rather than a
+// gradient with text on it. Cheap enough to run every frame.
+function drawCinematicLayers(ctx, W, H, t, prog, accent) {
+  const U = Math.min(W, H);
+  ctx.save();
+
+  // 1) Parallax planes — far = big/soft/slow, near = small/crisp/fast.
+  // Softness comes from radial-gradient fills, NOT ctx.filter blur: canvas
+  // blur is very expensive and would drop frames during export.
+  const planes = [
+    { n: 5, r: 0.30, sp: 0.05, a: 0.055, soft: 0.55 },
+    { n: 7, r: 0.15, sp: 0.13, a: 0.070, soft: 0.72 },
+    { n: 9, r: 0.05, sp: 0.26, a: 0.095, soft: 0.90 }
+  ];
+  planes.forEach((p, pi) => {
+    ctx.globalAlpha = p.a;
+    for (let i = 0; i < p.n; i++) {
+      const seed = i * 97 + pi * 31;
+      // wrap horizontally so the plane travels continuously, never pops
+      const x = ((((seed % 100) / 100) + t * p.sp * 0.35) % 1.2 - 0.1) * W;
+      const y = H * (0.10 + ((seed * 7) % 82) / 100);
+      const rr = U * p.r * (0.6 + ((seed * 13) % 40) / 100);
+      const wob = Math.sin(t * (0.4 + pi * 0.25) + seed) * U * 0.02;
+      const col = (i % 4 === 0) ? accent : "#ffffff";
+      // soft-edged fill: opaque core fading to transparent at the rim
+      const rg = ctx.createRadialGradient(x, y + wob, rr * p.soft * 0.35, x, y + wob, rr);
+      rg.addColorStop(0, col);
+      rg.addColorStop(p.soft, col);
+      rg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      if (i % 3 === 0) {
+        ctx.arc(x, y + wob, rr, 0, Math.PI * 2);
+      } else {
+        const w2 = rr * 1.7, h2 = rr * 0.62;
+        roundRectPath(ctx, x - w2 / 2, y + wob - h2 / 2, w2, h2, h2 / 2);
+      }
+      ctx.fill();
+    }
+  });
+  ctx.globalAlpha = 1;
+
+  // 2) Volumetric light sweep — a soft band crossing the frame
+  const sweepX = (((t * 0.11) % 1.6) - 0.3) * W;
+  const lg = ctx.createLinearGradient(sweepX - U * 0.55, 0, sweepX + U * 0.55, H);
+  lg.addColorStop(0, "rgba(255,255,255,0)");
+  lg.addColorStop(0.5, "rgba(255,255,255,0.055)");
+  lg.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.globalCompositeOperation = "screen";
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "source-over";
+
+  // 3) Breathing vignette — holds focus centre, adds depth
+  const vg = ctx.createRadialGradient(W / 2, H * 0.46, U * 0.22, W / 2, H * 0.5, U * 0.88);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, `rgba(0,0,0,${(0.36 + Math.sin(t * 0.5) * 0.03).toFixed(3)})`);
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.restore();
+}
+
 function drawStudioFrame(elapsed) {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
@@ -9822,6 +9889,8 @@ function drawStudioFrame(elapsed) {
       try {
         const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
         drawIntroGraphics(ctx, W, H, _mbg, elapsed, bgMotionT);
+        // depth + atmosphere on top of the flat generated background
+        drawCinematicLayers(ctx, W, H, elapsed, bgMotionT, _mbg.accent || "#2563ff");
       } catch (e) {}
       // motion-graphic scenes get their entrance/overlay handled by the normal
       // content path below — skip the flat template gradient.
