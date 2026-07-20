@@ -5715,7 +5715,7 @@ async function vsAutoGenerateBackgrounds(data) {
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
-      s.settings["#vsMotionBg"] = pool[i % pool.length];
+      s.motionBg = pool[i % pool.length];   // on the slide, not settings (survives capture)
       // kinetic word-by-word reveal with the gold accent word + underline wipe
       s.settings["#vsTextAnim"] = "maison-kinetic";
       s.settings["#vsHeadlineFont"] = "Archivo, ui-sans-serif, sans-serif";
@@ -8698,7 +8698,12 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textBaseline = "alphabetic";
       const lblPx = Math.min(Math.round(rowH * 0.34), Math.round(U * 0.022));
       const valPx = Math.min(Math.round(rowH * 0.42), Math.round(U * 0.03));
-      ctx.font = `700 ${valPx}px ${vsGetFont("Prata, serif")}`;
+      // Fit the value like the label already is, so a long value (e.g.
+      // "Domestic substitution") shrinks instead of overflowing and being
+      // clipped by the panel edge. vsFitFont sets ctx.font, so the measure
+      // below reflects the fitted size.
+      vsFitFont(ctx, s.value, rowMaxW * 0.38, "700", vsGetFont("Prata, serif"),
+        valPx, Math.round(U * 0.016));
       const valW = Math.min(ctx.measureText(s.value).width + U * 0.02, rowMaxW * 0.38);
       ctx.fillStyle = ig.value;
       ctx.textAlign = "right";
@@ -8829,7 +8834,10 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
         lblPx2, Math.round(U * 0.014));
       ctx.fillText(s.label, px + padX, ry + rowH * 0.3);
       ctx.textAlign = "right"; ctx.fillStyle = ig.value;
-      ctx.font = `800 ${valPx2}px ${vsGetFont("Prata, serif")}`;
+      // fit the value too — the label is fitted, but a long value used to
+      // overflow the panel and get cut off mid-word
+      vsFitFont(ctx, s.value, rowMaxW2 * 0.38, "800", vsGetFont("Prata, serif"),
+        valPx2, Math.round(U * 0.016));
       ctx.fillText(s.value, px + panelW - padX, ry + rowH * 0.3);
       const pillH2 = Math.min(rowH * 0.32, U * 0.028);
       const pillY = ry + rowH * 0.46;
@@ -9590,10 +9598,17 @@ function drawStudioFrame(elapsed) {
   let dsSettings = null;          // settings of the slide being displayed
   let dsLocal = 0, dsDur = 0;     // local time within that slide
   let introSlide = null;          // the active intro slide, if any
+  // Animated motion-graphic background id for the displayed slide. Kept on the
+  // SLIDE OBJECT (not in settings): settings are rebuilt from live DOM controls
+  // by vsCaptureSettings(), and there is no DOM control for this — storing it in
+  // settings meant it was wiped, and it was also invisible on the slide being
+  // edited (dsSettings is deliberately null for the active slide).
+  let dsMotionBg = "";
   if (vstudio.slides.length) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
+    if (slide) dsMotionBg = slide.motionBg || "";
     if (slide && slide.ready) {
       if (slide.isIntro) {
         introSlide = slide;
@@ -9883,7 +9898,7 @@ function drawStudioFrame(elapsed) {
     // particles that actually move) with its graphics layer, and let the kinetic
     // text / infographic render on top. This is what makes a real motion-graphic
     // video rather than footage + text.
-    const motionBg = (dsSettings && dsSettings["#vsMotionBg"]) || "";
+    const motionBg = dsMotionBg || "";
     if (motionBg && motionBg !== "none") {
       drawIntroBackground(ctx, W, H, motionBg, elapsed);
       try {
