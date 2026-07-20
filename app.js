@@ -3956,6 +3956,18 @@ function drawIntroGraphics(ctx, W, H, bg, t, prog) {
 
 const videoTemplates = [
   {
+    // MAISON — the house style from the Remotion explainer template
+    // (F:\new remotion\MAISON-TEMPLATE.md): charcoal base, one gold accent,
+    // heavy Archivo grotesque headlines. Pairs with the kinetic word reveal
+    // and gold underline wipe in the renderer.
+    id: "maison",
+    name: { en: "MAISON Story", fa: "میزون" },
+    desc: { en: "Charcoal + gold, heavy grotesque, kinetic", fa: "زغالی و طلایی، کینتیک" },
+    bg: "#0E0F0F", accent: "#C99A46", text: "#FFFFFF",
+    headlineFont: "Archivo, ui-sans-serif, sans-serif", vignette: 0.35,
+    maison: true
+  },
+  {
     id: "noir",
     name: { en: "Noir Luxe", fa: "نوآر لوکس" },
     desc: { en: "Deep blacks, gold serif type", fa: "مشکی عمیق، تایپ طلایی" },
@@ -5696,15 +5708,25 @@ async function vsAutoGenerateBackgrounds(data) {
     } else {
       pool = ["cine-aurora", "cine-violet", "aurora", "mesh", "prism", "royal", "sunburst", "halo", "starfield"];
     }
+    // MAISON house style for generated motion graphics (see MAISON-TEMPLATE.md)
+    vstudio.templateId = "maison";
+    const hlFontSel = document.querySelector("#vsHeadlineFont");
+    if (hlFontSel) hlFontSel.value = "Archivo, ui-sans-serif, sans-serif";
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
       s.settings["#vsMotionBg"] = pool[i % pool.length];
+      // kinetic word-by-word reveal with the gold accent word + underline wipe
+      s.settings["#vsTextAnim"] = "maison-kinetic";
+      s.settings["#vsHeadlineFont"] = "Archivo, ui-sans-serif, sans-serif";
+      // vary the vertical position — MAISON rule: never all bottom-anchored
+      s.settings["#vsTextPos"] = ["center", "bottom", "top", "center"][i % 4];
       // ensure a lively overlay so it reads as motion graphic, not a still
       if (!s.settings["#vsOverlay"] || s.settings["#vsOverlay"] === "none") {
         s.settings["#vsOverlay"] = ["particles", "shimmer", "bokeh", "glow", "dust"][i % 5];
       }
     });
+    renderTemplatePicker();
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
     return;
@@ -10191,23 +10213,65 @@ function drawStudioFrame(elapsed) {
 
     // strong shadow as a second safety net for readability
     if (headline) {
-      ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
+      // MAISON headlines are heavy grotesque (800); everything else keeps 600.
+      const isMaison = textAnim === "maison-kinetic";
+      ctx.font = `${isMaison ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
       ctx.fillStyle = fill;
       ctx.shadowColor = "rgba(0,0,0,0.7)";
       ctx.shadowBlur = 20;
-      // typewriter reveals the headline letter by letter
-      const shownHeadline = textAnim === "typewriter"
-        ? headline.slice(0, Math.ceil(rawT * headline.length))
-        : headline;
-      ctx.fillText(shownHeadline, W / 2, baseY);
-      ctx.shadowBlur = 0;
-      const lw = W * 0.12 * tEase;
-      ctx.strokeStyle = accentFill;
-      ctx.lineWidth = Math.max(1, W * 0.002);
-      ctx.beginPath();
-      ctx.moveTo(W / 2 - lw / 2, baseY + W * 0.022);
-      ctx.lineTo(W / 2 + lw / 2, baseY + W * 0.022);
-      ctx.stroke();
+
+      if (isMaison) {
+        // ── MAISON kinetic word reveal (anim.ts `wordIn`) ──
+        // Each word springs up with its own delay (rise + scale + fade); the
+        // final word is the gold accent and gets an underline that wipes in
+        // left→right, exactly like the Remotion template.
+        const words = String(headline).split(/\s+/).filter(Boolean);
+        const accentIdx = words.length > 1 ? words.length - 1 : 0;
+        const gap = ctx.measureText(" ").width;
+        const widths = words.map((w) => ctx.measureText(w).width);
+        const totalW = widths.reduce((a, b) => a + b, 0) + gap * (words.length - 1);
+        let wx = W / 2 - totalW / 2;
+        ctx.textAlign = "center";
+        words.forEach((word, i) => {
+          const d = Math.max(0, Math.min(1, (rawT - i * 0.09) / 0.55));
+          const e = 1 - Math.pow(1 - d, 3);                 // ease-out cubic
+          ctx.save();
+          ctx.globalAlpha = e;
+          ctx.translate(wx + widths[i] / 2, baseY + (1 - e) * hlSize * 0.55);
+          const s = 0.82 + 0.18 * e;
+          ctx.scale(s, s);
+          ctx.fillStyle = (i === accentIdx) ? accentFill : fill;
+          ctx.fillText(word, 0, 0);
+          ctx.restore();
+          // gold underline wipes in under the accent word
+          if (i === accentIdx) {
+            const uw = widths[i] * Math.max(0, Math.min(1, (rawT - i * 0.09 - 0.22) / 0.4));
+            if (uw > 0) {
+              ctx.save();
+              ctx.shadowBlur = 0;
+              ctx.fillStyle = accentFill;
+              ctx.fillRect(wx, baseY + hlSize * 0.24, uw, Math.max(2, hlSize * 0.06));
+              ctx.restore();
+            }
+          }
+          wx += widths[i] + gap;
+        });
+        ctx.shadowBlur = 0;
+      } else {
+        // typewriter reveals the headline letter by letter
+        const shownHeadline = textAnim === "typewriter"
+          ? headline.slice(0, Math.ceil(rawT * headline.length))
+          : headline;
+        ctx.fillText(shownHeadline, W / 2, baseY);
+        ctx.shadowBlur = 0;
+        const lw = W * 0.12 * tEase;
+        ctx.strokeStyle = accentFill;
+        ctx.lineWidth = Math.max(1, W * 0.002);
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - lw / 2, baseY + W * 0.022);
+        ctx.lineTo(W / 2 + lw / 2, baseY + W * 0.022);
+        ctx.stroke();
+      }
     }
     if (sub) {
       ctx.font = `400 ${subSize}px Inter, sans-serif`;
