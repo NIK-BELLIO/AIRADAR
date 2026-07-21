@@ -3964,7 +3964,10 @@ const videoTemplates = [
     name: { en: "MAISON Story", fa: "میزون" },
     desc: { en: "Charcoal + gold, heavy grotesque, kinetic", fa: "زغالی و طلایی، کینتیک" },
     bg: "#0E0F0F", accent: "#C99A46", text: "#FFFFFF",
-    headlineFont: "Archivo, ui-sans-serif, sans-serif", vignette: 0.35,
+    // Requested defaults: Alice on the intro/outro title cards, Viaoda Libre
+    // on the middle slides (overridable per slide via Headline font).
+    introFont: "Alice, serif",
+    headlineFont: "'Viaoda Libre', serif", vignette: 0.35,
     maison: true
   },
   {
@@ -4124,7 +4127,7 @@ const videoTemplates = [
 ];
 
 const vstudio = {
-  templateId: "noir",
+  templateId: "maison",   // default template: MAISON Story
   mediaUrl: null,
   mediaEl: null,        // <video> or <img>
   isVideo: false,
@@ -5395,6 +5398,22 @@ async function vsGenerateAiMusic(data) {
   } catch (e) { return null; }
 }
 
+// Decode an audio URL into a raw AudioBuffer. The exporter can only record
+// buffer sources — an <audio> element (what preview plays) is not captured — so
+// this is the last-resort bridge when we have a track but never decoded it.
+async function vsDecodeAudioUrl(url) {
+  if (!url) return null;
+  try {
+    if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await vstudio._playCtx.decodeAudioData(await res.arrayBuffer());
+  } catch (e) {
+    try { console.warn("[audio] could not decode music for export:", e); } catch (_) {}
+    return null;
+  }
+}
+
 async function vsEnsureDefaultMusic(data) {
   try {
     const generated = await vsGenerateAiMusic(data || vstudio.storyData);
@@ -5711,7 +5730,7 @@ async function vsAutoGenerateBackgrounds(data) {
     // MAISON house style for generated motion graphics (see MAISON-TEMPLATE.md)
     vstudio.templateId = "maison";
     const hlFontSel = document.querySelector("#vsHeadlineFont");
-    if (hlFontSel) hlFontSel.value = "Archivo, ui-sans-serif, sans-serif";
+    if (hlFontSel) hlFontSel.value = "'Viaoda Libre', serif";
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
@@ -7215,7 +7234,10 @@ function loadStudioLogo(file) {
 // Load one of the sample logos shipped alongside the site (animated WebM).
 function loadSampleLogo(fileName) {
   if (vstudio.logoUrl) { try { URL.revokeObjectURL(vstudio.logoUrl); } catch (e) {} }
-  vstudio.logoUrl = fileName;           // relative URL next to index.html
+  // ROOT-absolute: the studio also runs from /studio/, where a bare filename
+  // resolves to /studio/<file> and 404s, so choosing a sample logo silently did
+  // nothing. The sample files live at the site root.
+  vstudio.logoUrl = /^(https?:|\/)/.test(fileName) ? fileName : "/" + fileName;
   vstudio.logoIsVideo = true;
   vstudio._logoVidVisible = false;      // clean restart on first appearance
   // The cascade motion logo is monochrome — default it to MATCH the template
@@ -7242,7 +7264,7 @@ function loadSampleLogo(fileName) {
       ? "بارگذاری لوگوی نمونه ناموفق بود (فایل را کنار سایت آپلود کن)."
       : "Couldn't load the sample (upload the .webm next to your site).");
   });
-  v.src = fileName;
+  v.src = vstudio.logoUrl;   // root-absolute — a bare name 404s from /studio/
 }
 
 // Load one of the sample logos shipped alongside the site (animated WebM).
@@ -10138,7 +10160,9 @@ function drawStudioFrame(elapsed) {
     const introTpl = {
       text: (tpl && tpl.text) || "#ffffff",
       accent: (tpl && tpl.accent) || bg.accent,
-      headlineFont: (tpl && tpl.headlineFont) || "Prata, serif",
+      // Intro/outro cards get their OWN face (templates may set `introFont`),
+      // so title cards read differently from the middle slides.
+      headlineFont: (tpl && (tpl.introFont || tpl.headlineFont)) || "Prata, serif",
       // eyebrow label above the intro title (uses the AI kicker if present)
       _eyebrow: introSlide.isOutro ? "" :
         ((introSlide.settings && introSlide.settings["#vsNewsKicker"]) ||
@@ -12250,7 +12274,14 @@ async function exportStudioVideo() {
     const cur = vstudio.batchVideos && vstudio.batchVideos[vstudio.batchCurrent];
     const musicTog = document.querySelector("#vsMusic");
     if (musicTog && musicTog.checked && !vstudio._userMusic) {
-      if (!vstudio.musicEl) { const dm = await vsEnsureDefaultMusic((cur && cur.data) || vstudio.storyData); if (dm) vstudio.musicEl = dm; }
+      // Export records ONLY decoded AudioBuffers — the <audio> element that
+      // preview plays is never captured. So regenerate whenever the BUFFER is
+      // missing, not merely when the element is: that gap is exactly why a video
+      // could have music in preview and come out silent in the exported file.
+      if (!vstudio.musicEl || !vstudio._defaultMusicBuffer) {
+        const dm = await vsEnsureDefaultMusic((cur && cur.data) || vstudio.storyData);
+        if (dm) vstudio.musicEl = dm;
+      }
       vstudio._musicBuffer = vstudio._defaultMusicBuffer || vstudio._musicBuffer || null;
       vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
     } else if (musicTog && !musicTog.checked && !vstudio._userMusic) {
@@ -12260,6 +12291,12 @@ async function exportStudioVideo() {
       // unintentional generator under-fill, so no content-end trimming here.
       vstudio._musicBuffer = vstudio._userMusicBuffer || null;
       vstudio._musicContentEnd = null;
+    }
+    // Last resort: we have a track to play but never decoded it. Decode it now
+    // rather than exporting a silent video.
+    if (!vstudio._musicBuffer && vstudio.musicEl && (vstudio.musicEl.currentSrc || vstudio.musicEl.src)) {
+      vsStatus(state.lang === "fa" ? "در حال آماده‌سازی موسیقی برای خروجی…" : "Preparing music for export…");
+      vstudio._musicBuffer = await vsDecodeAudioUrl(vstudio.musicEl.currentSrc || vstudio.musicEl.src);
     }
     const voTog = document.querySelector("#vsVoiceover");
     if (false && voTog && voTog.checked) {
@@ -12331,8 +12368,24 @@ async function exportStudioVideo() {
   // place Opus audio in MP4. Record WebM reliably, then normalize to H.264/AAC.
   // if MP4 not natively supported (or WebM chosen) → record WebM
   if (!recordedNativeMp4) {
-    for (const t of ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]) {
+    // Name the audio codec explicitly when we have an audio track. (Chrome does
+    // negotiate opus on its own — verified — so this is belt-and-braces for
+    // other browsers rather than the cause of silent exports.)
+    const wantAudio = stream.getAudioTracks().length > 0;
+    const candidates = wantAudio
+      ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm;codecs=vp9",
+         "video/webm;codecs=vp8", "video/webm"]
+      : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    for (const t of candidates) {
       if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+    }
+    // Tell the user plainly when a soundtrack was expected but none was captured,
+    // instead of silently producing a mute video.
+    if (!wantAudio && (vstudio._musicBuffer || vstudio._narrationBuffer)) {
+      try { console.warn("[audio] a soundtrack exists but no audio track reached the recorder"); } catch (e) {}
+      vsStatus(state.lang === "fa"
+        ? "هشدار: صدا به ضبط‌کننده نرسید — ویدیو بدون موسیقی ذخیره می‌شود."
+        : "Warning: no audio track reached the recorder — the video will be silent.");
     }
   }
 

@@ -38,7 +38,7 @@
     <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css?v=v327" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
@@ -684,6 +684,11 @@
     /* Prompt Lab flask icon sits neatly in the nav glyph slot */
     .nav-ic .lab-ic,.arh-ic.lab-ic{width:1.12em;height:1.12em;vertical-align:-.18em;display:inline-block}
 
+    /* The controls rail already scrolls as a whole, so the template grid does
+       not need its own inner scrollbar — let it use the space below instead of
+       trapping the templates in a 280px box. */
+    #videoStudio .template-picker{max-height:none;overflow-y:visible;padding-right:0}
+
     /* Phones/tablets: fall back to normal scrolling so nothing is trapped */
     @media (max-width:860px){
       body{overflow:auto;height:auto;display:block}
@@ -1034,7 +1039,7 @@
                     <option value="Archivo, ui-sans-serif, sans-serif">Archivo (MAISON)</option>
                     <option value="'Space Grotesk', ui-sans-serif, sans-serif">Space Grotesk</option>
                     <option value="Alice, serif">Alice (elegant)</option>
-                    <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
+                    <option value="'Viaoda Libre', serif" selected>Viaoda Libre (display)</option>
                     <option value="'Bryn Vogue', serif">Bryn Vogue (fashion)</option>
                     <option value="Elegant, serif">Elegant (script)</option>
                     <option value="Things, serif">Things (editorial)</option>
@@ -2531,7 +2536,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v361"></script>
+    <script src="/app.js?v=v362"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
