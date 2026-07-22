@@ -689,6 +689,57 @@
        trapping the templates in a 280px box. */
     #videoStudio .template-picker{max-height:none;overflow-y:visible;padding-right:0}
 
+    /* ── Slash-command autocomplete ─────────────────────────────── */
+    .vs-slash-wrap{position:relative}
+    .vs-slash-menu{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;
+      background:#0d1420;border:1px solid rgba(91,141,255,.45);border-radius:12px;
+      box-shadow:0 22px 50px -18px rgba(0,0,0,.9);overflow:hidden;padding:4px}
+    .vs-slash-item{display:flex;align-items:center;gap:10px;width:100%;
+      padding:9px 10px;border-radius:9px;border:0;background:transparent;cursor:pointer;text-align:left}
+    .vs-slash-item:hover,.vs-slash-item.is-active{background:rgba(91,141,255,.16)}
+    .vs-slash-ic{width:26px;height:26px;flex:0 0 26px;border-radius:7px;display:grid;place-items:center;
+      background:linear-gradient(135deg,#22d3ee,#2563ff);color:#04121a;font-weight:900;font-size:13px}
+    .vs-slash-cmd{font:600 12.5px ui-monospace,SFMono-Regular,Consolas,monospace;color:#cfe0ff}
+    .vs-slash-desc{display:block;font:500 10.5px ui-sans-serif,system-ui;color:#8394b0;margin-top:1px}
+    .vs-help-chip{margin-left:8px;padding:2px 8px;border-radius:999px;cursor:pointer;
+      font:700 10px ui-sans-serif,system-ui;color:#8fbaff;
+      background:rgba(91,141,255,.14);border:1px solid rgba(91,141,255,.4)}
+    .vs-help-chip:hover{background:rgba(91,141,255,.26);color:#fff}
+
+    /* ── 3-step illustrated guide ───────────────────────────────── */
+    .mg-guide-backdrop{position:fixed;inset:0;z-index:10001;display:flex;align-items:center;
+      justify-content:center;padding:20px;background:rgba(4,7,14,.78);backdrop-filter:blur(8px)}
+    .mg-guide-backdrop[hidden]{display:none!important}
+    .mg-guide{position:relative;width:min(760px,100%);max-height:90vh;overflow:auto;
+      border-radius:22px;padding:26px 26px 20px;
+      background:linear-gradient(165deg,rgba(37,99,255,.14),rgba(11,16,32,.98) 55%);
+      border:1px solid rgba(91,141,255,.34);
+      box-shadow:0 30px 90px -24px rgba(0,0,0,.85)}
+    .mg-guide-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:9px;
+      border:0;cursor:pointer;background:rgba(255,255,255,.08);color:#c8d6f0;font-size:13px}
+    .mg-guide-close:hover{background:rgba(255,255,255,.16);color:#fff}
+    .mg-guide-badge{display:inline-flex;padding:4px 11px;border-radius:999px;
+      font:800 10px ui-sans-serif,system-ui;letter-spacing:.1em;color:#04121a;
+      background:linear-gradient(135deg,#22d3ee,#2563ff)}
+    .mg-guide h3{margin:12px 0 6px;font-size:24px;font-weight:800;color:#fff;letter-spacing:-.02em}
+    .mg-guide-sub{margin:0 0 20px;font-size:13px;line-height:1.6;color:#93a4c2}
+    .mg-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .mg-step{position:relative;padding:12px;border-radius:16px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09)}
+    .mg-art{border-radius:11px;overflow:hidden;background:#070c16;
+      border:1px solid rgba(255,255,255,.07);margin-bottom:10px}
+    .mg-art svg{display:block;width:100%;height:auto}
+    .mg-num{position:absolute;top:-9px;left:-9px;width:24px;height:24px;border-radius:50%;
+      display:grid;place-items:center;font:900 12px ui-sans-serif,system-ui;color:#04121a;
+      background:linear-gradient(135deg,#22d3ee,#2563ff);box-shadow:0 4px 12px rgba(37,99,255,.5)}
+    .mg-step h4{margin:0 0 5px;font-size:14px;font-weight:800;color:#fff}
+    .mg-step h4 code{padding:1px 5px;border-radius:5px;font-size:12px;
+      background:rgba(91,141,255,.2);color:#bcd4ff}
+    .mg-step p{margin:0;font-size:11.5px;line-height:1.55;color:#8fa0bd}
+    .mg-guide-actions{display:flex;gap:10px;margin-top:18px}
+    .mg-guide-actions .button{flex:1}
+    @media (max-width:720px){ .mg-steps{grid-template-columns:1fr} }
+
     /* Phones/tablets: fall back to normal scrolling so nothing is trapped */
     @media (max-width:860px){
       body{overflow:auto;height:auto;display:block}
@@ -1386,8 +1437,14 @@
                     <label id="vsAutoUrlWrap" style="display:none;"><span>Article / news URL</span>
                       <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
                     </label>
-                    <label><span id="vsAutoTopicLbl">What should the video be about?</span>
-                      <textarea id="vsAutoTopic" rows="3" placeholder="Paste an article link, a topic, or use the skill command:&#10;/motion_graphic https://example.com/story  ↵"></textarea>
+                    <label><span id="vsAutoTopicLbl">What should the video be about?
+                      <button type="button" id="vsMgHelpBtn" class="vs-help-chip" title="How the motion-graphic skill works">? guide</button>
+                    </span>
+                      <div class="vs-slash-wrap">
+                        <textarea id="vsAutoTopic" rows="3" placeholder="Type / for commands — or paste an article link or a topic"></textarea>
+                        <!-- slash-command autocomplete (no need to type the command by hand) -->
+                        <div id="vsSlashMenu" class="vs-slash-menu" hidden role="listbox"></div>
+                      </div>
                     </label>
 
                     <label><span id="vsAutoToneLbl">Tone</span>
@@ -2536,7 +2593,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v364"></script>
+    <script src="/app.js?v=v367"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
@@ -2824,5 +2881,82 @@
         setTimeout(open, 900);
       })();
     </script>
+
+    <!-- ── Motion-graphic skill: 3-step illustrated guide ───────────────── -->
+    <div class="mg-guide-backdrop" id="vsMgGuide" hidden>
+      <div class="mg-guide" role="dialog" aria-modal="true" aria-labelledby="mgGuideTitle">
+        <button class="mg-guide-close" id="vsMgGuideClose" type="button" aria-label="Close">✕</button>
+        <span class="mg-guide-badge">✦ Skill</span>
+        <h3 id="mgGuideTitle">Make a motion graphic in 3 steps</h3>
+        <p class="mg-guide-sub">No footage needed — the scenes are generated as animated vector graphics.</p>
+
+        <div class="mg-steps">
+          <!-- 1 -->
+          <div class="mg-step">
+            <div class="mg-art">
+              <svg viewBox="0 0 200 120" role="img" aria-label="Typing slash shows the command menu">
+                <rect x="10" y="16" width="180" height="42" rx="8" fill="#0d1420" stroke="#2c3a52"/>
+                <text x="22" y="42" font-family="ui-monospace,monospace" font-size="15" fill="#e8eefc">/</text>
+                <rect x="32" y="30" width="2" height="16" fill="#5b8dff"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>
+                <rect x="10" y="64" width="180" height="46" rx="8" fill="#111a2b" stroke="#5b8dff"/>
+                <rect x="16" y="70" width="168" height="18" rx="4" fill="#1b2942"/>
+                <text x="22" y="83" font-family="ui-monospace,monospace" font-size="10" fill="#8fbaff">/motion_graphic</text>
+                <text x="22" y="102" font-family="ui-sans-serif,system-ui" font-size="8" fill="#7d8ba6">build an animated explainer</text>
+              </svg>
+            </div>
+            <span class="mg-num">1</span>
+            <h4>Type <code>/</code></h4>
+            <p>A command menu appears — pick <b>/motion_graphic</b>. No need to type it out.</p>
+          </div>
+
+          <!-- 2 -->
+          <div class="mg-step">
+            <div class="mg-art">
+              <svg viewBox="0 0 200 120" role="img" aria-label="Add a topic or a link">
+                <rect x="10" y="14" width="180" height="46" rx="8" fill="#0d1420" stroke="#2c3a52"/>
+                <text x="20" y="34" font-family="ui-monospace,monospace" font-size="9" fill="#8fbaff">/motion_graphic</text>
+                <text x="20" y="50" font-family="ui-sans-serif,system-ui" font-size="9" fill="#e8eefc">war in iran 2026</text>
+                <text x="100" y="76" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="8" fill="#7d8ba6">— or —</text>
+                <rect x="10" y="84" width="180" height="26" rx="8" fill="#0d1420" stroke="#2c3a52"/>
+                <text x="20" y="101" font-family="ui-monospace,monospace" font-size="8" fill="#9ad8c8">https://…/article</text>
+              </svg>
+            </div>
+            <span class="mg-num">2</span>
+            <h4>Add a topic or link</h4>
+            <p>Write a subject, or paste an article URL — it reads the page and writes the script.</p>
+          </div>
+
+          <!-- 3 -->
+          <div class="mg-step">
+            <div class="mg-art">
+              <svg viewBox="0 0 200 120" role="img" aria-label="Scenes are generated">
+                <rect x="8" y="20" width="52" height="84" rx="6" fill="#1a1208"/>
+                <rect x="8" y="52" width="52" height="30" fill="#f2efe9"/>
+                <rect x="14" y="63" width="40" height="4" rx="2" fill="#171310"/>
+                <rect x="70" y="20" width="52" height="84" rx="6" fill="#1a0f2e"/>
+                <circle cx="96" cy="60" r="15" fill="none" stroke="#8f7bd8" stroke-width="1.5"/>
+                <circle cx="96" cy="60" r="7" fill="none" stroke="#8f7bd8" stroke-width="1.5"/>
+                <circle cx="96" cy="45" r="3.5" fill="#c9a34a"/>
+                <rect x="132" y="20" width="52" height="84" rx="6" fill="#0a1830"/>
+                <rect x="132" y="20" width="52" height="34" fill="#c99a46"/>
+                <rect x="140" y="34" width="34" height="4" rx="2" fill="#171310"/>
+                <rect x="140" y="78" width="7" height="18" fill="#5b8dff"/>
+                <rect x="151" y="70" width="7" height="26" fill="#5b8dff"/>
+                <rect x="162" y="62" width="7" height="34" fill="#7fd8c8"/>
+                <g fill="#c99a46"><rect x="8" y="12" width="52" height="2.5" rx="1"/><rect x="70" y="12" width="52" height="2.5" rx="1"/><rect x="132" y="12" width="52" height="2.5" rx="1"/></g>
+              </svg>
+            </div>
+            <span class="mg-num">3</span>
+            <h4>Press <code>Enter</code></h4>
+            <p>It builds a full deck — animated backgrounds, panels and kinetic text. Then <b>Export</b> as MP4.</p>
+          </div>
+        </div>
+
+        <div class="mg-guide-actions">
+          <button class="button primary" id="vsMgGuideTry" type="button">Try it now</button>
+          <button class="button ghost" id="vsMgGuideDismiss" type="button">Got it</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

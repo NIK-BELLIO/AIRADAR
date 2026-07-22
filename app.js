@@ -4319,13 +4319,112 @@ function bindIntroEditor() {
   // motion-graphic video straight away (Shift+Enter still inserts a newline).
   const autoTopic = $("#vsAutoTopic");
   if (autoTopic) {
+    // ── Slash-command autocomplete ──
+    // Typing "/" offers the skills so the command never has to be typed by hand.
+    const SLASH_COMMANDS = [
+      { cmd: "/motion_graphic", icon: "✦", insert: "/motion_graphic ",
+        desc: "Build an animated motion-graphic video from a topic or link" },
+      { cmd: "/mg", icon: "⚡", insert: "/mg ",
+        desc: "Short alias for /motion_graphic" }
+    ];
+    const menu = $("#vsSlashMenu");
+    let activeIdx = 0, matches = [];
+
+    const closeMenu = () => { if (menu) menu.hidden = true; };
+    const applyCommand = (item) => {
+      // replace only the leading token, keep anything already typed after it
+      const rest = autoTopic.value.replace(/^\s*\/\S*\s?/, "");
+      autoTopic.value = item.insert + rest;
+      closeMenu();
+      autoTopic.focus();
+      autoTopic.setSelectionRange(autoTopic.value.length, autoTopic.value.length);
+    };
+    const renderMenu = () => {
+      if (!menu) return;
+      menu.innerHTML = matches.map((m, i) => `
+        <button type="button" class="vs-slash-item${i === activeIdx ? " is-active" : ""}" data-i="${i}" role="option">
+          <span class="vs-slash-ic">${m.icon}</span>
+          <span><span class="vs-slash-cmd">${m.cmd}</span><span class="vs-slash-desc">${m.desc}</span></span>
+        </button>`).join("");
+      menu.hidden = false;
+      menu.querySelectorAll(".vs-slash-item").forEach(btn => {
+        // mousedown, not click: the textarea's blur would close the menu first
+        btn.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          applyCommand(matches[Number(btn.dataset.i)]);
+        });
+      });
+    };
+    const updateMenu = () => {
+      const v = autoTopic.value;
+      const m = /^\s*\/(\S*)$/.exec(v);      // only while typing the first token
+      if (!m) return closeMenu();
+      const q = m[1].toLowerCase();
+      matches = SLASH_COMMANDS.filter(c => c.cmd.slice(1).toLowerCase().startsWith(q));
+      if (!matches.length) return closeMenu();
+      activeIdx = 0;
+      renderMenu();
+    };
+
+    autoTopic.addEventListener("input", updateMenu);
+    autoTopic.addEventListener("focus", updateMenu);
+    autoTopic.addEventListener("blur", () => setTimeout(closeMenu, 120));
+
     autoTopic.addEventListener("keydown", (e) => {
+      const menuOpen = menu && !menu.hidden && matches.length;
+      if (menuOpen) {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          activeIdx = (activeIdx + (e.key === "ArrowDown" ? 1 : -1) + matches.length) % matches.length;
+          renderMenu();
+          return;
+        }
+        if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+          e.preventDefault();
+          applyCommand(matches[activeIdx]);
+          return;
+        }
+        if (e.key === "Escape") { closeMenu(); return; }
+      }
+      // Enter on a completed command builds the video (Shift+Enter = newline)
       if (e.key !== "Enter" || e.shiftKey) return;
       if (/^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b/i.test(autoTopic.value.trim())) {
         e.preventDefault();
         buildAutoVideo(true);
       }
     });
+
+    // ── 3-step illustrated guide ──
+    // The guide markup lives at the very end of <body>, AFTER this script runs,
+    // so look it up lazily and use event delegation — binding to the elements
+    // here would silently find nothing.
+    const getGuide = () => $("#vsMgGuide");
+    const openGuide = () => { const g = getGuide(); if (g) g.hidden = false; };
+    const closeGuide = (remember) => {
+      const g = getGuide(); if (g) g.hidden = true;
+      if (remember) { try { localStorage.setItem("vsMgGuideSeen", "1"); } catch (e) {} }
+    };
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest
+        ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsMgGuideTry")
+        : null;
+      if (t) {
+        if (t.id === "vsMgHelpBtn") return openGuide();
+        closeGuide(true);
+        if (t.id === "vsMgGuideTry") {
+          autoTopic.value = "/motion_graphic ";
+          autoTopic.focus();
+          autoTopic.setSelectionRange(autoTopic.value.length, autoTopic.value.length);
+        }
+        return;
+      }
+      // click on the backdrop itself dismisses
+      if (e.target && e.target.id === "vsMgGuide") closeGuide(true);
+    });
+    // show it once, the first time someone opens the studio
+    try {
+      if (!localStorage.getItem("vsMgGuideSeen")) setTimeout(openGuide, 1400);
+    } catch (e) {}
   }
 }
 
