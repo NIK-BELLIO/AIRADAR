@@ -1487,9 +1487,13 @@ if (document.readyState === "loading") {
 
 
 // ── GLOBAL FONT HELPER — applied to ALL value/headline text in video studio ──
-function vsGetFont(fallback){
+// `forceFamily` = use the passed family verbatim and IGNORE the headline-font
+// picker. Needed for intro/outro title cards, which carry their own face
+// (template `introFont`) and must not be overridden by the "all slides" picker.
+function vsGetFont(fallback, forceFamily){
   var el=document.querySelector("#vsHeadlineFont");
-  var fam = (el&&el.value) ? el.value : (fallback||"Prata, serif");
+  var fam = forceFamily ? (fallback||"Prata, serif")
+          : ((el&&el.value) ? el.value : (fallback||"Prata, serif"));
   // CRITICAL: canvas measureText and fillText MUST use the same loaded font,
   // otherwise letters overlap (measured narrow, rendered wide) or get cut.
   try {
@@ -3966,8 +3970,8 @@ const videoTemplates = [
     bg: "#0E0F0F", accent: "#C99A46", text: "#FFFFFF",
     // Requested defaults: Alice on the intro/outro title cards, Viaoda Libre
     // on the middle slides (overridable per slide via Headline font).
-    introFont: "Alice, serif",
-    headlineFont: "'Viaoda Libre', serif", vignette: 0.35,
+    introFont: "Georgia, serif",
+    headlineFont: "Alice, serif", vignette: 0.35,
     maison: true
   },
   {
@@ -5730,7 +5734,7 @@ async function vsAutoGenerateBackgrounds(data) {
     // MAISON house style for generated motion graphics (see MAISON-TEMPLATE.md)
     vstudio.templateId = "maison";
     const hlFontSel = document.querySelector("#vsHeadlineFont");
-    if (hlFontSel) hlFontSel.value = "'Viaoda Libre', serif";
+    if (hlFontSel) hlFontSel.value = "Alice, serif";
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
@@ -10546,7 +10550,7 @@ function drawStudioFrame(elapsed) {
     const fill = tpl.text, accentFill = tpl.accent;
 
     // measure the text block to size the backing plate
-    const hlSize = Math.round(W * 0.058 * sizeMul);
+    const hlSize = Math.round(W * 0.046 * sizeMul);
     const subSize = Math.round(W * 0.026 * sizeMul);
     const ctaSize = Math.round(W * 0.022 * sizeMul);
     ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
@@ -11268,7 +11272,9 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   // intro headlines are bigger and bolder for impact; outro a touch smaller
   let fontPx = Math.round(U * (isIntro ? 0.236 : isOutro ? 0.144 : 0.15));
   const headWeight = isIntro ? 700 : 600;
-  ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+  // force: title cards keep their own face (template introFont), independent of
+  // the "all slides" headline-font picker
+  ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont, true)}`;
   // helper: break text into lines that each fit maxTextW (cap at maxLines)
   const layout = (str, cap) => {
     const words = String(str).split(/\s+/).filter(Boolean).flatMap(w =>
@@ -11287,6 +11293,14 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
     return out;
   };
   const widestLine = (lns) => lns.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+  // MAISON accent word: on title cards the FINAL word is lifted out and drawn
+  // in a solid gold box with ink italic serif ("explained" / "jump" in the
+  // reference deck). Only worth doing when there's more than one word.
+  const accentWords = String(txt || "").trim().split(/\s+/);
+  const useAccentBox = (isIntro || isOutro) && accentWords.length > 1;
+  const accentWord = useAccentBox ? accentWords[accentWords.length - 1] : "";
+  const headText = useAccentBox ? accentWords.slice(0, -1).join(" ") : txt;
+  txt = headText;
   let lines = layout(txt, maxLines);
   // shrink the font until it fits in maxLines AND the widest line fits the
   // width (a single long word like "solo-homeownership" must not spill out
@@ -11296,7 +11310,7 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   while (fontPx > U * 0.01 &&
          (layout(txt, 99).length > maxLines || widestLine(lines) > maxTextW)) {
     fontPx -= 1;
-    ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont)}`;
+    ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont, true)}`;
     lines = layout(txt, maxLines);
   }
   // truly extreme case (a hard floor of U*0.01 still isn't enough) — ellipsize
@@ -11334,11 +11348,41 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
       ctx.fillText(ln, 0, blockTop + i * lineH);
     });
   }
+  // ── MAISON accent word: solid gold box, ink italic serif, springs up ──
+  // (no arrow, no drop shadow — per the template's design rules)
+  if (useAccentBox && accentWord) {
+    const apx = Math.round(fontPx * 0.94);
+    ctx.font = `italic 700 ${apx}px Georgia, "Times New Roman", serif`;
+    // Size the block from the REAL glyph metrics so descenders (the j and p in
+    // "jump") sit inside the gold, instead of hanging below a fixed-height box.
+    const am = ctx.measureText(accentWord);
+    const asc = am.actualBoundingBoxAscent || apx * 0.72;
+    const desc = am.actualBoundingBoxDescent || apx * 0.24;
+    const padX = apx * 0.30, padY = apx * 0.16;
+    const bw = am.width + padX * 2, bh = asc + desc + padY * 2;
+    const boxTop = -asc - padY;
+    const baseYA = blockTop + lines.length * lineH + apx * 0.12;   // clear the line above
+    // spring entrance, slightly after the headline lines
+    const e2 = Math.min(1, Math.max(0, (prog - 0.22) / 0.55));
+    const over = e2 >= 1 ? 1
+      : 1 - Math.pow(2, -10 * e2) * Math.cos((e2 * 10 - 0.75) * (2 * Math.PI) / 3);
+    ctx.save();
+    ctx.globalAlpha *= Math.min(1, e2 * 1.6);
+    ctx.translate(0, baseYA + (1 - over) * apx * 0.55);
+    ctx.fillStyle = tpl.accent;
+    roundRectPath(ctx, -bw / 2, boxTop, bw, bh, apx * 0.09);
+    ctx.fill();
+    ctx.fillStyle = "#171310";          // ink type on the gold block
+    ctx.textAlign = "center";
+    ctx.fillText(accentWord, 0, 0);
+    ctx.restore();
+  }
   ctx.filter = "none";
   ctx.restore();
   // how far below centre the headline block reaches — used to place the
   // divider and secondary text so they never overlap a multi-line title.
-  const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6;
+  const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6
+    + (useAccentBox && accentWord ? lineH : 0);   // the gold accent box adds a line
 
   // accent divider line — intro gets a fancier centred divider with a diamond
   const lw = U * (isIntro ? 0.2 : 0.14) * e;
