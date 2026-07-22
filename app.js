@@ -5739,6 +5739,9 @@ async function vsAutoGenerateBackgrounds(data) {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
       s.motionBg = pool[i % pool.length];   // on the slide, not settings (survives capture)
+      // MAISON rule: don't leave every scene full-bleed — alternate solid-panel
+      // layouts with full-frame ones so the deck has rhythm.
+      s.panelLayout = ["split", "", "halfInv", "half", ""][i % 5];
 
       // ── Pick a MEANINGFUL vector graphic for this scene ──
       // Chosen from the scene's own wording (a scene about a product gets a
@@ -9816,6 +9819,75 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
   ctx.restore();
 }
 
+// ── MAISON panel layouts ──────────────────────────────────────────────────
+// The reference deck never leaves every scene full-bleed: it breaks the frame
+// with SOLID colour bands and HARD edges (background strip · panel · strip).
+// Bands marked "bg" leave the animated background showing through.
+const VS_PANELS = {
+  //           [yStart, height, fill]
+  split:   { bands: [[0, 0.267, "bg"], [0.267, 0.458, "light"], [0.725, 0.275, "bg"]],
+             textBand: [0.267, 0.458], ink: true },
+  half:    { bands: [[0, 0.484, "bg"], [0.484, 0.516, "deep"]],
+             textBand: [0.484, 0.516], ink: false },
+  halfInv: { bands: [[0, 0.5625, "gold"], [0.5625, 0.4375, "bg"]],
+             textBand: [0, 0.5625], ink: true }
+};
+// Draws the bands and returns the region the scene's text should occupy.
+function vsDrawMaisonPanels(ctx, W, H, layout, tpl) {
+  const p = VS_PANELS[layout];
+  if (!p) return null;
+  const accent = (tpl && tpl.accent) || "#C99A46";
+  const COL = { light: "#F2EFE9", deep: "#0C0D0D", gold: accent };
+  ctx.save();
+  p.bands.forEach(([y, h, kind]) => {
+    if (kind === "bg") return;                       // animated background shows through
+    ctx.fillStyle = COL[kind] || "#0C0D0D";
+    ctx.fillRect(0, Math.round(H * y), W, Math.ceil(H * h) + 1);
+  });
+  // hard hairline at every seam — no gradient bleed across the edge
+  ctx.fillStyle = accent;
+  p.bands.forEach(([y]) => {
+    if (y > 0) ctx.fillRect(0, Math.round(H * y) - 1, W, Math.max(1.5, H * 0.0011));
+  });
+  ctx.restore();
+  return { top: H * p.textBand[0], h: H * p.textBand[1], ink: p.ink };
+}
+
+// Persistent top chrome: segmented progress, wordmark and NN/NN counter.
+// Colour flips to ink when the top band is a light/gold panel.
+function vsDrawTopChrome(ctx, W, H, elapsed, tpl, onLightTop) {
+  const n = vstudio.slides.length;
+  if (!n) return;
+  let idx = 0;
+  try { idx = slideAtTime(elapsed).index; } catch (e) {}
+  const accent = (tpl && tpl.accent) || "#C99A46";
+  const fg = onLightTop ? "rgba(23,19,16,.92)" : "rgba(255,255,255,.92)";
+  const track = onLightTop ? "rgba(23,19,16,.20)" : "rgba(255,255,255,.22)";
+  const mx = W * 0.068, gap = W * 0.012, top = H * 0.031;
+  const segW = (W - mx * 2 - gap * (n - 1)) / n;
+  const segH = Math.max(2, H * 0.0016);
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = i <= idx ? accent : track;
+    ctx.fillRect(mx + i * (segW + gap), top, segW, segH);
+  }
+  const y = H * 0.058;
+  ctx.fillStyle = accent;
+  ctx.beginPath(); ctx.arc(mx + W * 0.007, y - H * 0.004, W * 0.007, 0, 7); ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.textAlign = "left";
+  ctx.font = `800 ${Math.round(W * 0.030)}px ${vsGetFont("Archivo, sans-serif", true)}`;
+  try { ctx.letterSpacing = `${W * 0.010}px`; } catch (e) {}
+  ctx.fillText("MAISON", mx + W * 0.022, y);
+  try { ctx.letterSpacing = "0px"; } catch (e) {}
+  ctx.textAlign = "right";
+  ctx.fillStyle = onLightTop ? "rgba(23,19,16,.55)" : "rgba(255,255,255,.46)";
+  ctx.font = `500 ${Math.round(W * 0.026)}px "JetBrains Mono", ui-monospace, monospace`;
+  const pad = (v) => String(v).padStart(2, "0");
+  ctx.fillText(`${pad(idx + 1)}/${pad(n)}`, W - mx, y);
+  ctx.restore();
+}
+
 // ── Cinematic depth layers ────────────────────────────────────────────────
 // What lifts generated scenes ABOVE a flat template (MAISON/Hera are flat
 // compositions): three parallax depth planes of soft motifs that drift at
@@ -9906,11 +9978,17 @@ function drawStudioFrame(elapsed) {
   // edited (dsSettings is deliberately null for the active slide).
   let dsMotionBg = "";
   let dsGraphic = null;           // meaningful vector graphic for this scene
+  let dsPanelLayout = "";         // MAISON band layout (split / half / halfInv)
+  let dsPanelBand = null;         // region the scene's text must sit in
   if (vstudio.slides.length) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
-    if (slide) { dsMotionBg = slide.motionBg || ""; dsGraphic = slide.sceneGraphic || null; }
+    if (slide) {
+      dsMotionBg = slide.motionBg || "";
+      dsGraphic = slide.sceneGraphic || null;
+      dsPanelLayout = slide.panelLayout || "";
+    }
     if (slide && slide.ready) {
       if (slide.isIntro) {
         introSlide = slide;
@@ -9971,7 +10049,12 @@ function drawStudioFrame(elapsed) {
   } else {
     standaloneOverlay = (infoOnEl && infoOnEl.checked) || (newsOnEl && newsOnEl.checked);
   }
-  if (!media && !standaloneOverlay && !introSlide) {
+  // A generated motion-graphic scene has no footage, no infographic and is not
+  // an intro — but it IS content (animated background + vector graphic + panel
+  // bands). Without this it fell through the guard below and rendered nothing,
+  // which is why /motion_graphic scenes came out blank.
+  const hasGeneratedScene = !!(dsMotionBg || dsGraphic || dsPanelLayout);
+  if (!media && !standaloneOverlay && !introSlide && !hasGeneratedScene) {
     // nothing else to draw, but a logo alone should still appear
     if (vstudio.logoEl) {
       ctx.clearRect(0, 0, W, H);
@@ -10208,7 +10291,9 @@ function drawStudioFrame(elapsed) {
       try {
         const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
         const _acc = _mbg.accent || "#2563ff";
-        if (dsGraphic && dsGraphic.kind) {
+        // On a panel scene the solid band carries the composition, so the
+        // vector graphic is skipped — otherwise it collides with the band.
+        if (dsGraphic && dsGraphic.kind && !dsPanelLayout) {
           // A real, meaningful vector graphic for this scene (radar / product
           // UI / network / chart). Calm technical base instead of the drifting
           // motif layers — the graphic itself carries the motion.
@@ -10222,6 +10307,9 @@ function drawStudioFrame(elapsed) {
           drawIntroGraphics(ctx, W, H, _mbg, elapsed, bgMotionT);
           drawCinematicLayers(ctx, W, H, elapsed, bgMotionT, _acc);
         }
+        // MAISON bands go OVER the animated background, with hard edges, so the
+        // deck alternates between full-bleed and solid-panel scenes.
+        if (dsPanelLayout) dsPanelBand = vsDrawMaisonPanels(ctx, W, H, dsPanelLayout, tpl);
       } catch (e) {}
       // motion-graphic scenes get their entrance/overlay handled by the normal
       // content path below — skip the flat template gradient.
@@ -10275,9 +10363,14 @@ function drawStudioFrame(elapsed) {
   const introDur = introText ? 1.6 : 0;
   const outroDur = outroText ? 1.1 : 0;
 
-  // background
-  ctx.fillStyle = tpl.bg;
-  ctx.fillRect(0, 0, W, H);
+  // background — but NOT when this scene already painted a generated one.
+  // This flat fill runs after the !media block, so on motion-graphic scenes it
+  // used to erase the animated background, the vector graphic and the MAISON
+  // panels that had just been drawn, leaving a plain dark frame with text.
+  if (!hasGeneratedScene) {
+    ctx.fillStyle = tpl.bg;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // ----- intro card — dual text with entrance motion -----
   if (introText && elapsed < introDur) {
@@ -10479,7 +10572,10 @@ function drawStudioFrame(elapsed) {
     ctx.textAlign = "center";
     // A scene graphic owns the middle/lower frame, so its headline always sits
     // at the top — otherwise centred text would land on top of the graphic.
-    let baseY = dsGraphic && dsGraphic.kind ? H * 0.185
+    // A MAISON panel owns a specific band — centre the copy inside it. A scene
+    // graphic owns the middle/lower frame, so its headline sits at the top.
+    let baseY = dsPanelBand ? dsPanelBand.top + dsPanelBand.h * 0.46
+      : dsGraphic && dsGraphic.kind ? H * 0.185
       : pos === "top" ? H * 0.2 : pos === "bottom" ? H * 0.74 : H * 0.46;
     // manual drag offset (set by dragging the text on the canvas) — applied
     // ONCE here as a transform so the backing box and the text always move
@@ -10546,8 +10642,10 @@ function drawStudioFrame(elapsed) {
     }
     ctx.globalAlpha = textAlpha;
 
-    // text colour comes from the template
-    const fill = tpl.text, accentFill = tpl.accent;
+    // text colour comes from the template — but on a light/gold MAISON panel it
+    // must flip to ink, or the copy is unreadable on its own background.
+    const fill = (dsPanelBand && dsPanelBand.ink) ? "#171310" : tpl.text;
+    const accentFill = tpl.accent;
 
     // measure the text block to size the backing plate
     const hlSize = Math.round(W * 0.046 * sizeMul);
@@ -10577,7 +10675,9 @@ function drawStudioFrame(elapsed) {
     // into a bright photo. The plate animates in on its OWN timeline
     // (boxEase) — it arrives first, slightly ahead of the text, with a
     // gentle scale-up so the two reveals read as separate, refined steps.
-    if (blockW > 0 && boxEase > 0.001) {
+    // …except on a MAISON panel, where the copy sits on a solid colour band and
+    // a plate would just be a grey rectangle floating on it.
+    if (blockW > 0 && boxEase > 0.001 && !dsPanelBand) {
       const padX = W * 0.05, padY = H * 0.04;
       ctx.save();
       ctx.globalAlpha = boxEase * 0.55;
@@ -11054,6 +11154,17 @@ function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
 }
 
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
+  // Persistent MAISON top chrome (progress · wordmark · counter). Drawn for
+  // generated motion-graphic decks only, where the house style applies.
+  try {
+    const _s = vstudio.slides.length ? vstudio.slides[slideAtTime(elapsed).index] : null;
+    if (_s && (_s.panelLayout || _s.motionBg)) {
+      let _t = { accent: "#C99A46" };
+      try { if (typeof vsTemplate === "function") _t = vsTemplate(); } catch (e) {}
+      // the top band is light when this scene uses the gold-panel-on-top layout
+      vsDrawTopChrome(ctx, W, H, elapsed, _t, _s.panelLayout === "halfInv");
+    }
+  } catch (e) { /* chrome must never break the frame */ }
   // Logo overlay — drawn here so it appears on EVERY slide (media, intro,
   // outro, content), since all paths call vsFinishFrame before returning.
   if (vstudio.logoEl) {
