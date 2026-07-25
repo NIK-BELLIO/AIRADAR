@@ -5834,51 +5834,84 @@ async function vsAutoGenerateBackgrounds(data) {
     vstudio.templateId = "maison";
     const hlFontSel = document.querySelector("#vsHeadlineFont");
     if (hlFontSel) hlFontSel.value = "Alice, serif";
+    // Real headlines the builder tucked into the news-banner / infographic
+    // settings — needed for the graphic labels (the slide's own headline field
+    // is empty on content scenes). Collect them first.
+    const realHeadlineOf = (s) => {
+      let h = (s.settings && s.settings["#vsNewsHeadline"]) || "";
+      if (!h && s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
+        try { h = JSON.parse(s.settings["#vsInfoJson"]).title || ""; } catch (e) {}
+      }
+      return String(h || s.headline || s._caption || s._timelineLabel || "").replace(/\s+/g, " ").trim();
+    };
+    const allHeads = slides.map(realHeadlineOf);
+    const nodeLabels = allHeads
+      .map(h => h.split(/\s+/).slice(0, 2).join(" "))
+      .filter((h, idx, arr) => h.length > 1 && arr.indexOf(h) === idx)
+      .slice(0, 5);
+
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
       s.motionBg = pool[i % pool.length];   // on the slide, not settings (survives capture)
-      // MAISON rule: don't leave every scene full-bleed — alternate solid-panel
-      // layouts with full-frame ones so the deck has rhythm.
-      s.panelLayout = ["split", "", "halfInv", "half", ""][i % 5];
 
-      // ── Pick a MEANINGFUL vector graphic for this scene ──
-      // Chosen from the scene's own wording (a scene about a product gets a
-      // product UI mock-up, one about numbers gets a chart, etc.) and filled
-      // with real content from the script — not decorative particles.
-      const sceneText = [s.headline, s._caption, s._timelineLabel].filter(Boolean).join(" ");
-      const kind = vsSceneGraphicKind(sceneText || themeStr, i);
-      // node labels = the OTHER scenes' short headlines, so the graphic shows
-      // what this video is actually about
-      const labels = slides
-        .map(o => String(o.headline || o._timelineLabel || "").trim())
-        .filter(Boolean)
-        .map(h => h.split(/\s+/).slice(0, 2).join(" "))
-        .filter((h, idx, arr) => h.length > 1 && arr.indexOf(h) === idx);
-      const numMatch = /(\d[\d.,]*)\s*%/.exec(sceneText) || /(\d[\d.,]*)\s*%/.exec(themeStr);
-      const brandName = String((data && (data._batchName || data.title)) || "").split(/[\s—-]/)[0] || "Product";
-      s.sceneGraphic = {
-        kind,
-        items: labels.length >= 3 ? labels.slice(0, 5) : ["Signal", "Pattern", "Action"],
-        value: numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, "")))) : (60 + ((i * 13) % 35)),
-        valueLabel: String(s._caption || s.headline || "").slice(0, 34),
-        suffix: "%",
-        brand: (brandName || "product").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
-        brandName,
-        badge: String((data && data.subtitle) || "NEW").slice(0, 30),
-        uiTitleA: String(s.headline || "Built for ").split(" ").slice(0, 2).join(" ") + " ",
-        uiTitleB: String(s.headline || "everyone").split(" ").slice(2, 4).join(" ") || "everyone",
-        uiSub: String(s._caption || "").slice(0, 46),
-        cardTitle: "Live metrics",
-        caption: String(s._caption || "").slice(0, 52)
-      };
+      const isEnd = s.isOutro || i === slides.length - 1;
+      const isTitleCard = (i === 0) || isEnd;   // real intro / outro
+      const hasInfographic = !!s._standaloneInfo;
 
-      // kinetic word-by-word reveal with the gold accent word + underline wipe
+      if (isTitleCard) {
+        // intro & outro stay MAISON title cards (gold accent box) — no panel, no
+        // vector graphic, just the animated background behind the big title.
+        s.panelLayout = "";
+        s.sceneGraphic = null;
+        return;
+      }
+
+      // ── Content scene → a real MAISON middle slide ──
+      // Promote the content out of the news-banner overlay: put the real
+      // headline on the slide so the kinetic MAISON text renders it, and TURN
+      // OFF the old news banner (that overlay is what made it look like the
+      // ordinary footage build).
+      s.isIntro = false;
+      s.headline = realHeadlineOf(s);
+      s.settings["#vsNewsOn"] = false;
       s.settings["#vsTextAnim"] = "maison-kinetic";
-      s.settings["#vsHeadlineFont"] = "Archivo, ui-sans-serif, sans-serif";
-      // vary the vertical position — MAISON rule: never all bottom-anchored
-      s.settings["#vsTextPos"] = ["center", "bottom", "top", "center"][i % 4];
-      // ensure a lively overlay so it reads as motion graphic, not a still
+      s.settings["#vsTextPos"] = ["top", "top", "top"][i % 3];   // graphic owns the middle
+      // MAISON rhythm: alternate solid-panel scenes with full-bleed ones.
+      s.panelLayout = ["", "halfInv", "", "half", ""][i % 5];
+
+      if (hasInfographic) {
+        // keep the REAL animated chart (it carries genuine data) — no competing
+        // vector graphic, and no panel band over it.
+        s.settings["#vsInfoOn"] = true;
+        s.panelLayout = "";
+        s.sceneGraphic = null;
+      } else {
+        // text scene → a meaningful vector graphic chosen from its wording
+        s.settings["#vsInfoOn"] = false;
+        const kind = vsSceneGraphicKind(s.headline || themeStr, i);
+        const numMatch = /(\d[\d.,]*)\s*%/.exec(s.headline) || /(\d[\d.,]*)\s*%/.exec(themeStr);
+        const brandName = String((data && (data._batchName || data.title)) || "").split(/[\s—-]/)[0] || "Product";
+        const hw = s.headline.split(/\s+/);
+        s.sceneGraphic = {
+          kind,
+          items: nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"],
+          value: numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, "")))) : (60 + ((i * 13) % 35)),
+          valueLabel: String(s._caption || s.headline).slice(0, 34),
+          suffix: "%",
+          brand: (brandName || "product").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
+          brandName,
+          badge: String((data && data.subtitle) || "NEW").slice(0, 30),
+          uiTitleA: hw.slice(0, 2).join(" ") + " ",
+          uiTitleB: hw.slice(2, 4).join(" ") || "everyone",
+          uiSub: String(s._caption || "").slice(0, 46),
+          cardTitle: "Live metrics",
+          caption: String(s._caption || "").slice(0, 52)
+        };
+        // a panel scene carries its own composition — drop the graphic there
+        if (s.panelLayout) s.sceneGraphic = null;
+      }
+
       if (!s.settings["#vsOverlay"] || s.settings["#vsOverlay"] === "none") {
         s.settings["#vsOverlay"] = ["particles", "shimmer", "bokeh", "glow", "dust"][i % 5];
       }
@@ -10743,8 +10776,12 @@ function drawStudioFrame(elapsed) {
 
     // text colour comes from the template — but on a light/gold MAISON panel it
     // must flip to ink, or the copy is unreadable on its own background.
-    const fill = (dsPanelBand && dsPanelBand.ink) ? "#171310" : tpl.text;
-    const accentFill = tpl.accent;
+    const onInkPanel = !!(dsPanelBand && dsPanelBand.ink);
+    const fill = onInkPanel ? "#171310" : tpl.text;
+    // Gold accent text is gold-on-gold (invisible) on the light/gold MAISON
+    // panel. There the accent word stays full ink for contrast and the underline
+    // beneath it carries the accent instead of the colour.
+    const accentFill = onInkPanel ? fill : tpl.accent;
 
     // measure the text block to size the backing plate
     let hlSize = Math.round(W * 0.046 * sizeMul);
