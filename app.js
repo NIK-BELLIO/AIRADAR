@@ -10747,7 +10747,24 @@ function drawStudioFrame(elapsed) {
     const accentFill = tpl.accent;
 
     // measure the text block to size the backing plate
-    const hlSize = Math.round(W * 0.046 * sizeMul);
+    let hlSize = Math.round(W * 0.046 * sizeMul);
+    // ── Fit the headline to the frame ──
+    // The headline was drawn as ONE fixed-size line, so long titles ran off both
+    // sides and short/long titles looked like different sizes. Shrink the font
+    // until the WHOLE headline fits the safe width, capped at the base size so
+    // short titles don't balloon — this keeps every slide's title consistent
+    // and inside the frame. (Both the MAISON per-word path and the plain path
+    // measure their single line the same way.)
+    {
+      const isMaison2 = textAnim === "maison-kinetic";
+      const maxHlW = W * (dsPanelBand ? 0.80 : 0.86);
+      const minHl = Math.round(W * 0.026);
+      while (hlSize > minHl) {
+        ctx.font = `${isMaison2 ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
+        if (ctx.measureText(headline || "").width <= maxHlW) break;
+        hlSize -= 2;
+      }
+    }
     const subSize = Math.round(W * 0.026 * sizeMul);
     const ctaSize = Math.round(W * 0.022 * sizeMul);
     ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
@@ -11561,7 +11578,16 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   // ── MAISON accent word: solid gold box, ink italic serif, springs up ──
   // (no arrow, no drop shadow — per the template's design rules)
   if (useAccentBox && accentWord) {
-    const apx = Math.round(fontPx * 0.94);
+    let apx = Math.round(fontPx * 0.94);
+    // Fit the accent word's gold box to the frame: a long accent word (e.g.
+    // "substitution", "leverage") used to make a box wider than the canvas and
+    // spill off both sides. Shrink until the whole box fits the safe width.
+    const boxMaxW = maxTextW;
+    while (apx > U * 0.03) {
+      ctx.font = `italic 700 ${apx}px Georgia, "Times New Roman", serif`;
+      if (ctx.measureText(accentWord).width + apx * 0.30 * 2 <= boxMaxW) break;
+      apx -= 2;
+    }
     ctx.font = `italic 700 ${apx}px Georgia, "Times New Roman", serif`;
     // Size the block from the REAL glyph metrics so descenders (the j and p in
     // "jump") sit inside the gold, instead of hanging below a fixed-height box.
