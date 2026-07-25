@@ -5186,7 +5186,9 @@ function vsAssembleFromSections(data, skipFootage) {
         const label = clampLabel(s.label || s.name || s.key || s.metric || s.title || s.category || "");
         const rawVal = [s.value, s.amount, s.figure, s.stat, s.number, s.num, s.pct, s.percent]
           .find(v => v != null && v !== "");
-        const value = String(rawVal != null ? rawVal : "").replace(/\s+/g, " ").trim().slice(0, 14);
+        // Allow qualitative values ("Oversized / wide", "Dropped shoulder") room
+        // to survive — the renderer auto-fits them. 14 chars used to clip these.
+        const value = String(rawVal != null ? rawVal : "").replace(/\s+/g, " ").trim().slice(0, 28);
         const num = typeof s.num === "number" ? s.num
           : (parseFloat(String(rawVal != null ? rawVal : "").replace(/[^0-9.\-]/g, "")) || 0);
         return { label, value, num };
@@ -5850,6 +5852,10 @@ async function vsAutoGenerateBackgrounds(data) {
       .filter((h, idx, arr) => h.length > 1 && arr.indexOf(h) === idx)
       .slice(0, 5);
 
+    // Short 1-2 word label helper for concept graphics.
+    const shortLabel = (str) => String(str || "").replace(/[^\w\s%/+.-]/g, "").split(/\s+/).slice(0, 2).join(" ");
+    let prevKind = null;   // so no two adjacent scenes build the same graphic
+
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
@@ -5868,37 +5874,64 @@ async function vsAutoGenerateBackgrounds(data) {
       }
 
       // ── Content scene → a real MAISON middle slide ──
-      // Promote the content out of the news-banner overlay: put the real
+      // Promote the content out of the news/infographic overlay: put the real
       // headline on the slide so the kinetic MAISON text renders it, and TURN
-      // OFF the old news banner (that overlay is what made it look like the
-      // ordinary footage build).
+      // OFF both overlays. Every scene is then composed as headline (top) + a
+      // generated vector graphic (below) so there is never an overlap, and the
+      // infographic's real numbers feed straight into the graphic.
       s.isIntro = false;
       s.headline = realHeadlineOf(s);
       s.settings["#vsNewsOn"] = false;
+      s.settings["#vsInfoOn"] = false;
       s.settings["#vsTextAnim"] = "maison-kinetic";
-      s.settings["#vsTextPos"] = ["top", "top", "top"][i % 3];   // graphic owns the middle
-      // MAISON rhythm: alternate solid-panel scenes with full-bleed ones.
-      s.panelLayout = ["", "halfInv", "", "half", ""][i % 5];
+      s.settings["#vsTextPos"] = "top";           // graphic owns the middle/lower
 
-      if (hasInfographic) {
-        // keep the REAL animated chart (it carries genuine data) — no competing
-        // vector graphic, and no panel band over it.
-        s.settings["#vsInfoOn"] = true;
-        s.panelLayout = "";
+      // Pull any real data the builder attached (infographic stats).
+      let stats = [];
+      if (hasInfographic && s.settings["#vsInfoJson"]) {
+        try {
+          const parsed = JSON.parse(s.settings["#vsInfoJson"]);
+          if (parsed && Array.isArray(parsed.stats)) stats = parsed.stats.filter(Boolean);
+        } catch (e) {}
+      }
+      const data2 = stats.map((st) => {
+        const value = st.value != null ? String(st.value) : "";
+        const num = typeof st.num === "number" ? st.num
+          : (parseFloat(value.replace(/[^0-9.\-]/g, "")) || 0);
+        return { label: String(st.label || ""), value, num };
+      });
+      const numMatch = /(\d[\d.,]*)\s*%/.exec(s.headline);
+      const hasNumber = !!numMatch || data2.some((d) => /\d/.test(d.value));
+
+      // MAISON rhythm: give a text-only scene (no real data) a solid statement
+      // panel roughly every fourth slide, for pacing — those carry no graphic.
+      const wantPanel = !data2.length && (i % 4 === 3);
+      if (wantPanel) {
+        s.panelLayout = (i % 8 === 3) ? "halfInv" : "half";
         s.sceneGraphic = null;
+        prevKind = null;
       } else {
-        // text scene → a meaningful vector graphic chosen from its wording
-        s.settings["#vsInfoOn"] = false;
-        const kind = vsSceneGraphicKind(s.headline || themeStr, i);
-        const numMatch = /(\d[\d.,]*)\s*%/.exec(s.headline) || /(\d[\d.,]*)\s*%/.exec(themeStr);
+        s.panelLayout = "";
+        const kind = vsSceneGraphicKind(s.headline || themeStr, i, { stats: data2, prevKind, hasNumber });
+        prevKind = kind;
+        // Concept graphics want short labels; prefer this scene's own key words,
+        // fall back to the deck-wide node labels.
+        const localItems = s.headline.split(/\s+/).filter((w) => w.length > 2).slice(0, 5).map(shortLabel);
+        const items = data2.length ? data2.map((d) => shortLabel(d.label))
+          : (localItems.length >= 3 ? localItems
+            : (nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"]));
+        const heroVal = numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, ""))))
+          : (data2.find((d) => d.num) ? Math.min(100, Math.round(Math.abs(data2.find((d) => d.num).num)))
+            : (55 + ((i * 17) % 40)));
         const brandName = String((data && (data._batchName || data.title)) || "").split(/[\s—-]/)[0] || "Product";
         const hw = s.headline.split(/\s+/);
         s.sceneGraphic = {
           kind,
-          items: nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"],
-          value: numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, "")))) : (60 + ((i * 13) % 35)),
-          valueLabel: String(s._caption || s.headline).slice(0, 34),
-          suffix: "%",
+          data: data2.length ? data2 : null,
+          items: items.filter((x) => x && x.length).slice(0, 5),
+          value: heroVal,
+          valueLabel: String((data2[0] && data2[0].label) || s._caption || s.headline).slice(0, 34),
+          suffix: (numMatch && /%/.test(numMatch[0])) || data2.some((d) => /%/.test(d.value)) ? "%" : "",
           brand: (brandName || "product").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
           brandName,
           badge: String((data && data.subtitle) || "NEW").slice(0, 30),
@@ -5908,8 +5941,6 @@ async function vsAutoGenerateBackgrounds(data) {
           cardTitle: "Live metrics",
           caption: String(s._caption || "").slice(0, 52)
         };
-        // a panel scene carries its own composition — drop the graphic there
-        if (s.panelLayout) s.sceneGraphic = null;
       }
 
       if (!s.settings["#vsOverlay"] || s.settings["#vsOverlay"] === "none") {
@@ -9715,13 +9746,60 @@ function drawStudioOverlay(ctx, W, H, elapsed, kind) {
 // wording, and the content (labels/values) comes from the script.
 
 // Pick the graphic that matches what a scene is actually about.
-function vsSceneGraphicKind(text, i) {
+// Smart, content-aware graphic picker. Reads the wording AND the data shape of
+// the scene, proposes ranked candidates, and never repeats the previous scene's
+// kind — so every slide builds a distinctly different graphic. `opts` may carry
+// { stats:[{value}], prevKind, hasNumber }.
+function vsSceneGraphicKind(text, i, opts) {
+  opts = opts || {};
   const s = String(text || "").toLowerCase();
-  if (/\b(site|website|web|app|product|platform|dashboard|launch|landing|interface|demo|page)\b/.test(s)) return "ui";
-  if (/(\d+\s*%|percent|growth|revenue|market|data|stat|increase|decline|rate|index|score|billion|million|budget|cost|price)/.test(s)) return "chart";
-  if (/\b(connect|network|system|workflow|pipeline|integrat|team|chain|supply|layer|ecosystem|process|flow)\b/.test(s)) return "network";
-  if (/\b(scan|detect|monitor|discover|track|find|radar|intelligence|analys|audit|watch|signal|threat|risk)\b/.test(s)) return "radar";
-  return ["radar", "network", "chart", "ui"][i % 4];   // varied fallback
+  const prev = opts.prevKind || null;
+  const stats = opts.stats || [];
+  const nStat = stats.length;
+  const nNum = stats.filter(x => x && /\d/.test(String(x.value != null ? x.value : ""))).length;
+  const hasData = nStat >= 2 || opts.hasNumber || nNum > 0;
+
+  // Kinds that need real numbers/values to be meaningful.
+  const DATA = new Set(["chart", "bars", "compare", "gauge", "stat", "attributes"]);
+  // Kinds that work from plain labels / concepts alone.
+  const CONCEPT = ["radar", "network", "timeline", "flow", "cycle", "orbit", "pyramid", "ui"];
+
+  const cand = [];
+  const add = (...k) => k.forEach(x => { if (x && (hasData || !DATA.has(x))) cand.push(x); });
+
+  // 1) Strongest signal: the shape of the data.
+  if (nStat === 2 && nNum >= 1) add("compare");
+  if (nStat >= 3 && nNum >= Math.ceil(nStat / 2)) add("bars", "chart");
+  if (nStat >= 2 && nNum === 0) add("attributes");            // qualitative fields
+  if (nStat === 1 && nNum === 1) add("stat", "gauge");
+
+  // 2) Wording signal.
+  const kw = [
+    [/\b(step|steps|process|pipeline|workflow|stage|phase|how it works|first|then|next|finally|method)\b/, ["flow", "cycle"]],
+    [/\b(cycle|loop|repeat|feedback|continuous|recurring|iterate|ongoing|circular)\b/, ["cycle"]],
+    [/\b(time|timeline|history|year|era|evolution|roadmap|milestone|202\d|19\d\d|decade|schedule|future|past|era)\b/, ["timeline"]],
+    [/\b(vs|versus|compare|comparison|before|after|old|new|than|gap|difference|shift|from|to)\b/, ["compare"]],
+    [/\b(rank|ranked|top|most|list|leading|biggest|largest|share|breakdown|split|majority|dominate|dominates)\b/, ["bars"]],
+    [/\b(grow|growth|rise|rising|increase|surge|trend|trajectory|scale|climb|boom|up)\b/, ["chart"]],
+    [/\b(hierarchy|tier|level|pyramid|foundation|layer|layers|core|base|structure)\b/, ["pyramid"]],
+    [/\b(site|website|web|app|product|platform|dashboard|launch|landing|interface|demo|page|screen)\b/, ["ui"]],
+    [/(\d+\s*%|percent|rate|score|index|accuracy|reach|meter|gauge|level|confidence)/, ["gauge", "stat"]],
+    [/\b(connect|connected|network|system|integrat|team|ecosystem|node|mesh|web of|links?)\b/, ["network", "orbit"]],
+    [/\b(scan|detect|monitor|discover|track|radar|intelligence|analys|audit|signal|threat|risk|watch|surveill)\b/, ["radar"]],
+    [/\b(hub|center|central|orbit|around|surround|revolve|core)\b/, ["orbit"]],
+    [/\b(direction|style|type|category|attribute|trait|profile|spec|feature|character)\b/, ["attributes"]]
+  ];
+  for (const [re, ks] of kw) if (re.test(s)) add(...ks);
+
+  // 3) Diverse rotation so runs with no signal still vary every slide.
+  const rot = hasData
+    ? ["chart", "network", "timeline", "flow", "cycle", "bars", "orbit", "pyramid", "gauge", "radar"]
+    : CONCEPT;
+  add(rot[i % rot.length], rot[(i * 3 + 1) % rot.length], rot[(i * 5 + 2) % rot.length]);
+
+  // pick the first candidate that isn't a repeat of the previous scene
+  for (const k of cand) if (k && k !== prev) return k;
+  return cand[0] || "radar";
 }
 
 // Subtle technical grid + vignette — the calm base these graphics sit on.
@@ -9825,29 +9903,51 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
     ctx.shadowColor = A; ctx.shadowBlur = W * 0.035; ctx.stroke(); ctx.shadowBlur = 0;
 
   } else if (kind === "chart") {
-    const x = W * 0.11, y = H * 0.42, w = W * 0.78, h = H * 0.30;
+    // Column chart driven by REAL data ({label,value,num}) when present, with a
+    // per-bar value chip and label so the numbers actually mean something.
+    const data = (o.data && o.data.length) ? o.data.slice(0, 6) : null;
+    const x = W * 0.11, y = H * 0.40, w = W * 0.78, h = H * 0.30;
     for (let i = 0; i <= 4; i++) {
       const gy = y + h * i / 4; ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + w, gy);
       ctx.strokeStyle = "rgba(255,255,255,.07)"; ctx.lineWidth = 1; ctx.stroke();
     }
-    const bars = o.bars || [0.42, 0.58, 0.51, 0.74, 0.66, 0.92];
-    const bw = w / (bars.length * 1.7);
-    bars.forEach((v, i) => {
-      const e = Math.min(1, Math.max(0, (t - i * 0.11) / 0.6));
-      const bh = h * v * e, bx = x + (w / bars.length) * i + (w / bars.length - bw) / 2;
+    const nums = data ? data.map(d => Math.abs(Number(d.num) || 0)) : [0.42, 0.58, 0.51, 0.74, 0.66, 0.92];
+    const maxN = Math.max.apply(null, nums.concat([0.0001]));
+    const count = nums.length, slot = w / count, bw = Math.min(slot * 0.56, W * 0.12);
+    nums.forEach((v, i) => {
+      const e = Math.min(1, Math.max(0, (t - i * 0.12) / 0.6));
+      const frac = data ? (v / maxN) : v;
+      const bh = h * frac * e, bx = x + slot * i + (slot - bw) / 2;
       const g = ctx.createLinearGradient(0, y + h - bh, 0, y + h);
-      g.addColorStop(0, i === bars.length - 1 ? A : vsHexA(A, 0.75));
-      g.addColorStop(1, "rgba(37,99,255,.25)");
-      roundRectPath(ctx, bx, y + h - bh, bw, bh, bw * 0.28); ctx.fillStyle = g; ctx.fill();
+      g.addColorStop(0, i === count - 1 ? A : vsHexA(A, 0.78));
+      g.addColorStop(1, vsHexA(A, 0.18));
+      roundRectPath(ctx, bx, y + h - bh, bw, bh, bw * 0.24); ctx.fillStyle = g; ctx.fill();
+      if (data && e > 0.6) {
+        ctx.globalAlpha = (e - 0.6) / 0.4;
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.026}px ${F}`;
+        ctx.fillText(String(data[i].value || "").slice(0, 8), bx + bw / 2, y + h - bh - H * 0.012);
+        ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.019}px ${F}`;
+        const lbl = String(data[i].label || "").slice(0, 12);
+        ctx.fillText(lbl, bx + bw / 2, y + h + H * 0.028);
+        ctx.globalAlpha = 1;
+      }
     });
     ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h);
     ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = Math.max(1, W * 0.003); ctx.stroke();
-    const target = Number(o.value) || 92;
-    const cv = Math.min(1, t / 1.4) * target;
-    ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.15}px ${F}`;
-    ctx.fillText(Math.round(cv) + (o.suffix || "%"), W / 2, y - H * 0.045);
-    ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.026}px ${F}`;
-    ctx.fillText(String(o.valueLabel || "").toUpperCase(), W / 2, y - H * 0.012);
+    if (!data) {
+      const target = Number(o.value) || 92;
+      const cv = Math.min(1, t / 1.4) * target;
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.15}px ${F}`;
+      ctx.fillText(Math.round(cv) + (o.suffix || "%"), W / 2, y - H * 0.045);
+      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+      ctx.fillText(String(o.valueLabel || "").toUpperCase(), W / 2, y - H * 0.012);
+    }
+
+  } else if (kind === "stat" || kind === "gauge" || kind === "compare" || kind === "bars" ||
+             kind === "timeline" || kind === "flow" || kind === "cycle" || kind === "pyramid" ||
+             kind === "orbit" || kind === "attributes") {
+    drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items);
 
   } else if (kind === "ui") {
     const x = W * 0.06, y = H * 0.30, w = W * 0.88, h = H * 0.52, e = Math.min(1, t / 0.9);
@@ -9949,6 +10049,249 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
     ctx.fillText(o.caption, W / 2, H * 0.905);
   }
   ctx.restore();
+}
+
+// The extended graphic library — every kind below builds a distinct, animated,
+// content-driven vector scene. Called from drawSceneGraphic (which owns the
+// save/restore + caption). `o` may carry { data:[{label,value,num}], items,
+// value, suffix, valueLabel }.
+function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
+  const U = Math.min(W, H);
+  const data = (o.data && o.data.length) ? o.data.slice(0, 6) : null;
+  const ease = (p) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
+  const softGlow = (col, blur) => { ctx.shadowColor = col; ctx.shadowBlur = blur; };
+  const noGlow = () => { ctx.shadowBlur = 0; };
+  const fit = (txt, maxW, weight, px) => vsFitFont(ctx, txt, maxW, weight, F, px, px * 0.6);
+
+  if (kind === "stat") {
+    // One hero number + label + up to three supporting mini-bars.
+    const val = Number(o.value); const has = isFinite(val);
+    const cv = has ? Math.round(Math.min(1, t / 1.3) * val) : 0;
+    const cx = W / 2;
+    ctx.textAlign = "center";
+    softGlow(A, W * 0.06);
+    ctx.fillStyle = A; ctx.font = `800 ${W * 0.22}px ${F}`;
+    ctx.fillText(has ? cv + (o.suffix || "%") : String(o.valueText || "—"), cx, H * 0.49);
+    noGlow();
+    ctx.fillStyle = "rgba(255,255,255,.62)"; fit(String(o.valueLabel || "").toUpperCase(), W * 0.82, "600", W * 0.034);
+    ctx.fillText(String(o.valueLabel || "").toUpperCase(), cx, H * 0.565);
+    const d = data ? data.slice(0, 3) : [];
+    if (d.length) {
+      const maxN = Math.max.apply(null, d.map(x => Math.abs(x.num) || 0).concat([0.0001]));
+      const bw = W * 0.66, bx = (W - bw) / 2; let by = H * 0.64;
+      d.forEach((it, i) => {
+        const e = ease((t - 0.4 - i * 0.15) / 0.6);
+        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.024}px ${F}`;
+        ctx.fillText(String(it.label).slice(0, 22), bx, by - H * 0.012);
+        ctx.textAlign = "right"; ctx.fillStyle = A; ctx.fillText(String(it.value).slice(0, 10), bx + bw, by - H * 0.012);
+        roundRectPath(ctx, bx, by, bw, H * 0.012, H * 0.006); ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fill();
+        roundRectPath(ctx, bx, by, bw * (Math.abs(it.num) / maxN) * e, H * 0.012, H * 0.006); ctx.fillStyle = A; ctx.fill();
+        by += H * 0.075;
+      });
+    }
+
+  } else if (kind === "gauge") {
+    const cx = W / 2, cy = H * 0.63, R = U * 0.30;
+    const val = Math.max(0, Math.min(100, isFinite(Number(o.value)) ? Number(o.value) : 66));
+    ctx.lineCap = "round"; ctx.lineWidth = W * 0.036;
+    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, Math.PI * 2); ctx.stroke();
+    const p = Math.min(1, t / 1.3) * (val / 100);
+    const g = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
+    g.addColorStop(0, vsHexA(A, 0.5)); g.addColorStop(1, A);
+    ctx.strokeStyle = g; softGlow(A, W * 0.03);
+    ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, Math.PI + Math.PI * p); ctx.stroke(); noGlow();
+    const ang = Math.PI + Math.PI * p;
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = W * 0.006;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * R * 0.82, cy + Math.sin(ang) * R * 0.82); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, W * 0.016, 0, 7); ctx.fillStyle = A; ctx.fill();
+    ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.13}px ${F}`;
+    ctx.fillText(Math.round(p / (val / 100 || 1) * val) + (o.suffix || "%"), cx, cy - H * 0.03);
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+    ctx.fillText(String(o.valueLabel || "").toUpperCase().slice(0, 30), cx, cy + H * 0.055);
+
+  } else if (kind === "compare") {
+    const d = (data && data.length >= 2) ? data.slice(0, 2)
+      : [{ label: items[0] || "Before", num: 38, value: "38" }, { label: items[1] || "After", num: 72, value: "72" }];
+    const maxN = Math.max.apply(null, d.map(x => Math.abs(x.num) || 0).concat([0.0001]));
+    const cx = W / 2, baseY = H * 0.74, barW = W * 0.24, gap = W * 0.10, maxH = H * 0.34;
+    d.forEach((it, i) => {
+      const bx = cx + (i === 0 ? -(barW + gap / 2) : gap / 2);
+      const e = ease((t - i * 0.18) / 0.7);
+      const bh = maxH * (Math.abs(it.num) / maxN) * e;
+      const g = ctx.createLinearGradient(0, baseY - bh, 0, baseY);
+      g.addColorStop(0, i === 1 ? A : vsHexA(A, 0.55)); g.addColorStop(1, vsHexA(A, 0.12));
+      roundRectPath(ctx, bx, baseY - bh, barW, bh, W * 0.02); ctx.fillStyle = g; ctx.fill();
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.044}px ${F}`;
+      if (e > 0.7) { ctx.globalAlpha = (e - 0.7) / 0.3; ctx.fillText(String(it.value).slice(0, 8), bx + barW / 2, baseY - bh - H * 0.02); ctx.globalAlpha = 1; }
+      ctx.fillStyle = "rgba(255,255,255,.6)"; fit(String(it.label).toUpperCase(), barW * 1.25, "600", W * 0.026);
+      ctx.fillText(String(it.label).toUpperCase().slice(0, 18), bx + barW / 2, baseY + H * 0.04);
+    });
+    ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.03}px ${F}`;
+    ctx.fillText("VS", cx, baseY - maxH * 0.42);
+
+  } else if (kind === "bars") {
+    const d = (data && data.length) ? data
+      : items.map((l, i) => ({ label: l, num: 92 - i * 16, value: (92 - i * 16) + "%" }));
+    const maxN = Math.max.apply(null, d.map(x => Math.abs(x.num) || 1).concat([0.0001]));
+    const x = W * 0.10, w = W * 0.80, y0 = H * 0.36, rowH = (H * 0.46) / d.length;
+    d.slice(0, 5).forEach((it, i) => {
+      const e = ease((t - i * 0.12) / 0.65);
+      const by = y0 + rowH * i + rowH * 0.18, bh = rowH * 0.4;
+      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+      ctx.fillText(String(it.label).slice(0, 22), x, by - H * 0.008);
+      roundRectPath(ctx, x, by, w, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.07)"; ctx.fill();
+      const bw = w * (Math.abs(it.num) / maxN) * e;
+      const g = ctx.createLinearGradient(x, 0, x + w, 0);
+      g.addColorStop(0, vsHexA(A, 0.7)); g.addColorStop(1, A);
+      roundRectPath(ctx, x, by, Math.max(bh, bw), bh, bh / 2); ctx.fillStyle = g; ctx.fill();
+      ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.026}px ${F}`;
+      if (e > 0.6) { ctx.globalAlpha = (e - 0.6) / 0.4; ctx.fillText(String(it.value).slice(0, 8), x + w, by - H * 0.008); ctx.globalAlpha = 1; }
+    });
+
+  } else if (kind === "timeline") {
+    const its = items.slice(0, 5); const n = its.length;
+    const y = H * 0.55, x0 = W * 0.13, x1 = W * 0.87, span = x1 - x0;
+    const p = Math.min(1, t / 1.2);
+    ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = W * 0.006; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+    ctx.strokeStyle = A; softGlow(A, W * 0.02);
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + span * p, y); ctx.stroke(); noGlow();
+    its.forEach((l, i) => {
+      const fx = x0 + span * (n > 1 ? i / (n - 1) : 0.5);
+      const e = ease((t - i * 0.22) / 0.5);
+      if (e <= 0) return;
+      const up = i % 2 === 0;
+      ctx.strokeStyle = vsHexA(A, 0.4); ctx.lineWidth = W * 0.003;
+      ctx.beginPath(); ctx.moveTo(fx, y); ctx.lineTo(fx, y + (up ? -1 : 1) * H * 0.055 * e); ctx.stroke();
+      ctx.beginPath(); ctx.arc(fx, y, W * 0.016 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
+      ctx.textAlign = "center"; ctx.globalAlpha = e;
+      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+      ctx.fillText(String(l).slice(0, 14), fx, y + (up ? -1 : 1) * H * 0.075 - (up ? 0 : -H * 0.02));
+      ctx.globalAlpha = 1;
+    });
+
+  } else if (kind === "flow") {
+    const its = items.slice(0, 4); const n = Math.max(1, its.length);
+    const boxH = H * 0.12, y = H * 0.50;
+    const margin = W * 0.06, boxW = W * 0.185;
+    const gap = (W - margin * 2 - boxW * n) / Math.max(1, n - 1);
+    its.forEach((l, i) => {
+      const bx = margin + i * (boxW + gap);
+      const e = ease((t - i * 0.2) / 0.55);
+      if (e <= 0) return;
+      ctx.globalAlpha = e;
+      roundRectPath(ctx, bx, y - boxH / 2, boxW, boxH, W * 0.02);
+      ctx.fillStyle = "#0a1420"; ctx.fill();
+      ctx.strokeStyle = i === n - 1 ? A : vsHexA(A, 0.5); ctx.lineWidth = W * 0.0035; ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.03}px ${F}`;
+      ctx.fillText(String(i + 1), bx + boxW / 2, y - boxH * 0.12);
+      ctx.fillStyle = "rgba(255,255,255,.82)"; fit(String(l), boxW * 0.9, "600", W * 0.021);
+      ctx.fillText(String(l).slice(0, 16), bx + boxW / 2, y + boxH * 0.28);
+      ctx.globalAlpha = 1;
+      if (i < n - 1) {
+        const ax = bx + boxW, axe = bx + boxW + gap, ay = y;
+        const ap = ease((t - i * 0.2 - 0.15) / 0.4);
+        ctx.strokeStyle = A; ctx.lineWidth = W * 0.004;
+        ctx.beginPath(); ctx.moveTo(ax + gap * 0.12, ay); ctx.lineTo(ax + gap * 0.12 + (axe - ax - gap * 0.24) * ap, ay); ctx.stroke();
+        if (ap > 0.9) { const hx = axe - gap * 0.12; ctx.beginPath(); ctx.moveTo(hx, ay); ctx.lineTo(hx - W * 0.014, ay - W * 0.01); ctx.lineTo(hx - W * 0.014, ay + W * 0.01); ctx.closePath(); ctx.fillStyle = A; ctx.fill(); }
+      }
+    });
+
+  } else if (kind === "cycle") {
+    const its = items.slice(0, 5); const n = Math.max(3, its.length);
+    const cx = W / 2, cy = H * 0.57, R = U * 0.26;
+    ctx.strokeStyle = vsHexA(A, 0.22); ctx.lineWidth = W * 0.006;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+    const sweep = (t * 0.9) % (Math.PI * 2);
+    ctx.strokeStyle = A; ctx.lineWidth = W * 0.006; ctx.lineCap = "round"; softGlow(A, W * 0.02);
+    ctx.beginPath(); ctx.arc(cx, cy, R, sweep, sweep + Math.PI * 0.5); ctx.stroke(); noGlow();
+    its.slice(0, n).forEach((l, i) => {
+      const ang = -Math.PI / 2 + i * (Math.PI * 2 / its.length);
+      const nx = cx + Math.cos(ang) * R, ny = cy + Math.sin(ang) * R;
+      const e = ease((t - i * 0.16) / 0.5);
+      if (e <= 0) return;
+      ctx.beginPath(); ctx.arc(nx, ny, W * 0.05 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.028}px ${F}`;
+      ctx.fillText(String(i + 1), nx, ny + W * 0.01);
+      ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.023}px ${F}`;
+      const lx = cx + Math.cos(ang) * (R + W * 0.11), ly = cy + Math.sin(ang) * (R + W * 0.11);
+      ctx.fillText(String(l).slice(0, 12), lx, ly + W * 0.008); ctx.globalAlpha = 1;
+    });
+
+  } else if (kind === "pyramid") {
+    const its = items.slice(0, 4); const n = Math.max(1, its.length);
+    const cx = W / 2, topY = H * 0.36, botY = H * 0.78, totalH = botY - topY, tierH = totalH / n * 0.86, gap = totalH / n * 0.14;
+    its.forEach((l, i) => {
+      const e = ease((t - (n - 1 - i) * 0.16) / 0.55);
+      if (e <= 0) return;
+      const ty = topY + (totalH / n) * i;
+      const wTop = W * 0.12 + (W * 0.6) * (i / n);
+      const wBot = W * 0.12 + (W * 0.6) * ((i + 1) / n);
+      ctx.globalAlpha = e;
+      ctx.beginPath();
+      ctx.moveTo(cx - wTop / 2, ty); ctx.lineTo(cx + wTop / 2, ty);
+      ctx.lineTo(cx + wBot / 2, ty + tierH); ctx.lineTo(cx - wBot / 2, ty + tierH); ctx.closePath();
+      const g = ctx.createLinearGradient(0, ty, 0, ty + tierH);
+      g.addColorStop(0, vsHexA(A, 0.28 + i * 0.14)); g.addColorStop(1, vsHexA(A, 0.5 + i * 0.14));
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = vsHexA(A, 0.6); ctx.lineWidth = W * 0.002; ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; fit(String(l), Math.max(wTop, wBot) * 0.9, "700", W * 0.024);
+      ctx.fillText(String(l).slice(0, 20), cx, ty + tierH * 0.62);
+      ctx.globalAlpha = 1;
+    });
+
+  } else if (kind === "orbit") {
+    const cx = W / 2, cy = H * 0.57, R = U * 0.27;
+    const its = items.slice(0, 5);
+    ctx.strokeStyle = vsHexA(A, 0.16); ctx.lineWidth = W * 0.003;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+    its.forEach((l, i) => {
+      const ang = t * 0.5 + i * (Math.PI * 2 / its.length);
+      const nx = cx + Math.cos(ang) * R, ny = cy + Math.sin(ang) * R;
+      const e = ease((t - i * 0.12) / 0.5);
+      ctx.strokeStyle = vsHexA(A, 0.2); ctx.lineWidth = W * 0.002;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny); ctx.stroke();
+      ctx.beginPath(); ctx.arc(nx, ny, W * 0.04 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `600 ${W * 0.021}px ${F}`;
+      ctx.fillText(String(l).slice(0, 12), nx, ny + W * 0.065);
+    });
+    ctx.beginPath(); ctx.arc(cx, cy, W * 0.055, 0, 7);
+    ctx.fillStyle = "#0a1420"; ctx.fill();
+    ctx.strokeStyle = A; ctx.lineWidth = W * 0.005; softGlow(A, W * 0.035); ctx.stroke(); noGlow();
+    ctx.fillStyle = A; ctx.beginPath(); ctx.arc(cx, cy, W * 0.018, 0, 7); ctx.fill();
+
+  } else if (kind === "attributes") {
+    // Qualitative fields (label → value). Handles long text values without
+    // clipping — the whole point that "Oversized / wide" was getting cut off.
+    const d = (data && data.length) ? data.slice(0, 4)
+      : items.map((l) => ({ label: l, value: "" }));
+    const x = W * 0.09, w = W * 0.82, y0 = H * 0.36, rowH = Math.min(H * 0.12, (H * 0.5) / d.length);
+    d.forEach((it, i) => {
+      const e = ease((t - i * 0.15) / 0.55);
+      if (e <= 0) return;
+      const ry = y0 + rowH * i;
+      ctx.globalAlpha = e;
+      roundRectPath(ctx, x, ry, w, rowH * 0.82, W * 0.02);
+      ctx.fillStyle = "rgba(255,255,255,.045)"; ctx.fill();
+      ctx.strokeStyle = vsHexA(A, 0.3); ctx.lineWidth = W * 0.002; ctx.stroke();
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const hasVal = !!String(it.value || "").trim();
+      const lbl = String(it.label).toUpperCase();
+      ctx.fillStyle = "rgba(255,255,255,.6)";
+      fit(lbl, hasVal ? w * 0.44 : w * 0.9, "600", W * 0.026);
+      ctx.fillText(lbl, x + W * 0.035, ry + rowH * 0.41);
+      if (hasVal) {
+        ctx.textAlign = "right"; ctx.fillStyle = A;
+        fit(String(it.value), w * 0.5, "800", W * 0.028);
+        ctx.fillText(String(it.value), x + w - W * 0.035, ry + rowH * 0.41);
+      }
+      ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
+    });
+  }
 }
 
 // ── MAISON panel layouts ──────────────────────────────────────────────────
@@ -11307,17 +11650,8 @@ function vsDrawLogo(ctx, W, H, elapsed, dsLocal, tpl) {
 }
 
 function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
-  // Persistent MAISON top chrome (progress · wordmark · counter). Drawn for
-  // generated motion-graphic decks only, where the house style applies.
-  try {
-    const _s = vstudio.slides.length ? vstudio.slides[slideAtTime(elapsed).index] : null;
-    if (_s && (_s.panelLayout || _s.motionBg)) {
-      let _t = { accent: "#C99A46" };
-      try { if (typeof vsTemplate === "function") _t = vsTemplate(); } catch (e) {}
-      // the top band is light when this scene uses the gold-panel-on-top layout
-      vsDrawTopChrome(ctx, W, H, elapsed, _t, _s.panelLayout === "halfInv");
-    }
-  } catch (e) { /* chrome must never break the frame */ }
+  // (The MAISON progress/wordmark top chrome was removed by request — the
+  //  motion-graphic frame stays clean, no persistent header bar.)
   // Logo overlay — drawn here so it appears on EVERY slide (media, intro,
   // outro, content), since all paths call vsFinishFrame before returning.
   if (vstudio.logoEl) {
