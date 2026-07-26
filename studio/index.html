@@ -1476,11 +1476,10 @@
                         <span class="vs-switch-track"></span>
                         <span class="vs-switch-txt" id="vsUsePexelsLbl" data-i18n="vUsePexelsLbl">Real video footage, auto-matched to each topic &amp; city</span>
                       </label>
-                      <label class="vs-switch">
-                        <input id="vsMusic" type="checkbox" checked />
-                        <span class="vs-switch-track"></span>
-                        <span class="vs-switch-txt" id="vsMusicLbl" data-i18n="vMusicLbl">🎵 Background music (cinematic, auto-fades)</span>
-                      </label>
+                      <!-- Background music is ALWAYS on for every export — no toggle.
+                           Kept as a hidden, permanently-checked input so all the
+                           build/export code that reads #vsMusic keeps working. -->
+                      <input id="vsMusic" type="checkbox" checked hidden />
                       <label class="vs-switch">
                         <input id="vsVoiceover" type="checkbox" />
                         <span class="vs-switch-track"></span>
@@ -2593,7 +2592,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v372"></script>
+    <script src="/app.js?v=v373"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

@@ -4955,7 +4955,7 @@ SOURCE: """${text.slice(0, 9000)}"""`;
     // for this path, so previewing a freshly generated single video played
     // completely silent until you actually exported it.
     const musicTog = document.querySelector("#vsMusic");
-    if (musicTog && musicTog.checked && !vstudio._userMusic) {
+    if ((!musicTog || musicTog.checked) && !vstudio._userMusic) {
       vsAutoStatus(state.lang === "fa" ? "ساخت موسیقی…" : "Building music…");
       const dm = await vsEnsureDefaultMusic(data);
       if (dm) {
@@ -6691,7 +6691,7 @@ async function vsLoadBatchVideo(i) {
 
   // Background music (default ON) — cinematic rhythmic bed, ducked under voice.
   const musicTog = document.querySelector("#vsMusic");
-  if (musicTog && musicTog.checked && !vstudio._userMusic) {
+  if ((!musicTog || musicTog.checked) && !vstudio._userMusic) {
     vsAutoStatus(fa ? `ساخت موسیقی…` : `Building music…`);
     const dm = await vsEnsureDefaultMusic(v.data);
     if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
@@ -13084,7 +13084,7 @@ async function exportStudioVideo() {
   try {
     const cur = vstudio.batchVideos && vstudio.batchVideos[vstudio.batchCurrent];
     const musicTog = document.querySelector("#vsMusic");
-    if (musicTog && musicTog.checked && !vstudio._userMusic) {
+    if ((!musicTog || musicTog.checked) && !vstudio._userMusic) {
       // Export records ONLY decoded AudioBuffers — the <audio> element that
       // preview plays is never captured. So regenerate whenever the BUFFER is
       // missing, not merely when the element is: that gap is exactly why a video
