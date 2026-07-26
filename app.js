@@ -8,6 +8,11 @@ const VS_POLLINATIONS_KEY = "";
 const VS_USER_API_KEY = "";
 const VS_USER_API_BASE = "https://openrouter.ai/api/v1/chat/completions";
 const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
+// Free, key-less script generator running on Cloudflare Workers AI (Llama-4 /
+// Mistral / Qwen). Primary now that the Pollinations pollen balance is drained
+// and direct Pollinations is Turnstile-gated. Costs only the account's free
+// daily neuron allowance.
+const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 const VS_BUILD = "v400-pro";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
@@ -4656,7 +4661,7 @@ async function vsAutoAiChat(prompt, opts) {
       temperature: 0.7, seed: seed
     };
     if (useJson) body.response_format = { type: "json_object" };
-    const target = VS_WORKER_BASE + "/chat";
+    const target = endpoint || (VS_WORKER_BASE + "/chat");
     const headers = { "Content-Type": "application/json" };
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), timeoutMs);   // never hang forever
@@ -4713,7 +4718,9 @@ async function vsAutoAiChat(prompt, opts) {
   // quality, then fall back to the always-free default. `opts.fast` (used by the
   // chat assistant) prefers the quickest models and does a single pass.
   const models = ["openai"];
-  const endpoints = [VS_WORKER_BASE + "/chat"];
+  // Cloudflare-AI worker FIRST (free, working), then the Pollinations worker
+  // as a secondary in case its balance is topped up later.
+  const endpoints = [VS_AI_FALLBACK, VS_WORKER_BASE + "/chat"];
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const passes = opts.fast ? 1 : 3;
   // Try every model/endpoint combo. The whole sweep is retried a couple of
@@ -5832,6 +5839,18 @@ async function vsAutoGenerateBackgrounds(data) {
     } else {
       pool = ["cine-aurora", "cine-violet", "aurora", "mesh", "prism", "royal", "sunburst", "halo", "starfield"];
     }
+    // ── Per-generation randomness ──────────────────────────────────────────
+    // A fresh seed each build so the SAME topic never yields the same video
+    // twice: the background order, which graphic each scene gets, where the
+    // solid panels fall and the overlays all shift. Seeded so one build is
+    // internally consistent.
+    let _seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
+    const RND = () => { _seed = (_seed * 1103515245 + 12345) & 0x7fffffff; return _seed / 0x7fffffff; };
+    const shuffle = (arr) => { const a = arr.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(RND() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+    pool = shuffle(pool);
+    const genOffset = Math.floor(RND() * 9);         // rotates the graphic pool
+    const panelChance = 0.22;                         // ~1 in 5 text scenes is a panel
+
     // MAISON house style for generated motion graphics (see MAISON-TEMPLATE.md)
     vstudio.templateId = "maison";
     const hlFontSel = document.querySelector("#vsHeadlineFont");
@@ -5851,6 +5870,30 @@ async function vsAutoGenerateBackgrounds(data) {
       .map(h => h.split(/\s+/).slice(0, 2).join(" "))
       .filter((h, idx, arr) => h.length > 1 && arr.indexOf(h) === idx)
       .slice(0, 5);
+    // Everything the script says — used to find real place names for the map.
+    const scriptText = [
+      data && data.title, data && data.subtitle, data && data.angle,
+      data && data.intro && data.intro.main, data && data.outro && data.outro.main,
+      ...allHeads,
+      ...((data && data.sections) || []).map(x => [x && x.headline, x && x.title, x && x.narration, x && x.evidence].join(" "))
+    ].join(" ");
+    const mapPlaces = vsExtractPlaces(scriptText, 8);
+    // If the content clearly names real places, GUARANTEE one map scene (pick the
+    // first content slide whose headline names a place, else the first text slide)
+    // so randomness never drops the map on a location-heavy story.
+    let forcedMapIdx = -1;
+    let panelCount = 0;
+    if (mapPlaces.length >= 3) {
+      const placeKeys = Object.keys(VS_US_PLACES);
+      for (let k = 1; k < slides.length - 1; k++) {
+        if (slides[k]._standaloneInfo) continue;
+        const h = realHeadlineOf(slides[k]).toLowerCase();
+        if (placeKeys.some((p) => h.indexOf(p) !== -1)) { forcedMapIdx = k; break; }
+      }
+      if (forcedMapIdx === -1) for (let k = 1; k < slides.length - 1; k++) {
+        if (!slides[k]._standaloneInfo) { forcedMapIdx = k; break; }
+      }
+    }
 
     // Short 1-2 word label helper for concept graphics.
     const shortLabel = (str) => String(str || "").replace(/[^\w\s%/+.-]/g, "").split(/\s+/).slice(0, 2).join(" ");
@@ -5911,15 +5954,22 @@ async function vsAutoGenerateBackgrounds(data) {
       const hasNumber = !!numMatch || data2.some((d) => /\d/.test(d.value));
 
       // MAISON rhythm: give a text-only scene (no real data) a solid statement
-      // panel roughly every fourth slide, for pacing — those carry no graphic.
-      const wantPanel = !data2.length && (i % 4 === 3);
+      // panel now and then, for pacing — those carry no graphic. Randomised each
+      // build so the panels land on different scenes every time, but capped at
+      // one per video, and never on the slide reserved for the map.
+      const isForcedMap = i === forcedMapIdx;
+      const wantPanel = !isForcedMap && !data2.length && i > 0 && (i < slides.length - 1)
+        && panelCount < 1 && RND() < panelChance;
       if (wantPanel) {
-        s.panelLayout = (i % 8 === 3) ? "halfInv" : "half";
+        s.panelLayout = RND() < 0.5 ? "halfInv" : "half";
         s.sceneGraphic = null;
         prevKind = null;
+        panelCount++;
       } else {
         s.panelLayout = "";
-        let kind = vsSceneGraphicKind(s.headline || themeStr, i, { stats: data2, prevKind, hasNumber });
+        let kind = isForcedMap && !usedMap
+          ? "map"
+          : vsSceneGraphicKind(s.headline || themeStr, i + genOffset, { stats: data2, prevKind, hasNumber });
         // The map is a marquee scene — only ONE per video; re-route a second one.
         if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
         if (kind === "map") usedMap = true;
@@ -5938,6 +5988,7 @@ async function vsAutoGenerateBackgrounds(data) {
         s.sceneGraphic = {
           kind,
           data: data2.length ? data2 : null,
+          places: kind === "map" ? mapPlaces : null,
           items: items.filter((x) => x && x.length).slice(0, 5),
           value: heroVal,
           valueLabel: String((data2[0] && data2[0].label) || s._caption || s.headline).slice(0, 34),
@@ -5954,7 +6005,8 @@ async function vsAutoGenerateBackgrounds(data) {
       }
 
       if (!s.settings["#vsOverlay"] || s.settings["#vsOverlay"] === "none") {
-        s.settings["#vsOverlay"] = ["particles", "shimmer", "bokeh", "glow", "dust"][i % 5];
+        const ov = ["particles", "shimmer", "bokeh", "glow", "dust"];
+        s.settings["#vsOverlay"] = ov[Math.floor(RND() * ov.length)];
       }
     });
     renderTemplatePicker();
@@ -10111,6 +10163,60 @@ const VS_US_CITIES = [
   [0.10, 0.22], [0.07, 0.44], [0.45, 0.32], [0.48, 0.66], [0.82, 0.30], [0.85, 0.72]
 ];
 const VS_US_REGIONS = ["Northwest", "West", "Midwest", "South", "Northeast", "Southeast"];
+// Major US metros + states as [lon, lat] so real locations named in the content
+// can be plotted on the map. Longer names first for greedy matching.
+const VS_US_PLACES = {
+  "salt lake city": [-111.9, 40.8], "kansas city": [-94.6, 39.1], "oklahoma city": [-97.5, 35.5],
+  "san francisco": [-122.4, 37.8], "los angeles": [-118.2, 34.1], "san diego": [-117.2, 32.7],
+  "san antonio": [-98.5, 29.4], "san jose": [-121.9, 37.3], "las vegas": [-115.1, 36.2],
+  "new orleans": [-90.1, 30.0], "new york": [-74.0, 40.7], "st louis": [-90.2, 38.6],
+  "des moines": [-93.6, 41.6], "north carolina": [-79.4, 35.6], "south carolina": [-80.9, 33.9],
+  "washington": [-77.0, 38.9], "philadelphia": [-75.2, 40.0], "pittsburgh": [-80.0, 40.4],
+  "cincinnati": [-84.5, 39.1], "indianapolis": [-86.2, 39.8], "jacksonville": [-81.7, 30.3],
+  "albuquerque": [-106.6, 35.1], "sacramento": [-121.5, 38.6], "minneapolis": [-93.3, 45.0],
+  "milwaukee": [-87.9, 43.0], "louisville": [-85.8, 38.3], "charlotte": [-80.8, 35.2],
+  "nashville": [-86.8, 36.2], "memphis": [-90.0, 35.1], "richmond": [-77.5, 37.5],
+  "baltimore": [-76.6, 39.3], "hartford": [-72.7, 41.8], "syracuse": [-76.1, 43.0],
+  "columbus": [-83.0, 40.0], "cleveland": [-81.7, 41.5], "detroit": [-83.0, 42.3],
+  "chicago": [-87.6, 41.9], "houston": [-95.4, 29.8], "dallas": [-96.8, 32.8],
+  "austin": [-97.7, 30.3], "phoenix": [-112.1, 33.4], "denver": [-105.0, 39.7],
+  "seattle": [-122.3, 47.6], "portland": [-122.7, 45.5], "atlanta": [-84.4, 33.7],
+  "miami": [-80.2, 25.8], "tampa": [-82.5, 27.9], "orlando": [-81.4, 28.5],
+  "raleigh": [-78.6, 35.8], "boston": [-71.1, 42.4], "buffalo": [-78.9, 42.9],
+  "boise": [-116.2, 43.6], "madison": [-89.4, 43.1], "omaha": [-95.9, 41.3],
+  "providence": [-71.4, 41.8], "charleston": [-79.9, 32.8], "tulsa": [-95.9, 36.2],
+  "california": [-119.4, 36.8], "texas": [-99.3, 31.5], "florida": [-81.5, 27.8],
+  "arizona": [-111.7, 34.2], "nevada": [-117.0, 39.3], "colorado": [-105.5, 39.0],
+  "georgia": [-83.4, 32.6], "tennessee": [-86.3, 35.9], "ohio": [-82.8, 40.3],
+  "michigan": [-84.5, 44.3], "illinois": [-89.0, 40.0], "utah": [-111.7, 39.3],
+  "oregon": [-120.6, 43.9], "idaho": [-114.5, 44.1], "wisconsin": [-89.6, 44.6],
+  "minnesota": [-94.3, 46.3], "missouri": [-92.5, 38.5], "virginia": [-78.8, 37.5],
+  "maryland": [-76.8, 39.0], "connecticut": [-72.7, 41.6], "massachusetts": [-71.8, 42.3],
+  "indiana": [-86.3, 39.8], "kentucky": [-84.9, 37.5], "louisiana": [-92.0, 31.0],
+  "oklahoma": [-97.5, 35.6], "kansas": [-98.4, 38.5], "nebraska": [-99.8, 41.5],
+  "iowa": [-93.5, 42.0], "montana": [-110.4, 46.9], "wyoming": [-107.6, 43.0],
+  "maine": [-69.4, 45.4], "vermont": [-72.7, 44.1], "alabama": [-86.8, 32.8]
+};
+// Convert [lon,lat] to the map's normalised 0..1 box (matches VS_US_OUTLINE).
+function vsGeoToMap(lon, lat) {
+  return [Math.max(0, Math.min(1, (lon + 125) / 59)), Math.max(0, Math.min(1, (49 - lat) / 25))];
+}
+// Scan text for known US place names → up to `max` {name,x,y}, de-duplicated.
+function vsExtractPlaces(text, max) {
+  const s = " " + String(text || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ") + " ";
+  const found = [];
+  const seen = {};
+  for (const name of Object.keys(VS_US_PLACES)) {
+    if (s.indexOf(" " + name + " ") === -1) continue;
+    if (seen[name]) continue; seen[name] = 1;
+    const [lon, lat] = VS_US_PLACES[name];
+    const [x, y] = vsGeoToMap(lon, lat);
+    const label = name.replace(/\b\w/g, (c) => c.toUpperCase());
+    found.push({ name: label, x, y });
+    if (found.length >= (max || 8)) break;
+  }
+  return found;
+}
 function vsPointInPoly(px, py, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -10125,8 +10231,12 @@ function vsPointInPoly(px, py, poly) {
 // 3D camera move. Animated location hotspots + connecting arcs sit on top.
 function drawSceneMap(ctx, W, H, t, o, A, F, items) {
   const poly = VS_US_OUTLINE;
-  // a US map always reads best with real region names, not stray headline words
-  const labels = VS_US_REGIONS;
+  // Plot the REAL locations named in the content when we found any; otherwise
+  // fall back to the six region markers so the map is never empty.
+  const usePlaces = o.places && o.places.length >= 1;
+  const pins = usePlaces
+    ? o.places.slice(0, 8).map((p) => ({ nx: p.x, ny: p.y, name: p.name }))
+    : VS_US_CITIES.map((c, i) => ({ nx: c[0], ny: c[1], name: VS_US_REGIONS[i] || "" }));
   // stage box for the map
   const sx = W * 0.06, sw = W * 0.88, sy = H * 0.32, sh = H * 0.46;
   const cx = sx + sw / 2;
@@ -10170,34 +10280,49 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
   ctx.strokeStyle = vsHexA(A, 0.55); ctx.lineWidth = Math.max(1.2, W * 0.0032);
   ctx.shadowColor = A; ctx.shadowBlur = W * 0.02; ctx.stroke(); ctx.shadowBlur = 0;
 
-  // 3) hotspots + connecting arcs
-  const n = Math.min(VS_US_CITIES.length, Math.max(4, labels.length || 5));
-  const pts = VS_US_CITIES.slice(0, n).map((c) => P(c[0], c[1]));
-  for (let i = 0; i < pts.length - 1; i++) {
-    const a = pts[i], b = pts[i + 1];
+  // 3) hotspots + connecting arcs — one per real location (or region fallback)
+  const pts = pins.map((pin) => P(pin.nx, pin.ny));
+  // connect them left→right so the "spread" of markets reads as a route
+  const order = pins.map((_, i) => i).sort((a, b) => pts[a][0] - pts[b][0]);
+  for (let k = 0; k < order.length - 1; k++) {
+    const a = pts[order[k]], b = pts[order[k + 1]];
     const mx = (a[0] + b[0]) / 2, my = Math.min(a[1], b[1]) - H * 0.05;
-    const prog = Math.min(1, Math.max(0, (t - 0.4 - i * 0.18) / 0.6));
+    const prog = Math.min(1, Math.max(0, (t - 0.4 - k * 0.14) / 0.6));
     ctx.beginPath(); ctx.moveTo(a[0], a[1]);
     ctx.quadraticCurveTo(mx, my, a[0] + (b[0] - a[0]) * prog, a[1] + (b[1] - a[1]) * prog);
     ctx.strokeStyle = vsHexA(A, 0.4); ctx.lineWidth = Math.max(1, W * 0.0022); ctx.stroke();
   }
+  const drawnLabels = [];   // collision boxes so chips never overlap
   pts.forEach((p, i) => {
-    const e = Math.min(1, Math.max(0, (t - i * 0.16) / 0.5));
+    const e = Math.min(1, Math.max(0, (t - i * 0.13) / 0.5));
     if (e <= 0) return;
     const pulse = (t * 0.9 + i * 0.4) % 1;
     ctx.beginPath(); ctx.arc(p[0], p[1], W * (0.012 + pulse * 0.03), 0, 7);
     ctx.strokeStyle = vsHexA(A, (1 - pulse) * 0.6); ctx.lineWidth = Math.max(1, W * 0.002); ctx.stroke();
-    ctx.beginPath(); ctx.arc(p[0], p[1], W * 0.010 * e, 0, 7);
+    ctx.beginPath(); ctx.arc(p[0], p[1], W * 0.011 * e, 0, 7);
     ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = W * 0.03; ctx.fill(); ctx.shadowBlur = 0;
-    const lbl = labels[i] ? String(labels[i]).slice(0, 12) : "";
+    const lbl = pins[i].name ? String(pins[i].name).slice(0, 14) : "";
     if (lbl) {
+      // With many markers, shrink labels and alternate above/below so the chips
+      // don't pile on top of each other.
+      const dense = pts.length > 5;
+      const fs = dense ? W * 0.026 : W * 0.032;
+      const below = dense && (i % 2 === 1);
       ctx.textAlign = "center"; ctx.globalAlpha = e;
-      ctx.font = `700 ${W * 0.032}px ${F}`;
-      const lw = ctx.measureText(lbl).width + W * 0.036;
-      roundRectPath(ctx, p[0] - lw / 2, p[1] - W * 0.078, lw, W * 0.05, W * 0.010);
+      ctx.font = `700 ${fs}px ${F}`;
+      const lw = ctx.measureText(lbl).width + W * 0.03;
+      const ph = fs * 1.5, gap = W * 0.02;
+      const px0 = p[0] - lw / 2, py = below ? p[1] + gap : p[1] - gap - ph;
+      // skip the chip (keep the dot) if it would collide with one already drawn
+      const box = { x: px0, y: py, w: lw, h: ph };
+      const hit = drawnLabels.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
+      if (hit) { ctx.globalAlpha = 1; return; }
+      drawnLabels.push(box);
+      roundRectPath(ctx, px0, py, lw, ph, W * 0.009);
       ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.fillText(lbl, p[0], p[1] - W * 0.043);
-      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+      ctx.fillText(lbl, p[0], py + ph / 2 + fs * 0.05);
+      ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     }
   });
   ctx.restore();   // close the 3D camera transform
