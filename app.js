@@ -11276,9 +11276,12 @@ function drawStudioFrame(elapsed) {
     // keep the font BIG and wrap the kinetic headline onto up to two lines, only
     // shrinking if two lines still don't fit. Bigger, more professional type.
     const isMaisonTxt = textAnim === "maison-kinetic";
-    const maxHlW = W * (dsPanelBand ? 0.80 : 0.88);
-    let hlSize = Math.round(W * 0.058 * sizeMul);
-    const minHl = Math.round(W * 0.036);
+    const maxHlW = W * (dsPanelBand ? 0.82 : 0.90);
+    // MAISON motion-graphic middle slides carry big, bold statement type (they
+    // read small next to the intro/outro cards otherwise). Regular videos keep
+    // the original, more restrained size.
+    let hlSize = Math.round(W * (isMaisonTxt ? 0.076 : 0.046) * sizeMul);
+    const minHl = Math.round(W * (isMaisonTxt ? 0.052 : 0.026));
     const wrapAt = (px) => {
       ctx.font = `${isMaisonTxt ? 800 : 600} ${px}px ${vsGetFont(tpl.headlineFont)}`;
       const ws = String(headline || "").split(/\s+/).filter(Boolean);
