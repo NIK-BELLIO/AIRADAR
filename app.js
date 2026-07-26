@@ -5854,6 +5854,12 @@ async function vsAutoGenerateBackgrounds(data) {
 
     // Short 1-2 word label helper for concept graphics.
     const shortLabel = (str) => String(str || "").replace(/[^\w\s%/+.-]/g, "").split(/\s+/).slice(0, 2).join(" ");
+    // Meaningful single-word tokens for node/step/timeline labels — drop filler
+    // words so labels read as "2020 · boom · 2026 · squeeze", not "the · from".
+    const STOP = /^(the|and|for|are|but|not|you|with|from|that|this|have|has|had|was|were|will|into|over|than|then|they|them|its|our|your|out|off|per|via|a|an|of|to|in|on|at|by|as|is|it|be|or|so|no|up)$/i;
+    const keyTokens = (str) => String(str || "").split(/\s+/)
+      .map((w) => w.replace(/[^\w%/+.-]/g, ""))
+      .filter((w) => w.length > 2 && !STOP.test(w));
     let prevKind = null;   // so no two adjacent scenes build the same graphic
 
     slides.forEach((s, i) => {
@@ -5916,7 +5922,7 @@ async function vsAutoGenerateBackgrounds(data) {
         prevKind = kind;
         // Concept graphics want short labels; prefer this scene's own key words,
         // fall back to the deck-wide node labels.
-        const localItems = s.headline.split(/\s+/).filter((w) => w.length > 2).slice(0, 5).map(shortLabel);
+        const localItems = keyTokens(s.headline).slice(0, 5);
         const items = data2.length ? data2.map((d) => shortLabel(d.label))
           : (localItems.length >= 3 ? localItems
             : (nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"]));
@@ -9762,7 +9768,7 @@ function vsSceneGraphicKind(text, i, opts) {
   // Kinds that need real numbers/values to be meaningful.
   const DATA = new Set(["chart", "bars", "compare", "gauge", "stat", "attributes"]);
   // Kinds that work from plain labels / concepts alone.
-  const CONCEPT = ["radar", "network", "timeline", "flow", "cycle", "orbit", "pyramid", "ui"];
+  const CONCEPT = ["radar", "network", "timeline", "flow", "cycle", "orbit", "pyramid", "map", "ui"];
 
   const cand = [];
   const add = (...k) => k.forEach(x => { if (x && (hasData || !DATA.has(x))) cand.push(x); });
@@ -9787,6 +9793,7 @@ function vsSceneGraphicKind(text, i, opts) {
     [/\b(connect|connected|network|system|integrat|team|ecosystem|node|mesh|web of|links?)\b/, ["network", "orbit"]],
     [/\b(scan|detect|monitor|discover|track|radar|intelligence|analys|audit|signal|threat|risk|watch|surveill)\b/, ["radar"]],
     [/\b(hub|center|central|orbit|around|surround|revolve|core)\b/, ["orbit"]],
+    [/\b(usa|u\.?s\.?a?|united states|america|american|nation|national|nationwide|country|countries|state|states|city|cities|region|regional|coast|map|geograph|global|worldwide|market|housing|across)\b/, ["map"]],
     [/\b(direction|style|type|category|attribute|trait|profile|spec|feature|character)\b/, ["attributes"]]
   ];
   for (const [re, ks] of kw) if (re.test(s)) add(...ks);
@@ -9802,18 +9809,47 @@ function vsSceneGraphicKind(text, i, opts) {
   return cand[0] || "radar";
 }
 
-// Subtle technical grid + vignette — the calm base these graphics sit on.
-function vsGraphicBase(ctx, W, H, accent) {
+// The living base these graphics sit on: drifting depth glows, a perspective
+// grid, a moving light sweep and a vignette — so the background reads as an
+// atmospheric stage rather than a flat gradient. `t` drives the motion.
+function vsGraphicBase(ctx, W, H, accent, t) {
+  t = t || 0;
+  const U = Math.min(W, H);
   ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,.035)";
-  ctx.lineWidth = 1;
+
+  // 1) two large, slowly drifting colour glows for depth
+  const blobs = [
+    { x: 0.26 + Math.sin(t * 0.18) * 0.06, y: 0.30 + Math.cos(t * 0.15) * 0.05, r: 0.62, c: accent, a: 0.16 },
+    { x: 0.74 + Math.cos(t * 0.13) * 0.05, y: 0.66 + Math.sin(t * 0.17) * 0.05, r: 0.55, c: "#2563ff", a: 0.14 }
+  ];
+  blobs.forEach(b => {
+    const g = ctx.createRadialGradient(W * b.x, H * b.y, 0, W * b.x, H * b.y, U * b.r);
+    g.addColorStop(0, vsHexA(b.c, b.a));
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  });
+
+  // 2) faint perspective grid — denser toward the bottom for a floor feel
+  ctx.strokeStyle = "rgba(255,255,255,.028)"; ctx.lineWidth = 1;
   const step = W / 12;
-  for (let x = 0; x < W; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  const g = ctx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.5, Math.max(W, H) * 0.75);
-  g.addColorStop(0, vsHexA(accent, 0.06));
-  g.addColorStop(1, "rgba(0,0,0,.55)");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x <= W; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // 3) travelling light sweep
+  const sweep = (((t * 0.08) % 1.6) - 0.3) * W;
+  const lg = ctx.createLinearGradient(sweep - U * 0.5, 0, sweep + U * 0.5, H);
+  lg.addColorStop(0, "rgba(255,255,255,0)");
+  lg.addColorStop(0.5, vsHexA(accent, 0.05));
+  lg.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.globalCompositeOperation = "screen"; ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "source-over";
+
+  // 4) vignette to hold focus centre
+  const vg = ctx.createRadialGradient(W / 2, H * 0.46, U * 0.2, W / 2, H * 0.5, U * 0.9);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(0,0,0,.5)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
   ctx.restore();
 }
 
@@ -9889,7 +9925,7 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       const r = W * 0.046 * e;
       ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.2, W * 0.0036); ctx.stroke();
-      ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.026}px ${F}`; ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.030}px ${F}`; ctx.textAlign = "center";
       ctx.fillText(n.l, n.x, n.y + r + W * 0.045);
     });
     ctx.beginPath();
@@ -9925,7 +9961,7 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       if (data && e > 0.6) {
         ctx.globalAlpha = (e - 0.6) / 0.4;
         ctx.textAlign = "center";
-        ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.026}px ${F}`;
+        ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.030}px ${F}`;
         ctx.fillText(String(data[i].value || "").slice(0, 8), bx + bw / 2, y + h - bh - H * 0.012);
         ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.019}px ${F}`;
         const lbl = String(data[i].label || "").slice(0, 12);
@@ -9940,13 +9976,13 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       const cv = Math.min(1, t / 1.4) * target;
       ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.15}px ${F}`;
       ctx.fillText(Math.round(cv) + (o.suffix || "%"), W / 2, y - H * 0.045);
-      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.030}px ${F}`;
       ctx.fillText(String(o.valueLabel || "").toUpperCase(), W / 2, y - H * 0.012);
     }
 
   } else if (kind === "stat" || kind === "gauge" || kind === "compare" || kind === "bars" ||
              kind === "timeline" || kind === "flow" || kind === "cycle" || kind === "pyramid" ||
-             kind === "orbit" || kind === "attributes") {
+             kind === "orbit" || kind === "attributes" || kind === "map") {
     drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items);
 
   } else if (kind === "ui") {
@@ -9967,9 +10003,9 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
     ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `${W * 0.020}px ${F}`; ctx.textAlign = "center";
     ctx.fillText(o.brand || "your-site.com", x + w * 0.51, y + bh * 0.70);
     const ny = y + bh + H * 0.030;
-    ctx.textAlign = "left"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.026}px ${F}`;
+    ctx.textAlign = "left"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.030}px ${F}`;
     ctx.fillText("◉ " + String(o.brandName || "PRODUCT").toUpperCase(), x + W * 0.04, ny);
-    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `${W * 0.021}px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `${W * 0.025}px ${F}`;
     ["Features", "Pricing"].forEach((s, i) => ctx.fillText(s, x + w * 0.50 + i * w * 0.17, ny));
     roundRectPath(ctx, x + w * 0.845, ny - W * 0.024, w * 0.115, W * 0.038, W * 0.019);
     ctx.fillStyle = "#ff5a3c"; ctx.fill();
@@ -10043,12 +10079,118 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
   if (o.caption) {
     ctx.globalAlpha = 1;
     ctx.textAlign = "center";
-    ctx.strokeStyle = vsHexA(A, 0.5); ctx.lineWidth = Math.max(1.5, W * 0.0045);
-    ctx.beginPath(); ctx.moveTo(W / 2 - W * 0.09, H * 0.867); ctx.lineTo(W / 2 + W * 0.09, H * 0.867); ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,.62)"; ctx.font = `500 ${W * 0.030}px ${F}`;
+    ctx.strokeStyle = vsHexA(A, 0.6); ctx.lineWidth = Math.max(1.5, W * 0.005);
+    ctx.beginPath(); ctx.moveTo(W / 2 - W * 0.10, H * 0.862); ctx.lineTo(W / 2 + W * 0.10, H * 0.862); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.font = `600 ${W * 0.036}px ${F}`;
     ctx.fillText(o.caption, W / 2, H * 0.905);
   }
   ctx.restore();
+}
+
+// Simplified continental-US outline in a normalised 0..1 box (x: west→east,
+// y: north→south). Coarse on purpose — it reads clearly as the USA once the
+// dot-matrix fill + coast glow are on it.
+const VS_US_OUTLINE = [
+  [0.03, 0.15], [0.30, 0.10], [0.55, 0.08], [0.78, 0.09], [0.90, 0.06],
+  [0.86, 0.20], [0.83, 0.34], [0.85, 0.46], [0.88, 0.58], [0.90, 0.74],
+  [0.88, 0.86], [0.84, 0.72], [0.74, 0.66], [0.64, 0.68], [0.56, 0.72],
+  [0.47, 0.84], [0.42, 0.70], [0.30, 0.66], [0.20, 0.66], [0.12, 0.62],
+  [0.05, 0.46], [0.03, 0.30]
+];
+// region hotspots + their names (used when no better labels are supplied)
+const VS_US_CITIES = [
+  [0.10, 0.22], [0.07, 0.44], [0.45, 0.32], [0.48, 0.66], [0.82, 0.30], [0.85, 0.72]
+];
+const VS_US_REGIONS = ["Northwest", "West", "Midwest", "South", "Northeast", "Southeast"];
+function vsPointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+
+// A stylised USA map rendered as a dot-matrix on a 3D "camera" ground plane —
+// the plane is tilted (near edge larger) and slowly yaws so it reads as a live
+// 3D camera move. Animated location hotspots + connecting arcs sit on top.
+function drawSceneMap(ctx, W, H, t, o, A, F, items) {
+  const poly = VS_US_OUTLINE;
+  // a US map always reads best with real region names, not stray headline words
+  const labels = VS_US_REGIONS;
+  // stage box for the map
+  const sx = W * 0.06, sw = W * 0.88, sy = H * 0.32, sh = H * 0.46;
+  const cx = sx + sw / 2;
+  // live 3D camera: a slow breathing zoom + a hair of roll around the map centre
+  const camCx = cx, camCy = sy + sh * 0.45;
+  ctx.save();
+  ctx.translate(camCx, camCy);
+  ctx.scale(1 + Math.sin(t * 0.4) * 0.02, 1 + Math.sin(t * 0.4) * 0.02);
+  ctx.rotate(Math.sin(t * 0.22) * 0.012);
+  ctx.translate(-camCx, -camCy);
+  const yaw = Math.sin(t * 0.3) * 0.02;            // gentle camera pan (keeps shape readable)
+  const tilt = 0.86;                               // vertical foreshorten (3D ground plane)
+  // project a normalised map point onto the tilted 3D ground plane
+  const P = (nx, ny) => {
+    const depth = 0.74 + ny * 0.26;                // far (north) smaller, near (south) larger
+    const rx = (nx - 0.5 + (ny - 0.5) * yaw);
+    return [cx + rx * sw * depth, sy + ny * sh * tilt];
+  };
+
+  // 1) dot-matrix fill — the body of the map
+  const stepX = 0.026, stepY = 0.04;
+  const wave = (t * 0.5) % 1.4;
+  for (let ny = 0; ny <= 1; ny += stepY) {
+    for (let nx = 0; nx <= 1; nx += stepX) {
+      if (!vsPointInPoly(nx, ny, poly)) continue;
+      const [x, y] = P(nx, ny);
+      const depth = 0.66 + ny * 0.34;
+      const d = Math.abs(nx - wave);
+      const hot = Math.max(0, 1 - d / 0.12);
+      const r = W * (0.0032 + depth * 0.0016) * (1 + hot * 0.9);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+      ctx.fillStyle = hot > 0.05 ? vsHexA(A, 0.35 + hot * 0.55) : vsHexA(A, 0.20 + depth * 0.10);
+      ctx.fill();
+    }
+  }
+  // 2) coast glow — the outline on top of the dots
+  ctx.beginPath();
+  poly.forEach((p, i) => { const q = P(p[0], p[1]); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+  ctx.closePath();
+  ctx.strokeStyle = vsHexA(A, 0.55); ctx.lineWidth = Math.max(1.2, W * 0.0032);
+  ctx.shadowColor = A; ctx.shadowBlur = W * 0.02; ctx.stroke(); ctx.shadowBlur = 0;
+
+  // 3) hotspots + connecting arcs
+  const n = Math.min(VS_US_CITIES.length, Math.max(4, labels.length || 5));
+  const pts = VS_US_CITIES.slice(0, n).map((c) => P(c[0], c[1]));
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    const mx = (a[0] + b[0]) / 2, my = Math.min(a[1], b[1]) - H * 0.05;
+    const prog = Math.min(1, Math.max(0, (t - 0.4 - i * 0.18) / 0.6));
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]);
+    ctx.quadraticCurveTo(mx, my, a[0] + (b[0] - a[0]) * prog, a[1] + (b[1] - a[1]) * prog);
+    ctx.strokeStyle = vsHexA(A, 0.4); ctx.lineWidth = Math.max(1, W * 0.0022); ctx.stroke();
+  }
+  pts.forEach((p, i) => {
+    const e = Math.min(1, Math.max(0, (t - i * 0.16) / 0.5));
+    if (e <= 0) return;
+    const pulse = (t * 0.9 + i * 0.4) % 1;
+    ctx.beginPath(); ctx.arc(p[0], p[1], W * (0.012 + pulse * 0.03), 0, 7);
+    ctx.strokeStyle = vsHexA(A, (1 - pulse) * 0.6); ctx.lineWidth = Math.max(1, W * 0.002); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p[0], p[1], W * 0.010 * e, 0, 7);
+    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = W * 0.03; ctx.fill(); ctx.shadowBlur = 0;
+    const lbl = labels[i] ? String(labels[i]).slice(0, 12) : "";
+    if (lbl) {
+      ctx.textAlign = "center"; ctx.globalAlpha = e;
+      ctx.font = `700 ${W * 0.028}px ${F}`;
+      const lw = ctx.measureText(lbl).width + W * 0.032;
+      roundRectPath(ctx, p[0] - lw / 2, p[1] - W * 0.072, lw, W * 0.044, W * 0.009);
+      ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.fillText(lbl, p[0], p[1] - W * 0.043);
+      ctx.globalAlpha = 1;
+    }
+  });
+  ctx.restore();   // close the 3D camera transform
 }
 
 // The extended graphic library — every kind below builds a distinct, animated,
@@ -10062,6 +10204,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
   const softGlow = (col, blur) => { ctx.shadowColor = col; ctx.shadowBlur = blur; };
   const noGlow = () => { ctx.shadowBlur = 0; };
   const fit = (txt, maxW, weight, px) => vsFitFont(ctx, txt, maxW, weight, F, px, px * 0.6);
+
+  if (kind === "map") { drawSceneMap(ctx, W, H, t, o, A, F, items); return; }
 
   if (kind === "stat") {
     // One hero number + label + up to three supporting mini-bars.
@@ -10081,7 +10225,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       const bw = W * 0.66, bx = (W - bw) / 2; let by = H * 0.64;
       d.forEach((it, i) => {
         const e = ease((t - 0.4 - i * 0.15) / 0.6);
-        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.024}px ${F}`;
+        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.028}px ${F}`;
         ctx.fillText(String(it.label).slice(0, 22), bx, by - H * 0.012);
         ctx.textAlign = "right"; ctx.fillStyle = A; ctx.fillText(String(it.value).slice(0, 10), bx + bw, by - H * 0.012);
         roundRectPath(ctx, bx, by, bw, H * 0.012, H * 0.006); ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fill();
@@ -10107,7 +10251,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.016, 0, 7); ctx.fillStyle = A; ctx.fill();
     ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.13}px ${F}`;
     ctx.fillText(Math.round(p / (val / 100 || 1) * val) + (o.suffix || "%"), cx, cy - H * 0.03);
-    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.030}px ${F}`;
     ctx.fillText(String(o.valueLabel || "").toUpperCase().slice(0, 30), cx, cy + H * 0.055);
 
   } else if (kind === "compare") {
@@ -10138,14 +10282,14 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     d.slice(0, 5).forEach((it, i) => {
       const e = ease((t - i * 0.12) / 0.65);
       const by = y0 + rowH * i + rowH * 0.18, bh = rowH * 0.4;
-      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.font = `600 ${W * 0.026}px ${F}`;
+      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.font = `600 ${W * 0.030}px ${F}`;
       ctx.fillText(String(it.label).slice(0, 22), x, by - H * 0.008);
       roundRectPath(ctx, x, by, w, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.07)"; ctx.fill();
       const bw = w * (Math.abs(it.num) / maxN) * e;
       const g = ctx.createLinearGradient(x, 0, x + w, 0);
       g.addColorStop(0, vsHexA(A, 0.7)); g.addColorStop(1, A);
       roundRectPath(ctx, x, by, Math.max(bh, bw), bh, bh / 2); ctx.fillStyle = g; ctx.fill();
-      ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.026}px ${F}`;
+      ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.030}px ${F}`;
       if (e > 0.6) { ctx.globalAlpha = (e - 0.6) / 0.4; ctx.fillText(String(it.value).slice(0, 8), x + w, by - H * 0.008); ctx.globalAlpha = 1; }
     });
 
@@ -10167,7 +10311,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(fx, y, W * 0.016 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
       ctx.textAlign = "center"; ctx.globalAlpha = e;
-      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.030}px ${F}`;
       ctx.fillText(String(l).slice(0, 14), fx, y + (up ? -1 : 1) * H * 0.075 - (up ? 0 : -H * 0.02));
       ctx.globalAlpha = 1;
     });
@@ -10216,7 +10360,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
       ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.028}px ${F}`;
       ctx.fillText(String(i + 1), nx, ny + W * 0.01);
-      ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.023}px ${F}`;
+      ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.027}px ${F}`;
       const lx = cx + Math.cos(ang) * (R + W * 0.11), ly = cy + Math.sin(ang) * (R + W * 0.11);
       ctx.fillText(String(l).slice(0, 12), lx, ly + W * 0.008); ctx.globalAlpha = 1;
     });
@@ -10256,7 +10400,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny); ctx.stroke();
       ctx.beginPath(); ctx.arc(nx, ny, W * 0.04 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `600 ${W * 0.021}px ${F}`;
+      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `600 ${W * 0.025}px ${F}`;
       ctx.fillText(String(l).slice(0, 12), nx, ny + W * 0.065);
     });
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.055, 0, 7);
@@ -10772,7 +10916,7 @@ function drawStudioFrame(elapsed) {
           // A real, meaningful vector graphic for this scene (radar / product
           // UI / network / chart). Calm technical base instead of the drifting
           // motif layers — the graphic itself carries the motion.
-          vsGraphicBase(ctx, W, H, _acc);
+          vsGraphicBase(ctx, W, H, _acc, dsLocal);
           drawSceneGraphic(ctx, W, H, dsGraphic.kind, dsLocal, {
             accent: _acc,
             font: vsGetFont((tpl && tpl.headlineFont) || "Inter, sans-serif"),
@@ -11127,34 +11271,42 @@ function drawStudioFrame(elapsed) {
     const accentFill = onInkPanel ? fill : tpl.accent;
 
     // measure the text block to size the backing plate
-    let hlSize = Math.round(W * 0.046 * sizeMul);
     // ── Fit the headline to the frame ──
-    // The headline was drawn as ONE fixed-size line, so long titles ran off both
-    // sides and short/long titles looked like different sizes. Shrink the font
-    // until the WHOLE headline fits the safe width, capped at the base size so
-    // short titles don't balloon — this keeps every slide's title consistent
-    // and inside the frame. (Both the MAISON per-word path and the plain path
-    // measure their single line the same way.)
-    {
-      const isMaison2 = textAnim === "maison-kinetic";
-      const maxHlW = W * (dsPanelBand ? 0.80 : 0.86);
-      const minHl = Math.round(W * 0.026);
-      while (hlSize > minHl) {
-        ctx.font = `${isMaison2 ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
-        if (ctx.measureText(headline || "").width <= maxHlW) break;
-        hlSize -= 2;
+    // A long headline used to shrink onto ONE line, which read tiny. Instead we
+    // keep the font BIG and wrap the kinetic headline onto up to two lines, only
+    // shrinking if two lines still don't fit. Bigger, more professional type.
+    const isMaisonTxt = textAnim === "maison-kinetic";
+    const maxHlW = W * (dsPanelBand ? 0.80 : 0.88);
+    let hlSize = Math.round(W * 0.058 * sizeMul);
+    const minHl = Math.round(W * 0.036);
+    const wrapAt = (px) => {
+      ctx.font = `${isMaisonTxt ? 800 : 600} ${px}px ${vsGetFont(tpl.headlineFont)}`;
+      const ws = String(headline || "").split(/\s+/).filter(Boolean);
+      const lines = []; let cur = "";
+      for (const w of ws) {
+        const test = cur ? cur + " " + w : w;
+        if (ctx.measureText(test).width > maxHlW && cur) { lines.push(cur); cur = w; }
+        else cur = test;
       }
-    }
-    const subSize = Math.round(W * 0.026 * sizeMul);
+      if (cur) lines.push(cur);
+      return lines.length ? lines : [""];
+    };
+    const maxLinesTxt = isMaisonTxt ? 2 : 1;   // plain path stays one line
+    while (hlSize > minHl && wrapAt(hlSize).length > maxLinesTxt) hlSize -= 2;
+    const hlLines = wrapAt(hlSize);
+    const nHlLines = hlLines.length;
+    const hlLineH = hlSize * 1.16;
+    const subSize = Math.round(W * 0.028 * sizeMul);
     const ctaSize = Math.round(W * 0.022 * sizeMul);
-    ctx.font = `600 ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
-    let blockW = headline ? ctx.measureText(headline).width : 0;
+    ctx.font = `${isMaisonTxt ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
+    let blockW = 0;
+    hlLines.forEach(ln => { blockW = Math.max(blockW, ctx.measureText(ln).width); });
     if (sub) { ctx.font = `400 ${subSize}px Inter, sans-serif`;
       blockW = Math.max(blockW, ctx.measureText(sub).width); }
     if (cta) { ctx.font = `600 ${ctaSize}px Inter, sans-serif`;
       blockW = Math.max(blockW, ctx.measureText(cta).width); }
     const lineGap = headline ? W * 0.056 : 0;
-    const blockTop = baseY - hlSize * 0.7;
+    const blockTop = baseY - hlSize * 0.7 - (nHlLines - 1) * hlLineH;
     const blockBottom = baseY + (sub ? lineGap : 0) + (cta ? W * 0.05 : 0) + subSize;
     const blockH = blockBottom - blockTop;
 
@@ -11223,37 +11375,42 @@ function drawStudioFrame(elapsed) {
         // ── MAISON kinetic word reveal (anim.ts `wordIn`) ──
         // Each word springs up with its own delay (rise + scale + fade); the
         // final word is the gold accent and gets an underline that wipes in
-        // left→right, exactly like the Remotion template.
-        const words = String(headline).split(/\s+/).filter(Boolean);
-        const accentIdx = words.length > 1 ? words.length - 1 : 0;
+        // left→right. Wrapped across up to two lines so the font stays large.
         const gap = ctx.measureText(" ").width;
-        const widths = words.map((w) => ctx.measureText(w).width);
-        const totalW = widths.reduce((a, b) => a + b, 0) + gap * (words.length - 1);
-        let wx = W / 2 - totalW / 2;
         ctx.textAlign = "center";
-        words.forEach((word, i) => {
-          const d = Math.max(0, Math.min(1, (rawT - i * 0.09) / 0.55));
-          const e = 1 - Math.pow(1 - d, 3);                 // ease-out cubic
-          ctx.save();
-          ctx.globalAlpha = e;
-          ctx.translate(wx + widths[i] / 2, baseY + (1 - e) * hlSize * 0.55);
-          const s = 0.82 + 0.18 * e;
-          ctx.scale(s, s);
-          ctx.fillStyle = (i === accentIdx) ? accentFill : fill;
-          ctx.fillText(word, 0, 0);
-          ctx.restore();
-          // gold underline wipes in under the accent word
-          if (i === accentIdx) {
-            const uw = widths[i] * Math.max(0, Math.min(1, (rawT - i * 0.09 - 0.22) / 0.4));
-            if (uw > 0) {
-              ctx.save();
-              ctx.shadowBlur = 0;
-              ctx.fillStyle = accentFill;
-              ctx.fillRect(wx, baseY + hlSize * 0.24, uw, Math.max(2, hlSize * 0.06));
-              ctx.restore();
+        let wordCounter = 0;
+        hlLines.forEach((ln, li) => {
+          const words = ln.split(/\s+/).filter(Boolean);
+          const widths = words.map((w) => ctx.measureText(w).width);
+          const totalW = widths.reduce((a, b) => a + b, 0) + gap * (words.length - 1);
+          let wx = W / 2 - totalW / 2;
+          const lineY = baseY - (nHlLines - 1 - li) * hlLineH;
+          words.forEach((word, i) => {
+            const gi = wordCounter + i;
+            const d = Math.max(0, Math.min(1, (rawT - gi * 0.09) / 0.55));
+            const e = 1 - Math.pow(1 - d, 3);               // ease-out cubic
+            const isAccent = (li === nHlLines - 1) && (i === words.length - 1);
+            ctx.save();
+            ctx.globalAlpha = e;
+            ctx.translate(wx + widths[i] / 2, lineY + (1 - e) * hlSize * 0.55);
+            const s = 0.82 + 0.18 * e;
+            ctx.scale(s, s);
+            ctx.fillStyle = isAccent ? accentFill : fill;
+            ctx.fillText(word, 0, 0);
+            ctx.restore();
+            if (isAccent) {
+              const uw = widths[i] * Math.max(0, Math.min(1, (rawT - gi * 0.09 - 0.22) / 0.4));
+              if (uw > 0) {
+                ctx.save();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = accentFill;
+                ctx.fillRect(wx, lineY + hlSize * 0.24, uw, Math.max(2, hlSize * 0.06));
+                ctx.restore();
+              }
             }
-          }
-          wx += widths[i] + gap;
+            wx += widths[i] + gap;
+          });
+          wordCounter += words.length;
         });
         ctx.shadowBlur = 0;
       } else {
