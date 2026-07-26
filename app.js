@@ -5175,9 +5175,9 @@ function vsAssembleFromSections(data, skipFootage) {
     // (name/amount/figure…) or leaves blanks, which produced empty cards.
     const clampLabel = (s) => {
       s = String(s || "").replace(/\s+/g, " ").trim();
-      if (s.length <= 20) return s;
-      const t = s.slice(0, 20), sp = t.lastIndexOf(" ");
-      return (sp > 10 ? t.slice(0, sp) : t).trim();   // cut on a word boundary
+      if (s.length <= 32) return s;                    // graphics auto-fit labels
+      const t = s.slice(0, 32), sp = t.lastIndexOf(" ");
+      return (sp > 16 ? t.slice(0, sp) : t).trim();   // cut on a word boundary
     };
     let parsedStats = [];
     if (sec.type === "infographic" && Array.isArray(sec.stats)) {
@@ -5856,11 +5856,12 @@ async function vsAutoGenerateBackgrounds(data) {
     const shortLabel = (str) => String(str || "").replace(/[^\w\s%/+.-]/g, "").split(/\s+/).slice(0, 2).join(" ");
     // Meaningful single-word tokens for node/step/timeline labels — drop filler
     // words so labels read as "2020 · boom · 2026 · squeeze", not "the · from".
-    const STOP = /^(the|and|for|are|but|not|you|with|from|that|this|have|has|had|was|were|will|into|over|than|then|they|them|its|our|your|out|off|per|via|a|an|of|to|in|on|at|by|as|is|it|be|or|so|no|up)$/i;
+    const STOP = /^(the|and|for|are|but|not|you|with|from|that|this|have|has|had|was|were|will|into|over|than|then|they|them|its|our|your|out|off|per|via|a|an|of|to|in|on|at|by|as|is|it|be|or|so|no|up|become|becomes|becoming|meet|meets|run|runs|now|just|more|most|make|makes|made|get|gets|got|use|uses|used|need|needs|want|wants|keep|keeps|come|comes|goes|going|put|puts|set|sets|let|lets|say|says|see|sees|know|knows|turn|turns|help|helps|show|shows|give|gives|take|takes|entire|full|very|much|many|also|even|still|only|back|next|first|last|well|way|ways|thing|things|new|real|about|across|when|where|what|how|why|who|while|these|those|there|here)$/i;
     const keyTokens = (str) => String(str || "").split(/\s+/)
       .map((w) => w.replace(/[^\w%/+.-]/g, ""))
       .filter((w) => w.length > 2 && !STOP.test(w));
     let prevKind = null;   // so no two adjacent scenes build the same graphic
+    let usedMap = false;   // only one USA map per video
 
     slides.forEach((s, i) => {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
@@ -5918,7 +5919,10 @@ async function vsAutoGenerateBackgrounds(data) {
         prevKind = null;
       } else {
         s.panelLayout = "";
-        const kind = vsSceneGraphicKind(s.headline || themeStr, i, { stats: data2, prevKind, hasNumber });
+        let kind = vsSceneGraphicKind(s.headline || themeStr, i, { stats: data2, prevKind, hasNumber });
+        // The map is a marquee scene — only ONE per video; re-route a second one.
+        if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
+        if (kind === "map") usedMap = true;
         prevKind = kind;
         // Concept graphics want short labels; prefer this scene's own key words,
         // fall back to the deck-wide node labels.
@@ -9922,11 +9926,16 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
     });
     nodes.forEach((n, i) => {
       const e = Math.min(1, Math.max(0, (t - i * 0.14) / 0.55));
-      const r = W * 0.046 * e;
-      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
-      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.2, W * 0.0036); ctx.stroke();
-      ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.030}px ${F}`; ctx.textAlign = "center";
-      ctx.fillText(n.l, n.x, n.y + r + W * 0.045);
+      const r = W * 0.055 * e;
+      const rg = ctx.createRadialGradient(n.x, n.y - r * 0.3, r * 0.2, n.x, n.y, r);
+      rg.addColorStop(0, vsHexA(A, 0.85)); rg.addColorStop(1, "#0a1420");
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.4, W * 0.0038);
+      ctx.shadowColor = A; ctx.shadowBlur = W * 0.018 * e; ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(n.x, n.y, r * 0.24, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.textAlign = "center";
+      vsFitFont(ctx, String(n.l), W * 0.24, "700", F, W * 0.030, W * 0.018);
+      ctx.fillText(String(n.l), n.x, n.y + r + W * 0.05);
     });
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
@@ -10147,10 +10156,11 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
       const depth = 0.66 + ny * 0.34;
       const d = Math.abs(nx - wave);
       const hot = Math.max(0, 1 - d / 0.12);
-      const r = W * (0.0032 + depth * 0.0016) * (1 + hot * 0.9);
+      const r = W * (0.0040 + depth * 0.0020) * (1 + hot * 0.9);
       ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
-      ctx.fillStyle = hot > 0.05 ? vsHexA(A, 0.35 + hot * 0.55) : vsHexA(A, 0.20 + depth * 0.10);
-      ctx.fill();
+      if (hot > 0.05) { ctx.fillStyle = vsHexA(A, 0.55 + hot * 0.45); ctx.shadowColor = A; ctx.shadowBlur = W * 0.012 * hot; }
+      else { ctx.fillStyle = vsHexA(A, 0.34 + depth * 0.16); }
+      ctx.fill(); ctx.shadowBlur = 0;
     }
   }
   // 2) coast glow — the outline on top of the dots
@@ -10182,9 +10192,9 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
     const lbl = labels[i] ? String(labels[i]).slice(0, 12) : "";
     if (lbl) {
       ctx.textAlign = "center"; ctx.globalAlpha = e;
-      ctx.font = `700 ${W * 0.028}px ${F}`;
-      const lw = ctx.measureText(lbl).width + W * 0.032;
-      roundRectPath(ctx, p[0] - lw / 2, p[1] - W * 0.072, lw, W * 0.044, W * 0.009);
+      ctx.font = `700 ${W * 0.032}px ${F}`;
+      const lw = ctx.measureText(lbl).width + W * 0.036;
+      roundRectPath(ctx, p[0] - lw / 2, p[1] - W * 0.078, lw, W * 0.05, W * 0.010);
       ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
       ctx.fillStyle = "#fff"; ctx.fillText(lbl, p[0], p[1] - W * 0.043);
       ctx.globalAlpha = 1;
@@ -10275,22 +10285,40 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.fillText("VS", cx, baseY - maxH * 0.42);
 
   } else if (kind === "bars") {
-    const d = (data && data.length) ? data
-      : items.map((l, i) => ({ label: l, num: 92 - i * 16, value: (92 - i * 16) + "%" }));
+    const d = (data && data.length ? data : items.map((l, i) => ({ label: l, num: 92 - i * 16, value: (92 - i * 16) + "%" }))).slice(0, 5);
     const maxN = Math.max.apply(null, d.map(x => Math.abs(x.num) || 1).concat([0.0001]));
-    const x = W * 0.10, w = W * 0.80, y0 = H * 0.36, rowH = (H * 0.46) / d.length;
-    d.slice(0, 5).forEach((it, i) => {
+    const x = W * 0.10, w = W * 0.80;
+    const rowH = Math.min(H * 0.15, (H * 0.5) / d.length), y0 = H * 0.34;
+    d.forEach((it, i) => {
       const e = ease((t - i * 0.12) / 0.65);
-      const by = y0 + rowH * i + rowH * 0.18, bh = rowH * 0.4;
-      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.font = `600 ${W * 0.030}px ${F}`;
-      ctx.fillText(String(it.label).slice(0, 22), x, by - H * 0.008);
-      roundRectPath(ctx, x, by, w, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.07)"; ctx.fill();
-      const bw = w * (Math.abs(it.num) / maxN) * e;
+      const bh = Math.max(H * 0.028, rowH * 0.48), by = y0 + rowH * i + rowH * 0.30;
+      // label above the bar, auto-fit so it never clips
+      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.85)";
+      fit(String(it.label), w * 0.74, "600", W * 0.031);
+      ctx.fillText(String(it.label), x, by - H * 0.014);
+      // track
+      roundRectPath(ctx, x, by, w, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fill();
+      // gradient fill with glow; keep a minimum so tiny values still read
+      const bw = Math.max(bh, w * (Math.abs(it.num) / maxN) * e);
       const g = ctx.createLinearGradient(x, 0, x + w, 0);
-      g.addColorStop(0, vsHexA(A, 0.7)); g.addColorStop(1, A);
-      roundRectPath(ctx, x, by, Math.max(bh, bw), bh, bh / 2); ctx.fillStyle = g; ctx.fill();
-      ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.030}px ${F}`;
-      if (e > 0.6) { ctx.globalAlpha = (e - 0.6) / 0.4; ctx.fillText(String(it.value).slice(0, 8), x + w, by - H * 0.008); ctx.globalAlpha = 1; }
+      g.addColorStop(0, vsHexA(A, 0.5)); g.addColorStop(1, A);
+      ctx.save(); softGlow(A, W * 0.018);
+      roundRectPath(ctx, x, by, bw, bh, bh / 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+      // value — sits INSIDE the bar end when there's room, otherwise just after it
+      if (e > 0.45) {
+        const val = String(it.value).slice(0, 10);
+        ctx.font = `800 ${W * 0.034}px ${F}`;
+        const vw = ctx.measureText(val).width;
+        ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.35);
+        if (bw > vw + W * 0.07) {
+          ctx.textAlign = "right"; ctx.fillStyle = "#08131c";
+          ctx.fillText(val, x + bw - W * 0.028, by + bh * 0.72);
+        } else {
+          ctx.textAlign = "left"; ctx.fillStyle = "#fff";
+          ctx.fillText(val, x + bw + W * 0.022, by + bh * 0.72);
+        }
+        ctx.globalAlpha = 1;
+      }
     });
 
   } else if (kind === "timeline") {
@@ -10345,24 +10373,28 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
 
   } else if (kind === "cycle") {
     const its = items.slice(0, 5); const n = Math.max(3, its.length);
-    const cx = W / 2, cy = H * 0.57, R = U * 0.26;
-    ctx.strokeStyle = vsHexA(A, 0.22); ctx.lineWidth = W * 0.006;
+    const cx = W / 2, cy = H * 0.56, R = U * 0.25;
+    ctx.strokeStyle = vsHexA(A, 0.28); ctx.lineWidth = W * 0.009;
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
-    const sweep = (t * 0.9) % (Math.PI * 2);
-    ctx.strokeStyle = A; ctx.lineWidth = W * 0.006; ctx.lineCap = "round"; softGlow(A, W * 0.02);
-    ctx.beginPath(); ctx.arc(cx, cy, R, sweep, sweep + Math.PI * 0.5); ctx.stroke(); noGlow();
+    const sweep = (t * 0.8) % (Math.PI * 2);
+    ctx.strokeStyle = A; ctx.lineWidth = W * 0.009; ctx.lineCap = "round"; softGlow(A, W * 0.03);
+    ctx.beginPath(); ctx.arc(cx, cy, R, sweep, sweep + Math.PI * 0.55); ctx.stroke(); noGlow();
     its.slice(0, n).forEach((l, i) => {
       const ang = -Math.PI / 2 + i * (Math.PI * 2 / its.length);
       const nx = cx + Math.cos(ang) * R, ny = cy + Math.sin(ang) * R;
       const e = ease((t - i * 0.16) / 0.5);
       if (e <= 0) return;
-      ctx.beginPath(); ctx.arc(nx, ny, W * 0.05 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
-      ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.028}px ${F}`;
-      ctx.fillText(String(i + 1), nx, ny + W * 0.01);
-      ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.82)"; ctx.font = `600 ${W * 0.027}px ${F}`;
-      const lx = cx + Math.cos(ang) * (R + W * 0.11), ly = cy + Math.sin(ang) * (R + W * 0.11);
-      ctx.fillText(String(l).slice(0, 12), lx, ly + W * 0.008); ctx.globalAlpha = 1;
+      const r = W * 0.064 * e;
+      const rg = ctx.createRadialGradient(nx, ny - r * 0.3, r * 0.2, nx, ny, r);
+      rg.addColorStop(0, vsHexA(A, 0.95)); rg.addColorStop(1, "#0a1420");
+      ctx.beginPath(); ctx.arc(nx, ny, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; softGlow(A, W * 0.02); ctx.stroke(); noGlow();
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.034}px ${F}`;
+      ctx.fillText(String(i + 1), nx, ny + W * 0.012);
+      ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.92)";
+      const lx = cx + Math.cos(ang) * (R + W * 0.13), ly = cy + Math.sin(ang) * (R + W * 0.13);
+      fit(String(l), W * 0.28, "700", W * 0.030);
+      ctx.fillText(String(l).slice(0, 14), lx, ly + W * 0.01); ctx.globalAlpha = 1;
     });
 
   } else if (kind === "pyramid") {
@@ -10388,25 +10420,32 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     });
 
   } else if (kind === "orbit") {
-    const cx = W / 2, cy = H * 0.57, R = U * 0.27;
+    const cx = W / 2, cy = H * 0.56, R = U * 0.26;
     const its = items.slice(0, 5);
-    ctx.strokeStyle = vsHexA(A, 0.16); ctx.lineWidth = W * 0.003;
+    ctx.strokeStyle = vsHexA(A, 0.20); ctx.lineWidth = W * 0.004;
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
     its.forEach((l, i) => {
-      const ang = t * 0.5 + i * (Math.PI * 2 / its.length);
+      const ang = t * 0.45 + i * (Math.PI * 2 / its.length);
       const nx = cx + Math.cos(ang) * R, ny = cy + Math.sin(ang) * R;
       const e = ease((t - i * 0.12) / 0.5);
-      ctx.strokeStyle = vsHexA(A, 0.2); ctx.lineWidth = W * 0.002;
+      ctx.strokeStyle = vsHexA(A, 0.28); ctx.lineWidth = W * 0.0025;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny); ctx.stroke();
-      ctx.beginPath(); ctx.arc(nx, ny, W * 0.04 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
-      ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `600 ${W * 0.025}px ${F}`;
-      ctx.fillText(String(l).slice(0, 12), nx, ny + W * 0.065);
+      const r = W * 0.052 * e;
+      const rg = ctx.createRadialGradient(nx, ny - r * 0.3, r * 0.2, nx, ny, r);
+      rg.addColorStop(0, vsHexA(A, 0.9)); rg.addColorStop(1, "#0a1420");
+      ctx.beginPath(); ctx.arc(nx, ny, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; softGlow(A, W * 0.015); ctx.stroke(); noGlow();
+      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.9)";
+      fit(String(l), W * 0.22, "700", W * 0.028);
+      ctx.fillText(String(l).slice(0, 14), nx, ny + r + W * 0.05);
     });
-    ctx.beginPath(); ctx.arc(cx, cy, W * 0.055, 0, 7);
-    ctx.fillStyle = "#0a1420"; ctx.fill();
-    ctx.strokeStyle = A; ctx.lineWidth = W * 0.005; softGlow(A, W * 0.035); ctx.stroke(); noGlow();
-    ctx.fillStyle = A; ctx.beginPath(); ctx.arc(cx, cy, W * 0.018, 0, 7); ctx.fill();
+    // hub
+    ctx.beginPath(); ctx.arc(cx, cy, W * 0.07, 0, 7);
+    const hg = ctx.createRadialGradient(cx, cy - W * 0.02, W * 0.02, cx, cy, W * 0.07);
+    hg.addColorStop(0, vsHexA(A, 0.85)); hg.addColorStop(1, "#0a1420");
+    ctx.fillStyle = hg; ctx.fill();
+    ctx.strokeStyle = A; ctx.lineWidth = W * 0.005; softGlow(A, W * 0.04); ctx.stroke(); noGlow();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, W * 0.016, 0, 7); ctx.fill();
 
   } else if (kind === "attributes") {
     // Qualitative fields (label → value). Handles long text values without
@@ -11299,6 +11338,9 @@ function drawStudioFrame(elapsed) {
     const hlLines = wrapAt(hlSize);
     const nHlLines = hlLines.length;
     const hlLineH = hlSize * 1.16;
+    // Centre a multi-line headline inside a MAISON panel band — otherwise it sat
+    // near the top with a large empty block of colour beneath it.
+    if (dsPanelBand) baseY = dsPanelBand.top + dsPanelBand.h * 0.5 + (nHlLines - 1) * hlLineH / 2;
     const subSize = Math.round(W * 0.028 * sizeMul);
     const ctaSize = Math.round(W * 0.022 * sizeMul);
     ctx.font = `${isMaisonTxt ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
