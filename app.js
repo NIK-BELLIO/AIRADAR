@@ -5969,7 +5969,7 @@ async function vsAutoGenerateBackgrounds(data) {
         s.panelLayout = "";
         let kind = isForcedMap && !usedMap
           ? "map"
-          : vsSceneGraphicKind(s.headline || themeStr, i + genOffset, { stats: data2, prevKind, hasNumber });
+          : vsSceneGraphicKind(s.headline || themeStr, i + genOffset, { stats: data2, prevKind, hasNumber, hasPlaces: mapPlaces.length > 0 });
         // The map is a marquee scene — only ONE per video; re-route a second one.
         if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
         if (kind === "map") usedMap = true;
@@ -9823,11 +9823,18 @@ function vsSceneGraphicKind(text, i, opts) {
 
   // Kinds that need real numbers/values to be meaningful.
   const DATA = new Set(["chart", "bars", "compare", "gauge", "stat", "attributes"]);
-  // Kinds that work from plain labels / concepts alone.
-  const CONCEPT = ["radar", "network", "timeline", "flow", "cycle", "orbit", "pyramid", "map", "ui"];
+  // Kinds that work from plain labels / concepts alone. NOTE: "map" is NOT in the
+  // default rotation — it only appears when the content actually names US places
+  // (opts.hasPlaces), so a non-geographic scene never gets an out-of-place map.
+  const CONCEPT = ["radar", "network", "timeline", "flow", "cycle", "orbit", "pyramid", "ui"];
 
   const cand = [];
-  const add = (...k) => k.forEach(x => { if (x && (hasData || !DATA.has(x))) cand.push(x); });
+  const add = (...k) => k.forEach(x => {
+    if (!x) return;
+    if (DATA.has(x) && !hasData) return;
+    if (x === "map" && !opts.hasPlaces) return;   // never map without real places
+    cand.push(x);
+  });
 
   // 1) Strongest signal: the shape of the data.
   if (nStat === 2 && nNum >= 1) add("compare");
@@ -9839,8 +9846,8 @@ function vsSceneGraphicKind(text, i, opts) {
   const kw = [
     [/\b(step|steps|process|pipeline|workflow|stage|phase|how it works|first|then|next|finally|method)\b/, ["flow", "cycle"]],
     [/\b(cycle|loop|repeat|feedback|continuous|recurring|iterate|ongoing|circular)\b/, ["cycle"]],
-    [/\b(time|timeline|history|year|era|evolution|roadmap|milestone|202\d|19\d\d|decade|schedule|future|past|era)\b/, ["timeline"]],
-    [/\b(vs|versus|compare|comparison|before|after|old|new|than|gap|difference|shift|from|to)\b/, ["compare"]],
+    [/\b(timeline|history|evolution|roadmap|milestone|milestones|202\d|19\d\d|decade|decades|chronolog|over the years|era)\b/, ["timeline"]],
+    [/\b(vs|versus|compare|comparison|before|after|gap|difference|outperform)\b/, ["compare"]],
     [/\b(rank|ranked|top|most|list|leading|biggest|largest|share|breakdown|split|majority|dominate|dominates)\b/, ["bars"]],
     [/\b(grow|growth|rise|rising|increase|surge|trend|trajectory|scale|climb|boom|up)\b/, ["chart"]],
     [/\b(hierarchy|tier|level|pyramid|foundation|layer|layers|core|base|structure)\b/, ["pyramid"]],
@@ -9849,7 +9856,7 @@ function vsSceneGraphicKind(text, i, opts) {
     [/\b(connect|connected|network|system|integrat|team|ecosystem|node|mesh|web of|links?)\b/, ["network", "orbit"]],
     [/\b(scan|detect|monitor|discover|track|radar|intelligence|analys|audit|signal|threat|risk|watch|surveill)\b/, ["radar"]],
     [/\b(hub|center|central|orbit|around|surround|revolve|core)\b/, ["orbit"]],
-    [/\b(usa|u\.?s\.?a?|united states|america|american|nation|national|nationwide|country|countries|state|states|city|cities|region|regional|coast|map|geograph|global|worldwide|market|housing|across)\b/, ["map"]],
+    [/\b(usa|u\.?s\.?a?|united states|america|american|nationwide|state|states|city|cities|region|regional|coast|coasts|map|geograph|county|counties|metro|metros|nationally)\b/, ["map"]],
     [/\b(direction|style|type|category|attribute|trait|profile|spec|feature|character)\b/, ["attributes"]]
   ];
   for (const [re, ks] of kw) if (re.test(s)) add(...ks);
@@ -10360,7 +10367,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       const bw = W * 0.66, bx = (W - bw) / 2; let by = H * 0.64;
       d.forEach((it, i) => {
         const e = ease((t - 0.4 - i * 0.15) / 0.6);
-        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.028}px ${F}`;
+        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.036}px ${F}`;
         ctx.fillText(String(it.label).slice(0, 22), bx, by - H * 0.012);
         ctx.textAlign = "right"; ctx.fillStyle = A; ctx.fillText(String(it.value).slice(0, 10), bx + bw, by - H * 0.012);
         roundRectPath(ctx, bx, by, bw, H * 0.012, H * 0.006); ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fill();
@@ -10386,7 +10393,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.016, 0, 7); ctx.fillStyle = A; ctx.fill();
     ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.13}px ${F}`;
     ctx.fillText(Math.round(p / (val / 100 || 1) * val) + (o.suffix || "%"), cx, cy - H * 0.03);
-    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.030}px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.038}px ${F}`;
     ctx.fillText(String(o.valueLabel || "").toUpperCase().slice(0, 30), cx, cy + H * 0.055);
 
   } else if (kind === "compare") {
@@ -10412,35 +10419,37 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
   } else if (kind === "bars") {
     const d = (data && data.length ? data : items.map((l, i) => ({ label: l, num: 92 - i * 16, value: (92 - i * 16) + "%" }))).slice(0, 5);
     const maxN = Math.max.apply(null, d.map(x => Math.abs(x.num) || 1).concat([0.0001]));
-    const x = W * 0.10, w = W * 0.80;
-    const rowH = Math.min(H * 0.15, (H * 0.5) / d.length), y0 = H * 0.34;
+    const x = W * 0.09, w = W * 0.82;
+    // Fill the frame: rows span from just under the headline to near the bottom,
+    // with fat bars and big type so nothing feels empty or timid.
+    const top = H * 0.30, bottom = H * 0.84, band = (bottom - top) / d.length;
     d.forEach((it, i) => {
       const e = ease((t - i * 0.12) / 0.65);
-      const bh = Math.max(H * 0.028, rowH * 0.48), by = y0 + rowH * i + rowH * 0.30;
+      const bh = band * 0.46, by = top + band * i + (band - bh) * 0.62;
       // label above the bar, auto-fit so it never clips
-      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.85)";
-      fit(String(it.label), w * 0.74, "600", W * 0.031);
-      ctx.fillText(String(it.label), x, by - H * 0.014);
+      ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.9)";
+      fit(String(it.label), w * 0.72, "700", W * 0.040);
+      ctx.fillText(String(it.label), x, by - H * 0.016);
       // track
       roundRectPath(ctx, x, by, w, bh, bh / 2); ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fill();
       // gradient fill with glow; keep a minimum so tiny values still read
       const bw = Math.max(bh, w * (Math.abs(it.num) / maxN) * e);
       const g = ctx.createLinearGradient(x, 0, x + w, 0);
-      g.addColorStop(0, vsHexA(A, 0.5)); g.addColorStop(1, A);
-      ctx.save(); softGlow(A, W * 0.018);
+      g.addColorStop(0, vsHexA(A, 0.45)); g.addColorStop(1, A);
+      ctx.save(); softGlow(A, W * 0.022);
       roundRectPath(ctx, x, by, bw, bh, bh / 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
-      // value — sits INSIDE the bar end when there's room, otherwise just after it
+      // value — big and bold, INSIDE the bar end when there's room, else just after
       if (e > 0.45) {
         const val = String(it.value).slice(0, 10);
-        ctx.font = `800 ${W * 0.034}px ${F}`;
+        ctx.font = `800 ${W * 0.05}px ${F}`;
         const vw = ctx.measureText(val).width;
         ctx.globalAlpha = Math.min(1, (e - 0.45) / 0.35);
-        if (bw > vw + W * 0.07) {
+        if (bw > vw + W * 0.09) {
           ctx.textAlign = "right"; ctx.fillStyle = "#08131c";
-          ctx.fillText(val, x + bw - W * 0.028, by + bh * 0.72);
+          ctx.fillText(val, x + bw - W * 0.03, by + bh * 0.70);
         } else {
           ctx.textAlign = "left"; ctx.fillStyle = "#fff";
-          ctx.fillText(val, x + bw + W * 0.022, by + bh * 0.72);
+          ctx.fillText(val, x + bw + W * 0.024, by + bh * 0.70);
         }
         ctx.globalAlpha = 1;
       }
@@ -10464,7 +10473,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(fx, y, W * 0.016 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
       ctx.textAlign = "center"; ctx.globalAlpha = e;
-      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.030}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.038}px ${F}`;
       ctx.fillText(String(l).slice(0, 14), fx, y + (up ? -1 : 1) * H * 0.075 - (up ? 0 : -H * 0.02));
       ctx.globalAlpha = 1;
     });
