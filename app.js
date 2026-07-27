@@ -4225,6 +4225,7 @@ function renderTemplatePicker() {
 
 function setVideoTemplate(id) {
   vstudio.templateId = id;
+  vstudio._userPickedTemplate = true;   // respect this even in motion-graphic mode
   renderTemplatePicker();
   // redraw whenever there's anything to show — media, slides, or an
   // intro scene — so picking a template updates the preview immediately.
@@ -5851,10 +5852,12 @@ async function vsAutoGenerateBackgrounds(data) {
     const genOffset = Math.floor(RND() * 9);         // rotates the graphic pool
     const panelChance = 0.22;                         // ~1 in 5 text scenes is a panel
 
-    // MAISON house style for generated motion graphics (see MAISON-TEMPLATE.md)
-    vstudio.templateId = "maison";
+    // MAISON house style is the DEFAULT for generated motion graphics — but if
+    // the user explicitly picked a different template or headline font, respect
+    // it (so font/template changes apply in skill mode too, not just normal).
+    if (!vstudio._userPickedTemplate) vstudio.templateId = "maison";
     const hlFontSel = document.querySelector("#vsHeadlineFont");
-    if (hlFontSel) hlFontSel.value = "Alice, serif";
+    if (hlFontSel && !hlFontSel.value) hlFontSel.value = "Alice, serif";
     // Real headlines the builder tucked into the news-banner / infographic
     // settings — needed for the graphic labels (the slide's own headline field
     // is empty on content scenes). Collect them first.
@@ -5877,18 +5880,23 @@ async function vsAutoGenerateBackgrounds(data) {
       ...allHeads,
       ...((data && data.sections) || []).map(x => [x && x.headline, x && x.title, x && x.narration, x && x.evidence].join(" "))
     ].join(" ");
-    const mapPlaces = vsExtractPlaces(scriptText, 8);
+    // Decide between the US map and the WORLD map: if the story names any
+    // foreign country/city, use the world map; otherwise the US map.
+    const usPlaces = vsExtractPlaces(scriptText, 8);
+    const worldRes = vsExtractWorldPlaces(scriptText, 8);
+    const mapScope = worldRes.hasForeign ? "world" : "us";
+    const mapPlaces = mapScope === "world" ? worldRes.places : usPlaces;
+    const mapPlaceKeys = mapScope === "world" ? Object.keys(VS_WORLD_PLACES) : Object.keys(VS_US_PLACES);
     // If the content clearly names real places, GUARANTEE one map scene (pick the
     // first content slide whose headline names a place, else the first text slide)
     // so randomness never drops the map on a location-heavy story.
     let forcedMapIdx = -1;
     let panelCount = 0;
-    if (mapPlaces.length >= 3) {
-      const placeKeys = Object.keys(VS_US_PLACES);
+    if (mapPlaces.length >= 2) {
       for (let k = 1; k < slides.length - 1; k++) {
         if (slides[k]._standaloneInfo) continue;
         const h = realHeadlineOf(slides[k]).toLowerCase();
-        if (placeKeys.some((p) => h.indexOf(p) !== -1)) { forcedMapIdx = k; break; }
+        if (mapPlaceKeys.some((p) => h.indexOf(p) !== -1)) { forcedMapIdx = k; break; }
       }
       if (forcedMapIdx === -1) for (let k = 1; k < slides.length - 1; k++) {
         if (!slides[k]._standaloneInfo) { forcedMapIdx = k; break; }
@@ -5970,6 +5978,7 @@ async function vsAutoGenerateBackgrounds(data) {
         let kind = isForcedMap && !usedMap
           ? "map"
           : vsSceneGraphicKind(s.headline || themeStr, i + genOffset, { stats: data2, prevKind, hasNumber, hasPlaces: mapPlaces.length > 0 });
+        if (kind === "map" && !usedMap && mapPlaces.length === 0) kind = data2.length ? "bars" : "network";
         // The map is a marquee scene — only ONE per video; re-route a second one.
         if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
         if (kind === "map") usedMap = true;
@@ -5989,6 +5998,7 @@ async function vsAutoGenerateBackgrounds(data) {
           kind,
           data: data2.length ? data2 : null,
           places: kind === "map" ? mapPlaces : null,
+          scope: kind === "map" ? mapScope : null,
           items: items.filter((x) => x && x.length).slice(0, 5),
           value: heroVal,
           valueLabel: String((data2[0] && data2[0].label) || s._caption || s.headline).slice(0, 34),
@@ -9856,7 +9866,7 @@ function vsSceneGraphicKind(text, i, opts) {
     [/\b(connect|connected|network|system|integrat|team|ecosystem|node|mesh|web of|links?)\b/, ["network", "orbit"]],
     [/\b(scan|detect|monitor|discover|track|radar|intelligence|analys|audit|signal|threat|risk|watch|surveill)\b/, ["radar"]],
     [/\b(hub|center|central|orbit|around|surround|revolve|core)\b/, ["orbit"]],
-    [/\b(usa|u\.?s\.?a?|united states|america|american|nationwide|state|states|city|cities|region|regional|coast|coasts|map|geograph|county|counties|metro|metros|nationally)\b/, ["map"]],
+    [/\b(usa|u\.?s\.?a?|united states|america|american|nationwide|state|states|city|cities|region|regional|coast|coasts|map|geograph|county|counties|metro|metros|nationally|world|worldwide|global|globally|international|country|countries|continent|continents|europe|asia|africa)\b/, ["map"]],
     [/\b(direction|style|type|category|attribute|trait|profile|spec|feature|character)\b/, ["attributes"]]
   ];
   for (const [re, ks] of kw) if (re.test(s)) add(...ks);
@@ -10224,6 +10234,52 @@ function vsExtractPlaces(text, max) {
   }
   return found;
 }
+
+// ── World map ──────────────────────────────────────────────────────────────
+// Rough continent outlines in [lon,lat] — dotted, they read clearly as the
+// world once arranged (NA left · SA below · Africa centre · Europe above it ·
+// Asia right · Oceania lower-right).
+const VS_WORLD_CONTINENTS = [
+  [[-158,66],[-125,70],[-98,72],[-74,68],[-58,60],[-52,47],[-66,44],[-80,26],[-97,17],[-90,13],[-106,23],[-115,30],[-124,40],[-132,54],[-158,66]],
+  [[-79,9],[-60,10],[-50,0],[-35,-6],[-39,-16],[-49,-25],[-58,-35],[-67,-45],[-74,-52],[-72,-38],[-70,-18],[-77,-6],[-81,-2],[-79,9]],
+  [[-16,30],[0,36],[11,37],[24,32],[33,31],[43,11],[51,12],[45,-2],[40,-15],[32,-27],[20,-35],[16,-28],[13,-10],[9,4],[-8,5],[-17,15],[-16,30]],
+  [[-9,44],[-2,49],[4,52],[10,55],[16,58],[26,60],[38,59],[42,50],[32,45],[24,41],[15,40],[6,43],[-9,44]],
+  [[35,45],[46,55],[62,63],[85,69],[110,71],[132,68],[145,60],[141,52],[133,45],[123,40],[122,30],[110,20],[100,9],[95,15],[88,22],[80,9],[77,8],[72,20],[60,26],[50,30],[40,38],[35,45]],
+  [[114,-22],[123,-17],[132,-12],[142,-11],[150,-24],[153,-32],[146,-38],[137,-35],[129,-32],[118,-34],[114,-28],[114,-22]]
+];
+const VS_WORLD_PLACES = {
+  "united states":[-98,39],"united kingdom":[-1.5,52],"saudi arabia":[45,24],"south africa":[24,-29],
+  "new york":[-74,40.7],"los angeles":[-118,34],"mexico city":[-99,19],"sao paulo":[-46,-23],
+  "buenos aires":[-58,-34],"rio de janeiro":[-43,-23],"toronto":[-79,43.7],"london":[-0.1,51.5],
+  "paris":[2.3,48.9],"berlin":[13.4,52.5],"madrid":[-3.7,40.4],"rome":[12.5,41.9],"moscow":[37.6,55.8],
+  "istanbul":[29,41],"tehran":[51.4,35.7],"dubai":[55.3,25.2],"mumbai":[72.9,19.1],"delhi":[77.2,28.6],
+  "beijing":[116.4,39.9],"shanghai":[121.5,31.2],"tokyo":[139.7,35.7],"seoul":[127,37.6],"singapore":[103.8,1.3],
+  "jakarta":[106.8,-6.2],"sydney":[151.2,-33.9],"cairo":[31.2,30],"lagos":[3.4,6.5],"nairobi":[36.8,-1.3],
+  "canada":[-106,56],"mexico":[-102,23],"brazil":[-51,-10],"argentina":[-64,-38],"britain":[-1.5,52],
+  "france":[2.3,47],"germany":[10.4,51],"spain":[-3.7,40],"italy":[12.5,42],"russia":[90,62],"china":[104,35],
+  "india":[79,22],"japan":[138,37],"australia":[134,-25],"indonesia":[113,-2],"egypt":[30,27],"nigeria":[8,10],
+  "iran":[53,32],"turkey":[35,39],"europe":[15,50],"africa":[20,3],"asia":[95,45],"america":[-98,39]
+};
+function vsWorldGeo(lon, lat) {
+  return [Math.max(0, Math.min(1, (lon + 168) / 336)), Math.max(0, Math.min(1, (74 - lat) / 128))];
+}
+// Extract world places; returns {places, hasForeign} so the caller can decide
+// between the US map and the world map.
+function vsExtractWorldPlaces(text, max) {
+  const s = " " + String(text || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ") + " ";
+  const found = []; const seen = {}; let hasForeign = false;
+  for (const name of Object.keys(VS_WORLD_PLACES)) {
+    if (s.indexOf(" " + name + " ") === -1) continue;
+    if (seen[name]) continue; seen[name] = 1;
+    const [lon, lat] = VS_WORLD_PLACES[name];
+    const [x, y] = vsWorldGeo(lon, lat);
+    // A US-continental point (lon -125..-66, lat 24..49) is not "foreign".
+    if (!(lon > -125 && lon < -66 && lat > 24 && lat < 50)) hasForeign = true;
+    found.push({ name: name.replace(/\b\w/g, (c) => c.toUpperCase()), x, y });
+    if (found.length >= (max || 8)) break;
+  }
+  return { places: found, hasForeign };
+}
 function vsPointInPoly(px, py, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -10237,6 +10293,7 @@ function vsPointInPoly(px, py, poly) {
 // the plane is tilted (near edge larger) and slowly yaws so it reads as a live
 // 3D camera move. Animated location hotspots + connecting arcs sit on top.
 function drawSceneMap(ctx, W, H, t, o, A, F, items) {
+  if (o.scope === "world") { drawSceneWorldMap(ctx, W, H, t, o, A, F); return; }
   const poly = VS_US_OUTLINE;
   // Plot the REAL locations named in the content when we found any; otherwise
   // fall back to the six region markers so the map is never empty.
@@ -10333,6 +10390,84 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
     }
   });
   ctx.restore();   // close the 3D camera transform
+}
+
+// Stylised WORLD map — dotted continents on the same tilted 3D-camera plane,
+// with a faint graticule and the real locations named in the content plotted
+// as glowing pins + connecting arcs.
+function drawSceneWorldMap(ctx, W, H, t, o, A, F) {
+  const polys = VS_WORLD_CONTINENTS;
+  const pins = (o.places && o.places.length ? o.places : []).slice(0, 8)
+    .map((p) => ({ nx: p.x, ny: p.y, name: p.name }));
+  const sx = W * 0.04, sw = W * 0.92, sy = H * 0.34, sh = H * 0.42, cx = sx + sw / 2;
+  const camCx = cx, camCy = sy + sh * 0.5;
+  ctx.save();
+  ctx.translate(camCx, camCy);
+  ctx.scale(1 + Math.sin(t * 0.4) * 0.02, 1 + Math.sin(t * 0.4) * 0.02);
+  ctx.rotate(Math.sin(t * 0.22) * 0.01);
+  ctx.translate(-camCx, -camCy);
+  const yaw = Math.sin(t * 0.3) * 0.02, tilt = 0.92;
+  const P = (nx, ny) => {
+    const depth = 0.8 + ny * 0.2;
+    return [cx + (nx - 0.5 + (ny - 0.5) * yaw) * sw * depth, sy + ny * sh * tilt];
+  };
+  // faint graticule (lat/long grid) so it reads as a globe/world
+  ctx.strokeStyle = vsHexA(A, 0.08); ctx.lineWidth = 1;
+  for (let gx = 0; gx <= 1.0001; gx += 1 / 8) { const a = P(gx, 0), b = P(gx, 1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  for (let gy = 0; gy <= 1.0001; gy += 1 / 5) { const a = P(0, gy), b = P(1, gy); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  // dotted continents
+  const wave = (t * 0.5) % 1.4;
+  const inLand = (lon, lat) => polys.some((pl) => vsPointInPoly(lon, lat, pl));
+  for (let ny = 0; ny <= 1; ny += 0.022) {
+    for (let nx = 0; nx <= 1; nx += 0.014) {
+      const lon = nx * 336 - 168, lat = 74 - ny * 128;
+      if (!inLand(lon, lat)) continue;
+      const [x, y] = P(nx, ny);
+      const hot = Math.max(0, 1 - Math.abs(nx - wave) / 0.12);
+      const r = W * 0.0034 * (1 + hot * 0.9);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+      if (hot > 0.05) { ctx.fillStyle = vsHexA(A, 0.55 + hot * 0.45); ctx.shadowColor = A; ctx.shadowBlur = W * 0.01 * hot; }
+      else ctx.fillStyle = vsHexA(A, 0.3);
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+  // pins + arcs (same treatment as the US map)
+  const pts = pins.map((pin) => P(pin.nx, pin.ny));
+  const order = pins.map((_, i) => i).sort((a, b) => pts[a][0] - pts[b][0]);
+  for (let k = 0; k < order.length - 1; k++) {
+    const a = pts[order[k]], b = pts[order[k + 1]];
+    const mx = (a[0] + b[0]) / 2, my = Math.min(a[1], b[1]) - H * 0.05;
+    const prog = Math.min(1, Math.max(0, (t - 0.4 - k * 0.14) / 0.6));
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]);
+    ctx.quadraticCurveTo(mx, my, a[0] + (b[0] - a[0]) * prog, a[1] + (b[1] - a[1]) * prog);
+    ctx.strokeStyle = vsHexA(A, 0.4); ctx.lineWidth = Math.max(1, W * 0.0022); ctx.stroke();
+  }
+  const drawn = [];
+  pts.forEach((p, i) => {
+    const e = Math.min(1, Math.max(0, (t - i * 0.13) / 0.5));
+    if (e <= 0) return;
+    const pulse = (t * 0.9 + i * 0.4) % 1;
+    ctx.beginPath(); ctx.arc(p[0], p[1], W * (0.012 + pulse * 0.03), 0, 7);
+    ctx.strokeStyle = vsHexA(A, (1 - pulse) * 0.6); ctx.lineWidth = Math.max(1, W * 0.002); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p[0], p[1], W * 0.011 * e, 0, 7);
+    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = W * 0.03; ctx.fill(); ctx.shadowBlur = 0;
+    const lbl = pins[i].name ? String(pins[i].name).slice(0, 14) : "";
+    if (lbl) {
+      const fs = pts.length > 5 ? W * 0.026 : W * 0.032, below = pts.length > 5 && (i % 2 === 1);
+      ctx.textAlign = "center"; ctx.globalAlpha = e; ctx.font = `700 ${fs}px ${F}`;
+      const lw = ctx.measureText(lbl).width + W * 0.03, ph = fs * 1.5, gap = W * 0.02;
+      const px0 = p[0] - lw / 2, py = below ? p[1] + gap : p[1] - gap - ph;
+      const box = { x: px0, y: py, w: lw, h: ph };
+      if (drawn.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) { ctx.globalAlpha = 1; return; }
+      drawn.push(box);
+      roundRectPath(ctx, px0, py, lw, ph, W * 0.009);
+      ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+      ctx.fillText(lbl, p[0], py + ph / 2 + fs * 0.05);
+      ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
+    }
+  });
+  ctx.restore();
 }
 
 // The extended graphic library — every kind below builds a distinct, animated,
