@@ -13,7 +13,7 @@ const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 // and direct Pollinations is Turnstile-gated. Costs only the account's free
 // daily neuron allowance.
 const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
-// CORS-safe AI image generator (FLUX-schnell) for the Editorial (Hera-style)
+// CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
 const VS_BUILD = "v400-pro";
@@ -4334,7 +4334,7 @@ function bindIntroEditor() {
       { cmd: "/motion_graphic", icon: "✦", insert: "/motion_graphic ",
         desc: "Animated motion-graphic video (kinetic text, charts, maps)" },
       { cmd: "/editorial", icon: "▦", insert: "/editorial ",
-        desc: "Hera-style photo deck — AI image per scene + elegant serif text" },
+        desc: "Editorial photo deck — a cinematic AI image per scene + elegant serif text" },
       { cmd: "/mg", icon: "⚡", insert: "/mg ",
         desc: "Short alias for /motion_graphic" }
     ];
@@ -4790,11 +4790,11 @@ async function buildAutoVideo(useAI) {
   // "/motion_graphic <url or topic>" — the motion-graphic skill command. Strip
   // the command word (lenient variants: /mg, /motion-graphic, /motion graphic).
   // When this command is used the video is built as a REAL motion graphic —
-  // every scene gets an animated generated background (Hera-style) instead of
+  // every scene gets an animated generated background (editorial-style) instead of
   // stock footage — whether the input is a link or just a topic.
   const cmdRe = /^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b[:\s]*/i;
-  // Editorial (Hera-style) mode — AI image per scene + elegant serif overlays.
-  const edRe = /^\/?(?:editorial|edit|hera|ed)\b[:\s]*/i;
+  // Editorial (editorial-style) mode — AI image per scene + elegant serif overlays.
+  const edRe = /^\/?(?:editorial|editor|edit|ed)\b[:\s]*/i;
   vstudio._editorialMode = edRe.test(text);
   if (vstudio._editorialMode) text = text.replace(edRe, "").trim();
   vstudio._motionGfxMode = !vstudio._editorialMode && cmdRe.test(text);
@@ -5831,7 +5831,7 @@ async function vsGenerateNarrationLegacy(data, voice) {
   } catch (e) { return null; }
 }
 
-// A per-topic colour system for the Editorial mode (mirrors how Hera keeps one
+// A per-topic colour system for the Editorial mode (keeps one
 // palette across a whole video: finance→maroon/gold, nature→green, tech→noir…).
 function vsEditorialPalette(topic) {
   const T = String(topic || "").toLowerCase();
@@ -5908,7 +5908,7 @@ function vsEdMakeCutout(img) {
     return c2;
   } catch (e) { return null; }
 }
-// Build the Editorial (Hera-style) deck: one AI image per scene + overlay data.
+// Build the Editorial (editorial-style) deck: one AI image per scene + overlay data.
 async function vsEditorialBackgrounds(data) {
   const slides = vstudio.slides;
   const topic = [data && data.title, data && data.subtitle, data && data.angle].filter(Boolean).join(" ");
@@ -5944,7 +5944,7 @@ async function vsEditorialBackgrounds(data) {
     s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
     s._edLayout = isTitle ? "center" : ["low", "mid", "low", "top"][i % 4];
     // Alternate between a full-bleed cinematic scene and a cut-out subject on a
-    // light "paper" background (Hera does both) — intro/outro stay full-bleed.
+    // light "paper" background (both looks are supported) — intro/outro stay full-bleed.
     s._edStyle = (!isTitle && i % 2 === 1) ? "cutout" : "full";
     s._edSide = (i % 4 < 2) ? "right" : "left";   // which side the cut-out sits
     s._edPrompt = s._edStyle === "cutout"
@@ -5988,7 +5988,7 @@ async function vsAutoGenerateBackgrounds(data) {
   const slides = vstudio.slides;
 
   // ── Editorial mode (the /editorial skill) ──
-  // A photo-led, Hera-style deck: every scene gets an AI-generated cinematic
+  // A photo-led, editorial-style deck: every scene gets an AI-generated cinematic
   // image matched to the topic, with elegant serif text overlays on top.
   if (vstudio._editorialMode) { await vsEditorialBackgrounds(data); return; }
 
@@ -6264,7 +6264,7 @@ async function vsAutoGenerateBackgrounds(data) {
     }
     const cam = camMoves[i % camMoves.length];
     // Professional kinetic-typography rotation so each scene's text enters
-    // differently (the Hera-style motion-graphic feel), instead of every
+    // differently (the editorial-style motion-graphic feel), instead of every
     // scene using the same fade-up.
     const txAnim = ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"][i % 8];
 
@@ -6584,8 +6584,8 @@ function vsPickCities(names, fa) {
       .vs-pick input{width:18px;height:18px;accent-color:#2563ff;flex:none}
       .vs-pick .foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid rgba(37,99,255,.14)}
       .vs-pick .foot button{flex:1;font:inherit;font-weight:700;font-size:14px;padding:12px;border-radius:11px;cursor:pointer;border:1px solid}
-      .vs-pick .go{background:#2563ff;color:#1a1408;border-color:#2563ff}
-      .vs-pick .go:hover{background:#e6c87f}
+      .vs-pick .go{background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;border-color:#2563ff;box-shadow:0 8px 22px -8px rgba(37,99,255,.7)}
+      .vs-pick .go:hover{filter:brightness(1.08);transform:translateY(-1px)}
       .vs-pick .cancel{background:transparent;color:#cfc8ba;border-color:rgba(255,255,255,.18)}`;
       document.head.appendChild(st);
     }
@@ -7978,6 +7978,9 @@ function applyPreviewSize() {
 
 // CSS-style filter string for the chosen grade.
 function vsFilterString() {
+  // Motion-graphic scenes carry their own designed colour system, so a global
+  // grade (e.g. black & white) would just wash them out — force none there.
+  if (vstudio._motionGfxMode) return "none";
   // global colour grade — always read the live control so one selection
   // applies to the whole video (every slide), not per-slide.
   const el = document.querySelector("#vsFilter");
@@ -10140,7 +10143,7 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       ctx.fillStyle = ping > 0.05 ? A : "rgba(255,255,255,.72)";
       ctx.font = `${r * 0.95}px ${F}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(glyphs[i % glyphs.length], nx, ny + 1); ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "rgba(255,255,255,.80)"; ctx.font = `600 ${W * 0.028}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.80)"; ctx.font = `600 ${W * 0.036}px ${F}`;
       ctx.fillText(label, nx, ny + r + W * 0.048);
     });
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.022, 0, 7);
@@ -10540,7 +10543,7 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
       // With many markers, shrink labels and alternate above/below so the chips
       // don't pile on top of each other.
       const dense = pts.length > 5;
-      const fs = dense ? W * 0.026 : W * 0.032;
+      const fs = dense ? W * 0.034 : W * 0.040;
       const below = dense && (i % 2 === 1);
       ctx.textAlign = "center"; ctx.globalAlpha = e;
       ctx.font = `700 ${fs}px ${F}`;
@@ -10623,7 +10626,7 @@ function drawSceneWorldMap(ctx, W, H, t, o, A, F) {
     ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = W * 0.03; ctx.fill(); ctx.shadowBlur = 0;
     const lbl = pins[i].name ? String(pins[i].name).slice(0, 14) : "";
     if (lbl) {
-      const fs = pts.length > 5 ? W * 0.026 : W * 0.032, below = pts.length > 5 && (i % 2 === 1);
+      const fs = pts.length > 5 ? W * 0.034 : W * 0.040, below = pts.length > 5 && (i % 2 === 1);
       ctx.textAlign = "center"; ctx.globalAlpha = e; ctx.font = `700 ${fs}px ${F}`;
       const lw = ctx.measureText(lbl).width + W * 0.03, ph = fs * 1.5, gap = W * 0.02;
       const px0 = p[0] - lw / 2, py = below ? p[1] + gap : p[1] - gap - ph;
@@ -10672,7 +10675,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       const bw = W * 0.66, bx = (W - bw) / 2; let by = H * 0.64;
       d.forEach((it, i) => {
         const e = ease((t - 0.4 - i * 0.15) / 0.6);
-        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.036}px ${F}`;
+        ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.045}px ${F}`;
         ctx.fillText(String(it.label).slice(0, 22), bx, by - H * 0.012);
         ctx.textAlign = "right"; ctx.fillStyle = A; ctx.fillText(String(it.value).slice(0, 10), bx + bw, by - H * 0.012);
         roundRectPath(ctx, bx, by, bw, H * 0.012, H * 0.006); ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fill();
@@ -10798,7 +10801,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.strokeStyle = i === n - 1 ? A : vsHexA(A, 0.5); ctx.lineWidth = W * 0.0035; ctx.stroke();
       ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.03}px ${F}`;
       ctx.fillText(String(i + 1), bx + boxW / 2, y - boxH * 0.12);
-      ctx.fillStyle = "rgba(255,255,255,.82)"; fit(String(l), boxW * 0.9, "600", W * 0.021);
+      ctx.fillStyle = "rgba(255,255,255,.82)"; fit(String(l), boxW * 0.9, "600", W * 0.028);
       ctx.fillText(String(l).slice(0, 16), bx + boxW / 2, y + boxH * 0.28);
       ctx.globalAlpha = 1;
       if (i < n - 1) {
@@ -10828,7 +10831,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       rg.addColorStop(0, vsHexA(A, 0.95)); rg.addColorStop(1, "#0a1420");
       ctx.beginPath(); ctx.arc(nx, ny, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; softGlow(A, W * 0.02); ctx.stroke(); noGlow();
-      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.034}px ${F}`;
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.043}px ${F}`;
       ctx.fillText(String(i + 1), nx, ny + W * 0.012);
       ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.92)";
       const lx = cx + Math.cos(ang) * (R + W * 0.13), ly = cy + Math.sin(ang) * (R + W * 0.13);
@@ -10853,7 +10856,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       g.addColorStop(0, vsHexA(A, 0.28 + i * 0.14)); g.addColorStop(1, vsHexA(A, 0.5 + i * 0.14));
       ctx.fillStyle = g; ctx.fill();
       ctx.strokeStyle = vsHexA(A, 0.6); ctx.lineWidth = W * 0.002; ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; fit(String(l), Math.max(wTop, wBot) * 0.9, "700", W * 0.024);
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; fit(String(l), Math.max(wTop, wBot) * 0.9, "700", W * 0.032);
       ctx.fillText(String(l).slice(0, 20), cx, ty + tierH * 0.62);
       ctx.globalAlpha = 1;
     });
@@ -10875,7 +10878,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(nx, ny, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; softGlow(A, W * 0.015); ctx.stroke(); noGlow();
       ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.9)";
-      fit(String(l), W * 0.22, "700", W * 0.028);
+      fit(String(l), W * 0.22, "700", W * 0.036);
       ctx.fillText(String(l).slice(0, 14), nx, ny + r + W * 0.05);
     });
     // hub
@@ -10891,25 +10894,25 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     // clipping — the whole point that "Oversized / wide" was getting cut off.
     const d = (data && data.length) ? data.slice(0, 4)
       : items.map((l) => ({ label: l, value: "" }));
-    const x = W * 0.09, w = W * 0.82, y0 = H * 0.36, rowH = Math.min(H * 0.12, (H * 0.5) / d.length);
+    const x = W * 0.08, w = W * 0.84, y0 = H * 0.30, rowH = Math.min(H * 0.15, (H * 0.54) / d.length);
     d.forEach((it, i) => {
       const e = ease((t - i * 0.15) / 0.55);
       if (e <= 0) return;
       const ry = y0 + rowH * i;
       ctx.globalAlpha = e;
-      roundRectPath(ctx, x, ry, w, rowH * 0.82, W * 0.02);
-      ctx.fillStyle = "rgba(255,255,255,.045)"; ctx.fill();
-      ctx.strokeStyle = vsHexA(A, 0.3); ctx.lineWidth = W * 0.002; ctx.stroke();
+      roundRectPath(ctx, x, ry, w, rowH * 0.84, W * 0.022);
+      ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fill();
+      ctx.strokeStyle = vsHexA(A, 0.32); ctx.lineWidth = W * 0.0022; ctx.stroke();
       ctx.textAlign = "left"; ctx.textBaseline = "middle";
       const hasVal = !!String(it.value || "").trim();
       const lbl = String(it.label).toUpperCase();
-      ctx.fillStyle = "rgba(255,255,255,.6)";
-      fit(lbl, hasVal ? w * 0.44 : w * 0.9, "600", W * 0.026);
-      ctx.fillText(lbl, x + W * 0.035, ry + rowH * 0.41);
+      ctx.fillStyle = "rgba(255,255,255,.72)";
+      fit(lbl, hasVal ? w * 0.5 : w * 0.9, "700", W * 0.038);
+      ctx.fillText(lbl, x + W * 0.04, ry + rowH * 0.42);
       if (hasVal) {
         ctx.textAlign = "right"; ctx.fillStyle = A;
-        fit(String(it.value), w * 0.5, "800", W * 0.028);
-        ctx.fillText(String(it.value), x + w - W * 0.035, ry + rowH * 0.41);
+        fit(String(it.value), w * 0.44, "800", W * 0.05);
+        ctx.fillText(String(it.value), x + w - W * 0.04, ry + rowH * 0.42);
       }
       ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     });
@@ -11052,7 +11055,7 @@ function drawCinematicLayers(ctx, W, H, t, prog, accent) {
   ctx.restore();
 }
 
-// The Hera-style overlay: a HUGE display-serif hero word bleeding off both
+// The editorial-style overlay: a HUGE display-serif hero word bleeding off both
 // sides, a solid colour label box (kicker), and a cream body box with the
 // sentence. `onPaper` = the cut-out variant (dark hero, white body box).
 function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
@@ -11138,8 +11141,8 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   ctx.restore();
 }
 
-// ── Editorial (Hera-style) scene renderer ─────────────────────────────────
-// Two looks (Hera does both): a full-bleed cinematic image with a colour grade,
+// ── Editorial (editorial-style) scene renderer ─────────────────────────────────
+// Two looks (both looks are supported): a full-bleed cinematic image with a colour grade,
 // or a cut-out subject on a light "paper" background. Both carry a big cut-off
 // word, the coloured headline card, and a source line / CTA.
 function drawEditorialFrame(ctx, W, H, s, local, dur) {
@@ -11205,7 +11208,7 @@ function drawStudioFrame(elapsed) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
-    // ── Editorial (Hera-style) scene owns the whole frame ──
+    // ── Editorial (editorial-style) scene owns the whole frame ──
     if (slide && slide._editorial) {
       drawEditorialFrame(ctx, W, H, slide, dsLocal, dsDur);
       vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
@@ -11506,7 +11509,7 @@ function drawStudioFrame(elapsed) {
     bgMotionT = Math.max(0, Math.min(1, bgMotionT));
     if (!(vstudio.looping || vstudio.rendering)) bgMotionT = 0.4;
 
-    // ── Animated motion-graphic background (Hera-style) ──
+    // ── Animated motion-graphic background (editorial-style) ──
     // A scene can carry a "#vsMotionBg" background id instead of stock footage;
     // when set, draw the fully-animated generated background (gradients/waves/
     // particles that actually move) with its graphics layer, and let the kinetic
