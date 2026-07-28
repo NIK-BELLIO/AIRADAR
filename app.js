@@ -5934,7 +5934,8 @@ async function vsEditorialBackgrounds(data) {
     s._edKicker = isTitle ? kicker : String(s._caption || kicker).toUpperCase().slice(0, 22);
     s._edHeadline = hl;
     s._edBody = isTitle ? (isEnd ? String(s.introSub || "") : String(s._sourceLine || "").replace(/^by\s+/i, "")) : String(s._evidence || "");
-    s._edSource = src ? ("BY " + src.toUpperCase()) : "";
+    // The "BY <source>" credit belongs on the title cards only — not every scene.
+    s._edSource = (src && isTitle) ? ("BY " + src.toUpperCase()) : "";
     s._edIsTitle = isTitle; s._edIsOutro = isEnd;
     const bw = hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
     s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
@@ -11052,7 +11053,8 @@ function drawCinematicLayers(ctx, W, H, t, prog, accent) {
 // sides, a solid colour label box (kicker), and a cream body box with the
 // sentence. `onPaper` = the cut-out variant (dark hero, white body box).
 function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
-  const serif = "Prata, Georgia, serif";
+  // respect the user's headline-font pick (falls back to the Hera display serif)
+  const serif = vsGetFont("Prata, Georgia, serif");
   const sans = '"Archivo", system-ui, sans-serif';
 
   // 1) HERO WORD — the single biggest word, full width, bleeding off the sides
