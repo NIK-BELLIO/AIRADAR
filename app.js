@@ -7044,10 +7044,10 @@ function vsRenderBatchList() {
     btn.addEventListener("click", () => vsLoadBatchVideo(Number(btn.dataset.batch)));
   });
   box.querySelectorAll(".vs-batch-dl").forEach(btn => {
-    btn.addEventListener("click", (e) => { e.stopPropagation(); vsExportOne(Number(btn.dataset.dl)); });
+    btn.addEventListener("click", (e) => { e.stopPropagation(); vsShowExportOptions(() => vsExportOne(Number(btn.dataset.dl))); });
   });
   const dl = box.querySelector("#vsBatchExportAll");
-  if (dl) dl.addEventListener("click", vsExportAllBatch);
+  if (dl) dl.addEventListener("click", () => vsShowExportOptions(vsExportAllBatch));
 }
 
 // Render + download every batch video, one after another.
@@ -13683,6 +13683,55 @@ async function vsConvertToMp4(webmBlob) {
 }
 
 // Export the composited result as a real video file (MP4 or WebM).
+// Export-settings popup — shown before EVERY export/download trigger (main
+// export, single batch download, zip) so size/quality/format can be chosen in
+// one consistent place. Mirrors the export panel's controls into a modal, then
+// writes the choices back to the real controls before running `onConfirm`.
+function vsShowExportOptions(onConfirm) {
+  const fa = state.lang === "fa";
+  let modal = document.getElementById("vsExportModal");
+  if (!modal) {
+    const st = document.createElement("style");
+    st.textContent = `
+      #vsExportModal{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(4,8,18,.68);backdrop-filter:blur(4px)}
+      #vsExportModal .vs-xd{width:min(420px,92vw);background:#111a2e;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px;box-shadow:0 30px 90px -30px #000;color:#eaf0ff;font-family:system-ui}
+      #vsExportModal h3{margin:0 0 14px;font-size:18px;font-weight:800}
+      #vsExportModal label{display:block;font-size:12px;font-weight:600;color:#9fb2d8;margin:12px 0 5px}
+      #vsExportModal select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0c1424;color:#fff;font-size:14px}
+      #vsExportModal .vs-xnote{font-size:11px;color:#7f92b8;margin:12px 0 0;line-height:1.5}
+      #vsExportModal .vs-xa{display:flex;gap:10px;margin-top:18px}
+      #vsExportModal .vs-xa button{flex:1;padding:11px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;border:1px solid rgba(255,255,255,.14)}
+      #vsExportModal #vsMXCancel{background:transparent;color:#c3cfe8}
+      #vsExportModal #vsMXGo{background:linear-gradient(135deg,#e7c98b,#caa14a);color:#1a1206;border:none}`;
+    document.head.appendChild(st);
+    modal = document.createElement("div");
+    modal.id = "vsExportModal";
+    modal.innerHTML = `<div class="vs-xd">
+      <h3>${fa ? "تنظیمات خروجی" : "Export settings"}</h3>
+      <label>${fa ? "اندازه دانلود" : "Download size"}</label>
+      <select id="vsMXSize"><option value="2160">4K — 2160p</option><option value="1080">Full HD — 1080p</option><option value="720">HD — 720p</option><option value="480">SD — 480p</option></select>
+      <label>${fa ? "کیفیت دانلود" : "Download quality"}</label>
+      <select id="vsMXQuality"><option value="max">${fa ? "حداکثر" : "Maximum"}</option><option value="high">${fa ? "بالا" : "High"}</option><option value="medium">${fa ? "متوسط" : "Medium"}</option><option value="low">${fa ? "کم (فایل کوچک)" : "Low (small file)"}</option></select>
+      <label>${fa ? "قالب فایل" : "File format"}</label>
+      <select id="vsMXFormat"><option value="mp4">MP4</option><option value="webm">WebM</option></select>
+      <p class="vs-xnote">${fa ? "MP4 داخل مرورگر تبدیل می‌شود؛ اولین بار یک مبدل ~۲۵MB دانلود می‌کند." : "MP4 converts in your browser (first export downloads a ~25 MB converter)."}</p>
+      <div class="vs-xa"><button type="button" id="vsMXCancel">${fa ? "انصراف" : "Cancel"}</button><button type="button" id="vsMXGo">${fa ? "⬇ دانلود" : "⬇ Download"}</button></div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+    document.getElementById("vsMXCancel").addEventListener("click", () => { modal.style.display = "none"; });
+  }
+  const sync = (mid, rid) => { const m = document.getElementById(mid), r = document.getElementById(rid); if (m && r && r.value) m.value = r.value; };
+  sync("vsMXSize", "vsExportSize"); sync("vsMXQuality", "vsExportQuality"); sync("vsMXFormat", "vsExportFormat");
+  modal.style.display = "flex";
+  document.getElementById("vsMXGo").onclick = () => {
+    const back = (mid, rid) => { const m = document.getElementById(mid), r = document.getElementById(rid); if (m && r) r.value = m.value; };
+    back("vsMXSize", "vsExportSize"); back("vsMXQuality", "vsExportQuality"); back("vsMXFormat", "vsExportFormat");
+    modal.style.display = "none";
+    if (typeof onConfirm === "function") onConfirm();
+  };
+}
+
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -14339,7 +14388,7 @@ function bindEvents() {
       : "Logo placed ✦ Drag it on the preview; drag the ends of its timeline bar to set timing.");
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
-  on("#vsExportBtn", "click", exportStudioVideo);
+  on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
