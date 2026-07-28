@@ -4656,7 +4656,10 @@ async function vsAutoAiChat(prompt, opts) {
     return (txt && String(txt).trim()) ? String(txt) : null;
   };
 
-  const timeoutMs = opts.timeout || 18000;
+  // The free Cloudflare-AI models genuinely need 20-40s to write a full script,
+  // so give non-fast calls a generous timeout (18s aborted every attempt before
+  // the worker could answer). The chat assistant keeps the short fast timeout.
+  const timeoutMs = opts.timeout || (opts.fast ? 18000 : 48000);
 
   // POST a chat request to one endpoint. `model` selects the LLM,
   // `useJson` toggles response_format, `viaProxy` wraps via corsproxy.
