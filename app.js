@@ -13702,7 +13702,8 @@ function vsShowExportOptions(onConfirm) {
       #vsExportModal .vs-xa{display:flex;gap:10px;margin-top:18px}
       #vsExportModal .vs-xa button{flex:1;padding:11px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;border:1px solid rgba(255,255,255,.14)}
       #vsExportModal #vsMXCancel{background:transparent;color:#c3cfe8}
-      #vsExportModal #vsMXGo{background:linear-gradient(135deg,#e7c98b,#caa14a);color:#1a1206;border:none}`;
+      #vsExportModal #vsMXGo{background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;border:none;box-shadow:0 8px 22px -8px rgba(37,99,255,.7)}
+      #vsExportModal select:focus{outline:none;border-color:#3b78ff;box-shadow:0 0 0 3px rgba(37,99,255,.22)}`;
     document.head.appendChild(st);
     modal = document.createElement("div");
     modal.id = "vsExportModal";
