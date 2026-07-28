@@ -5832,17 +5832,21 @@ async function vsGenerateNarrationLegacy(data, voice) {
 // palette across a whole video: finance→maroon/gold, nature→green, tech→noir…).
 function vsEditorialPalette(topic) {
   const T = String(topic || "").toLowerCase();
+  // label = the solid colour box · paper = the cream body box · bodyInk = text on
+  // paper · hero = the huge word on a photo · heroDark = the huge word on paper.
   const P = {
-    finance: { card: "#5c141c", spine: "#e7c98b", ink: "#ffffff", kicker: "#e7c98b", big: "rgba(231,201,139,0.13)", grade: ["rgba(30,12,10,0.30)", "rgba(28,10,8,0.58)"] },
-    green:   { card: "#173a2e", spine: "#cbb26a", ink: "#f3efe6", kicker: "#cbb26a", big: "rgba(203,178,106,0.13)", grade: ["rgba(10,24,18,0.28)", "rgba(8,20,15,0.58)"] },
-    noir:    { card: "#141416", spine: "#c9a24a", ink: "#ffffff", kicker: "#c9a24a", big: "rgba(255,255,255,0.10)", grade: ["rgba(0,0,0,0.34)", "rgba(0,0,0,0.62)"] },
-    ocean:   { card: "#12314a", spine: "#7fc7d6", ink: "#eef6fa", kicker: "#7fc7d6", big: "rgba(127,199,214,0.13)", grade: ["rgba(6,18,30,0.30)", "rgba(4,14,24,0.58)"] },
-    plum:    { card: "#3a1a4a", spine: "#d6a6ff", ink: "#f6eefc", kicker: "#d6a6ff", big: "rgba(214,166,255,0.13)", grade: ["rgba(20,8,30,0.30)", "rgba(16,6,26,0.58)"] }
+    finance: { label: "#5c141c", labelInk: "#f2e5c6", spine: "#e7c98b", paper: "#ece3d3", bodyInk: "#221913", hero: "rgba(255,255,255,0.88)", heroDark: "rgba(92,20,28,0.42)", grade: ["rgba(26,12,10,0.22)", "rgba(22,9,7,0.5)"] },
+    sand:    { label: "#9c7b46", labelInk: "#fbf6ea", spine: "#3f5236", paper: "#ece2cf", bodyInk: "#241f14", hero: "rgba(255,255,255,0.88)", heroDark: "rgba(63,82,54,0.42)", grade: ["rgba(22,18,8,0.16)", "rgba(16,13,6,0.44)"] },
+    green:   { label: "#173a2e", labelInk: "#eae2c9", spine: "#cbb26a", paper: "#e6ece2", bodyInk: "#16201a", hero: "rgba(255,255,255,0.88)", heroDark: "rgba(23,58,46,0.42)", grade: ["rgba(10,24,18,0.20)", "rgba(8,20,15,0.5)"] },
+    noir:    { label: "#141416", labelInk: "#e9d7ad", spine: "#c9a24a", paper: "#e9e6df", bodyInk: "#191712", hero: "rgba(255,255,255,0.9)", heroDark: "rgba(20,20,22,0.4)", grade: ["rgba(0,0,0,0.28)", "rgba(0,0,0,0.56)"] },
+    ocean:   { label: "#12314a", labelInk: "#d5eef5", spine: "#7fc7d6", paper: "#e3ebf0", bodyInk: "#0f2233", hero: "rgba(255,255,255,0.88)", heroDark: "rgba(18,49,74,0.42)", grade: ["rgba(6,18,30,0.22)", "rgba(4,14,24,0.5)"] },
+    plum:    { label: "#3a1a4a", labelInk: "#ecdcfa", spine: "#d6a6ff", paper: "#ece6f0", bodyInk: "#20142a", hero: "rgba(255,255,255,0.88)", heroDark: "rgba(58,26,74,0.42)", grade: ["rgba(20,8,30,0.22)", "rgba(16,6,26,0.5)"] }
   };
   if (/financ|money|invest|market|stock|bank|loan|mortgage|refinanc|credit|econom|price|cost|gold|revenue|profit|fund|insur|reinsur|lending|capital|trade/.test(T)) return P.finance;
-  if (/landscape|garden|plant|nature|green|climate|environment|forest|farm|soil|eco|sustain|health|wellness|food|agricultur/.test(T)) return P.green;
+  if (/landscape|garden|plant|nature|forest|farm|soil|lawn|yard|tree|home|house|design|interior|architect/.test(T)) return P.sand;
+  if (/green|climate|environment|eco|sustain|health|wellness|food|agricultur/.test(T)) return P.green;
   if (/tech|\bai\b|software|cyber|digital|data|crypto|robot|startup|\bapp\b|code|internet|cloud comput/.test(T)) return P.noir;
-  if (/ocean|water|\bsea\b|marine|travel|sky|air|climate|energy|solar|wind/.test(T)) return P.ocean;
+  if (/ocean|water|\bsea\b|marine|travel|sky|air|energy|solar|wind/.test(T)) return P.ocean;
   return P.noir;
 }
 // Turn a scene's B-roll query into a cinematic, symbolic image prompt.
@@ -5851,15 +5855,55 @@ function vsEditorialImagePrompt(visual, topic) {
   return `cinematic editorial photograph, ${subj}, conceptual and symbolic, dramatic directional lighting, shallow depth of field, muted premium background, magazine cover aesthetic, photorealistic, ultra detailed, no text, no words, no watermark`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
-function vsEdLoadImage(prompt, w, h) {
+function vsEdLoadImage(prompt, w, h, fluxOnly) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    const to = setTimeout(() => resolve(null), 35000);
+    const to = setTimeout(() => resolve(null), 40000);
     img.onload = () => { clearTimeout(to); resolve(img); };
     img.onerror = () => { clearTimeout(to); resolve(null); };
-    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h;
+    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + (fluxOnly ? "&flux=1" : "");
   });
+}
+// Prompt for an ISOLATED subject on flat white — for the cutout scenes.
+function vsEditorialCutoutPrompt(visual, topic) {
+  const subj = String(visual || topic || "a professional person").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
+  return `full body editorial studio photograph, ${subj}, a single isolated subject, cut out on a pure flat solid white background, high-key even lighting, no shadow, no gradient, sharp focus, magazine fashion editorial, photorealistic, no text, no words`;
+}
+// Remove a plain background from a generated image via edge flood-fill (only
+// clears background connected to the frame edges, so white INSIDE the subject
+// is kept), with a feathered alpha edge. Returns a canvas, or null on failure.
+function vsEdMakeCutout(img) {
+  try {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h) return null;
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, w, h), d = id.data;
+    const corner = (x, y) => { const i = (y * w + x) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+    const cs = [corner(3, 3), corner(w - 4, 3), corner(3, h - 4), corner(w - 4, h - 4)];
+    const ref = [0, 1, 2].map((k) => cs.reduce((a, r) => a + r[k], 0) / cs.length);
+    // only proceed if the four corners are a fairly UNIFORM plain background
+    // (any colour) — a varied/real scene is not keyable, so fall back to full.
+    let maxd = 0;
+    for (const a of cs) for (const b of cs) maxd = Math.max(maxd, Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]));
+    if (maxd > 80) return null;
+    const hard = 150, soft = 225, visited = new Uint8Array(w * h), stack = [];
+    const push = (x, y) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const p = y * w + x; if (visited[p]) return; visited[p] = 1; stack.push(p); };
+    for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+    for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+    while (stack.length) {
+      const p = stack.pop(), i = p * 4;
+      const dist = Math.abs(d[i] - ref[0]) + Math.abs(d[i + 1] - ref[1]) + Math.abs(d[i + 2] - ref[2]);
+      if (dist > soft) continue;
+      d[i + 3] = dist < hard ? 0 : Math.round(255 * ((dist - hard) / (soft - hard)));
+      const x = p % w, y = (p - x) / w; push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
+    }
+    ctx.putImageData(id, 0, 0);
+    const c2 = document.createElement("canvas"); c2.width = w; c2.height = h;
+    const x2 = c2.getContext("2d"); x2.filter = "blur(1.2px)"; x2.drawImage(c, 0, 0); x2.filter = "none";
+    return c2;
+  } catch (e) { return null; }
 }
 // Build the Editorial (Hera-style) deck: one AI image per scene + overlay data.
 async function vsEditorialBackgrounds(data) {
@@ -5895,17 +5939,37 @@ async function vsEditorialBackgrounds(data) {
     const bw = hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
     s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
     s._edLayout = isTitle ? "center" : ["low", "mid", "low", "top"][i % 4];
-    s._edPrompt = vsEditorialImagePrompt(s._visual || hl, topic);
+    // Alternate between a full-bleed cinematic scene and a cut-out subject on a
+    // light "paper" background (Hera does both) — intro/outro stay full-bleed.
+    s._edStyle = (!isTitle && i % 2 === 1) ? "cutout" : "full";
+    s._edSide = (i % 4 < 2) ? "right" : "left";   // which side the cut-out sits
+    s._edPrompt = s._edStyle === "cutout"
+      ? vsEditorialCutoutPrompt(s._visual || hl, topic)
+      : vsEditorialImagePrompt(s._visual || hl, topic);
     s._edKen = { zoom: 0.06 + (i % 3) * 0.02, dx: ((i % 2) ? 1 : -1) * 0.03, dy: ((i % 2) ? -1 : 1) * 0.02 };
   });
 
   vsAutoStatus(state.lang === "fa" ? "در حال ساخت تصاویر صحنه‌ها…" : "Generating scene images…");
-  const conc = 3; let idx = 0, doneN = 0;
+  const conc = 2; let idx = 0, doneN = 0;   // lower concurrency → fewer HF rate-limits → cleaner FLUX cut-outs
   const runOne = async () => {
     while (idx < slides.length) {
       const my = idx++; const s = slides[my];
-      const img = await vsEdLoadImage(s._edPrompt, 768, 768);
-      if (img) { s.mediaEl = img; }
+      if (s._edStyle === "cutout") {
+        // FLUX only (honours the plain-white-background prompt needed to key).
+        const img = await vsEdLoadImage(s._edPrompt, 768, 768, true);
+        const cut = img ? vsEdMakeCutout(img) : null;
+        if (cut) { s.mediaEl = img; s._edCutout = cut; }
+        else {
+          // keying failed → regenerate a normal cinematic image for full-bleed
+          s._edStyle = "full";
+          s._edPrompt = vsEditorialImagePrompt(s._visual || s._edHeadline, topic);
+          const alt = await vsEdLoadImage(s._edPrompt, 768, 768);
+          if (alt) s.mediaEl = alt; else if (img) s.mediaEl = img;
+        }
+      } else {
+        const img = await vsEdLoadImage(s._edPrompt, 768, 768);
+        if (img) s.mediaEl = img;
+      }
       s.ready = true; doneN++;
       vsAutoStatus(state.lang === "fa" ? `تصاویر: ${doneN}/${slides.length}` : `Images: ${doneN}/${slides.length}`);
       drawStudioFrame(vstudio.position || 0);
@@ -10984,109 +11048,127 @@ function drawCinematicLayers(ctx, W, H, t, prog, accent) {
   ctx.restore();
 }
 
-// ── Editorial (Hera-style) scene renderer ─────────────────────────────────
-// Full-bleed AI image (Ken Burns) + colour grade + elegant serif overlays: a
-// big cut-off word, a coloured headline card (kicker · headline · body) with a
-// gold spine, and a source line / CTA. One consistent palette per video.
-function drawEditorialFrame(ctx, W, H, s, local, dur) {
-  const pal = s._edPalette || vsEditorialPalette("");
-  const prog = dur > 0 ? Math.min(1, local / dur) : 0.5;
-  const enter = 1 - Math.pow(1 - Math.min(1, Math.max(0, local / 0.7)), 3);
-  const serif = vsGetFont("Georgia, serif");
+// The Hera-style overlay: a HUGE display-serif hero word bleeding off both
+// sides, a solid colour label box (kicker), and a cream body box with the
+// sentence. `onPaper` = the cut-out variant (dark hero, white body box).
+function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
+  const serif = "Prata, Georgia, serif";
   const sans = '"Archivo", system-ui, sans-serif';
 
-  // 1) image with a slow Ken Burns push, or a palette fill if it failed to load
-  ctx.save();
-  if (s.mediaEl && s.mediaEl.width) {
-    const k = s._edKen || { zoom: 0.08, dx: 0, dy: 0 };
-    const z = 1 + k.zoom * (0.4 + prog * 0.6);
-    const img = s.mediaEl, cover = Math.max(W / img.width, H / img.height) * z;
-    const iw = img.width * cover, ih = img.height * cover;
-    ctx.drawImage(img, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih);
-  } else { ctx.fillStyle = "#14100f"; ctx.fillRect(0, 0, W, H); }
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, pal.grade[0]); g.addColorStop(0.42, "rgba(0,0,0,0.05)"); g.addColorStop(1, pal.grade[1]);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.restore();
-
-  // 2) oversized cut-off word bleeding off the top edge (Hera signature)
-  if (s._edBigWord) {
+  // 1) HERO WORD — the single biggest word, full width, bleeding off the sides
+  const hero = (s._edBigWord || String(s._edHeadline || "").split(/\s+/)[0] || "").toUpperCase();
+  if (hero) {
     ctx.save();
-    ctx.globalAlpha = Math.min(1, enter * 1.2);
-    ctx.fillStyle = pal.big;
-    ctx.font = `800 ${Math.round(W * 0.26)}px ${serif}`;
-    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    ctx.fillText(s._edBigWord, W * 0.03, H * 0.20 - (1 - enter) * H * 0.03);
+    // left-aligned and oversized so the WORD START reads and the tail bleeds off
+    // the right edge (like Hera's "NOBOD…"); alternate side per scene for rhythm.
+    const fromRight = s._edSide === "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `${Math.round(W * 0.30)}px ${serif}`;
+    ctx.globalAlpha = Math.min(1, enter * 1.1);
+    ctx.fillStyle = onPaper ? pal.heroDark : pal.hero;
+    if (!onPaper) { ctx.shadowColor = "rgba(0,0,0,0.30)"; ctx.shadowBlur = W * 0.02; }
+    try { ctx.letterSpacing = `${W * 0.002}px`; } catch (e) {}
+    const hy = H * 0.28 - (1 - enter) * H * 0.02;
+    if (fromRight) { ctx.textAlign = "right"; ctx.fillText(hero, W * 0.98, hy); }
+    else { ctx.textAlign = "left"; ctx.fillText(hero, W * 0.02, hy); }
     ctx.restore();
   }
 
-  // 3) headline card — sized to fit kicker + wrapped headline + body (no overlap)
-  const pad = W * 0.036, cardX = W * 0.06, cardW = W * 0.82, textW = cardW - pad * 2;
-  const wrapLines = (txt, px) => {
-    ctx.font = `800 ${px}px ${serif}`;
-    const words = String(txt || "").split(/\s+/).filter(Boolean); const lines = []; let ln = "";
-    for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > textW && ln) { lines.push(ln); ln = w; } else ln = t; }
-    if (ln) lines.push(ln); return lines.length ? lines : [""];
-  };
-  let hlPx = Math.round(W * 0.074); const minPx = Math.round(W * 0.044);
-  while (hlPx > minPx && wrapLines(s._edHeadline, hlPx).length > 3) hlPx -= 2;
-  const hlLines = wrapLines(s._edHeadline, hlPx), hlLineH = hlPx * 1.08;
-  const kickPx = Math.round(W * 0.028), bodyPx = Math.round(W * 0.03);
-  const hasBody = !!(s._edBody && String(s._edBody).trim());
-  const kickH = kickPx * 1.4, gap1 = W * 0.02, gap2 = W * 0.026, bodyH = hasBody ? bodyPx * 1.3 : 0;
-  const cardH = pad + kickH + gap1 + hlLines.length * hlLineH + (hasBody ? gap2 + bodyH : 0) + pad * 0.6;
-  const lay = s._edLayout || "mid";
-  let cardY = lay === "center" ? (H - cardH) / 2
-    : lay === "top" ? H * 0.12
-    : lay === "low" ? H * 0.80 - cardH
-    : (H - cardH) / 2 + H * 0.05;
-  cardY += (1 - enter) * H * 0.04;
-
-  ctx.save();
-  ctx.globalAlpha = enter;
-  roundRectPath(ctx, cardX, cardY, cardW, cardH, W * 0.008);
-  ctx.fillStyle = /^#[0-9a-f]{6}$/i.test(pal.card) ? pal.card + "ec" : pal.card;
-  ctx.fill();
-  ctx.fillStyle = pal.spine; ctx.fillRect(cardX, cardY, W * 0.008, cardH);
-  // kicker
-  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = pal.kicker; ctx.font = `800 ${kickPx}px ${sans}`;
-  try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
-  ctx.fillText(String(s._edKicker || "").slice(0, 26), cardX + pad, cardY + pad + kickPx * 0.9);
-  try { ctx.letterSpacing = "0px"; } catch (e) {}
-  // headline (per-line reveal)
-  const hlTop = cardY + pad + kickH + gap1 + hlPx * 0.86;
-  ctx.fillStyle = pal.ink; ctx.font = `800 ${hlPx}px ${serif}`;
-  hlLines.forEach((line, li) => {
-    const lp = Math.min(1, Math.max(0, (local - 0.15 - li * 0.12) / 0.5));
-    ctx.globalAlpha = enter * (1 - Math.pow(1 - lp, 3));
-    ctx.fillText(line, cardX + pad, hlTop + li * hlLineH);
-  });
-  ctx.globalAlpha = enter;
-  // body (auto-shrunk to one line)
-  if (hasBody) {
-    let bp = bodyPx; ctx.font = `italic 600 ${bp}px ${serif}`;
-    while (bp > W * 0.02 && ctx.measureText(s._edBody).width > textW) { bp -= 1; ctx.font = `italic 600 ${bp}px ${serif}`; }
-    ctx.fillStyle = "rgba(255,255,255,0.86)";
-    ctx.fillText(String(s._edBody), cardX + pad, hlTop + hlLines.length * hlLineH - hlLineH + hlPx * 0.2 + gap2 + bp);
+  // 2) LABEL box — the kicker in a solid palette rectangle, centred
+  const kick = String(s._edKicker || "").toUpperCase().slice(0, 26);
+  let y = H * 0.5;
+  if (kick) {
+    ctx.save(); ctx.globalAlpha = enter;
+    const kp = Math.round(W * 0.05);
+    ctx.font = `${kp}px ${serif}`;
+    try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+    const kw = ctx.measureText(kick).width, padX = W * 0.05, padY = W * 0.026;
+    const bw = kw + padX * 2, bh = kp + padY * 2, bx = W / 2 - bw / 2;
+    ctx.fillStyle = pal.label; ctx.fillRect(bx, y, bw, bh);
+    ctx.fillStyle = pal.labelInk; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(kick, W / 2, y + bh / 2 + kp * 0.04);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
+    y += bh;
+    ctx.restore();
   }
-  ctx.restore();
+
+  // 3) BODY box — the headline sentence on a cream (or white) rectangle
+  const body = String(s._edHeadline || "");
+  if (body) {
+    ctx.save(); ctx.globalAlpha = enter;
+    const bpx = Math.round(W * 0.042);
+    ctx.font = `600 ${bpx}px ${sans}`;
+    const maxW = W * 0.78, words = body.split(/\s+/), lines = []; let ln = "";
+    for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
+    if (ln) lines.push(ln);
+    const lh = bpx * 1.34, padTop = W * 0.032, padBot = W * 0.03;
+    const bw = W * 0.88, bh = padTop + (lines.length - 1) * lh + bpx + padBot, bx = W / 2 - bw / 2, by = y + W * 0.012;
+    ctx.fillStyle = onPaper ? "#ffffff" : pal.paper;
+    if (onPaper) { ctx.shadowColor = "rgba(0,0,0,0.14)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = W * 0.004; }
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.fillStyle = pal.bodyInk; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    lines.forEach((l, i) => {
+      const lp = Math.min(1, Math.max(0, (local - 0.15 - i * 0.1) / 0.5));
+      ctx.globalAlpha = enter * (1 - Math.pow(1 - lp, 3));
+      ctx.fillText(l, W / 2, by + padTop + bpx * 0.82 + i * lh);
+    });
+    ctx.restore();
+  }
 
   // 4) source (all scenes) + CTA (outro)
-  ctx.save();
-  ctx.globalAlpha = Math.min(1, enter);
+  ctx.save(); ctx.globalAlpha = Math.min(1, enter);
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   if (s._edSource) {
-    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = `800 ${Math.round(W * 0.026)}px ${sans}`;
+    ctx.fillStyle = onPaper ? "rgba(30,24,20,0.78)" : "rgba(255,255,255,0.92)";
+    ctx.font = `800 ${Math.round(W * 0.026)}px ${sans}`;
     try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
     ctx.fillText(String(s._edSource).slice(0, 34), W * 0.06, H - H * 0.05);
     try { ctx.letterSpacing = "0px"; } catch (e) {}
   }
   if (s._edIsOutro) {
-    ctx.textAlign = "right"; ctx.fillStyle = pal.spine; ctx.font = `800 ${Math.round(W * 0.03)}px ${sans}`;
+    ctx.textAlign = "right"; ctx.fillStyle = onPaper ? pal.label : pal.spine; ctx.font = `800 ${Math.round(W * 0.03)}px ${sans}`;
     ctx.fillText("LEARN MORE  →", W - W * 0.06, H - H * 0.05);
   }
   ctx.restore();
+}
+
+// ── Editorial (Hera-style) scene renderer ─────────────────────────────────
+// Two looks (Hera does both): a full-bleed cinematic image with a colour grade,
+// or a cut-out subject on a light "paper" background. Both carry a big cut-off
+// word, the coloured headline card, and a source line / CTA.
+function drawEditorialFrame(ctx, W, H, s, local, dur) {
+  const pal = s._edPalette || vsEditorialPalette("");
+  const prog = dur > 0 ? Math.min(1, local / dur) : 0.5;
+  const enter = 1 - Math.pow(1 - Math.min(1, Math.max(0, local / 0.7)), 3);
+  const k = s._edKen || { zoom: 0.08, dx: 0, dy: 0 };
+
+  // ── CUT-OUT scene: cream/colour split panel, subject standing across it ──
+  if (s._edStyle === "cutout" && s._edCutout) {
+    ctx.fillStyle = pal.paper; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.label; ctx.fillRect(0, Math.round(H * 0.58), W, Math.ceil(H * 0.42) + 1);
+    const cut = s._edCutout, z = 1 + k.zoom * (0.32 + prog * 0.45);
+    const sc = (H / cut.height) * 0.98 * z, iw = cut.width * sc, ih = cut.height * sc;
+    ctx.save(); ctx.globalAlpha = Math.min(1, enter * 1.05);
+    ctx.drawImage(cut, W / 2 - iw / 2 + k.dx * W * 0.35 * prog, H - ih, iw, ih);
+    ctx.restore();
+    drawEditorialText(ctx, W, H, s, pal, enter, local, true);
+    return;
+  }
+
+  // ── FULL-BLEED scene: cinematic image + subtle grade ──
+  ctx.save();
+  if (s.mediaEl && s.mediaEl.width) {
+    const z = 1 + k.zoom * (0.4 + prog * 0.6);
+    const img = s.mediaEl, cover = Math.max(W / img.width, H / img.height) * z;
+    const iw = img.width * cover, ih = img.height * cover;
+    ctx.drawImage(img, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih);
+  } else { ctx.fillStyle = pal.label; ctx.fillRect(0, 0, W, H); }
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, pal.grade[0]); g.addColorStop(0.45, "rgba(0,0,0,0.04)"); g.addColorStop(1, pal.grade[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  drawEditorialText(ctx, W, H, s, pal, enter, local, false);
 }
 
 function drawStudioFrame(elapsed) {
