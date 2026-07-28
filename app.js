@@ -10005,7 +10005,7 @@ function vsSceneGraphicKind(text, i, opts) {
   const hasData = nStat >= 2 || opts.hasNumber || nNum > 0;
 
   // Kinds that need real numbers/values to be meaningful.
-  const DATA = new Set(["chart", "bars", "compare", "gauge", "stat", "attributes"]);
+  const DATA = new Set(["chart", "bars", "compare", "gauge", "stat", "attributes", "donut", "progress", "area", "funnel"]);
   // Kinds that work from plain labels / concepts alone. NOTE: "map" is NOT in the
   // default rotation — it only appears when the content actually names US places
   // (opts.hasPlaces), so a non-geographic scene never gets an out-of-place map.
@@ -10019,20 +10019,18 @@ function vsSceneGraphicKind(text, i, opts) {
     cand.push(x);
   });
 
-  // 1) Strongest signal: the shape of the data.
-  if (nStat === 2 && nNum >= 1) add("compare");
-  if (nStat >= 3 && nNum >= Math.ceil(nStat / 2)) add("bars", "chart");
-  if (nStat >= 2 && nNum === 0) add("attributes");            // qualitative fields
-  if (nStat === 1 && nNum === 1) add("stat", "gauge");
-
-  // 2) Wording signal.
+  // 1) Wording signal FIRST — a specific match (donut/area/funnel/progress…)
+  //    should win over the generic bars/chart data-shape fallback below.
   const kw = [
     [/\b(step|steps|process|pipeline|workflow|stage|phase|how it works|first|then|next|finally|method)\b/, ["flow", "cycle"]],
     [/\b(cycle|loop|repeat|feedback|continuous|recurring|iterate|ongoing|circular)\b/, ["cycle"]],
     [/\b(timeline|history|evolution|roadmap|milestone|milestones|202\d|19\d\d|decade|decades|chronolog|over the years|era)\b/, ["timeline"]],
     [/\b(vs|versus|compare|comparison|before|after|gap|difference|outperform)\b/, ["compare"]],
-    [/\b(rank|ranked|top|most|list|leading|biggest|largest|share|breakdown|split|majority|dominate|dominates)\b/, ["bars"]],
-    [/\b(grow|growth|rise|rising|increase|surge|trend|trajectory|scale|climb|boom|up)\b/, ["chart"]],
+    [/\b(rank|ranked|top|most|list|leading|biggest|largest|majority|dominate|dominates)\b/, ["bars"]],
+    [/\b(share|breakdown|split|portion|composition|make up|makes up|percent of|proportion|slice|pie)\b/, ["donut"]],
+    [/\b(grow|growth|rise|rising|increase|surge|trend|trajectory|scale|climb|boom|over time|momentum|up)\b/, ["area", "chart"]],
+    [/\b(conversion|funnel|drop|drop-?off|stages|retention|from lead|pipeline)\b/, ["funnel"]],
+    [/\b(progress|completion|adoption|coverage|reach|utilization|capacity|readiness|score)\b/, ["progress"]],
     [/\b(hierarchy|tier|level|pyramid|foundation|layer|layers|core|base|structure)\b/, ["pyramid"]],
     [/\b(site|website|web|app|product|platform|dashboard|launch|landing|interface|demo|page|screen)\b/, ["ui"]],
     [/(\d+\s*%|percent|rate|score|index|accuracy|reach|meter|gauge|level|confidence)/, ["gauge", "stat"]],
@@ -10044,9 +10042,15 @@ function vsSceneGraphicKind(text, i, opts) {
   ];
   for (const [re, ks] of kw) if (re.test(s)) add(...ks);
 
+  // 2) Data-shape fallback — when wording didn't pin a specific chart.
+  if (nStat === 2 && nNum >= 1) add("compare");
+  if (nStat >= 3 && nNum >= Math.ceil(nStat / 2)) add("bars", "chart", "donut");
+  if (nStat >= 2 && nNum === 0) add("attributes");            // qualitative fields
+  if (nStat === 1 && nNum === 1) add("stat", "gauge", "progress");
+
   // 3) Diverse rotation so runs with no signal still vary every slide.
   const rot = hasData
-    ? ["chart", "network", "timeline", "flow", "cycle", "bars", "orbit", "pyramid", "gauge", "radar"]
+    ? ["chart", "donut", "network", "area", "timeline", "flow", "progress", "cycle", "bars", "funnel", "orbit", "pyramid", "gauge", "radar"]
     : CONCEPT;
   add(rot[i % rot.length], rot[(i * 3 + 1) % rot.length], rot[(i * 5 + 2) % rot.length]);
 
@@ -10090,7 +10094,23 @@ function vsGraphicBase(ctx, W, H, accent, t) {
   ctx.globalCompositeOperation = "screen"; ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = "source-over";
 
-  // 4) vignette to hold focus centre
+  // 4) floating spark/particle field — slow-rising glints for a live, premium
+  //    depth (cheap: ~34 additive dots).
+  ctx.globalCompositeOperation = "screen";
+  for (let i = 0; i < 34; i++) {
+    const seed = i * 137.5;
+    const px = ((Math.sin(seed) * 0.5 + 0.5) * 1.1 - 0.05) * W + Math.sin(t * 0.3 + seed) * W * 0.02;
+    const py = H - (((t * (14 + (i % 5) * 6) + seed * 60) % (H + 60)));
+    const tw = 0.35 + 0.45 * (Math.sin(t * 2 + seed) * 0.5 + 0.5);
+    const rr = U * (0.0016 + (i % 3) * 0.0012);
+    const col = (i % 4 === 0) ? accent : "#ffffff";
+    const gg = ctx.createRadialGradient(px, py, 0, px, py, rr * 4);
+    gg.addColorStop(0, vsHexA(col, 0.5 * tw)); gg.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(px, py, rr * 4, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  // 5) vignette to hold focus centre
   const vg = ctx.createRadialGradient(W / 2, H * 0.46, U * 0.2, W / 2, H * 0.5, U * 0.9);
   vg.addColorStop(0, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,.5)");
@@ -10233,7 +10253,8 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
 
   } else if (kind === "stat" || kind === "gauge" || kind === "compare" || kind === "bars" ||
              kind === "timeline" || kind === "flow" || kind === "cycle" || kind === "pyramid" ||
-             kind === "orbit" || kind === "attributes" || kind === "map") {
+             kind === "orbit" || kind === "attributes" || kind === "map" ||
+             kind === "donut" || kind === "progress" || kind === "area" || kind === "funnel") {
     drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items);
 
   } else if (kind === "ui") {
@@ -10914,6 +10935,113 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
         fit(String(it.value), w * 0.44, "800", W * 0.05);
         ctx.fillText(String(it.value), x + w - W * 0.04, ry + rowH * 0.42);
       }
+      ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
+    });
+
+  } else if (kind === "donut") {
+    // Animated donut: each slice sweeps in; the biggest value sits in the hole.
+    const d = (data && data.length) ? data.slice(0, 5)
+      : items.map((l, i) => ({ label: l, num: 30 - i * 6, value: (30 - i * 6) + "%" }));
+    const tot = d.reduce((a, x) => a + (Math.abs(x.num) || 0), 0) || 1;
+    const cx = W / 2, cy = H * 0.5, R = U * 0.28, rin = R * 0.58;
+    let ang = -Math.PI / 2;
+    const sweep = Math.min(1, t / 1.2);
+    d.forEach((it, i) => {
+      const frac = (Math.abs(it.num) || 0) / tot, a2 = ang + frac * Math.PI * 2 * sweep;
+      const col = i === 0 ? A : vsHexA(A, 0.85 - i * 0.16);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, ang, a2); ctx.closePath();
+      ctx.fillStyle = col; if (i === 0) { softGlow(A, W * 0.02); } ctx.fill(); noGlow();
+      // leader label at the slice mid-angle
+      const mid = ang + frac * Math.PI * sweep;
+      if (sweep > 0.6 && frac > 0.04) {
+        const lx = cx + Math.cos(mid) * (R + W * 0.03), ly = cy + Math.sin(mid) * (R + W * 0.03);
+        ctx.globalAlpha = (sweep - 0.6) / 0.4;
+        ctx.textAlign = Math.cos(mid) < 0 ? "right" : "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+        ctx.fillText(String(it.label).slice(0, 12), lx, ly); ctx.globalAlpha = 1;
+      }
+      ang = ang + frac * Math.PI * 2;
+    });
+    // hole
+    ctx.beginPath(); ctx.arc(cx, cy, rin, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.07}px ${F}`;
+    ctx.fillText(String(d[0] && d[0].value || "").slice(0, 6), cx, cy - W * 0.006);
+    ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.024}px ${F}`;
+    ctx.fillText(String(d[0] && d[0].label || "").toUpperCase().slice(0, 14), cx, cy + W * 0.05);
+    ctx.textBaseline = "alphabetic";
+
+  } else if (kind === "progress") {
+    // Concentric progress rings — one per metric, counting up.
+    const d = (data && data.length) ? data.slice(0, 4)
+      : items.slice(0, 3).map((l, i) => ({ label: l, num: 80 - i * 20, value: (80 - i * 20) + "%" }));
+    const cx = W / 2, cy = H * 0.5, R0 = U * 0.30, gap = U * 0.058, lw = U * 0.034;
+    d.forEach((it, i) => {
+      const r = R0 - i * (gap + lw), val = Math.max(0, Math.min(100, Math.abs(it.num) || 0));
+      const p = Math.min(1, t / 1.2) * (val / 100);
+      ctx.lineWidth = lw; ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(255,255,255,.08)";
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+      ctx.strokeStyle = i === 0 ? A : vsHexA(A, 0.85 - i * 0.18);
+      if (i === 0) softGlow(A, W * 0.02);
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke(); noGlow();
+      // label + value at ring start (right side)
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+      ctx.fillText(String(it.label).slice(0, 14) + "  " + String(it.value).slice(0, 6), cx + R0 + W * 0.03, cy - i * (gap + lw) * 0 + (r - R0));
+    });
+    ctx.textBaseline = "alphabetic";
+
+  } else if (kind === "area") {
+    // Rising area + line chart with a moving head dot — reads as growth.
+    const d = (data && data.length) ? data.map((x) => Math.abs(x.num) || 0) : null;
+    const x = W * 0.10, y = H * 0.34, w = W * 0.80, h = H * 0.40;
+    for (let i = 0; i <= 4; i++) { const gy = y + h * i / 4; ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + w, gy); ctx.strokeStyle = "rgba(255,255,255,.06)"; ctx.lineWidth = 1; ctx.stroke(); }
+    const pts = [];
+    const N = 32;
+    const maxN = d ? Math.max.apply(null, d.concat([0.0001])) : 1;
+    for (let i = 0; i <= N; i++) {
+      const p = i / N;
+      let v; if (d) { const fi = p * (d.length - 1), a = Math.floor(fi), b = Math.min(d.length - 1, a + 1); v = (d[a] + (d[b] - d[a]) * (fi - a)) / maxN; }
+      else v = 0.2 + 0.55 * p + 0.16 * Math.sin(p * 5.5);
+      pts.push([x + w * p, y + h - h * Math.max(0.02, Math.min(1, v))]);
+    }
+    const prog = Math.min(1, t / 1.4), nn = Math.max(2, Math.floor(pts.length * prog));
+    ctx.beginPath(); ctx.moveTo(pts[0][0], y + h);
+    for (let i = 0; i < nn; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.lineTo(pts[nn - 1][0], y + h); ctx.closePath();
+    const ag = ctx.createLinearGradient(0, y, 0, y + h); ag.addColorStop(0, vsHexA(A, 0.4)); ag.addColorStop(1, vsHexA(A, 0));
+    ctx.fillStyle = ag; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < nn; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.strokeStyle = A; ctx.lineWidth = Math.max(2, W * 0.005); softGlow(A, W * 0.025); ctx.stroke(); noGlow();
+    ctx.beginPath(); ctx.arc(pts[nn - 1][0], pts[nn - 1][1], W * 0.012, 0, 7); ctx.fillStyle = "#fff"; ctx.fill();
+    if (o.value != null) {
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.09}px ${F}`;
+      ctx.fillText(Math.round(Math.min(1, t / 1.4) * (Number(o.value) || 0)) + (o.suffix || "%"), W / 2, y - H * 0.03);
+    }
+
+  } else if (kind === "funnel") {
+    // Stacked funnel — each stage narrower than the last.
+    const d = (data && data.length) ? data.slice(0, 5)
+      : items.slice(0, 4).map((l, i) => ({ label: l, num: 100 - i * 22, value: (100 - i * 22) + "%" }));
+    const maxN = Math.max.apply(null, d.map((x) => Math.abs(x.num) || 1).concat([0.0001]));
+    const cx = W / 2, top = H * 0.32, botom = H * 0.80, stepH = (botom - top) / d.length;
+    d.forEach((it, i) => {
+      const e = ease((t - i * 0.14) / 0.55); if (e <= 0) return;
+      const wTop = W * 0.66 * (Math.abs(it.num) / maxN);
+      const wBot = W * 0.66 * (i < d.length - 1 ? Math.abs(d[i + 1].num) / maxN : Math.abs(it.num) / maxN * 0.82);
+      const yT = top + stepH * i, yB = yT + stepH * 0.86;
+      ctx.globalAlpha = e;
+      ctx.beginPath();
+      ctx.moveTo(cx - wTop / 2 * e, yT); ctx.lineTo(cx + wTop / 2 * e, yT);
+      ctx.lineTo(cx + wBot / 2 * e, yB); ctx.lineTo(cx - wBot / 2 * e, yB); ctx.closePath();
+      const g = ctx.createLinearGradient(0, yT, 0, yB);
+      g.addColorStop(0, i === 0 ? A : vsHexA(A, 0.8 - i * 0.12)); g.addColorStop(1, vsHexA(A, 0.35));
+      ctx.fillStyle = g; ctx.fill();
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#08131c";
+      ctx.font = `800 ${W * 0.03}px ${F}`;
+      if (e > 0.7) ctx.fillText(String(it.label).slice(0, 16) + "  " + String(it.value).slice(0, 6), cx, (yT + yB) / 2);
       ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     });
   }
@@ -12588,6 +12716,24 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   }
   // eased entrance
   const e = prog == null ? 1 : (1 - Math.pow(1 - Math.max(0, Math.min(1, prog)), 3));
+  // ── Dramatic oversized "hero word" behind motion-graphic title cards ──
+  // The biggest word of the title, huge and faint, bleeding past the frame —
+  // gives the intro/outro a bold editorial-magazine presence.
+  if ((isIntro || isOutro) && vstudio._motionGfxMode) {
+    const uw = String(txt || "").toUpperCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter(w => w.length > 3);
+    const big = uw.sort((a, b) => b.length - a.length)[0] || (String(txt || "").split(/\s+/)[0] || "").toUpperCase();
+    if (big) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha) * 0.13 * e;
+      ctx.fillStyle = tpl.accent || "#C99A46";
+      ctx.font = `800 ${Math.round(W * 0.34)}px ${vsGetFont(tpl.headlineFont || "Prata, serif", true)}`;
+      // left-aligned so the WORD START reads and the tail bleeds off the right
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      try { ctx.letterSpacing = `${W * 0.004}px`; } catch (ex) {}
+      ctx.fillText(big, W * 0.03 - (1 - e) * W * 0.04, H * (isOutro ? 0.76 : 0.22));
+      ctx.restore();
+    }
+  }
   // per-motion offset / scale / rotation for the MAIN text
   let dx = 0, dy = 0, sc = 1, clip = 1, blur = 0, rot = 0, spacing = 0;
   // overshoot easing — a spring-like settle used by the cinematic presets
