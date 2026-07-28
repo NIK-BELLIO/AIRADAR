@@ -13,6 +13,9 @@ const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 // and direct Pollinations is Turnstile-gated. Costs only the account's free
 // daily neuron allowance.
 const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
+// CORS-safe AI image generator (FLUX-schnell) for the Editorial (Hera-style)
+// mode — returns raw bytes with CORS headers so the canvas stays exportable.
+const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
 const VS_BUILD = "v400-pro";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
@@ -4329,7 +4332,9 @@ function bindIntroEditor() {
     // Typing "/" offers the skills so the command never has to be typed by hand.
     const SLASH_COMMANDS = [
       { cmd: "/motion_graphic", icon: "✦", insert: "/motion_graphic ",
-        desc: "Build an animated motion-graphic video from a topic or link" },
+        desc: "Animated motion-graphic video (kinetic text, charts, maps)" },
+      { cmd: "/editorial", icon: "▦", insert: "/editorial ",
+        desc: "Hera-style photo deck — AI image per scene + elegant serif text" },
       { cmd: "/mg", icon: "⚡", insert: "/mg ",
         desc: "Short alias for /motion_graphic" }
     ];
@@ -4785,8 +4790,12 @@ async function buildAutoVideo(useAI) {
   // every scene gets an animated generated background (Hera-style) instead of
   // stock footage — whether the input is a link or just a topic.
   const cmdRe = /^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg)\b[:\s]*/i;
-  vstudio._motionGfxMode = cmdRe.test(text);
-  text = text.replace(cmdRe, "").trim();
+  // Editorial (Hera-style) mode — AI image per scene + elegant serif overlays.
+  const edRe = /^\/?(?:editorial|edit|hera|ed)\b[:\s]*/i;
+  vstudio._editorialMode = edRe.test(text);
+  if (vstudio._editorialMode) text = text.replace(edRe, "").trim();
+  vstudio._motionGfxMode = !vstudio._editorialMode && cmdRe.test(text);
+  if (vstudio._motionGfxMode) text = text.replace(cmdRe, "").trim();
 
   // If the user pasted a URL anywhere in the topic box (Smart mode hides the URL
   // field), treat it as the article link to fetch rather than raw script text.
@@ -5819,8 +5828,101 @@ async function vsGenerateNarrationLegacy(data, voice) {
   } catch (e) { return null; }
 }
 
+// A per-topic colour system for the Editorial mode (mirrors how Hera keeps one
+// palette across a whole video: finance→maroon/gold, nature→green, tech→noir…).
+function vsEditorialPalette(topic) {
+  const T = String(topic || "").toLowerCase();
+  const P = {
+    finance: { card: "#5c141c", spine: "#e7c98b", ink: "#ffffff", kicker: "#e7c98b", big: "rgba(231,201,139,0.13)", grade: ["rgba(30,12,10,0.30)", "rgba(28,10,8,0.58)"] },
+    green:   { card: "#173a2e", spine: "#cbb26a", ink: "#f3efe6", kicker: "#cbb26a", big: "rgba(203,178,106,0.13)", grade: ["rgba(10,24,18,0.28)", "rgba(8,20,15,0.58)"] },
+    noir:    { card: "#141416", spine: "#c9a24a", ink: "#ffffff", kicker: "#c9a24a", big: "rgba(255,255,255,0.10)", grade: ["rgba(0,0,0,0.34)", "rgba(0,0,0,0.62)"] },
+    ocean:   { card: "#12314a", spine: "#7fc7d6", ink: "#eef6fa", kicker: "#7fc7d6", big: "rgba(127,199,214,0.13)", grade: ["rgba(6,18,30,0.30)", "rgba(4,14,24,0.58)"] },
+    plum:    { card: "#3a1a4a", spine: "#d6a6ff", ink: "#f6eefc", kicker: "#d6a6ff", big: "rgba(214,166,255,0.13)", grade: ["rgba(20,8,30,0.30)", "rgba(16,6,26,0.58)"] }
+  };
+  if (/financ|money|invest|market|stock|bank|loan|mortgage|refinanc|credit|econom|price|cost|gold|revenue|profit|fund|insur|reinsur|lending|capital|trade/.test(T)) return P.finance;
+  if (/landscape|garden|plant|nature|green|climate|environment|forest|farm|soil|eco|sustain|health|wellness|food|agricultur/.test(T)) return P.green;
+  if (/tech|\bai\b|software|cyber|digital|data|crypto|robot|startup|\bapp\b|code|internet|cloud comput/.test(T)) return P.noir;
+  if (/ocean|water|\bsea\b|marine|travel|sky|air|climate|energy|solar|wind/.test(T)) return P.ocean;
+  return P.noir;
+}
+// Turn a scene's B-roll query into a cinematic, symbolic image prompt.
+function vsEditorialImagePrompt(visual, topic) {
+  const subj = String(visual || topic || "abstract concept").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
+  return `cinematic editorial photograph, ${subj}, conceptual and symbolic, dramatic directional lighting, shallow depth of field, muted premium background, magazine cover aesthetic, photorealistic, ultra detailed, no text, no words, no watermark`;
+}
+// Load an AI image through the CORS-safe worker so the canvas stays exportable.
+function vsEdLoadImage(prompt, w, h) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const to = setTimeout(() => resolve(null), 35000);
+    img.onload = () => { clearTimeout(to); resolve(img); };
+    img.onerror = () => { clearTimeout(to); resolve(null); };
+    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h;
+  });
+}
+// Build the Editorial (Hera-style) deck: one AI image per scene + overlay data.
+async function vsEditorialBackgrounds(data) {
+  const slides = vstudio.slides;
+  const topic = [data && data.title, data && data.subtitle, data && data.angle].filter(Boolean).join(" ");
+  const pal = vsEditorialPalette(topic);
+  vstudio._edPalette = pal;
+  const src = String((data && data.source) || "").replace(/^by\s+/i, "").trim();
+  const kicker = String((data && data.kicker) || "STORY").toUpperCase().slice(0, 22);
+
+  const realHeadlineOf = (s) => {
+    let h = (s.settings && s.settings["#vsNewsHeadline"]) || "";
+    if (!h && s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
+      try { h = JSON.parse(s.settings["#vsInfoJson"]).title || ""; } catch (e) {}
+    }
+    return String(h || s.headline || s.introMain || "").replace(/\s+/g, " ").trim();
+  };
+
+  slides.forEach((s, i) => {
+    s.settings = s.settings || {};
+    s.settings["#vsNewsOn"] = false; s.settings["#vsInfoOn"] = false;
+    s.mediaEl = null; s.url = null; s.ready = false; s.isVideo = false;
+    const isEnd = s.isOutro || i === slides.length - 1;
+    const isTitle = i === 0 || isEnd;
+    const hl = realHeadlineOf(s);
+    s._editorial = true;
+    s._edPalette = pal;
+    s._edKicker = isTitle ? kicker : String(s._caption || kicker).toUpperCase().slice(0, 22);
+    s._edHeadline = hl;
+    s._edBody = isTitle ? (isEnd ? String(s.introSub || "") : String(s._sourceLine || "").replace(/^by\s+/i, "")) : String(s._evidence || "");
+    s._edSource = src ? ("BY " + src.toUpperCase()) : "";
+    s._edIsTitle = isTitle; s._edIsOutro = isEnd;
+    const bw = hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
+    s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
+    s._edLayout = isTitle ? "center" : ["low", "mid", "low", "top"][i % 4];
+    s._edPrompt = vsEditorialImagePrompt(s._visual || hl, topic);
+    s._edKen = { zoom: 0.06 + (i % 3) * 0.02, dx: ((i % 2) ? 1 : -1) * 0.03, dy: ((i % 2) ? -1 : 1) * 0.02 };
+  });
+
+  vsAutoStatus(state.lang === "fa" ? "در حال ساخت تصاویر صحنه‌ها…" : "Generating scene images…");
+  const conc = 3; let idx = 0, doneN = 0;
+  const runOne = async () => {
+    while (idx < slides.length) {
+      const my = idx++; const s = slides[my];
+      const img = await vsEdLoadImage(s._edPrompt, 768, 768);
+      if (img) { s.mediaEl = img; }
+      s.ready = true; doneN++;
+      vsAutoStatus(state.lang === "fa" ? `تصاویر: ${doneN}/${slides.length}` : `Images: ${doneN}/${slides.length}`);
+      drawStudioFrame(vstudio.position || 0);
+    }
+  };
+  await Promise.all(Array.from({ length: conc }, runOne));
+  renderSlideList();
+  drawStudioFrame(vstudio.position || 0);
+}
+
 async function vsAutoGenerateBackgrounds(data) {
   const slides = vstudio.slides;
+
+  // ── Editorial mode (the /editorial skill) ──
+  // A photo-led, Hera-style deck: every scene gets an AI-generated cinematic
+  // image matched to the topic, with elegant serif text overlays on top.
+  if (vstudio._editorialMode) { await vsEditorialBackgrounds(data); return; }
 
   // ── Motion-graphic mode (the /motion_graphic skill) ──
   // Instead of stock footage, give every content scene an animated generated
@@ -10882,6 +10984,111 @@ function drawCinematicLayers(ctx, W, H, t, prog, accent) {
   ctx.restore();
 }
 
+// ── Editorial (Hera-style) scene renderer ─────────────────────────────────
+// Full-bleed AI image (Ken Burns) + colour grade + elegant serif overlays: a
+// big cut-off word, a coloured headline card (kicker · headline · body) with a
+// gold spine, and a source line / CTA. One consistent palette per video.
+function drawEditorialFrame(ctx, W, H, s, local, dur) {
+  const pal = s._edPalette || vsEditorialPalette("");
+  const prog = dur > 0 ? Math.min(1, local / dur) : 0.5;
+  const enter = 1 - Math.pow(1 - Math.min(1, Math.max(0, local / 0.7)), 3);
+  const serif = vsGetFont("Georgia, serif");
+  const sans = '"Archivo", system-ui, sans-serif';
+
+  // 1) image with a slow Ken Burns push, or a palette fill if it failed to load
+  ctx.save();
+  if (s.mediaEl && s.mediaEl.width) {
+    const k = s._edKen || { zoom: 0.08, dx: 0, dy: 0 };
+    const z = 1 + k.zoom * (0.4 + prog * 0.6);
+    const img = s.mediaEl, cover = Math.max(W / img.width, H / img.height) * z;
+    const iw = img.width * cover, ih = img.height * cover;
+    ctx.drawImage(img, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih);
+  } else { ctx.fillStyle = "#14100f"; ctx.fillRect(0, 0, W, H); }
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, pal.grade[0]); g.addColorStop(0.42, "rgba(0,0,0,0.05)"); g.addColorStop(1, pal.grade[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // 2) oversized cut-off word bleeding off the top edge (Hera signature)
+  if (s._edBigWord) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, enter * 1.2);
+    ctx.fillStyle = pal.big;
+    ctx.font = `800 ${Math.round(W * 0.26)}px ${serif}`;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(s._edBigWord, W * 0.03, H * 0.20 - (1 - enter) * H * 0.03);
+    ctx.restore();
+  }
+
+  // 3) headline card — sized to fit kicker + wrapped headline + body (no overlap)
+  const pad = W * 0.036, cardX = W * 0.06, cardW = W * 0.82, textW = cardW - pad * 2;
+  const wrapLines = (txt, px) => {
+    ctx.font = `800 ${px}px ${serif}`;
+    const words = String(txt || "").split(/\s+/).filter(Boolean); const lines = []; let ln = "";
+    for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > textW && ln) { lines.push(ln); ln = w; } else ln = t; }
+    if (ln) lines.push(ln); return lines.length ? lines : [""];
+  };
+  let hlPx = Math.round(W * 0.074); const minPx = Math.round(W * 0.044);
+  while (hlPx > minPx && wrapLines(s._edHeadline, hlPx).length > 3) hlPx -= 2;
+  const hlLines = wrapLines(s._edHeadline, hlPx), hlLineH = hlPx * 1.08;
+  const kickPx = Math.round(W * 0.028), bodyPx = Math.round(W * 0.03);
+  const hasBody = !!(s._edBody && String(s._edBody).trim());
+  const kickH = kickPx * 1.4, gap1 = W * 0.02, gap2 = W * 0.026, bodyH = hasBody ? bodyPx * 1.3 : 0;
+  const cardH = pad + kickH + gap1 + hlLines.length * hlLineH + (hasBody ? gap2 + bodyH : 0) + pad * 0.6;
+  const lay = s._edLayout || "mid";
+  let cardY = lay === "center" ? (H - cardH) / 2
+    : lay === "top" ? H * 0.12
+    : lay === "low" ? H * 0.80 - cardH
+    : (H - cardH) / 2 + H * 0.05;
+  cardY += (1 - enter) * H * 0.04;
+
+  ctx.save();
+  ctx.globalAlpha = enter;
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, W * 0.008);
+  ctx.fillStyle = /^#[0-9a-f]{6}$/i.test(pal.card) ? pal.card + "ec" : pal.card;
+  ctx.fill();
+  ctx.fillStyle = pal.spine; ctx.fillRect(cardX, cardY, W * 0.008, cardH);
+  // kicker
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = pal.kicker; ctx.font = `800 ${kickPx}px ${sans}`;
+  try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+  ctx.fillText(String(s._edKicker || "").slice(0, 26), cardX + pad, cardY + pad + kickPx * 0.9);
+  try { ctx.letterSpacing = "0px"; } catch (e) {}
+  // headline (per-line reveal)
+  const hlTop = cardY + pad + kickH + gap1 + hlPx * 0.86;
+  ctx.fillStyle = pal.ink; ctx.font = `800 ${hlPx}px ${serif}`;
+  hlLines.forEach((line, li) => {
+    const lp = Math.min(1, Math.max(0, (local - 0.15 - li * 0.12) / 0.5));
+    ctx.globalAlpha = enter * (1 - Math.pow(1 - lp, 3));
+    ctx.fillText(line, cardX + pad, hlTop + li * hlLineH);
+  });
+  ctx.globalAlpha = enter;
+  // body (auto-shrunk to one line)
+  if (hasBody) {
+    let bp = bodyPx; ctx.font = `italic 600 ${bp}px ${serif}`;
+    while (bp > W * 0.02 && ctx.measureText(s._edBody).width > textW) { bp -= 1; ctx.font = `italic 600 ${bp}px ${serif}`; }
+    ctx.fillStyle = "rgba(255,255,255,0.86)";
+    ctx.fillText(String(s._edBody), cardX + pad, hlTop + hlLines.length * hlLineH - hlLineH + hlPx * 0.2 + gap2 + bp);
+  }
+  ctx.restore();
+
+  // 4) source (all scenes) + CTA (outro)
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, enter);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  if (s._edSource) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = `800 ${Math.round(W * 0.026)}px ${sans}`;
+    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+    ctx.fillText(String(s._edSource).slice(0, 34), W * 0.06, H - H * 0.05);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
+  }
+  if (s._edIsOutro) {
+    ctx.textAlign = "right"; ctx.fillStyle = pal.spine; ctx.font = `800 ${Math.round(W * 0.03)}px ${sans}`;
+    ctx.fillText("LEARN MORE  →", W - W * 0.06, H - H * 0.05);
+  }
+  ctx.restore();
+}
+
 function drawStudioFrame(elapsed) {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
@@ -10911,6 +11118,12 @@ function drawStudioFrame(elapsed) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
+    // ── Editorial (Hera-style) scene owns the whole frame ──
+    if (slide && slide._editorial) {
+      drawEditorialFrame(ctx, W, H, slide, dsLocal, dsDur);
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+      return;
+    }
     if (slide) {
       dsMotionBg = slide.motionBg || "";
       dsGraphic = slide.sceneGraphic || null;
