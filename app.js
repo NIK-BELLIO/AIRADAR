@@ -10570,11 +10570,17 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
   if (pins.length) { cnx = pins.reduce((a, p) => a + p.nx, 0) / pins.length; cny = pins.reduce((a, p) => a + p.ny, 0) / pins.length; }
   const pivX = cx + (cnx - 0.5) * sw * (0.74 + cny * 0.26);
   const pivY = sy + cny * sh * tilt;
-  const zoomIn = 1 + Math.min(0.4, t * 0.05) + Math.sin(t * 0.4) * 0.012;   // creeps in ~8s
+  // Bold cinematic push-in: eases in FAST at the start, then keeps creeping so
+  // the camera is ALWAYS moving toward the plotted locations — never a static
+  // map. A slow lateral drift reframes the shot so it reads as a real camera.
+  const push = 1 - Math.exp(-t * 0.95);            // 0→1, fast at the start
+  const zoomIn = 1.10 + push * 0.48 + Math.min(0.20, t * 0.026); // ~1.1 → ~1.8
+  const panX = Math.sin(t * 0.32) * sw * 0.022;    // slow lateral drift (reframes)
+  const panY = Math.cos(t * 0.26) * sh * 0.014;
   ctx.save();
-  ctx.translate(pivX, pivY);
+  ctx.translate(pivX + panX, pivY + panY);
   ctx.scale(zoomIn, zoomIn);
-  ctx.rotate(Math.sin(t * 0.22) * 0.01);
+  ctx.rotate(Math.sin(t * 0.22) * 0.014);
   ctx.translate(-pivX, -pivY);
   const yaw = Math.sin(t * 0.3) * 0.02;            // gentle camera pan (keeps shape readable)
   // project a normalised map point onto the tilted 3D ground plane
@@ -10664,11 +10670,17 @@ function drawSceneWorldMap(ctx, W, H, t, o, A, F) {
   const pins = (o.places && o.places.length ? o.places : []).slice(0, 8)
     .map((p) => ({ nx: p.x, ny: p.y, name: p.name }));
   const sx = W * 0.04, sw = W * 0.92, sy = H * 0.34, sh = H * 0.42, cx = sx + sw / 2;
-  const camCx = cx, camCy = sy + sh * 0.5;
+  // Bold push-in toward the plotted countries' centroid (or globe centre) — the
+  // same cinematic camera as the US map so the world scene is never static.
+  let ccx = 0.5, ccy = 0.5;
+  if (pins.length) { ccx = pins.reduce((a, p) => a + p.nx, 0) / pins.length; ccy = pins.reduce((a, p) => a + p.ny, 0) / pins.length; }
+  const camCx = cx + (ccx - 0.5) * sw * 0.9, camCy = sy + ccy * sh * 0.92;
+  const wpush = 1 - Math.exp(-t * 0.95);
+  const wzoom = 1.08 + wpush * 0.42 + Math.min(0.16, t * 0.022); // ~1.08 → ~1.66
   ctx.save();
-  ctx.translate(camCx, camCy);
-  ctx.scale(1 + Math.sin(t * 0.4) * 0.02, 1 + Math.sin(t * 0.4) * 0.02);
-  ctx.rotate(Math.sin(t * 0.22) * 0.01);
+  ctx.translate(camCx + Math.sin(t * 0.3) * sw * 0.02, camCy + Math.cos(t * 0.26) * sh * 0.013);
+  ctx.scale(wzoom, wzoom);
+  ctx.rotate(Math.sin(t * 0.22) * 0.012);
   ctx.translate(-camCx, -camCy);
   const yaw = Math.sin(t * 0.3) * 0.02, tilt = 0.92;
   const P = (nx, ny) => {
@@ -11690,11 +11702,16 @@ function drawStudioFrame(elapsed) {
     };
     // Skip color filter for animated motion backgrounds — only apply to footage
     if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
-    drawCard(ctx, W, H, introTpl,
-      introSlide.introMain || "", 1,
-      introSlide.introSub || "", introSlide.introMotion || "rise", k,
-      introSlide.isOutro ? "outro" : "intro",
-      introSlide.isOutro ? "" : (introSlide._sourceLine || ""));
+    if (vstudio._motionGfxMode) {
+      // motion-graphic title cards get their own dramatic, animated treatment
+      drawMotionIntro(ctx, W, H, introTpl, introSlide, k, !!introSlide.isOutro, dsLocal);
+    } else {
+      drawCard(ctx, W, H, introTpl,
+        introSlide.introMain || "", 1,
+        introSlide.introSub || "", introSlide.introMotion || "rise", k,
+        introSlide.isOutro ? "outro" : "intro",
+        introSlide.isOutro ? "" : (introSlide._sourceLine || ""));
+    }
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
     vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
@@ -12760,6 +12777,229 @@ function vsApplyGlobalFilter(ctx, canvas, W, H) {
   ctx.restore();
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// MOTION-GRAPHIC TITLE CARD — a bold, cinematic, fully-animated intro/outro
+// built ONLY for /motion_graphic mode. Not the flat centred `drawCard`: this
+// is an editorial "kinetic title" — giant ghost topic word bleeding off the
+// frame, an eyebrow kicker pill, a growing accent bar, a per-line clip-reveal
+// headline set in the display serif, an accent underline that draws in, a
+// muted subtitle, and an animated wordmark / CTA. Every element eases in on a
+// stagger so the card reads as a designed sequence, not static text.
+//   k      = entrance progress 0→1 (already computed by the caller)
+//   t      = scene-local time in seconds (drives ambient/looping motion)
+//   isOutro= render the closing-card variant (centred CTA treatment)
+function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
+  t = t || 0;
+  const U = Math.min(W, H);
+  const A = (tpl && tpl.accent) || "#2563ff";
+  const TXT = (tpl && tpl.text) || "#ffffff";
+  const serif = vsGetFont((tpl && tpl.headlineFont) || "Prata, serif", true);
+  const sans = vsGetFont("Inter, sans-serif", true);
+  const main = String((slide && slide.introMain) || "").trim() || (isOutro ? "" : "AI Radar");
+  const sub = String((slide && slide.introSub) || "").trim();
+  const eyebrow = String((tpl && tpl._eyebrow) || "").trim();
+  const e = Math.max(0, Math.min(1, k));
+  const ease = 1 - Math.pow(1 - e, 3);
+  const easeQ = 1 - Math.pow(1 - e, 4);
+  const cen = !!isOutro;                         // outro is centre-aligned CTA
+
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+
+  // ── 1) cinematic scrim + vignette so text always pops over the bg ──
+  let g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(6,8,14,0.30)");
+  g.addColorStop(0.55, "rgba(6,8,14,0.52)");
+  g.addColorStop(1, "rgba(4,6,10,0.90)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  let rg = ctx.createRadialGradient(W * 0.5, H * 0.46, U * 0.08, W * 0.5, H * 0.54, U * 0.95);
+  rg.addColorStop(0, "rgba(0,0,0,0)"); rg.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+
+  // ── 2) GIANT ghost topic word bleeding off the frame edge ──
+  const words = main.toUpperCase().replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 3);
+  const big = words.sort((a, b) => b.length - a.length)[0] || (isOutro ? "THANKS" : "RADAR");
+  ctx.save();
+  ctx.font = `${Math.round(U * 0.36)}px ${serif}`;
+  const drift = Math.sin(t * 0.4) * U * 0.012;
+  const gx = cen ? W * 0.5 : W * 1.05;
+  ctx.textAlign = cen ? "center" : "right";
+  ctx.globalAlpha = 0.11 * ease;
+  ctx.fillStyle = A;
+  ctx.fillText(big, gx + (1 - ease) * U * 0.12, H * (cen ? 0.62 : 0.30) + drift);
+  ctx.globalAlpha = 0.05 * ease;
+  ctx.lineWidth = Math.max(1, U * 0.002); ctx.strokeStyle = TXT;
+  ctx.strokeText(big, gx + (1 - ease) * U * 0.12, H * (cen ? 0.62 : 0.30) + drift);
+  ctx.restore();
+
+  // ── 3) drifting accent motes (ambient life) ──
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 10; i++) {
+    const seed = i * 51.3;
+    const mx = ((Math.sin(seed) * 0.5 + 0.5) * W + Math.sin(t * 0.25 + seed) * U * 0.03);
+    const my = ((Math.cos(seed * 1.7) * 0.5 + 0.5) * H + Math.cos(t * 0.2 + seed) * U * 0.03);
+    const r = U * (0.002 + (i % 3) * 0.0016);
+    ctx.globalAlpha = (0.12 + 0.1 * Math.sin(t * 0.9 + seed)) * ease;
+    ctx.fillStyle = A;
+    ctx.beginPath(); ctx.arc(mx, my, r, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── layout column ──
+  const marginX = cen ? W * 0.5 : W * 0.08;
+  const colW = cen ? W * 0.84 : W * 0.84;
+  const headX = cen ? W * 0.5 : marginX + U * 0.052;
+
+  // ── 4) headline (wrapped serif) — measured first so we can centre the block ──
+  let hPx = Math.round(U * (cen ? 0.13 : 0.112));
+  const wrap = (txt, px) => {
+    ctx.font = `${px}px ${serif}`;
+    const ws = txt.split(/\s+/); const out = []; let cur = "";
+    for (const w of ws) {
+      const test = cur ? cur + " " + w : w;
+      if (ctx.measureText(test).width > colW && cur) { out.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) out.push(cur);
+    return out;
+  };
+  let lines = main ? wrap(main, hPx) : [];
+  const maxLines = cen ? 2 : 4;
+  while (lines.length > maxLines && hPx > U * 0.055) { hPx -= 2; lines = wrap(main, hPx); }
+  const lineH = hPx * 1.12;
+  const blockH = lines.length * lineH;
+
+  // vertical anchor: intro sits a touch above centre, outro is centred
+  const eyeGap = eyebrow ? U * 0.075 : 0;
+  const subGap = sub ? U * 0.055 : 0;
+  const total = eyeGap + blockH + U * 0.03 + subGap;
+  let topY = (cen ? H * 0.5 : H * 0.46) - total / 2;
+
+  // ── 5) eyebrow kicker pill ──
+  if (eyebrow) {
+    const eb = eyebrow.toUpperCase();
+    const ee = Math.max(0, Math.min(1, e / 0.45));
+    const eyePx = Math.round(U * 0.03);
+    ctx.font = `800 ${eyePx}px ${sans}`;
+    ctx.save();
+    ctx.globalAlpha = ee;
+    ctx.translate(0, (1 - ee) * -U * 0.025);
+    const dotR = eyePx * 0.32;
+    const tw = ctx.measureText(eb).width;
+    const padX = eyePx * 0.95, pillH = eyePx * 1.95;
+    const pillW = dotR * 2 + eyePx * 0.5 + tw + padX * 2;
+    const pillX = cen ? (W - pillW) / 2 : marginX;
+    const pillY = topY;
+    roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fillStyle = "rgba(255,255,255,0.06)"; ctx.fill();
+    ctx.lineWidth = Math.max(1, U * 0.0016); ctx.strokeStyle = vsHexA(A, 0.55); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pillX + padX + dotR, pillY + pillH / 2, dotR, 0, 7);
+    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = U * 0.02; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = TXT; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(eb, pillX + padX + dotR * 2 + eyePx * 0.5, pillY + pillH / 2 + eyePx * 0.03);
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+  }
+  topY += eyeGap;
+
+  // ── 6) growing accent bar to the left of the headline (intro only) ──
+  const firstBaseline = topY + hPx * 0.82;
+  if (!cen && lines.length) {
+    const bh = blockH * easeQ;
+    ctx.save();
+    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = U * 0.03;
+    roundRectPath(ctx, marginX, topY, U * 0.012, bh, U * 0.006);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── 7) headline lines with a staggered clip-reveal + rise ──
+  ctx.font = `${hPx}px ${serif}`;
+  ctx.fillStyle = TXT;
+  ctx.textAlign = cen ? "center" : "left";
+  lines.forEach((ln, i) => {
+    const p = Math.max(0, Math.min(1, (e - i * 0.12) / 0.55));
+    const pe = 1 - Math.pow(1 - p, 3);
+    if (pe <= 0) return;
+    const baseY = firstBaseline + i * lineH;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cen ? (W - colW) / 2 - U * 0.02 : marginX, baseY - hPx, colW + U * 0.08, lineH * 1.15);
+    ctx.clip();
+    ctx.globalAlpha = pe;
+    ctx.fillText(ln, headX, baseY + (1 - pe) * lineH * 0.55);
+    ctx.restore();
+  });
+
+  // ── 8) accent underline that draws in below the headline ──
+  const underY = firstBaseline + (lines.length - 1) * lineH + hPx * 0.5;
+  const uw = colW * 0.42 * easeQ;
+  ctx.save();
+  ctx.strokeStyle = A; ctx.lineWidth = Math.max(2, U * 0.006); ctx.lineCap = "round";
+  ctx.shadowColor = A; ctx.shadowBlur = U * 0.02;
+  ctx.beginPath();
+  if (cen) { ctx.moveTo(W / 2 - uw / 2, underY); ctx.lineTo(W / 2 + uw / 2, underY); }
+  else { ctx.moveTo(headX, underY); ctx.lineTo(headX + uw, underY); }
+  ctx.stroke();
+  ctx.restore();
+
+  // ── 9) subtitle (muted sans, fades up) ──
+  if (sub) {
+    const se = Math.max(0, Math.min(1, (e - 0.35) / 0.5));
+    let sPx = Math.round(U * 0.038);
+    // shrink the subtitle so it never runs off the frame edge
+    const avail = cen ? colW : (W - headX - W * 0.06);
+    ctx.font = `600 ${sPx}px ${sans}`;
+    while (sPx > U * 0.024 && ctx.measureText(sub).width > avail) {
+      sPx -= 1; ctx.font = `600 ${sPx}px ${sans}`;
+    }
+    ctx.save();
+    ctx.globalAlpha = se * 0.9;
+    ctx.fillStyle = vsHexA(TXT, 0.82);
+    ctx.textAlign = cen ? "center" : "left";
+    ctx.translate(0, (1 - se) * U * 0.02);
+    ctx.fillText(sub, cen ? W / 2 : headX, underY + sPx * 1.9);
+    ctx.restore();
+  }
+
+  // ── 10) bottom wordmark / CTA ──
+  const wm = "airadar.me";
+  const we = Math.max(0, Math.min(1, (e - 0.4) / 0.5));
+  if (cen) {
+    // outro → prominent CTA row: arrow + wordmark
+    const cPx = Math.round(U * 0.05);
+    ctx.save();
+    ctx.globalAlpha = we;
+    ctx.font = `800 ${cPx}px ${sans}`;
+    const label = "→  " + wm;
+    const tw = ctx.measureText(label).width;
+    const padX = cPx * 0.8, ph = cPx * 1.9;
+    const bx = (W - (tw + padX * 2)) / 2, by = H * 0.8;
+    roundRectPath(ctx, bx, by, tw + padX * 2, ph, ph / 2);
+    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = U * 0.03; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = "#08111c"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(label, W / 2, by + ph / 2 + cPx * 0.03);
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+  } else {
+    const wPx = Math.round(U * 0.03);
+    ctx.save();
+    ctx.globalAlpha = we * 0.7;
+    ctx.font = `700 ${wPx}px ${sans}`;
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+    // small accent tick, then the wordmark to its right (no overlap)
+    const tickW = U * 0.03 * we, tickGap = U * 0.02;
+    ctx.fillStyle = A;
+    ctx.fillRect(marginX, H * 0.93 - wPx * 0.32, tickW, U * 0.006);
+    ctx.fillStyle = vsHexA(TXT, 0.7);
+    ctx.fillText(wm.toUpperCase(), marginX + U * 0.03 + tickGap, H * 0.93);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
 // Draw a centred intro/outro card.
 function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLine) {
   // `prog` 0..1 is the entrance progress; `motion` picks the animation.
@@ -13155,6 +13395,8 @@ function previewStudioVideo(fromStart) {
   }
   if (vstudio.rendering) return;
   buildPreviewCanvas();
+  // A real video now exists — reveal the Export button (hidden until first build).
+  try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
   vstudio._logoVidVisible = false;   // logo restarts cleanly when it first appears
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);

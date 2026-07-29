@@ -643,8 +643,8 @@
     /* Right: preview stage fills remaining space, timeline pinned bottom */
     #videoStudio .vstudio-stage{position:static;height:100%;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 18px 16px;overflow:hidden}
     #videoStudio .vs-stage-bar{flex:0 0 auto}
-    #videoStudio .vs-preview{flex:1 1 auto;min-height:0;border-radius:14px}
-    #videoStudio .vs-preview canvas{max-height:100%;max-width:100%;width:auto;height:auto}
+    #videoStudio .vs-preview{flex:1 1 auto;min-height:0;min-width:0;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    #videoStudio .vs-preview canvas{max-height:100%;max-width:100%;width:auto;height:auto;display:block;object-fit:contain}
     #videoStudio .vs-timeline{flex:0 0 auto}
 
     /* Make the selected template unmistakable (was a faint border) */
@@ -1517,6 +1517,7 @@
                     </details>
 <div class="vs-auto-actions">
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
+                      <button id="vsExportBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;margin-top:10px;display:none;" data-i18n="vExportBtn">⬇ <span id="vsExportBtnTxt">Export video</span></button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
                     <div id="vsBuildBadge" style="text-align:center;font-size:10px;letter-spacing:.08em;color:#7a7468;margin-top:4px;opacity:.8">build · loading…</div>
@@ -1778,10 +1779,6 @@
               </div>
 
 
-              <div class="vstudio-actions">
-                <button id="vsPreviewBtn" class="button primary" type="button" data-i18n="vPreviewBtn">Preview</button>
-                <button id="vsExportBtn" class="button ghost gold" type="button" data-i18n="vExportBtn">Export video</button>
-              </div>
               <p id="vsStatus" class="ai-note"></p>
             </div>
 
@@ -2592,7 +2589,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v386"></script>
+    <script src="/app.js?v=v387"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
