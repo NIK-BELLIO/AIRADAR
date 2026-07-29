@@ -4517,7 +4517,7 @@ function vsAutoStatus(msg) {
 
 // Full-screen loading popup shown while a video is being generated, so the user
 // sees which stage is running (writing the script, generating images, …).
-function vsBuildOverlay(show, msg) {
+function vsBuildOverlay(show, msg, title, timeoutMs) {
   let ov = document.getElementById("vsBuildOverlay");
   if (!ov) {
     const st = document.createElement("style");
@@ -4544,9 +4544,11 @@ function vsBuildOverlay(show, msg) {
   if (show) {
     const t = ov.querySelector(".vsbo-msg");
     if (t) t.textContent = msg || (state.lang === "fa" ? "شروع…" : "Starting…");
+    const ti = ov.querySelector(".vsbo-title");
+    if (ti) ti.textContent = title || (state.lang === "fa" ? "در حال ساخت ویدئو…" : "Building your video…");
     ov.style.display = "flex";
     // safety: never leave the overlay stuck if a stage silently ends
-    vstudio._boTimer = setTimeout(() => { ov.style.display = "none"; }, 120000);
+    vstudio._boTimer = setTimeout(() => { ov.style.display = "none"; }, timeoutMs || 120000);
   } else {
     ov.style.display = "none";
   }
@@ -6210,9 +6212,16 @@ async function vsAutoGenerateBackgrounds(data) {
           : (localItems.length >= 3 ? localItems
             : (nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"]));
         const isPct = numMatch && /%/.test(numMatch[0]);
+        // Only surface a hero NUMBER when the content actually states one — a real
+        // percentage in the headline or a real numeric stat. Otherwise leave it
+        // null so graphics never invent a misleading "100%".
+        const realStat = data2.find((d) => d.num);
+        const hasRealValue = !!numMatch || !!realStat;
         const heroVal = numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, ""))))
-          : (data2.find((d) => d.num) ? Math.min(100, Math.round(Math.abs(data2.find((d) => d.num).num)))
-            : (55 + ((i * 17) % 40)));
+          : (realStat ? Math.min(100, Math.round(Math.abs(realStat.num))) : null);
+        // Direction the chart should read as, inferred from the wording so a
+        // "surge/growth" rises and a "drop/decline" falls — never contradicts it.
+        const trend = /\b(drop|decline|declin|fall|fell|falling|down|downturn|plunge|plummet|crash|shrink|shrank|slump|loss|losses|lose|losing|sink|sank|dip|dips|contract|cut|cuts|slow|slower|weaken|recession|lower)\b/i.test(s.headline) ? -1 : 1;
         // a non-percentage headline figure ("$150 billion") is shown verbatim,
         // compacted, instead of a misleading count-up percentage.
         const valueText = (numMatch && !isPct)
@@ -6228,6 +6237,8 @@ async function vsAutoGenerateBackgrounds(data) {
           items: items.filter((x) => x && x.length).slice(0, 5),
           value: heroVal,
           valueText,
+          hasRealValue,
+          trend,
           valueLabel: String((data2[0] && data2[0].label) || s._caption || s.headline).slice(0, 34),
           suffix: (numMatch && /%/.test(numMatch[0])) || data2.some((d) => /%/.test(d.value)) ? "%" : "",
           brand: (brandName || "product").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
@@ -10308,11 +10319,18 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
     ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h);
     ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = Math.max(1, W * 0.003); ctx.stroke();
     if (!data) {
-      const target = Number(o.value) || 92;
-      const cv = Math.min(1, t / 1.4) * target;
-      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.15}px ${F}`;
-      ctx.fillText(Math.round(cv) + (o.suffix || "%"), W / 2, y - H * 0.045);
-      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.030}px ${F}`;
+      // No real bars → show a hero figure ONLY if it's genuine (verbatim value
+      // or a real percentage). Otherwise show just the label, no invented number.
+      const chartBig = o.valueText ? String(o.valueText)
+        : (o.hasRealValue && o.value != null && o.suffix === "%")
+          ? (Math.round(Math.min(1, t / 1.4) * (Number(o.value) || 0)) + "%") : null;
+      if (chartBig) {
+        ctx.textAlign = "center"; ctx.fillStyle = "#fff";
+        let cp = W * 0.15; ctx.font = `800 ${cp}px ${F}`;
+        while (cp > W * 0.07 && ctx.measureText(chartBig).width > W * 0.8) { cp -= W * 0.006; ctx.font = `800 ${cp}px ${F}`; }
+        ctx.fillText(chartBig, W / 2, y - H * 0.045);
+      }
+      ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.font = `600 ${W * 0.030}px ${F}`;
       ctx.fillText(String(o.valueLabel || "").toUpperCase(), W / 2, y - H * 0.012);
     }
 
@@ -11090,7 +11108,9 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     for (let i = 0; i <= N; i++) {
       const p = i / N;
       let v; if (d) { const fi = p * (d.length - 1), a = Math.floor(fi), b = Math.min(d.length - 1, a + 1); v = (d[a] + (d[b] - d[a]) * (fi - a)) / maxN; }
-      else v = 0.2 + 0.55 * p + 0.16 * Math.sin(p * 5.5);
+      else v = (o.trend === -1)
+        ? 0.75 - 0.55 * p + 0.14 * Math.sin(p * 5.5)   // declining curve
+        : 0.2 + 0.55 * p + 0.16 * Math.sin(p * 5.5);   // rising curve
       pts.push([x + w * p, y + h - h * Math.max(0.02, Math.min(1, v))]);
     }
     const prog = Math.min(1, t / 1.4), nn = Math.max(2, Math.floor(pts.length * prog));
@@ -11103,9 +11123,16 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     for (let i = 1; i < nn; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.strokeStyle = A; ctx.lineWidth = Math.max(2, W * 0.005); softGlow(A, W * 0.025); ctx.stroke(); noGlow();
     ctx.beginPath(); ctx.arc(pts[nn - 1][0], pts[nn - 1][1], W * 0.012, 0, 7); ctx.fillStyle = "#fff"; ctx.fill();
-    if (o.value != null) {
-      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.09}px ${F}`;
-      ctx.fillText(Math.round(Math.min(1, t / 1.4) * (Number(o.value) || 0)) + (o.suffix || "%"), W / 2, y - H * 0.03);
+    // Hero figure ONLY when it's real: a verbatim value ("$150B") or a real
+    // percentage. Never a fabricated count-up number.
+    const areaBig = o.valueText ? String(o.valueText)
+      : (o.hasRealValue && o.value != null && o.suffix === "%")
+        ? (Math.round(Math.min(1, t / 1.4) * (Number(o.value) || 0)) + "%") : null;
+    if (areaBig) {
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff";
+      let ap = W * 0.09; ctx.font = `800 ${ap}px ${F}`;
+      while (ap > W * 0.05 && ctx.measureText(areaBig).width > W * 0.8) { ap -= W * 0.005; ctx.font = `800 ${ap}px ${F}`; }
+      ctx.fillText(areaBig, W / 2, y - H * 0.03);
     }
 
   } else if (kind === "funnel") {
@@ -11740,7 +11767,9 @@ function drawStudioFrame(elapsed) {
       drawIntroBackground(ctx, W, H, motionBg, elapsed);
       try {
         const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
-        const _acc = _mbg.accent || "#2563ff";
+        // The SELECTED TEMPLATE drives the graphic accent too (not just the bg),
+        // so changing the template visibly recolours every motion-graphic element.
+        const _acc = (tpl && tpl.accent) || _mbg.accent || "#2563ff";
         // On a panel scene the solid band carries the composition, so the
         // vector graphic is skipped — otherwise it collides with the band.
         if (dsGraphic && dsGraphic.kind && !dsPanelLayout) {
@@ -14267,9 +14296,12 @@ async function exportStudioVideo() {
 
   buildPreviewCanvas(Number(vsVal("#vsExportSize", 1080)));
   canvas = $("#vsCanvas");   // fresh canvas at export resolution
-  vsStatus(state.lang === "fa"
-    ? `در حال رندر ${canvas.width}×${canvas.height}... این تب را باز نگه دار.`
-    : `Rendering ${canvas.width}×${canvas.height}… keep this tab open.`);
+  const _exTitle = state.lang === "fa" ? "در حال خروجی گرفتن ویدئو…" : "Exporting your video…";
+  const _rendMsg = state.lang === "fa"
+    ? `در حال رندر ${canvas.width}×${canvas.height} — این تب را باز و روی صفحه نگه دار (اگر بروی تب دیگه بره، ویدئو لگ می‌زنه).`
+    : `Rendering ${canvas.width}×${canvas.height} — keep this tab open AND visible (switching tabs makes the video stutter).`;
+  vsStatus(_rendMsg);
+  if (!vstudio._returnBlob) vsBuildOverlay(true, _rendMsg, _exTitle, 900000);
   const duration = studioDuration();
   const fps = 30;
   const canvasStream = canvas.captureStream(fps);
@@ -14351,6 +14383,7 @@ async function exportStudioVideo() {
       ? "ضبط ویدیو با خطا متوقف شد. صفحه را رفرش کن و دوباره امتحان کن."
       : "Recording stopped due to an error. Refresh the page and try again.");
     vstudio.rendering = false;
+    if (!vstudio._returnBlob) vsBuildOverlay(false);
   };
 
   const done = new Promise(resolve => {
@@ -14384,9 +14417,12 @@ async function exportStudioVideo() {
           // file was saved when nothing had actually downloaded. Instead,
           // fall back to saving the WebM we already have in hand.
           try {
-            vsStatus(state.lang === "fa"
+            const _convMsg = state.lang === "fa"
               ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
-              : "Converting to MP4… (first time takes longer)");
+              : "Converting to MP4… (first time takes longer)";
+            vsStatus(_convMsg);
+            if (!vstudio._returnBlob) vsBuildOverlay(true, _convMsg,
+              (state.lang === "fa" ? "در حال خروجی گرفتن ویدئو…" : "Exporting your video…"), 900000);
             outBlob = await vsConvertToMp4(webmBlob);
             ext = "mp4";
           } catch (err) {
@@ -14530,6 +14566,7 @@ async function exportStudioVideo() {
   // NOTE: do NOT close the audio context — it's reused across exports and
   // keeps the music element routed to the speakers for preview.
   vstudio.rendering = false;
+  if (!vstudio._returnBlob) vsBuildOverlay(false);   // close the export popup
   // Only announce success if a file was actually produced — `result` is null
   // whenever recording/conversion failed, and in that case the specific
   // error message set above (empty recording, conversion failure, etc.)

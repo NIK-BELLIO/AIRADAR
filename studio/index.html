@@ -646,6 +646,9 @@
     #videoStudio .vs-preview{flex:1 1 auto;min-height:0;min-width:0;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
     #videoStudio .vs-preview canvas{max-height:100%;max-width:100%;width:auto;height:auto;display:block;object-fit:contain}
     #videoStudio .vs-timeline{flex:0 0 auto}
+    /* Export button = GREEN (ready-to-download), distinct from the blue Generate */
+    #videoStudio #vsExportBtn{background:linear-gradient(135deg,#15a24a,#22c55e)!important;border:none!important;color:#fff!important;box-shadow:0 6px 18px rgba(34,197,94,.32)!important}
+    #videoStudio #vsExportBtn:hover{filter:brightness(1.07)}
 
     /* Make the selected template unmistakable (was a faint border) */
     #videoStudio .template-card{position:relative}
@@ -2589,7 +2592,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v387"></script>
+    <script src="/app.js?v=v388"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
