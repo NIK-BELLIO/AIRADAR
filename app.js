@@ -13059,7 +13059,7 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
     .replace(/^\s*(?:by|source)\s*[:·-]?\s*/i, "").trim().slice(0, 40);
   const we = Math.max(0, Math.min(1, (e - 0.4) / 0.5));
   if (srcName) {
-    const srcLbl = (state.lang === "fa" ? "منبع" : "SOURCE") + " · " + srcName.toUpperCase();
+    const srcLbl = "by " + srcName.toUpperCase();
     if (cen) {
       // outro → a quiet centred source credit (no CTA, no brand)
       const cPx = Math.round(U * 0.03);
