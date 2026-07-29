@@ -128,16 +128,126 @@
             <div class="heroActions"><a href="#builder">Build from one word</a><a href="#library">Video / Image library</a><a href="#skills">Claude / GPT skills</a></div>
           </div>
         </div>
-        <section class="builder" id="builder">
-          <h2>Create a strong prompt</h2>
-          <p class="lead">Choose what you want to generate first. The builder then shows only the right models and writes a model-specific prompt, settings, negative prompt, and clean JSON.</p>
-          <div class="field"><label>Your word / idea</label><input id="ideaInput" placeholder="perfume, cyberpunk girl, burger, villa" /></div>
-          <div class="row"><div class="field"><label>Output type</label><select id="builderType"><option>Video prompt</option><option>Image prompt</option><option>AI skill</option></select></div><div class="field"><label>Model</label><select id="modelSelect"></select></div></div>
-          <div class="field"><label>Category</label><select id="categorySelect"></select></div>
-          <div class="row"><div class="field"><label>Style</label><select id="styleSelect"><option>Cinematic realistic</option><option>Luxury commercial</option><option>Hyper-realistic</option><option>Anime film</option><option>Documentary</option><option>Minimal studio</option></select></div><div class="field"><label>Format</label><select id="aspectSelect"><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option></select></div></div>
-          <div class="actions"><button id="generateBtn" class="generatePro"><span>Generate professional system</span></button></div>
-          <div class="output"><div class="copyLine"><label>Prompt</label><button class="iconCopy" id="copyPromptInlineBtn" type="button" title="Copy prompt" aria-label="Copy prompt"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="10" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button></div><textarea id="promptOutput" spellcheck="false" placeholder="Your generated prompt appears here only after you click Generate."></textarea><div class="copyLine"><label>JSON</label><button class="iconCopy" id="copyJsonInlineBtn" type="button" title="Copy JSON" aria-label="Copy JSON"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="10" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button></div><pre id="jsonOutput"></pre></div>
+        <section class="builder plw" id="builder">
+          <style>
+            .plw h2{font-size:23px;letter-spacing:-.05em;margin:2px 0 6px}
+            .plw .lead{margin-bottom:14px}
+            .plw-steps{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+            .plw-step{flex:1;min-width:88px;text-align:center;padding:9px 6px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font-size:12px;font-weight:900;letter-spacing:.02em}
+            .plw-step.done{color:#dff7ff;border-color:rgba(34,211,238,.35)}
+            .plw-step.active{color:#03111b;background:linear-gradient(135deg,#22d3ee,#2563ff);border-color:transparent}
+            .plw-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+            .plw-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:20px 18px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(155deg,rgba(15,23,42,.7),rgba(5,7,13,.6));color:#fff;box-shadow:none;transition:.15s;cursor:pointer}
+            .plw-card:hover{border-color:rgba(34,211,238,.6);transform:translateY(-2px)}
+            .plw-emoji{font-size:30px;line-height:1}
+            .plw-card b{font-size:17px;letter-spacing:-.03em}
+            .plw-card small{color:var(--muted);font-size:12px;font-weight:600;line-height:1.4}
+            .plw-panelhead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+            .plw-panelhead h2{margin:0}
+            .plw-back{width:auto;padding:8px 12px;font-size:12px;color:#dff7ff;background:rgba(255,255,255,.05);border:1px solid var(--line);box-shadow:none}
+            .plw-chips{display:flex;flex-wrap:wrap;gap:9px}
+            .plw-chips.sm{margin:6px 0 16px}
+            .plw-chip{padding:11px 15px;border-radius:999px;border:1px solid rgba(248,250,252,.2);background:rgba(255,255,255,.05);color:#f8fafc;font-weight:800;font-size:13px;box-shadow:none;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+            .plw-chip:hover{border-color:rgba(34,211,238,.6)}
+            .plw-chip.active{border-color:rgba(34,211,238,.75);background:rgba(34,211,238,.14);color:#fff}
+            .plw-chip .lg{font-family:Orbitron,Inter,sans-serif;font-size:10px;letter-spacing:.05em;opacity:.85}
+            .plw-chosen{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+            .plw-chosen span{border:1px solid rgba(34,211,238,.3);background:rgba(34,211,238,.08);color:#dff7ff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:800}
+            @media(max-width:720px){.plw-cards{grid-template-columns:1fr}}
+          </style>
+          <!-- hidden state selects — read by the existing prompt engine -->
+          <select id="builderType" style="display:none"><option>Video prompt</option><option>Image prompt</option><option>AI skill</option></select>
+          <select id="modelSelect" style="display:none"></select>
+          <select id="categorySelect" style="display:none"></select>
+          <select id="styleSelect" style="display:none"><option>Cinematic realistic</option><option>Luxury commercial</option><option>Hyper-realistic</option><option>Anime film</option><option>Documentary</option><option>Minimal studio</option></select>
+          <select id="aspectSelect" style="display:none"><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option></select>
+
+          <div class="plw-steps">
+            <div class="plw-step active" data-step="1">1 · Type</div>
+            <div class="plw-step" data-step="2">2 · Engine</div>
+            <div class="plw-step" data-step="3">3 · Describe</div>
+          </div>
+
+          <div class="plw-panel" data-panel="1">
+            <h2>What do you want to create?</h2>
+            <p class="lead">Pick one. We show only the engines that fit and write a prompt tuned for it.</p>
+            <div class="plw-cards">
+              <button class="plw-card" type="button" data-type="Image prompt"><span class="plw-emoji">🖼️</span><b>Image</b><small>Midjourney · FLUX · DALL·E · Seedream…</small></button>
+              <button class="plw-card" type="button" data-type="Video prompt"><span class="plw-emoji">🎬</span><b>Video</b><small>Sora · Veo · Kling · Runway · Seedance…</small></button>
+              <button class="plw-card" type="button" data-type="AI skill"><span class="plw-emoji">🧠</span><b>AI assistant skill</b><small>Claude · ChatGPT · Gemini · Grok…</small></button>
+            </div>
+          </div>
+
+          <div class="plw-panel hidden" data-panel="2">
+            <div class="plw-panelhead"><button class="plw-back" type="button" data-goto="1">← Back</button><h2 id="plwEngineTitle">Choose the engine</h2></div>
+            <p class="lead">Which app or model will you paste this into?</p>
+            <div class="plw-chips" id="plwEngineChips"></div>
+          </div>
+
+          <div class="plw-panel hidden" data-panel="3">
+            <div class="plw-panelhead"><button class="plw-back" type="button" data-goto="2">← Back</button><h2>Describe your idea</h2></div>
+            <div class="plw-chosen" id="plwChosen"></div>
+            <div class="field"><label>Your idea (a few words)</label><input id="ideaInput" placeholder="perfume, cyberpunk girl, burger, villa" /></div>
+            <div id="plwStyleRow">
+              <label>Style</label><div class="plw-chips sm" id="plwStyleChips"></div>
+              <label>Format</label><div class="plw-chips sm" id="plwAspectChips"></div>
+            </div>
+            <div class="actions"><button id="generateBtn" class="generatePro"><span>✦ Generate my prompt</span></button></div>
+            <div class="output"><div class="copyLine"><label>Prompt</label><button class="iconCopy" id="copyPromptInlineBtn" type="button" title="Copy prompt" aria-label="Copy prompt"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="10" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button></div><textarea id="promptOutput" spellcheck="false" placeholder="Your generated prompt appears here after Generate."></textarea><div class="copyLine"><label>JSON</label><button class="iconCopy" id="copyJsonInlineBtn" type="button" title="Copy JSON" aria-label="Copy JSON"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="10" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button></div><pre id="jsonOutput"></pre></div>
+          </div>
         </section>
+        <script>
+        (function(){
+          function plwInit(){
+            var sec=document.getElementById("builder"); if(!sec||sec._plw) return; sec._plw=1;
+            var typeSel=document.getElementById("builderType"),
+                modelSel=document.getElementById("modelSelect"),
+                styleSel=document.getElementById("styleSelect"),
+                aspSel=document.getElementById("aspectSelect");
+            function panel(n){
+              sec.querySelectorAll(".plw-panel").forEach(function(p){p.classList.toggle("hidden",p.getAttribute("data-panel")!=String(n));});
+              sec.querySelectorAll(".plw-step").forEach(function(s){var d=+s.getAttribute("data-step");s.classList.toggle("active",d==n);s.classList.toggle("done",d<n);});
+            }
+            function chip(txt,logo){var b=document.createElement("button");b.type="button";b.className="plw-chip";b.innerHTML=(logo?'<span class="lg">'+logo+'</span>':'')+'<span>'+txt+'</span>';return b;}
+            function renderEngines(){
+              var wrap=document.getElementById("plwEngineChips"); wrap.innerHTML="";
+              var list=(typeof builderModels==="function")?builderModels():[];
+              list.forEach(function(m){
+                var c=chip(m,"");   // name only — the logo codes just duplicate it
+                c.addEventListener("click",function(){
+                  modelSel.value=m; try{modelSel.dispatchEvent(new Event("input"));}catch(e){}
+                  renderChosen(); renderStyle(); panel(3);
+                });
+                wrap.appendChild(c);
+              });
+            }
+            function renderChosen(){
+              document.getElementById("plwChosen").innerHTML=
+                '<span>'+typeSel.value.replace(" prompt","")+'</span><span>'+modelSel.value+'</span>';
+            }
+            function renderStyle(){
+              var isSkill=typeSel.value=="AI skill";
+              document.getElementById("plwStyleRow").style.display=isSkill?"none":"";
+              var sc=document.getElementById("plwStyleChips"),ac=document.getElementById("plwAspectChips");
+              sc.innerHTML="";ac.innerHTML="";
+              function build(sel,host){Array.prototype.forEach.call(sel.options,function(o){var c=chip(o.value,"");if(o.value==sel.value)c.classList.add("active");c.addEventListener("click",function(){sel.value=o.value;Array.prototype.forEach.call(host.children,function(x){x.classList.remove("active")});c.classList.add("active");});host.appendChild(c);});}
+              build(styleSel,sc);build(aspSel,ac);
+            }
+            sec.querySelectorAll(".plw-card").forEach(function(card){
+              card.addEventListener("click",function(){
+                typeSel.value=card.getAttribute("data-type");
+                try{typeSel.dispatchEvent(new Event("change"));}catch(e){}
+                document.getElementById("plwEngineTitle").textContent=typeSel.value=="AI skill"?"Choose the assistant":"Choose the engine";
+                renderEngines(); panel(2);
+              });
+            });
+            sec.querySelectorAll(".plw-back").forEach(function(b){b.addEventListener("click",function(){panel(+b.getAttribute("data-goto"));});});
+            panel(1);
+          }
+          if(document.readyState==="complete")plwInit();
+          else window.addEventListener("load",plwInit);
+        })();
+        </script>
       </section>
 
       <section class="section" id="packs">
