@@ -5234,7 +5234,12 @@ function vsAssembleFromSections(data, skipFootage) {
   });
 
   let bi = 1;
-  const sections = (data.sections || []).slice(0, 7);
+  // Scene count must honour the user's Length choice (Short 4-5 · Medium 6-7 ·
+  // Long 8-10) — in EVERY mode including motion-graphic. Clamp to that ceiling so
+  // the deck is never longer than the setting asks for.
+  const _len = (document.querySelector("#vsAutoLen") || {}).value || "medium";
+  const _maxSections = _len === "short" ? 5 : _len === "long" ? 10 : 7;
+  const sections = (data.sections || []).slice(0, _maxSections);
   sections.forEach((sec, i) => {
     const set = cleanSet2();
     const motion = pickMotion();
@@ -12835,6 +12840,61 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
   ctx.save();
   ctx.textBaseline = "alphabetic";
 
+  // ── 0) PREMIUM animated title background — painted opaque so intro/outro
+  //    never look "ordinary". A deep base, two drifting accent nebulae, flowing
+  //    aurora ribbons, a soft perspective grid and a top light. ──
+  const shade = (hex, m) => {
+    const h = String(hex || "#2563ff").replace("#", "");
+    const n = h.length === 3 ? h.split("").map(c => c + c).join("") : h.padEnd(6, "0");
+    const r = Math.round(parseInt(n.slice(0, 2), 16) * m), gg2 = Math.round(parseInt(n.slice(2, 4), 16) * m), b = Math.round(parseInt(n.slice(4, 6), 16) * m);
+    return `rgb(${Math.min(255, r)},${Math.min(255, gg2)},${Math.min(255, b)})`;
+  };
+  // deep vertical base tinted slightly toward the accent
+  let base = ctx.createLinearGradient(0, 0, W, H);
+  base.addColorStop(0, "#0a0f1c");
+  base.addColorStop(0.5, shade(A, 0.16));
+  base.addColorStop(1, "#05070d");
+  ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+  // two large drifting nebulae (accent + complementary blue)
+  const neb = [
+    { x: 0.24 + Math.sin(t * 0.16) * 0.05, y: 0.30 + Math.cos(t * 0.13) * 0.04, c: A, a: 0.42 },
+    { x: 0.78 + Math.cos(t * 0.11) * 0.05, y: 0.70 + Math.sin(t * 0.15) * 0.04, c: "#2563ff", a: 0.36 }
+  ];
+  neb.forEach(nb => {
+    const rgn = ctx.createRadialGradient(W * nb.x, H * nb.y, 0, W * nb.x, H * nb.y, U * 0.7);
+    rgn.addColorStop(0, vsHexA(nb.c, nb.a)); rgn.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = rgn; ctx.fillRect(0, 0, W, H);
+  });
+  // flowing aurora ribbons
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  for (let r = 0; r < 3; r++) {
+    const yb = H * (0.32 + r * 0.2);
+    const amp = U * (0.05 + r * 0.02);
+    ctx.beginPath();
+    for (let xx = -20; xx <= W + 20; xx += W / 16) {
+      const yy = yb + Math.sin(xx / W * 5 + t * 0.5 + r * 1.7) * amp + Math.cos(xx / W * 2.3 - t * 0.32) * amp * 0.5;
+      xx === -20 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+    }
+    const rg2 = ctx.createLinearGradient(0, yb - amp, W, yb + amp);
+    rg2.addColorStop(0, "rgba(255,255,255,0)");
+    rg2.addColorStop(0.5, vsHexA(r === 1 ? "#2563ff" : A, 0.16));
+    rg2.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.strokeStyle = rg2; ctx.lineWidth = U * (0.02 + r * 0.006); ctx.stroke();
+  }
+  ctx.restore();
+  // soft perspective grid on the lower third (floor)
+  ctx.save();
+  ctx.strokeStyle = vsHexA(A, 0.07); ctx.lineWidth = 1;
+  const horizon = H * 0.66;
+  for (let i = 1; i <= 7; i++) { const gy = horizon + (H - horizon) * (i / 7) * (i / 7); ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+  for (let i = -6; i <= 6; i++) { const vx = W / 2 + i * (W / 6); ctx.beginPath(); ctx.moveTo(W / 2 + i * (W / 22), horizon); ctx.lineTo(vx, H); ctx.stroke(); }
+  ctx.restore();
+  // top light bloom
+  const top = ctx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, -H * 0.1, U * 0.9);
+  top.addColorStop(0, vsHexA(A, 0.14)); top.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = top; ctx.fillRect(0, 0, W, H);
+
   // ── 1) cinematic scrim + vignette so text always pops over the bg ──
   let g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, "rgba(6,8,14,0.30)");
@@ -14296,15 +14356,29 @@ async function exportStudioVideo() {
 
   buildPreviewCanvas(Number(vsVal("#vsExportSize", 1080)));
   canvas = $("#vsCanvas");   // fresh canvas at export resolution
-  const _exTitle = state.lang === "fa" ? "در حال خروجی گرفتن ویدئو…" : "Exporting your video…";
+  const _exTitle = state.lang === "fa" ? "در حال ساخت ویدئو…" : "Generating your video…";
   const _rendMsg = state.lang === "fa"
-    ? `در حال رندر ${canvas.width}×${canvas.height} — این تب را باز و روی صفحه نگه دار (اگر بروی تب دیگه بره، ویدئو لگ می‌زنه).`
-    : `Rendering ${canvas.width}×${canvas.height} — keep this tab open AND visible (switching tabs makes the video stutter).`;
+    ? "ویدئو در حال ساخته شدن است، کمی صبر کنید… (این تب را باز و روی صفحه نگه دارید)."
+    : "Your video is being generated, please wait a moment… (keep this tab open and visible).";
   vsStatus(_rendMsg);
   if (!vstudio._returnBlob) vsBuildOverlay(true, _rendMsg, _exTitle, 900000);
   const duration = studioDuration();
   const fps = 30;
-  const canvasStream = canvas.captureStream(fps);
+  // Prefer MANUAL frame capture (captureStream(0) + track.requestFrame()): it
+  // emits exactly one frame per rendered frame, so there is no beat-mismatch
+  // between the render loop and an automatic 30fps sampler — the #1 cause of the
+  // exported video juddering/pausing. Fall back to auto-sampling if the browser
+  // lacks requestFrame.
+  let canvasStream, _manualCap = false, _capTrack = null;
+  try {
+    canvasStream = canvas.captureStream(0);
+    _capTrack = canvasStream.getVideoTracks()[0];
+    if (_capTrack && typeof _capTrack.requestFrame === "function") _manualCap = true;
+    else { canvasStream = canvas.captureStream(fps); _capTrack = canvasStream.getVideoTracks()[0]; }
+  } catch (e) {
+    canvasStream = canvas.captureStream(fps);
+    _capTrack = canvasStream.getVideoTracks()[0];
+  }
 
   // mix in music + AI narration via raw AudioBuffers. Buffer sources are never
   // "tainted" by cross-origin audio and are captured reliably by the recorder
@@ -14418,11 +14492,11 @@ async function exportStudioVideo() {
           // fall back to saving the WebM we already have in hand.
           try {
             const _convMsg = state.lang === "fa"
-              ? "در حال تبدیل به MP4… (بار اول کمی طول می‌کشد)"
-              : "Converting to MP4… (first time takes longer)";
+              ? "ویدئو در حال ساخته شدن است، کمی صبر کنید…"
+              : "Your video is being generated, please wait a moment…";
             vsStatus(_convMsg);
             if (!vstudio._returnBlob) vsBuildOverlay(true, _convMsg,
-              (state.lang === "fa" ? "در حال خروجی گرفتن ویدئو…" : "Exporting your video…"), 900000);
+              (state.lang === "fa" ? "در حال ساخت ویدئو…" : "Generating your video…"), 900000);
             outBlob = await vsConvertToMp4(webmBlob);
             ext = "mp4";
           } catch (err) {
@@ -14538,25 +14612,45 @@ async function exportStudioVideo() {
   });
 
   await new Promise(resolve => {
+    const frameDur = 1000 / fps;
+    let frameIndex = 0;
+    const startPerf = performance.now();
+    vstudio.startTime = startPerf;
+    const finish = () => {
+      if (vstudio.isVideo && media) media.pause();
+      if (vstudio.musicEl) vstudio.musicEl.pause();
+      if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch {} }
+      if (vstudio._exportAudio) {
+        try { vstudio._exportAudio.sources.forEach(s => { try { s.stop(); } catch (e) {} }); } catch (e) {}
+        vstudio._exportAudio = null;
+      }
+      vstudio.slides.forEach(s => {
+        if (s.ready && s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
+      });
+      recorder.stop();
+      resolve();
+    };
     const loop = () => {
-      const elapsed = (performance.now() - vstudio.startTime) / 1000;
+      // In MANUAL mode the frame TIME is deterministic (frameIndex/fps) so every
+      // frame is evenly spaced — no dropped/duplicated frames. In fallback mode
+      // it stays wall-clock based.
+      const elapsed = _manualCap ? (frameIndex / fps) : (performance.now() - startPerf) / 1000;
       drawStudioFrame(elapsed);
       vsApplyMusicFade(elapsed, duration);
+      if (_manualCap && _capTrack) { try { _capTrack.requestFrame(); } catch (e) {} }
+      frameIndex++;
       if (elapsed < duration && !vstudio._batchCancel) {
-        vstudio.rafId = requestAnimationFrame(loop);
-      } else {
-        if (vstudio.isVideo && media) media.pause();
-        if (vstudio.musicEl) vstudio.musicEl.pause();
-        if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch {} }
-        if (vstudio._exportAudio) {
-          try { vstudio._exportAudio.sources.forEach(s => { try { s.stop(); } catch (e) {} }); } catch (e) {}
-          vstudio._exportAudio = null;
+        if (_manualCap) {
+          // pace each captured frame to real time so their (wall-clock) capture
+          // timestamps stay evenly spaced AND the realtime audio stays in sync.
+          const target = startPerf + frameIndex * frameDur;
+          const delay = Math.max(0, target - performance.now());
+          setTimeout(loop, delay);
+        } else {
+          vstudio.rafId = requestAnimationFrame(loop);
         }
-        vstudio.slides.forEach(s => {
-          if (s.ready && s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch {} }
-        });
-        recorder.stop();
-        resolve();
+      } else {
+        finish();
       }
     };
     loop();
