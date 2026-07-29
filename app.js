@@ -4507,6 +4507,49 @@ function addIntroSlide() {
 function vsAutoStatus(msg) {
   const el = document.querySelector("#vsAutoStatus");
   if (el) el.textContent = msg || "";
+  // mirror the stage text into the loading popup while a build is running
+  const ov = document.getElementById("vsBuildOverlay");
+  if (ov && ov.style.display !== "none") {
+    const t = ov.querySelector(".vsbo-msg");
+    if (t && msg) t.textContent = msg;
+  }
+}
+
+// Full-screen loading popup shown while a video is being generated, so the user
+// sees which stage is running (writing the script, generating images, …).
+function vsBuildOverlay(show, msg) {
+  let ov = document.getElementById("vsBuildOverlay");
+  if (!ov) {
+    const st = document.createElement("style");
+    st.textContent = `
+      #vsBuildOverlay{position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;background:rgba(4,8,18,.72);backdrop-filter:blur(6px)}
+      #vsBuildOverlay .vsbo{width:min(400px,90vw);text-align:center;color:#eaf0ff;font-family:system-ui;padding:26px}
+      #vsBuildOverlay .vsbo-ring{width:66px;height:66px;margin:0 auto 20px;border-radius:50%;border:4px solid rgba(255,255,255,.12);border-top-color:#22d3ee;border-right-color:#2563ff;animation:vsboSpin .9s linear infinite}
+      @keyframes vsboSpin{to{transform:rotate(360deg)}}
+      #vsBuildOverlay .vsbo-title{font-size:19px;font-weight:800;margin-bottom:8px}
+      #vsBuildOverlay .vsbo-msg{font-size:14px;color:#9fb2d8;min-height:20px;line-height:1.5}
+      #vsBuildOverlay .vsbo-bar{height:4px;border-radius:4px;margin:18px auto 0;max-width:220px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+      #vsBuildOverlay .vsbo-bar::after{content:"";position:absolute;inset:0;width:40%;border-radius:4px;background:linear-gradient(90deg,#22d3ee,#2563ff);animation:vsboSlide 1.3s ease-in-out infinite}
+      @keyframes vsboSlide{0%{left:-40%}100%{left:100%}}`;
+    document.head.appendChild(st);
+    const fa = state.lang === "fa";
+    ov = document.createElement("div");
+    ov.id = "vsBuildOverlay";
+    ov.innerHTML = `<div class="vsbo"><div class="vsbo-ring"></div>
+      <div class="vsbo-title">${fa ? "در حال ساخت ویدئو…" : "Building your video…"}</div>
+      <div class="vsbo-msg"></div><div class="vsbo-bar"></div></div>`;
+    document.body.appendChild(ov);
+  }
+  if (vstudio._boTimer) { clearTimeout(vstudio._boTimer); vstudio._boTimer = null; }
+  if (show) {
+    const t = ov.querySelector(".vsbo-msg");
+    if (t) t.textContent = msg || (state.lang === "fa" ? "شروع…" : "Starting…");
+    ov.style.display = "flex";
+    // safety: never leave the overlay stuck if a stage silently ends
+    vstudio._boTimer = setTimeout(() => { ov.style.display = "none"; }, 120000);
+  } else {
+    ov.style.display = "none";
+  }
 }
 
 // Pull a few "stat-like" pairs (label + number) out of free text.
@@ -4847,6 +4890,7 @@ async function buildAutoVideo(useAI) {
     return;
   }
   vsSaveActiveSlide();
+  vsBuildOverlay(true, state.lang === "fa" ? "شروع…" : "Starting…");
 
   if (!useAI) {
     vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
@@ -4854,6 +4898,7 @@ async function buildAutoVideo(useAI) {
     vsAutoStatus(state.lang === "fa"
       ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
       : `Built a ${vstudio.slides.length}-scene video.`);
+    vsBuildOverlay(false);
     return;
   }
 
@@ -5004,6 +5049,7 @@ SOURCE: """${text.slice(0, 9000)}"""`;
     vsAutoStatus(state.lang === "fa"
       ? `مدل هوشمند پاسخ نداد (${msg}). یک کلید معتبر OpenRouter وارد کن؛ ویدئوی ساده ساخته نشد.`
       : `The smart model failed (${msg}). Add a valid OpenRouter key; no basic fallback video was generated.`);
+    vsBuildOverlay(false);
     return;
   }
 }
@@ -5982,6 +6028,7 @@ async function vsEditorialBackgrounds(data) {
   await Promise.all(Array.from({ length: conc }, runOne));
   renderSlideList();
   drawStudioFrame(vstudio.position || 0);
+  vsBuildOverlay(false);
 }
 
 async function vsAutoGenerateBackgrounds(data) {
@@ -6128,15 +6175,18 @@ async function vsAutoGenerateBackgrounds(data) {
           : (parseFloat(value.replace(/[^0-9.\-]/g, "")) || 0);
         return { label: String(st.label || ""), value, num };
       });
-      const numMatch = /(\d[\d.,]*)\s*%/.exec(s.headline);
+      const pctMatch = /(\d[\d.,]*)\s*%/.exec(s.headline);
+      // catch ANY headline figure ("$150 billion", "3.2M", "40k users"), not
+      // just percentages — a scene that states a number deserves a stat graphic,
+      // never a plain text panel.
+      const numMatch = pctMatch || /\$?\s*(\d[\d.,]*)\s*(?:%|k\b|m\b|bn?\b|billion|million|thousand|trillion|x\b)/i.exec(s.headline);
       const hasNumber = !!numMatch || data2.some((d) => /\d/.test(d.value));
 
-      // MAISON rhythm: give a text-only scene (no real data) a solid statement
-      // panel now and then, for pacing — those carry no graphic. Randomised each
-      // build so the panels land on different scenes every time, but capped at
-      // one per video, and never on the slide reserved for the map.
+      // MAISON rhythm: give a text-only scene (NO number, no data) a solid
+      // statement panel now and then, for pacing — capped at one per video and
+      // never on the map slide. A scene with a figure gets a real graphic.
       const isForcedMap = i === forcedMapIdx;
-      const wantPanel = !isForcedMap && !data2.length && i > 0 && (i < slides.length - 1)
+      const wantPanel = !isForcedMap && !data2.length && !hasNumber && i > 0 && (i < slides.length - 1)
         && panelCount < 1 && RND() < panelChance;
       if (wantPanel) {
         s.panelLayout = RND() < 0.5 ? "halfInv" : "half";
@@ -6159,9 +6209,15 @@ async function vsAutoGenerateBackgrounds(data) {
         const items = data2.length ? data2.map((d) => shortLabel(d.label))
           : (localItems.length >= 3 ? localItems
             : (nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"]));
+        const isPct = numMatch && /%/.test(numMatch[0]);
         const heroVal = numMatch ? Math.min(100, Math.round(parseFloat(numMatch[1].replace(/,/g, ""))))
           : (data2.find((d) => d.num) ? Math.min(100, Math.round(Math.abs(data2.find((d) => d.num).num)))
             : (55 + ((i * 17) % 40)));
+        // a non-percentage headline figure ("$150 billion") is shown verbatim,
+        // compacted, instead of a misleading count-up percentage.
+        const valueText = (numMatch && !isPct)
+          ? String(numMatch[0]).replace(/\s+/g, "").replace(/billion/i, "B").replace(/million/i, "M").replace(/thousand/i, "K").replace(/trillion/i, "T").toUpperCase()
+          : null;
         const brandName = String((data && (data._batchName || data.title)) || "").split(/[\s—-]/)[0] || "Product";
         const hw = s.headline.split(/\s+/);
         s.sceneGraphic = {
@@ -6171,6 +6227,7 @@ async function vsAutoGenerateBackgrounds(data) {
           scope: kind === "map" ? mapScope : null,
           items: items.filter((x) => x && x.length).slice(0, 5),
           value: heroVal,
+          valueText,
           valueLabel: String((data2[0] && data2[0].label) || s._caption || s.headline).slice(0, 34),
           suffix: (numMatch && /%/.test(numMatch[0])) || data2.some((d) => /%/.test(d.value)) ? "%" : "",
           brand: (brandName || "product").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
@@ -6192,6 +6249,7 @@ async function vsAutoGenerateBackgrounds(data) {
     renderTemplatePicker();
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
+    vsBuildOverlay(false);
     return;
   }
 
@@ -6305,6 +6363,7 @@ async function vsAutoGenerateBackgrounds(data) {
     ? (made ? `فوتیج ${made} صحنه آماده شد.` : "فوتیج در دسترس نبود.")
     : (made ? `Footage ready for ${made} scene${made > 1 ? "s" : ""}.` : "Footage unavailable."));
   if (!vstudio.looping) previewStudioVideo(false);
+  vsBuildOverlay(false);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -6589,6 +6648,7 @@ function vsPickCities(names, fa) {
       .vs-pick .cancel{background:transparent;color:#cfc8ba;border-color:rgba(255,255,255,.18)}`;
       document.head.appendChild(st);
     }
+    vsBuildOverlay(false);   // hide the loading popup so the picker is usable
     const ov = document.createElement("div");
     ov.className = "vs-pick-ov";
     ov.innerHTML =
@@ -7969,10 +8029,14 @@ function applyPreviewSize() {
   // the aspect ratio locked, so the media is never stretched — it just
   // scales. maxWidth caps the on-screen width; maxHeight (in vh) caps
   // the height so tall clips don't overflow. Both scale by the same %.
+  // Cap BOTH dimensions to a % of the preview CONTAINER (not the viewport) so
+  // the frame always fits inside it — a vh cap could exceed the container and,
+  // with the stage's overflow:hidden, crop a tall (portrait) video at 100%.
   canvas.style.width = "auto";
   canvas.style.height = "auto";
   canvas.style.maxWidth = pct + "%";
-  canvas.style.maxHeight = (pct / 100 * 68) + "vh";
+  canvas.style.maxHeight = pct + "%";
+  canvas.style.objectFit = "contain";
   if (valEl) valEl.textContent = pct + "%";
 }
 
@@ -10047,6 +10111,7 @@ function vsSceneGraphicKind(text, i, opts) {
   if (nStat >= 3 && nNum >= Math.ceil(nStat / 2)) add("bars", "chart", "donut");
   if (nStat >= 2 && nNum === 0) add("attributes");            // qualitative fields
   if (nStat === 1 && nNum === 1) add("stat", "gauge", "progress");
+  if (nStat === 0 && opts.hasNumber) add("stat", "gauge");    // a headline figure → big stat
 
   // 3) Diverse rotation so runs with no signal still vary every slide.
   const rot = hasData
@@ -10498,15 +10563,20 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
   // stage box for the map
   const sx = W * 0.06, sw = W * 0.88, sy = H * 0.32, sh = H * 0.46;
   const cx = sx + sw / 2;
-  // live 3D camera: a slow breathing zoom + a hair of roll around the map centre
-  const camCx = cx, camCy = sy + sh * 0.45;
-  ctx.save();
-  ctx.translate(camCx, camCy);
-  ctx.scale(1 + Math.sin(t * 0.4) * 0.02, 1 + Math.sin(t * 0.4) * 0.02);
-  ctx.rotate(Math.sin(t * 0.22) * 0.012);
-  ctx.translate(-camCx, -camCy);
-  const yaw = Math.sin(t * 0.3) * 0.02;            // gentle camera pan (keeps shape readable)
   const tilt = 0.86;                               // vertical foreshorten (3D ground plane)
+  // live 3D camera: a SLOW ZOOM that pushes in toward the plotted locations
+  // (their centroid) over the scene, plus a hair of roll — not a static map.
+  let cnx = 0.5, cny = 0.5;
+  if (pins.length) { cnx = pins.reduce((a, p) => a + p.nx, 0) / pins.length; cny = pins.reduce((a, p) => a + p.ny, 0) / pins.length; }
+  const pivX = cx + (cnx - 0.5) * sw * (0.74 + cny * 0.26);
+  const pivY = sy + cny * sh * tilt;
+  const zoomIn = 1 + Math.min(0.4, t * 0.05) + Math.sin(t * 0.4) * 0.012;   // creeps in ~8s
+  ctx.save();
+  ctx.translate(pivX, pivY);
+  ctx.scale(zoomIn, zoomIn);
+  ctx.rotate(Math.sin(t * 0.22) * 0.01);
+  ctx.translate(-pivX, -pivY);
+  const yaw = Math.sin(t * 0.3) * 0.02;            // gentle camera pan (keeps shape readable)
   // project a normalised map point onto the tilted 3D ground plane
   const P = (nx, ny) => {
     const depth = 0.74 + ny * 0.26;                // far (north) smaller, near (south) larger
@@ -10683,10 +10753,15 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     const val = Number(o.value); const has = isFinite(val);
     const cv = has ? Math.round(Math.min(1, t / 1.3) * val) : 0;
     const cx = W / 2;
+    // A verbatim figure ("$150B") wins over a count-up percentage.
+    const disp = o.valueText ? String(o.valueText) : (has ? cv + (o.suffix || "%") : "—");
     ctx.textAlign = "center";
     softGlow(A, W * 0.06);
-    ctx.fillStyle = A; ctx.font = `800 ${W * 0.22}px ${F}`;
-    ctx.fillText(has ? cv + (o.suffix || "%") : String(o.valueText || "—"), cx, H * 0.49);
+    // shrink the hero figure to fit when it's a long verbatim value
+    let hp = W * 0.22; ctx.font = `800 ${hp}px ${F}`;
+    while (hp > W * 0.09 && ctx.measureText(disp).width > W * 0.86) { hp -= W * 0.006; ctx.font = `800 ${hp}px ${F}`; }
+    ctx.fillStyle = A;
+    ctx.fillText(disp, cx, H * 0.49);
     noGlow();
     ctx.fillStyle = "rgba(255,255,255,.62)"; fit(String(o.valueLabel || "").toUpperCase(), W * 0.82, "600", W * 0.034);
     ctx.fillText(String(o.valueLabel || "").toUpperCase(), cx, H * 0.565);
