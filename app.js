@@ -5383,6 +5383,7 @@ function vsAssembleFromSections(data, skipFootage) {
     isIntro: true, isOutro: true, introBg: bg(0),
     introMain: outroMain,
     introSub: outroSub, introMotion: "rise",
+    _sourceLine: srcLabel,              // credit the real source on the outro too
     headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3), settings: cleanSet2(),
     _timelineLabel: outroMain
   });
@@ -13052,38 +13053,39 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
     ctx.restore();
   }
 
-  // ── 10) bottom wordmark / CTA ──
-  const wm = "airadar.me";
+  // ── 10) bottom SOURCE credit — the real outlet the content came from, never
+  //    our own brand. If there's no source, show nothing at all. ──
+  const srcName = String((slide && slide._sourceLine) || "")
+    .replace(/^\s*(?:by|source)\s*[:·-]?\s*/i, "").trim().slice(0, 40);
   const we = Math.max(0, Math.min(1, (e - 0.4) / 0.5));
-  if (cen) {
-    // outro → prominent CTA row: arrow + wordmark
-    const cPx = Math.round(U * 0.05);
-    ctx.save();
-    ctx.globalAlpha = we;
-    ctx.font = `800 ${cPx}px ${sans}`;
-    const label = "→  " + wm;
-    const tw = ctx.measureText(label).width;
-    const padX = cPx * 0.8, ph = cPx * 1.9;
-    const bx = (W - (tw + padX * 2)) / 2, by = H * 0.8;
-    roundRectPath(ctx, bx, by, tw + padX * 2, ph, ph / 2);
-    ctx.fillStyle = A; ctx.shadowColor = A; ctx.shadowBlur = U * 0.03; ctx.fill(); ctx.shadowBlur = 0;
-    ctx.fillStyle = "#08111c"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(label, W / 2, by + ph / 2 + cPx * 0.03);
-    ctx.textBaseline = "alphabetic";
-    ctx.restore();
-  } else {
-    const wPx = Math.round(U * 0.03);
-    ctx.save();
-    ctx.globalAlpha = we * 0.7;
-    ctx.font = `700 ${wPx}px ${sans}`;
-    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-    // small accent tick, then the wordmark to its right (no overlap)
-    const tickW = U * 0.03 * we, tickGap = U * 0.02;
-    ctx.fillStyle = A;
-    ctx.fillRect(marginX, H * 0.93 - wPx * 0.32, tickW, U * 0.006);
-    ctx.fillStyle = vsHexA(TXT, 0.7);
-    ctx.fillText(wm.toUpperCase(), marginX + U * 0.03 + tickGap, H * 0.93);
-    ctx.restore();
+  if (srcName) {
+    const srcLbl = (state.lang === "fa" ? "منبع" : "SOURCE") + " · " + srcName.toUpperCase();
+    if (cen) {
+      // outro → a quiet centred source credit (no CTA, no brand)
+      const cPx = Math.round(U * 0.03);
+      ctx.save();
+      ctx.globalAlpha = we * 0.75;
+      ctx.font = `700 ${cPx}px ${sans}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = vsHexA(TXT, 0.75);
+      ctx.fillText(srcLbl, W / 2, H * 0.85);
+      // short accent underline above it
+      ctx.fillStyle = A;
+      ctx.fillRect(W / 2 - U * 0.03 * we, H * 0.85 - cPx * 1.4, U * 0.06 * we, U * 0.006);
+      ctx.restore();
+    } else {
+      const wPx = Math.round(U * 0.03);
+      ctx.save();
+      ctx.globalAlpha = we * 0.7;
+      ctx.font = `700 ${wPx}px ${sans}`;
+      ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      const tickW = U * 0.03 * we, tickGap = U * 0.02;
+      ctx.fillStyle = A;
+      ctx.fillRect(marginX, H * 0.93 - wPx * 0.32, tickW, U * 0.006);
+      ctx.fillStyle = vsHexA(TXT, 0.7);
+      ctx.fillText(srcLbl, marginX + U * 0.03 + tickGap, H * 0.93);
+      ctx.restore();
+    }
   }
 
   ctx.restore();
