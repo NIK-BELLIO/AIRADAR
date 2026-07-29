@@ -4953,7 +4953,10 @@ async function buildAutoVideo(useAI) {
   // This decides how strict fact-grounding is and how the prompt is framed.
   const hasSource = !!(url || window._vsAutoMode === "text" || text.length > 400);
 
-  const sectionRange = lenChoice === "short" ? "4 to 5" : lenChoice === "long" ? "8 to 10" : "6 to 7";
+  // The Length label counts TOTAL scenes (Short 4-5 · Medium 6-7 · Long 8-10),
+  // and every video already includes an intro + outro — so the AI writes 2 FEWER
+  // content sections than the label, keeping the finished video within the range.
+  const sectionRange = lenChoice === "short" ? "2 to 3" : lenChoice === "long" ? "6 to 8" : "4 to 5";
   const toneGuide = {
     news:        "authoritative broadcast-news director. Crisp, factual, urgent. Use title-left and title-center styles, bars/comparison charts.",
     explainer:   "friendly educator. Clear, step-by-step, builds understanding. Use title-center, donut/pills charts, simple language.",
@@ -5289,11 +5292,12 @@ function vsAssembleFromSections(data, skipFootage) {
   });
 
   let bi = 1;
-  // Scene count must honour the user's Length choice (Short 4-5 · Medium 6-7 ·
-  // Long 8-10) — in EVERY mode including motion-graphic. Clamp to that ceiling so
-  // the deck is never longer than the setting asks for.
+  // Scene count must honour the user's Length choice, which counts TOTAL scenes
+  // (Short 4-5 · Medium 6-7 · Long 8-10). Since intro + outro are 2 of those, the
+  // CONTENT sections are clamped to (total − 2) so the finished video lands in
+  // range — e.g. Medium = 5 content + intro + outro = 7 scenes, never 9.
   const _len = (document.querySelector("#vsAutoLen") || {}).value || "medium";
-  const _maxSections = _len === "short" ? 5 : _len === "long" ? 10 : 7;
+  const _maxSections = _len === "short" ? 3 : _len === "long" ? 8 : 5;
   const sections = (data.sections || []).slice(0, _maxSections);
   sections.forEach((sec, i) => {
     const set = cleanSet2();
@@ -13303,7 +13307,12 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
     lines[maxLines - 1] = last.replace(/\s+\S*$/, "") + "…";
   }
   const lineH = fontPx * 1.22;
-  const blockTop = -((lines.length - 1) * lineH) / 2;
+  // The gold accent-box word is drawn as an extra line BELOW the title lines, so
+  // centring only the lines leaves the whole composition sitting too low. Shift
+  // the block up by half the box's height so the title + box straddle the frame
+  // centre as one unit.
+  const titleShift = (useAccentBox && accentWord) ? -lineH * 0.5 : 0;
+  const blockTop = -((lines.length - 1) * lineH) / 2 + titleShift;
   if (clip < 1) {
     const tw = maxTextW;
     ctx.beginPath();
@@ -13370,7 +13379,7 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   // how far below centre the headline block reaches — used to place the
   // divider and secondary text so they never overlap a multi-line title.
   const headBottom = ((lines.length - 1) * lineH) / 2 + fontPx * 0.6
-    + (useAccentBox && accentWord ? lineH : 0);   // the gold accent box adds a line
+    + (useAccentBox && accentWord ? lineH : 0) + titleShift;   // gold box adds a line; keep centred
 
   // accent divider line — intro gets a fancier centred divider with a diamond
   const lw = U * (isIntro ? 0.2 : 0.14) * e;
@@ -13409,7 +13418,10 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
       let total = 0;
       const ws = chars.map(c => { const w = ctx.measureText(c).width + sp; total += w; return w; });
       let x = cx - total / 2;
-      const ebY = cy - headBottom - U * 0.075;
+      // anchor the eyebrow just above the ACTUAL first title line (not the
+      // symmetric headBottom, which the accent box makes asymmetric) so the
+      // title shift never lets the eyebrow collide with the headline.
+      const ebY = cy + blockTop - fontPx * 0.55 - U * 0.045;
       ctx.textAlign = "left";
       chars.forEach((c, i) => { ctx.fillText(c, x, ebY); x += ws[i]; });
       ctx.restore();
