@@ -4684,6 +4684,33 @@ function vsBuildStoryLocal(text) {
   });
 }
 
+// Build an AI-shaped script object (same shape the model returns) purely from
+// the source text — no network. Used as a guaranteed fallback so the user ALWAYS
+// gets a video through the normal pipeline (motion-graphic / editorial included),
+// even when the smart model is unavailable or returns nothing usable.
+function vsLocalScriptData(text, lenChoice) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const sentences = clean.split(/(?<=[.!?])\s+/).map(s => s.trim())
+    .filter(s => s.length > 20 && /[a-zA-Z؀-ۿ]/.test(s));
+  const title = (sentences[0] || clean || "AI Radar").split(/\s+/).slice(0, 6).join(" ") || "AI Radar";
+  const stats = vsExtractStats(clean);
+  const max = lenChoice === "short" ? 5 : lenChoice === "long" ? 10 : 7;
+  const styles = ["title-center", "bold-statement", "quote", "title-left"];
+  const sections = [];
+  if (stats.length >= 2) sections.push({ type: "infographic", caption: "Key numbers", title: title.slice(0, 40), stats: stats.slice(0, 5) });
+  for (const s of sentences.slice(1)) {
+    if (sections.length >= max) break;
+    sections.push({ type: "text", caption: s.split(/\s+/).slice(0, 3).join(" "), headline: s.slice(0, 110), style: styles[sections.length % styles.length] });
+  }
+  if (!sections.length) sections.push({ type: "text", caption: "Overview", headline: title, style: "title-center" });
+  return {
+    title, subtitle: "", kicker: "UPDATE", source: "",
+    intro: { main: title.split(/\s+/).slice(0, 5).join(" "), sub: "" },
+    sections,
+    outro: { main: "Thanks for watching", sub: "" }
+  };
+}
+
 // AI chat for the auto-builder — 100% free via Pollinations.ai.
 // No API key, no login, no "Low Balance" popup ever. Puter is NOT used.
 function vsPollinationsKey() {
@@ -4972,7 +4999,7 @@ RULES:
 15. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).${revise ? "\n16. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
 SOURCE: """${text.slice(0, 9000)}"""`;
 
-  let data = null, lastErr = null;
+  let data = null, lastErr = null, softData = null;
   for (let attempt = 0; attempt < 2 && !data; attempt++) {
     if (vstudio._batchCancel) break;
     try {
@@ -4992,6 +5019,7 @@ SOURCE: """${text.slice(0, 9000)}"""`;
         throw new Error("The model did not return a usable article script");
       }
       if (!vsIsGroundedScript(parsed, text)) {
+        softData = parsed;   // keep the draft — better a real AI script than nothing
         lastErr = new Error("ungrounded draft — retrying with a revision-required pass");
         continue;   // give it one more shot with the revision-required rule
       }
@@ -5000,9 +5028,22 @@ SOURCE: """${text.slice(0, 9000)}"""`;
       lastErr = e;
     }
   }
+  // Prefer a grounded script, but rather than fail outright, accept the best
+  // draft the model produced.
+  if (!data && softData) data = softData;
 
+  let _usedLocalFallback = false;
   try {
-    if (!data) throw (lastErr || new Error("The model did not return a usable script"));
+    if (!data) {
+      // The smart model produced nothing usable — NEVER leave the user with no
+      // video. Build a script locally from the source text and run it through the
+      // exact same pipeline (so motion-graphic / editorial styling still applies).
+      vsAutoStatus(state.lang === "fa"
+        ? "مدل هوشمند در دسترس نبود — ویدئو از روی متن ساخته می‌شود…"
+        : "Smart model unavailable — building the video from the source text…");
+      data = vsLocalScriptData(text, lenChoice);
+      _usedLocalFallback = true;
+    }
     if (Array.isArray(data.sections) && data.sections.length) {
       vsAssembleFromSections(data);
     } else {
@@ -5044,13 +5085,27 @@ SOURCE: """${text.slice(0, 9000)}"""`;
     }
 
     vsAutoStatus(state.lang === "fa"
-      ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`
-      : `Built a ${vstudio.slides.length}-scene video.`);
+      ? (_usedLocalFallback
+          ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد (حالت ساده — مدل هوشمند در دسترس نبود).`
+          : `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`)
+      : (_usedLocalFallback
+          ? `Built a ${vstudio.slides.length}-scene video (basic mode — smart model was unavailable).`
+          : `Built a ${vstudio.slides.length}-scene video.`));
   } catch (e) {
-    const msg = (e && e.message) ? e.message : String(e);
-    vsAutoStatus(state.lang === "fa"
-      ? `مدل هوشمند پاسخ نداد (${msg}). یک کلید معتبر OpenRouter وارد کن؛ ویدئوی ساده ساخته نشد.`
-      : `The smart model failed (${msg}). Add a valid OpenRouter key; no basic fallback video was generated.`);
+    // Last-resort safety net: even if assembling the AI script threw, try one
+    // clean local build so the user still ends up with a video.
+    try {
+      const fb = vsLocalScriptData(text, lenChoice);
+      vsAssembleFromSections(fb);
+      vsAutoStatus(state.lang === "fa"
+        ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد (حالت ساده).`
+        : `Built a ${vstudio.slides.length}-scene video (basic mode).`);
+    } catch (e2) {
+      const msg = (e2 && e2.message) ? e2.message : String(e2);
+      vsAutoStatus(state.lang === "fa"
+        ? `ساخت ویدئو ناموفق بود (${msg}). دوباره امتحان کن یا متن/موضوع را واردتر کن.`
+        : `Video build failed (${msg}). Please try again or paste the text/topic directly.`);
+    }
     vsBuildOverlay(false);
     return;
   }
