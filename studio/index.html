@@ -1608,16 +1608,7 @@
                 </div>
                 <input id="vsDuration" type="hidden" value="6" />
                 <p class="vstudio-note" data-i18n="vDurationNote">When you upload a video, the duration is set automatically to the clip's real length so it plays once, start to finish — no repeating.</p>
-                <div class="control-grid">
-                  <label><span data-i18n="vSpeedLabel">Playback speed</span>
-                    <select id="vsSpeed">
-                      <option value="0.5">0.5×</option>
-                      <option value="1" selected>1×</option>
-                      <option value="1.5">1.5×</option>
-                      <option value="2">2×</option>
-                    </select>
-                  </label>
-                </div>
+                <input id="vsSpeed" type="hidden" value="1" />
                 <div class="control-grid">
                   <label><span data-i18n="vTransitionLabel">Transition in</span>
                     <select id="vsTransition">
@@ -1630,33 +1621,13 @@
                   </label>
                   <label class="toggle-row"><input id="vsGrain" type="checkbox" /><span data-i18n="vGrainLabel">Film grain</span></label>
                 </div>
-                <span class="vstudio-label" data-i18n="vExportLabel">Export settings</span>
-                <div class="control-grid">
-                  <label><span data-i18n="vExportSizeLabel">Download size</span>
-                    <select id="vsExportSize">
-                      <option value="2160">4K — 2160p</option>
-                      <option value="1080" selected>Full HD — 1080p</option>
-                      <option value="720">HD — 720p</option>
-                      <option value="480">SD — 480p</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportQualityLabel">Download quality</span>
-                    <select id="vsExportQuality">
-                      <option value="max">Maximum</option>
-                      <option value="high" selected>High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low (small file)</option>
-                    </select>
-                  </label>
-                  <label><span data-i18n="vExportFormatLabel">File format</span>
-                    <select id="vsExportFormat">
-                      <option value="mp4" selected>MP4 (most compatible)</option>
-                      <option value="webm">WebM (faster, smaller)</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="vstudio-note" data-i18n="vExportFormatNote">MP4 is converted in your browser after recording. The first MP4 export downloads a one-time converter (~25 MB) and takes longer; later exports are quicker.</p>
-                <p class="vstudio-note" id="vsExportInfo" data-i18n="vExportInfo">Higher size and quality look better but make a larger file.</p>
+                <!-- Download size / quality / format now live in the Export popup
+                     (opened by the green Export button). Kept here as hidden state
+                     so the popup and the exporter still read/write them. -->
+                <input id="vsExportSize" type="hidden" value="1080" />
+                <input id="vsExportQuality" type="hidden" value="high" />
+                <input id="vsExportFormat" type="hidden" value="mp4" />
+                <p class="vstudio-note" id="vsExportInfo" style="display:none"></p>
               </div>
 
 
@@ -2592,7 +2563,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v393"></script>
+    <script src="/app.js?v=v394"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

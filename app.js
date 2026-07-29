@@ -7527,7 +7527,17 @@ function selectSlide(i) {
     // field that actually renders) so editing a scene's text doesn't
     // require scrolling down and opening that accordion section.
     const txt = $("#vsSlideText");
-    if (txt) txt.value = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
+    if (txt) {
+      // Show whatever on-screen text this scene actually renders, so it's always
+      // editable here: an infographic scene's headline lives in its JSON title,
+      // a news/text scene's in the News headline.
+      let onscreen = "";
+      if (s.settings && s.settings["#vsInfoOn"] && s.settings["#vsInfoJson"]) {
+        try { onscreen = JSON.parse(s.settings["#vsInfoJson"]).title || ""; } catch (e) {}
+      }
+      if (!onscreen) onscreen = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
+      txt.value = onscreen;
+    }
   }
   const du = $("#vsSlideDuration");
   if (du) du.value = s.duration || 4;
@@ -9250,6 +9260,11 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
     const titlePx = Math.min(Math.round(U * 0.08), Math.round(panelH * 0.17));
     const fittedPx = vsFitFont(ctx, data.title, panelW - padX * 2, "700", vsGetFont("Prata, serif"),
       titlePx, Math.round(U * 0.022));
+    // Drop the baseline so the title's ascenders always clear the accent line
+    // above it (previously a tall title sat ON the line). Uses the ACTUAL fitted
+    // size, so it clears whatever font height ended up being used.
+    const accentLineY = py + panelH * 0.07;
+    cy = Math.max(cy, accentLineY + fittedPx * 0.94 + H * 0.01);
     ctx.fillText(data.title, px + padX, cy);
     // space below title scales with the ACTUAL font size used
     cy += fittedPx * 1.5;
@@ -15441,8 +15456,16 @@ function bindEvents() {
   // screen) both ways, so typing here doesn't require scrolling down and
   // opening the News banner section, but that section still works too.
   on("#vsSlideText", "input", () => {
-    const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline"), newsOn = $("#vsNewsOn");
-    if (!txt || !newsHl) return;
+    const txt = $("#vsSlideText"); if (!txt) return;
+    const infoOn = $("#vsInfoOn"), infoTitle = $("#vsInfoTitle");
+    // Infographic scene → the on-screen text IS the infographic title.
+    if (infoOn && infoOn.checked && infoTitle) {
+      infoTitle.value = txt.value.slice(0, 48);
+      infoTitle.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+    const newsHl = $("#vsNewsHeadline"), newsOn = $("#vsNewsOn");
+    if (!newsHl) return;
     newsHl.value = txt.value;
     if (newsOn && !newsOn.checked && txt.value.trim()) {
       newsOn.checked = true;
@@ -15453,6 +15476,17 @@ function bindEvents() {
   on("#vsNewsHeadline", "input", () => {
     const txt = $("#vsSlideText"), newsHl = $("#vsNewsHeadline");
     if (txt && newsHl && txt.value !== newsHl.value) txt.value = newsHl.value;
+  });
+  on("#vsInfoTitle", "input", () => {
+    const txt = $("#vsSlideText"), it = $("#vsInfoTitle"), infoOn = $("#vsInfoOn");
+    if (txt && it && infoOn && infoOn.checked && txt.value !== it.value) txt.value = it.value;
+  });
+  // Transition in is a WHOLE-VIDEO setting: applying it to every slide means
+  // switching scenes never reverts it and the whole deck uses one transition.
+  on("#vsTransition", "change", () => {
+    const v = vsVal("#vsTransition", "fade");
+    vstudio.slides.forEach(s => { if (s.settings) s.settings["#vsTransition"] = v; });
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   });
 
   // Undo / redo: snapshot studio state after each settled change.
