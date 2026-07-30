@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Radar">
+  <rect width="64" height="64" rx="15" fill="#000000"/>
+  <path d="M19 51 L37 13" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
+  <path d="M43 51 L49 38" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
+</svg>

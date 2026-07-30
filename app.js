@@ -15481,6 +15481,13 @@ function bindEvents() {
     const txt = $("#vsSlideText"), it = $("#vsInfoTitle"), infoOn = $("#vsInfoOn");
     if (txt && it && infoOn && infoOn.checked && txt.value !== it.value) txt.value = it.value;
   });
+  // Transition in is a WHOLE-VIDEO setting: applying it writes to every scene so
+  // the choice holds no matter which slide is selected when you change it.
+  on("#vsTransition", "change", () => {
+    const v = vsVal("#vsTransition", "fade");
+    vstudio.slides.forEach(s => { if (s.settings) s.settings["#vsTransition"] = v; });
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  });
   // Transition in is a WHOLE-VIDEO setting: applying it to every slide means
   // switching scenes never reverts it and the whole deck uses one transition.
   on("#vsTransition", "change", () => {
