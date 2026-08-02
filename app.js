@@ -7214,10 +7214,9 @@ async function vsExportAllBatch() {
   const fa = state.lang === "fa";
   const vids = vstudio.batchVideos || [];
   if (!vids.length || vstudio._batchExporting) return;
-  const proceed = window.confirm(fa
-    ? `همهٔ ${vids.length} ویدئو ساخته و در یک فایل ZIP دانلود می‌شوند. ممکن است چند دقیقه طول بکشد و باید این تب باز بماند. ادامه؟`
-    : `This renders all ${vids.length} videos and downloads them as one .zip. It can take several minutes — keep this tab open. Continue?`);
-  if (!proceed) return;
+  // No native confirm() dialog — the in-app progress overlay already tells the
+  // user what's happening (and there's a new loading pop-up), so an extra
+  // browser prompt just gets in the way. Proceed straight to rendering.
 
   let JSZip = null;
   try { JSZip = await vsLoadJSZip(); }
@@ -11966,8 +11965,9 @@ function drawStudioFrame(elapsed) {
   const mw = media.videoWidth || media.naturalWidth || W;
   const mh = media.videoHeight || media.naturalHeight || H;
 
-  // transition in
-  const trans = dsVal("#vsTransition", "fade");
+  // transition in — read the LIVE global control (not the per-slide setting) so
+  // it's one whole-video choice that shows identically in preview AND export.
+  const trans = vsVal("#vsTransition", "fade");
   // CAMERA MOTION TIME: when slides exist, motion must progress across THIS
   // slide's own duration (dsLocal/dsDur) — not the whole timeline, otherwise
   // a 6s slide inside a 36s video barely moves. Single-clip mode uses global.
