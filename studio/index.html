@@ -1677,6 +1677,13 @@
                     <option value="br" selected>Bottom right</option>
                   </select>
                 </label>
+                <label><span data-i18n="vLogoSizeLabel">Logo size</span>
+                  <span class="vs-size-control" style="display:flex;align-items:center;gap:10px;">
+                    <input id="vsLogoSize" type="range" min="0.05" max="0.45" step="0.005" value="0.16" style="flex:1;" />
+                    <em id="vsLogoSizeVal" style="min-width:42px;text-align:right;font-weight:800;">16%</em>
+                  </span>
+                </label>
+                <p class="vstudio-note" data-i18n="vLogoSizeHint">Drag the slider — or scroll on the logo in the preview — to resize it.</p>
                 <label><span data-i18n="vLogoMotionLabel">Logo motion</span>
                   <select id="vsLogoMotion">
                     <option value="none">None (static)</option>
@@ -1727,14 +1734,6 @@
                     <option value="#ffffff">White</option>
                     <option value="#35d07f">Green</option>
                     <option value="#e0533d">Red</option>
-                  </select>
-                </label>
-                <label><span data-i18n="vLogoSizeLabel">Logo size</span>
-                  <select id="vsLogoSize">
-                    <option value="0.10">Small</option>
-                    <option value="0.16" selected>Medium</option>
-                    <option value="0.24">Large</option>
-                    <option value="0.34">Extra large</option>
                   </select>
                 </label>
                 </details>
@@ -2563,7 +2562,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v397"></script>
+    <script src="/app.js?v=v398"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

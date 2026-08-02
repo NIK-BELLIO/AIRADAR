@@ -12920,7 +12920,12 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
   const e = Math.max(0, Math.min(1, k));
   const ease = 1 - Math.pow(1 - e, 3);
   const easeQ = 1 - Math.pow(1 - e, 4);
-  const cen = !!isOutro;                         // outro is centre-aligned CTA
+  // Title-style variety: the outro is always the centred CTA, but INTROS
+  // alternate between the left-aligned (accent-bar) and centred (underline)
+  // treatments based on the headline — so back-to-back videos don't all open
+  // with the identical layout. Deterministic per title (stable within a video).
+  const _mainHash = (typeof hashStr === "function") ? Math.abs(hashStr(main)) : String(main).length;
+  const cen = !!isOutro || (!isOutro && (_mainHash % 2 === 1));
 
   ctx.save();
   ctx.textBaseline = "alphabetic";
@@ -15484,6 +15489,13 @@ function bindEvents() {
     on(sel, "input", vsRefresh);
     on(sel, "change", vsRefresh);
   });
+  // Live % readout next to the logo-size slider.
+  const _logoSizeLabel = () => {
+    const el = $("#vsLogoSize"), lbl = $("#vsLogoSizeVal");
+    if (el && lbl) lbl.textContent = Math.round((parseFloat(el.value) || 0.16) * 100) + "%";
+  };
+  on("#vsLogoSize", "input", _logoSizeLabel);
+  _logoSizeLabel();
   on("#vsAspect", "change", vsRefreshAspect);
 
   // Quick-access "Slide text" field, shown right where scenes are picked —
