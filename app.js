@@ -14382,6 +14382,37 @@ function vsShowExportOptions(onConfirm) {
   };
 }
 
+// Upload an exported video to the signed-in user's dashboard. The Studio and the
+// account app share the airadar.me origin (and its session cookie), so this
+// same-origin POST authenticates automatically. Fails quietly when the user is
+// not signed in (401), the file is too big for KV, or the account app isn't
+// reachable — the local download has already happened regardless.
+async function vsSaveToDashboard(blob, ext, name) {
+  try {
+    if (!blob || !blob.size || blob.size > 24 * 1024 * 1024) return;
+    // Grab a poster frame from the current canvas so the dashboard tile isn't blank.
+    let thumb = null;
+    try {
+      const cv = document.querySelector("#vsCanvas");
+      if (cv) {
+        const tc = document.createElement("canvas");
+        const scale = Math.min(1, 480 / Math.max(1, cv.width));
+        tc.width = Math.round(cv.width * scale); tc.height = Math.round(cv.height * scale);
+        tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
+        thumb = await new Promise(r => tc.toBlob(r, "image/jpeg", 0.7));
+      }
+    } catch (e) {}
+    const fd = new FormData();
+    fd.append("video", blob, (name || "ai-radar-video") + "." + (ext || "mp4"));
+    fd.append("title", String(vstudio._exportName || (vstudio.storyData && vstudio.storyData.title) || "AI Radar video").slice(0, 100));
+    if (thumb) fd.append("thumbnail", thumb, "thumb.jpg");
+    const res = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "same-origin" });
+    if (res && res.ok) {
+      vsStatus(state.lang === "fa" ? "در داشبورد شما هم ذخیره شد." : "Also saved to your dashboard.");
+    }
+  } catch (e) { /* dashboard save is best-effort — never disrupt the export */ }
+}
+
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -14644,6 +14675,9 @@ async function exportStudioVideo() {
       vsStatus(ext === "mp4"
         ? (state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.")
         : (state.lang === "fa" ? "ویدیوی WebM ذخیره شد." : "WebM video saved."));
+      // Also save a copy to the signed-in user's dashboard (silent if not
+      // logged in). Runs in the background — never blocks the download.
+      vsSaveToDashboard(outBlob, ext, safeName);
       resolve({ blob: outBlob, ext });
     };
   });
