@@ -7094,9 +7094,19 @@ async function vsLoadBatchVideo(i) {
     vstudio._narrationBuffer = null;
   }
 
+  // Motion-graphic decks carry their look in per-slide props (motionBg /
+  // sceneGraphic / panelLayout) that the footage cache does NOT capture, and they
+  // need no network footage — so always REGENERATE them instead of restoring a
+  // cache that would drop the animation and leave plain template slides. This is
+  // what made "a separate video per item" come out un-styled in motion-graphic
+  // (and editorial) mode.
+  // (Motion-graphic only: its backgrounds are generated vectors — free and fast
+  // to rebuild. Editorial uses network AI images, so it keeps using the cache to
+  // avoid re-fetching on every switch.)
+  const _regenModes = vstudio._motionGfxMode;
   // Restore previously-generated footage (slides are rebuilt fresh each open, so
   // footage must be cached on the video object or it would vanish on switch).
-  if (v._mediaCache && v._mediaCache.length) {
+  if (!_regenModes && v._mediaCache && v._mediaCache.length) {
     v._mediaCache.forEach((m, idx) => {
       const s = vstudio.slides[idx];
       if (s && m && m.el) {
@@ -14696,8 +14706,6 @@ async function exportStudioVideo() {
   });
 
   await new Promise(resolve => {
-    const frameDur = 1000 / fps;
-    let frameIndex = 0;
     const startPerf = performance.now();
     vstudio.startTime = startPerf;
     const finish = () => {
@@ -14715,24 +14723,17 @@ async function exportStudioVideo() {
       resolve();
     };
     const loop = () => {
-      // In MANUAL mode the frame TIME is deterministic (frameIndex/fps) so every
-      // frame is evenly spaced — no dropped/duplicated frames. In fallback mode
-      // it stays wall-clock based.
-      const elapsed = _manualCap ? (frameIndex / fps) : (performance.now() - startPerf) / 1000;
+      // WALL-CLOCK time keeps footage <video> playback in sync with the frame we
+      // draw (a deterministic clock drifted from the videos' realtime playback and
+      // made footage stutter). Emitting exactly ONE captured frame per draw via
+      // requestFrame avoids the auto-sampler grabbing duplicate/stale frames —
+      // the beat mismatch that made the file judder — without desyncing footage.
+      const elapsed = (performance.now() - startPerf) / 1000;
       drawStudioFrame(elapsed);
       vsApplyMusicFade(elapsed, duration);
       if (_manualCap && _capTrack) { try { _capTrack.requestFrame(); } catch (e) {} }
-      frameIndex++;
       if (elapsed < duration && !vstudio._batchCancel) {
-        if (_manualCap) {
-          // pace each captured frame to real time so their (wall-clock) capture
-          // timestamps stay evenly spaced AND the realtime audio stays in sync.
-          const target = startPerf + frameIndex * frameDur;
-          const delay = Math.max(0, target - performance.now());
-          setTimeout(loop, delay);
-        } else {
-          vstudio.rafId = requestAnimationFrame(loop);
-        }
+        vstudio.rafId = requestAnimationFrame(loop);
       } else {
         finish();
       }
