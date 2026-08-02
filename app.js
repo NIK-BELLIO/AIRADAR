@@ -4517,7 +4517,12 @@ function vsAutoStatus(msg) {
 
 // Full-screen loading popup shown while a video is being generated, so the user
 // sees which stage is running (writing the script, generating images, …).
-function vsBuildOverlay(show, msg, title, timeoutMs) {
+// `opts`: { onCancel?: fn, progress?: 0..1 }. When onCancel is set a Cancel
+// button appears; when progress is a number the bar becomes determinate. This is
+// the ONE popup used everywhere now (builds, exports, batch) — the old batch
+// popup delegates to it.
+function vsBuildOverlay(show, msg, title, timeoutMs, opts) {
+  opts = opts || {};
   let ov = document.getElementById("vsBuildOverlay");
   if (!ov) {
     const st = document.createElement("style");
@@ -4528,29 +4533,63 @@ function vsBuildOverlay(show, msg, title, timeoutMs) {
       @keyframes vsboSpin{to{transform:rotate(360deg)}}
       #vsBuildOverlay .vsbo-title{font-size:19px;font-weight:800;margin-bottom:8px}
       #vsBuildOverlay .vsbo-msg{font-size:14px;color:#9fb2d8;min-height:20px;line-height:1.5}
-      #vsBuildOverlay .vsbo-bar{height:4px;border-radius:4px;margin:18px auto 0;max-width:220px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
-      #vsBuildOverlay .vsbo-bar::after{content:"";position:absolute;inset:0;width:40%;border-radius:4px;background:linear-gradient(90deg,#22d3ee,#2563ff);animation:vsboSlide 1.3s ease-in-out infinite}
-      @keyframes vsboSlide{0%{left:-40%}100%{left:100%}}`;
+      #vsBuildOverlay .vsbo-bar{height:5px;border-radius:5px;margin:18px auto 0;max-width:240px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+      #vsBuildOverlay .vsbo-bar::after{content:"";position:absolute;inset:0;width:40%;border-radius:5px;background:linear-gradient(90deg,#22d3ee,#2563ff);animation:vsboSlide 1.3s ease-in-out infinite}
+      #vsBuildOverlay .vsbo-bar.determinate::after{display:none}
+      #vsBuildOverlay .vsbo-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;background:linear-gradient(90deg,#22d3ee,#2563ff);transition:width .35s ease}
+      @keyframes vsboSlide{0%{left:-40%}100%{left:100%}}
+      #vsBuildOverlay .vsbo-cancel{display:none;margin:20px auto 0;padding:10px 22px;border:1px solid rgba(255,120,120,.4);border-radius:999px;background:rgba(255,80,80,.12);color:#ff9a9a;font-weight:800;font-size:13px;cursor:pointer}
+      #vsBuildOverlay .vsbo-cancel:hover{background:rgba(255,80,80,.2)}
+      #vsBuildOverlay .vsbo-cancel:disabled{opacity:.6;cursor:default}`;
     document.head.appendChild(st);
     const fa = state.lang === "fa";
     ov = document.createElement("div");
     ov.id = "vsBuildOverlay";
     ov.innerHTML = `<div class="vsbo"><div class="vsbo-ring"></div>
       <div class="vsbo-title">${fa ? "در حال ساخت ویدئو…" : "Building your video…"}</div>
-      <div class="vsbo-msg"></div><div class="vsbo-bar"></div></div>`;
+      <div class="vsbo-msg"></div><div class="vsbo-bar"><i class="vsbo-fill"></i></div>
+      <button type="button" class="vsbo-cancel"></button></div>`;
     document.body.appendChild(ov);
   }
   if (vstudio._boTimer) { clearTimeout(vstudio._boTimer); vstudio._boTimer = null; }
+  const bar = ov.querySelector(".vsbo-bar"), fill = ov.querySelector(".vsbo-fill"), cancel = ov.querySelector(".vsbo-cancel");
   if (show) {
+    const fa = state.lang === "fa";
     const t = ov.querySelector(".vsbo-msg");
-    if (t) t.textContent = msg || (state.lang === "fa" ? "شروع…" : "Starting…");
+    if (t) t.textContent = msg || (fa ? "شروع…" : "Starting…");
     const ti = ov.querySelector(".vsbo-title");
-    if (ti) ti.textContent = title || (state.lang === "fa" ? "در حال ساخت ویدئو…" : "Building your video…");
+    if (ti) ti.textContent = title || (fa ? "در حال ساخت ویدئو…" : "Building your video…");
+    // progress bar: determinate when a number is given, else the sliding loop
+    if (bar && fill) {
+      if (typeof opts.progress === "number") {
+        bar.classList.add("determinate");
+        fill.style.width = Math.max(0, Math.min(1, opts.progress)) * 100 + "%";
+      } else {
+        bar.classList.remove("determinate");
+        fill.style.width = "0";
+      }
+    }
+    // Cancel button — only when a handler is supplied
+    if (cancel) {
+      if (typeof opts.onCancel === "function") {
+        cancel.style.display = "block";
+        if (!vstudio._boCancelling) { cancel.disabled = false; cancel.textContent = fa ? "لغو" : "Cancel"; }
+        cancel.onclick = () => {
+          vstudio._boCancelling = true;
+          cancel.disabled = true;
+          cancel.textContent = fa ? "در حال لغو…" : "Cancelling…";
+          try { opts.onCancel(); } catch (e) {}
+        };
+      } else {
+        cancel.style.display = "none";
+      }
+    }
     ov.style.display = "flex";
     // safety: never leave the overlay stuck if a stage silently ends
     vstudio._boTimer = setTimeout(() => { ov.style.display = "none"; }, timeoutMs || 120000);
   } else {
     ov.style.display = "none";
+    vstudio._boCancelling = false;
   }
 }
 
@@ -4919,7 +4958,9 @@ async function buildAutoVideo(useAI) {
     return;
   }
   vsSaveActiveSlide();
-  vsBuildOverlay(true, state.lang === "fa" ? "شروع…" : "Starting…");
+  vstudio._batchCancel = false;   // fresh cancel state for this build
+  vsBuildOverlay(true, state.lang === "fa" ? "شروع…" : "Starting…", null, 120000,
+    { onCancel: () => { vstudio._batchCancel = true; } });
 
   if (!useAI) {
     vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
@@ -6666,32 +6707,16 @@ function vsBasicCityData(name, excerpt, topic, source, count) {
 }
 
 // Small floating progress popup shown while a batch builds / exports.
+// Batch progress now uses the SAME modern popup (vsBuildOverlay) as everything
+// else — with a determinate progress bar and a Cancel button — instead of the
+// old bespoke bottom card.
 function vsBatchProgress(show, current, total, label) {
-  let el = document.getElementById("vsBatchProg");
-  if (!show) { if (el) el.classList.remove("show"); return; }
   const fa = state.lang === "fa";
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "vsBatchProg";
-    el.innerHTML = '<div class="vsbp-title"></div><div class="vsbp-bar"><span></span></div>' +
-      '<div class="vsbp-sub"></div><button type="button" class="vsbp-cancel"></button>';
-    document.body.appendChild(el);
-    el.querySelector(".vsbp-cancel").addEventListener("click", () => {
-      vstudio._batchCancel = true;
-      el.querySelector(".vsbp-cancel").textContent = fa ? "در حال لغو…" : "Cancelling…";
-      el.querySelector(".vsbp-cancel").disabled = true;
-    });
-  }
-  el.classList.add("show");
-  const cancelBtn = el.querySelector(".vsbp-cancel");
-  if (!vstudio._batchCancel) {            // don't override the "Cancelling…" state
-    cancelBtn.disabled = false;
-    cancelBtn.textContent = fa ? "لغو" : "Cancel";
-  }
-  const pct = total ? Math.round((current / total) * 100) : 0;
-  el.querySelector(".vsbp-title").textContent = (fa ? "ساخت ویدئوها… " : "Building videos… ") + current + "/" + total;
-  el.querySelector(".vsbp-bar > span").style.width = pct + "%";
-  el.querySelector(".vsbp-sub").textContent = label || "";
+  if (!show) { vsBuildOverlay(false); return; }
+  vsBuildOverlay(true, label || "",
+    (fa ? "ساخت ویدئوها… " : "Building videos… ") + current + "/" + (total || "?"),
+    900000,
+    { progress: total ? current / total : 0, onCancel: () => { vstudio._batchCancel = true; } });
 }
 
 // Popup: show the detected items with checkboxes so the user picks which ones
@@ -14394,7 +14419,7 @@ function vsShowExportOptions(onConfirm) {
 // reachable — the local download has already happened regardless.
 async function vsSaveToDashboard(blob, ext, name) {
   try {
-    if (!blob || !blob.size || blob.size > 24 * 1024 * 1024) return;
+    if (!blob || !blob.size || blob.size > 60 * 1024 * 1024) return;
     // Grab a poster frame from the current canvas so the dashboard tile isn't blank.
     let thumb = null;
     try {
@@ -14491,7 +14516,10 @@ async function exportStudioVideo() {
     ? "ویدئو در حال ساخته شدن است، کمی صبر کنید… (این تب را باز و روی صفحه نگه دارید)."
     : "Your video is being generated, please wait a moment… (keep this tab open and visible).";
   vsStatus(_rendMsg);
-  if (!vstudio._returnBlob) vsBuildOverlay(true, _rendMsg, _exTitle, 900000);
+  if (!vstudio._returnBlob) {
+    vstudio._batchCancel = false;   // fresh cancel state for this single export
+    vsBuildOverlay(true, _rendMsg, _exTitle, 900000, { onCancel: () => { vstudio._batchCancel = true; } });
+  }
   const duration = studioDuration();
   const fps = 30;
   // Prefer MANUAL frame capture (captureStream(0) + track.requestFrame()): it
@@ -14666,6 +14694,9 @@ async function exportStudioVideo() {
       if (vstudio._returnBlob) {             // hand blob back for zipping — no individual download
         setTimeout(() => URL.revokeObjectURL(url), 4000);
         vstudio.rendering = false;
+        // Still save each batch video to the dashboard even though it isn't
+        // downloaded individually (it's going into the ZIP).
+        vsSaveToDashboard(outBlob, ext, (vstudio._exportName || "ai-radar-video"));
         resolve({ blob: outBlob, ext });
         return;
       }
