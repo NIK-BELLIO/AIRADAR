@@ -1,5 +1,10 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Radar">
-  <rect width="64" height="64" rx="15" fill="#000000"/>
-  <path d="M19 51 L37 13" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
-  <path d="M43 51 L49 38" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="arg" x1="12" y1="56" x2="52" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1ac8ec"/>
+      <stop offset="1" stop-color="#155e96"/>
+    </linearGradient>
+  </defs>
+  <path d="M15 52 L36 12" fill="none" stroke="url(#arg)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M49 43 L51 54" fill="none" stroke="url(#arg)" stroke-width="18" stroke-linecap="round"/>
 </svg>
