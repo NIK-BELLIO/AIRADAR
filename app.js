@@ -10422,11 +10422,11 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       if (data && e > 0.6) {
         ctx.globalAlpha = (e - 0.6) / 0.4;
         ctx.textAlign = "center";
-        ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.030}px ${F}`;
-        ctx.fillText(String(data[i].value || "").slice(0, 8), bx + bw / 2, y + h - bh - H * 0.012);
-        ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.019}px ${F}`;
+        ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.04}px ${F}`;
+        ctx.fillText(String(data[i].value || "").slice(0, 8), bx + bw / 2, y + h - bh - H * 0.014);
+        ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = `700 ${W * 0.027}px ${F}`;
         const lbl = String(data[i].label || "").slice(0, 12);
-        ctx.fillText(lbl, bx + bw / 2, y + h + H * 0.028);
+        ctx.fillText(lbl, bx + bw / 2, y + h + H * 0.032);
         ctx.globalAlpha = 1;
       }
     });
@@ -10958,8 +10958,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       roundRectPath(ctx, bx, baseY - bh, barW, bh, W * 0.02); ctx.fillStyle = g; ctx.fill();
       ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.044}px ${F}`;
       if (e > 0.7) { ctx.globalAlpha = (e - 0.7) / 0.3; ctx.fillText(String(it.value).slice(0, 8), bx + barW / 2, baseY - bh - H * 0.02); ctx.globalAlpha = 1; }
-      ctx.fillStyle = "rgba(255,255,255,.6)"; fit(String(it.label).toUpperCase(), barW * 1.25, "600", W * 0.026);
-      ctx.fillText(String(it.label).toUpperCase().slice(0, 18), bx + barW / 2, baseY + H * 0.04);
+      ctx.fillStyle = "rgba(255,255,255,.75)"; fit(String(it.label).toUpperCase(), barW * 1.4, "700", W * 0.032);
+      ctx.fillText(String(it.label).toUpperCase().slice(0, 18), bx + barW / 2, baseY + H * 0.045);
     });
     ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.03}px ${F}`;
     ctx.fillText("VS", cx, baseY - maxH * 0.42);
@@ -11176,7 +11176,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
         const lx = cx + Math.cos(mid) * (R + W * 0.03), ly = cy + Math.sin(mid) * (R + W * 0.03);
         ctx.globalAlpha = (sweep - 0.6) / 0.4;
         ctx.textAlign = Math.cos(mid) < 0 ? "right" : "left"; ctx.textBaseline = "middle";
-        ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+        ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.font = `700 ${W * 0.031}px ${F}`;
         ctx.fillText(String(it.label).slice(0, 12), lx, ly); ctx.globalAlpha = 1;
       }
       ang = ang + frac * Math.PI * 2;
@@ -11186,8 +11186,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.07}px ${F}`;
     ctx.fillText(String(d[0] && d[0].value || "").slice(0, 6), cx, cy - W * 0.006);
-    ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `600 ${W * 0.024}px ${F}`;
-    ctx.fillText(String(d[0] && d[0].label || "").toUpperCase().slice(0, 14), cx, cy + W * 0.05);
+    ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = `700 ${W * 0.03}px ${F}`;
+    ctx.fillText(String(d[0] && d[0].label || "").toUpperCase().slice(0, 14), cx, cy + W * 0.052);
     ctx.textBaseline = "alphabetic";
 
   } else if (kind === "progress") {
@@ -11206,7 +11206,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke(); noGlow();
       // label + value at ring start (right side)
       ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = `700 ${W * 0.026}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.font = `700 ${W * 0.032}px ${F}`;
       ctx.fillText(String(it.label).slice(0, 14) + "  " + String(it.value).slice(0, 6), cx + R0 + W * 0.03, cy - i * (gap + lw) * 0 + (r - R0));
     });
     ctx.textBaseline = "alphabetic";
