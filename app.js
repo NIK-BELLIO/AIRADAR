@@ -5021,7 +5021,7 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
@@ -5420,7 +5420,7 @@ function vsAssembleFromSections(data, skipFootage) {
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
-        _narration: sec.narration || "", _evidence: sec.evidence || "",
+        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [],
         _caption: sec.caption || "Key numbers", _visual: sec.visual || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
@@ -5468,7 +5468,7 @@ function vsAssembleFromSections(data, skipFootage) {
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
-        _narration: sec.narration || "", _evidence: sec.evidence || "",
+        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [],
         _caption: sec.caption || "", _visual: sec.visual || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
@@ -6311,12 +6311,20 @@ async function vsAutoGenerateBackgrounds(data) {
         if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
         if (kind === "map") usedMap = true;
         prevKind = kind;
-        // Concept graphics want short labels; prefer this scene's own key words,
-        // fall back to the deck-wide node labels.
+        // Concept graphics (network/orbit/radar/flow…) label their nodes with
+        // `items`. Chopped headline words ("Battery / pack / prices / below")
+        // read as broken, so PREFER the clean keyword list the AI wrote for this
+        // scene, then real data labels, then the deck-wide concepts. Raw headline
+        // words are only the last resort.
+        const cleanKw = (arr) => (Array.isArray(arr) ? arr : [])
+          .map((k) => shortLabel(String(k || "")).replace(/[^\w %$+.-]/g, "").trim())
+          .filter((k) => k && k.length >= 2 && k.length <= 18);
+        const aiKw = cleanKw(s._keywords);
         const localItems = keyTokens(s.headline).slice(0, 5);
         const items = data2.length ? data2.map((d) => shortLabel(d.label))
-          : (localItems.length >= 3 ? localItems
-            : (nodeLabels.length >= 3 ? nodeLabels : ["Signal", "Pattern", "Action"]));
+          : (aiKw.length >= 3 ? aiKw
+            : (nodeLabels.length >= 3 ? nodeLabels
+              : (localItems.length >= 3 ? localItems : ["Signal", "Pattern", "Action"])));
         const isPct = numMatch && /%/.test(numMatch[0]);
         // Only surface a hero NUMBER when the content actually states one — a real
         // percentage in the headline or a real numeric stat. Otherwise leave it
@@ -10239,9 +10247,15 @@ function vsSceneGraphicKind(text, i, opts) {
   if (nStat === 0 && opts.hasNumber) add("stat", "gauge");    // a headline figure → big stat
 
   // 3) Diverse rotation so runs with no signal still vary every slide.
+  //    IMPORTANT: timeline / flow / cycle / pyramid label their milestones with
+  //    the scene's items — and for a narrative headline those items are just
+  //    chopped headline words ("Battery / pack / prices …"), which reads as broken
+  //    and implies a false sequence. So they are NOT in the rotation; they appear
+  //    ONLY on a genuine keyword match above (real steps / cycle / roadmap /
+  //    hierarchy). Rotation uses graphics that read well from loose concept words.
   const rot = hasData
-    ? ["chart", "donut", "network", "area", "timeline", "flow", "progress", "cycle", "bars", "funnel", "orbit", "pyramid", "gauge", "radar"]
-    : CONCEPT;
+    ? ["chart", "donut", "bars", "area", "progress", "compare", "network", "radar", "orbit", "gauge", "funnel"]
+    : ["radar", "network", "orbit"];
   add(rot[i % rot.length], rot[(i * 3 + 1) % rot.length], rot[(i * 5 + 2) % rot.length]);
 
   // pick the first candidate that isn't a repeat of the previous scene
@@ -10778,7 +10792,8 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
       ctx.font = `700 ${fs}px ${F}`;
       const lw = ctx.measureText(lbl).width + W * 0.03;
       const ph = fs * 1.5, gap = W * 0.02;
-      const px0 = p[0] - lw / 2, py = below ? p[1] + gap : p[1] - gap - ph;
+      const px0 = Math.max(W * 0.015, Math.min(W - lw - W * 0.015, p[0] - lw / 2));
+      const py = below ? p[1] + gap : p[1] - gap - ph;
       // skip the chip (keep the dot) if it would collide with one already drawn
       const box = { x: px0, y: py, w: lw, h: ph };
       const hit = drawnLabels.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
@@ -10787,7 +10802,7 @@ function drawSceneMap(ctx, W, H, t, o, A, F, items) {
       roundRectPath(ctx, px0, py, lw, ph, W * 0.009);
       ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
       ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
-      ctx.fillText(lbl, p[0], py + ph / 2 + fs * 0.05);
+      ctx.fillText(lbl, px0 + lw / 2, py + ph / 2 + fs * 0.05);
       ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     }
   });
@@ -10864,14 +10879,16 @@ function drawSceneWorldMap(ctx, W, H, t, o, A, F) {
       const fs = pts.length > 5 ? W * 0.034 : W * 0.040, below = pts.length > 5 && (i % 2 === 1);
       ctx.textAlign = "center"; ctx.globalAlpha = e; ctx.font = `700 ${fs}px ${F}`;
       const lw = ctx.measureText(lbl).width + W * 0.03, ph = fs * 1.5, gap = W * 0.02;
-      const px0 = p[0] - lw / 2, py = below ? p[1] + gap : p[1] - gap - ph;
+      // clamp the chip inside the frame so edge pins (e.g. "America") aren't clipped
+      const px0 = Math.max(W * 0.015, Math.min(W - lw - W * 0.015, p[0] - lw / 2));
+      const py = below ? p[1] + gap : p[1] - gap - ph;
       const box = { x: px0, y: py, w: lw, h: ph };
       if (drawn.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) { ctx.globalAlpha = 1; return; }
       drawn.push(box);
       roundRectPath(ctx, px0, py, lw, ph, W * 0.009);
       ctx.fillStyle = "rgba(8,12,20,.85)"; ctx.fill();
       ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
-      ctx.fillText(lbl, p[0], py + ph / 2 + fs * 0.05);
+      ctx.fillText(lbl, px0 + lw / 2, py + ph / 2 + fs * 0.05);
       ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     }
   });
@@ -11191,10 +11208,11 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.textBaseline = "alphabetic";
 
   } else if (kind === "progress") {
-    // Concentric progress rings — one per metric, counting up.
+    // Concentric progress rings — one per metric — with a CENTRED legend below so
+    // labels/values are always readable and never clipped off the frame edge.
     const d = (data && data.length) ? data.slice(0, 4)
       : items.slice(0, 3).map((l, i) => ({ label: l, num: 80 - i * 20, value: (80 - i * 20) + "%" }));
-    const cx = W / 2, cy = H * 0.5, R0 = U * 0.30, gap = U * 0.058, lw = U * 0.034;
+    const cx = W / 2, cy = H * 0.42, R0 = U * 0.25, gap = U * 0.048, lw = U * 0.03;
     d.forEach((it, i) => {
       const r = R0 - i * (gap + lw), val = Math.max(0, Math.min(100, Math.abs(it.num) || 0));
       const p = Math.min(1, t / 1.2) * (val / 100);
@@ -11204,12 +11222,25 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.strokeStyle = i === 0 ? A : vsHexA(A, 0.85 - i * 0.18);
       if (i === 0) softGlow(A, W * 0.02);
       ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke(); noGlow();
-      // label + value at ring start (right side)
-      ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.font = `700 ${W * 0.032}px ${F}`;
-      ctx.fillText(String(it.label).slice(0, 14) + "  " + String(it.value).slice(0, 6), cx + R0 + W * 0.03, cy - i * (gap + lw) * 0 + (r - R0));
     });
-    ctx.textBaseline = "alphabetic";
+    let ly = cy + R0 + U * 0.10;
+    d.forEach((it, i) => {
+      const col = i === 0 ? A : vsHexA(A, 0.85 - i * 0.18);
+      const lbl = String(it.label).slice(0, 22), val = String(it.value).slice(0, 8);
+      ctx.font = `700 ${W * 0.034}px ${F}`;
+      const tw = ctx.measureText(lbl).width;
+      ctx.font = `800 ${W * 0.038}px ${F}`; const vw = ctx.measureText(val).width;
+      const dotR = W * 0.011, gapx = W * 0.02, total = dotR * 2 + gapx + tw + W * 0.05 + vw;
+      const x0 = cx - total / 2;
+      ctx.beginPath(); ctx.arc(x0 + dotR, ly, dotR, 0, 7); ctx.fillStyle = col; ctx.fill();
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.font = `700 ${W * 0.034}px ${F}`;
+      ctx.fillText(lbl, x0 + dotR * 2 + gapx, ly);
+      ctx.textAlign = "right"; ctx.fillStyle = col; ctx.font = `800 ${W * 0.038}px ${F}`;
+      ctx.fillText(val, x0 + total, ly);
+      ly += U * 0.072;
+    });
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
 
   } else if (kind === "area") {
     // Rising area + line chart with a moving head dot — reads as growth.
