@@ -4304,6 +4304,12 @@ function bindIntroEditor() {
       e.preventDefault();
       e.stopPropagation();
       var mode = btn.dataset.mode || "smart";
+      var prevMode = window._vsAutoMode || "smart";
+      // Each mode keeps its OWN text: what you type in Smart must NOT show up in
+      // From-text (and vice-versa) — otherwise the modes are indistinguishable.
+      window._vsModeText = window._vsModeText || { smart: "", link: "", text: "" };
+      var _prevTa = document.querySelector("#vsAutoTopic");
+      if (_prevTa && prevMode !== mode) window._vsModeText[prevMode] = _prevTa.value;
       window._vsAutoMode = mode;
       // toggle active state across all mode buttons
       var all = document.querySelectorAll(".vs-auto-mode-btn");
@@ -4318,6 +4324,8 @@ function bindIntroEditor() {
         if (mode==="smart"){ topicLbl.textContent="What should the video be about?"; topicTa.placeholder="e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
         else if (mode==="link"){ topicLbl.textContent="Notes (optional — used if the link can't be read)"; topicTa.placeholder="Optional fallback text…"; }
         else { topicLbl.textContent="Paste your article or text"; topicTa.placeholder="Paste the full article text here…"; }
+        // restore THIS mode's own independent text
+        if (prevMode !== mode) topicTa.value = window._vsModeText[mode] || "";
       }
     });
   }
@@ -6017,7 +6025,7 @@ function vsEditorialImagePrompt(visual, topic) {
   const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
   const ctx2 = String(topic || "").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
   const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase()) ? `${subj}, in the context of ${ctx2}` : subj;
-  return `professional editorial photograph of ${withCtx}, a real literal photorealistic scene of the actual subject, natural realistic detail, cinematic directional lighting, shallow depth of field, sharp focus, high resolution photojournalism, magazine cover aesthetic, no text, no words, no letters, no watermark, no illustration`;
+  return `award-winning editorial photograph of ${withCtx}, a real literal photorealistic scene of the actual subject, shot on a full-frame camera with an 85mm lens at f/2, cinematic directional lighting, soft natural highlights, shallow depth of field with tack-sharp focus on the subject, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k, no text, no words, no letters, no watermark, no illustration, no cartoon, no cgi render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 function vsEdLoadImage(prompt, w, h, fluxOnly) {
@@ -7603,6 +7611,9 @@ function selectSlide(i) {
         try { onscreen = JSON.parse(s.settings["#vsInfoJson"]).title || ""; } catch (e) {}
       }
       if (!onscreen) onscreen = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
+      // Editorial scenes render from _edHeadline; fall back to it (and the raw
+      // headline) so the field is never blank on a scene that clearly has text.
+      if (!onscreen) onscreen = s._edHeadline || s.headline || "";
       txt.value = onscreen;
     }
   }
@@ -11478,7 +11489,27 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   const serif = vsGetFont("Prata, Georgia, serif");
   const sans = '"Archivo", system-ui, sans-serif';
   const ease = Math.min(1, Math.max(0, enter));
-  const accent = pal.spine || "#e7c98b";
+  // Read the accent from the CURRENT template every frame (not the value baked in
+  // at generation) so switching templates recolours all editorial slides live —
+  // even after they were generated.
+  let accent = pal.spine || "#e7c98b";
+  try {
+    const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
+    if (tpl && tpl.accent && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent)) accent = tpl.accent;
+  } catch (e) {}
+  // Live text: read the headline/kicker from the scene's CURRENT fields so edits
+  // in "Slide text" / "Caption" / News banner show immediately on editorial
+  // scenes (they otherwise render from a value baked in at generation).
+  let _liveHead = s._edHeadline || "";
+  let _liveKick = s._edKicker || "";
+  try {
+    if (s.settings) {
+      if (s.settings["#vsInfoOn"] && s.settings["#vsInfoJson"]) {
+        const _j = JSON.parse(s.settings["#vsInfoJson"]); if (_j && _j.title) _liveHead = _j.title;
+      } else if (s.settings["#vsNewsHeadline"]) { _liveHead = s.settings["#vsNewsHeadline"]; }
+    }
+    if (!s._edIsTitle && s._caption) _liveKick = s._caption;
+  } catch (e) {}
   const M = W * 0.058;                                  // left margin
 
   // ── seamless scrim so the lower text stays legible on any photo ──
@@ -11500,7 +11531,7 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   // The tab colour follows the chosen TEMPLATE (accent), its text follows the
   // chosen FONT (same display family as the hero word), and the ink auto-contrasts
   // against the accent so it stays readable on any template.
-  const kick = String(s._edKicker || "").toUpperCase().replace(/\s+/g, " ").trim().slice(0, 28);
+  const kick = String(_liveKick || "").toUpperCase().replace(/\s+/g, " ").trim().slice(0, 28);
   const topY = H * 0.09;
   if (kick) {
     ctx.save(); ctx.globalAlpha = ease;
@@ -11527,7 +11558,7 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   }
 
   // ── measure the HEADLINE deck (wrapped) ──
-  const headline = String(s._edHeadline || "");
+  const headline = String(_liveHead || "");
   const hlPx = Math.round(W * 0.035);
   ctx.save(); ctx.font = `600 ${hlPx}px ${sans}`;
   const maxW = W * 0.8, words = headline.split(/\s+/), lines = []; let ln = "";
@@ -14599,9 +14630,11 @@ async function vsSaveToDashboard(blob, ext, name) {
         ? "ویدیو برای داشبورد بزرگ بود (۶۰MB). فایل دانلود شد."
         : "Video too large for the dashboard (60 MB). The download still worked.");
     } else {
+      const code = res ? res.status : "?";
+      try { console.error("dashboard save failed:", code, res && (await res.text())); } catch (e) {}
       vsStatus(fa
-        ? "ذخیره در داشبورد انجام نشد. فایل دانلود شد."
-        : "Couldn't save to your dashboard. The download still worked.");
+        ? `ذخیره در داشبورد انجام نشد (خطای ${code}). فایل دانلود شد.`
+        : `Couldn't save to your dashboard (error ${code}). The download still worked.`);
     }
   } catch (e) {
     vsStatus(fa
@@ -15702,6 +15735,19 @@ function bindEvents() {
   // opening the News banner section, but that section still works too.
   on("#vsSlideText", "input", () => {
     const txt = $("#vsSlideText"); if (!txt) return;
+    // Write straight into the active slide's own settings + redraw, so generated
+    // and EDITORIAL scenes (which render from stored settings, not the live News
+    // field) update on screen as you type.
+    const as = vstudio.slides[vstudio.activeSlide];
+    if (as) {
+      as.settings = as.settings || {};
+      if (as.settings["#vsInfoOn"] && as.settings["#vsInfoJson"]) {
+        try { const j = JSON.parse(as.settings["#vsInfoJson"]); j.title = txt.value.slice(0, 60); as.settings["#vsInfoJson"] = JSON.stringify(j); } catch (e) {}
+      } else {
+        as.settings["#vsNewsHeadline"] = txt.value;
+      }
+      if (typeof drawStudioFrame === "function" && !vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    }
     const infoOn = $("#vsInfoOn"), infoTitle = $("#vsInfoTitle");
     // Infographic scene → the on-screen text IS the infographic title.
     if (infoOn && infoOn.checked && infoTitle) {
