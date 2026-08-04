@@ -14592,12 +14592,12 @@ async function vsSaveToDashboard(blob, ext, name) {
   const fa = state.lang === "fa";
   try {
     if (!blob || !blob.size) return;
-    // KV caps each stored video at 60 MB. Rather than skip SILENTLY (which left
+    // KV caps each stored video at 80 MB. Rather than skip SILENTLY (which left
     // users staring at an empty dashboard with no idea why), tell them.
-    if (blob.size > 60 * 1024 * 1024) {
+    if (blob.size > 80 * 1024 * 1024) {
       vsStatus(fa
-        ? "ویدیو برای ذخیره در داشبورد بزرگ است (حداکثر ۶۰MB). فایل دانلود شد."
-        : "Too large to save to your dashboard (60 MB max). The download still worked.");
+        ? "ویدیو برای ذخیره در داشبورد بزرگ است (حداکثر ۸۰MB). فایل دانلود شد."
+        : "Too large to save to your dashboard (80 MB max). The download still worked.");
       return;
     }
     // Grab a poster frame from the current canvas so the dashboard tile isn't blank.
@@ -14616,7 +14616,10 @@ async function vsSaveToDashboard(blob, ext, name) {
     fd.append("video", blob, (name || "ai-radar-video") + "." + (ext || "mp4"));
     fd.append("title", String(vstudio._exportName || (vstudio.storyData && vstudio.storyData.title) || "AI Radar video").slice(0, 100));
     if (thumb) fd.append("thumbnail", thumb, "thumb.jpg");
-    const res = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "same-origin" });
+    // credentials:"include" guarantees the session cookie is sent even if the
+    // Studio page and the /api route are resolved through slightly different
+    // hosts — "same-origin" would drop it in that case and yield a false 401.
+    const res = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "include" });
     if (res && res.ok) {
       vsStatus(fa ? "در داشبورد شما هم ذخیره شد. ✓" : "Also saved to your dashboard. ✓");
     } else if (res && res.status === 401) {
@@ -14625,16 +14628,16 @@ async function vsSaveToDashboard(blob, ext, name) {
       vsStatus(fa
         ? "برای ذخیرهٔ ویدیوها در داشبورد، اول در airadar.me/login وارد شوید."
         : "Sign in at airadar.me/login to save your videos to the dashboard.");
-    } else if (res && res.status === 413) {
-      vsStatus(fa
-        ? "ویدیو برای داشبورد بزرگ بود (۶۰MB). فایل دانلود شد."
-        : "Video too large for the dashboard (60 MB). The download still worked.");
     } else {
+      // Show the server's OWN reason when it sends one (413 too-big, 500, …) so a
+      // failure is never opaque.
+      let reason = "";
+      try { const j = await res.clone().json(); reason = j && j.error ? j.error : ""; } catch (e) {}
       const code = res ? res.status : "?";
-      try { console.error("dashboard save failed:", code, res && (await res.text())); } catch (e) {}
-      vsStatus(fa
-        ? `ذخیره در داشبورد انجام نشد (خطای ${code}). فایل دانلود شد.`
-        : `Couldn't save to your dashboard (error ${code}). The download still worked.`);
+      try { console.error("dashboard save failed:", code, reason); } catch (e) {}
+      vsStatus((fa ? `ذخیره در داشبورد انجام نشد (${code}): ` : `Couldn't save to your dashboard (${code}): `)
+        + (reason || (fa ? "خطای ناشناخته" : "unknown error"))
+        + (fa ? " — فایل دانلود شد." : " — the download still worked."));
     }
   } catch (e) {
     vsStatus(fa
