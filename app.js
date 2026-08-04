@@ -5021,7 +5021,7 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
@@ -5040,6 +5040,7 @@ RULES:
 12. Build a real arc: hook, context, strongest evidence, consequence, takeaway. Every scene must advance the story — like a report, not a slideshow of trivia.
 13. "evidence" is mandatory on every section — a concrete detail a viewer could point back to in the SOURCE, never a paraphrase of the headline.
 14. Never write meta-commentary about missing data, sourcing or the production process (no "no data", "not provided", "verify locally", "article footnote" or similar).
+14b. "heroWord" is REQUIRED on intro, every section and outro — a single real word (max 9 letters, no spaces) pulled from that scene's own substance that could headline a magazine cover. Never a generic filler word, never a chopped fragment, never a duplicate of the previous scene's heroWord.
 15. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).${revise ? "\n16. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
 SOURCE: """${text.slice(0, 9000)}"""`;
 
@@ -5329,6 +5330,7 @@ function vsAssembleFromSections(data, skipFootage) {
     introMotion: "blur",
     headline: "", duration: narrationDuration(data.intro && data.intro.narration, 3), settings: cleanSet2(),
     _kicker: kicker || "AI RADAR",
+    _heroWord: (data.intro && data.intro.heroWord) || "",
     _timelineLabel: introMain
   });
 
@@ -5421,7 +5423,7 @@ function vsAssembleFromSections(data, skipFootage) {
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
-        _caption: sec.caption || "Key numbers", _visual: sec.visual || "",
+        _caption: sec.caption || "Key numbers", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
 
@@ -5469,7 +5471,7 @@ function vsAssembleFromSections(data, skipFootage) {
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
-        _caption: sec.caption || "", _visual: sec.visual || "",
+        _caption: sec.caption || "", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
     }
@@ -5485,6 +5487,7 @@ function vsAssembleFromSections(data, skipFootage) {
     introSub: outroSub, introMotion: "rise",
     _sourceLine: srcLabel,              // credit the real source on the outro too
     headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3), settings: cleanSet2(),
+    _heroWord: (data.outro && data.outro.heroWord) || "",
     _timelineLabel: outroMain
   });
 
@@ -6094,7 +6097,10 @@ async function vsEditorialBackgrounds(data) {
     // The "BY <source>" credit belongs on the title cards only — not every scene.
     s._edSource = (src && isTitle) ? ("BY " + src.toUpperCase()) : "";
     s._edIsTitle = isTitle; s._edIsOutro = isEnd;
-    const bw = hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
+    // Prefer Gemini's deliberate cover word for this scene; fall back to the
+    // longest meaningful word from the headline only when it wasn't supplied.
+    const gemWord = String(s._heroWord || "").split(/\s+/)[0];
+    const bw = gemWord || hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
     s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
     s._edLayout = isTitle ? "center" : ["low", "mid", "low", "top"][i % 4];
     // Alternate between a full-bleed cinematic scene and a cut-out subject on a
