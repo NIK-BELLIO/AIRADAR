@@ -5021,7 +5021,7 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"]}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
@@ -5420,7 +5420,7 @@ function vsAssembleFromSections(data, skipFootage) {
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
-        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [],
+        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
         _caption: sec.caption || "Key numbers", _visual: sec.visual || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
@@ -5468,7 +5468,7 @@ function vsAssembleFromSections(data, skipFootage) {
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
-        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [],
+        _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
         _caption: sec.caption || "", _visual: sec.visual || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
@@ -6277,12 +6277,19 @@ async function vsAutoGenerateBackgrounds(data) {
           if (parsed && Array.isArray(parsed.stats)) stats = parsed.stats.filter(Boolean);
         } catch (e) {}
       }
-      const data2 = stats.map((st) => {
+      const toData = (st) => {
         const value = st.value != null ? String(st.value) : "";
         const num = typeof st.num === "number" ? st.num
           : (parseFloat(value.replace(/[^0-9.\-]/g, "")) || 0);
         return { label: String(st.label || ""), value, num };
-      });
+      };
+      let data2 = stats.map(toData);
+      // Text scenes can also carry a small `metrics` list from the AI — feed it in
+      // so scenes with real comparable figures render a PRECISE data graphic
+      // (bars/donut/compare) driven by the actual numbers, not a generic concept.
+      if (!data2.length && Array.isArray(s._metrics) && s._metrics.length) {
+        data2 = s._metrics.map(toData).filter((d) => d.label || d.value);
+      }
       const pctMatch = /(\d[\d.,]*)\s*%/.exec(s.headline);
       // catch ANY headline figure ("$150 billion", "3.2M", "40k users"), not
       // just percentages — a scene that states a number deserves a stat graphic,
@@ -10399,9 +10406,9 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.4, W * 0.0038);
       ctx.shadowColor = A; ctx.shadowBlur = W * 0.018 * e; ctx.stroke(); ctx.shadowBlur = 0;
       ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(n.x, n.y, r * 0.24, 0, 7); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.textAlign = "center";
-      vsFitFont(ctx, String(n.l), W * 0.24, "700", F, W * 0.030, W * 0.018);
-      ctx.fillText(String(n.l), n.x, n.y + r + W * 0.05);
+      ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.textAlign = "center";
+      vsFitFont(ctx, String(n.l), W * 0.30, "700", F, W * 0.037, W * 0.026);
+      ctx.fillText(String(n.l), n.x, n.y + r + W * 0.055);
     });
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
@@ -11038,7 +11045,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(fx, y, W * 0.016 * e, 0, 7); ctx.fillStyle = "#0a1420"; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.004; ctx.stroke();
       ctx.textAlign = "center"; ctx.globalAlpha = e;
-      ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = `700 ${W * 0.038}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.font = `700 ${W * 0.042}px ${F}`;
       ctx.fillText(String(l).slice(0, 14), fx, y + (up ? -1 : 1) * H * 0.075 - (up ? 0 : -H * 0.02));
       ctx.globalAlpha = 1;
     });
@@ -11058,8 +11065,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.strokeStyle = i === n - 1 ? A : vsHexA(A, 0.5); ctx.lineWidth = W * 0.0035; ctx.stroke();
       ctx.textAlign = "center"; ctx.fillStyle = A; ctx.font = `800 ${W * 0.03}px ${F}`;
       ctx.fillText(String(i + 1), bx + boxW / 2, y - boxH * 0.12);
-      ctx.fillStyle = "rgba(255,255,255,.82)"; fit(String(l), boxW * 0.9, "600", W * 0.028);
-      ctx.fillText(String(l).slice(0, 16), bx + boxW / 2, y + boxH * 0.28);
+      ctx.fillStyle = "rgba(255,255,255,.9)"; fit(String(l), boxW * 0.98, "700", W * 0.033);
+      ctx.fillText(String(l).slice(0, 16), bx + boxW / 2, y + boxH * 0.3);
       ctx.globalAlpha = 1;
       if (i < n - 1) {
         const ax = bx + boxW, axe = bx + boxW + gap, ay = y;
@@ -11092,8 +11099,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.fillText(String(i + 1), nx, ny + W * 0.012);
       ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,.92)";
       const lx = cx + Math.cos(ang) * (R + W * 0.13), ly = cy + Math.sin(ang) * (R + W * 0.13);
-      fit(String(l), W * 0.28, "700", W * 0.030);
-      ctx.fillText(String(l).slice(0, 14), lx, ly + W * 0.01); ctx.globalAlpha = 1;
+      fit(String(l), W * 0.30, "700", W * 0.036);
+      ctx.fillText(String(l).slice(0, 18), lx, ly + W * 0.01); ctx.globalAlpha = 1;
     });
 
   } else if (kind === "pyramid") {
@@ -11113,7 +11120,7 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       g.addColorStop(0, vsHexA(A, 0.28 + i * 0.14)); g.addColorStop(1, vsHexA(A, 0.5 + i * 0.14));
       ctx.fillStyle = g; ctx.fill();
       ctx.strokeStyle = vsHexA(A, 0.6); ctx.lineWidth = W * 0.002; ctx.stroke();
-      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; fit(String(l), Math.max(wTop, wBot) * 0.9, "700", W * 0.032);
+      ctx.textAlign = "center"; ctx.fillStyle = "#fff"; fit(String(l), Math.max(wTop, wBot) * 0.92, "700", W * 0.038);
       ctx.fillText(String(l).slice(0, 20), cx, ty + tierH * 0.62);
       ctx.globalAlpha = 1;
     });
@@ -11135,8 +11142,8 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
       ctx.beginPath(); ctx.arc(nx, ny, r, 0, 7); ctx.fillStyle = rg; ctx.fill();
       ctx.strokeStyle = A; ctx.lineWidth = W * 0.0035; softGlow(A, W * 0.015); ctx.stroke(); noGlow();
       ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.9)";
-      fit(String(l), W * 0.22, "700", W * 0.036);
-      ctx.fillText(String(l).slice(0, 14), nx, ny + r + W * 0.05);
+      fit(String(l), W * 0.30, "700", W * 0.041);
+      ctx.fillText(String(l).slice(0, 20), nx, ny + r + W * 0.055);
     });
     // hub
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.07, 0, 7);
