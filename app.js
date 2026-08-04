@@ -6011,8 +6011,13 @@ function vsEditorialPalette(topic) {
 }
 // Turn a scene's B-roll query into a cinematic, symbolic image prompt.
 function vsEditorialImagePrompt(visual, topic) {
-  const subj = String(visual || topic || "abstract concept").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
-  return `cinematic editorial photograph, ${subj}, conceptual and symbolic, dramatic directional lighting, shallow depth of field, muted premium background, magazine cover aesthetic, photorealistic, ultra detailed, no text, no words, no watermark`;
+  // Lead with the CONCRETE scene subject and demand a literal photo. The old
+  // prompt said "conceptual and symbolic", which pushed the model toward abstract
+  // art that had nothing to do with the story ("axaye bi rabt").
+  const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
+  const ctx2 = String(topic || "").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase()) ? `${subj}, in the context of ${ctx2}` : subj;
+  return `professional editorial photograph of ${withCtx}, a real literal photorealistic scene of the actual subject, natural realistic detail, cinematic directional lighting, shallow depth of field, sharp focus, high resolution photojournalism, magazine cover aesthetic, no text, no words, no letters, no watermark, no illustration`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 function vsEdLoadImage(prompt, w, h, fluxOnly) {
@@ -6069,7 +6074,14 @@ function vsEdMakeCutout(img) {
 async function vsEditorialBackgrounds(data) {
   const slides = vstudio.slides;
   const topic = [data && data.title, data && data.subtitle, data && data.angle].filter(Boolean).join(" ");
-  const pal = vsEditorialPalette(topic);
+  // Clone the palette (never mutate the shared constant) so the chosen TEMPLATE
+  // can override the accent — this makes switching templates visibly change the
+  // editorial look (hairline rule, hero underline, outro CTA all follow it).
+  const pal = Object.assign({}, vsEditorialPalette(topic));
+  try {
+    const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
+    if (tpl && tpl.accent && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent)) pal.spine = tpl.accent;
+  } catch (e) {}
   vstudio._edPalette = pal;
   const src = String((data && data.source) || "").replace(/^by\s+/i, "").trim();
   const kicker = String((data && data.kicker) || "STORY").toUpperCase().slice(0, 22);
@@ -6120,18 +6132,18 @@ async function vsEditorialBackgrounds(data) {
       const my = idx++; const s = slides[my];
       if (s._edStyle === "cutout") {
         // FLUX only (honours the plain-white-background prompt needed to key).
-        const img = await vsEdLoadImage(s._edPrompt, 768, 768, true);
+        const img = await vsEdLoadImage(s._edPrompt, 1024, 1024, true);
         const cut = img ? vsEdMakeCutout(img) : null;
         if (cut) { s.mediaEl = img; s._edCutout = cut; }
         else {
           // keying failed → regenerate a normal cinematic image for full-bleed
           s._edStyle = "full";
           s._edPrompt = vsEditorialImagePrompt(s._visual || s._edHeadline, topic);
-          const alt = await vsEdLoadImage(s._edPrompt, 768, 768);
+          const alt = await vsEdLoadImage(s._edPrompt, 1024, 1024);
           if (alt) s.mediaEl = alt; else if (img) s.mediaEl = img;
         }
       } else {
-        const img = await vsEdLoadImage(s._edPrompt, 768, 768);
+        const img = await vsEdLoadImage(s._edPrompt, 1024, 1024);
         if (img) s.mediaEl = img;
       }
       s.ready = true; doneN++;
@@ -11469,16 +11481,19 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   const accent = pal.spine || "#e7c98b";
   const M = W * 0.058;                                  // left margin
 
-  // ── directional scrim so the lower-left text is always legible (cutout too) ──
+  // ── seamless scrim so the lower text stays legible on any photo ──
+  // Full-canvas gradients only (no hard-topped rects) so there is NEVER a visible
+  // horizontal seam / "shadow band" across the middle of the image.
   ctx.save();
-  const sg = ctx.createLinearGradient(0, H * 0.32, 0, H);
+  const sg = ctx.createLinearGradient(0, 0, 0, H);
   sg.addColorStop(0, "transparent");
-  sg.addColorStop(0.65, "rgba(4,6,10,0.32)");
-  sg.addColorStop(1, "rgba(3,4,8,0.64)");
-  ctx.fillStyle = sg; ctx.fillRect(0, H * 0.32, W, H * 0.68);
-  const lg = ctx.createLinearGradient(0, 0, W * 0.72, 0);
-  lg.addColorStop(0, "rgba(3,4,8,0.30)"); lg.addColorStop(1, "transparent");
-  ctx.fillStyle = lg; ctx.fillRect(0, H * 0.32, W * 0.72, H * 0.68);
+  sg.addColorStop(0.52, "transparent");
+  sg.addColorStop(0.74, "rgba(4,6,10,0.30)");
+  sg.addColorStop(1, "rgba(3,4,8,0.66)");
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+  const rg = ctx.createRadialGradient(W * 0.02, H * 1.02, 0, W * 0.02, H * 1.02, H * 1.05);
+  rg.addColorStop(0, "rgba(3,4,8,0.40)"); rg.addColorStop(0.6, "rgba(3,4,8,0.15)"); rg.addColorStop(1, "transparent");
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
   // ── TOP MASTHEAD: category tab + hairline rule ──
@@ -11527,13 +11542,17 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   if (hero) {
     let fs = Math.round(W * 0.21);
     ctx.font = `${fs}px ${serif}`;
-    const budget = W * 0.94;
+    // Fit within BOTH margins (left M + a matching right gap) so the word never
+    // touches the frame edge — the old budget let it run to the very edge.
+    const budget = W - M - W * 0.05;
     let mw = ctx.measureText(hero).width;
-    if (mw > budget) fs = Math.floor(fs * budget / mw);
-    // keep the cap-top below H*0.17 so the word never bleeds off the top edge
-    const capTopMin = H * 0.17;
-    while (fs > W * 0.085 && (accentY - H * 0.014) - fs * 0.72 < capTopMin) fs -= 4;
-    fs = Math.max(fs, Math.round(W * 0.085));
+    const fsWidthCap = mw > 0 ? Math.floor(fs * budget / mw) : fs;   // largest size that fits width
+    fs = Math.min(fs, fsWidthCap);
+    // keep the cap-top below H*0.16 so the word never bleeds off the top edge
+    const capTopMin = H * 0.16;
+    while (fs > W * 0.075 && (accentY - H * 0.014) - fs * 0.72 < capTopMin) fs -= 4;
+    // clamp to a legible floor but NEVER back above the width cap (would re-overflow)
+    fs = Math.min(Math.max(fs, Math.round(W * 0.075)), fsWidthCap);
     ctx.font = `${fs}px ${serif}`;
     mw = ctx.measureText(hero).width;
     const heroBase = accentY - H * 0.014;
