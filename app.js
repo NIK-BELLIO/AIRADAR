@@ -11497,18 +11497,25 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   ctx.restore();
 
   // ── TOP MASTHEAD: category tab + hairline rule ──
+  // The tab colour follows the chosen TEMPLATE (accent), its text follows the
+  // chosen FONT (same display family as the hero word), and the ink auto-contrasts
+  // against the accent so it stays readable on any template.
   const kick = String(s._edKicker || "").toUpperCase().replace(/\s+/g, " ").trim().slice(0, 28);
   const topY = H * 0.09;
   if (kick) {
     ctx.save(); ctx.globalAlpha = ease;
-    const kp = Math.round(W * 0.019);
-    ctx.font = `800 ${kp}px ${sans}`;
-    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
-    const tw = ctx.measureText(kick).width, padX = W * 0.018, padY = W * 0.011;
+    const kp = Math.round(W * 0.02);
+    ctx.font = `700 ${kp}px ${serif}`;
+    try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+    const tw = ctx.measureText(kick).width, padX = W * 0.02, padY = W * 0.013;
     const bw = tw + padX * 2, bh = kp + padY * 2;
     const kx = M - (1 - ease) * W * 0.03;
-    ctx.fillStyle = pal.label || "#141416"; ctx.fillRect(kx, topY, bw, bh);
-    ctx.fillStyle = pal.labelInk || "#f2e5c6";
+    // auto-contrast ink from the accent's luminance
+    let _hx = String(accent).replace("#", ""); if (_hx.length === 3) _hx = _hx.split("").map(c => c + c).join("");
+    const _r = parseInt(_hx.slice(0, 2), 16) || 20, _g = parseInt(_hx.slice(2, 4), 16) || 20, _b = parseInt(_hx.slice(4, 6), 16) || 20;
+    const tabInk = (0.299 * _r + 0.587 * _g + 0.114 * _b) / 255 > 0.6 ? "#141210" : "#fdf7ea";
+    ctx.fillStyle = accent; ctx.fillRect(kx, topY, bw, bh);
+    ctx.fillStyle = tabInk;
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(kick, kx + padX, topY + bh / 2 + kp * 0.04);
     try { ctx.letterSpacing = "0px"; } catch (e) {}
