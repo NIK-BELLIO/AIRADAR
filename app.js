@@ -14558,8 +14558,17 @@ function vsShowExportOptions(onConfirm) {
 // not signed in (401), the file is too big for KV, or the account app isn't
 // reachable — the local download has already happened regardless.
 async function vsSaveToDashboard(blob, ext, name) {
+  const fa = state.lang === "fa";
   try {
-    if (!blob || !blob.size || blob.size > 60 * 1024 * 1024) return;
+    if (!blob || !blob.size) return;
+    // KV caps each stored video at 60 MB. Rather than skip SILENTLY (which left
+    // users staring at an empty dashboard with no idea why), tell them.
+    if (blob.size > 60 * 1024 * 1024) {
+      vsStatus(fa
+        ? "ویدیو برای ذخیره در داشبورد بزرگ است (حداکثر ۶۰MB). فایل دانلود شد."
+        : "Too large to save to your dashboard (60 MB max). The download still worked.");
+      return;
+    }
     // Grab a poster frame from the current canvas so the dashboard tile isn't blank.
     let thumb = null;
     try {
@@ -14578,9 +14587,27 @@ async function vsSaveToDashboard(blob, ext, name) {
     if (thumb) fd.append("thumbnail", thumb, "thumb.jpg");
     const res = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "same-origin" });
     if (res && res.ok) {
-      vsStatus(state.lang === "fa" ? "در داشبورد شما هم ذخیره شد." : "Also saved to your dashboard.");
+      vsStatus(fa ? "در داشبورد شما هم ذخیره شد. ✓" : "Also saved to your dashboard. ✓");
+    } else if (res && res.status === 401) {
+      // The single most common reason nothing shows up: the Studio can be used
+      // WITHOUT signing in, so the save is rejected. Make the fix obvious.
+      vsStatus(fa
+        ? "برای ذخیرهٔ ویدیوها در داشبورد، اول در airadar.me/login وارد شوید."
+        : "Sign in at airadar.me/login to save your videos to the dashboard.");
+    } else if (res && res.status === 413) {
+      vsStatus(fa
+        ? "ویدیو برای داشبورد بزرگ بود (۶۰MB). فایل دانلود شد."
+        : "Video too large for the dashboard (60 MB). The download still worked.");
+    } else {
+      vsStatus(fa
+        ? "ذخیره در داشبورد انجام نشد. فایل دانلود شد."
+        : "Couldn't save to your dashboard. The download still worked.");
     }
-  } catch (e) { /* dashboard save is best-effort — never disrupt the export */ }
+  } catch (e) {
+    vsStatus(fa
+      ? "دسترسی به داشبورد ممکن نشد. فایل دانلود شد."
+      : "Couldn't reach the dashboard to save. The download still worked.");
+  }
 }
 
 async function exportStudioVideo() {
