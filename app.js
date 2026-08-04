@@ -11597,6 +11597,7 @@ function drawStudioFrame(elapsed) {
   let dsMotionBg = "";
   let dsGraphic = null;           // meaningful vector graphic for this scene
   let dsPanelLayout = "";         // MAISON band layout (split / half / halfInv)
+  let dsFootageBehind = false;    // motion-graphic scene painted footage as its bg
   let dsPanelBand = null;         // region the scene's text must sit in
   if (vstudio.slides.length) {
     const at = slideAtTime(elapsed);
@@ -11900,7 +11901,11 @@ function drawStudioFrame(elapsed) {
   // infographic / news banner has something to sit on. A subtle camera
   // motion (slow drift) is applied so "Camera motion" still has visible
   // effect even on text/news/infographic-only slides.
-  if (!media) {
+  // A MOTION-GRAPHIC scene ALSO enters here even WITH footage, so the footage
+  // becomes the background and the vector elements draw OVER it (instead of the
+  // media stage painting the footage on top of the graphics).
+  const _isMotionScene = !!(dsMotionBg && dsMotionBg !== "none");
+  if (!media || _isMotionScene) {
     // compute a gentle motion offset based on the selected camera motion
     let bgMotionT;
     if (vstudio.slides.length && dsDur > 0) bgMotionT = dsLocal / dsDur;
@@ -11916,7 +11921,23 @@ function drawStudioFrame(elapsed) {
     // video rather than footage + text.
     const motionBg = dsMotionBg || "";
     if (motionBg && motionBg !== "none") {
-      drawIntroBackground(ctx, W, H, motionBg, elapsed);
+      // If this motion-graphic scene has real footage, use it as the BACKGROUND
+      // (cover-fit + a dark grade) so the vector elements + text render OVER it —
+      // instead of the footage covering the graphics from the media stage below.
+      const _mv = media && (media.videoWidth || media.naturalWidth || media.width);
+      if (_mv) {
+        const mw2 = media.videoWidth || media.naturalWidth || media.width;
+        const mh2 = media.videoHeight || media.naturalHeight || media.height;
+        const cover = Math.max(W / mw2, H / mh2);
+        const iw = mw2 * cover, ih = mh2 * cover;
+        try { ctx.drawImage(media, (W - iw) / 2, (H - ih) / 2, iw, ih); } catch (e) {}
+        const dg = ctx.createLinearGradient(0, 0, 0, H);
+        dg.addColorStop(0, "rgba(6,9,16,0.66)"); dg.addColorStop(0.5, "rgba(6,9,16,0.52)"); dg.addColorStop(1, "rgba(4,6,11,0.74)");
+        ctx.fillStyle = dg; ctx.fillRect(0, 0, W, H);
+        dsFootageBehind = true;   // the media stage below must NOT redraw it on top
+      } else {
+        drawIntroBackground(ctx, W, H, motionBg, elapsed);
+      }
       try {
         const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
         // The SELECTED TEMPLATE drives the graphic accent too (not just the bg),
@@ -12024,7 +12045,7 @@ function drawStudioFrame(elapsed) {
 
   // ----- main media stage -----
   vstudio._frameHasMedia = !!media;
-  if (media) {
+  if (media && !dsFootageBehind) {
   const mw = media.videoWidth || media.naturalWidth || W;
   const mh = media.videoHeight || media.naturalHeight || H;
 
