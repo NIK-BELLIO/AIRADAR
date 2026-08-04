@@ -11459,84 +11459,133 @@ function drawCinematicLayers(ctx, W, H, t, prog, accent) {
 // sides, a solid colour label box (kicker), and a cream body box with the
 // sentence. `onPaper` = the cut-out variant (dark hero, white body box).
 function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
-  // respect the user's headline-font pick (falls back to the Hera display serif)
+  // Magazine-cover composition: a category tab + hairline rule up top, then a
+  // lower-left cluster of a huge auto-fitted hero word (accent-underlined) with
+  // the headline as a deck beneath it, closed by a print-style baseline rule and
+  // source line. Everything is left-anchored and legibility-safe on any photo.
   const serif = vsGetFont("Prata, Georgia, serif");
   const sans = '"Archivo", system-ui, sans-serif';
+  const ease = Math.min(1, Math.max(0, enter));
+  const accent = pal.spine || "#e7c98b";
+  const M = W * 0.058;                                  // left margin
 
-  // 1) HERO WORD — the single biggest word, full width, bleeding off the sides
-  const hero = (s._edBigWord || String(s._edHeadline || "").split(/\s+/)[0] || "").toUpperCase();
-  if (hero) {
-    ctx.save();
-    // left-aligned and oversized so the WORD START reads and the tail bleeds off
-    // the right edge (like Hera's "NOBOD…"); alternate side per scene for rhythm.
-    const fromRight = s._edSide === "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `${Math.round(W * 0.30)}px ${serif}`;
-    ctx.globalAlpha = Math.min(1, enter * 1.1);
-    ctx.fillStyle = onPaper ? pal.heroDark : pal.hero;
-    if (!onPaper) { ctx.shadowColor = "rgba(0,0,0,0.30)"; ctx.shadowBlur = W * 0.02; }
-    try { ctx.letterSpacing = `${W * 0.002}px`; } catch (e) {}
-    const hy = H * 0.28 - (1 - enter) * H * 0.02;
-    if (fromRight) { ctx.textAlign = "right"; ctx.fillText(hero, W * 0.98, hy); }
-    else { ctx.textAlign = "left"; ctx.fillText(hero, W * 0.02, hy); }
-    ctx.restore();
-  }
+  // ── directional scrim so the lower-left text is always legible (cutout too) ──
+  ctx.save();
+  const sg = ctx.createLinearGradient(0, H * 0.32, 0, H);
+  sg.addColorStop(0, "transparent");
+  sg.addColorStop(0.65, "rgba(4,6,10,0.32)");
+  sg.addColorStop(1, "rgba(3,4,8,0.64)");
+  ctx.fillStyle = sg; ctx.fillRect(0, H * 0.32, W, H * 0.68);
+  const lg = ctx.createLinearGradient(0, 0, W * 0.72, 0);
+  lg.addColorStop(0, "rgba(3,4,8,0.30)"); lg.addColorStop(1, "transparent");
+  ctx.fillStyle = lg; ctx.fillRect(0, H * 0.32, W * 0.72, H * 0.68);
+  ctx.restore();
 
-  // 2) LABEL box — the kicker in a solid palette rectangle, centred
-  const kick = String(s._edKicker || "").toUpperCase().slice(0, 26);
-  let y = H * 0.5;
+  // ── TOP MASTHEAD: category tab + hairline rule ──
+  const kick = String(s._edKicker || "").toUpperCase().replace(/\s+/g, " ").trim().slice(0, 28);
+  const topY = H * 0.09;
   if (kick) {
-    ctx.save(); ctx.globalAlpha = enter;
-    const kp = Math.round(W * 0.05);
-    ctx.font = `${kp}px ${serif}`;
-    try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
-    const kw = ctx.measureText(kick).width, padX = W * 0.05, padY = W * 0.026;
-    const bw = kw + padX * 2, bh = kp + padY * 2, bx = W / 2 - bw / 2;
-    ctx.fillStyle = pal.label; ctx.fillRect(bx, y, bw, bh);
-    ctx.fillStyle = pal.labelInk; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(kick, W / 2, y + bh / 2 + kp * 0.04);
+    ctx.save(); ctx.globalAlpha = ease;
+    const kp = Math.round(W * 0.019);
+    ctx.font = `800 ${kp}px ${sans}`;
+    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+    const tw = ctx.measureText(kick).width, padX = W * 0.018, padY = W * 0.011;
+    const bw = tw + padX * 2, bh = kp + padY * 2;
+    const kx = M - (1 - ease) * W * 0.03;
+    ctx.fillStyle = pal.label || "#141416"; ctx.fillRect(kx, topY, bw, bh);
+    ctx.fillStyle = pal.labelInk || "#f2e5c6";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(kick, kx + padX, topY + bh / 2 + kp * 0.04);
     try { ctx.letterSpacing = "0px"; } catch (e) {}
-    y += bh;
+    ctx.globalAlpha = ease * 0.85;
+    ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1.5, H * 0.0028);
+    ctx.beginPath(); ctx.moveTo(kx + bw + W * 0.022, topY + bh / 2);
+    ctx.lineTo(W - M, topY + bh / 2); ctx.stroke();
     ctx.restore();
   }
 
-  // 3) BODY box — the headline sentence on a cream (or white) rectangle
-  const body = String(s._edHeadline || "");
-  if (body) {
-    ctx.save(); ctx.globalAlpha = enter;
-    const bpx = Math.round(W * 0.042);
-    ctx.font = `600 ${bpx}px ${sans}`;
-    const maxW = W * 0.78, words = body.split(/\s+/), lines = []; let ln = "";
-    for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
-    if (ln) lines.push(ln);
-    const lh = bpx * 1.34, padTop = W * 0.032, padBot = W * 0.03;
-    const bw = W * 0.88, bh = padTop + (lines.length - 1) * lh + bpx + padBot, bx = W / 2 - bw / 2, by = y + W * 0.012;
-    ctx.fillStyle = onPaper ? "#ffffff" : pal.paper;
-    if (onPaper) { ctx.shadowColor = "rgba(0,0,0,0.14)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = W * 0.004; }
-    ctx.fillRect(bx, by, bw, bh);
-    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-    ctx.fillStyle = pal.bodyInk; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  // ── measure the HEADLINE deck (wrapped) ──
+  const headline = String(s._edHeadline || "");
+  const hlPx = Math.round(W * 0.035);
+  ctx.save(); ctx.font = `600 ${hlPx}px ${sans}`;
+  const maxW = W * 0.8, words = headline.split(/\s+/), lines = []; let ln = "";
+  for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
+  if (ln) lines.push(ln);
+  ctx.restore();
+  const lh = hlPx * 1.3, nLines = lines.length;
+
+  // ── vertical anchors, laid out bottom-up ──
+  const srcY = H - H * 0.052;
+  const ruleY = srcY - H * 0.028;
+  const headLastBase = ruleY - H * 0.03;
+  const headFirstBase = headLastBase - Math.max(0, nLines - 1) * lh;
+  const headTopRef = nLines ? (headFirstBase - hlPx) : (ruleY - H * 0.03);
+  const accentY = headTopRef - H * 0.03;
+
+  // ── HERO WORD — auto-fit, top-safe (never clipped by the frame) ──
+  const hero = (s._edBigWord || (headline.split(/\s+/)[0] || "")).toUpperCase();
+  if (hero) {
+    let fs = Math.round(W * 0.21);
+    ctx.font = `${fs}px ${serif}`;
+    const budget = W * 0.94;
+    let mw = ctx.measureText(hero).width;
+    if (mw > budget) fs = Math.floor(fs * budget / mw);
+    // keep the cap-top below H*0.17 so the word never bleeds off the top edge
+    const capTopMin = H * 0.17;
+    while (fs > W * 0.085 && (accentY - H * 0.014) - fs * 0.72 < capTopMin) fs -= 4;
+    fs = Math.max(fs, Math.round(W * 0.085));
+    ctx.font = `${fs}px ${serif}`;
+    mw = ctx.measureText(hero).width;
+    const heroBase = accentY - H * 0.014;
+    ctx.save();
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.globalAlpha = Math.min(1, ease * 1.12);
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.016; ctx.shadowOffsetY = H * 0.004;
+    try { ctx.letterSpacing = `${W * 0.001}px`; } catch (e) {}
+    ctx.fillText(hero, M - (1 - ease) * W * 0.025, heroBase);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
+    ctx.restore();
+    // short accent underline
+    ctx.save(); ctx.globalAlpha = ease; ctx.fillStyle = accent;
+    ctx.fillRect(M, accentY + H * 0.006, Math.max(W * 0.11, Math.min(mw, W * 0.9) * 0.32), Math.max(3, H * 0.008));
+    ctx.restore();
+  }
+
+  // ── HEADLINE deck (left, on the scrim) ──
+  if (nLines) {
+    ctx.save();
+    ctx.font = `600 ${hlPx}px ${sans}`;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "rgba(255,255,255,0.97)";
+    ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = W * 0.006;
     lines.forEach((l, i) => {
-      const lp = Math.min(1, Math.max(0, (local - 0.15 - i * 0.1) / 0.5));
-      ctx.globalAlpha = enter * (1 - Math.pow(1 - lp, 3));
-      ctx.fillText(l, W / 2, by + padTop + bpx * 0.82 + i * lh);
+      const lp = Math.min(1, Math.max(0, (local - 0.18 - i * 0.08) / 0.5));
+      ctx.globalAlpha = ease * (1 - Math.pow(1 - lp, 3));
+      ctx.fillText(l, M, headFirstBase + i * lh);
     });
     ctx.restore();
   }
 
-  // 4) source (all scenes) + CTA (outro)
-  ctx.save(); ctx.globalAlpha = Math.min(1, enter);
-  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  if (s._edSource) {
-    ctx.fillStyle = onPaper ? "rgba(30,24,20,0.78)" : "rgba(255,255,255,0.92)";
-    ctx.font = `800 ${Math.round(W * 0.026)}px ${sans}`;
+  // ── baseline rule + source + outro CTA ──
+  ctx.save(); ctx.globalAlpha = ease;
+  ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = Math.max(1, H * 0.002);
+  ctx.beginPath(); ctx.moveTo(M, ruleY); ctx.lineTo(W - M, ruleY); ctx.stroke();
+  ctx.textBaseline = "alphabetic";
+  const src = String(s._edSource || "").slice(0, 40);
+  if (src) {
+    ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.font = `800 ${Math.round(W * 0.019)}px ${sans}`;
     try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
-    ctx.fillText(String(s._edSource).slice(0, 34), W * 0.06, H - H * 0.05);
+    ctx.fillText(src, M, srcY);
     try { ctx.letterSpacing = "0px"; } catch (e) {}
   }
   if (s._edIsOutro) {
-    ctx.textAlign = "right"; ctx.fillStyle = onPaper ? pal.label : pal.spine; ctx.font = `800 ${Math.round(W * 0.03)}px ${sans}`;
-    ctx.fillText("LEARN MORE  →", W - W * 0.06, H - H * 0.05);
+    ctx.textAlign = "right"; ctx.fillStyle = accent;
+    ctx.font = `800 ${Math.round(W * 0.021)}px ${sans}`;
+    try { ctx.letterSpacing = `${W * 0.003}px`; } catch (e) {}
+    ctx.fillText("LEARN MORE  →", W - M, srcY);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
   }
   ctx.restore();
 }
@@ -11573,7 +11622,7 @@ function drawEditorialFrame(ctx, W, H, s, local, dur) {
     ctx.drawImage(img, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih);
   } else { ctx.fillStyle = pal.label; ctx.fillRect(0, 0, W, H); }
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, pal.grade[0]); g.addColorStop(0.45, "rgba(0,0,0,0.04)"); g.addColorStop(1, pal.grade[1]);
+  g.addColorStop(0, "rgba(0,0,0,0.34)"); g.addColorStop(0.28, "rgba(0,0,0,0.05)"); g.addColorStop(1, "rgba(0,0,0,0.30)");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.restore();
   drawEditorialText(ctx, W, H, s, pal, enter, local, false);
