@@ -19,6 +19,8 @@ const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
 const VS_BUILD = "v400-pro";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
+// Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
+try { document.addEventListener("DOMContentLoaded", function(){ try { var body=JSON.stringify({path:location.pathname,referrer:document.referrer||""}); if(navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body],{type:"application/json"})); else fetch("/api/track",{method:"POST",body:body,headers:{"Content-Type":"application/json"},keepalive:true}).catch(function(){}); } catch(e){} }, { once:true }); } catch(e){}
 
 // OPTIONAL real-footage key. Paste your OWN free Pexels API key here ONCE
 // (get it at pexels.com/api) and every visitor gets real stock footage with
@@ -14634,21 +14636,31 @@ async function vsSaveToDashboard(blob, ext, name) {
         : "Too large to save to your dashboard (80 MB max). The download still worked.");
       return;
     }
-    // Grab a poster frame from the current canvas so the dashboard tile isn't blank.
-    let thumb = null;
-    try {
-      const cv = document.querySelector("#vsCanvas");
-      if (cv) {
-        const tc = document.createElement("canvas");
-        const scale = Math.min(1, 480 / Math.max(1, cv.width));
-        tc.width = Math.round(cv.width * scale); tc.height = Math.round(cv.height * scale);
-        tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
-        thumb = await new Promise(r => tc.toBlob(r, "image/jpeg", 0.7));
-      }
-    } catch (e) {}
+    // Poster: prefer the real mid-video frame captured during recording; only
+    // fall back to the current canvas (which is often black right after export).
+    let thumb = vstudio._posterBlob || null;
+    if (!thumb) {
+      try {
+        const cv = document.querySelector("#vsCanvas");
+        if (cv && cv.width) {
+          // render a representative frame first so we don't capture a blank canvas
+          try { const d = (typeof studioDuration === "function" ? studioDuration() : 0) || 0; if (d > 0) drawStudioFrame(Math.min(d - 0.1, Math.max(0.4, d * 0.4))); } catch (e) {}
+          const tc = document.createElement("canvas");
+          const scale = Math.min(1, 640 / Math.max(1, cv.width));
+          tc.width = Math.round(cv.width * scale); tc.height = Math.round(cv.height * scale);
+          tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
+          thumb = await new Promise(r => tc.toBlob(r, "image/jpeg", 0.74));
+        }
+      } catch (e) {}
+    }
+    const sd = vstudio.storyData || {};
+    const title = String(vstudio._exportName || sd.title || "AI Radar video").slice(0, 120);
+    // The source the user gave (article outlet / link), so the dashboard can show it.
+    const source = String(sd.source || sd.sourceLabel || (sd.source && sd.source.name) || "").replace(/^by\s+/i, "").trim().slice(0, 80);
     const fd = new FormData();
     fd.append("video", blob, (name || "ai-radar-video") + "." + (ext || "mp4"));
-    fd.append("title", String(vstudio._exportName || (vstudio.storyData && vstudio.storyData.title) || "AI Radar video").slice(0, 100));
+    fd.append("title", title);
+    if (source) fd.append("source", source);
     if (thumb) fd.append("thumbnail", thumb, "thumb.jpg");
     // credentials:"include" guarantees the session cookie is sent even if the
     // Studio page and the /api route are resolved through slightly different
@@ -15043,6 +15055,7 @@ async function exportStudioVideo() {
   //  above feed only the recording destination, not actx.destination, so the
   //  soundtrack is captured into the file without also blasting out of the
   //  user's speakers for the whole render.)
+  vstudio._posterBlob = null; vstudio._posterCaptured = false;   // fresh poster per export
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
   // slide videos: start them so they have motion; drawStudioFrame
@@ -15080,6 +15093,21 @@ async function exportStudioVideo() {
       drawStudioFrame(elapsed);
       vsApplyMusicFade(elapsed, duration);
       if (_manualCap && _capTrack) { try { _capTrack.requestFrame(); } catch (e) {} }
+      // Snapshot a REAL poster frame ~40% in (video already seeked, scene fully
+      // drawn) so the dashboard tile shows the video — not a black frame.
+      if (!vstudio._posterCaptured && elapsed >= duration * 0.4) {
+        vstudio._posterCaptured = true;
+        try {
+          const _cv = $("#vsCanvas");
+          if (_cv && _cv.width) {
+            const _tc = document.createElement("canvas");
+            const _sc = Math.min(1, 640 / Math.max(1, _cv.width));
+            _tc.width = Math.round(_cv.width * _sc); _tc.height = Math.round(_cv.height * _sc);
+            _tc.getContext("2d").drawImage(_cv, 0, 0, _tc.width, _tc.height);
+            _tc.toBlob(b => { if (b) vstudio._posterBlob = b; }, "image/jpeg", 0.74);
+          }
+        } catch (e) {}
+      }
       if (elapsed < duration && !vstudio._batchCancel) {
         vstudio.rafId = requestAnimationFrame(loop);
       } else {
