@@ -6762,7 +6762,13 @@ function vsBatchProgress(show, current, total, label) {
 
 // Popup: show the detected items with checkboxes so the user picks which ones
 // to render. Resolves to the chosen array, or null if cancelled.
-function vsPickCities(names, fa) {
+function vsPickCities(names, fa, topic) {
+  // The list isn't always places — it can be products, people or companies. Label
+  // it by what was actually detected: "locations" only when most entries look like
+  // "City, ST", otherwise the neutral "items".
+  const _loc = names.length && names.filter(n => /,\s*[A-Z]{2}\b/.test(String(n))).length >= Math.ceil(names.length * 0.6);
+  const kind = fa ? (_loc ? "موقعیت" : "مورد") : (_loc ? "locations" : "items");
+  const _topic = String(topic || "").trim();
   return new Promise(resolve => {
     if (!document.getElementById("vsPickStyle")) {
       const st = document.createElement("style");
@@ -6795,8 +6801,8 @@ function vsPickCities(names, fa) {
     ov.className = "vs-pick-ov";
     ov.innerHTML =
       `<div class="vs-pick">
-        <h3>${names.length} ${fa ? "مورد شناسایی شد" : "locations detected"}</h3>
-        <div class="sub">${fa ? "تیکِ مواردی که می‌خواهی ویدئو بسازی را نگه دار، بقیه را بردار، بعد بزن بساز." : "Keep the ones you want, untick the rest, then generate."}</div>
+        <h3>${names.length} ${fa ? kind + " شناسایی شد" : kind + " detected"}</h3>
+        <div class="sub">${_topic ? (fa ? "موضوع: " + _topic.replace(/</g,"&lt;") + " — " : "From: " + _topic.replace(/</g,"&lt;") + " — ") : ""}${fa ? "تیکِ مواردی که می‌خواهی ویدئو بسازی را نگه دار، بقیه را بردار، بعد بزن بساز." : "Keep the ones you want, untick the rest, then generate."}</div>
         <div class="bar"><a id="vsPickAll">${fa ? "انتخاب همه" : "Select all"}</a><a id="vsPickNone">${fa ? "حذف همه" : "Clear all"}</a></div>
         <div class="list" id="vsPickList"></div>
         <div class="foot">
@@ -6887,9 +6893,18 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
       aiNames = namesFrom(ex);
     }
     if (!authoritativeNames && aiNames.length && aiNames.length <= 22) {
-      const merged = names.slice();
-      aiNames.forEach(n => { if (!merged.some(m => m.toLowerCase() === String(n).toLowerCase())) merged.push(n); });
-      names = merged;
+      // Trust the model's read of the article's MAIN list — it distinguishes the
+      // real entries (the 10 states, the profiled products/people) from stray
+      // "City, ST" strings the local regex scrapes out of related-links, nav and
+      // per-item examples. Only UNION in the local scan when the model returned
+      // too few to be reliable on its own.
+      if (aiNames.length >= 3) {
+        names = aiNames.slice();
+      } else {
+        const merged = names.slice();
+        aiNames.forEach(n => { if (!merged.some(m => m.toLowerCase() === String(n).toLowerCase())) merged.push(n); });
+        names = merged;
+      }
     }
   }
 
@@ -6940,6 +6955,10 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
     } catch (e) {}
     names = vsCleanItemNames(names, text);    // final clean + cap
   }
+  // If the article itself declares a count ("10 states", "25 best cities"), never
+  // show MORE than that — the extras are stray places scraped from elsewhere on
+  // the page, not part of the real list.
+  if (expectedN >= 2 && expectedN <= 20 && names.length > expectedN) names = names.slice(0, expectedN);
   usedLocalNames = names.length >= 3;
 
   // Names with no real occurrence in `text` came from knowledge-assisted
@@ -6962,7 +6981,7 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
 
   // Let the user choose which detected items to render (checkbox popup). This
   // also removes the "sometimes 1, sometimes 10" surprise — they see and decide.
-  const picked = await vsPickCities(names, fa);
+  const picked = await vsPickCities(names, fa, (ex && ex.topic) || "");
   if (!picked || !picked.length) {           // cancelled → stop cleanly
     vsBatchProgress(false);
     vsAutoStatus(fa ? "لغو شد." : "Cancelled.");
