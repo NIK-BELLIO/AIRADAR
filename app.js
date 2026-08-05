@@ -13814,6 +13814,7 @@ function previewStudioVideo(fromStart) {
   buildPreviewCanvas();
   // A real video now exists — reveal the Export button (hidden until first build).
   try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
+  try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
   vstudio._logoVidVisible = false;   // logo restarts cleanly when it first appears
 
   if (vstudio.rafId) cancelAnimationFrame(vstudio.rafId);
@@ -14652,15 +14653,20 @@ async function vsSaveToDashboard(blob, ext, name) {
     // credentials:"include" guarantees the session cookie is sent even if the
     // Studio page and the /api route are resolved through slightly different
     // hosts — "same-origin" would drop it in that case and yield a false 401.
+    const mb = (blob.size / (1024 * 1024)).toFixed(1);
+    try { console.log("[dashboard-save] posting", mb + "MB", ext); } catch (e) {}
     const res = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "include" });
+    try { console.log("[dashboard-save] response", res && res.status); } catch (e) {}
     if (res && res.ok) {
-      vsStatus(fa ? "در داشبورد شما هم ذخیره شد. ✓" : "Also saved to your dashboard. ✓");
+      const okMsg = fa ? "✓ در داشبورد شما ذخیره شد." : "✓ Saved to your dashboard.";
+      vsStatus(okMsg); vsSetDashNote(okMsg + (fa ? " <a href='https://airadar.me/dashboard' target='_blank' style='color:#5b8dff'>باز کردن داشبورد</a>" : " <a href='https://airadar.me/dashboard' target='_blank' style='color:#5b8dff'>Open dashboard</a>"), "ok");
     } else if (res && res.status === 401) {
-      // The single most common reason nothing shows up: the Studio can be used
-      // WITHOUT signing in, so the save is rejected. Make the fix obvious.
-      vsStatus(fa
-        ? "برای ذخیرهٔ ویدیوها در داشبورد، اول در airadar.me/login وارد شوید."
-        : "Sign in at airadar.me/login to save your videos to the dashboard.");
+      // The single most common reason nothing shows up: the Studio tab isn't
+      // signed in, so the save is rejected. Make the fix obvious + persistent.
+      const m = fa
+        ? "⚠ برای ذخیره در داشبورد، در <a href='https://airadar.me/login' target='_blank' style='color:#5b8dff'>airadar.me/login</a> وارد شو، بعد این صفحه را رفرش کن."
+        : "⚠ Not signed in here — <a href='https://airadar.me/login' target='_blank' style='color:#5b8dff'>sign in</a>, refresh this page, then export again.";
+      vsStatus(fa ? "برای ذخیره در داشبورد اول وارد شو." : "Sign in to save to your dashboard."); vsSetDashNote(m, "warn");
     } else {
       // Show the server's OWN reason when it sends one (413 too-big, 500, …) so a
       // failure is never opaque.
@@ -14668,15 +14674,51 @@ async function vsSaveToDashboard(blob, ext, name) {
       try { const j = await res.clone().json(); reason = j && j.error ? j.error : ""; } catch (e) {}
       const code = res ? res.status : "?";
       try { console.error("dashboard save failed:", code, reason); } catch (e) {}
-      vsStatus((fa ? `ذخیره در داشبورد انجام نشد (${code}): ` : `Couldn't save to your dashboard (${code}): `)
-        + (reason || (fa ? "خطای ناشناخته" : "unknown error"))
-        + (fa ? " — فایل دانلود شد." : " — the download still worked."));
+      const m = (fa ? `✗ ذخیره در داشبورد انجام نشد (${code}): ` : `✗ Save failed (${code}): `)
+        + (reason || (fa ? "خطای ناشناخته" : "unknown error"));
+      vsStatus(m + (fa ? " — فایل دانلود شد." : " — the download still worked.")); vsSetDashNote(m, "err");
     }
   } catch (e) {
-    vsStatus(fa
-      ? "دسترسی به داشبورد ممکن نشد. فایل دانلود شد."
-      : "Couldn't reach the dashboard to save. The download still worked.");
+    const m = fa ? "✗ دسترسی به داشبورد ممکن نشد." : "✗ Couldn't reach the dashboard to save.";
+    vsStatus(m + (fa ? " فایل دانلود شد." : " The download still worked.")); vsSetDashNote(m, "err");
   }
+}
+
+// ── Persistent dashboard-save / sign-in indicator (shown under Export) ──
+function vsSetDashNote(html, kind) {
+  try {
+    let el = document.getElementById("vsDashNote");
+    if (!el) {
+      const btn = document.getElementById("vsExportBtn");
+      if (!btn || !btn.parentNode) return;
+      el = document.createElement("div");
+      el.id = "vsDashNote";
+      el.style.cssText = "margin-top:8px;font-size:12px;line-height:1.55;padding:8px 11px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03)";
+      btn.parentNode.insertBefore(el, btn.nextSibling);
+    }
+    el.innerHTML = html;
+    const c = kind === "ok" ? ["rgba(52,199,89,.5)", "#8fe3a0"]
+      : kind === "warn" ? ["rgba(245,158,11,.55)", "#f0c24a"]
+      : kind === "err" ? ["rgba(255,80,80,.5)", "#ff9a9a"]
+      : ["rgba(255,255,255,.12)", "#cfc8ba"];
+    el.style.borderColor = c[0]; el.style.color = c[1];
+  } catch (e) {}
+}
+// On studio open, tell the user up-front whether exports will save (i.e. whether
+// THIS page is signed in) — the #1 reason videos never appeared in the dashboard.
+async function vsProbeDashboardLogin() {
+  const fa = state.lang === "fa";
+  try {
+    const r = await fetch("/api/generations", { credentials: "include", cache: "no-store" });
+    if (r && r.ok) {
+      vsSetDashNote(fa ? "✓ وارد شده‌ای — ویدیوهای خروجی خودکار در داشبورد ذخیره می‌شوند."
+                       : "✓ Signed in — exported videos save to your dashboard automatically.", "ok");
+    } else if (r && r.status === 401) {
+      vsSetDashNote(fa
+        ? "⚠ این صفحه وارد نشده — برای ذخیرهٔ خروجی‌ها در <a href='https://airadar.me/login' target='_blank' style='color:#5b8dff'>airadar.me/login</a> وارد شو و رفرش کن."
+        : "⚠ This page isn't signed in — <a href='https://airadar.me/login' target='_blank' style='color:#5b8dff'>sign in</a> and refresh to save exports to your dashboard.", "warn");
+    }
+  } catch (e) {}
 }
 
 async function exportStudioVideo() {
