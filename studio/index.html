@@ -767,7 +767,7 @@
     <header class="arh">
       <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg" alt="AI Radar" /></a>
       <nav class="arh-nav" aria-label="Primary navigation">
-        <a href="/Creator" class="arh-link"><span class="arh-ic">✦</span>AI Creator<span class="arh-new">NEW</span></a>
+        <!-- AI Creator temporarily hidden — output quality not ready yet. -->
         <a href="/prompt-lab/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>Prompt Lab<span class="arh-new">NEW</span></a>
         <a href="/studio/" class="arh-link"><span class="arh-ic">▶</span><span data-i18n="navStudio">Video Studio</span><span class="arh-new">NEW</span></a>
       </nav>
@@ -787,7 +787,7 @@
               <p id="authCredits" class="auth-menu-credits"></p>
             </div>
             <a href="/dashboard" class="auth-menu-item">My dashboard</a>
-            <a href="/Creator" class="auth-menu-item">AI Creator</a>
+            <!-- AI Creator temporarily hidden -->
             <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
           </div>
         </div>
@@ -826,7 +826,7 @@
 
             <div class="hero-x-quick">
               <span class="hero-x-quick-label">Jump to</span>
-              <a href="/Creator" class="hero-x-chip">AI Creator</a>
+              <!-- AI Creator temporarily hidden -->
               <a href="/studio" class="hero-x-chip">Video Studio</a>
               <a href="#tools" class="hero-x-chip">Tool Finder</a>
               <a href="#performance" class="hero-x-chip">Live Charts</a>
@@ -1441,7 +1441,7 @@
                       <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
                     </label>
                     <label><span id="vsAutoTopicLbl">What should the video be about?
-                      <button type="button" id="vsMgHelpBtn" class="vs-help-chip" title="How the motion-graphic skill works">? guide</button>
+                      <button type="button" id="vsMgHelpBtn" class="vs-help-chip" title="How the /motion_graphic and /editorial skills work">? guide</button>
                     </span>
                       <div class="vs-slash-wrap">
                         <textarea id="vsAutoTopic" rows="3" placeholder="Type / for commands — or paste an article link or a topic"></textarea>
@@ -1532,6 +1532,7 @@
                   <summary class="vstudio-label" data-i18n="vIntroSceneLabel">Intro scene settings</summary>
                   <div class="vs-section-body">
                     <p class="vstudio-note" data-i18n="vIntroSceneHint">Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.</p>
+                    <label for="vsSlideMediaUpload" class="button ghost" style="display:flex;justify-content:center;align-items:center;width:100%;margin:2px 0 12px;cursor:pointer;">+ Add / replace footage on this scene</label>
                     <label><span data-i18n="vIntroBgLabel">Background</span></label>
                     <div id="vsIntroBgPicker" class="intro-bg-picker"></div>
                     <label><span data-i18n="vIntroMainLabel">Main text</span>
@@ -2562,7 +2563,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v410"></script>
+    <script src="/app.js?v=v411"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
@@ -2819,9 +2820,9 @@
     <div class="mg-guide-backdrop" id="vsMgGuide" hidden>
       <div class="mg-guide" role="dialog" aria-modal="true" aria-labelledby="mgGuideTitle">
         <button class="mg-guide-close" id="vsMgGuideClose" type="button" aria-label="Close">✕</button>
-        <span class="mg-guide-badge">✦ Skill</span>
-        <h3 id="mgGuideTitle">Make a motion graphic in 3 steps</h3>
-        <p class="mg-guide-sub">No footage needed — the scenes are generated as animated vector graphics.</p>
+        <span class="mg-guide-badge">✦ Skills</span>
+        <h3 id="mgGuideTitle">Two AI skills, built in 3 steps</h3>
+        <p class="mg-guide-sub"><b>/motion_graphic</b> — animated vector graphics, charts &amp; kinetic text. <b>/editorial</b> — a photo-led, magazine-style deck with AI images &amp; big display type. No footage needed either way (but you can add your own to any scene).</p>
 
         <div class="mg-steps">
           <!-- 1 -->
@@ -2839,7 +2840,7 @@
             </div>
             <span class="mg-num">1</span>
             <h4>Type <code>/</code></h4>
-            <p>A command menu appears — pick <b>/motion_graphic</b>. No need to type it out.</p>
+            <p>A command menu appears — pick <b>/motion_graphic</b> or <b>/editorial</b>. No need to type it out.</p>
           </div>
 
           <!-- 2 -->
@@ -2881,12 +2882,13 @@
             </div>
             <span class="mg-num">3</span>
             <h4>Press <code>Enter</code></h4>
-            <p>It builds a full deck — animated backgrounds, panels and kinetic text. Then <b>Export</b> as MP4.</p>
+            <p><b>/motion_graphic</b> builds animated graphics, charts &amp; kinetic text; <b>/editorial</b> builds a photo-led magazine deck. Then <b>Export</b> as MP4.</p>
           </div>
         </div>
 
         <div class="mg-guide-actions">
-          <button class="button primary" id="vsMgGuideTry" type="button">Try it now</button>
+          <button class="button primary" id="vsMgGuideTry" type="button">Try /motion_graphic</button>
+          <button class="button primary" id="vsMgGuideTryEd" type="button">Try /editorial</button>
           <button class="button ghost" id="vsMgGuideDismiss" type="button">Got it</button>
         </div>
       </div>

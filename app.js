@@ -4425,13 +4425,13 @@ function bindIntroEditor() {
     };
     document.addEventListener("click", (e) => {
       const t = e.target.closest
-        ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsMgGuideTry")
+        ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsMgGuideTry,#vsMgGuideTryEd")
         : null;
       if (t) {
         if (t.id === "vsMgHelpBtn") return openGuide();
         closeGuide(true);
-        if (t.id === "vsMgGuideTry") {
-          autoTopic.value = "/motion_graphic ";
+        if (t.id === "vsMgGuideTry" || t.id === "vsMgGuideTryEd") {
+          autoTopic.value = (t.id === "vsMgGuideTryEd") ? "/editorial " : "/motion_graphic ";
           autoTopic.focus();
           autoTopic.setSelectionRange(autoTopic.value.length, autoTopic.value.length);
         }
@@ -11657,8 +11657,12 @@ function drawEditorialFrame(ctx, W, H, s, local, dur) {
   const enter = 1 - Math.pow(1 - Math.min(1, Math.max(0, local / 0.7)), 3);
   const k = s._edKen || { zoom: 0.08, dx: 0, dy: 0 };
 
+  // If the user dropped real footage on this scene, it overrides the cut-out /
+  // AI image and becomes the full-bleed background (with the editorial text on top).
+  const _edVid = s.mediaEl && (s.mediaEl.videoWidth || s.isVideo);
+
   // ── CUT-OUT scene: cream/colour split panel, subject standing across it ──
-  if (s._edStyle === "cutout" && s._edCutout) {
+  if (s._edStyle === "cutout" && s._edCutout && !_edVid) {
     ctx.fillStyle = pal.paper; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = pal.label; ctx.fillRect(0, Math.round(H * 0.58), W, Math.ceil(H * 0.42) + 1);
     const cut = s._edCutout, z = 1 + k.zoom * (0.32 + prog * 0.45);
@@ -11670,13 +11674,23 @@ function drawEditorialFrame(ctx, W, H, s, local, dur) {
     return;
   }
 
-  // ── FULL-BLEED scene: cinematic image + subtle grade ──
+  // ── FULL-BLEED scene: cinematic image OR uploaded video footage + subtle grade ──
   ctx.save();
-  if (s.mediaEl && s.mediaEl.width) {
+  const mv = s.mediaEl;
+  const mvW = mv && (mv.videoWidth || mv.naturalWidth || mv.width);
+  const mvH = mv && (mv.videoHeight || mv.naturalHeight || mv.height);
+  if (mv && mvW && mvH) {
+    // keep a video advancing/playing so footage isn't frozen on the first frame
+    if (mv.videoWidth || s.isVideo) {
+      try {
+        if (vstudio.rendering) { const d = mv.duration || 0; mv.currentTime = d ? Math.min(local, d - 0.04) : local; }
+        else if (vstudio.looping && mv.paused) { mv.play().catch(() => {}); }
+      } catch (e) {}
+    }
     const z = 1 + k.zoom * (0.4 + prog * 0.6);
-    const img = s.mediaEl, cover = Math.max(W / img.width, H / img.height) * z;
-    const iw = img.width * cover, ih = img.height * cover;
-    ctx.drawImage(img, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih);
+    const cover = Math.max(W / mvW, H / mvH) * z;
+    const iw = mvW * cover, ih = mvH * cover;
+    try { ctx.drawImage(mv, (W - iw) / 2 + k.dx * W * prog, (H - ih) / 2 + k.dy * H * prog, iw, ih); } catch (e) {}
   } else { ctx.fillStyle = pal.label; ctx.fillRect(0, 0, W, H); }
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, "rgba(0,0,0,0.34)"); g.addColorStop(0.28, "rgba(0,0,0,0.05)"); g.addColorStop(1, "rgba(0,0,0,0.30)");
