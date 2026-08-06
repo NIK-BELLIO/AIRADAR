@@ -7270,7 +7270,10 @@ function vsRenderBatchList() {
   box.hidden = false;
   const fa = state.lang === "fa";
   let html = `<div class="vs-batch-head"><span>${fa ? "ویدئوها" : "Videos"} (${vids.length})</span>` +
-    `<button type="button" id="vsBatchExportAll" class="vs-batch-dlall">${fa ? "⬇ دانلود همه (ZIP)" : "⬇ Download all (zip)"}</button></div>`;
+    `<button type="button" id="vsBatchExportAll" class="vs-batch-dlall">${fa ? "⬇ دانلود همه (ZIP)" : "⬇ Download all (zip)"}</button></div>` +
+    `<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#b9b3a6;margin:2px 2px 8px;cursor:pointer">` +
+    `<input type="checkbox" id="vsZipCovers" style="width:16px;height:16px;accent-color:#2563ff"/>` +
+    `<span>${fa ? "یک کاور (تصویر بندانگشتی) هوش مصنوعی برای هر ویدئو در ZIP" : "Include an AI cover (thumbnail) for each video in the ZIP"}</span></label>`;
   vids.forEach((v, i) => {
     const active = i === vstudio.batchCurrent ? " active" : "";
     const n = (v.data && v.data.sections ? v.data.sections.length + 2 : 0);
@@ -7321,6 +7324,7 @@ async function vsExportAllBatch() {
 
   vstudio._batchExporting = true;
   vstudio._batchCancel = false;
+  const wantCovers = !!(document.querySelector("#vsZipCovers") && document.querySelector("#vsZipCovers").checked);
   const btn = document.querySelector("#vsBatchExportAll");
   if (btn) { btn.disabled = true; btn.textContent = fa ? "در حال خروجی…" : "Exporting…"; }
 
@@ -7342,6 +7346,15 @@ async function vsExportAllBatch() {
           let base = String(vids[i].name).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || ("video-" + (i + 1));
           if (used[base]) base += "-" + (++used[base]); else used[base] = 1;
           zip.file(`${base}.${res.ext || "mp4"}`, res.blob);
+          // Optional: an AI cover per video, bundled alongside it in the ZIP.
+          if (wantCovers) {
+            vsAutoStatus(fa ? `ساخت کاور ${i + 1} از ${vids.length}…` : `Cover ${i + 1} of ${vids.length}…`);
+            try {
+              const src = (vids[i].data && vids[i].data.source) || "";
+              const cov = await vsComposeCover(vids[i].name, src, vsVal("#vsAspect", "9:16"));
+              if (cov && cov.blob) zip.file(`${base}-cover.png`, cov.blob);
+            } catch (e) {}
+          }
         }
       } else {
         await exportStudioVideo();                  // fallback: individual download
@@ -14647,9 +14660,13 @@ async function vsSaveToDashboard(blob, ext, name) {
         : "Too large to save to your dashboard (80 MB max). The download still worked.");
       return;
     }
-    // Poster: prefer the real mid-video frame captured during recording; only
-    // fall back to the current canvas (which is often black right after export).
-    let thumb = vstudio._posterBlob || null;
+    // Poster: prefer the real opening frame captured during recording (held on a
+    // canvas so there's no async race); only fall back to rendering a frame if it
+    // wasn't captured (the current canvas is often black right after export).
+    let thumb = null;
+    if (vstudio._posterCanvas) {
+      try { thumb = await new Promise(r => vstudio._posterCanvas.toBlob(r, "image/jpeg", 0.8)); } catch (e) {}
+    }
     if (!thumb) {
       try {
         const cv = document.querySelector("#vsCanvas");
@@ -14744,19 +14761,14 @@ async function vsProbeDashboardLogin() {
   } catch (e) {}
 }
 
-// Generate a downloadable COVER / thumbnail for the current video: the AI writes
-// a punchy cover headline + a real image concept, we generate the image, then
-// compose a designed cover (image + big title + source + brand) and download it.
-async function vsGenerateCover() {
-  const btn = document.getElementById("vsCoverBtn");
-  const fa = state.lang === "fa";
-  const sd = vstudio.storyData || {};
-  const topic = String(sd.title || sd._topic || vstudio._exportName || "AI Radar").slice(0, 90);
-  const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
-  if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
-  vsStatus(fa ? "در حال طراحی کاور…" : "Designing the cover…");
-  let coverTitle = String(sd.title || topic).slice(0, 64);
-  let imgPrompt = topic;
+// Compose a cover/thumbnail for a video: the AI writes a short cover headline + a
+// real image concept, we generate the image, then draw a designed cover. Returns
+// { blob, coverTitle }. No download — callers decide (preview / zip). No AI-Radar
+// branding on the image; a source pill shows ONLY when a real source exists.
+async function vsComposeCover(topic, source, aspect) {
+  topic = String(topic || "AI Radar").slice(0, 90);
+  source = String(source || "").replace(/^by\s+/i, "").trim();
+  let coverTitle = topic.slice(0, 64), imgPrompt = topic;
   try {
     const raw = await vsAutoAiChat(
       `Design a click-worthy video thumbnail for a video titled "${topic}"${source ? ` (source: ${source})` : ""}. ` +
@@ -14766,14 +14778,13 @@ async function vsGenerateCover() {
     if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
   } catch (e) {}
 
-  const aspect = vsVal("#vsAspect", "9:16");
+  aspect = aspect || vsVal("#vsAspect", "9:16");
   let W = 1080, H = 1920;
   if (aspect === "16:9") { W = 1280; H = 720; }
   else if (aspect === "1:1") { W = 1080; H = 1080; }
   else if (aspect === "4:5") { W = 1080; H = 1350; }
   else if (aspect === "original") { const m = vstudio.mediaEl; if (m) { const mw = m.videoWidth || m.naturalWidth || 1080, mh = m.videoHeight || m.naturalHeight || 1920; if (mw > mh) { W = 1280; H = 720; } } }
 
-  vsStatus(fa ? "در حال ساخت تصویر کاور…" : "Generating the cover image…");
   const iw = W >= H ? 1024 : Math.round(1024 * W / H);
   const ih = H >= W ? 1024 : Math.round(1024 * H / W);
   let img = null;
@@ -14789,53 +14800,86 @@ async function vsGenerateCover() {
     const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0c1424"); bg.addColorStop(1, "#05070d");
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   }
-  // cinematic scrim (readable text at the bottom)
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "rgba(3,6,12,0.42)"); g.addColorStop(0.45, "rgba(3,6,12,0.06)"); g.addColorStop(1, "rgba(2,4,9,0.92)");
+  g.addColorStop(0, "rgba(3,6,12,0.40)"); g.addColorStop(0.45, "rgba(3,6,12,0.05)"); g.addColorStop(1, "rgba(2,4,9,0.92)");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
   const M = W * 0.06, accent = "#3b82f6";
-  // top-left source/brand pill
-  ctx.save();
-  const kick = (source || "AI RADAR").toUpperCase().replace(/\s+/g, " ").slice(0, 26);
-  const kp = Math.round(W * 0.026);
-  ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
-  try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
-  const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.016;
-  ctx.fillStyle = accent; ctx.fillRect(M, H * 0.06, tw + pX * 2, kp + pY * 2);
-  ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-  ctx.fillText(kick, M + pX, H * 0.06 + (kp + pY * 2) / 2 + kp * 0.05);
-  try { ctx.letterSpacing = "0px"; } catch (e) {}
-  ctx.restore();
+  if (source) {   // source pill ONLY when there is a real source — no AI-Radar mark
+    ctx.save();
+    const kick = source.toUpperCase().replace(/\s+/g, " ").slice(0, 26);
+    const kp = Math.round(W * 0.026);
+    ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
+    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+    const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.016;
+    ctx.fillStyle = accent; ctx.fillRect(M, H * 0.06, tw + pX * 2, kp + pY * 2);
+    ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillText(kick, M + pX, H * 0.06 + (kp + pY * 2) / 2 + kp * 0.05);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
+    ctx.restore();
+  }
 
-  // big title (bottom), auto-wrapped
   const serif = vsGetFont("Prata, Georgia, serif");
   const titlePx = Math.round(W * (aspect === "16:9" ? 0.072 : 0.09));
   ctx.font = `${titlePx}px ${serif}`;
   const maxW = W - M * 2, words = coverTitle.toUpperCase().split(/\s+/), lines = []; let ln = "";
   for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
   if (ln) lines.push(ln);
-  const lh = titlePx * 1.08, blockH = lines.length * lh;
-  const by = H * 0.92 - blockH;
+  const lh = titlePx * 1.08, blockH = lines.length * lh, by = H * 0.93 - blockH;
   ctx.fillStyle = accent; ctx.fillRect(M, by - W * 0.035, W * 0.17, Math.max(5, H * 0.008));
   ctx.save();
   ctx.fillStyle = "#ffffff"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = W * 0.02; ctx.shadowOffsetY = H * 0.004;
   lines.forEach((l, i) => ctx.fillText(l, M, by + titlePx + i * lh));
   ctx.restore();
-  ctx.font = `800 ${Math.round(W * 0.024)}px "Archivo", system-ui, sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
-  ctx.fillText("airadar.me", W - M, H - H * 0.035);
 
   const blob = await new Promise(r => c.toBlob(r, "image/png", 0.95));
-  if (blob) {
-    const url = URL.createObjectURL(blob);
+  return { blob, coverTitle };
+}
+
+// Button: build a cover for the CURRENT video and show it for approval → download.
+async function vsGenerateCover() {
+  const btn = document.getElementById("vsCoverBtn");
+  const fa = state.lang === "fa";
+  const sd = vstudio.storyData || {};
+  const topic = String(sd.title || sd._topic || vstudio._exportName || "AI Radar").slice(0, 90);
+  const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
+  if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+  vsStatus(fa ? "در حال طراحی کاور…" : "Designing the cover…");
+  let out = null;
+  try { out = await vsComposeCover(topic, source); } catch (e) {}
+  if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+  if (!out || !out.blob) { vsStatus(fa ? "ساخت کاور ناموفق بود." : "Couldn't build the cover."); return; }
+  vsStatus("");
+  vsShowCoverPreview(out.blob, out.coverTitle);
+}
+
+// Preview the cover for approval before downloading.
+function vsShowCoverPreview(blob, coverTitle) {
+  const fa = state.lang === "fa";
+  const url = URL.createObjectURL(blob);
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.78);backdrop-filter:blur(6px);padding:18px";
+  ov.innerHTML =
+    `<div style="width:min(560px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:12px;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+       <div style="font-family:'Prata',Georgia,serif;font-size:17px;color:#efe9dc">${fa ? "پیش‌نمایش کاور" : "Cover preview"}</div>
+       <img src="${url}" alt="cover" style="width:100%;max-height:64vh;object-fit:contain;border-radius:10px;background:#000"/>
+       <div style="display:flex;gap:10px">
+         <button id="vsCovClose" style="flex:1;font:inherit;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="vsCovDl" style="flex:2;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود کاور" : "⬇ Download cover"}</button>
+       </div>
+     </div>`;
+  document.body.appendChild(ov);
+  const close = () => { try { ov.remove(); } catch (e) {} setTimeout(() => URL.revokeObjectURL(url), 1000); };
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  ov.querySelector("#vsCovClose").onclick = close;
+  ov.querySelector("#vsCovDl").onclick = () => {
     const a = document.createElement("a"); a.href = url;
     a.download = (String(vstudio._exportName || coverTitle || "ai-radar").replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || "cover") + "-cover.png";
-    a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-  if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
-  vsStatus(fa ? "کاور دانلود شد. ✓" : "Cover downloaded. ✓");
+    a.click();
+    vsStatus(fa ? "کاور دانلود شد. ✓" : "Cover downloaded. ✓");
+    close();
+  };
 }
 
 async function exportStudioVideo() {
@@ -15160,7 +15204,7 @@ async function exportStudioVideo() {
   //  above feed only the recording destination, not actx.destination, so the
   //  soundtrack is captured into the file without also blasting out of the
   //  user's speakers for the whole render.)
-  vstudio._posterBlob = null; vstudio._posterCaptured = false;   // fresh poster per export
+  vstudio._posterCanvas = null; vstudio._posterCaptured = false;   // fresh poster per export
   recorder.start(100);   // flush a chunk every 100ms
   vstudio.startTime = performance.now();
   // slide videos: start them so they have motion; drawStudioFrame
@@ -15198,18 +15242,21 @@ async function exportStudioVideo() {
       drawStudioFrame(elapsed);
       vsApplyMusicFade(elapsed, duration);
       if (_manualCap && _capTrack) { try { _capTrack.requestFrame(); } catch (e) {} }
-      // Snapshot a REAL poster frame ~40% in (video already seeked, scene fully
-      // drawn) so the dashboard tile shows the video — not a black frame.
-      if (!vstudio._posterCaptured && elapsed >= duration * 0.4) {
+      // Snapshot a REAL poster frame near the START (the first slide, fully drawn)
+      // so the dashboard tile shows the opening frame — not a black frame. The
+      // pixels are held on a canvas SYNCHRONOUSLY (converting to a blob here is
+      // async and lost the race with the save, which then fell back to a black
+      // canvas). vsSaveToDashboard turns this canvas into the thumbnail.
+      if (!vstudio._posterCaptured && elapsed >= Math.min(1.3, duration * 0.22)) {
         vstudio._posterCaptured = true;
         try {
           const _cv = $("#vsCanvas");
           if (_cv && _cv.width) {
             const _tc = document.createElement("canvas");
-            const _sc = Math.min(1, 640 / Math.max(1, _cv.width));
+            const _sc = Math.min(1, 720 / Math.max(1, _cv.width));
             _tc.width = Math.round(_cv.width * _sc); _tc.height = Math.round(_cv.height * _sc);
             _tc.getContext("2d").drawImage(_cv, 0, 0, _tc.width, _tc.height);
-            _tc.toBlob(b => { if (b) vstudio._posterBlob = b; }, "image/jpeg", 0.74);
+            vstudio._posterCanvas = _tc;
           }
         } catch (e) {}
       }
