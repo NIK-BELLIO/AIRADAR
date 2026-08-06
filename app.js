@@ -6612,9 +6612,14 @@ function vsCleanItemNames(names, fullText) {
     do { prev = s; s = s.replace(JUNKLEAD, ""); } while (s !== prev);
     return s.trim();
   };
+  // Bare US state / territory names — so a "10 best STATES" list (whose entries
+  // are "Vermont", "Montana", … with no city or ", ST") is recognised as a place
+  // list. Without this a states article collapsed to a single video.
+  const BARE_STATE = /^(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|washington,?\s*d\.?c\.?|district of columbia|puerto rico)$/i;
   const isPlace = (n) => /,\s*[A-Z]{2}\b/.test(n) ||
     /,\s*(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/.test(n) ||
-    /\b(?:City|Suburbs)$/i.test(n);
+    /\b(?:City|Suburbs)$/i.test(n) ||
+    BARE_STATE.test(String(n).trim());
 
   let out = (names || []).map(n => String(n).trim().replace(/^[\d.)\-\s]+/, ""))
     .map(n => isPlace(n) ? stripLead(n) : n)               // clean "Expo City, ST" → "City, ST"
@@ -6935,11 +6940,19 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
     vsAutoStatus(fa ? "متن کامل نبود — بازسازی فهرست با کمک مدل…"
                     : "Article was a teaser — reconstructing the list…");
     const hintN = expectedN || (placesMode ? 8 : ((String(text).match(/\b(\d{1,2})\s+[A-Za-z]+\b/) || [])[1] || ""));
+    // A list of STATES must be reconstructed as state NAMES, not "City, ST" —
+    // otherwise a "10 best states" teaser rebuilds as cities (or nothing).
+    const statesMode = /\b\d{0,2}\s*(?:most|least|best|top|worst|cheapest|affordable|safest|richest|poorest)?\s*states\b/i.test(String(text)) &&
+      !/\bcit(?:y|ies)|towns|metros|suburbs\b/i.test(String(text).slice(0, 400));
+    const nameRule = statesMode
+      ? `Each entry is a US STATE — name each EXACTLY as its full state name (e.g. "Vermont", "Texas"), no city, no abbreviation.`
+      : `For CITIES/PLACES/METROS, name each EXACTLY as "City, ST" (two-letter state).`;
+    const exItems = statesMode ? `["Vermont", "Texas", "..."]` : `["City, ST", "City, ST", "..."]`;
     const kPrompt =
 `The TEXT below is the intro of a news listicle; the actual ranked list usually lives on separate slides not included here.
-Identify the article from its headline/topic and list EVERY place it ranks — for a "best and worst" piece include BOTH the best AND the worst entries — in order${hintN ? ", aiming for about " + hintN + " of them" : ""}.
-For CITIES/PLACES/METROS, name each EXACTLY as "City, ST" (two-letter state). Use your knowledge of this widely-published article/topic to complete the list accurately. Do NOT include data sources (Redfin, Zillow, Census), quoted experts, or generic phrases — only the ranked places themselves. Do NOT invent fictional places.
-Return ONLY compact JSON: {"topic":"overall subject in <=6 words","source":"outlet name if identifiable else a fitting label","items":["City, ST", "City, ST", "..."]}
+Identify the article from its headline/topic and list EVERY entry it ranks — for a "best and worst" piece include BOTH the best AND the worst entries — in order${hintN ? ", aiming for about " + hintN + " of them" : ""}.
+${nameRule} Use your knowledge of this widely-published article/topic to complete the list accurately. Do NOT include data sources (Redfin, Zillow, Census), quoted experts, or generic phrases — only the ranked entries themselves. Do NOT invent fictional entries.
+Return ONLY compact JSON: {"topic":"overall subject in <=6 words","source":"outlet name if identifiable else a fitting label","items":${exItems}}
 TEXT: """${String(text).slice(0, 8000)}"""`;
     try {
       const ex2 = vsParseAiJson(await vsAutoAiChat(kPrompt));
