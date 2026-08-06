@@ -9278,7 +9278,7 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.textAlign = "center";
       ctx.fillStyle = "rgba(255,255,255,0.65)";
       const tpx = Math.round(U * 0.032);
-      ctx.font = `600 ${tpx}px Inter, sans-serif`;
+      vsFitFont(ctx, data.title.toUpperCase(), panelW * 0.9, "600", "Inter, sans-serif", tpx, Math.round(U * 0.018));
       ctx.fillText(data.title.toUpperCase(), px + panelW / 2, py + panelH * 0.13);
     }
 
@@ -9323,14 +9323,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
       ctx.fillStyle = ig.accent;
       ctx.shadowColor = vsHexA(ig.accent, 0.4);
       ctx.shadowBlur = U * 0.04;
-      ctx.font = `800 ${numPx}px ${vsGetFont("Inter, sans-serif")}`;
+      // Fit the number to the cell so a long value never spills into the next cell.
+      vsFitFont(ctx, shown, cellW * 0.9, "800", vsGetFont("Inter, sans-serif"), numPx, Math.round(U * 0.03));
       ctx.fillText(shown, cx, cy2 + numPx * 0.35);
       ctx.shadowBlur = 0;
 
-      // label below number
+      // label below number — fit to the cell width so it isn't cut off
       const lblPx = Math.round(Math.min(U * 0.022, cellH * 0.14));
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.font = `500 ${lblPx}px Inter, sans-serif`;
+      vsFitFont(ctx, s.label.toUpperCase(), cellW * 0.92, "500", "Inter, sans-serif", lblPx, Math.round(U * 0.012));
       ctx.fillText(s.label.toUpperCase(), cx, cy2 + numPx * 0.35 + lblPx * 1.6);
 
       // small accent underline
@@ -13300,6 +13301,11 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
   let lines = main ? wrap(main, hPx) : [];
   const maxLines = cen ? 2 : 4;
   while (lines.length > maxLines && hPx > U * 0.055) { hPx -= 2; lines = wrap(main, hPx); }
+  // Also fit the frame HEIGHT: hPx is sized from U = min(W,H), so a line-count-only
+  // cap let the block overflow at square / landscape aspects. Leave room for the
+  // eyebrow above and the subtitle/source below.
+  const _fitH = H * (cen ? 0.52 : 0.6) - (eyebrow ? U * 0.09 : 0) - (sub ? U * 0.11 : 0);
+  while (hPx > U * 0.04 && lines.length * hPx * 1.12 > _fitH) { hPx -= 2; lines = wrap(main, hPx); }
   const lineH = hPx * 1.12;
   const blockH = lines.length * lineH;
 
@@ -13569,13 +13575,18 @@ function drawCard(ctx, W, H, tpl, txt, alpha, subTxt, motion, prog, kind, srcLin
   const headText = useAccentBox ? accentWords.slice(0, -1).join(" ") : txt;
   txt = headText;
   let lines = layout(txt, maxLines);
-  // shrink the font until it fits in maxLines AND the widest line fits the
-  // width (a single long word like "solo-homeownership" must not spill out
-  // the sides). Keeps going well past the old floor — a smaller-but-whole
-  // title beats one that gets cut off with an ellipsis, which used to
-  // happen for longer titles (e.g. a full question-style headline).
+  // The title must fit the frame HEIGHT too — not just the line count and width.
+  // The font is sized from U = min(W,H), so at a square / landscape (non-9:16)
+  // aspect the block overflowed the much shorter frame. Reserve room for the
+  // accent-box word, the eyebrow above and the source below.
+  const availTitleH = H * 0.62;
+  const tooTall = () => (lines.length + (useAccentBox ? 1 : 0)) * fontPx * 1.22 > availTitleH;
+  // shrink the font until it fits in maxLines AND the widest line fits the width
+  // AND the whole block fits the frame height (a single long word like
+  // "solo-homeownership" must not spill out the sides; a square card must not
+  // overflow top/bottom). Smaller-but-whole beats clipped/overflowing.
   while (fontPx > U * 0.01 &&
-         (layout(txt, 99).length > maxLines || widestLine(lines) > maxTextW)) {
+         (layout(txt, 99).length > maxLines || widestLine(lines) > maxTextW || tooTall())) {
     fontPx -= 1;
     ctx.font = `${headWeight} ${fontPx}px ${vsGetFont(tpl.headlineFont, true)}`;
     lines = layout(txt, maxLines);
