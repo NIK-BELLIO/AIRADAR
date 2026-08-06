@@ -6895,18 +6895,15 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
       aiNames = namesFrom(ex);
     }
     if (!authoritativeNames && aiNames.length && aiNames.length <= 22) {
-      // Trust the model's read of the article's MAIN list — it distinguishes the
-      // real entries (the 10 states, the profiled products/people) from stray
-      // "City, ST" strings the local regex scrapes out of related-links, nav and
-      // per-item examples. Only UNION in the local scan when the model returned
-      // too few to be reliable on its own.
-      if (aiNames.length >= 3) {
-        names = aiNames.slice();
-      } else {
-        const merged = names.slice();
-        aiNames.forEach(n => { if (!merged.some(m => m.toLowerCase() === String(n).toLowerCase())) merged.push(n); });
-        names = merged;
-      }
+      // UNION the local "City, ST" scan with the model's list. The local scan's
+      // names are grounded (they literally occur in the fetched text), so they
+      // survive the grounding filter below and keep the batch splitting even when
+      // the model's names live on separate teaser slides. Over-detection from
+      // stray places is handled by the declared-count cap further down — dropping
+      // the local scan entirely made a real list collapse to a single video.
+      const merged = names.slice();
+      aiNames.forEach(n => { if (!merged.some(m => m.toLowerCase() === String(n).toLowerCase())) merged.push(n); });
+      names = merged;
     }
   }
 
