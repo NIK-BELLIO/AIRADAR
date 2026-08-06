@@ -13826,6 +13826,7 @@ function previewStudioVideo(fromStart) {
   buildPreviewCanvas();
   // A real video now exists — reveal the Export button (hidden until first build).
   try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
+  try { const _cb = document.getElementById("vsCoverBtn"); if (_cb) _cb.style.display = ""; } catch {}
   try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
   vstudio._logoVidVisible = false;   // logo restarts cleanly when it first appears
 
@@ -14743,6 +14744,100 @@ async function vsProbeDashboardLogin() {
   } catch (e) {}
 }
 
+// Generate a downloadable COVER / thumbnail for the current video: the AI writes
+// a punchy cover headline + a real image concept, we generate the image, then
+// compose a designed cover (image + big title + source + brand) and download it.
+async function vsGenerateCover() {
+  const btn = document.getElementById("vsCoverBtn");
+  const fa = state.lang === "fa";
+  const sd = vstudio.storyData || {};
+  const topic = String(sd.title || sd._topic || vstudio._exportName || "AI Radar").slice(0, 90);
+  const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
+  if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
+  vsStatus(fa ? "در حال طراحی کاور…" : "Designing the cover…");
+  let coverTitle = String(sd.title || topic).slice(0, 64);
+  let imgPrompt = topic;
+  try {
+    const raw = await vsAutoAiChat(
+      `Design a click-worthy video thumbnail for a video titled "${topic}"${source ? ` (source: ${source})` : ""}. ` +
+      `Return ONLY compact JSON: {"coverTitle":"a punchy 2-5 word cover headline in the SAME language as the title","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`);
+    const j = vsParseAiJson(raw);
+    if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
+    if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
+  } catch (e) {}
+
+  const aspect = vsVal("#vsAspect", "9:16");
+  let W = 1080, H = 1920;
+  if (aspect === "16:9") { W = 1280; H = 720; }
+  else if (aspect === "1:1") { W = 1080; H = 1080; }
+  else if (aspect === "4:5") { W = 1080; H = 1350; }
+  else if (aspect === "original") { const m = vstudio.mediaEl; if (m) { const mw = m.videoWidth || m.naturalWidth || 1080, mh = m.videoHeight || m.naturalHeight || 1920; if (mw > mh) { W = 1280; H = 720; } } }
+
+  vsStatus(fa ? "در حال ساخت تصویر کاور…" : "Generating the cover image…");
+  const iw = W >= H ? 1024 : Math.round(1024 * W / H);
+  const ih = H >= W ? 1024 : Math.round(1024 * H / W);
+  let img = null;
+  try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), iw, ih); } catch (e) {}
+
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  if (img && (img.naturalWidth || img.width)) {
+    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height;
+    const cov = Math.max(W / mw, H / mh);
+    ctx.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+  } else {
+    const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0c1424"); bg.addColorStop(1, "#05070d");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  }
+  // cinematic scrim (readable text at the bottom)
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(3,6,12,0.42)"); g.addColorStop(0.45, "rgba(3,6,12,0.06)"); g.addColorStop(1, "rgba(2,4,9,0.92)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  const M = W * 0.06, accent = "#3b82f6";
+  // top-left source/brand pill
+  ctx.save();
+  const kick = (source || "AI RADAR").toUpperCase().replace(/\s+/g, " ").slice(0, 26);
+  const kp = Math.round(W * 0.026);
+  ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
+  try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+  const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.016;
+  ctx.fillStyle = accent; ctx.fillRect(M, H * 0.06, tw + pX * 2, kp + pY * 2);
+  ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.fillText(kick, M + pX, H * 0.06 + (kp + pY * 2) / 2 + kp * 0.05);
+  try { ctx.letterSpacing = "0px"; } catch (e) {}
+  ctx.restore();
+
+  // big title (bottom), auto-wrapped
+  const serif = vsGetFont("Prata, Georgia, serif");
+  const titlePx = Math.round(W * (aspect === "16:9" ? 0.072 : 0.09));
+  ctx.font = `${titlePx}px ${serif}`;
+  const maxW = W - M * 2, words = coverTitle.toUpperCase().split(/\s+/), lines = []; let ln = "";
+  for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
+  if (ln) lines.push(ln);
+  const lh = titlePx * 1.08, blockH = lines.length * lh;
+  const by = H * 0.92 - blockH;
+  ctx.fillStyle = accent; ctx.fillRect(M, by - W * 0.035, W * 0.17, Math.max(5, H * 0.008));
+  ctx.save();
+  ctx.fillStyle = "#ffffff"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = W * 0.02; ctx.shadowOffsetY = H * 0.004;
+  lines.forEach((l, i) => ctx.fillText(l, M, by + titlePx + i * lh));
+  ctx.restore();
+  ctx.font = `800 ${Math.round(W * 0.024)}px "Archivo", system-ui, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("airadar.me", W - M, H - H * 0.035);
+
+  const blob = await new Promise(r => c.toBlob(r, "image/png", 0.95));
+  if (blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = (String(vstudio._exportName || coverTitle || "ai-radar").replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || "cover") + "-cover.png";
+    a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+  vsStatus(fa ? "کاور دانلود شد. ✓" : "Cover downloaded. ✓");
+}
+
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -15458,6 +15553,7 @@ function bindEvents() {
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
+  on("#vsCoverBtn", "click", () => { vsGenerateCover().catch(() => {}); });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
