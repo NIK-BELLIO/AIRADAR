@@ -4788,7 +4788,7 @@ async function vsAutoAiChat(prompt, opts) {
     const body = {
       model: model,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7, seed: seed
+      temperature: (typeof opts.temperature === "number" ? opts.temperature : 0.7), seed: seed
     };
     if (useJson) body.response_format = { type: "json_object" };
     const target = endpoint || (VS_WORKER_BASE + "/chat");
@@ -14782,9 +14782,19 @@ async function vsComposeCover(topic, source, aspect) {
   let coverTitle = topic.slice(0, 64), imgPrompt = topic;
   try {
     const raw = await vsAutoAiChat(
-      `You are a viral thumbnail copywriter. For a video titled "${topic}"${source ? ` (source: ${source})` : ""}, write the ONE line of text that goes big on the thumbnail.\n` +
-      `The coverTitle must be SCROLL-STOPPING, not a restatement of the title: open a curiosity gap or make a bold, specific claim. Use ONE of these hooks — a striking number/stat, a sharp "Why/How/What if" question, a surprising contrast or reversal ("X is over", "Nobody saw this"), or high-stakes tension. 2-5 words, punchy, in the SAME language as the title. Prefer concrete over vague. No period at the end. No hashtags, no quotes, no emojis.\n` +
-      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`);
+      `You are a world-class viral thumbnail copywriter (YouTube/TikTok). Write the ONE big line of text for a thumbnail about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
+      `RULES for coverTitle:\n` +
+      `- 2-5 words, SAME language as the topic. No period, no quotes, no hashtags, no emojis.\n` +
+      `- It must STOP THE SCROLL. NEVER a plain restatement and NEVER a dry stat like "20% of oil at risk". Make it dramatic, emotional and high-stakes.\n` +
+      `- Use ONE hook: a shocking reversal ("Coal Is Finished"), a threat/stakes ("The End Of Oil"), a secret ("What They Hide"), a bold question ("Why Cities Are Dying"), or a jaw-dropping number framed dramatically ("One Ship, 20% Of Oil").\n` +
+      `Examples (topic -> coverTitle):\n` +
+      `- Solar overtakes coal on cost -> Coal Is Finished\n` +
+      `- New AI model beats doctors -> AI Just Replaced Doctors\n` +
+      `- A chokepoint threatens 20% of global oil -> One Ship Can Freeze Oil\n` +
+      `- 10 best states to live in 2026 -> Leave Your State Now\n` +
+      `- Housing prices fall in major cities -> The Housing Reckoning\n` +
+      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`,
+      { temperature: 1.0 });
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
     if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
