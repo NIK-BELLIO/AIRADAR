@@ -1118,9 +1118,13 @@
                       <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
                       <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
                     </label>
+                    <button type="button" id="vsSlideMediaRemove" class="button ghost" style="display:none;width:100%;margin-top:6px;color:#ff9a9a;border-color:rgba(255,90,90,.35)">✕ Remove footage (use generated background)</button>
                     <p id="vsSlideMediaName" class="vstudio-note"></p>
                     <p class="vstudio-note" data-i18n="vFootageTip">Tip: drag the footage on the preview to reframe it, and scroll over it to zoom. Each scene keeps its own framing.</p>
 
+                    <label id="vsSlideHeroWrap" style="display:none;"><span>Big cover word (editorial)</span>
+                      <input id="vsSlideHero" type="text" maxlength="16" placeholder="e.g. ALLIANCE" />
+                    </label>
                     <label><span data-i18n="vSlideTextLabel">Slide text (what viewers read)</span>
                       <textarea id="vsSlideText" rows="3" maxlength="200" placeholder="Type the on-screen text for this scene…" style="resize:vertical;min-height:64px;"></textarea>
                     </label>
@@ -2564,7 +2568,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v422"></script>
+    <script src="/app.js?v=v423"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

@@ -6136,6 +6136,16 @@ async function vsEditorialBackgrounds(data) {
   });
 
   vsAutoStatus(state.lang === "fa" ? "در حال ساخت تصاویر صحنه‌ها…" : "Generating scene images…");
+  // Generate the image at the SCENE's aspect ratio (not a square that gets cropped
+  // to the frame) so the visible area keeps its resolution and detail.
+  const _asp = vsVal("#vsAspect", "9:16");
+  let _AW = 1080, _AH = 1920;
+  if (_asp === "16:9") { _AW = 1280; _AH = 720; }
+  else if (_asp === "1:1") { _AW = 1080; _AH = 1080; }
+  else if (_asp === "4:5") { _AW = 1080; _AH = 1350; }
+  else if (_asp === "original") { const m = vstudio.mediaEl; if (m) { const mw = m.videoWidth || m.naturalWidth || 1080, mh = m.videoHeight || m.naturalHeight || 1920; if (mw > mh) { _AW = 1280; _AH = 720; } } }
+  const IW = _AW >= _AH ? 1024 : Math.max(576, Math.round(1024 * _AW / _AH));
+  const IH = _AH >= _AW ? 1024 : Math.max(576, Math.round(1024 * _AH / _AW));
   const conc = 2; let idx = 0, doneN = 0;   // lower concurrency → fewer HF rate-limits → cleaner FLUX cut-outs
   const runOne = async () => {
     while (idx < slides.length) {
@@ -6144,17 +6154,17 @@ async function vsEditorialBackgrounds(data) {
         // FLUX only (honours the plain-white-background prompt needed to key).
         const img = await vsEdLoadImage(s._edPrompt, 1024, 1024, true);
         const cut = img ? vsEdMakeCutout(img) : null;
-        if (cut) { s.mediaEl = img; s._edCutout = cut; }
+        if (cut) { s.mediaEl = img; s._edCutout = cut; s._edImage = img; }
         else {
           // keying failed → regenerate a normal cinematic image for full-bleed
           s._edStyle = "full";
           s._edPrompt = vsEditorialImagePrompt(s._visual || s._edHeadline, topic);
-          const alt = await vsEdLoadImage(s._edPrompt, 1024, 1024);
-          if (alt) s.mediaEl = alt; else if (img) s.mediaEl = img;
+          const alt = await vsEdLoadImage(s._edPrompt, IW, IH);
+          if (alt) { s.mediaEl = alt; s._edImage = alt; } else if (img) { s.mediaEl = img; s._edImage = img; }
         }
       } else {
-        const img = await vsEdLoadImage(s._edPrompt, 1024, 1024);
-        if (img) s.mediaEl = img;
+        const img = await vsEdLoadImage(s._edPrompt, IW, IH);
+        if (img) { s.mediaEl = img; s._edImage = img; }
       }
       s.ready = true; doneN++;
       vsAutoStatus(state.lang === "fa" ? `تصاویر: ${doneN}/${slides.length}` : `Images: ${doneN}/${slides.length}`);
@@ -7638,10 +7648,19 @@ function selectSlide(i) {
     if (introEd) introEd.hidden = true;
     if (fields) fields.classList.remove("vtab-hidden");
     // show whether this slide already has footage
+    // A generated (AI-image) editorial scene isn't "user footage" — only a scene
+    // the user actually attached (has a blob url) shows the Remove control.
+    const hasUserFootage = !!(s.mediaEl && (s.url || s.isVideo));
     const nm = $("#vsSlideMediaName");
-    if (nm) nm.textContent = s.mediaEl
+    if (nm) nm.textContent = hasUserFootage
       ? (state.lang === "fa" ? "این صحنه فوتیج دارد." : "This scene has footage.")
       : (state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).");
+    const rmBtn = $("#vsSlideMediaRemove");
+    if (rmBtn) rmBtn.style.display = hasUserFootage ? "" : "none";
+    // Editorial: expose the big cover word for editing (it isn't a normal headline)
+    const heroWrap = $("#vsSlideHeroWrap"), heroInp = $("#vsSlideHero");
+    if (heroWrap) heroWrap.style.display = s._editorial ? "" : "none";
+    if (heroInp && s._editorial) heroInp.value = s._edBigWord || s._heroWord || "";
     // quick-access text field — mirrors the News banner headline (the
     // field that actually renders) so editing a scene's text doesn't
     // require scrolling down and opening that accordion section.
@@ -14919,34 +14938,52 @@ async function vsGenerateCover() {
   if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
   if (!out || !out.blob) { vsStatus(fa ? "ساخت کاور ناموفق بود." : "Couldn't build the cover."); return; }
   vsStatus("");
-  vsShowCoverPreview(out.blob, out.coverTitle);
+  vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
 }
 
-// Preview the cover for approval before downloading.
-function vsShowCoverPreview(blob, coverTitle) {
+// Preview the cover for approval — Regenerate (re-roll a fresh title + image if
+// you don't like this one) or Download. This is the thumbnail popup — separate
+// from the video-export options popup.
+function vsShowCoverPreview(blob, coverTitle, opts) {
+  opts = opts || {};
   const fa = state.lang === "fa";
-  const url = URL.createObjectURL(blob);
+  let url = URL.createObjectURL(blob);
+  let curTitle = coverTitle;
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.78);backdrop-filter:blur(6px);padding:18px";
   ov.innerHTML =
     `<div style="width:min(560px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:12px;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
-       <div style="font-family:'Prata',Georgia,serif;font-size:17px;color:#efe9dc">${fa ? "پیش‌نمایش کاور" : "Cover preview"}</div>
-       <img src="${url}" alt="cover" style="width:100%;max-height:64vh;object-fit:contain;border-radius:10px;background:#000"/>
-       <div style="display:flex;gap:10px">
+       <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Prata',Georgia,serif;font-size:17px;color:#efe9dc">${fa ? "پیش‌نمایش تصویر بندانگشتی (کاور)" : "Thumbnail (cover) preview"}</span><span style="font-size:11px;color:#8a8578">${fa ? "اگر نپسندیدی دوباره بساز" : "regenerate if you don't like it"}</span></div>
+       <div style="position:relative"><img id="vsCovImg" src="${url}" alt="cover" style="width:100%;max-height:60vh;object-fit:contain;border-radius:10px;background:#000"/><div id="vsCovSpin" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border-radius:10px;color:#fff;font-weight:700">${fa ? "در حال ساخت…" : "Generating…"}</div></div>
+       <div style="display:flex;gap:8px">
          <button id="vsCovClose" style="flex:1;font:inherit;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="vsCovDl" style="flex:2;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود کاور" : "⬇ Download cover"}</button>
+         <button id="vsCovRegen" style="flex:1.4;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#e9d7ad;border:1px solid rgba(201,162,74,.5);background:rgba(201,162,74,.12)">${fa ? "↻ دوباره بساز" : "↻ Regenerate"}</button>
+         <button id="vsCovDl" style="flex:1.6;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"}</button>
        </div>
      </div>`;
   document.body.appendChild(ov);
-  const close = () => { try { ov.remove(); } catch (e) {} setTimeout(() => URL.revokeObjectURL(url), 1000); };
+  const imgEl = ov.querySelector("#vsCovImg"), spin = ov.querySelector("#vsCovSpin");
+  const close = () => { try { ov.remove(); } catch (e) {} setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000); };
   ov.addEventListener("click", e => { if (e.target === ov) close(); });
   ov.querySelector("#vsCovClose").onclick = close;
   ov.querySelector("#vsCovDl").onclick = () => {
     const a = document.createElement("a"); a.href = url;
-    a.download = (String(vstudio._exportName || coverTitle || "ai-radar").replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || "cover") + "-cover.png";
+    a.download = (String(vstudio._exportName || curTitle || "ai-radar").replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || "cover") + "-cover.png";
     a.click();
     vsStatus(fa ? "کاور دانلود شد. ✓" : "Cover downloaded. ✓");
     close();
+  };
+  ov.querySelector("#vsCovRegen").onclick = async () => {
+    const rb = ov.querySelector("#vsCovRegen");
+    rb.disabled = true; rb.style.opacity = ".6"; spin.style.display = "flex";
+    try {
+      const nu = await vsComposeCover(opts.topic || curTitle, opts.source || "");
+      if (nu && nu.blob) {
+        try { URL.revokeObjectURL(url); } catch (e) {}
+        url = URL.createObjectURL(nu.blob); curTitle = nu.coverTitle; imgEl.src = url;
+      }
+    } catch (e) {}
+    spin.style.display = "none"; rb.disabled = false; rb.style.opacity = "1";
   };
 }
 
@@ -15609,6 +15646,30 @@ function bindEvents() {
     const file = e.target.files && e.target.files[0];
     if (file) addFootageToActiveSlide(file);
     e.target.value = "";
+  });
+  // Remove footage from the active scene → falls back to the generated background
+  // (editorial AI image / motion-graphic / template) it had before.
+  on("#vsSlideMediaRemove", "click", () => {
+    const s = vstudio.slides[vstudio.activeSlide];
+    if (!s) return;
+    if (s.url) { try { URL.revokeObjectURL(s.url); } catch (e) {} }
+    s.url = null; s.isVideo = false;
+    // Editorial scenes keep their AI image if one was generated; otherwise clear.
+    s.mediaEl = s._editorial ? (s._edImage || null) : null;
+    const nm = $("#vsSlideMediaName");
+    if (nm) nm.textContent = state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).";
+    const rmBtn = $("#vsSlideMediaRemove"); if (rmBtn) rmBtn.style.display = "none";
+    renderSlideList();
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    vsStatus(state.lang === "fa" ? "فوتیج حذف شد." : "Footage removed.");
+  });
+  // Editorial big cover word — edit it live
+  on("#vsSlideHero", "input", () => {
+    const s = vstudio.slides[vstudio.activeSlide]; const inp = $("#vsSlideHero");
+    if (!s || !inp) return;
+    const v = inp.value.toUpperCase().replace(/[^\p{L}\p{N}]/gu, "").slice(0, 16);
+    s._edBigWord = v; s._heroWord = v;
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   });
   renderSlideList();
   on("#vsMusicFile", "change", (e) => loadStudioMusic(e.target.files[0]));
