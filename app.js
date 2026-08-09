@@ -14822,37 +14822,83 @@ async function vsComposeCover(topic, source, aspect) {
     const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0c1424"); bg.addColorStop(1, "#05070d");
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   }
+  const M = W * 0.055;
+  // accent follows the chosen template so a template change restyles the cover
+  let accent = "#3b82f6";
+  try { const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null; if (tpl && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent || "")) accent = tpl.accent; } catch (e) {}
+  const AA = (a) => (typeof vsHexA === "function" ? vsHexA(accent, a) : accent);
+
+  // ── graphic colour grade: a whisper of accent wash + a vignette for focus ──
+  ctx.save();
+  ctx.globalAlpha = 0.12; ctx.fillStyle = accent; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.4, Math.min(W, H) * 0.18, W * 0.5, H * 0.52, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  // strong bottom scrim so the title always reads
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "rgba(3,6,12,0.40)"); g.addColorStop(0.45, "rgba(3,6,12,0.05)"); g.addColorStop(1, "rgba(2,4,9,0.92)");
+  g.addColorStop(0, "rgba(3,6,12,0.34)"); g.addColorStop(0.48, "rgba(3,6,12,0.02)");
+  g.addColorStop(0.74, "rgba(2,4,9,0.55)"); g.addColorStop(1, "rgba(1,2,6,0.97)");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-  const M = W * 0.06, accent = "#3b82f6";
-  if (source) {   // source pill ONLY when there is a real source — no AI-Radar mark
+  // ── source badge (accent tab) — only when there's a real source ──
+  if (source) {
     ctx.save();
     const kick = source.toUpperCase().replace(/\s+/g, " ").slice(0, 26);
     const kp = Math.round(W * 0.026);
     ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
     try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
-    const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.016;
-    ctx.fillStyle = accent; ctx.fillRect(M, H * 0.06, tw + pX * 2, kp + pY * 2);
+    const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.015, bh = kp + pY * 2;
+    ctx.fillStyle = accent; ctx.fillRect(M, H * 0.055, tw + pX * 2, bh);
+    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(M, H * 0.055, W * 0.012, bh); // bright edge accent
     ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-    ctx.fillText(kick, M + pX, H * 0.06 + (kp + pY * 2) / 2 + kp * 0.05);
+    ctx.fillText(kick, M + pX + W * 0.006, H * 0.055 + bh / 2 + kp * 0.05);
     try { ctx.letterSpacing = "0px"; } catch (e) {}
     ctx.restore();
   }
 
-  const serif = vsGetFont("Prata, Georgia, serif");
-  const titlePx = Math.round(W * (aspect === "16:9" ? 0.072 : 0.09));
-  ctx.font = `${titlePx}px ${serif}`;
-  const maxW = W - M * 2, words = coverTitle.toUpperCase().split(/\s+/), lines = []; let ln = "";
-  for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
-  if (ln) lines.push(ln);
-  const lh = titlePx * 1.08, blockH = lines.length * lh, by = H * 0.93 - blockH;
-  ctx.fillStyle = accent; ctx.fillRect(M, by - W * 0.035, W * 0.17, Math.max(5, H * 0.008));
+  // ── BOLD title with the KEY word highlighted in the accent colour ──
+  const allWords = coverTitle.toUpperCase().split(/\s+/).filter(Boolean);
+  // emphasis word: prefer a word with a number, else the longest word
+  let emphIdx = allWords.findIndex(w => /\d/.test(w));
+  if (emphIdx < 0) { let mx = -1; allWords.forEach((w, i) => { const c = w.replace(/[^A-Z0-9]/g, "").length; if (c > mx) { mx = c; emphIdx = i; } }); }
+  const tFam = '"Archivo", system-ui, sans-serif';
+  const maxW = W - M * 2;
+  const wrapWords = (px) => {
+    ctx.font = `900 ${px}px ${tFam}`;
+    const out = []; let cur = [], curW = 0;
+    allWords.forEach((w, i) => {
+      const ww = ctx.measureText((cur.length ? " " : "") + w).width;
+      if (curW + ww > maxW && cur.length) { out.push(cur); cur = [{ w, i }]; curW = ctx.measureText(w).width; }
+      else { cur.push({ w, i }); curW += ww; }
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  let px = Math.round(W * (aspect === "16:9" ? 0.1 : 0.13));
+  let lines = wrapWords(px);
+  const widest = (ls) => ls.reduce((m, ln) => Math.max(m, ctx.measureText(ln.map(o => o.w).join(" ")).width), 0);
+  while (px > W * 0.05 && (lines.length > 3 || widest(lines) > maxW)) { px -= 4; lines = wrapWords(px); }
+  const lh = px * 1.05, blockH = lines.length * lh, startY = H * 0.945 - blockH;
+  // thick accent bar above the title
+  ctx.fillStyle = accent; ctx.fillRect(M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
   ctx.save();
-  ctx.fillStyle = "#ffffff"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = W * 0.02; ctx.shadowOffsetY = H * 0.004;
-  lines.forEach((l, i) => ctx.fillText(l, M, by + titlePx + i * lh));
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  ctx.font = `900 ${px}px ${tFam}`;
+  lines.forEach((ln, li) => {
+    const y = startY + px * 0.86 + li * lh;
+    let x = M;
+    ln.forEach(({ w, i }) => {
+      // dark outline + shadow so the word pops on ANY image
+      ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = px * 0.085;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = H * 0.003;
+      ctx.strokeText(w, x, y);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.fillStyle = (i === emphIdx) ? accent : "#ffffff";
+      ctx.fillText(w, x, y);
+      x += ctx.measureText(w + " ").width;
+    });
+  });
   ctx.restore();
 
   const blob = await new Promise(r => c.toBlob(r, "image/png", 0.95));
