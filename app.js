@@ -14932,13 +14932,29 @@ async function vsGenerateCover() {
   const topic = String(sd.title || sd._topic || vstudio._exportName || "AI Radar").slice(0, 90);
   const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
   if (btn) { btn.disabled = true; btn.style.opacity = ".6"; }
-  vsStatus(fa ? "در حال طراحی کاور…" : "Designing the cover…");
+  const load = vsShowCoverLoading(fa);   // loading popup while the AI works
   let out = null;
   try { out = await vsComposeCover(topic, source); } catch (e) {}
   if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+  load.close();
   if (!out || !out.blob) { vsStatus(fa ? "ساخت کاور ناموفق بود." : "Couldn't build the cover."); return; }
-  vsStatus("");
   vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
+}
+
+// A small loading popup shown WHILE the thumbnail is being generated (distinct
+// from the video-export progress overlay).
+function vsShowCoverLoading(fa) {
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.72);backdrop-filter:blur(5px)";
+  ov.innerHTML =
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:14px;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:28px 36px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+       <div style="width:42px;height:42px;border:4px solid rgba(255,255,255,.15);border-top-color:#3b82f6;border-radius:50%;animation:vsspin .8s linear infinite"></div>
+       <div style="color:#efe9dc;font-weight:700;font-size:15px">${fa ? "در حال ساخت تصویر بندانگشتی…" : "Generating your thumbnail…"}</div>
+       <div style="color:#8a8578;font-size:12px">${fa ? "چند ثانیه طول می‌کشد" : "this takes a few seconds"}</div>
+     </div>`;
+  document.body.appendChild(ov);
+  return { close: () => { try { ov.remove(); } catch (e) {} } };
 }
 
 // Preview the cover for approval — Regenerate (re-roll a fresh title + image if
