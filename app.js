@@ -14782,8 +14782,9 @@ async function vsComposeCover(topic, source, aspect) {
   let coverTitle = topic.slice(0, 64), imgPrompt = topic;
   try {
     const raw = await vsAutoAiChat(
-      `Design a click-worthy video thumbnail for a video titled "${topic}"${source ? ` (source: ${source})` : ""}. ` +
-      `Return ONLY compact JSON: {"coverTitle":"a punchy 2-5 word cover headline in the SAME language as the title","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`);
+      `You are a viral thumbnail copywriter. For a video titled "${topic}"${source ? ` (source: ${source})` : ""}, write the ONE line of text that goes big on the thumbnail.\n` +
+      `The coverTitle must be SCROLL-STOPPING, not a restatement of the title: open a curiosity gap or make a bold, specific claim. Use ONE of these hooks — a striking number/stat, a sharp "Why/How/What if" question, a surprising contrast or reversal ("X is over", "Nobody saw this"), or high-stakes tension. 2-5 words, punchy, in the SAME language as the title. Prefer concrete over vague. No period at the end. No hashtags, no quotes, no emojis.\n` +
+      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`);
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
     if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
