@@ -1447,12 +1447,26 @@
         <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">✕</button>
         <div class="auth-brand"><img src="logo-mono.svg" alt="" class="auth-brand-logo" /><span>AI Radar</span></div>
         <h3 id="authTitle" class="auth-title">Sign in to create</h3>
-        <p class="auth-sub">One account for AI Creator, Prompt Lab &amp; Video Studio. No password — we email you a code.</p>
+        <p class="auth-sub">One account for AI Creator, Prompt Lab &amp; Video Studio.</p>
 
-        <!-- Step 1: email -->
-        <form id="authEmailForm" class="auth-form">
+        <button type="button" id="authGoogleBtn" class="button auth-submit" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:none;font-weight:700;margin-bottom:12px">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.95L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+          Continue with Google
+        </button>
+        <div class="auth-or" style="display:flex;align-items:center;gap:10px;color:#8a8578;font-size:12px;margin:2px 0 12px"><span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span>or<span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span></div>
+
+        <!-- Email + password (works for any email, no code needed) -->
+        <form id="authPwForm" class="auth-form">
           <label class="auth-label" for="authEmailInput">Email</label>
           <input id="authEmailInput" class="auth-input" type="email" required autocomplete="email" placeholder="you@example.com" />
+          <label class="auth-label" for="authPwInput">Password</label>
+          <input id="authPwInput" class="auth-input" type="password" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters" />
+          <button type="submit" class="button primary auth-submit" id="authPwSubmit">Sign in / Create account</button>
+        </form>
+        <button type="button" class="auth-back" id="authOtpLink" style="margin-top:8px">Email me a code instead</button>
+
+        <!-- Step 1 (alt): email code -->
+        <form id="authEmailForm" class="auth-form" hidden>
           <button type="submit" class="button primary auth-submit" id="authEmailSubmit">Send me a code</button>
         </form>
 
@@ -1531,18 +1545,40 @@
           refreshAuth();
         });
 
-        // Step 1 — request code
-        $("authEmailForm").addEventListener("submit", async (e) => {
+        // Google sign-in — works for any Google account (no email delivery needed)
+        $("authGoogleBtn").addEventListener("click", () => {
+          window.location.href = "/api/auth/google/start";
+        });
+
+        // Email + password — sign in or create an account instantly for ANY email
+        $("authPwForm").addEventListener("submit", async (e) => {
           e.preventDefault();
           clearErr();
-          const btn = $("authEmailSubmit");
+          const btn = $("authPwSubmit");
           email = $("authEmailInput").value.trim();
-          btn.disabled = true; btn.textContent = "Sending…";
+          const password = $("authPwInput").value;
+          btn.disabled = true; btn.textContent = "Please wait…";
+          const r = await api("/api/auth/password", { email, password });
+          btn.disabled = false; btn.textContent = "Sign in / Create account";
+          if (!r.ok) return showErr(r.error || "Couldn't sign in. Try again.");
+          closeModal();
+          $("authPwInput").value = "";
+          refreshAuth();
+        });
+
+        // "Email me a code instead" → request an OTP for the typed email
+        $("authOtpLink").addEventListener("click", async () => {
+          clearErr();
+          email = $("authEmailInput").value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr("Enter your email first.");
+          const link = $("authOtpLink");
+          link.disabled = true; link.textContent = "Sending…";
           const r = await api("/api/auth/request-otp", { email });
-          btn.disabled = false; btn.textContent = "Send me a code";
+          link.disabled = false; link.textContent = "Email me a code instead";
           if (!r.ok) return showErr(r.error || "Couldn't send the code. Try again.");
           $("authSentTo").textContent = email;
-          $("authEmailForm").hidden = true;
+          $("authPwForm").hidden = true;
+          $("authOtpLink").hidden = true;
           $("authCodeForm").hidden = false;
           $("authCodeInput").focus();
         });
@@ -1559,7 +1595,8 @@
           if (!r.ok) return showErr(r.error || "That code didn't work.");
           closeModal();
           $("authCodeForm").hidden = true;
-          $("authEmailForm").hidden = false;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = false;
           $("authCodeInput").value = "";
           refreshAuth();
         });
@@ -1567,7 +1604,8 @@
         $("authBackBtn").addEventListener("click", () => {
           clearErr();
           $("authCodeForm").hidden = true;
-          $("authEmailForm").hidden = false;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = false;
         });
 
         // Let any element with data-requires-auth open the modal when signed out
