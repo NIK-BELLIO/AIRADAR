@@ -17381,12 +17381,26 @@ A video is made of one or more SCENES that play one after another. Each scene ha
             var t = $id("vsAutoTopic");
             if (t) { var pre = d.skill === "editorial" ? "/editorial " : d.skill === "motion_graphic" ? "/motion_graphic " : ""; t.value = pre + (d.topic || text); t.dispatchEvent(new Event("input", { bubbles: true })); }
             var tn = $id("vsAutoTone"); if (tn && d.tone) tn.value = d.tone;
-            var ln = $id("vsAutoLen"); if (ln && d.length) ln.value = d.length;
-            add("assistant", fa() ? "🎬 در حال ساخت… داخل استودیو نگاه کن." : "🎬 Building... watch the studio.");
-            panel.hidden = true;
+            // Default to a fuller video unless the user explicitly asked for short.
+            var wantShort = /\b(short|quick|reel|reels|tiktok|کوتاه|كوتاه)\b/i.test(text);
+            var ln = $id("vsAutoLen"); if (ln) ln.value = wantShort ? "short" : (d.length && d.length !== "short" ? d.length : "medium");
+            // Everything stays IN THE CHAT: suppress the studio's full-screen build
+            // popup and show progress here instead.
+            var prog = add("assistant", fa() ? "🎬 در حال ساخت ویدیو… (حدود ۳۰–۶۰ ثانیه)" : "🎬 Building your video… (about 30-60s)");
+            var _bo = window.vsBuildOverlay;
+            try { window.vsBuildOverlay = function () {}; } catch (e) {}
             try { await buildAutoVideo(false); } catch (e) {}
-            panel.hidden = false;
-            add("assistant", fa() ? "✅ ویدیوت آماده‌ست! دکمه‌ی Export رو بزن. بگو اگه چیزی رو عوض کنم (کوتاه‌تر، استایل دیگه…)." : "✅ Your video is ready! Press Export to download. Tell me if you want changes (shorter, different style...).");
+            try { window.vsBuildOverlay = _bo; } catch (e) {}
+            var n = (typeof vstudio !== "undefined" && vstudio.slides) ? vstudio.slides.length : 0;
+            prog.innerHTML = md(n >= 3
+              ? (fa() ? ("✅ ویدیوی " + n + " صحنه‌ای آماده شد! می‌تونی همین‌جا خروجی بگیری، یا بگو چیزی رو عوض کنم.") : ("✅ Your " + n + "-scene video is ready! Export it below, or tell me what to change."))
+              : (fa() ? "ساخته شد ولی محتوای این لینک کم بود (مثلاً وبلاگ زنده). یه موضوع مشخص یا لینک مقاله‌ی معمولی بده تا کامل‌تر بسازم." : "Built it, but this link had little usable content (e.g. a live blog). Give me a clear topic or a normal article link for a fuller video."));
+            var act = document.createElement("div"); act.className = "arc-chips";
+            var exp = document.createElement("button"); exp.className = "arc-chip"; exp.textContent = (fa() ? "⬇ خروجی / دانلود" : "⬇ Export / download");
+            exp.onclick = function () { var eb = $id("vsExportBtn"); if (eb) eb.click(); };
+            var cov = document.createElement("button"); cov.className = "arc-chip"; cov.textContent = (fa() ? "🖼 کاور بساز" : "🖼 Make a cover");
+            cov.onclick = function () { if (typeof vsGenerateCover === "function") vsGenerateCover(); };
+            act.appendChild(exp); act.appendChild(cov); msgs.appendChild(act); msgs.scrollTop = msgs.scrollHeight;
           } else {
             typing.innerHTML = md(unwrap((d && d.reply) || "") || (fa() ? "بگو دقیق چی می‌خوای." : "Tell me a bit more."));
             history.push({ role: "assistant", content: (d && d.reply) || "" });
