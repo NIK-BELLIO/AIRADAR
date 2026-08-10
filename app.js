@@ -17283,81 +17283,126 @@ A video is made of one or more SCENES that play one after another. Each scene ha
   });
 })();
 
-/* ── AI Radar assistant chatbot (Gemini, free) ─────────────────────────────
-   A floating chat widget on every page. Talks to the worker /chat in plain
-   (conversational) mode with the full history. Never blocks the app. */
+/* AI Radar studio assistant (Gemini) - chat + build videos by talking.
+   A polished floating assistant. On the Video Studio it can BUILD a video from
+   what the user describes (it fills the studio controls and runs the builder);
+   elsewhere it's a helpful chat. Free (Gemini /chat). */
 (function () {
   if (window.__arChat) return; window.__arChat = true;
-  const EP = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
-  const SYS = "You are the AI Radar assistant. AI Radar is a free in-browser suite to create AI videos (Video Studio: use /motion_graphic for animated graphics & charts, /editorial for a photo-led magazine style; build from a topic or a pasted news link), AI images, thumbnails/covers, and prompts (Prompt Lab). Help people use it, brainstorm ideas, write scripts, titles and prompts, and answer questions. Reply conversationally in PLAIN TEXT (never JSON), concise and friendly. Always answer in the SAME language the user writes in (Persian or English).";
-  const history = [];
-  const unwrap = (t) => {
-    t = String(t || "").trim();
-    if (t[0] === "{" && /"(answer|reply|text|response|content|message)"\s*:/.test(t)) {
-      try { const o = JSON.parse(t); return String(o.answer || o.reply || o.text || o.response || o.content || o.message || t); } catch (e) {}
-    }
-    return t;
+  var EP = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
+  var history = [];
+  var $id = function (i) { return document.getElementById(i); };
+  var fa = function () { return (typeof state !== "undefined" && state.lang === "fa"); };
+  var canBuild = function () { return (typeof buildAutoVideo === "function") && !!$id("vsAutoTopic"); };
+  var unwrap = function (t) { t = String(t || "").trim(); if (t[0] === "{" && /"(answer|reply|text|response|content|message)"\s*:/.test(t)) { try { var o = JSON.parse(t); return String(o.answer || o.reply || o.text || o.response || o.content || o.message || t); } catch (e) {} } return t; };
+  async function aiCall(messages, plain) {
+    var res = await fetch(EP, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plain: !!plain, temperature: 0.7, messages: messages }) });
+    var d = await res.json();
+    return (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+  }
+  var SYS = "You are the AI Radar assistant. AI Radar is a free in-browser suite to create AI videos, images, thumbnails and prompts. Help with ideas, scripts, titles, prompts and how-to. Reply conversationally in PLAIN TEXT (never JSON), concise and friendly, in the SAME language the user writes in (Persian or English).";
+  var decidePrompt = function (text) {
+    return "You are the AI Radar Video Studio assistant; the user is inside the Video Studio.\nRecent chat:\n" +
+      history.slice(-6).map(function (m) { return (m.role === "user" ? "User: " : "You: ") + m.content; }).join("\n") +
+      "\nUser's new message: \"" + text + "\"\n" +
+      "Return ONLY compact JSON: {\"action\":\"build\" or \"chat\",\"topic\":\"concise video subject or a URL if building else empty\",\"skill\":\"editorial\" or \"motion_graphic\" or \"auto\",\"length\":\"short\" or \"medium\" or \"long\",\"tone\":\"news\" or \"explainer\" or \"documentary\" or \"social\" or \"advisor\" or \"hype\",\"reply\":\"a friendly answer to show the user, in THEIR language - for a chat/question answer it fully here\"}\n" +
+      "Use action=build ONLY when the user clearly wants a video/clip/reel/short about a subject, or pastes a news link. skill: editorial=photo/magazine cinematic; motion_graphic=animated graphics/charts/data; auto if unsure. Otherwise action=chat.";
   };
+
   function boot() {
-    if (document.getElementById("arChatBtn")) return;
-    const st = document.createElement("style");
-    st.textContent = `
-      #arChatBtn{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
-        background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;font-size:24px;box-shadow:0 12px 30px -8px rgba(37,99,255,.7);transition:transform .15s}
-      #arChatBtn:hover{transform:translateY(-2px) scale(1.05)}
-      #arChatPanel{position:fixed;right:20px;bottom:88px;z-index:2147483000;width:min(380px,calc(100vw - 32px));height:min(560px,70vh);
-        display:flex;flex-direction:column;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;overflow:hidden;
-        box-shadow:0 30px 80px rgba(0,0,0,.6);font-family:Inter,system-ui,sans-serif}
-      #arChatPanel[hidden]{display:none}
-      .arc-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);color:#efe9dc;font-weight:800}
-      .arc-head .arc-dot{width:8px;height:8px;border-radius:50%;background:#34c759;box-shadow:0 0 8px #34c759}
-      .arc-head button{margin-left:auto;background:none;border:none;color:#8a8578;font-size:20px;cursor:pointer;line-height:1}
-      .arc-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-      .arc-m{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
-      .arc-u{align-self:flex-end;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;border-bottom-right-radius:4px}
-      .arc-a{align-self:flex-start;background:rgba(255,255,255,.06);color:#e8e3d8;border-bottom-left-radius:4px}
-      .arc-in{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.08)}
-      .arc-in textarea{flex:1;resize:none;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:11px;color:#efe9dc;
-        font:inherit;font-size:13.5px;padding:10px;max-height:90px;min-height:42px}
-      .arc-in button{flex:none;width:42px;border:none;border-radius:11px;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;font-size:16px;cursor:pointer}
-      .arc-in button:disabled{opacity:.5;cursor:default}`;
+    if ($id("arChatBtn")) return;
+    var st = document.createElement("style");
+    st.textContent = [
+      "#arChatBtn{position:fixed;right:22px;bottom:22px;z-index:2147483000;height:56px;padding:0 20px 0 16px;border:none;cursor:pointer;border-radius:30px;display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;font:800 14px Inter,system-ui,sans-serif;box-shadow:0 14px 34px -8px rgba(37,99,255,.75);transition:transform .15s}",
+      "#arChatBtn:hover{transform:translateY(-2px)} #arChatBtn .arc-ico{font-size:20px}",
+      "#arChatPanel{position:fixed;right:22px;bottom:88px;z-index:2147483000;width:min(410px,calc(100vw - 28px));height:min(640px,78vh);display:flex;flex-direction:column;background:#0e0d13;border:1px solid rgba(37,99,255,.28);border-radius:18px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.65);font-family:Inter,system-ui,sans-serif}",
+      "#arChatPanel[hidden]{display:none}",
+      ".arc-head{display:flex;align-items:center;gap:11px;padding:15px 16px;background:linear-gradient(135deg,rgba(34,211,238,.14),rgba(37,99,255,.14));border-bottom:1px solid rgba(255,255,255,.07)}",
+      ".arc-head .arc-av{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563ff);font-size:18px}",
+      ".arc-head h4{margin:0;font-size:14.5px;color:#f0ece2;font-weight:800}",
+      ".arc-head p{margin:1px 0 0;font-size:11px;color:#8a8578}",
+      ".arc-head .arc-x{margin-left:auto;background:none;border:none;color:#8a8578;font-size:20px;cursor:pointer;line-height:1}",
+      ".arc-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:11px}",
+      ".arc-m{max-width:86%;padding:10px 13px;border-radius:15px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}",
+      ".arc-m strong{color:#fff}",
+      ".arc-u{align-self:flex-end;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;border-bottom-right-radius:5px}",
+      ".arc-a{align-self:flex-start;background:rgba(255,255,255,.06);color:#e7e2d7;border-bottom-left-radius:5px}",
+      ".arc-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}",
+      ".arc-chip{padding:8px 11px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#cfc8ba;font-size:12.5px;cursor:pointer;transition:.12s}",
+      ".arc-chip:hover{border-color:rgba(37,99,255,.5);background:rgba(37,99,255,.1)}",
+      ".arc-in{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.07)}",
+      ".arc-in textarea{flex:1;resize:none;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#efe9dc;font:inherit;font-size:13.5px;padding:11px;max-height:100px;min-height:44px;outline:none}",
+      ".arc-in button{flex:none;width:44px;border:none;border-radius:12px;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;font-size:17px;cursor:pointer}",
+      ".arc-in button:disabled{opacity:.45;cursor:default}"
+    ].join("");
     document.head.appendChild(st);
-    const btn = document.createElement("button");
-    btn.id = "arChatBtn"; btn.type = "button"; btn.title = "Ask the AI Radar assistant"; btn.textContent = "💬";
-    const fa = (typeof state !== "undefined" && state.lang === "fa");
-    const panel = document.createElement("div");
+    var btn = document.createElement("button");
+    btn.id = "arChatBtn"; btn.type = "button";
+    btn.innerHTML = '<span class="arc-ico">💬</span>' + (fa() ? "دستیار" : "Assistant");
+    var panel = document.createElement("div");
     panel.id = "arChatPanel"; panel.hidden = true;
+    var sub = canBuild() ? (fa() ? "بگو چه ویدیویی می‌خوای، برات می‌سازم" : "Tell me the video you want - I'll build it") : (fa() ? "ایده، اسکریپت، تیتر" : "ideas, scripts, titles");
     panel.innerHTML =
-      `<div class="arc-head"><span class="arc-dot"></span><span>${fa ? "دستیار AI Radar" : "AI Radar assistant"}</span><button type="button" id="arChatClose" aria-label="Close">✕</button></div>
-       <div class="arc-msgs" id="arChatMsgs"></div>
-       <div class="arc-in"><textarea id="arChatText" rows="1" placeholder="${fa ? "بپرس…" : "Ask anything…"}"></textarea><button type="button" id="arChatSend" aria-label="Send">➤</button></div>`;
+      '<div class="arc-head"><div class="arc-av">💬</div><div><h4>' + (fa() ? "دستیار AI Radar" : "AI Radar assistant") + '</h4><p>' + sub + '</p></div><button class="arc-x" id="arChatClose" aria-label="Close">✕</button></div>' +
+      '<div class="arc-msgs" id="arChatMsgs"></div>' +
+      '<div class="arc-in"><textarea id="arChatText" rows="1" placeholder="' + (fa() ? "بنویس…" : "Type a message...") + '"></textarea><button type="button" id="arChatSend" aria-label="Send">➤</button></div>';
     document.body.appendChild(btn); document.body.appendChild(panel);
-    const msgs = panel.querySelector("#arChatMsgs"), ta = panel.querySelector("#arChatText"), send = panel.querySelector("#arChatSend");
-    const add = (who, text) => { const d = document.createElement("div"); d.className = "arc-m " + (who === "user" ? "arc-u" : "arc-a"); d.textContent = text; msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d; };
-    let opened = false;
-    const open = () => { panel.hidden = false; if (!opened) { opened = true; add("assistant", fa ? "سلام! من دستیار AI Radar هستم. چطور می‌تونم کمکت کنم؟ (ساخت ویدیو، تصویر، پرامپت، ایده…)" : "Hi! I'm the AI Radar assistant. How can I help — making a video, image, prompt, or an idea?"); } ta.focus(); };
-    btn.addEventListener("click", () => { panel.hidden ? open() : (panel.hidden = true); });
-    panel.querySelector("#arChatClose").addEventListener("click", () => { panel.hidden = true; });
-    ta.addEventListener("input", () => { ta.style.height = "42px"; ta.style.height = Math.min(90, ta.scrollHeight) + "px"; });
+    var msgs = panel.querySelector("#arChatMsgs"), ta = panel.querySelector("#arChatText"), send = panel.querySelector("#arChatSend");
+    var md = function (t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); };
+    var add = function (who, text) { var d = document.createElement("div"); d.className = "arc-m " + (who === "user" ? "arc-u" : "arc-a"); d.innerHTML = md(text); msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d; };
+    var opened = false;
+    function greet() {
+      var chips = canBuild()
+        ? [["🎬", fa() ? "یه ویدیو درباره‌ی خبر هوش مصنوعی بساز" : "Make a video about AI news"], ["📰", fa() ? "این لینک خبری رو ویدیو کن" : "Turn a news link into a video"], ["✍️", fa() ? "یه اسکریپت بنویس" : "Write me a script"], ["🎯", fa() ? "تیتر جذاب بده" : "Catchy titles"]]
+        : [["✍️", fa() ? "یه اسکریپت بنویس" : "Write a script"], ["🎯", fa() ? "تیتر جذاب" : "Catchy titles"], ["🖼️", fa() ? "پرامپت تصویر" : "Image prompt"], ["💡", fa() ? "ایده محتوا" : "Content ideas"]];
+      add("assistant", canBuild() ? (fa() ? "سلام! بگو چه ویدیویی می‌خوای (موضوع یا لینک خبر) تا همین‌جا برات بسازم. یا هر سوالی داری بپرس." : "Hi! Tell me what video you want (a topic or a news link) and I'll build it right here. Or ask me anything.") : (fa() ? "سلام! چطور کمکت کنم؟" : "Hi! How can I help?"));
+      var wrap = document.createElement("div"); wrap.className = "arc-chips";
+      chips.forEach(function (pair) { var c = document.createElement("button"); c.className = "arc-chip"; c.textContent = pair[0] + " " + pair[1]; c.onclick = function () { ta.value = pair[1]; submit(); }; wrap.appendChild(c); });
+      msgs.appendChild(wrap);
+    }
+    var open = function () { panel.hidden = false; if (!opened) { opened = true; greet(); } ta.focus(); };
+    btn.addEventListener("click", function () { panel.hidden ? open() : (panel.hidden = true); });
+    panel.querySelector("#arChatClose").addEventListener("click", function () { panel.hidden = true; });
+    ta.addEventListener("input", function () { ta.style.height = "44px"; ta.style.height = Math.min(100, ta.scrollHeight) + "px"; });
     async function submit() {
-      const text = ta.value.trim(); if (!text) return;
-      ta.value = ""; ta.style.height = "42px";
+      var text = ta.value.trim(); if (!text || send.disabled) return;
+      ta.value = ""; ta.style.height = "44px";
+      var chipRow = msgs.querySelector(".arc-chips"); if (chipRow) chipRow.remove();
       add("user", text); history.push({ role: "user", content: text });
       send.disabled = true;
-      const typing = add("assistant", fa ? "…در حال نوشتن" : "…typing");
+      var typing = add("assistant", "…");
       try {
-        const res = await fetch(EP, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plain: true, temperature: 0.7, messages: [{ role: "user", content: SYS }, ...history.slice(-12)] }) });
-        const data = await res.json();
-        const reply = unwrap(data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || (fa ? "الان نتونستم جواب بدم، دوباره امتحان کن." : "I couldn't reply just now — try again.");
-        typing.textContent = reply; history.push({ role: "assistant", content: reply });
-      } catch (e) {
-        typing.textContent = fa ? "خطای اتصال. دوباره امتحان کن." : "Connection error — try again.";
-      }
+        if (canBuild()) {
+          var raw = await aiCall([{ role: "user", content: decidePrompt(text) }], false);
+          var d = {}; try { var s = String(raw).replace(/```json|```/g, "").trim(); var a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a >= 0 && b > a) s = s.slice(a, b + 1); d = JSON.parse(s); } catch (e) {}
+          if (d && d.action === "build") {
+            typing.innerHTML = md(d.reply || (fa() ? "باشه، الان می‌سازم." : "On it - building now."));
+            history.push({ role: "assistant", content: d.reply || "" });
+            var t = $id("vsAutoTopic");
+            if (t) { var pre = d.skill === "editorial" ? "/editorial " : d.skill === "motion_graphic" ? "/motion_graphic " : ""; t.value = pre + (d.topic || text); t.dispatchEvent(new Event("input", { bubbles: true })); }
+            var tn = $id("vsAutoTone"); if (tn && d.tone) tn.value = d.tone;
+            var ln = $id("vsAutoLen"); if (ln && d.length) ln.value = d.length;
+            add("assistant", fa() ? "🎬 در حال ساخت… داخل استودیو نگاه کن." : "🎬 Building... watch the studio.");
+            panel.hidden = true;
+            try { await buildAutoVideo(false); } catch (e) {}
+            panel.hidden = false;
+            add("assistant", fa() ? "✅ ویدیوت آماده‌ست! دکمه‌ی Export رو بزن. بگو اگه چیزی رو عوض کنم (کوتاه‌تر، استایل دیگه…)." : "✅ Your video is ready! Press Export to download. Tell me if you want changes (shorter, different style...).");
+          } else {
+            typing.innerHTML = md(unwrap((d && d.reply) || "") || (fa() ? "بگو دقیق چی می‌خوای." : "Tell me a bit more."));
+            history.push({ role: "assistant", content: (d && d.reply) || "" });
+          }
+        } else {
+          var reply = unwrap(await aiCall([{ role: "user", content: SYS }].concat(history.slice(-12)), true)) || (fa() ? "دوباره امتحان کن." : "Please try again.");
+          typing.innerHTML = md(reply); history.push({ role: "assistant", content: reply });
+        }
+      } catch (e) { typing.textContent = fa() ? "خطای اتصال. دوباره امتحان کن." : "Connection error - try again."; }
       send.disabled = false; msgs.scrollTop = msgs.scrollHeight;
     }
     send.addEventListener("click", submit);
-    ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } });
+    ta.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } });
+    // Let other pages (the /assistant tab) hand a build request to the studio.
+    window.__arAsk = function (text) { open(); ta.value = String(text || ""); submit(); };
+    try { var qp = new URLSearchParams(location.search).get("arbuild"); if (qp && canBuild()) setTimeout(function () { window.__arAsk(qp); }, 900); } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
   else boot();
