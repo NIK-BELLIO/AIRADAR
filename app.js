@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v400-pro";
+const VS_BUILD = "v430-offline-encode";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -14623,6 +14623,214 @@ async function vsConvertToMp4(webmBlob) {
   return new Blob([data.buffer], { type: "video/mp4" });
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// DETERMINISTIC OFFLINE ENCODER (freeze-proof).
+//
+// The real-time MediaRecorder path stamps each captured frame with the WALL
+// CLOCK time it arrives. So the moment the render loop is slowed for ANY
+// reason — the tab goes to the background (Chrome throttles rAF/timers to
+// ~1fps), a heavy scene, an image decode, GC — the exported file gets long
+// FROZEN stretches, because few frames land across those seconds. That is the
+// "video freezes" bug.
+//
+// This encoder removes wall-clock from the equation entirely: it renders every
+// frame t = i/fps and hands it to a WebCodecs VideoEncoder with an EXPLICIT
+// timestamp. It runs as fast as the CPU allows (often faster than real time),
+// is completely unaffected by tab throttling, and can never drop/freeze a
+// frame. Used only for fully-DRAWN decks (motion-graphic / editorial / info /
+// news) — decks with real <video> footage still use the real-time path so the
+// footage stays in sync. Any failure falls back to MediaRecorder.
+// ──────────────────────────────────────────────────────────────────────────
+
+// Mix the export soundtrack (music buffer + optional narration) deterministically
+// with an OfflineAudioContext and return a 16-bit PCM WAV Uint8Array — mirrors
+// the real-time graph in exportStudioVideo (fade in/out, content-end loop, duck).
+async function vsRenderMixWav(duration) {
+  const mBuf = vstudio._musicBuffer || null;
+  const nBuf = vstudio._narrationBuffer || null;
+  if (!mBuf && !nBuf) return null;
+  const sr = 44100;
+  const len = Math.max(1, Math.ceil(duration * sr));
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) return null;
+  const ctx = new OAC(2, len, sr);
+  const end = duration;
+  const spd = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
+  const vol = parseFloat((document.querySelector("#vsMusicVolume") || {}).value);
+  const musicVol = (isNaN(vol) ? 0.5 : vol) * (nBuf ? 0.5 : 1);
+  if (mBuf) {
+    const s = ctx.createBufferSource(); s.buffer = mBuf; s.loop = true;
+    const contentEnd = vstudio._musicContentEnd || null;
+    if (contentEnd && contentEnd < mBuf.duration - 0.75) { s.loopStart = 0; s.loopEnd = contentEnd; }
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, 0);
+    g.gain.linearRampToValueAtTime(musicVol, 0.8);
+    g.gain.setValueAtTime(musicVol, Math.max(1, end - 1.4));
+    g.gain.linearRampToValueAtTime(0.0001, end);
+    s.connect(g); g.connect(ctx.destination);
+    s.start(0); try { s.stop(end + 0.1); } catch (e) {}
+  }
+  if (nBuf) {
+    const s = ctx.createBufferSource(); s.buffer = nBuf; s.playbackRate.value = spd;
+    const g = ctx.createGain(); g.gain.value = 1.0;
+    s.connect(g); g.connect(ctx.destination);
+    s.start(0);
+  }
+  const rendered = await ctx.startRendering();
+  return vsAudioBufferToWav(rendered);
+}
+
+function vsAudioBufferToWav(buf) {
+  const numCh = buf.numberOfChannels, sr = buf.sampleRate, n = buf.length;
+  const chans = []; for (let c = 0; c < numCh; c++) chans.push(buf.getChannelData(c));
+  const bytesPerSample = 2, blockAlign = numCh * bytesPerSample;
+  const dataLen = n * blockAlign;
+  const ab = new ArrayBuffer(44 + dataLen);
+  const dv = new DataView(ab);
+  const ws = (off, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)); };
+  ws(0, "RIFF"); dv.setUint32(4, 36 + dataLen, true); ws(8, "WAVE");
+  ws(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, numCh, true); dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * blockAlign, true); dv.setUint16(32, blockAlign, true);
+  dv.setUint16(34, 16, true); ws(36, "data"); dv.setUint32(40, dataLen, true);
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < numCh; c++) {
+      let v = chans[c][i]; v = v < -1 ? -1 : v > 1 ? 1 : v;
+      dv.setInt16(off, v < 0 ? v * 0x8000 : v * 0x7fff, true); off += 2;
+    }
+  }
+  return new Uint8Array(ab);
+}
+
+async function vsExportOfflineEncode(canvas, duration, fps) {
+  if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") return null;
+  const W = canvas.width, H = canvas.height;
+  if (!W || !H) return null;
+  // bitrate mirrors the recorder path
+  const qualityFactor = { max: 0.22, high: 0.13, medium: 0.07, low: 0.035 }[vsVal("#vsExportQuality", "high")] || 0.13;
+  let bitrate = Math.round(W * H * fps * qualityFactor);
+  bitrate = Math.min(60000000, Math.max(1500000, bitrate));
+  // Find a supported H.264 config (Annex-B so ffmpeg can copy it straight into MP4).
+  const codecs = ["avc1.640034", "avc1.640033", "avc1.640028", "avc1.4d0028", "avc1.42e01e"];
+  let cfg = null;
+  for (const codec of codecs) {
+    const c = { codec, width: W, height: H, bitrate, framerate: fps, avc: { format: "annexb" } };
+    try { const sup = await VideoEncoder.isConfigSupported(c); if (sup && sup.supported) { cfg = c; break; } } catch (e) {}
+  }
+  if (!cfg) return null;
+
+  const parts = [];
+  let encErr = null;
+  const encoder = new VideoEncoder({
+    output: (chunk) => { const b = new Uint8Array(chunk.byteLength); chunk.copyTo(b); parts.push(b); },
+    error: (e) => { encErr = e; }
+  });
+  encoder.configure(cfg);
+
+  const total = Math.max(1, Math.ceil(duration * fps));
+  const gop = Math.max(1, Math.round(fps * 2));
+  vstudio._posterCanvas = null; vstudio._posterCaptured = false;
+  const posterAt = Math.min(Math.round(1.3 * fps), Math.max(1, Math.round(total * 0.22)));
+  const _overlayFa = state.lang === "fa";
+
+  for (let i = 0; i < total; i++) {
+    if (vstudio._batchCancel) { try { encoder.close(); } catch (e) {} return null; }
+    const t = i / fps;
+    try { drawStudioFrame(t); } catch (err) { try { console.error("offline draw error @" + t.toFixed(2) + "s", err); } catch (e) {} }
+    // grab a poster frame for the dashboard thumbnail
+    if (!vstudio._posterCaptured && i >= posterAt) {
+      vstudio._posterCaptured = true;
+      try {
+        const _sc = Math.min(1, 720 / Math.max(1, W));
+        const _tc = document.createElement("canvas");
+        _tc.width = Math.round(W * _sc); _tc.height = Math.round(H * _sc);
+        _tc.getContext("2d").drawImage(canvas, 0, 0, _tc.width, _tc.height);
+        vstudio._posterCanvas = _tc;
+      } catch (e) {}
+    }
+    let frame;
+    try { frame = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) }); }
+    catch (e) { encErr = e; break; }
+    encoder.encode(frame, { keyFrame: (i % gop) === 0 });
+    frame.close();
+    // progress + let output callbacks drain (prevents unbounded queue growth)
+    if ((i % 6) === 0 || i === total - 1) {
+      if (!vstudio._returnBlob) {
+        const pct = Math.round((i + 1) / total * 100);
+        vsBuildOverlay(true, (_overlayFa ? "در حال ساخت ویدئو… " : "Rendering your video… ") + pct + "%",
+          (_overlayFa ? "در حال ساخت ویدئو…" : "Generating your video…"), 900000,
+          { onCancel: () => { vstudio._batchCancel = true; } });
+      }
+      await new Promise(r => setTimeout(r));
+    }
+    while (encoder.encodeQueueSize > 12) { await new Promise(r => setTimeout(r)); if (encErr) break; }
+    if (encErr) break;
+  }
+  if (encErr) { try { encoder.close(); } catch (e) {} throw encErr; }
+  await encoder.flush();
+  try { encoder.close(); } catch (e) {}
+  if (!parts.length) return null;
+
+  // concat Annex-B NAL stream
+  let totalLen = 0; for (const p of parts) totalLen += p.length;
+  const h264 = new Uint8Array(totalLen);
+  { let o = 0; for (const p of parts) { h264.set(p, o); o += p.length; } }
+
+  // render audio deterministically
+  let wav = null;
+  try { wav = await vsRenderMixWav(duration); } catch (e) { try { console.warn("offline audio render failed", e); } catch (_) {} }
+
+  // mux with ffmpeg (copy video — no re-encode — so it's fast)
+  if (!vstudio._returnBlob) vsBuildOverlay(true,
+    (_overlayFa ? "در حال نهایی‌سازی ویدئو…" : "Finalizing your video…"),
+    (_overlayFa ? "در حال ساخت ویدئو…" : "Generating your video…"), 900000);
+  const ffmpeg = await vsGetFfmpeg();
+  await ffmpeg.writeFile("v.h264", h264);
+  const args = ["-framerate", String(fps), "-i", "v.h264"];
+  if (wav) { await ffmpeg.writeFile("a.wav", wav); args.push("-i", "a.wav"); }
+  args.push("-c:v", "copy");
+  if (wav) args.push("-c:a", "aac", "-b:a", "192k", "-shortest");
+  args.push("-movflags", "+faststart", "out.mp4");
+  await ffmpeg.exec(args);
+  const data = await ffmpeg.readFile("out.mp4");
+  try { await ffmpeg.deleteFile("v.h264"); await ffmpeg.deleteFile("out.mp4"); if (wav) await ffmpeg.deleteFile("a.wav"); } catch (e) {}
+  const blob = new Blob([data.buffer], { type: "video/mp4" });
+  if (!blob.size) return null;
+  return { blob, ext: "mp4" };
+}
+
+// Deliver a finished export blob: return-for-zip, cancel, download, dashboard save
+// — shared by the offline encoder and (conceptually) the recorder onstop path.
+async function _vsDeliverExportBlob(outBlob, ext) {
+  if (!outBlob || !outBlob.size) {
+    vsStatus(state.lang === "fa"
+      ? "خروجی ویدیو خالی بود — چیزی دانلود نشد." : "The exported video was empty — nothing was downloaded.");
+    return null;
+  }
+  if (!vstudio._returnBlob) vsBuildOverlay(false);
+  if (vstudio._batchCancel) return null;
+  const url = URL.createObjectURL(outBlob);
+  if (vstudio._returnBlob) {
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    vsSaveToDashboard(outBlob, ext, (vstudio._exportName || "ai-radar-video"));
+    return { blob: outBlob, ext };
+  }
+  const a = document.createElement("a");
+  a.href = url;
+  const safeName = vstudio._exportName
+    ? String(vstudio._exportName).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 60)
+    : ("ai-radar-" + vstudio.templateId + "-video");
+  a.download = `${safeName}.${ext}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  vsStatus(ext === "mp4"
+    ? (state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.")
+    : (state.lang === "fa" ? "ویدیوی WebM ذخیره شد." : "WebM video saved."));
+  vsSaveToDashboard(outBlob, ext, safeName);
+  return { blob: outBlob, ext };
+}
+
 // Export the composited result as a real video file (MP4 or WebM).
 // Export-settings popup — shown before EVERY export/download trigger (main
 // export, single batch download, zip) so size/quality/format can be chosen in
@@ -15083,6 +15291,29 @@ async function exportStudioVideo() {
   }
   const duration = studioDuration();
   const fps = 30;
+
+  // ── DETERMINISTIC OFFLINE ENCODE (freeze-proof) ──
+  // For fully-DRAWN decks (no real <video> footage) render every frame with an
+  // explicit timestamp via WebCodecs instead of real-time MediaRecorder capture.
+  // This is immune to background-tab throttling / slow frames — the #1 cause of
+  // exports coming out frozen or juddering. Any failure falls through to the
+  // real-time recorder path below.
+  const _hasFootageVideo = (vstudio.isVideo && media) ||
+    vstudio.slides.some(s => s.ready && s.isVideo && s.mediaEl);
+  if (!_hasFootageVideo && typeof VideoEncoder !== "undefined") {
+    try {
+      const _off = await vsExportOfflineEncode(canvas, duration, fps);
+      if (_off && _off.blob && _off.blob.size) {
+        vstudio.rendering = false;
+        if (!vstudio._returnBlob) vsStatus(state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.");
+        return await _vsDeliverExportBlob(_off.blob, _off.ext);
+      }
+    } catch (e) {
+      try { console.warn("offline encode failed — falling back to recorder", e); } catch (_) {}
+    }
+    // fall through to the real-time recorder path
+  }
+
   // Prefer MANUAL frame capture (captureStream(0) + track.requestFrame()): it
   // emits exactly one frame per rendered frame, so there is no beat-mismatch
   // between the render loop and an automatic 30fps sampler — the #1 cause of the
