@@ -5036,7 +5036,7 @@ Return ONLY valid compact JSON (no markdown, no commentary):
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
 1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
-2. INFOGRAPHIC: only with real quantitative data (2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied). chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered.
+2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
 3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
 4. Never two infographics in a row. Vary text styles for rhythm.
 4b. "visual" on every section: a short, concrete, filmable stock-footage query for THAT scene's specific content (e.g. "engineers testing server racks", not "technology" or "innovation concept").
@@ -13931,8 +13931,9 @@ function previewStudioVideo(fromStart) {
       });
     }
     vstudio.position = elapsed;          // remember where we are
-    drawStudioFrame(elapsed);
-    vsApplyMusicFade(elapsed, duration);
+    // Never let one bad frame break the preview loop (same guard as the export).
+    try { drawStudioFrame(elapsed); } catch (err) { try { console.error("preview draw error @" + elapsed.toFixed(2) + "s", err); } catch (e) {} }
+    try { vsApplyMusicFade(elapsed, duration); } catch (e) {}
     updateTimeline(elapsed, duration);
     vstudio.rafId = requestAnimationFrame(loop);
   };
@@ -15360,8 +15361,12 @@ async function exportStudioVideo() {
       // requestFrame avoids the auto-sampler grabbing duplicate/stale frames —
       // the beat mismatch that made the file judder — without desyncing footage.
       const elapsed = (performance.now() - startPerf) / 1000;
-      drawStudioFrame(elapsed);
-      vsApplyMusicFade(elapsed, duration);
+      // A render error on ONE frame must NEVER kill the whole export: if
+      // drawStudioFrame threw, the requestAnimationFrame chain below never ran,
+      // so recording stopped mid-way and the file came out short + frozen. Catch
+      // it, keep emitting frames, and let the export finish its full duration.
+      try { drawStudioFrame(elapsed); } catch (err) { try { console.error("export draw error @" + elapsed.toFixed(2) + "s", err); } catch (e) {} }
+      try { vsApplyMusicFade(elapsed, duration); } catch (e) {}
       if (_manualCap && _capTrack) { try { _capTrack.requestFrame(); } catch (e) {} }
       // Snapshot a REAL poster frame near the START (the first slide, fully drawn)
       // so the dashboard tile shows the opening frame — not a black frame. The
@@ -15382,7 +15387,10 @@ async function exportStudioVideo() {
         } catch (e) {}
       }
       if (elapsed < duration && !vstudio._batchCancel) {
-        vstudio.rafId = requestAnimationFrame(loop);
+        // requestAnimationFrame is PAUSED while the tab is in the background, which
+        // stalled the manual-capture recorder and produced a short, frozen file.
+        // Fall back to a timer when hidden so the export always runs to full length.
+        vstudio.rafId = document.hidden ? setTimeout(loop, 33) : requestAnimationFrame(loop);
       } else {
         finish();
       }
