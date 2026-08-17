@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v431-offline-footage";
+const VS_BUILD = "v432-assistant-aibuild";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -17662,7 +17662,10 @@ A video is made of one or more SCENES that play one after another. Each scene ha
             var prog = add("assistant", fa() ? "🎬 در حال ساخت ویدیو… (حدود ۳۰–۶۰ ثانیه)" : "🎬 Building your video… (about 30-60s)");
             var _bo = window.vsBuildOverlay;
             try { window.vsBuildOverlay = function () {}; } catch (e) {}
-            try { await buildAutoVideo(false); } catch (e) {}
+            // Use the AI builder (true), not the local text-splitter (false): a bare
+            // topic or link must be turned into a FULL multi-scene script by the
+            // assistant, otherwise a one-line topic yields a thin 2-scene video.
+            try { await buildAutoVideo(true); } catch (e) {}
             try { window.vsBuildOverlay = _bo; } catch (e) {}
             var n = (typeof vstudio !== "undefined" && vstudio.slides) ? vstudio.slides.length : 0;
             prog.innerHTML = md(n >= 3
