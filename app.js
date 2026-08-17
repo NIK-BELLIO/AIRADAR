@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v434-paste-percity";
+const VS_BUILD = "v435-per-item";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -17712,15 +17712,16 @@ A video is made of one or more SCENES that play one after another. Each scene ha
         var pre = opts.skill === "editorial" ? "/editorial " : opts.skill === "motion_graphic" ? "/motion_graphic " : "";
         t.value = pre + text; t.dispatchEvent(new Event("input", { bubbles: true }));
       }
-      // toggle batch ("a video per city") to match the request
+      // toggle batch ("a video per item") to match the request. Items can be
+      // cities, products, companies, people — whatever the article lists.
       var bt = $id("vsAutoBatch");
       if (bt) { if (opts.batch && !bt.checked) bt.click(); else if (!opts.batch && bt.checked) bt.click(); }
       var ln = $id("vsAutoLen"); if (ln && !ln.value) ln.value = "medium";
       var prog = add("assistant", opts.batch
-        ? (fa() ? "🏙️ در حال ساخت یک ویدیو برای هر شهر… (ممکن است ۱–۲ دقیقه طول بکشد)" : "🏙️ Building a video for each city… (may take 1-2 min)")
+        ? (fa() ? "🗂️ در حال ساخت یک ویدیو برای هر مورد… (ممکن است ۱–۲ دقیقه طول بکشد)" : "🗂️ Building a video for each item… (may take 1-2 min)")
         : (fa() ? "🎬 در حال ساخت ویدیو…" : "🎬 Building your video…"));
       // For a SINGLE video, keep progress in the chat; for BATCH, let the studio's
-      // own per-city progress panel show (it tracks each city separately).
+      // own per-item progress panel show (it tracks each item separately).
       var suppress = !opts.batch, _bo;
       if (suppress) { _bo = window.vsBuildOverlay; try { window.vsBuildOverlay = function () {}; } catch (e) {} }
       try { await buildAutoVideo(true); } catch (e) {}
@@ -17728,8 +17729,8 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       if (opts.batch) {
         var nb = (typeof vstudio !== "undefined" && vstudio.batchVideos) ? vstudio.batchVideos.length : 0;
         prog.innerHTML = md(nb >= 2
-          ? (fa() ? ("✅ برای " + nb + " شهر ویدیو ساخته شد — دانلود/زیپ شد و در داشبورد ذخیره شد.") : ("✅ Built a video for " + nb + " cities — downloaded/zipped and saved to your dashboard."))
-          : (fa() ? "کمتر از ۲ شهر پیدا شد، پس یک ویدیوی واحد ساخته شد. اگر متن چند شهر دارد، مطمئن شو کاملش را پیست کرده‌ای." : "Fewer than 2 cities were found, so a single video was built. If the text lists several cities, make sure you pasted all of it."));
+          ? (fa() ? ("✅ برای " + nb + " مورد ویدیو ساخته شد — دانلود/زیپ شد و در داشبورد ذخیره شد.") : ("✅ Built a video for " + nb + " items — downloaded/zipped and saved to your dashboard."))
+          : (fa() ? "کمتر از ۲ مورد پیدا شد، پس یک ویدیوی واحد ساخته شد. اگر متن چند مورد دارد، مطمئن شو کاملش را پیست کرده‌ای." : "Fewer than 2 items were found, so a single video was built. If the text lists several items, make sure you pasted all of it."));
         return;
       }
       var n = (typeof vstudio !== "undefined" && vstudio.slides) ? vstudio.slides.length : 0;
