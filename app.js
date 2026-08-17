@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v430-offline-encode";
+const VS_BUILD = "v431-offline-footage";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -14703,8 +14703,41 @@ function vsAudioBufferToWav(buf) {
   return new Uint8Array(ab);
 }
 
+// Seek a <video> to `target` seconds and resolve when the frame is ready — with
+// a hard timeout so a slow/remote clip can never HANG the offline render (it
+// just draws whatever frame is currently decoded). This is what lets footage
+// decks be rendered deterministically instead of played in real time.
+function _vsSeekVideo(vid, target) {
+  return new Promise(res => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; try { vid.removeEventListener("seeked", fin); } catch (e) {} res(); };
+    try { vid.addEventListener("seeked", fin, { once: true }); } catch (e) {}
+    try { vid.currentTime = target; } catch (e) { fin(); return; }
+    setTimeout(fin, 180);
+  });
+}
+// For the slide active at logical time t, seek its footage video to the matching
+// moment (clip stretched across the scene) so the export shows real motion —
+// deterministically, frame by frame — instead of a frozen video frame.
+async function _vsSeekActiveFootage(t) {
+  if (!vstudio.slides.length) return;
+  const at = slideAtTime(t);
+  const slide = vstudio.slides[at.index];
+  if (!slide || !slide.isVideo || !slide.mediaEl) return;
+  const vid = slide.mediaEl;
+  const vdur = (vid.duration && isFinite(vid.duration)) ? vid.duration : at.dur;
+  if (!vdur) return;
+  let target = (at.dur > 0 ? (at.local / at.dur) : 0) * vdur;
+  target = Math.max(0, Math.min(vdur - 0.05, target));
+  if (Math.abs((vid.currentTime || 0) - target) < 0.008) return;
+  await _vsSeekVideo(vid, target);
+}
+
 async function vsExportOfflineEncode(canvas, duration, fps) {
   if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") return null;
+  // Pause every footage video: during offline render we drive them by SEEKING,
+  // so live playback must not fight the seek between frames.
+  try { vstudio.slides.forEach(s => { if (s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch (e) {} } }); } catch (e) {}
   const W = canvas.width, H = canvas.height;
   if (!W || !H) return null;
   // bitrate mirrors the recorder path
@@ -14737,6 +14770,7 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
   for (let i = 0; i < total; i++) {
     if (vstudio._batchCancel) { try { encoder.close(); } catch (e) {} return null; }
     const t = i / fps;
+    try { await _vsSeekActiveFootage(t); } catch (e) {}
     try { drawStudioFrame(t); } catch (err) { try { console.error("offline draw error @" + t.toFixed(2) + "s", err); } catch (e) {} }
     // grab a poster frame for the dashboard thumbnail
     if (!vstudio._posterCaptured && i >= posterAt) {
@@ -15293,14 +15327,14 @@ async function exportStudioVideo() {
   const fps = 30;
 
   // ── DETERMINISTIC OFFLINE ENCODE (freeze-proof) ──
-  // For fully-DRAWN decks (no real <video> footage) render every frame with an
-  // explicit timestamp via WebCodecs instead of real-time MediaRecorder capture.
-  // This is immune to background-tab throttling / slow frames — the #1 cause of
-  // exports coming out frozen or juddering. Any failure falls through to the
-  // real-time recorder path below.
-  const _hasFootageVideo = (vstudio.isVideo && media) ||
-    vstudio.slides.some(s => s.ready && s.isVideo && s.mediaEl);
-  if (!_hasFootageVideo && typeof VideoEncoder !== "undefined") {
+  // Render every frame with an explicit timestamp via WebCodecs instead of
+  // real-time MediaRecorder capture. This is immune to background-tab throttling
+  // / slow frames — the #1 cause of exports coming out frozen or juddering.
+  // Footage <video> decks are supported too: each frame SEEKS the active clip to
+  // the matching moment (see _vsSeekActiveFootage) so the footage really moves.
+  // The single-clip (no-slides) footage mode still needs the real-time path.
+  const _singleClipFootage = (vstudio.isVideo && media && !vstudio.slides.length);
+  if (!_singleClipFootage && typeof VideoEncoder !== "undefined") {
     try {
       const _off = await vsExportOfflineEncode(canvas, duration, fps);
       if (_off && _off.blob && _off.blob.size) {
