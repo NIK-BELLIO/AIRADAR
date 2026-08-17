@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v436-mg-bigtext";
+const VS_BUILD = "v437-batch-guard";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -17707,6 +17707,17 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     // video PER CITY/PLACE the article covers.
     async function buildFromChat(text, opts) {
       opts = opts || {};
+      // HARD GUARD: batch (one video per item) only makes sense when the user
+      // handed over a real multi-item article, or an explicit list of 3+ items.
+      // A bare topic or single place — "rasht", "miami", "solar energy" — must be
+      // ONE video; otherwise the item-extractor hallucinates a list of unrelated
+      // cities (e.g. "rasht" → 20 random world cities).
+      var _wordCount = String(text).trim().split(/\s+/).filter(Boolean).length;
+      var _listItems = String(text).split(/[,\n;]+|\band\b|\bو\b/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
+      var doBatch = !!opts.batch && (
+        (text.length >= 220 && _wordCount >= 30) ||   // a substantial pasted article
+        _listItems.length >= 3                        // an explicit list of 3+ items
+      );
       open();
       add("user", text.length > 160 ? (text.slice(0, 160) + "…") : text);
       var t = $id("vsAutoTopic");
@@ -17717,18 +17728,18 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       // toggle batch ("a video per item") to match the request. Items can be
       // cities, products, companies, people — whatever the article lists.
       var bt = $id("vsAutoBatch");
-      if (bt) { if (opts.batch && !bt.checked) bt.click(); else if (!opts.batch && bt.checked) bt.click(); }
+      if (bt) { if (doBatch && !bt.checked) bt.click(); else if (!doBatch && bt.checked) bt.click(); }
       var ln = $id("vsAutoLen"); if (ln && !ln.value) ln.value = "medium";
-      var prog = add("assistant", opts.batch
+      var prog = add("assistant", doBatch
         ? (fa() ? "🗂️ در حال ساخت یک ویدیو برای هر مورد… (ممکن است ۱–۲ دقیقه طول بکشد)" : "🗂️ Building a video for each item… (may take 1-2 min)")
         : (fa() ? "🎬 در حال ساخت ویدیو…" : "🎬 Building your video…"));
       // For a SINGLE video, keep progress in the chat; for BATCH, let the studio's
       // own per-item progress panel show (it tracks each item separately).
-      var suppress = !opts.batch, _bo;
+      var suppress = !doBatch, _bo;
       if (suppress) { _bo = window.vsBuildOverlay; try { window.vsBuildOverlay = function () {}; } catch (e) {} }
       try { await buildAutoVideo(true); } catch (e) {}
       if (suppress) { try { window.vsBuildOverlay = _bo; } catch (e) {} }
-      if (opts.batch) {
+      if (doBatch) {
         var nb = (typeof vstudio !== "undefined" && vstudio.batchVideos) ? vstudio.batchVideos.length : 0;
         prog.innerHTML = md(nb >= 2
           ? (fa() ? ("✅ برای " + nb + " مورد ویدیو ساخته شد — دانلود/زیپ شد و در داشبورد ذخیره شد.") : ("✅ Built a video for " + nb + " items — downloaded/zipped and saved to your dashboard."))
