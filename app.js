@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v432-assistant-aibuild";
+const VS_BUILD = "v433-worker-read";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -5177,6 +5177,9 @@ async function vsFetchArticle(url) {
   // Jina AI Reader returns clean article text — best option, handles
   // JS-rendered pages and strips nav/ads. Try it a couple of ways first.
   const tryUrls = [
+    // Our own worker reads with a real browser UA — clears many blocks the public
+    // proxies hit, so news links are recognized far more reliably.
+    { u: "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=" + encodeURIComponent(clean), clean: false },
     { u: "https://r.jina.ai/" + clean, clean: true },
     { u: "https://r.jina.ai/" + encodeURIComponent(clean), clean: true },
     { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(clean), clean: false },
@@ -5244,7 +5247,10 @@ async function vsFetchArticle(url) {
   // proxy fetched *something*, just not the article — so a status/length
   // check alone lets the challenge page's own text (site domain, "Cloudflare")
   // through as if it were real content. Recognize it and try the next proxy.
-  const isBotChallenge = (s) => /just a moment|checking your browser|performing security verification|verify(?:ing)? you are human|enable javascript and cookies|requiring captcha|cf-browser-verification|ddos protection by|attention required[\s\S]{0,40}cloudflare/i.test(s);
+  const isBotChallenge = (s) => /just a moment|checking your browser|performing security verification|verify(?:ing)? you are human|enable javascript and cookies|requiring captcha|cf-browser-verification|ddos protection by|challenge-platform|\/cdn-cgi\/challenge|_cf_chl|attention required[\s\S]{0,40}cloudflare/i.test(s)
+    // a short page that mentions both "attention required" and "cloudflare" is a
+    // block page, never a real article (real articles are far longer).
+    || (s.length < 20000 && /attention required/i.test(s) && /cloudflare/i.test(s));
 
   for (const entry of tryUrls) {
     try {
