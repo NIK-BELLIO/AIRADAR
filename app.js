@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v435-per-item";
+const VS_BUILD = "v436-mg-bigtext";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -12506,12 +12506,14 @@ function drawStudioFrame(elapsed) {
     // keep the font BIG and wrap the kinetic headline onto up to two lines, only
     // shrinking if two lines still don't fit. Bigger, more professional type.
     const isMaisonTxt = textAnim === "maison-kinetic";
+    // Motion-graphic scenes must read BIG and bold — the old plain path shrank a
+    // long headline onto ONE line at ~2.6% of width (~28px on portrait), which was
+    // unreadable. Motion-graphic (and MAISON) scenes now use large type and wrap
+    // onto up to two lines; plain footage videos keep the restrained single line.
+    const bigMg = isMaisonTxt || _isMotionScene || vstudio._motionGfxMode;
     const maxHlW = W * (dsPanelBand ? 0.82 : 0.90);
-    // MAISON motion-graphic middle slides carry big, bold statement type (they
-    // read small next to the intro/outro cards otherwise). Regular videos keep
-    // the original, more restrained size.
-    let hlSize = Math.round(W * (isMaisonTxt ? 0.076 : 0.046) * sizeMul);
-    const minHl = Math.round(W * (isMaisonTxt ? 0.052 : 0.026));
+    let hlSize = Math.round(W * (isMaisonTxt ? 0.076 : bigMg ? 0.066 : 0.046) * sizeMul);
+    const minHl = Math.round(W * (isMaisonTxt ? 0.052 : bigMg ? 0.044 : 0.026));
     const wrapAt = (px) => {
       ctx.font = `${isMaisonTxt ? 800 : 600} ${px}px ${vsGetFont(tpl.headlineFont)}`;
       const ws = String(headline || "").split(/\s+/).filter(Boolean);
@@ -12524,7 +12526,7 @@ function drawStudioFrame(elapsed) {
       if (cur) lines.push(cur);
       return lines.length ? lines : [""];
     };
-    const maxLinesTxt = isMaisonTxt ? 2 : 1;   // plain path stays one line
+    const maxLinesTxt = (isMaisonTxt || bigMg) ? 2 : 1;   // motion-graphic wraps; plain stays one line
     while (hlSize > minHl && wrapAt(hlSize).length > maxLinesTxt) hlSize -= 2;
     const hlLines = wrapAt(hlSize);
     const nHlLines = hlLines.length;
@@ -12532,7 +12534,7 @@ function drawStudioFrame(elapsed) {
     // Centre a multi-line headline inside a MAISON panel band — otherwise it sat
     // near the top with a large empty block of colour beneath it.
     if (dsPanelBand) baseY = dsPanelBand.top + dsPanelBand.h * 0.5 + (nHlLines - 1) * hlLineH / 2;
-    const subSize = Math.round(W * 0.028 * sizeMul);
+    const subSize = Math.round(W * (bigMg ? 0.033 : 0.028) * sizeMul);
     const ctaSize = Math.round(W * 0.022 * sizeMul);
     ctx.font = `${isMaisonTxt ? 800 : 600} ${hlSize}px ${vsGetFont(tpl.headlineFont)}`;
     let blockW = 0;
