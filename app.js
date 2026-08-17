@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v433-worker-read";
+const VS_BUILD = "v434-paste-percity";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -17698,7 +17698,66 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     ta.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } });
     // Let other pages (the /assistant tab) hand a build request to the studio.
     window.__arAsk = function (text) { open(); ta.value = String(text || ""); submit(); };
-    try { var qp = new URLSearchParams(location.search).get("arbuild"); if (qp && canBuild()) setTimeout(function () { window.__arAsk(qp); }, 900); } catch (e) {}
+
+    // Build DIRECTLY from text the user handed over (e.g. pasted a whole article
+    // in the Assistant because the site was blocked). Skips the intent parser and
+    // drives the studio builder itself. When opts.batch is set, it builds ONE
+    // video PER CITY/PLACE the article covers.
+    async function buildFromChat(text, opts) {
+      opts = opts || {};
+      open();
+      add("user", text.length > 160 ? (text.slice(0, 160) + "…") : text);
+      var t = $id("vsAutoTopic");
+      if (t) {
+        var pre = opts.skill === "editorial" ? "/editorial " : opts.skill === "motion_graphic" ? "/motion_graphic " : "";
+        t.value = pre + text; t.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      // toggle batch ("a video per city") to match the request
+      var bt = $id("vsAutoBatch");
+      if (bt) { if (opts.batch && !bt.checked) bt.click(); else if (!opts.batch && bt.checked) bt.click(); }
+      var ln = $id("vsAutoLen"); if (ln && !ln.value) ln.value = "medium";
+      var prog = add("assistant", opts.batch
+        ? (fa() ? "🏙️ در حال ساخت یک ویدیو برای هر شهر… (ممکن است ۱–۲ دقیقه طول بکشد)" : "🏙️ Building a video for each city… (may take 1-2 min)")
+        : (fa() ? "🎬 در حال ساخت ویدیو…" : "🎬 Building your video…"));
+      // For a SINGLE video, keep progress in the chat; for BATCH, let the studio's
+      // own per-city progress panel show (it tracks each city separately).
+      var suppress = !opts.batch, _bo;
+      if (suppress) { _bo = window.vsBuildOverlay; try { window.vsBuildOverlay = function () {}; } catch (e) {} }
+      try { await buildAutoVideo(true); } catch (e) {}
+      if (suppress) { try { window.vsBuildOverlay = _bo; } catch (e) {} }
+      if (opts.batch) {
+        var nb = (typeof vstudio !== "undefined" && vstudio.batchVideos) ? vstudio.batchVideos.length : 0;
+        prog.innerHTML = md(nb >= 2
+          ? (fa() ? ("✅ برای " + nb + " شهر ویدیو ساخته شد — دانلود/زیپ شد و در داشبورد ذخیره شد.") : ("✅ Built a video for " + nb + " cities — downloaded/zipped and saved to your dashboard."))
+          : (fa() ? "کمتر از ۲ شهر پیدا شد، پس یک ویدیوی واحد ساخته شد. اگر متن چند شهر دارد، مطمئن شو کاملش را پیست کرده‌ای." : "Fewer than 2 cities were found, so a single video was built. If the text lists several cities, make sure you pasted all of it."));
+        return;
+      }
+      var n = (typeof vstudio !== "undefined" && vstudio.slides) ? vstudio.slides.length : 0;
+      prog.innerHTML = md(n >= 3
+        ? (fa() ? ("✅ ویدیوی " + n + " صحنه‌ای آماده شد! پایین خروجی بگیر یا بگو چی عوض کنم.") : ("✅ Your " + n + "-scene video is ready! Export below, or tell me what to change."))
+        : (fa() ? "ساخته شد ولی محتوا کم بود. یک موضوع مشخص‌تر یا متن کامل‌تر بده." : "Built it, but the content was thin. Give a clearer topic or fuller text."));
+      var act = document.createElement("div"); act.className = "arc-chips";
+      var exp = document.createElement("button"); exp.className = "arc-chip"; exp.textContent = (fa() ? "⬇ خروجی / دانلود" : "⬇ Export / download");
+      exp.onclick = function () { var eb = $id("vsExportBtn"); if (eb) eb.click(); };
+      var cov = document.createElement("button"); cov.className = "arc-chip"; cov.textContent = (fa() ? "🖼 کاور بساز" : "🖼 Make a cover");
+      cov.onclick = function () { if (typeof vsGenerateCover === "function") vsGenerateCover(); };
+      act.appendChild(exp); act.appendChild(cov); msgs.appendChild(act); msgs.scrollTop = msgs.scrollHeight;
+    }
+    window.__arBuild = function (text, opts) { if (canBuild()) buildFromChat(String(text || ""), opts || {}); };
+
+    try {
+      var qp = new URLSearchParams(location.search).get("arbuild");
+      if (qp && canBuild()) {
+        // A full pasted article is too big for a URL param, so the Assistant hands
+        // it over via localStorage and just flags ?arbuild=1 here.
+        var payload = null;
+        try { var raw = localStorage.getItem("arBuildPayload"); if (raw) { payload = JSON.parse(raw); localStorage.removeItem("arBuildPayload"); } } catch (e) {}
+        setTimeout(function () {
+          if (payload && payload.text) buildFromChat(payload.text, { batch: !!payload.batch, skill: payload.skill });
+          else window.__arAsk(qp);
+        }, 900);
+      }
+    } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
   else boot();
