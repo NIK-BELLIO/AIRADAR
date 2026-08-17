@@ -2297,6 +2297,14 @@
                    border-color .22s ease, filter .22s ease !important;
         -webkit-tap-highlight-color:transparent;
       }
+      /* Slide editor: keep every control inside the panel. Without border-box a
+         width:100% button (e.g. the "Remove footage" button that only appears
+         once a scene HAS footage) overflowed by its 44px padding and stretched
+         the whole column, clipping the text boxes. */
+      #vsSlideEditor, #vsSlideEditor *{ box-sizing:border-box; }
+      #vsSlideEditor{ min-width:0; max-width:100%; overflow-x:hidden; }
+      #vsSlideEditor .button{ max-width:100%; white-space:normal; word-break:break-word; text-align:center; }
+      #vsSlideEditor textarea, #vsSlideEditor input, #vsSlideEditor label{ max-width:100%; }
       /* PRIMARY — solid premium gold, glass edge + depth */
       .button.primary{
         background:linear-gradient(135deg,#3b78ff,#2563ff) !important;
