@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v437-batch-guard";
+const VS_BUILD = "v438-auto-assistant";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -17632,14 +17632,35 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     var md = function (t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); };
     var add = function (who, text) { var d = document.createElement("div"); d.className = "arc-m " + (who === "user" ? "arc-u" : "arc-a"); d.innerHTML = md(text); msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d; };
     var opened = false;
+    var pendingAuto = false;   // waiting for a topic to auto-build+export
     function greet() {
-      var chips = canBuild()
-        ? [["🎬", fa() ? "یه ویدیو درباره‌ی خبر هوش مصنوعی بساز" : "Make a video about AI news"], ["📰", fa() ? "این لینک خبری رو ویدیو کن" : "Turn a news link into a video"], ["✍️", fa() ? "یه اسکریپت بنویس" : "Write me a script"], ["🎯", fa() ? "تیتر جذاب بده" : "Catchy titles"]]
-        : [["✍️", fa() ? "یه اسکریپت بنویس" : "Write a script"], ["🎯", fa() ? "تیتر جذاب" : "Catchy titles"], ["🖼️", fa() ? "پرامپت تصویر" : "Image prompt"], ["💡", fa() ? "ایده محتوا" : "Content ideas"]];
-      add("assistant", canBuild() ? (fa() ? "سلام! بگو چه ویدیویی می‌خوای (موضوع یا لینک خبر) تا همین‌جا برات بسازم. یا هر سوالی داری بپرس." : "Hi! Tell me what video you want (a topic or a news link) and I'll build it right here. Or ask me anything.") : (fa() ? "سلام! چطور کمکت کنم؟" : "Hi! How can I help?"));
-      var wrap = document.createElement("div"); wrap.className = "arc-chips";
-      chips.forEach(function (pair) { var c = document.createElement("button"); c.className = "arc-chip"; c.textContent = pair[0] + " " + pair[1]; c.onclick = function () { ta.value = pair[1]; submit(); }; wrap.appendChild(c); });
-      msgs.appendChild(wrap);
+      if (canBuild()) {
+        add("assistant", fa()
+          ? "سلام! من **Radar** am 👋 موضوعتو بگو (یا لینک خبر) تا **کل ویدیو رو خودکار بسازم و خروجی بگیرم** — با یه کلیک. یا هر سوالی داری بپرس."
+          : "Hey! I'm **Radar** 👋 Tell me your topic (or a news link) and I'll **build the whole video and export it automatically** — one click. Or ask me anything.");
+        // Prominent ONE-CLICK auto action.
+        var autoWrap = document.createElement("div"); autoWrap.className = "arc-chips";
+        var autoBtn = document.createElement("button"); autoBtn.className = "arc-chip"; autoBtn.style.cssText = "background:linear-gradient(135deg,#22d3ee,#2563ff);color:#fff;border:none;font-weight:700;padding:9px 13px";
+        autoBtn.textContent = fa() ? "✨ خودکار برام بساز (ساخت + خروجی)" : "✨ Auto-make my video (build + export)";
+        autoBtn.onclick = function () {
+          var existing = (($id("vsAutoTopic") || {}).value || ta.value || "").trim();
+          var chipRow0 = msgs.querySelector(".arc-chips"); // remove greeting chips
+          if (existing) { buildFromChat(existing, { auto: true }); }
+          else { pendingAuto = true; add("assistant", fa() ? "عالی! فقط بگو ویدیو **درباره‌ی چی** باشه (مثلاً «رشت» یا لینک خبر) — بقیه‌ش با من، فایل رو دستت می‌دم." : "Love it! Just tell me **what it's about** (e.g. \"Rasht\" or a news link) — I'll do the rest and hand you the file."); ta.focus(); }
+        };
+        autoWrap.appendChild(autoBtn); msgs.appendChild(autoWrap);
+        // Secondary quick prompts.
+        var chips = [["📰", fa() ? "این لینک خبری رو ویدیو کن" : "Turn a news link into a video"], ["✍️", fa() ? "یه اسکریپت بنویس" : "Write me a script"], ["🎯", fa() ? "تیتر جذاب بده" : "Catchy titles"]];
+        var wrap = document.createElement("div"); wrap.className = "arc-chips";
+        chips.forEach(function (pair) { var c = document.createElement("button"); c.className = "arc-chip"; c.textContent = pair[0] + " " + pair[1]; c.onclick = function () { ta.value = pair[1]; submit(); }; wrap.appendChild(c); });
+        msgs.appendChild(wrap);
+      } else {
+        add("assistant", fa() ? "سلام! من Radaram 👋 چطور کمکت کنم؟" : "Hey! I'm Radar 👋 How can I help?");
+        var chips2 = [["✍️", fa() ? "یه اسکریپت بنویس" : "Write a script"], ["🎯", fa() ? "تیتر جذاب" : "Catchy titles"], ["🖼️", fa() ? "پرامپت تصویر" : "Image prompt"], ["💡", fa() ? "ایده محتوا" : "Content ideas"]];
+        var wrap2 = document.createElement("div"); wrap2.className = "arc-chips";
+        chips2.forEach(function (pair) { var c = document.createElement("button"); c.className = "arc-chip"; c.textContent = pair[0] + " " + pair[1]; c.onclick = function () { ta.value = pair[1]; submit(); }; wrap2.appendChild(c); });
+        msgs.appendChild(wrap2);
+      }
     }
     var open = function () { panel.hidden = false; if (!opened) { opened = true; greet(); } ta.focus(); };
     btn.addEventListener("click", function () { panel.hidden ? open() : (panel.hidden = true); });
@@ -17648,9 +17669,16 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     async function submit() {
       var text = ta.value.trim(); if (!text || send.disabled) return;
       ta.value = ""; ta.style.height = "44px";
-      var chipRow = msgs.querySelector(".arc-chips"); if (chipRow) chipRow.remove();
+      Array.prototype.forEach.call(msgs.querySelectorAll(".arc-chips"), function (c) { c.remove(); });
       add("user", text); history.push({ role: "user", content: text });
       send.disabled = true;
+      // If the user just answered "what's it about?" for the one-click Auto flow,
+      // build + export the whole thing straight away — no intent parsing needed.
+      if (pendingAuto && canBuild()) {
+        pendingAuto = false; send.disabled = false;
+        buildFromChat(text, { auto: true });
+        return;
+      }
       var typing = add("assistant", "…");
       try {
         if (canBuild()) {
@@ -17748,8 +17776,21 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       }
       var n = (typeof vstudio !== "undefined" && vstudio.slides) ? vstudio.slides.length : 0;
       prog.innerHTML = md(n >= 3
-        ? (fa() ? ("✅ ویدیوی " + n + " صحنه‌ای آماده شد! پایین خروجی بگیر یا بگو چی عوض کنم.") : ("✅ Your " + n + "-scene video is ready! Export below, or tell me what to change."))
+        ? (fa() ? ("✅ ویدیوی " + n + " صحنه‌ای آماده شد!") : ("✅ Your " + n + "-scene video is ready!"))
         : (fa() ? "ساخته شد ولی محتوا کم بود. یک موضوع مشخص‌تر یا متن کامل‌تر بده." : "Built it, but the content was thin. Give a clearer topic or fuller text."));
+      // AUTO mode — one click does everything: after building, export the file
+      // automatically so the user never has to touch another button.
+      if (opts.auto && n >= 2 && typeof exportStudioVideo === "function") {
+        var exProg = add("assistant", fa() ? "🎞️ دارم خروجی ویدیو رو می‌گیرم…" : "🎞️ Now exporting your video…");
+        try {
+          await exportStudioVideo();
+          exProg.innerHTML = md(fa() ? "✅ تمام! ویدیو دانلود شد 🎉 (توی داشبوردت هم ذخیره شد)" : "✅ Done! Your video downloaded 🎉 (also saved to your dashboard)");
+        } catch (e) {
+          exProg.innerHTML = md(fa() ? "ویدیو ساخته شد ولی خروجیِ خودکار نگرفت — از دکمه‌ی پایین بزن." : "Built it, but auto-export failed — use the button below.");
+        }
+      } else if (n >= 3) {
+        add("assistant", fa() ? "پایین خروجی بگیر یا بگو چی عوض کنم." : "Export below, or tell me what to change.");
+      }
       var act = document.createElement("div"); act.className = "arc-chips";
       var exp = document.createElement("button"); exp.className = "arc-chip"; exp.textContent = (fa() ? "⬇ خروجی / دانلود" : "⬇ Export / download");
       exp.onclick = function () { var eb = $id("vsExportBtn"); if (eb) eb.click(); };
