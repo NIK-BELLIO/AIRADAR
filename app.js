@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v438-auto-assistant";
+const VS_BUILD = "v439-no-empty-infographic";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -9168,6 +9168,47 @@ function vsFitFont(ctx, text, maxW, weight, family, startPx, minPx) {
   return px;
 }
 
+// When an infographic scene has a title but NO real numbers, drawing the chart
+// produced a big empty card (labels with zero-width bars + an axis). Instead,
+// render the title as a clean centred statement over the footage so the scene
+// still reads as intentional.
+function drawInfoTitleFallback(ctx, W, H, elapsed, tpl, title) {
+  title = String(title || "").trim();
+  if (!title) return;
+  tpl = tpl || (typeof vsTemplate === "function" ? vsTemplate() : { accent: "#2563ff", text: "#fff", headlineFont: "Inter, sans-serif" });
+  const U = Math.min(W, H);
+  const playing = vstudio.looping || vstudio.rendering;
+  const e = playing ? vsEasePro(Math.min(1, elapsed / 0.9)) : 1;
+  const fam = vsGetFont(tpl.headlineFont || "Inter, sans-serif");
+  const maxW = W * 0.84;
+  const wrap = (p) => {
+    ctx.font = `700 ${p}px ${fam}`;
+    const ws = title.split(/\s+/).filter(Boolean); const ls = []; let c = "";
+    for (const w of ws) { const t = c ? c + " " + w : w; if (ctx.measureText(t).width > maxW && c) { ls.push(c); c = w; } else c = t; }
+    if (c) ls.push(c); return ls.length ? ls : [""];
+  };
+  let px = Math.round(W * 0.072);
+  let lines = wrap(px);
+  while (px > Math.round(W * 0.044) && lines.length > 4) { px -= 2; lines = wrap(px); }
+  const lh = px * 1.16, blockH = lines.length * lh, cy = H * 0.5;
+  ctx.save();
+  ctx.globalAlpha = e;
+  // soft readability scrim
+  const g = ctx.createLinearGradient(0, cy - blockH, 0, cy + blockH);
+  g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.5, "rgba(0,0,0,0.5)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, cy - blockH, W, blockH * 2);
+  // accent bar
+  ctx.fillStyle = tpl.accent || "#2563ff";
+  ctx.fillRect(W / 2 - U * 0.05, cy - blockH / 2 - U * 0.055, U * 0.1, Math.max(3, U * 0.008));
+  ctx.font = `700 ${px}px ${fam}`;
+  ctx.fillStyle = tpl.text || "#fff";
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = 18;
+  let y = cy - blockH / 2 + px * 0.85;
+  lines.forEach(l => { ctx.fillText(l, W / 2, y); y += lh; });
+  ctx.restore();
+}
+
 function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   vsOff = vsOff || vstudio;
   const val = dsVal || vsVal;
@@ -9176,13 +9217,25 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
            : ($("#vsInfoOn") && $("#vsInfoOn").checked);
   if (!on) { vstudio.infoBox = null; return; }
   const data = vsInfoData(val);
-  // An infographic with no real numbers must NOT render an empty card. Keep only
-  // stats that actually carry a label or value; if none remain, draw nothing.
+  // An infographic with no real DATA must NOT render an empty card. A stat only
+  // counts when it carries a real value (or a real non-zero number) — a bare
+  // label with an empty value is what produced the big empty chart card.
   if (data && Array.isArray(data.stats)) {
-    data.stats = data.stats.filter(s => s &&
-      (String(s.label == null ? "" : s.label).trim() || String(s.value == null ? "" : s.value).trim()));
+    data.stats = data.stats.filter(s => {
+      if (!s) return false;
+      const hasVal = String(s.value == null ? "" : s.value).trim().length > 0;
+      const hasNum = typeof s.num === "number" && isFinite(s.num) && s.num !== 0;
+      return hasVal || hasNum;
+    });
   }
-  if (!data || !data.stats || !data.stats.length) { vstudio.infoBox = null; return; }
+  if (!data || !data.stats || !data.stats.length) {
+    // No real numbers → show the title as a clean statement instead of an empty
+    // chart, so the scene never looks broken.
+    vstudio.infoBox = null;
+    tpl = tpl || vsTemplate();
+    if (data && data.title) drawInfoTitleFallback(ctx, W, H, elapsed, tpl, data.title);
+    return;
+  }
 
   tpl = tpl || vsTemplate();
   const isLight = vsHexLuma(tpl.bg) > 140;
