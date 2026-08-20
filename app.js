@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v443-edit-elements";
+const VS_BUILD = "v444-labels-edit-fix";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -6376,9 +6376,12 @@ async function vsAutoGenerateBackgrounds(data) {
         // read as broken, so PREFER the clean keyword list the AI wrote for this
         // scene, then real data labels, then the deck-wide concepts. Raw headline
         // words are only the last resort.
+        // Keep the WHOLE label (just clean stray characters) — the old shortLabel()
+        // chopped every keyword to its first 2 words, turning "Bank of England"
+        // into a broken "Bank of". The node renderer fits/shrinks long labels.
         const cleanKw = (arr) => (Array.isArray(arr) ? arr : [])
-          .map((k) => shortLabel(String(k || "")).replace(/[^\w %$+.-]/g, "").trim())
-          .filter((k) => k && k.length >= 2 && k.length <= 18);
+          .map((k) => String(k || "").replace(/[^\w %$+.\-]/g, "").replace(/\s+/g, " ").trim())
+          .filter((k) => k && k.length >= 2 && k.length <= 22);
         const aiKw = cleanKw(s._keywords);
         const localItems = keyTokens(s.headline).slice(0, 5);
         const items = data2.length ? data2.map((d) => shortLabel(d.label))
@@ -7683,6 +7686,17 @@ function selectSlide(i) {
       const hasG = !!(s.sceneGraphic && s.sceneGraphic.kind);
       gWrap.style.display = hasG ? "" : "none";
       if (hasG) gSel.value = s._graphicManual ? s.sceneGraphic.kind : "auto";
+      // simple editable labels for the graphic's elements (node/bar labels)
+      const lWrap = $("#vsSlideGraphicLabelsWrap"), lInp = $("#vsSlideGraphicLabels");
+      if (lWrap && lInp) {
+        lWrap.style.display = hasG ? "" : "none";
+        if (hasG) {
+          const g = s.sceneGraphic;
+          const labs = (g.data && g.data.length) ? g.data.map(d => d.label)
+            : (Array.isArray(g.items) ? g.items : []);
+          lInp.value = labs.filter(Boolean).join(", ");
+        }
+      }
     }
     // quick-access text field — mirrors the News banner headline (the
     // field that actually renders) so editing a scene's text doesn't
@@ -10543,7 +10557,10 @@ function drawSceneGraphic(ctx, W, H, kind, t, o) {
       ctx.fillStyle = ping > 0.05 ? A : "rgba(255,255,255,.72)";
       ctx.font = `${r * 0.95}px ${F}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(glyphs[i % glyphs.length], nx, ny + 1); ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "rgba(255,255,255,.80)"; ctx.font = `600 ${W * 0.036}px ${F}`;
+      ctx.fillStyle = "rgba(255,255,255,.80)";
+      // fit the label so long names ("Bank of England") shrink instead of colliding
+      let _lp = W * 0.036; ctx.font = `600 ${_lp}px ${F}`;
+      while (_lp > W * 0.024 && ctx.measureText(String(label)).width > W * 0.30) { _lp -= 1; ctx.font = `600 ${_lp}px ${F}`; }
       ctx.fillText(label, nx, ny + r + W * 0.048);
     });
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.022, 0, 7);
@@ -16162,6 +16179,19 @@ function bindEvents() {
     renderSlideList();
     if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
     vsStatus(state.lang === "fa" ? "المان صحنه تغییر کرد." : "Scene element changed.");
+  });
+  // Edit the graphic's element labels (comma-separated) — the quick, simple way
+  // to fix a chopped label or rename the nodes/bars a scene shows.
+  on("#vsSlideGraphicLabels", "input", () => {
+    const s = vstudio.slides[vstudio.activeSlide]; const inp = $("#vsSlideGraphicLabels");
+    if (!s || !inp || !s.sceneGraphic) return;
+    const labs = inp.value.split(",").map(x => x.trim()).filter(Boolean).slice(0, 6);
+    if (!labs.length) return;
+    if (s.sceneGraphic.data && s.sceneGraphic.data.length) {
+      s.sceneGraphic.data = s.sceneGraphic.data.map((d, i) => ({ ...d, label: labs[i] != null ? labs[i] : d.label }));
+    }
+    s.sceneGraphic.items = labs;
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   });
   renderSlideList();
   on("#vsMusicFile", "change", (e) => loadStudioMusic(e.target.files[0]));
