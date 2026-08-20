@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v441-intro-footage-slash";
+const VS_BUILD = "v442-gauge-music-fix";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -6361,6 +6361,15 @@ async function vsAutoGenerateBackgrounds(data) {
         // The map is a marquee scene — only ONE per video; re-route a second one.
         if (kind === "map" && usedMap) kind = data2.length ? "bars" : "network";
         if (kind === "map") usedMap = true;
+        // A number-graphic (gauge/stat/donut/bars…) with NO real figure renders as
+        // a misleading empty chart — the "0% gauge". When the scene states no
+        // number, use a CONCEPT graphic (network/radar/orbit/flow) instead, which
+        // reads from plain labels. This keeps motion-graphics meaningful, never 0%.
+        const _hasRealNum = !!numMatch || data2.some(d => /\d/.test(String(d.value == null ? "" : d.value)));
+        const _NUMERIC = { gauge: 1, stat: 1, donut: 1, progress: 1, funnel: 1, area: 1, compare: 1, bars: 1, chart: 1 };
+        if (_NUMERIC[kind] && !_hasRealNum) {
+          kind = ["network", "radar", "orbit", "flow", "cycle"][(i + genOffset) % 5];
+        }
         prevKind = kind;
         // Concept graphics (network/orbit/radar/flow…) label their nodes with
         // `items`. Chopped headline words ("Battery / pack / prices / below")
@@ -11102,7 +11111,11 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
 
   } else if (kind === "gauge") {
     const cx = W / 2, cy = H * 0.63, R = U * 0.30;
-    const val = Math.max(0, Math.min(100, isFinite(Number(o.value)) ? Number(o.value) : 66));
+    // A MISSING value must NOT read as 0% (Number(null) === 0). Only use a real
+    // numeric value; otherwise fall back to a neutral needle position.
+    const _rawv = (o.value == null || o.value === "") ? NaN : Number(o.value);
+    const _hasNum = isFinite(_rawv);
+    const val = Math.max(0, Math.min(100, _hasNum ? _rawv : 66));
     ctx.lineCap = "round"; ctx.lineWidth = W * 0.036;
     ctx.strokeStyle = "rgba(255,255,255,.10)";
     ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, Math.PI * 2); ctx.stroke();
@@ -11116,7 +11129,11 @@ function drawSceneGraphicExt(ctx, W, H, kind, t, o, A, F, items) {
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * R * 0.82, cy + Math.sin(ang) * R * 0.82); ctx.stroke();
     ctx.beginPath(); ctx.arc(cx, cy, W * 0.016, 0, 7); ctx.fillStyle = A; ctx.fill();
     ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = `800 ${W * 0.13}px ${F}`;
-    ctx.fillText(Math.round(p / (val / 100 || 1) * val) + (o.suffix || "%"), cx, cy - H * 0.03);
+    // Only print a number when the scene actually states one. With no real value,
+    // show the verbatim valueText if present, else nothing (never a bogus "0%").
+    const _gtxt = o.valueText ? String(o.valueText)
+      : (_hasNum ? (Math.round(Math.min(1, t / 1.3) * val) + (o.suffix || "%")) : "");
+    if (_gtxt) ctx.fillText(_gtxt, cx, cy - H * 0.03);
     ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = `600 ${W * 0.038}px ${F}`;
     ctx.fillText(String(o.valueLabel || "").toUpperCase().slice(0, 30), cx, cy + H * 0.055);
 
@@ -14830,10 +14847,14 @@ async function vsRenderMixWav(duration) {
     s.start(0);
   }
   const rendered = await ctx.startRendering();
-  return vsAudioBufferToWav(rendered);
+  return vsAudioBufferToWavBytes(rendered);
 }
 
-function vsAudioBufferToWav(buf) {
+// Returns raw WAV BYTES (Uint8Array) for ffmpeg. NOTE: distinct from the older
+// vsAudioBufferToWav() which returns a Blob — they had the same name, and JS
+// hoisting made this one win everywhere, which broke the synth music's
+// URL.createObjectURL(blob) (a Uint8Array is not a Blob). Keep the names apart.
+function vsAudioBufferToWavBytes(buf) {
   const numCh = buf.numberOfChannels, sr = buf.sampleRate, n = buf.length;
   const chans = []; for (let c = 0; c < numCh; c++) chans.push(buf.getChannelData(c));
   const bytesPerSample = 2, blockAlign = numCh * bytesPerSample;
