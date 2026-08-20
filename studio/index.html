@@ -1137,6 +1137,24 @@
                     <label><span data-i18n="vSlideDuration">Scene duration (seconds)</span>
                       <input id="vsSlideDuration" type="number" min="1" max="600" value="4" />
                     </label>
+                    <label id="vsSlideGraphicWrap" style="display:none;"><span>Graphic element</span>
+                      <select id="vsSlideGraphic">
+                        <option value="auto">Auto (smart)</option>
+                        <option value="bars">Bar chart</option>
+                        <option value="donut">Donut</option>
+                        <option value="compare">Comparison</option>
+                        <option value="gauge">Gauge / meter</option>
+                        <option value="area">Trend line</option>
+                        <option value="progress">Progress</option>
+                        <option value="network">Network</option>
+                        <option value="orbit">Orbit</option>
+                        <option value="radar">Radar</option>
+                        <option value="timeline">Timeline</option>
+                        <option value="flow">Flow / steps</option>
+                        <option value="cycle">Cycle</option>
+                        <option value="pyramid">Pyramid</option>
+                      </select>
+                    </label>
                   </div>
 
 
@@ -2615,7 +2633,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v442"></script>
+    <script src="/app.js?v=v443"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

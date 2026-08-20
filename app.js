@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v442-gauge-music-fix";
+const VS_BUILD = "v443-edit-elements";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -7676,6 +7676,14 @@ function selectSlide(i) {
     const heroWrap = $("#vsSlideHeroWrap"), heroInp = $("#vsSlideHero");
     if (heroWrap) heroWrap.style.display = s._editorial ? "" : "none";
     if (heroInp && s._editorial) heroInp.value = s._edBigWord || s._heroWord || "";
+    // Graphic-element picker — only on motion-graphic scenes that carry a vector
+    // graphic. Lets the user change/override which element renders.
+    const gWrap = $("#vsSlideGraphicWrap"), gSel = $("#vsSlideGraphic");
+    if (gWrap && gSel) {
+      const hasG = !!(s.sceneGraphic && s.sceneGraphic.kind);
+      gWrap.style.display = hasG ? "" : "none";
+      if (hasG) gSel.value = s._graphicManual ? s.sceneGraphic.kind : "auto";
+    }
     // quick-access text field — mirrors the News banner headline (the
     // field that actually renders) so editing a scene's text doesn't
     // require scrolling down and opening that accordion section.
@@ -16133,6 +16141,27 @@ function bindEvents() {
     const v = inp.value.toUpperCase().replace(/[^\p{L}\p{N}]/gu, "").slice(0, 16);
     s._edBigWord = v; s._heroWord = v;
     if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  });
+  // Change / override the scene's graphic element
+  on("#vsSlideGraphic", "change", () => {
+    const s = vstudio.slides[vstudio.activeSlide]; const sel = $("#vsSlideGraphic");
+    if (!s || !sel) return;
+    if (!s.sceneGraphic) s.sceneGraphic = { kind: "network", items: (typeof keyTokens === "function" ? keyTokens(s.headline || "") : []).slice(0, 5) };
+    const v = sel.value;
+    if (v === "auto") {
+      s._graphicManual = false;
+      try {
+        s.sceneGraphic.kind = vsSceneGraphicKind(s.headline || "", vstudio.activeSlide, {
+          stats: s.sceneGraphic.data || [], hasNumber: s.sceneGraphic.value != null, hasPlaces: false
+        });
+      } catch (e) {}
+    } else {
+      s._graphicManual = true;
+      s.sceneGraphic.kind = v;
+    }
+    renderSlideList();
+    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    vsStatus(state.lang === "fa" ? "المان صحنه تغییر کرد." : "Scene element changed.");
   });
   renderSlideList();
   on("#vsMusicFile", "change", (e) => loadStudioMusic(e.target.files[0]));
