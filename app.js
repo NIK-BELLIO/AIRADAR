@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v444-labels-edit-fix";
+const VS_BUILD = "v445-slidetext-headline";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -7707,7 +7707,10 @@ function selectSlide(i) {
       // editable here: an infographic scene's headline lives in its JSON title,
       // a news/text scene's in the News headline.
       let onscreen = "";
-      if (s.settings && s.settings["#vsInfoOn"] && s.settings["#vsInfoJson"]) {
+      // A motion-graphic / generated scene renders slide.headline — show THAT so
+      // this field edits what's actually on screen (not the hidden infographic title).
+      if (s.sceneGraphic && s.sceneGraphic.kind) onscreen = s.headline || "";
+      if (!onscreen && s.settings && s.settings["#vsInfoOn"] && s.settings["#vsInfoJson"]) {
         try { onscreen = JSON.parse(s.settings["#vsInfoJson"]).title || ""; } catch (e) {}
       }
       if (!onscreen) onscreen = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || "";
@@ -16651,6 +16654,10 @@ function bindEvents() {
     const as = vstudio.slides[vstudio.activeSlide];
     if (as) {
       as.settings = as.settings || {};
+      // A motion-graphic / generated scene renders slide.headline directly, so
+      // editing "Slide text" MUST update it — otherwise typing here changed the
+      // infographic title while the on-screen headline never moved.
+      as.headline = txt.value;
       if (as.settings["#vsInfoOn"] && as.settings["#vsInfoJson"]) {
         try { const j = JSON.parse(as.settings["#vsInfoJson"]); j.title = txt.value.slice(0, 60); as.settings["#vsInfoJson"] = JSON.stringify(j); } catch (e) {}
       } else {
