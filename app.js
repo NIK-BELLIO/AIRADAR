@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v439-no-empty-infographic";
+const VS_BUILD = "v440-panel-graphics";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -11499,6 +11499,90 @@ function vsDrawMaisonPanels(ctx, W, H, layout, tpl) {
   return { top: H * p.textBand[0], h: H * p.textBand[1], ink: p.ink };
 }
 
+// The largest band of a MAISON layout that is NOT the text band — i.e. the empty
+// region we should fill with a graphic so a split-panel scene never looks bare.
+function vsPanelEmptyBand(layout, W, H) {
+  const p = VS_PANELS[layout]; if (!p) return null;
+  const tb = p.textBand; let best = null;
+  p.bands.forEach(function (b) {
+    const y = b[0], h = b[1];
+    if (Math.abs(y - tb[0]) < 0.002 && Math.abs(h - tb[1]) < 0.002) return; // the text band
+    if (!best || h > best.h) best = { y: y * H, h: h * H };
+  });
+  return (best && best.h > H * 0.16) ? best : null;
+}
+
+// Fill the empty panel band with a PROFESSIONAL data element. With real stats it
+// draws labelled bars; otherwise a clean animated area-trend chart over a faint
+// grid — the direction follows the story (a "cut/drop" falls, a "surge" rises),
+// which is exactly what a rate-cut / markets scene needs. Never invents numbers.
+function drawPanelGraphic(ctx, x, y, w, h, g, accent, t, tpl, headline) {
+  const fam = vsGetFont((tpl && tpl.headlineFont) || "Inter, sans-serif");
+  const ease = (typeof vsEasePro === "function") ? vsEasePro : function (v) { return v; };
+  const hexA = (typeof vsHexA === "function") ? vsHexA : function (c) { return c; };
+  const dir = (g && g.trend === -1) ? -1
+    : (/\b(cut|cuts|drop|decline|fall|fell|down|lower|plunge|slump|ease|eases|slow|weaken|recession|loss)\b/i.test(String(headline || "")) ? -1 : 1);
+  const data = (g && Array.isArray(g.data) && g.data.length >= 2) ? g.data.slice(0, 5) : null;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  const pad = w * 0.10, gx = x + pad, gw = w - pad * 2;
+
+  if (data) {
+    const n = data.length;
+    const maxV = Math.max.apply(null, data.map(function (d) { return Math.abs(d.num) || 0; })) || 1;
+    const bh = Math.min(h * 0.10, (h * 0.62) / n);
+    let by = y + h * 0.20;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    data.forEach(function (d, i) {
+      const prog = ease(Math.min(1, Math.max(0, (t - i * 0.12) / 0.6)));
+      const bw = Math.max(bh, gw * (Math.abs(d.num) / maxV) * prog);
+      ctx.font = "700 " + Math.round(h * 0.065) + "px " + fam;
+      ctx.fillStyle = "rgba(255,255,255,.82)";
+      ctx.fillText(String(d.label || "").slice(0, 18).toUpperCase(), gx, by - bh * 0.5);
+      ctx.fillStyle = "rgba(255,255,255,.10)"; roundRectPath(ctx, gx, by, gw, bh, bh * 0.45); ctx.fill();
+      ctx.fillStyle = accent; roundRectPath(ctx, gx, by, bw, bh, bh * 0.45); ctx.fill();
+      if (d.value) { ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.font = "800 " + Math.round(h * 0.06) + "px " + fam; ctx.fillText(String(d.value), gx + gw, by + bh * 0.8); ctx.textAlign = "left"; }
+      by += bh + h * 0.09;
+    });
+  } else {
+    const gyTop = y + h * 0.30, gh = h * 0.46, base = gyTop + gh * 0.55, amp = gh * 0.5;
+    // faint grid
+    ctx.strokeStyle = "rgba(255,255,255,.07)"; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) { const yy = gyTop + gh * (i / 4); ctx.beginPath(); ctx.moveTo(gx, yy); ctx.lineTo(gx + gw, yy); ctx.stroke(); }
+    const pts = 26;
+    const yAt = function (i) {
+      const f = i / pts;
+      const prog = ease(Math.min(1, Math.max(0, (t - f * 0.35) / 0.85)));
+      const rampe = dir * (f - 0.5) * amp * 1.6 * prog;
+      const wobble = Math.sin(f * 6.2 + 0.6) * amp * 0.10;
+      return base - rampe + wobble;
+    };
+    // area
+    ctx.beginPath(); ctx.moveTo(gx, yAt(0));
+    for (let i = 1; i <= pts; i++) ctx.lineTo(gx + gw * (i / pts), yAt(i));
+    ctx.lineTo(gx + gw, gyTop + gh); ctx.lineTo(gx, gyTop + gh); ctx.closePath();
+    const ag = ctx.createLinearGradient(0, gyTop, 0, gyTop + gh);
+    ag.addColorStop(0, hexA(accent, 0.34)); ag.addColorStop(1, hexA(accent, 0.02));
+    ctx.fillStyle = ag; ctx.fill();
+    // line
+    ctx.beginPath(); ctx.moveTo(gx, yAt(0));
+    for (let i = 1; i <= pts; i++) ctx.lineTo(gx + gw * (i / pts), yAt(i));
+    ctx.strokeStyle = accent; ctx.lineWidth = Math.max(2.5, h * 0.013); ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke();
+    // leading dot
+    const headProg = ease(Math.min(1, t / 1.0));
+    const hi = Math.max(0, Math.min(pts, Math.round(pts * headProg)));
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(gx + gw * (hi / pts), yAt(hi), Math.max(3, h * 0.016), 0, 7); ctx.fill();
+    // hero value + trend arrow (only when the story actually states one)
+    const hv = g && (g.valueText || (g.value != null ? (g.value + "%") : null));
+    if (hv) {
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.font = "800 " + Math.round(h * 0.19) + "px " + fam; ctx.fillStyle = "#fff";
+      ctx.fillText((dir < 0 ? "▼ " : "▲ ") + hv, gx, gyTop - h * 0.04);
+    }
+  }
+  ctx.restore();
+}
+
 // Persistent top chrome: segmented progress, wordmark and NN/NN counter.
 // Colour flips to ink when the top band is a light/gold panel.
 function vsDrawTopChrome(ctx, W, H, elapsed, tpl, onLightTop) {
@@ -12210,7 +12294,13 @@ function drawStudioFrame(elapsed) {
         }
         // MAISON bands go OVER the animated background, with hard edges, so the
         // deck alternates between full-bleed and solid-panel scenes.
-        if (dsPanelLayout) dsPanelBand = vsDrawMaisonPanels(ctx, W, H, dsPanelLayout, tpl);
+        if (dsPanelLayout) {
+          dsPanelBand = vsDrawMaisonPanels(ctx, W, H, dsPanelLayout, tpl);
+          // Fill the EMPTY band with a professional data element so a split-panel
+          // scene never looks bare (a chart with data, else an animated trend).
+          const _eb = vsPanelEmptyBand(dsPanelLayout, W, H);
+          if (_eb) drawPanelGraphic(ctx, 0, _eb.y, W, _eb.h, dsGraphic, _acc, dsLocal, tpl, slideHeadline || (introSlide && introSlide.introMain) || "");
+        }
       } catch (e) {}
       // motion-graphic scenes get their entrance/overlay handled by the normal
       // content path below — skip the flat template gradient.
