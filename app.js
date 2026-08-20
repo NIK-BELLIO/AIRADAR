@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v440-panel-graphics";
+const VS_BUILD = "v441-intro-footage-slash";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -12124,21 +12124,23 @@ function drawStudioFrame(elapsed) {
       if (crot) ctx.rotate(crot);
       try { ctx.drawImage(m, -dw / 2, -dh / 2, dw, dh); } catch {}
       ctx.restore();
-      // a soft scrim so overlaid text/graphics stay readable on footage
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      // a light scrim so overlaid text stays readable WITHOUT hiding the footage
+      // — the whole point of adding footage to a title scene is to SEE it. The
+      // title text carries its own shadow/glow, so this can stay subtle.
+      ctx.fillStyle = "rgba(0,0,0,0.16)";
       ctx.fillRect(0, 0, W, H);
-      // TITLE (intro/outro) slides get an extra centered black fade so the
-      // title text stays crisp and readable over busy footage.
+      // TITLE (intro/outro) slides get a gentle centred darkening behind the
+      // title band only — enough for crisp text, light enough to keep the photo.
       if (!introSlide._standaloneInfo && !introSlide._standaloneNews) {
         const vg = ctx.createLinearGradient(0, 0, 0, H);
-        vg.addColorStop(0, "rgba(0,0,0,0.22)");
-        vg.addColorStop(0.5, "rgba(0,0,0,0.64)");
-        vg.addColorStop(1, "rgba(0,0,0,0.22)");
+        vg.addColorStop(0, "rgba(0,0,0,0.06)");
+        vg.addColorStop(0.5, "rgba(0,0,0,0.40)");
+        vg.addColorStop(1, "rgba(0,0,0,0.10)");
         ctx.fillStyle = vg;
         ctx.fillRect(0, 0, W, H);
         const U2 = Math.min(W, H);
-        const rg = ctx.createRadialGradient(W / 2, H * 0.5, U2 * 0.08, W / 2, H * 0.5, U2 * 0.62);
-        rg.addColorStop(0, "rgba(0,0,0,0.5)");
+        const rg = ctx.createRadialGradient(W / 2, H * 0.5, U2 * 0.06, W / 2, H * 0.5, U2 * 0.58);
+        rg.addColorStop(0, "rgba(0,0,0,0.32)");
         rg.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = rg;
         ctx.fillRect(0, 0, W, H);
@@ -17820,6 +17822,17 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       if (pendingAuto && canBuild()) {
         pendingAuto = false; send.disabled = false;
         buildFromChat(text, { auto: true });
+        return;
+      }
+      // An explicit slash-skill ("/editorial rasht", "/motion_graphic …", "/mg …")
+      // is a direct build order — honour it verbatim instead of running it through
+      // the intent parser (which used to strip the skill and lose it).
+      var _sk = /^\/(editorial|ed)\b/i.test(text) ? "editorial"
+        : /^\/(motion[_\s-]?graphic|mg)\b/i.test(text) ? "motion_graphic" : null;
+      if (_sk && canBuild()) {
+        send.disabled = false;
+        var _topic = text.replace(/^\/(?:editorial|ed|motion[_\s-]?graphic|mg)\b[:\s]*/i, "").trim();
+        buildFromChat(_topic || text, { skill: _sk });
         return;
       }
       var typing = add("assistant", "…");
