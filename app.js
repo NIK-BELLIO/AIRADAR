@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v449-thumb-loading-zip";
+const VS_BUILD = "v450-thumb-redesign";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -15528,34 +15528,53 @@ function vsThumbStudio(prefillTopic) {
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
+  const sizeChips = [["486x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
+    .map((s, i) => `<label class="chip"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""}/> <b>${s[0].replace("x", " × ")}</b> <span class="mut">${s[1]}</span></label>`).join("");
   ov.innerHTML =
-    `<div style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:12px;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:18px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
-       <div style="display:flex;align-items:center;gap:8px"><span style="font-size:19px">🖼</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#efe9dc">${fa ? "استودیوی تصویر بندانگشتی" : "Thumbnail Studio"}</span><span style="font-size:11px;color:#8a8578">${fa ? "بدون نیاز به ساخت ویدیو" : "no video needed"}</span></div>
-       <label style="font-size:12px;color:#b7b0a2">${fa ? "موضوع" : "Topic"}
-         <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
-       </label>
-       <div style="font-size:12px;color:#b7b0a2">${fa ? "سایزها (یک یا چند تا — همون بنر در چند سایز)" : "Sizes (pick one or more — same banner, several sizes)"}</div>
-       <div id="tsSizes" style="display:flex;flex-wrap:wrap;gap:8px">
-         ${[["486x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]].map((s, i) =>
-           `<label style="display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);font-size:12.5px;color:#e6e0d2;cursor:pointer"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""} style="accent-color:#2563ff"/> ${s[0].replace("x", " × ")} <span style="color:#8a8578">${s[1]}</span></label>`).join("")}
+    `<div id="tsModal" style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:15px;background:#14121a;border:1px solid rgba(91,141,255,.26);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <style>
+         #tsModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a8578}
+         #tsModal input[type=text],#tsModal input[type=number],#tsModal select{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit;border-radius:11px;outline:none;box-sizing:border-box}
+         #tsModal input[type=text]{width:100%;padding:12px 13px}
+         #tsModal input[type=text]:focus,#tsModal input[type=number]:focus,#tsModal select:focus{border-color:#3b82f6}
+         #tsModal input[type=number]{width:66px;padding:10px;text-align:center}
+         #tsModal select{padding:9px 10px}
+         #tsModal input[type=checkbox]{appearance:auto !important;-webkit-appearance:checkbox !important;width:17px !important;height:17px !important;min-width:17px !important;max-width:17px !important;min-height:17px !important;max-height:17px !important;flex:none !important;margin:0 !important;padding:0 !important;box-shadow:none !important;background:none !important;accent-color:#3b82f6;cursor:pointer}
+         #tsModal .chip{display:inline-flex;align-items:center;gap:9px;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:13px;color:#cfc8ba;cursor:pointer;transition:.14s;user-select:none;line-height:1.1}
+         #tsModal .chip:hover{border-color:rgba(91,141,255,.5);background:rgba(37,99,255,.09)}
+         #tsModal .chip:has(input:checked){border-color:#3b82f6;background:rgba(37,99,255,.17);color:#fff;box-shadow:inset 0 0 0 1px rgba(59,130,246,.45)}
+         #tsModal .chip b{font-weight:800;color:#fff}
+         #tsModal .chip .mut{color:#8a8578}
+         #tsModal .btn{font:inherit;font-weight:800;padding:13px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
+         #tsModal .btn:hover{filter:brightness(1.08)}
+       </style>
+       <div style="display:flex;align-items:center;gap:10px">
+         <span style="font-size:22px">🖼</span>
+         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#efe9dc">${fa ? "استودیوی تصویر بندانگشتی" : "Thumbnail Studio"}</span>
+         <span style="font-size:11px;color:#9a938a;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:20px">${fa ? "بدون نیاز به ویدیو" : "no video needed"}</span>
        </div>
-       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-         <span style="font-size:12px;color:#8a8578">${fa ? "دلخواه:" : "Custom:"}</span>
-         <input id="tsW" type="number" min="64" max="4096" placeholder="W" style="width:74px;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+       <div><div class="lbl">${fa ? "موضوع" : "Topic"}</div>
+         <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="margin-top:7px"/>
+       </div>
+       <div><div class="lbl">${fa ? "سایزها — همون بنر در چند سایز" : "Sizes — same banner, several sizes"}</div>
+         <div id="tsSizes" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:9px">${sizeChips}</div>
+       </div>
+       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+         <span class="lbl">${fa ? "دلخواه" : "Custom"}</span>
+         <input id="tsW" type="number" min="64" max="4096" placeholder="W"/>
          <span style="color:#8a8578">×</span>
-         <input id="tsH" type="number" min="64" max="4096" placeholder="H" style="width:74px;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
-         <button id="tsAddSize" type="button" style="font:inherit;font-size:12px;font-weight:700;padding:9px 12px;border-radius:9px;cursor:pointer;color:#e6eeff;background:rgba(37,99,255,.16);border:1px solid rgba(91,141,255,.4)">+ ${fa ? "افزودن" : "Add"}</button>
+         <input id="tsH" type="number" min="64" max="4096" placeholder="H"/>
+         <button id="tsAddSize" type="button" class="btn" style="font-size:12.5px;padding:10px 14px;color:#e6eeff;background:rgba(37,99,255,.18);box-shadow:inset 0 0 0 1px rgba(91,141,255,.4)">+ ${fa ? "افزودن" : "Add"}</button>
          <span style="flex:1"></span>
-         <label style="font-size:12px;color:#b7b0a2;display:inline-flex;align-items:center;gap:6px">${fa ? "نسخه‌ها" : "Variations"}
-           <select id="tsCount" style="padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
-         </label>
+         <span class="lbl">${fa ? "نسخه" : "Variations"}</span>
+         <select id="tsCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
        </div>
-       <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#b7b0a2;cursor:pointer"><input type="checkbox" id="tsAuto" style="accent-color:#2563ff"/> ${fa ? "عنوان جذاب خودکار بساز (به‌جای متن خودم)" : "Auto-write a catchy title (instead of my text)"}</label>
-       <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;min-height:6px"></div>
-       <div style="display:flex;gap:8px">
-         <button id="tsClose" style="flex:1;font:inherit;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="tsZip" style="display:none;flex:1.4;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#e9d7ad;border:1px solid rgba(201,162,74,.5);background:rgba(201,162,74,.12)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
-         <button id="tsGen" style="flex:2;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
+       <label class="chip" style="align-self:flex-start"><input type="checkbox" id="tsAuto"/> ${fa ? "عنوان جذاب خودکار (به‌جای متن خودم)" : "Auto-write a catchy title (instead of my text)"}</label>
+       <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px"></div>
+       <div style="display:flex;gap:9px">
+         <button id="tsClose" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="tsZip" class="btn" style="display:none;flex:1.4;color:#e9d7ad;background:rgba(201,162,74,.14);box-shadow:inset 0 0 0 1px rgba(201,162,74,.5)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
+         <button id="tsGen" class="btn" style="flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
        </div>
      </div>`;
   document.body.appendChild(ov);
@@ -15574,8 +15593,8 @@ function vsThumbStudio(prefillTopic) {
     const val = Math.round(w) + "x" + Math.round(h);
     if (ov.querySelector('.tssz[value="' + val + '"]')) return;
     const lab = document.createElement("label");
-    lab.style.cssText = "display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;border:1px solid rgba(91,141,255,.4);background:rgba(37,99,255,.12);font-size:12.5px;color:#e6eeff;cursor:pointer";
-    lab.innerHTML = '<input type="checkbox" class="tssz" value="' + val + '" checked style="accent-color:#2563ff"/> ' + Math.round(w) + " × " + Math.round(h);
+    lab.className = "chip";
+    lab.innerHTML = '<input type="checkbox" class="tssz" value="' + val + '" checked/> <b>' + Math.round(w) + " × " + Math.round(h) + "</b>";
     $$("tsSizes").appendChild(lab);
     $$("tsW").value = ""; $$("tsH").value = "";
   };
@@ -15629,7 +15648,7 @@ function vsThumbStudio(prefillTopic) {
         }
       }
     }
-    gen.disabled = false; gen.style.opacity = "1"; gen.textContent = "✨ " + (fa ? "بساز" : "Generate");
+    gen.disabled = false; gen.style.opacity = "1"; gen.textContent = "↻ " + (fa ? "دوباره بساز" : "Generate again");
     if (zipBtn && results.length) zipBtn.style.display = "";
   };
   // Download all generated thumbnails as a single ZIP.
