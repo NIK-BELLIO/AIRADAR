@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v451-footage-await-img";
+const VS_BUILD = "v452-cover-image-relevant";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -6033,9 +6033,12 @@ function vsEditorialImagePrompt(visual, topic) {
   // Lead with the CONCRETE scene subject and demand a literal photo. The old
   // prompt said "conceptual and symbolic", which pushed the model toward abstract
   // art that had nothing to do with the story ("axaye bi rabt").
-  const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
+  const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 130);
   const ctx2 = String(topic || "").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
-  const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase()) ? `${subj}, in the context of ${ctx2}` : subj;
+  // Only append the topic as extra context for a SHORT keyword subject. When the
+  // subject is already a full scene description, appending the headline just feeds
+  // the model the words to render AS TEXT in the image — so drop it.
+  const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase() && subj.length < 42) ? `${subj}, in the context of ${ctx2}` : subj;
   return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic; not a portrait or headshot unless the subject is a specific named person; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
@@ -15255,22 +15258,25 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   opts = opts || {};
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
-  let coverTitle = topic.slice(0, 64), imgPrompt = topic;
-  // exactTitle: put the USER's own topic text on the thumbnail verbatim (no AI
-  // rewrite into a different catchy line). The image still comes from the topic.
-  if (!opts.exactTitle) try {
+  let coverTitle = topic.slice(0, 64), imgPrompt = "";
+  // ALWAYS ask the AI for a concrete, RELEVANT image concept (a real object/place
+  // that represents the topic — not the headline text, and not random people).
+  // exactTitle only decides whether we also rewrite the TITLE; the image concept
+  // is derived either way, so "mortgage rates" → houses/money, never a face + text.
+  try {
     const raw = await vsAutoAiChat(
-      `You are a world-class viral thumbnail copywriter (YouTube/TikTok). Write the ONE big line of text for a thumbnail about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
-      `RULES for coverTitle:\n` +
-      `- 2-5 words, SAME language as the topic. No period, no quotes, no hashtags, no emojis.\n` +
-      `- It must STOP THE SCROLL. NEVER a plain restatement and NEVER a dry stat like "20% of oil at risk". Make it dramatic, emotional and high-stakes.\n` +
-      `- Use ONE hook: a shocking reversal ("Coal Is Finished"), a threat/stakes ("The End Of Oil"), a secret ("What They Hide"), a bold question ("Why Cities Are Dying"), or a jaw-dropping number framed dramatically ("One Ship, 20% Of Oil").\n` +
-      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`,
-      { temperature: 1.0 });
+      `A thumbnail is being made about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
+      `Return ONLY compact JSON with two fields:\n` +
+      `1) "coverTitle": a 2-5 word scroll-stopping headline (same language as the topic; no quotes, hashtags or emojis; dramatic/high-stakes, e.g. "Coal Is Finished", "The Housing Reckoning").\n` +
+      `2) "imagePrompt": a concrete real-PHOTO scene that LITERALLY represents the topic using its actual OBJECTS and PLACES — e.g. mortgage/interest rates → rows of houses, a bank building, cash and coins, a "for sale" sign, a rate chart on a trading screen; oil → tankers, refinery, pipelines; AI → data-center servers, robotics. NEVER a random person's face/headshot unless the topic is about a specific named individual. The scene must contain NO text, words, letters, numbers or signage of any kind.\n` +
+      `Example: {"coverTitle":"The Housing Reckoning","imagePrompt":"aerial view of a dense suburban neighborhood of houses at golden hour, real estate for-sale signs, moody cinematic light"}`,
+      { temperature: 0.9 });
     const j = vsParseAiJson(raw);
-    if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
-    if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
+    if (j && j.coverTitle && !opts.exactTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
+    if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 180);
   } catch (e) {}
+  if (opts.exactTitle) coverTitle = topic.slice(0, 64);
+  if (!imgPrompt) imgPrompt = topic;   // fallback only if the AI gave nothing
   let img = null;
   try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
   return { coverTitle, img, source };
