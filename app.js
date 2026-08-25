@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v452-cover-image-relevant";
+const VS_BUILD = "v453-no-text-objects";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -6039,7 +6039,7 @@ function vsEditorialImagePrompt(visual, topic) {
   // subject is already a full scene description, appending the headline just feeds
   // the model the words to render AS TEXT in the image — so drop it.
   const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase() && subj.length < 42) ? `${subj}, in the context of ${ctx2}` : subj;
-  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic; not a portrait or headshot unless the subject is a specific named person; no illustration, no cartoon, no 3d render`;
+  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents; no people, no crowd, no faces; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
@@ -15268,8 +15268,9 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
       `A thumbnail is being made about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
       `Return ONLY compact JSON with two fields:\n` +
       `1) "coverTitle": a 2-5 word scroll-stopping headline (same language as the topic; no quotes, hashtags or emojis; dramatic/high-stakes, e.g. "Coal Is Finished", "The Housing Reckoning").\n` +
-      `2) "imagePrompt": a concrete real-PHOTO scene that LITERALLY represents the topic using its actual OBJECTS and PLACES — e.g. mortgage/interest rates → rows of houses, a bank building, cash and coins, a "for sale" sign, a rate chart on a trading screen; oil → tankers, refinery, pipelines; AI → data-center servers, robotics. NEVER a random person's face/headshot unless the topic is about a specific named individual. The scene must contain NO text, words, letters, numbers or signage of any kind.\n` +
-      `Example: {"coverTitle":"The Housing Reckoning","imagePrompt":"aerial view of a dense suburban neighborhood of houses at golden hour, real estate for-sale signs, moody cinematic light"}`,
+      `2) "imagePrompt": a concrete real-PHOTO scene of physical OBJECTS or a PLACE that represents the topic, CHOSEN so it naturally contains no text and no people — e.g. mortgage/interest rates → a row of suburban houses at dusk, stacks of cash and coins, a set of house keys on a table, a modern bank building exterior, a city skyline; oil → an oil tanker at sea, a refinery lit at night; AI → glowing server racks, a robotic arm.\n` +
+      `HARD BANS inside the image (they make the AI render gibberish): NO charts, graphs, screens, monitors, TVs, boards, whiteboards, signs, billboards, newspapers, documents, tickers, spreadsheets, or anything that would display text/numbers. NO people or faces. NO text, words, letters or numbers anywhere.\n` +
+      `Example: {"coverTitle":"The Housing Reckoning","imagePrompt":"a quiet row of suburban family houses at golden hour, warm cinematic light, shallow depth of field"}`,
       { temperature: 0.9 });
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle && !opts.exactTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
