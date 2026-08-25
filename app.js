@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v446-thumbnail-studio";
+const VS_BUILD = "v447-multisize-banner";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -15240,6 +15240,116 @@ async function vsProbeDashboardLogin() {
 // real image concept, we generate the image, then draw a designed cover. Returns
 // { blob, coverTitle }. No download — callers decide (preview / zip). No AI-Radar
 // branding on the image; a source pill shows ONLY when a real source exists.
+// Make the cover ASSETS once (the AI title line + a background image), so the
+// SAME banner can be rendered at several sizes without re-rolling a different
+// title/image each time.
+async function vsCoverAssets(topic, source, imgW, imgH) {
+  topic = String(topic || "AI Radar").slice(0, 90);
+  source = String(source || "").replace(/^by\s+/i, "").trim();
+  let coverTitle = topic.slice(0, 64), imgPrompt = topic;
+  try {
+    const raw = await vsAutoAiChat(
+      `You are a world-class viral thumbnail copywriter (YouTube/TikTok). Write the ONE big line of text for a thumbnail about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
+      `RULES for coverTitle:\n` +
+      `- 2-5 words, SAME language as the topic. No period, no quotes, no hashtags, no emojis.\n` +
+      `- It must STOP THE SCROLL. NEVER a plain restatement and NEVER a dry stat like "20% of oil at risk". Make it dramatic, emotional and high-stakes.\n` +
+      `- Use ONE hook: a shocking reversal ("Coal Is Finished"), a threat/stakes ("The End Of Oil"), a secret ("What They Hide"), a bold question ("Why Cities Are Dying"), or a jaw-dropping number framed dramatically ("One Ship, 20% Of Oil").\n` +
+      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`,
+      { temperature: 1.0 });
+    const j = vsParseAiJson(raw);
+    if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
+    if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 160);
+  } catch (e) {}
+  let img = null;
+  try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
+  return { coverTitle, img, source };
+}
+
+// Render a cover/banner from pre-made assets at an exact W×H → PNG blob.
+async function vsCoverRenderAt(assets, W, H) {
+  const coverTitle = (assets && assets.coverTitle) || "AI Radar";
+  const img = assets && assets.img;
+  const source = (assets && assets.source) || "";
+  const landscape = W >= H;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  if (img && (img.naturalWidth || img.width)) {
+    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height;
+    const cov = Math.max(W / mw, H / mh);
+    ctx.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+  } else {
+    const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0c1424"); bg.addColorStop(1, "#05070d");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  }
+  const M = W * 0.055;
+  let accent = "#3b82f6";
+  try { const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null; if (tpl && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent || "")) accent = tpl.accent; } catch (e) {}
+  ctx.save();
+  ctx.globalAlpha = 0.12; ctx.fillStyle = accent; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.4, Math.min(W, H) * 0.18, W * 0.5, H * 0.52, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(3,6,12,0.34)"); g.addColorStop(0.48, "rgba(3,6,12,0.02)");
+  g.addColorStop(0.74, "rgba(2,4,9,0.55)"); g.addColorStop(1, "rgba(1,2,6,0.97)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (source) {
+    ctx.save();
+    const kick = source.toUpperCase().replace(/\s+/g, " ").slice(0, 26);
+    const kp = Math.round(W * 0.026);
+    ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
+    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+    const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.015, bh = kp + pY * 2;
+    ctx.fillStyle = accent; ctx.fillRect(M, H * 0.055, tw + pX * 2, bh);
+    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(M, H * 0.055, W * 0.012, bh);
+    ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillText(kick, M + pX + W * 0.006, H * 0.055 + bh / 2 + kp * 0.05);
+    try { ctx.letterSpacing = "0px"; } catch (e) {}
+    ctx.restore();
+  }
+  const allWords = coverTitle.toUpperCase().split(/\s+/).filter(Boolean);
+  let emphIdx = allWords.findIndex(w => /\d/.test(w));
+  if (emphIdx < 0) { let mx = -1; allWords.forEach((w, i) => { const c2 = w.replace(/[^A-Z0-9]/g, "").length; if (c2 > mx) { mx = c2; emphIdx = i; } }); }
+  const tFam = '"Archivo", system-ui, sans-serif';
+  const maxW = W - M * 2;
+  const wrapWords = (px) => {
+    ctx.font = `900 ${px}px ${tFam}`;
+    const out = []; let cur = [], curW = 0;
+    allWords.forEach((w, i) => {
+      const ww = ctx.measureText((cur.length ? " " : "") + w).width;
+      if (curW + ww > maxW && cur.length) { out.push(cur); cur = [{ w, i }]; curW = ctx.measureText(w).width; }
+      else { cur.push({ w, i }); curW += ww; }
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  let px = Math.round(W * (landscape ? 0.1 : 0.13));
+  let lines = wrapWords(px);
+  const widest = (ls) => ls.reduce((m, ln) => Math.max(m, ctx.measureText(ln.map(o => o.w).join(" ")).width), 0);
+  while (px > W * 0.05 && (lines.length > 3 || widest(lines) > maxW)) { px -= 4; lines = wrapWords(px); }
+  const lh = px * 1.05, blockH = lines.length * lh, startY = H * 0.945 - blockH;
+  ctx.fillStyle = accent; ctx.fillRect(M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
+  ctx.save();
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  ctx.font = `900 ${px}px ${tFam}`;
+  lines.forEach((ln, li) => {
+    const y = startY + px * 0.86 + li * lh;
+    let x = M;
+    ln.forEach(({ w, i }) => {
+      ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = px * 0.085;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = H * 0.003;
+      ctx.strokeText(w, x, y);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.fillStyle = (i === emphIdx) ? accent : "#ffffff";
+      ctx.fillText(w, x, y);
+      x += ctx.measureText(w + " ").width;
+    });
+  });
+  ctx.restore();
+  return await new Promise(r => c.toBlob(r, "image/png", 0.95));
+}
+
 async function vsComposeCover(topic, source, aspect, size) {
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
@@ -15408,25 +15518,20 @@ function vsThumbStudio(prefillTopic) {
        <label style="font-size:12px;color:#b7b0a2">${fa ? "موضوع" : "Topic"}
          <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
        </label>
-       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-         <label style="font-size:12px;color:#b7b0a2;flex:1;min-width:180px">${fa ? "سایز" : "Size"}
-           <select id="tsSize" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit">
-             <option value="486x279">486 × 279 — ${fa ? "بندانگشتی" : "thumbnail"}</option>
-             <option value="1280x720">1280 × 720 — YouTube 16:9</option>
-             <option value="1080x1920">1080 × 1920 — ${fa ? "عمودی" : "Vertical"}</option>
-             <option value="1080x1080">1080 × 1080 — ${fa ? "مربع" : "Square"}</option>
-             <option value="custom">${fa ? "دلخواه…" : "Custom…"}</option>
-           </select>
-         </label>
-         <div id="tsCustom" style="display:none;gap:6px;align-items:center">
-           <input id="tsW" type="number" min="64" max="4096" placeholder="W" style="width:78px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
-           <span style="color:#8a8578">×</span>
-           <input id="tsH" type="number" min="64" max="4096" placeholder="H" style="width:78px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
-         </div>
-         <label style="font-size:12px;color:#b7b0a2;width:118px">${fa ? "تعداد" : "How many"}
-           <select id="tsCount" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit">
-             <option value="1">1</option><option value="3">3</option><option value="6">6</option>
-           </select>
+       <div style="font-size:12px;color:#b7b0a2">${fa ? "سایزها (یک یا چند تا — همون بنر در چند سایز)" : "Sizes (pick one or more — same banner, several sizes)"}</div>
+       <div id="tsSizes" style="display:flex;flex-wrap:wrap;gap:8px">
+         ${[["486x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]].map((s, i) =>
+           `<label style="display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);font-size:12.5px;color:#e6e0d2;cursor:pointer"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""} style="accent-color:#2563ff"/> ${s[0].replace("x", " × ")} <span style="color:#8a8578">${s[1]}</span></label>`).join("")}
+       </div>
+       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+         <span style="font-size:12px;color:#8a8578">${fa ? "دلخواه:" : "Custom:"}</span>
+         <input id="tsW" type="number" min="64" max="4096" placeholder="W" style="width:74px;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+         <span style="color:#8a8578">×</span>
+         <input id="tsH" type="number" min="64" max="4096" placeholder="H" style="width:74px;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+         <button id="tsAddSize" type="button" style="font:inherit;font-size:12px;font-weight:700;padding:9px 12px;border-radius:9px;cursor:pointer;color:#e6eeff;background:rgba(37,99,255,.16);border:1px solid rgba(91,141,255,.4)">+ ${fa ? "افزودن" : "Add"}</button>
+         <span style="flex:1"></span>
+         <label style="font-size:12px;color:#b7b0a2;display:inline-flex;align-items:center;gap:6px">${fa ? "نسخه‌ها" : "Variations"}
+           <select id="tsCount" style="padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
          </label>
        </div>
        <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;min-height:6px"></div>
@@ -15441,31 +15546,52 @@ function vsThumbStudio(prefillTopic) {
   const close = () => { try { ov.remove(); } catch (e) {} urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
   ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("tsClose").onclick = close;
-  $$("tsSize").addEventListener("change", () => { $$("tsCustom").style.display = $$("tsSize").value === "custom" ? "flex" : "none"; });
+  // "+ Add" appends a custom-size chip (checked) to the size list.
+  $$("tsAddSize").onclick = () => {
+    const w = Number($$("tsW").value), h = Number($$("tsH").value);
+    if (!(w >= 64 && h >= 64)) { vsStatus(fa ? "سایز معتبر وارد کن (۶۴ تا ۴۰۹۶)." : "Enter a valid size (64–4096)."); return; }
+    const val = Math.round(w) + "x" + Math.round(h);
+    if (ov.querySelector('.tssz[value="' + val + '"]')) return;
+    const lab = document.createElement("label");
+    lab.style.cssText = "display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;border:1px solid rgba(91,141,255,.4);background:rgba(37,99,255,.12);font-size:12.5px;color:#e6eeff;cursor:pointer";
+    lab.innerHTML = '<input type="checkbox" class="tssz" value="' + val + '" checked style="accent-color:#2563ff"/> ' + Math.round(w) + " × " + Math.round(h);
+    $$("tsSizes").appendChild(lab);
+    $$("tsW").value = ""; $$("tsH").value = "";
+  };
   $$("tsGen").onclick = async () => {
     const topic = ($$("tsTopic").value || "").trim() || topic0 || "AI Radar";
-    let w, h; const sv = $$("tsSize").value;
-    if (sv === "custom") { w = Number($$("tsW").value); h = Number($$("tsH").value); }
-    else { const p = sv.split("x"); w = Number(p[0]); h = Number(p[1]); }
-    if (!(w > 0 && h > 0)) { w = 486; h = 279; }
-    const n = Number($$("tsCount").value) || 1;
+    // collect the checked sizes (same banner is rendered at each)
+    let sizes = Array.from(ov.querySelectorAll(".tssz:checked")).map(cb => {
+      const p = cb.value.split("x"); return { w: Number(p[0]), h: Number(p[1]) };
+    }).filter(s => s.w > 0 && s.h > 0);
+    if (!sizes.length) sizes = [{ w: 486, h: 279 }];
+    const variations = Number($$("tsCount").value) || 1;
     const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
     const grid = $$("tsGrid"); grid.innerHTML = "";
-    for (let i = 0; i < n; i++) {
-      const cell = document.createElement("div");
-      cell.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px";
-      cell.innerHTML = `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;color:#8a8578;font-size:12px">…</div>`;
-      grid.appendChild(cell);
-      let out = null;
-      try { out = await vsComposeCover(topic, source, null, { w, h }); } catch (e) {}
-      if (out && out.blob) {
-        const u = URL.createObjectURL(out.blob); urls.push(u);
-        const safe = (String(out.coverTitle || topic).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 40) || "thumbnail");
-        cell.innerHTML =
-          `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
-           <a href="${u}" download="${safe}-${w}x${h}.png" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${w}×${h}</a>`;
-      } else {
-        cell.innerHTML = `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#1a1016;border-radius:6px;color:#c88;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
+    for (let v = 0; v < variations; v++) {
+      // assets (title + image) made ONCE per variation, so every size shares the
+      // exact same banner — the biggest size decides the image resolution.
+      const big = sizes.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b), sizes[0]);
+      const iw = big.w >= big.h ? 1024 : Math.round(1024 * big.w / big.h);
+      const ih = big.h >= big.w ? 1024 : Math.round(1024 * big.h / big.w);
+      let assets = null;
+      try { assets = await vsCoverAssets(topic, source, iw, ih); } catch (e) {}
+      for (const sz of sizes) {
+        const cell = document.createElement("div");
+        cell.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px";
+        cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;color:#8a8578;font-size:12px">…</div>`;
+        grid.appendChild(cell);
+        let blob = null;
+        try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h); } catch (e) {}
+        if (blob) {
+          const u = URL.createObjectURL(blob); urls.push(u);
+          const safe = (String((assets && assets.coverTitle) || topic).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 40) || "thumbnail");
+          cell.innerHTML =
+            `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
+             <a href="${u}" download="${safe}-${sz.w}x${sz.h}.png" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h}</a>`;
+        } else {
+          cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#1a1016;border-radius:6px;color:#c88;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
+        }
       }
     }
     gen.disabled = false; gen.style.opacity = "1";
