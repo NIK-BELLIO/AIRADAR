@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v448-thumb-label";
+const VS_BUILD = "v449-thumb-loading-zip";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -15243,11 +15243,14 @@ async function vsProbeDashboardLogin() {
 // Make the cover ASSETS once (the AI title line + a background image), so the
 // SAME banner can be rendered at several sizes without re-rolling a different
 // title/image each time.
-async function vsCoverAssets(topic, source, imgW, imgH) {
+async function vsCoverAssets(topic, source, imgW, imgH, opts) {
+  opts = opts || {};
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
   let coverTitle = topic.slice(0, 64), imgPrompt = topic;
-  try {
+  // exactTitle: put the USER's own topic text on the thumbnail verbatim (no AI
+  // rewrite into a different catchy line). The image still comes from the topic.
+  if (!opts.exactTitle) try {
     const raw = await vsAutoAiChat(
       `You are a world-class viral thumbnail copywriter (YouTube/TikTok). Write the ONE big line of text for a thumbnail about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
       `RULES for coverTitle:\n` +
@@ -15265,8 +15268,11 @@ async function vsCoverAssets(topic, source, imgW, imgH) {
   return { coverTitle, img, source };
 }
 
-// Render a cover/banner from pre-made assets at an exact W×H → PNG blob.
-async function vsCoverRenderAt(assets, W, H) {
+// Render a cover/banner from pre-made assets at an exact W×H → image blob.
+// opts.maxBytes: cap the file size (encodes JPEG and drops quality until it fits
+// — used so a 486×279 thumbnail stays under 50KB).
+async function vsCoverRenderAt(assets, W, H, opts) {
+  opts = opts || {};
   const coverTitle = (assets && assets.coverTitle) || "AI Radar";
   const img = assets && assets.img;
   const source = (assets && assets.source) || "";
@@ -15347,7 +15353,17 @@ async function vsCoverRenderAt(assets, W, H) {
     });
   });
   ctx.restore();
-  return await new Promise(r => c.toBlob(r, "image/png", 0.95));
+  const toBlob = (mime, q) => new Promise(r => c.toBlob(r, mime, q));
+  // Size-capped output: JPEG, dropping quality until it fits under maxBytes.
+  if (opts.maxBytes && opts.maxBytes > 0) {
+    let blob = null;
+    for (const q of [0.85, 0.72, 0.6, 0.5, 0.42, 0.34, 0.26, 0.2]) {
+      blob = await toBlob("image/jpeg", q);
+      if (blob && blob.size <= opts.maxBytes) break;
+    }
+    return blob;
+  }
+  return await toBlob("image/png", 0.95);
 }
 
 async function vsComposeCover(topic, source, aspect, size) {
@@ -15534,15 +15550,20 @@ function vsThumbStudio(prefillTopic) {
            <select id="tsCount" style="padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
          </label>
        </div>
+       <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#b7b0a2;cursor:pointer"><input type="checkbox" id="tsAuto" style="accent-color:#2563ff"/> ${fa ? "عنوان جذاب خودکار بساز (به‌جای متن خودم)" : "Auto-write a catchy title (instead of my text)"}</label>
        <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;min-height:6px"></div>
        <div style="display:flex;gap:8px">
          <button id="tsClose" style="flex:1;font:inherit;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="tsZip" style="display:none;flex:1.4;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#e9d7ad;border:1px solid rgba(201,162,74,.5);background:rgba(201,162,74,.12)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
          <button id="tsGen" style="flex:2;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
        </div>
      </div>`;
   document.body.appendChild(ov);
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  const spinHTML = (w, h) => `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px"><div style="width:26px;height:26px;border:3px solid rgba(255,255,255,.15);border-top-color:#3b82f6;border-radius:50%;animation:vsspin .8s linear infinite"></div></div>`;
   const $$ = (id) => ov.querySelector("#" + id);
   const urls = [];
+  const results = [];   // {blob, name} for the ZIP
   const close = () => { try { ov.remove(); } catch (e) {} urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
   ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("tsClose").onclick = close;
@@ -15566,7 +15587,11 @@ function vsThumbStudio(prefillTopic) {
     }).filter(s => s.w > 0 && s.h > 0);
     if (!sizes.length) sizes = [{ w: 486, h: 279 }];
     const variations = Number($$("tsCount").value) || 1;
+    const exactTitle = !($$("tsAuto") && $$("tsAuto").checked);   // default: use MY text
     const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
+    gen.textContent = "⏳ " + (fa ? "در حال ساخت…" : "Generating…");
+    const zipBtn = $$("tsZip"); if (zipBtn) zipBtn.style.display = "none";
+    results.length = 0;
     const grid = $$("tsGrid"); grid.innerHTML = "";
     for (let v = 0; v < variations; v++) {
       // assets (title + image) made ONCE per variation, so every size shares the
@@ -15574,27 +15599,58 @@ function vsThumbStudio(prefillTopic) {
       const big = sizes.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b), sizes[0]);
       const iw = big.w >= big.h ? 1024 : Math.round(1024 * big.w / big.h);
       const ih = big.h >= big.w ? 1024 : Math.round(1024 * big.h / big.w);
-      let assets = null;
-      try { assets = await vsCoverAssets(topic, source, iw, ih); } catch (e) {}
-      for (const sz of sizes) {
+      // one spinner cell per size, up front, so the whole batch shows it's working
+      const cells = sizes.map(sz => {
         const cell = document.createElement("div");
         cell.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px";
-        cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;color:#8a8578;font-size:12px">…</div>`;
-        grid.appendChild(cell);
+        cell.innerHTML = spinHTML(sz.w, sz.h);
+        grid.appendChild(cell); return cell;
+      });
+      let assets = null;
+      try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle }); } catch (e) {}
+      for (let k = 0; k < sizes.length; k++) {
+        const sz = sizes[k], cell = cells[k];
+        // the 486×279 thumbnail must stay under 50KB → JPEG, quality-capped.
+        const capOpts = (sz.w === 486 && sz.h === 279) ? { maxBytes: 50 * 1024 } : {};
         let blob = null;
-        try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h); } catch (e) {}
+        try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h, capOpts); } catch (e) {}
         if (blob) {
           const u = URL.createObjectURL(blob); urls.push(u);
           const safe = (String((assets && assets.coverTitle) || topic).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 40) || "thumbnail");
+          const ext = (blob.type === "image/jpeg") ? "jpg" : "png";
+          const name = safe + "-" + sz.w + "x" + sz.h + "." + ext;
+          const kb = Math.round(blob.size / 1024);
+          results.push({ blob, name });
           cell.innerHTML =
             `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
-             <a href="${u}" download="${safe}-${sz.w}x${sz.h}.png" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h}</a>`;
+             <a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB</a>`;
         } else {
           cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#1a1016;border-radius:6px;color:#c88;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
         }
       }
     }
-    gen.disabled = false; gen.style.opacity = "1";
+    gen.disabled = false; gen.style.opacity = "1"; gen.textContent = "✨ " + (fa ? "بساز" : "Generate");
+    if (zipBtn && results.length) zipBtn.style.display = "";
+  };
+  // Download all generated thumbnails as a single ZIP.
+  $$("tsZip").onclick = async () => {
+    if (!results.length) return;
+    const zb = $$("tsZip"); const old = zb.textContent;
+    zb.disabled = true; zb.textContent = "⏳ " + (fa ? "در حال بسته‌بندی…" : "Zipping…");
+    try {
+      const JSZip = await vsLoadJSZip();
+      const zip = new JSZip();
+      const seen = {};
+      results.forEach(r => { let n = r.name; if (seen[n]) n = n.replace(/\.png$/, "-" + (seen[n] + 1) + ".png"); seen[r.name] = (seen[r.name] || 0) + 1; zip.file(n, r.blob); });
+      const blob = await zip.generateAsync({ type: "blob" });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = u; a.download = "thumbnails.zip"; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 2000);
+      vsStatus(fa ? "ZIP دانلود شد. ✓" : "ZIP downloaded. ✓");
+    } catch (e) {
+      vsStatus(fa ? "بسته‌بندی ناموفق بود — تصاویر را جدا دانلود کن." : "Couldn't zip — download the images individually.");
+    }
+    zb.disabled = false; zb.textContent = old;
   };
   setTimeout(() => { try { $$("tsTopic").focus(); } catch (e) {} }, 50);
 }
