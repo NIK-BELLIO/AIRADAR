@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v450-thumb-redesign";
+const VS_BUILD = "v451-footage-await-img";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -5100,7 +5100,7 @@ SOURCE: """${text.slice(0, 9000)}"""`;
       _usedLocalFallback = true;
     }
     if (Array.isArray(data.sections) && data.sections.length) {
-      vsAssembleFromSections(data);
+      await vsAssembleFromSections(data);
     } else {
       // older shape fallback
       vsAssembleStory({
@@ -5151,7 +5151,7 @@ SOURCE: """${text.slice(0, 9000)}"""`;
     // clean local build so the user still ends up with a video.
     try {
       const fb = vsLocalScriptData(text, lenChoice);
-      vsAssembleFromSections(fb);
+      await vsAssembleFromSections(fb);
       vsAutoStatus(state.lang === "fa"
         ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد (حالت ساده).`
         : `Built a ${vstudio.slides.length}-scene video (basic mode).`);
@@ -5285,7 +5285,7 @@ async function vsFetchArticle(url) {
 }
 
 // Build a video from the AI's ordered "sections" (infographic vs text).
-function vsAssembleFromSections(data, skipFootage) {
+async function vsAssembleFromSections(data, skipFootage) {
   vstudio.slides = [];
   vstudio.storyData = data;
   // Fixed scene lengths: intro/outro always 3s, every content scene always 6s
@@ -5514,8 +5514,11 @@ function vsAssembleFromSections(data, skipFootage) {
 
   // ── footage is now always auto-generated (real Pexels → AI fallback) ──
   // (batch passes skipFootage=true and generates per-video in vsLoadBatchVideo)
+  // AWAIT it so the loading overlay stays up until every scene's footage is
+  // loaded — the user asked to see the finished video WITH its footage, not a
+  // text-only preview that fills in seconds later.
   if (!skipFootage) {
-    vsAutoGenerateBackgrounds(data);
+    await vsAutoGenerateBackgrounds(data);
   }
 }
 
@@ -6033,17 +6036,20 @@ function vsEditorialImagePrompt(visual, topic) {
   const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 110);
   const ctx2 = String(topic || "").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
   const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase()) ? `${subj}, in the context of ${ctx2}` : subj;
-  return `award-winning editorial photograph of ${withCtx}, a real literal photorealistic scene of the actual subject, shot on a full-frame camera with an 85mm lens at f/2, cinematic directional lighting, soft natural highlights, shallow depth of field with tack-sharp focus on the subject, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k, no text, no words, no letters, no watermark, no illustration, no cartoon, no cgi render`;
+  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic; not a portrait or headshot unless the subject is a specific named person; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
-function vsEdLoadImage(prompt, w, h, fluxOnly) {
+function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     const to = setTimeout(() => resolve(null), 40000);
     img.onload = () => { clearTimeout(to); resolve(img); };
     img.onerror = () => { clearTimeout(to); resolve(null); };
-    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + (fluxOnly ? "&flux=1" : "");
+    // A fresh seed each call gives a DIFFERENT image on "Generate again" (and
+    // busts any URL cache), so re-rolling never returns the same picture.
+    const sd = seed != null ? seed : Math.floor(Math.random() * 1e9);
+    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "");
   });
 }
 // Prompt for an ISOLATED subject on flat white — for the cutout scenes.
@@ -7501,9 +7507,11 @@ async function vsGenerateImage(promptText, aspect) {
   // FREE image generation via Pollinations.ai — no API key, no login, no
   // credits, no paywall. It serves a generated image straight from a URL.
   const styled = promptText.trim() +
-    " — cinematic editorial photograph, dramatic volumetric lighting, rich" +
-    " color grading, shallow depth of field, ultra detailed, atmospheric," +
-    " professional composition, no text, no words, no watermark";
+    " — real photorealistic cinematic editorial photograph of the actual subject" +
+    " in its real environment, dramatic volumetric lighting, rich color grading," +
+    " ultra detailed, atmospheric, professional composition. ABSOLUTELY NO text," +
+    " no words, no letters, no numbers, no captions, no typography, no signage," +
+    " no watermark, no logo, no poster, no illustration, no cartoon, no 3d render";
   // dimensions follow the chosen aspect ratio
   let w = 768, h = 1344; // default 9:16 portrait
   if (aspect === "16:9") { w = 1344; h = 768; }
@@ -15572,9 +15580,9 @@ function vsThumbStudio(prefillTopic) {
        <label class="chip" style="align-self:flex-start"><input type="checkbox" id="tsAuto"/> ${fa ? "عنوان جذاب خودکار (به‌جای متن خودم)" : "Auto-write a catchy title (instead of my text)"}</label>
        <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px"></div>
        <div style="display:flex;gap:9px">
-         <button id="tsClose" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="tsZip" class="btn" style="display:none;flex:1.4;color:#e9d7ad;background:rgba(201,162,74,.14);box-shadow:inset 0 0 0 1px rgba(201,162,74,.5)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
-         <button id="tsGen" class="btn" style="flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
+         <button id="tsClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="tsZip" type="button" class="btn" style="display:none;flex:1.4;color:#e9d7ad;background:rgba(201,162,74,.14);box-shadow:inset 0 0 0 1px rgba(201,162,74,.5)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
+         <button id="tsGen" type="button" class="btn" style="flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
        </div>
      </div>`;
   document.body.appendChild(ov);
