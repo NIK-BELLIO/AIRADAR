@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v445-slidetext-headline";
+const VS_BUILD = "v446-thumbnail-studio";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -15240,7 +15240,7 @@ async function vsProbeDashboardLogin() {
 // real image concept, we generate the image, then draw a designed cover. Returns
 // { blob, coverTitle }. No download — callers decide (preview / zip). No AI-Radar
 // branding on the image; a source pill shows ONLY when a real source exists.
-async function vsComposeCover(topic, source, aspect) {
+async function vsComposeCover(topic, source, aspect, size) {
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
   let coverTitle = topic.slice(0, 64), imgPrompt = topic;
@@ -15266,7 +15266,12 @@ async function vsComposeCover(topic, source, aspect) {
 
   aspect = aspect || vsVal("#vsAspect", "9:16");
   let W = 1080, H = 1920;
-  if (aspect === "16:9") { W = 1280; H = 720; }
+  // An explicit size (e.g. a 486×279 thumbnail, or a custom W×H) wins over aspect.
+  if (size && Number(size.w) > 0 && Number(size.h) > 0) {
+    W = Math.max(64, Math.min(4096, Math.round(Number(size.w))));
+    H = Math.max(64, Math.min(4096, Math.round(Number(size.h))));
+  }
+  else if (aspect === "16:9") { W = 1280; H = 720; }
   else if (aspect === "1:1") { W = 1080; H = 1080; }
   else if (aspect === "4:5") { W = 1080; H = 1350; }
   else if (aspect === "original") { const m = vstudio.mediaEl; if (m) { const mw = m.videoWidth || m.naturalWidth || 1080, mh = m.videoHeight || m.naturalHeight || 1920; if (mw > mh) { W = 1280; H = 720; } } }
@@ -15384,6 +15389,88 @@ async function vsGenerateCover() {
   load.close();
   if (!out || !out.blob) { vsStatus(fa ? "ساخت کاور ناموفق بود." : "Couldn't build the cover."); return; }
   vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
+}
+
+// Standalone Thumbnail Studio — generate ONE or several thumbnails at any size
+// (including a 486×279 thumbnail or a fully custom W×H), from a topic, WITHOUT
+// needing to build a video first. Each result has its own Download.
+function vsThumbStudio(prefillTopic) {
+  const fa = state.lang === "fa";
+  const sd = vstudio.storyData || {};
+  const topic0 = String(prefillTopic || sd.title || sd._topic || vstudio._exportName || "").slice(0, 90);
+  const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
+  ov.innerHTML =
+    `<div style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:12px;background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:18px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+       <div style="display:flex;align-items:center;gap:8px"><span style="font-size:19px">🖼</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#efe9dc">${fa ? "استودیوی تصویر بندانگشتی" : "Thumbnail Studio"}</span><span style="font-size:11px;color:#8a8578">${fa ? "بدون نیاز به ساخت ویدیو" : "no video needed"}</span></div>
+       <label style="font-size:12px;color:#b7b0a2">${fa ? "موضوع" : "Topic"}
+         <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+       </label>
+       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+         <label style="font-size:12px;color:#b7b0a2;flex:1;min-width:180px">${fa ? "سایز" : "Size"}
+           <select id="tsSize" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit">
+             <option value="486x279">486 × 279 — ${fa ? "بندانگشتی" : "thumbnail"}</option>
+             <option value="1280x720">1280 × 720 — YouTube 16:9</option>
+             <option value="1080x1920">1080 × 1920 — ${fa ? "عمودی" : "Vertical"}</option>
+             <option value="1080x1080">1080 × 1080 — ${fa ? "مربع" : "Square"}</option>
+             <option value="custom">${fa ? "دلخواه…" : "Custom…"}</option>
+           </select>
+         </label>
+         <div id="tsCustom" style="display:none;gap:6px;align-items:center">
+           <input id="tsW" type="number" min="64" max="4096" placeholder="W" style="width:78px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+           <span style="color:#8a8578">×</span>
+           <input id="tsH" type="number" min="64" max="4096" placeholder="H" style="width:78px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit"/>
+         </div>
+         <label style="font-size:12px;color:#b7b0a2;width:118px">${fa ? "تعداد" : "How many"}
+           <select id="tsCount" style="width:100%;margin-top:5px;padding:11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit">
+             <option value="1">1</option><option value="3">3</option><option value="6">6</option>
+           </select>
+         </label>
+       </div>
+       <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;min-height:6px"></div>
+       <div style="display:flex;gap:8px">
+         <button id="tsClose" style="flex:1;font:inherit;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="tsGen" style="flex:2;font:inherit;font-weight:800;padding:12px;border-radius:11px;cursor:pointer;color:#fff;border:1px solid #2563ff;background:linear-gradient(135deg,#22d3ee,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
+       </div>
+     </div>`;
+  document.body.appendChild(ov);
+  const $$ = (id) => ov.querySelector("#" + id);
+  const urls = [];
+  const close = () => { try { ov.remove(); } catch (e) {} urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  $$("tsClose").onclick = close;
+  $$("tsSize").addEventListener("change", () => { $$("tsCustom").style.display = $$("tsSize").value === "custom" ? "flex" : "none"; });
+  $$("tsGen").onclick = async () => {
+    const topic = ($$("tsTopic").value || "").trim() || topic0 || "AI Radar";
+    let w, h; const sv = $$("tsSize").value;
+    if (sv === "custom") { w = Number($$("tsW").value); h = Number($$("tsH").value); }
+    else { const p = sv.split("x"); w = Number(p[0]); h = Number(p[1]); }
+    if (!(w > 0 && h > 0)) { w = 486; h = 279; }
+    const n = Number($$("tsCount").value) || 1;
+    const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
+    const grid = $$("tsGrid"); grid.innerHTML = "";
+    for (let i = 0; i < n; i++) {
+      const cell = document.createElement("div");
+      cell.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px";
+      cell.innerHTML = `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;color:#8a8578;font-size:12px">…</div>`;
+      grid.appendChild(cell);
+      let out = null;
+      try { out = await vsComposeCover(topic, source, null, { w, h }); } catch (e) {}
+      if (out && out.blob) {
+        const u = URL.createObjectURL(out.blob); urls.push(u);
+        const safe = (String(out.coverTitle || topic).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 40) || "thumbnail");
+        cell.innerHTML =
+          `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
+           <a href="${u}" download="${safe}-${w}x${h}.png" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${w}×${h}</a>`;
+      } else {
+        cell.innerHTML = `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#1a1016;border-radius:6px;color:#c88;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
+      }
+    }
+    gen.disabled = false; gen.style.opacity = "1";
+  };
+  setTimeout(() => { try { $$("tsTopic").focus(); } catch (e) {} }, 50);
 }
 
 // A small loading popup shown WHILE the thumbnail is being generated (distinct
@@ -16254,7 +16341,7 @@ function bindEvents() {
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
-  on("#vsCoverBtn", "click", () => { vsGenerateCover().catch(() => {}); });
+  on("#vsCoverBtn", "click", () => { try { vsThumbStudio(); } catch (e) {} });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
