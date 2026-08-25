@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v454-clean-subjects";
+const VS_BUILD = "v455-relevant-subjects";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -6039,7 +6039,7 @@ function vsEditorialImagePrompt(visual, topic) {
   // subject is already a full scene description, appending the headline just feeds
   // the model the words to render AS TEXT in the image — so drop it.
   const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase() && subj.length < 42) ? `${subj}, in the context of ${ctx2}` : subj;
-  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate, no keyboard; no people, no crowd, no faces; no illustration, no cartoon, no 3d render`;
+  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate; no deformed faces, no extra fingers; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
@@ -15268,9 +15268,9 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
       `A thumbnail is being made about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
       `Return ONLY compact JSON with two fields:\n` +
       `1) "coverTitle": a 2-5 word scroll-stopping headline (same language as the topic; no quotes, hashtags or emojis; dramatic/high-stakes, e.g. "Coal Is Finished", "The Housing Reckoning").\n` +
-      `2) "imagePrompt": a real-PHOTO scene built from LARGE, SIMPLE architecture or landscape that represents the topic — these render cleanly. Prefer: building exteriors, a city skyline at dusk, a row of suburban houses, an empty modern glass office tower, an aerial neighbourhood, a bridge, a highway, an industrial site, nature/weather. e.g. mortgage/interest rates → a row of suburban houses at golden hour, or a modern glass bank tower against a moody sky; oil → an oil tanker at sea or a refinery lit at night; AI → a vast data-center hall of glowing server racks.\n` +
-      `HARD BANS — never put these in the image because the AI mangles them into gibberish: money, banknotes, cash, coins, currency, flags, clocks, watches, license plates, keyboards, book spines; charts, graphs, screens, monitors, TVs, boards, signs, billboards, newspapers, documents; people, faces, crowds; and ANY text, words, letters or numbers.\n` +
-      `Keep it to ONE clear subject with clean simple shapes and few fine details. Example: {"coverTitle":"The Housing Reckoning","imagePrompt":"a quiet row of suburban family houses at golden hour, warm cinematic light, wide clean composition, shallow depth of field"}`,
+      `2) "imagePrompt": the SINGLE most RELEVANT real-photo subject for THIS exact topic — pick whatever literally represents it best: it can be a PERSON doing the activity, an OBJECT, a PLACE, an animal or nature. Be specific and literal to the topic, e.g. sick day → a person resting in bed with tissues, tea and a thermometer on the nightstand; mortgage/interest rates → a row of suburban houses at golden hour; a startup → a busy modern open-plan office; a marathon → runners on a road at dawn; coffee → steam rising from a fresh espresso. Do NOT default to a generic city or building unless the topic is actually about a city or building.\n` +
+      `HARD BANS — never include these, the AI turns them into gibberish: charts, graphs, screens, monitors, TVs, boards, signs, billboards, newspapers, documents, money, banknotes, coins, currency, flags, clocks, watches, license plates; and ANY text, words, letters or numbers on anything.\n` +
+      `Keep it to ONE clear subject, real photograph, cinematic. Example: {"coverTitle":"The Sick Day Myth","imagePrompt":"a person resting in bed under a warm blanket with a mug of tea and tissues on the nightstand, soft window light, cozy cinematic mood"}`,
       { temperature: 0.9 });
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle && !opts.exactTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
