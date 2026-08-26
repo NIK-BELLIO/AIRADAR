@@ -16,7 +16,7 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
-const VS_BUILD = "v455-relevant-subjects";
+const VS_BUILD = "v456-496-jpeg";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
 // Log this visit (best-effort) so the admin traffic panel counts Studio hits too.
@@ -15378,6 +15378,7 @@ async function vsCoverRenderAt(assets, W, H, opts) {
     }
     return blob;
   }
+  if (opts.jpeg) return await toBlob("image/jpeg", opts.jpegQ || 0.92);
   return await toBlob("image/png", 0.95);
 }
 
@@ -15543,7 +15544,7 @@ function vsThumbStudio(prefillTopic) {
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
-  const sizeChips = [["486x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
+  const sizeChips = [["496x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
     .map((s, i) => `<label class="chip"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""}/> <b>${s[0].replace("x", " × ")}</b> <span class="mut">${s[1]}</span></label>`).join("");
   ov.innerHTML =
     `<div id="tsModal" style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:15px;background:#14121a;border:1px solid rgba(91,141,255,.26);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
@@ -15619,7 +15620,7 @@ function vsThumbStudio(prefillTopic) {
     let sizes = Array.from(ov.querySelectorAll(".tssz:checked")).map(cb => {
       const p = cb.value.split("x"); return { w: Number(p[0]), h: Number(p[1]) };
     }).filter(s => s.w > 0 && s.h > 0);
-    if (!sizes.length) sizes = [{ w: 486, h: 279 }];
+    if (!sizes.length) sizes = [{ w: 496, h: 279 }];
     const variations = Number($$("tsCount").value) || 1;
     const exactTitle = !($$("tsAuto") && $$("tsAuto").checked);   // default: use MY text
     const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
@@ -15644,8 +15645,8 @@ function vsThumbStudio(prefillTopic) {
       try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle }); } catch (e) {}
       for (let k = 0; k < sizes.length; k++) {
         const sz = sizes[k], cell = cells[k];
-        // the 486×279 thumbnail must stay under 50KB → JPEG, quality-capped.
-        const capOpts = (sz.w === 486 && sz.h === 279) ? { maxBytes: 50 * 1024 } : {};
+        // ALL banners are JPEG; the 496×279 thumbnail is additionally capped <50KB.
+        const capOpts = (sz.w === 496 && sz.h === 279) ? { maxBytes: 50 * 1024 } : { jpeg: true };
         let blob = null;
         try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h, capOpts); } catch (e) {}
         if (blob) {
