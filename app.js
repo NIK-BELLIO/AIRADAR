@@ -4805,6 +4805,7 @@ async function vsAutoAiChat(prompt, opts) {
     const data = await resp.json();
     const t = parseChoices(data);
     if (!t) throw new Error("empty");
+    try { if (data && data.model) vstudio._lastScriptModel = data.model; } catch (e) {}
     return t;
   }
 
@@ -4831,6 +4832,7 @@ async function vsAutoAiChat(prompt, opts) {
     const data = await resp.json();
     const t = parseChoices(data);
     if (!t) throw new Error("empty");
+    try { if (data && data.model) vstudio._lastScriptModel = data.model; } catch (e) {}
     return t;
   }
 
@@ -6042,19 +6044,42 @@ function vsEditorialImagePrompt(visual, topic) {
   return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate; no deformed faces, no extra fingers; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
+// Fetched (not a bare <img>) so we can read the X-Image-Source header — WHICH
+// model actually served (gemini / cf-flux / hf-flux / sdxl) — for admin tracking.
+// A blob: URL keeps the canvas untainted, same as crossOrigin did.
 function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
   return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    const to = setTimeout(() => resolve(null), 40000);
-    img.onload = () => { clearTimeout(to); resolve(img); };
-    img.onerror = () => { clearTimeout(to); resolve(null); };
-    // A fresh seed each call gives a DIFFERENT image on "Generate again" (and
-    // busts any URL cache), so re-rolling never returns the same picture.
     const sd = seed != null ? seed : Math.floor(Math.random() * 1e9);
-    img.src = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "");
+    const url = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "");
+    const to = setTimeout(() => resolve(null), 40000);
+    fetch(url).then(async (r) => {
+      if (!r.ok) { clearTimeout(to); resolve(null); return; }
+      let src = ""; try { src = r.headers.get("X-Image-Source") || ""; } catch (e) {}
+      try { vstudio._lastImgModel = src; } catch (e) {}
+      const blob = await r.blob();
+      const bu = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { clearTimeout(to); img._imgModel = src; resolve(img); };
+      img.onerror = () => { clearTimeout(to); resolve(null); };
+      img.src = bu;
+    }).catch(() => { clearTimeout(to); resolve(null); });
   });
 }
+// Log a generation event to the admin panel (kind + which model served it), so
+// we can see how each model performs and where to improve. Best-effort, never
+// blocks or throws.
+function vsTrackGen(kind, model, meta) {
+  try {
+    fetch("https://airadar.me/api/track/gen", {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: String(kind || ""), model: String(model || "unknown"), meta: meta || "" })
+    }).catch(function () {});
+  } catch (e) {}
+}
+
 // Prompt for an ISOLATED subject on flat white — for the cutout scenes.
 function vsEditorialCutoutPrompt(visual, topic) {
   const subj = String(visual || topic || "a professional person").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
@@ -15055,6 +15080,11 @@ async function _vsDeliverExportBlob(outBlob, ext) {
       ? "خروجی ویدیو خالی بود — چیزی دانلود نشد." : "The exported video was empty — nothing was downloaded.");
     return null;
   }
+  // track the finished video: which script model wrote it + scene count
+  try {
+    vsTrackGen("video", vstudio._lastScriptModel || "local",
+      "scenes:" + ((vstudio.slides || []).length) + " kb:" + Math.round(outBlob.size / 1024));
+  } catch (e) {}
   if (!vstudio._returnBlob) vsBuildOverlay(false);
   if (vstudio._batchCancel) return null;
   const url = URL.createObjectURL(outBlob);
@@ -15280,7 +15310,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   if (!imgPrompt) imgPrompt = topic;   // fallback only if the AI gave nothing
   let img = null;
   try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
-  return { coverTitle, img, source };
+  return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none" };
 }
 
 // Render a cover/banner from pre-made assets at an exact W×H → image blob.
@@ -15656,6 +15686,7 @@ function vsThumbStudio(prefillTopic) {
           const name = safe + "-" + sz.w + "x" + sz.h + "." + ext;
           const kb = Math.round(blob.size / 1024);
           results.push({ blob, name });
+          vsTrackGen("thumbnail", (assets && assets.imgModel) || "none", sz.w + "x" + sz.h);
           cell.innerHTML =
             `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
              <a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB</a>`;
@@ -16023,6 +16054,7 @@ async function exportStudioVideo() {
         resolve(null);
         return;
       }
+      try { vsTrackGen("video", vstudio._lastScriptModel || "local", "scenes:" + ((vstudio.slides || []).length) + " kb:" + Math.round(outBlob.size / 1024) + " footage"); } catch (e) {}
       if (vstudio._returnBlob) {             // hand blob back for zipping — no individual download
         setTimeout(() => URL.revokeObjectURL(url), 4000);
         vstudio.rendering = false;
