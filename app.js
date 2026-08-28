@@ -15333,71 +15333,17 @@ async function vsCoverRenderAt(assets, W, H, opts) {
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   }
   const M = W * 0.055;
-  let accent = "#3b82f6";
-  try { const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null; if (tpl && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent || "")) accent = tpl.accent; } catch (e) {}
-  ctx.save();
-  ctx.globalAlpha = 0.12; ctx.fillStyle = accent; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
-  const vg = ctx.createRadialGradient(W * 0.5, H * 0.4, Math.min(W, H) * 0.18, W * 0.5, H * 0.52, Math.max(W, H) * 0.72);
-  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)");
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-  ctx.restore();
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "rgba(3,6,12,0.34)"); g.addColorStop(0.48, "rgba(3,6,12,0.02)");
-  g.addColorStop(0.74, "rgba(2,4,9,0.55)"); g.addColorStop(1, "rgba(1,2,6,0.97)");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  if (source) {
-    ctx.save();
-    const kick = source.toUpperCase().replace(/\s+/g, " ").slice(0, 26);
-    const kp = Math.round(W * 0.026);
-    ctx.font = `800 ${kp}px "Archivo", system-ui, sans-serif`;
-    try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
-    const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.015, bh = kp + pY * 2;
-    ctx.fillStyle = accent; ctx.fillRect(M, H * 0.055, tw + pX * 2, bh);
-    ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(M, H * 0.055, W * 0.012, bh);
-    ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-    ctx.fillText(kick, M + pX + W * 0.006, H * 0.055 + bh / 2 + kp * 0.05);
-    try { ctx.letterSpacing = "0px"; } catch (e) {}
-    ctx.restore();
+  const template = opts.template || "bold";
+  const tplDef = VS_THUMB_TEMPLATES.find(t => t.id === template) || VS_THUMB_TEMPLATES[0];
+  let accent = opts.accent;
+  if (!accent) {
+    if (template === "bold") { try { const t = (typeof vsTemplate === "function") ? vsTemplate() : null; if (t && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(t.accent || "")) accent = t.accent; } catch (e) {} }
+    accent = accent || tplDef.accent || "#3b82f6";
   }
-  const allWords = coverTitle.toUpperCase().split(/\s+/).filter(Boolean);
-  let emphIdx = allWords.findIndex(w => /\d/.test(w));
-  if (emphIdx < 0) { let mx = -1; allWords.forEach((w, i) => { const c2 = w.replace(/[^A-Z0-9]/g, "").length; if (c2 > mx) { mx = c2; emphIdx = i; } }); }
-  const tFam = '"Archivo", system-ui, sans-serif';
-  const maxW = W - M * 2;
-  const wrapWords = (px) => {
-    ctx.font = `900 ${px}px ${tFam}`;
-    const out = []; let cur = [], curW = 0;
-    allWords.forEach((w, i) => {
-      const ww = ctx.measureText((cur.length ? " " : "") + w).width;
-      if (curW + ww > maxW && cur.length) { out.push(cur); cur = [{ w, i }]; curW = ctx.measureText(w).width; }
-      else { cur.push({ w, i }); curW += ww; }
-    });
-    if (cur.length) out.push(cur);
-    return out;
-  };
-  let px = Math.round(W * (landscape ? 0.1 : 0.13));
-  let lines = wrapWords(px);
-  const widest = (ls) => ls.reduce((m, ln) => Math.max(m, ctx.measureText(ln.map(o => o.w).join(" ")).width), 0);
-  while (px > W * 0.05 && (lines.length > 3 || widest(lines) > maxW)) { px -= 4; lines = wrapWords(px); }
-  const lh = px * 1.05, blockH = lines.length * lh, startY = H * 0.945 - blockH;
-  ctx.fillStyle = accent; ctx.fillRect(M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
-  ctx.save();
-  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.lineJoin = "round";
-  ctx.font = `900 ${px}px ${tFam}`;
-  lines.forEach((ln, li) => {
-    const y = startY + px * 0.86 + li * lh;
-    let x = M;
-    ln.forEach(({ w, i }) => {
-      ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = px * 0.085;
-      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = H * 0.003;
-      ctx.strokeText(w, x, y);
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.fillStyle = (i === emphIdx) ? accent : "#ffffff";
-      ctx.fillText(w, x, y);
-      x += ctx.measureText(w + " ").width;
-    });
-  });
-  ctx.restore();
+  const meta = vsThumbTitleMeta(coverTitle);
+  const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)) };
+  const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp }[template] || vsTplBold;
+  try { draw(R); } catch (e) { try { vsTplBold(R); } catch (_) {} }
   const toBlob = (mime, q) => new Promise(r => c.toBlob(r, mime, q));
   // Size-capped output: JPEG, dropping quality until it fits under maxBytes.
   if (opts.maxBytes && opts.maxBytes > 0) {
@@ -15410,6 +15356,243 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   }
   if (opts.jpeg) return await toBlob("image/jpeg", opts.jpegQ || 0.92);
   return await toBlob("image/png", 0.95);
+}
+
+// ── Thumbnail templates ───────────────────────────────────────────────────
+// Ready-made looks for the Thumbnail Studio. Each template gets a prepared
+// context R = { ctx, W, H, M, accent, landscape, title, source, words, emph,
+// hasImg } (photo already painted underneath) and draws its own overlays +
+// text. Each carries a signature accent so the picker chips read distinctly.
+const VS_THUMB_TEMPLATES = [
+  { id: "bold",    name: "Bold",    fa: "درشت",    accent: "#3b82f6" },
+  { id: "band",    name: "Band",    fa: "نواری",   accent: "#f59e0b" },
+  { id: "center",  name: "Center",  fa: "وسط‌چین",  accent: "#ef4444" },
+  { id: "sidebar", name: "Sidebar", fa: "کناری",   accent: "#22d3ee" },
+  { id: "minimal", name: "Minimal", fa: "مینیمال", accent: "#e5e7eb" },
+  { id: "stamp",   name: "Stamp",   fa: "مهر",     accent: "#22c55e" },
+];
+const VS_TPL_FAM = '"Archivo", system-ui, sans-serif';
+
+// Split the title into words and pick the word to emphasise (a number if there
+// is one, otherwise the longest word).
+function vsThumbTitleMeta(title) {
+  const words = String(title || "").toUpperCase().split(/\s+/).filter(Boolean);
+  let emph = words.findIndex(w => /\d/.test(w));
+  if (emph < 0) { let mx = -1; words.forEach((w, i) => { const c = w.replace(/[^A-Z0-9]/g, "").length; if (c > mx) { mx = c; emph = i; } }); }
+  return { words, emph };
+}
+// Greedy word-wrap into lines at a given size. Each token keeps its original
+// index so the emphasis word can be coloured after wrapping.
+function vsThumbWrap(ctx, words, px, maxW, weight, fam) {
+  ctx.font = `${weight} ${px}px ${fam}`;
+  const out = []; let cur = [], curW = 0;
+  words.forEach((w, i) => {
+    const ww = ctx.measureText((cur.length ? " " : "") + w).width;
+    if (curW + ww > maxW && cur.length) { out.push(cur); cur = [{ w, i }]; curW = ctx.measureText(w).width; }
+    else { cur.push({ w, i }); curW += ww; }
+  });
+  if (cur.length) out.push(cur);
+  return out;
+}
+// Shrink the font until the wrapped title fits both the width AND the height box.
+function vsThumbFitBox(ctx, words, maxW, maxH, startPx, minPx, weight, fam) {
+  let px = Math.round(startPx);
+  while (px > minPx) {
+    const lines = vsThumbWrap(ctx, words, px, maxW, weight, fam);
+    ctx.font = `${weight} ${px}px ${fam}`;
+    const widest = lines.reduce((m, ln) => Math.max(m, ctx.measureText(ln.map(o => o.w).join(" ")).width), 0);
+    if (widest <= maxW && lines.length * px * 1.08 <= maxH) return { px, lines };
+    px -= Math.max(2, Math.round(px * 0.06));
+  }
+  return { px: minPx, lines: vsThumbWrap(ctx, words, minPx, maxW, weight, fam) };
+}
+// The source pill (top-left "tl" or top-centre "tc").
+function vsThumbKicker(ctx, W, H, M, accent, source, pos) {
+  if (!source) return;
+  ctx.save();
+  const kick = source.toUpperCase().replace(/\s+/g, " ").slice(0, 26);
+  const kp = Math.round(W * 0.026);
+  ctx.font = `800 ${kp}px ${VS_TPL_FAM}`;
+  try { ctx.letterSpacing = `${W * 0.004}px`; } catch (e) {}
+  const tw = ctx.measureText(kick).width, pX = W * 0.024, pY = W * 0.015, bh = kp + pY * 2;
+  const bx = pos === "tc" ? (W - (tw + pX * 2)) / 2 : M, by = H * 0.055;
+  ctx.fillStyle = accent; ctx.fillRect(bx, by, tw + pX * 2, bh);
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(bx, by, W * 0.012, bh);
+  ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.fillText(kick, bx + pX + W * 0.006, by + bh / 2 + kp * 0.05);
+  try { ctx.letterSpacing = "0px"; } catch (e) {}
+  ctx.restore();
+}
+// Draw one wrapped title line word-by-word, colouring the emphasis word.
+function vsThumbDrawLine(ctx, ln, x, y, emph, accent, base) {
+  ln.forEach(({ w, i }) => {
+    ctx.fillStyle = (i === emph) ? accent : (base || "#ffffff");
+    ctx.fillText(w, x, y);
+    x += ctx.measureText(w + " ").width;
+  });
+}
+
+// BOLD — the original look: bottom scrim + accent bar + heavy stroked title.
+function vsTplBold(R) {
+  const { ctx, W, H, M, accent, landscape, source, words, emph } = R;
+  ctx.save();
+  ctx.globalAlpha = 0.12; ctx.fillStyle = accent; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.4, Math.min(W, H) * 0.18, W * 0.5, H * 0.52, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(3,6,12,0.34)"); g.addColorStop(0.48, "rgba(3,6,12,0.02)");
+  g.addColorStop(0.74, "rgba(2,4,9,0.55)"); g.addColorStop(1, "rgba(1,2,6,0.97)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  vsThumbKicker(ctx, W, H, M, accent, source, "tl");
+  const maxW = W - M * 2;
+  const fit = vsThumbFitBox(ctx, words, maxW, H * 0.5, W * (landscape ? 0.1 : 0.13), W * 0.05, "900", VS_TPL_FAM);
+  const px = fit.px, lines = fit.lines, lh = px * 1.05, blockH = lines.length * lh, startY = H * 0.945 - blockH;
+  ctx.fillStyle = accent; ctx.fillRect(M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
+  ctx.save();
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  ctx.font = `900 ${px}px ${VS_TPL_FAM}`;
+  lines.forEach((ln, li) => {
+    const y = startY + px * 0.86 + li * lh;
+    let x = M;
+    ln.forEach(({ w, i }) => {
+      ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = px * 0.085;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = H * 0.003;
+      ctx.strokeText(w, x, y);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.fillStyle = (i === emph) ? accent : "#ffffff";
+      ctx.fillText(w, x, y);
+      x += ctx.measureText(w + " ").width;
+    });
+  });
+  ctx.restore();
+}
+
+// BAND — photo on top, solid colour band across the bottom holding the title.
+function vsTplBand(R) {
+  const { ctx, W, H, M, accent, landscape, source, words, emph } = R;
+  const bandH = Math.round(landscape ? H * 0.38 : H * 0.26), bandY = H - bandH;
+  ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bandY); ctx.globalAlpha = 1; ctx.restore();
+  ctx.fillStyle = "#0b0f18"; ctx.fillRect(0, bandY, W, bandH);
+  ctx.fillStyle = accent; ctx.fillRect(0, bandY - Math.max(4, H * 0.006), W, Math.max(6, H * 0.014));
+  let ty = bandY + bandH * 0.28;
+  if (source) {
+    const kp = Math.round(W * 0.026);
+    ctx.save(); ctx.font = `800 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+    ctx.fillStyle = accent; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(source.toUpperCase().replace(/\s+/g, " ").slice(0, 28), M, ty);
+    try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+    ty += kp * 0.8;
+  }
+  const availH = (bandY + bandH * 0.9) - ty;
+  const fit = vsThumbFitBox(ctx, words, W - M * 2, availH, bandH * 0.4, W * 0.04, "800", VS_TPL_FAM);
+  ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `800 ${fit.px}px ${VS_TPL_FAM}`;
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, ty + li * fit.px * 1.06, emph, accent, "#fff"));
+  ctx.restore();
+}
+
+// CENTER — full-frame darken, big centred headline with an accent underline.
+function vsTplCenter(R) {
+  const { ctx, W, H, M, accent, source, words, emph } = R;
+  ctx.save();
+  ctx.fillStyle = "rgba(3,5,10,0.5)"; ctx.fillRect(0, 0, W, H);
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.1, W * 0.5, H * 0.5, Math.max(W, H) * 0.7);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  const fit = vsThumbFitBox(ctx, words, W - M * 2.4, H * 0.5, W * 0.12, W * 0.05, "900", VS_TPL_FAM);
+  const lh = fit.px * 1.04, blockH = fit.lines.length * lh, startY = (H - blockH) / 2 - H * 0.015;
+  if (source) {
+    const kp = Math.round(W * 0.028);
+    ctx.save(); ctx.font = `800 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.008}px`; } catch (e) {}
+    ctx.fillStyle = accent; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(source.toUpperCase().replace(/\s+/g, " ").slice(0, 28), W / 2, startY - H * 0.03);
+    try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+  }
+  ctx.save(); ctx.textBaseline = "top"; ctx.textAlign = "left"; ctx.lineJoin = "round"; ctx.font = `900 ${fit.px}px ${VS_TPL_FAM}`;
+  fit.lines.forEach((ln, li) => {
+    const y = startY + li * lh;
+    const full = ctx.measureText(ln.map(o => o.w).join(" ")).width;
+    let x = W / 2 - full / 2;
+    ln.forEach(({ w, i }) => {
+      ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = fit.px * 0.07;
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.016;
+      ctx.strokeText(w, x, y); ctx.shadowBlur = 0;
+      ctx.fillStyle = (i === emph) ? accent : "#fff"; ctx.fillText(w, x, y);
+      x += ctx.measureText(w + " ").width;
+    });
+  });
+  ctx.restore();
+  ctx.fillStyle = accent; ctx.fillRect(W / 2 - W * 0.06, startY + blockH + H * 0.03, W * 0.12, Math.max(6, H * 0.011));
+}
+
+// SIDEBAR — a solid panel (left on landscape, bottom on vertical) with the title.
+function vsTplSidebar(R) {
+  const { ctx, W, H, M, accent, landscape, source, words, emph } = R;
+  let panelW, panelY, panelH;
+  if (landscape) { panelW = Math.round(W * 0.46); panelY = 0; panelH = H; }
+  else { panelH = Math.round(H * 0.42); panelY = H - panelH; panelW = W; }
+  ctx.fillStyle = "rgba(9,12,20,0.94)"; ctx.fillRect(0, panelY, panelW, panelH);
+  if (landscape) { ctx.fillStyle = accent; ctx.fillRect(panelW - Math.max(6, W * 0.008), 0, Math.max(6, W * 0.008), H); }
+  else { ctx.fillStyle = accent; ctx.fillRect(0, panelY, W, Math.max(6, H * 0.01)); }
+  const padX = Math.round(W * 0.05), innerW = panelW - padX * 2;
+  let topY = landscape ? H * 0.16 : panelY + panelH * 0.20;
+  if (source) {
+    const kp = Math.round(W * 0.026);
+    ctx.save(); ctx.font = `800 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+    ctx.fillStyle = accent; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(source.toUpperCase().replace(/\s+/g, " ").slice(0, 22), padX, topY);
+    try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+    topY += kp * 0.9;
+  }
+  const availH = (landscape ? H * 0.86 : panelY + panelH * 0.88) - topY;
+  const fit = vsThumbFitBox(ctx, words, innerW, availH, W * 0.09, W * 0.04, "800", VS_TPL_FAM);
+  ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `800 ${fit.px}px ${VS_TPL_FAM}`;
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, padX, topY + li * fit.px * 1.08, emph, accent, "#fff"));
+  ctx.restore();
+}
+
+// MINIMAL — clean editorial: soft bottom fade, thin rule, light-weight title.
+function vsTplMinimal(R) {
+  const { ctx, W, H, M, accent, landscape, source, words, emph } = R;
+  const g = ctx.createLinearGradient(0, H * 0.4, 0, H);
+  g.addColorStop(0, "rgba(2,4,9,0)"); g.addColorStop(1, "rgba(2,4,9,0.86)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const fit = vsThumbFitBox(ctx, words, W - M * 2, H * 0.34, W * (landscape ? 0.075 : 0.1), W * 0.04, "600", VS_TPL_FAM);
+  const lh = fit.px * 1.08, blockH = fit.lines.length * lh, startY = H * 0.9 - blockH, ky = startY - H * 0.05;
+  ctx.fillStyle = accent; ctx.fillRect(M, ky - H * 0.006, W * 0.05, Math.max(3, H * 0.006));
+  const kp = Math.round(W * 0.024);
+  ctx.save(); ctx.font = `700 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+  ctx.fillStyle = "rgba(255,255,255,0.82)"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText((source || "AI RADAR").toUpperCase().replace(/\s+/g, " ").slice(0, 28), M + W * 0.07, ky);
+  try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+  ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `600 ${fit.px}px ${VS_TPL_FAM}`;
+  ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = W * 0.012; ctx.shadowOffsetY = H * 0.002;
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, startY + li * lh, emph, accent, "#f4f1ea"));
+  ctx.restore();
+}
+
+// STAMP — magazine highlight: each title line sits in a solid accent block.
+function vsTplStamp(R) {
+  const { ctx, W, H, M, accent, landscape, source, words, emph } = R;
+  const g = ctx.createLinearGradient(0, H * 0.35, 0, H);
+  g.addColorStop(0, "rgba(2,4,9,0)"); g.addColorStop(1, "rgba(2,4,9,0.8)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  vsThumbKicker(ctx, W, H, M, accent, source, "tl");
+  const padH = W * 0.02;
+  const fit = vsThumbFitBox(ctx, words, W - M * 2 - padH * 2, H * 0.44, W * (landscape ? 0.1 : 0.12), W * 0.05, "900", VS_TPL_FAM);
+  const px = fit.px, lh = px * 1.2, blockH = fit.lines.length * lh, startY = H * 0.93 - blockH;
+  ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `900 ${px}px ${VS_TPL_FAM}`;
+  const padV = px * 0.1;
+  fit.lines.forEach((ln, li) => {
+    const tw = ctx.measureText(ln.map(o => o.w).join(" ")).width;
+    const boxY = startY + li * lh;
+    ctx.fillStyle = accent; ctx.fillRect(M, boxY, tw + padH * 2, px + padV * 2);
+    let x = M + padH;
+    ln.forEach(({ w, i }) => { ctx.fillStyle = (i === emph) ? "#0b0f18" : "#ffffff"; ctx.fillText(w, x, boxY + padV); x += ctx.measureText(w + " ").width; });
+  });
+  ctx.restore();
 }
 
 async function vsComposeCover(topic, source, aspect, size) {
@@ -15576,6 +15759,8 @@ function vsThumbStudio(prefillTopic) {
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
   const sizeChips = [["496x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
     .map((s, i) => `<label class="chip"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""}/> <b>${s[0].replace("x", " × ")}</b> <span class="mut">${s[1]}</span></label>`).join("");
+  const tplChips = VS_THUMB_TEMPLATES
+    .map((t, i) => `<label class="chip"><input type="radio" name="tstpl" class="tstpl" value="${t.id}"${i === 0 ? " checked" : ""}/> <span class="swatch" style="background:${t.accent}"></span> <b>${fa ? t.fa : t.name}</b></label>`).join("");
   ov.innerHTML =
     `<div id="tsModal" style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:15px;background:#14121a;border:1px solid rgba(91,141,255,.26);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
        <style>
@@ -15585,7 +15770,9 @@ function vsThumbStudio(prefillTopic) {
          #tsModal input[type=text]:focus,#tsModal input[type=number]:focus,#tsModal select:focus{border-color:#3b82f6}
          #tsModal input[type=number]{width:66px;padding:10px;text-align:center}
          #tsModal select{padding:9px 10px}
-         #tsModal input[type=checkbox]{appearance:auto !important;-webkit-appearance:checkbox !important;width:17px !important;height:17px !important;min-width:17px !important;max-width:17px !important;min-height:17px !important;max-height:17px !important;flex:none !important;margin:0 !important;padding:0 !important;box-shadow:none !important;background:none !important;accent-color:#3b82f6;cursor:pointer}
+         #tsModal input[type=checkbox],#tsModal input[type=radio]{appearance:auto !important;-webkit-appearance:checkbox !important;width:17px !important;height:17px !important;min-width:17px !important;max-width:17px !important;min-height:17px !important;max-height:17px !important;flex:none !important;margin:0 !important;padding:0 !important;box-shadow:none !important;background:none !important;accent-color:#3b82f6;cursor:pointer}
+         #tsModal input[type=radio]{-webkit-appearance:radio !important;border-radius:50% !important}
+         #tsModal .swatch{width:12px;height:12px;border-radius:3px;display:inline-block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
          #tsModal .chip{display:inline-flex;align-items:center;gap:9px;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:13px;color:#cfc8ba;cursor:pointer;transition:.14s;user-select:none;line-height:1.1}
          #tsModal .chip:hover{border-color:rgba(91,141,255,.5);background:rgba(37,99,255,.09)}
          #tsModal .chip:has(input:checked){border-color:#3b82f6;background:rgba(37,99,255,.17);color:#fff;box-shadow:inset 0 0 0 1px rgba(59,130,246,.45)}
@@ -15601,6 +15788,9 @@ function vsThumbStudio(prefillTopic) {
        </div>
        <div><div class="lbl">${fa ? "موضوع" : "Topic"}</div>
          <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="margin-top:7px"/>
+       </div>
+       <div><div class="lbl">${fa ? "قالب آماده" : "Template style"}</div>
+         <div id="tsTpls" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:9px">${tplChips}</div>
        </div>
        <div><div class="lbl">${fa ? "سایزها — همون بنر در چند سایز" : "Sizes — same banner, several sizes"}</div>
          <div id="tsSizes" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:9px">${sizeChips}</div>
@@ -15652,6 +15842,7 @@ function vsThumbStudio(prefillTopic) {
     }).filter(s => s.w > 0 && s.h > 0);
     if (!sizes.length) sizes = [{ w: 496, h: 279 }];
     const variations = Number($$("tsCount").value) || 1;
+    const template = (ov.querySelector(".tstpl:checked") || {}).value || "bold";
     const exactTitle = !($$("tsAuto") && $$("tsAuto").checked);   // default: use MY text
     const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
     gen.textContent = "⏳ " + (fa ? "در حال ساخت…" : "Generating…");
@@ -15677,6 +15868,7 @@ function vsThumbStudio(prefillTopic) {
         const sz = sizes[k], cell = cells[k];
         // ALL banners are JPEG; the 496×279 thumbnail is additionally capped <50KB.
         const capOpts = (sz.w === 496 && sz.h === 279) ? { maxBytes: 50 * 1024 } : { jpeg: true };
+        capOpts.template = template;
         let blob = null;
         try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h, capOpts); } catch (e) {}
         if (blob) {
@@ -15686,7 +15878,7 @@ function vsThumbStudio(prefillTopic) {
           const name = safe + "-" + sz.w + "x" + sz.h + "." + ext;
           const kb = Math.round(blob.size / 1024);
           results.push({ blob, name });
-          vsTrackGen("thumbnail", (assets && assets.imgModel) || "none", sz.w + "x" + sz.h);
+          vsTrackGen("thumbnail", (assets && assets.imgModel) || "none", sz.w + "x" + sz.h + " tpl:" + template);
           cell.innerHTML =
             `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
              <a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB</a>`;
