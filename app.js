@@ -15930,7 +15930,11 @@ function vsReDecode(s) { try { const t = document.createElement("textarea"); t.i
 async function vsReverseFetchPost(url) {
   let clean = String(url || "").trim();
   if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
-  const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "" };
+  // A single post/reel vs a whole page/profile. For a profile we can only
+  // reliably reach the bio + one preview, so the user is nudged to paste a few
+  // of the page's captions for a true "analyze all posts" read.
+  const isProfile = !/\/(p|reel|reels|tv)\//i.test(clean);
+  const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "", isProfile };
   const grab = async (u) => { try { const r = await fetch(u); if (!r.ok) return ""; return await r.text(); } catch (e) { return ""; } };
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=";
   let html = await grab(WB + encodeURIComponent(clean));
@@ -15972,10 +15976,8 @@ async function vsReverseFetchPost(url) {
 // that same style for the user's topic + region. Returns the parsed object.
 async function vsReverseAnalyze(refText, brief) {
   const langMap = {
-    match: "Write ALL output in the SAME language as the reference post.",
-    region: "Write ALL output in the primary local language of the given region/market.",
-    fa: "Write ALL output in Persian (Farsi).",
-    en: "Write ALL output in English."
+    en: "Write ALL output in English.",
+    es: "Write ALL output in Spanish (Español)."
   };
   const skillHint = brief.skill === "editorial"
     ? "Force skill to \"editorial\"."
@@ -15987,11 +15989,11 @@ async function vsReverseAnalyze(refText, brief) {
   // which makes JSON.parse fail. Marker-delimited sections parse reliably no
   // matter the model, and multi-line scripts are no problem.
   const prompt =
-    "You are a world-class short-video REVERSE-ENGINEER. You are given a REFERENCE social-media post and a target BRIEF. " +
-    "First infer the reference's STYLE DNA (tone/lahn, voice, hook, pacing, format, emoji & hashtag habits, audience). " +
-    "Then write a brand-new short-video BLUEPRINT that copies that exact style, voice and structure but is entirely about the BRIEF for the given REGION.\n\n" +
-    "REFERENCE POST (caption / on-screen text / hashtags):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 2200) + "\n\"\"\"\n\n" +
-    "BRIEF:\n- Topic/prompt: " + (brief.prompt || "") + "\n- Region/market: " + (brief.region || "(general)") + "\n- " + (langMap[brief.lang] || langMap.match) + "\n\n" +
+    "You are a world-class short-video REVERSE-ENGINEER. You are given one or MORE reference social-media posts (from a single post or a whole page/profile) and a target BRIEF. " +
+    "First infer the shared STYLE DNA across the reference(s) (tone/lahn, voice, hook, pacing, format, emoji & hashtag habits, audience). " +
+    "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n" +
+    "REFERENCE POST(S) (caption / on-screen text / hashtags — may be several, one per line):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 3000) + "\n\"\"\"\n\n" +
+    "BRIEF:\n- Topic: " + (brief.prompt || "") + "\n- User's own info & details to feature (numbers, names, facts, offer): " + (brief.region || "(use the topic)") + "\n- " + (langMap[brief.lang] || langMap.en) + "\n\n" +
     "Reply using EXACTLY these section markers and nothing else (no markdown, no code fences):\n" +
     "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
     "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n(up to 6 beats)\n" +
@@ -16065,33 +16067,31 @@ function vsReverseEngineer(prefill) {
          <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#efe9dc">Reverse Engineer</span>
          <span style="font-size:11px;color:#c9b8ee;background:rgba(168,85,247,.14);padding:3px 9px;border-radius:20px">Style Match</span>
        </div>
-       <div style="font-size:12.5px;color:#9a938a;margin-top:-8px">${fa ? "لینک یک پست را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و برای موضوع و منطقهٔ خودت بازتولید می‌کنیم." : "Give a post link — we reverse-engineer its style, tone & structure, then rebuild it for your own topic + region."}</div>
+       <div style="font-size:12.5px;color:#9a938a;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
 
        <div class="step">
-         <div class="lbl"><span class="num">1</span>${fa ? "پست مرجع (لینک اینستاگرام)" : "Reference post (Instagram link)"}</div>
+         <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div style="display:flex;gap:9px">
-           <input id="reUrl" type="text" placeholder="https://www.instagram.com/reel/…" />
+           <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
-         <details style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا متن/کپشن پست را دستی پیست کن (اگر لینک باز نشد)" : "…or paste the caption / on-screen text (if the link is blocked)"}</summary>
-           <textarea id="rePaste" rows="3" placeholder="${fa ? "کپشن یا متن روی ویدیو…" : "Caption or on-screen text…"}" style="margin-top:8px"></textarea>
+         <details style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط) — بهترین حالت برای تحلیل کل صفحه" : "…or paste one or several posts' captions (one per line) — best way to analyze a whole page"}</summary>
+           <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}" style="margin-top:8px"></textarea>
          </details>
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
        </div>
 
        <div class="step">
-         <div class="lbl"><span class="num">2</span>${fa ? "بریفِ تو" : "Your brief"}</div>
-         <div style="margin-bottom:10px"><input id="rePrompt" type="text" value="${esc(prompt0)}" placeholder="${fa ? "موضوع / پرامپت — چه ویدیویی می‌خواهی؟" : "Topic / prompt — what should the video be about?"}"/></div>
+         <div class="lbl"><span class="num">2</span>${fa ? "اطلاعاتِ تو" : "Your info"}</div>
+         <div style="margin-bottom:10px"><input id="rePrompt" type="text" value="${esc(prompt0)}" placeholder="${fa ? "موضوع — ویدیو دربارهٔ چه چیزی باشد؟" : "Topic — what should the video be about?"}"/></div>
          <div class="row" style="margin-bottom:10px">
-           <div><input id="reRegion" type="text" placeholder="${fa ? "منطقه / بازار (مثلاً رشت)" : "Region / market (e.g. Rasht)"}"/></div>
+           <div><input id="reRegion" type="text" placeholder="${fa ? "اطلاعات و جزئیاتِ خودت (اعداد، اسم‌ها، آفر…) — ویدیو از همین استفاده می‌کند" : "Your own info & details (numbers, names, offer…) — the video features THIS"}"/></div>
          </div>
          <div class="row">
            <div><div class="lbl">${fa ? "زبان" : "Language"}</div>
              <select id="reLang">
-               <option value="match">${fa ? "مثل خودِ پست" : "Match the post"}</option>
-               <option value="region">${fa ? "زبانِ منطقه" : "Region's language"}</option>
-               <option value="fa">${fa ? "فارسی" : "Persian"}</option>
-               <option value="en">${fa ? "انگلیسی" : "English"}</option>
+               <option value="en">English</option>
+               <option value="es">Español (Spanish)</option>
              </select></div>
            <div><div class="lbl">${fa ? "سبک" : "Style"}</div>
              <select id="reSkill">
@@ -16155,13 +16155,14 @@ function vsReverseEngineer(prefill) {
         card.innerHTML =
           (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
           `<div style="flex:1;min-width:0">
-             ${ref.username ? `<div style="font-weight:800;color:#efe9dc;font-size:13px">@${esc(ref.username)}</div>` : ""}
+             ${ref.username ? `<div style="font-weight:800;color:#efe9dc;font-size:13px">@${esc(ref.username)}${ref.isProfile ? ` <span style="font-weight:600;color:#9a8fb5">· ${fa ? "صفحه" : "page"}</span>` : ""}</div>` : ""}
              <div style="font-size:12px;color:#b8b1a4;margin-top:3px;max-height:66px;overflow:auto;line-height:1.5">${esc((ref.caption || "").slice(0, 320))}</div>
              ${ref.hashtags && ref.hashtags.length ? `<div style="margin-top:5px">${ref.hashtags.slice(0, 8).map(h => `<span class="tag">${esc(h)}</span>`).join("")}</div>` : ""}
+             ${ref.isProfile ? `<div style="font-size:11px;color:#e0b088;margin-top:6px">${fa ? "برای تحلیلِ «همهٔ پست‌ها»، چند تا از کپشن‌های این صفحه را در کادرِ بالا پیست کن تا سبکِ مشترک دقیق دربیاد." : "To analyze ALL posts, paste a few of this page's captions into the box above so the shared style is captured."}</div>` : ""}
            </div>`;
       } else {
         card.style.display = "flex";
-        card.innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "نشد از لینک خونده بشه (اینستاگرام ربات‌ها رو بلاک می‌کنه). کپشن/متن پست رو تو کادر بالا دستی پیست کن." : "Couldn't read it from the link (Instagram blocks bots). Paste the caption / text into the box above."}</div>`;
+        card.innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "نشد از لینک خونده بشه (اینستاگرام ربات‌ها رو بلاک می‌کنه). کپشنِ یک یا چند پست رو تو کادرِ بالا دستی پیست کن." : "Couldn't read it from the link (Instagram blocks bots). Paste one or several captions into the box above."}</div>`;
       }
     } catch (e) {
       $$("reRefCard").style.display = "flex";
@@ -16202,7 +16203,7 @@ function vsReverseEngineer(prefill) {
       $$("reCaption").textContent = String(blueprint.caption || "");
       $$("reOut").style.display = "flex";
       $$("reBuild").style.display = "";
-      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "region:" + (($$("reRegion").value || "").trim().slice(0, 40)) + " skill:" + (blueprint.skill || $$("reSkill").value));
+      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
@@ -16220,10 +16221,10 @@ function vsReverseEngineer(prefill) {
       : (blueprint && blueprint.skill) === "editorial" || $$("reSkill").value === "editorial" ? "editorial" : "editorial";
     // buildAutoVideo treats any URL in the box as an article to fetch, so strip them.
     const clean = script.replace(/https?:\/\/\S+/gi, "").trim();
-    const region = ($$("reRegion").value || "").trim();
+    const info = ($$("reRegion").value || "").trim();
     const topic = document.querySelector("#vsAutoTopic");
     if (!topic || typeof buildAutoVideo !== "function") { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); return; }
-    topic.value = "/" + skill + " " + clean + (region ? ("\n\nRegion / market focus: " + region) : "");
+    topic.value = "/" + skill + " " + clean + (info ? ("\n\nUse THIS info / details: " + info) : "");
     try { topic.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
     const len = document.querySelector("#vsAutoLen"); if (len) len.value = $$("reLen").value || "medium";
     const batch = document.querySelector("#vsAutoBatch"); if (batch && batch.checked) { try { batch.click(); } catch (e) {} }
