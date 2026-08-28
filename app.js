@@ -15913,6 +15913,328 @@ function vsThumbStudio(prefillTopic) {
   setTimeout(() => { try { $$("tsTopic").focus(); } catch (e) {} }, 50);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// REVERSE ENGINEER (Style Match) — paste an Instagram post link, read its
+// caption/hashtags/thumbnail, reverse-engineer its style DNA (tone, hook,
+// pacing, structure, format) with the AI, then produce an editable BLUEPRINT +
+// a "Build video in Studio" button that re-creates that style for the user's
+// own topic + region.
+// ══════════════════════════════════════════════════════════════════════════
+
+// Decode HTML entities (&quot; &amp; &#39; …) using the DOM.
+function vsReDecode(s) { try { const t = document.createElement("textarea"); t.innerHTML = String(s || ""); return t.value; } catch (e) { return String(s || ""); } }
+
+// Best-effort read of a public social post. Instagram is hostile to bots, so we
+// pull what its meta tags reliably expose (caption via og:description, thumbnail
+// via og:image, author). Returns { ok, caption, hashtags, thumb, username }.
+async function vsReverseFetchPost(url) {
+  let clean = String(url || "").trim();
+  if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
+  const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "" };
+  const grab = async (u) => { try { const r = await fetch(u); if (!r.ok) return ""; return await r.text(); } catch (e) { return ""; } };
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=";
+  let html = await grab(WB + encodeURIComponent(clean));
+  const metaOf = (prop) => {
+    if (!html) return "";
+    let m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]*content=["\']([^"\']*)["\']', "i"));
+    if (!m) m = html.match(new RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']' + prop + '["\']', "i"));
+    return m ? vsReDecode(m[1]) : "";
+  };
+  if (html) {
+    out.thumb = metaOf("og:image");
+    const ogTitle = metaOf("og:title");
+    let desc = metaOf("og:description") || metaOf("description");
+    // IG description looks like: "12K likes, 340 comments - username on DATE: "caption"."
+    const um = desc.match(/-\s*([A-Za-z0-9._]+)\s+on\s/i) || ogTitle.match(/^([A-Za-z0-9._]+)\s+on\s+Instagram/i);
+    if (um) out.username = um[1];
+    let cap = desc
+      .replace(/^[\d.,KMB]+\s*likes?,?\s*[\d.,KMB]*\s*comments?\s*-\s*/i, "")
+      .replace(/^.*?\bon\b\s+[A-Za-z0-9 ,]+?:\s*/i, "")
+      .replace(/^["“”']+|["“”'.]+$/g, "")
+      .trim();
+    if (cap.length < 4 && ogTitle && !/on Instagram/i.test(ogTitle)) cap = ogTitle;
+    out.caption = cap;
+  }
+  // Fallback: Jina reader often renders the caption text even when meta is thin.
+  if (out.caption.length < 8) {
+    const jt = await grab("https://r.jina.ai/" + clean);
+    if (jt && jt.length > 40) {
+      const body = jt.replace(/^\s*Title:.*$/im, "").replace(/^\s*URL Source:.*$/im, "").trim();
+      out.caption = out.caption.length >= body.slice(0, 400).length ? out.caption : body.slice(0, 600);
+    }
+  }
+  out.hashtags = Array.from(new Set((out.caption.match(/#[\p{L}\p{N}_]+/gu) || []).slice(0, 20)));
+  out.ok = out.caption.length >= 8 || !!out.thumb;
+  return out;
+}
+
+// One AI pass: extract the reference's style DNA and write a NEW blueprint in
+// that same style for the user's topic + region. Returns the parsed object.
+async function vsReverseAnalyze(refText, brief) {
+  const langMap = {
+    match: "Write ALL output in the SAME language as the reference post.",
+    region: "Write ALL output in the primary local language of the given region/market.",
+    fa: "Write ALL output in Persian (Farsi).",
+    en: "Write ALL output in English."
+  };
+  const skillHint = brief.skill === "editorial"
+    ? "Force skill to \"editorial\"."
+    : brief.skill === "motion_graphic"
+      ? "Force skill to \"motion_graphic\"."
+      : "Choose skill: \"motion_graphic\" if the reference is stat/number/data-driven, otherwise \"editorial\".";
+  // A DELIMITED-SECTION contract (not JSON): the free fallback models routinely
+  // break strict JSON by putting raw newlines inside the long "script" string,
+  // which makes JSON.parse fail. Marker-delimited sections parse reliably no
+  // matter the model, and multi-line scripts are no problem.
+  const prompt =
+    "You are a world-class short-video REVERSE-ENGINEER. You are given a REFERENCE social-media post and a target BRIEF. " +
+    "First infer the reference's STYLE DNA (tone/lahn, voice, hook, pacing, format, emoji & hashtag habits, audience). " +
+    "Then write a brand-new short-video BLUEPRINT that copies that exact style, voice and structure but is entirely about the BRIEF for the given REGION.\n\n" +
+    "REFERENCE POST (caption / on-screen text / hashtags):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 2200) + "\n\"\"\"\n\n" +
+    "BRIEF:\n- Topic/prompt: " + (brief.prompt || "") + "\n- Region/market: " + (brief.region || "(general)") + "\n- " + (langMap[brief.lang] || langMap.match) + "\n\n" +
+    "Reply using EXACTLY these section markers and nothing else (no markdown, no code fences):\n" +
+    "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
+    "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n(up to 6 beats)\n" +
+    "===SKILL===\neditorial   (or: motion_graphic)\n" +
+    "===SCRIPT===\n<a detailed director's brief for a video generator: restate the tone/pacing/format, then 4-6 hook-first scenes with the actual on-screen lines / narration about the BRIEF for the REGION, matching the reference's rhythm. plain text, NO urls>\n" +
+    "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
+    skillHint + " Match the reference's vibe precisely; never reuse its literal topic — only its style.";
+  const raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 });
+  return vsReverseParseSections(raw, brief);
+}
+
+// Parse the marker-delimited reverse-engineer reply into a blueprint object.
+function vsReverseParseSections(raw, brief) {
+  brief = brief || {};
+  const s = String(raw || "");
+  const sec = (name) => {
+    const m = s.match(new RegExp("===\\s*" + name + "\\s*===([\\s\\S]*?)(?:\\n===[A-Z]+\\s*===|$)", "i"));
+    return m ? m[1].trim() : "";
+  };
+  const dnaBlock = sec("DNA");
+  const dna = {};
+  dnaBlock.split(/\r?\n+/).forEach(line => {
+    const m = line.match(/^\s*([A-Za-z][A-Za-z /]*?)\s*[:：]\s*(.+)$/);
+    if (m) { const k = m[1].trim().toLowerCase().split(/\s|\//)[0]; const v = m[2].replace(/^[<"']+|[>"']+$/g, "").trim(); if (v && !/^\.\.\.|^<\.\.\./.test(v)) dna[k] = v; }
+  });
+  const structure = sec("STRUCTURE").split(/\r?\n+/)
+    .map(l => l.replace(/^\s*\d+[.)]\s*/, "").replace(/^\s*[-•]\s*/, "").replace(/^[<"']+|[>"']+$/g, "").trim())
+    .filter(l => l && !/^\(up to|^<scene/i.test(l)).slice(0, 6);
+  let skill = /motion/i.test(sec("SKILL")) ? "motion_graphic" : "editorial";
+  if (brief.skill === "motion_graphic") skill = "motion_graphic";
+  else if (brief.skill === "editorial") skill = "editorial";
+  let script = sec("SCRIPT").replace(/^[<"']+|[>"']+$/g, "").trim();
+  const caption = sec("CAPTION").replace(/^[<"']+|[>"']+$/g, "").trim();
+  // No markers at all → treat the whole reply as the script so Build still works.
+  if (!script && !dnaBlock && !structure.length) script = s.trim();
+  return { styleDNA: dna, structure, skill, script, caption };
+}
+
+function vsReverseEngineer(prefill) {
+  const fa = state.lang === "fa";
+  const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const sd = vstudio.storyData || {};
+  const prompt0 = String(prefill || sd._topic || sd.title || "").slice(0, 120);
+  let ref = null;   // last fetched reference
+  let blueprint = null;
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
+  ov.innerHTML =
+    `<div id="reModal" style="width:min(720px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:16px;background:#14121a;border:1px solid rgba(168,85,247,.30);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
+       <style>
+         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a8fb5;margin-bottom:7px}
+         #reModal input[type=text],#reModal textarea,#reModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit;border-radius:11px;padding:11px 12px;outline:none;box-sizing:border-box}
+         #reModal textarea{resize:vertical;line-height:1.5}
+         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:#a855f7}
+         #reModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
+         #reModal .btn:hover{filter:brightness(1.09)}
+         #reModal .btn[disabled]{opacity:.55;cursor:default}
+         #reModal .step{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px}
+         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#2563ff);color:#fff;font-size:12px;font-weight:800;margin-inline-end:8px}
+         #reModal .row{display:flex;gap:10px;flex-wrap:wrap}
+         #reModal .row>div{flex:1;min-width:130px}
+         #reModal .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
+         #reModal .dna .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#9a8fb5}
+         #reModal .dna .v{font-size:13px;color:#efe9dc;margin-top:2px}
+         #reModal .dnaCell{background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.16);border-radius:10px;padding:9px 11px}
+         #reModal .tag{display:inline-block;font-size:11px;color:#cbb8ee;background:rgba(168,85,247,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
+         #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+       </style>
+       <div style="display:flex;align-items:center;gap:10px">
+         <span style="font-size:22px">🧬</span>
+         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#efe9dc">Reverse Engineer</span>
+         <span style="font-size:11px;color:#c9b8ee;background:rgba(168,85,247,.14);padding:3px 9px;border-radius:20px">Style Match</span>
+       </div>
+       <div style="font-size:12.5px;color:#9a938a;margin-top:-8px">${fa ? "لینک یک پست را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و برای موضوع و منطقهٔ خودت بازتولید می‌کنیم." : "Give a post link — we reverse-engineer its style, tone & structure, then rebuild it for your own topic + region."}</div>
+
+       <div class="step">
+         <div class="lbl"><span class="num">1</span>${fa ? "پست مرجع (لینک اینستاگرام)" : "Reference post (Instagram link)"}</div>
+         <div style="display:flex;gap:9px">
+           <input id="reUrl" type="text" placeholder="https://www.instagram.com/reel/…" />
+           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
+         </div>
+         <details style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا متن/کپشن پست را دستی پیست کن (اگر لینک باز نشد)" : "…or paste the caption / on-screen text (if the link is blocked)"}</summary>
+           <textarea id="rePaste" rows="3" placeholder="${fa ? "کپشن یا متن روی ویدیو…" : "Caption or on-screen text…"}" style="margin-top:8px"></textarea>
+         </details>
+         <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
+       </div>
+
+       <div class="step">
+         <div class="lbl"><span class="num">2</span>${fa ? "بریفِ تو" : "Your brief"}</div>
+         <div style="margin-bottom:10px"><input id="rePrompt" type="text" value="${esc(prompt0)}" placeholder="${fa ? "موضوع / پرامپت — چه ویدیویی می‌خواهی؟" : "Topic / prompt — what should the video be about?"}"/></div>
+         <div class="row" style="margin-bottom:10px">
+           <div><input id="reRegion" type="text" placeholder="${fa ? "منطقه / بازار (مثلاً رشت)" : "Region / market (e.g. Rasht)"}"/></div>
+         </div>
+         <div class="row">
+           <div><div class="lbl">${fa ? "زبان" : "Language"}</div>
+             <select id="reLang">
+               <option value="match">${fa ? "مثل خودِ پست" : "Match the post"}</option>
+               <option value="region">${fa ? "زبانِ منطقه" : "Region's language"}</option>
+               <option value="fa">${fa ? "فارسی" : "Persian"}</option>
+               <option value="en">${fa ? "انگلیسی" : "English"}</option>
+             </select></div>
+           <div><div class="lbl">${fa ? "سبک" : "Style"}</div>
+             <select id="reSkill">
+               <option value="auto">${fa ? "خودکار" : "Auto"}</option>
+               <option value="editorial">${fa ? "ادیتوریال (تصویری)" : "Editorial (image)"}</option>
+               <option value="motion_graphic">${fa ? "موشن‌گرافیک (داده)" : "Motion graphic (data)"}</option>
+             </select></div>
+           <div><div class="lbl">${fa ? "طول" : "Length"}</div>
+             <select id="reLen">
+               <option value="short">${fa ? "کوتاه" : "Short"}</option>
+               <option value="medium" selected>${fa ? "متوسط" : "Medium"}</option>
+               <option value="long">${fa ? "بلند" : "Long"}</option>
+             </select></div>
+         </div>
+       </div>
+
+       <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
+
+       <div id="reOut" style="display:none;flex-direction:column;gap:14px">
+         <div class="step">
+           <div class="lbl">🧬 ${fa ? "دی‌ان‌ای سبک" : "Style DNA"}</div>
+           <div id="reDna" class="dna"></div>
+           <div id="reTags" style="margin-top:9px"></div>
+         </div>
+         <div class="step">
+           <div class="lbl">🎬 ${fa ? "ساختار صحنه‌ها" : "Scene structure"}</div>
+           <div id="reBeats"></div>
+         </div>
+         <div class="step">
+           <div class="lbl">📝 ${fa ? "اسکریپت (قابل ویرایش — همین ساخته می‌شود)" : "Script (editable — this is what gets built)"}</div>
+           <textarea id="reScript" rows="8"></textarea>
+         </div>
+         <div class="step">
+           <div class="lbl">✍️ ${fa ? "کپشن پیشنهادی" : "Suggested caption"} <button id="reCopyCap" type="button" class="btn" style="float:${fa ? 'left' : 'right'};padding:4px 10px;font-size:11px;background:rgba(255,255,255,.08);color:#cfc8ba">${fa ? "کپی" : "Copy"}</button></div>
+           <div id="reCaption" style="font-size:13px;color:#d8d2c6;white-space:pre-wrap;line-height:1.55"></div>
+         </div>
+       </div>
+
+       <div style="display:flex;gap:9px">
+         <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساخت ویدیو در استودیو" : "Build video in Studio"}</button>
+       </div>
+     </div>`;
+  document.body.appendChild(ov);
+  const $$ = (id) => ov.querySelector("#" + id);
+  const close = () => { try { ov.remove(); } catch (e) {} };
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  $$("reClose").onclick = close;
+
+  // Analyze the reference link (or paste box).
+  $$("reFetch").onclick = async () => {
+    const url = ($$("reUrl").value || "").trim();
+    if (!url) { $$("reUrl").focus(); return; }
+    const b = $$("reFetch"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
+    try {
+      ref = await vsReverseFetchPost(url);
+      const card = $$("reRefCard");
+      if (ref && (ref.caption || ref.thumb)) {
+        if (ref.caption && !$$("rePaste").value) $$("rePaste").value = ref.caption;
+        card.style.display = "flex";
+        card.innerHTML =
+          (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
+          `<div style="flex:1;min-width:0">
+             ${ref.username ? `<div style="font-weight:800;color:#efe9dc;font-size:13px">@${esc(ref.username)}</div>` : ""}
+             <div style="font-size:12px;color:#b8b1a4;margin-top:3px;max-height:66px;overflow:auto;line-height:1.5">${esc((ref.caption || "").slice(0, 320))}</div>
+             ${ref.hashtags && ref.hashtags.length ? `<div style="margin-top:5px">${ref.hashtags.slice(0, 8).map(h => `<span class="tag">${esc(h)}</span>`).join("")}</div>` : ""}
+           </div>`;
+      } else {
+        card.style.display = "flex";
+        card.innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "نشد از لینک خونده بشه (اینستاگرام ربات‌ها رو بلاک می‌کنه). کپشن/متن پست رو تو کادر بالا دستی پیست کن." : "Couldn't read it from the link (Instagram blocks bots). Paste the caption / text into the box above."}</div>`;
+      }
+    } catch (e) {
+      $$("reRefCard").style.display = "flex";
+      $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را دستی پیست کن." : "Error reading the link — paste the caption manually."}</div>`;
+    }
+    b.disabled = false; b.textContent = old;
+  };
+
+  // Reverse-engineer + generate the blueprint.
+  $$("reGo").onclick = async () => {
+    const prompt = ($$("rePrompt").value || "").trim();
+    const refText = ($$("rePaste").value || "").trim() || (ref && ref.caption) || "";
+    if (!prompt) { vsStatus(fa ? "اول موضوع/پرامپت را بنویس." : "Enter your topic / prompt first."); $$("rePrompt").focus(); return; }
+    const go = $$("reGo"); go.disabled = true; const old = go.textContent;
+    go.textContent = "⏳ " + (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
+    try {
+      blueprint = await vsReverseAnalyze(refText, {
+        prompt, region: ($$("reRegion").value || "").trim(),
+        lang: $$("reLang").value, skill: $$("reSkill").value
+      });
+      // A transient empty AI response yields no usable script — surface a retry
+      // rather than an empty blueprint with a dead Build button.
+      if (!blueprint || !String(blueprint.script || "").trim()) throw new Error("empty blueprint");
+      const dna = (blueprint && blueprint.styleDNA) || {};
+      const dnaLabels = fa
+        ? { tone: "لحن", voice: "زاویهٔ روایت", hook: "هوک", pacing: "ریتم", format: "فرمت", emoji: "ایموجی", hashtags: "هشتگ", audience: "مخاطب" }
+        : { tone: "Tone", voice: "Voice", hook: "Hook", pacing: "Pacing", format: "Format", emoji: "Emoji", hashtags: "Hashtags", audience: "Audience" };
+      // Render whatever keys the model actually returned (not just our expected
+      // eight) so the DNA panel is never empty when the shape varies.
+      const keyLabel = (k) => dnaLabels[k] || String(k).replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      $$("reDna").innerHTML = Object.keys(dna).filter(k => dna[k]).slice(0, 8).map(k =>
+        `<div class="dnaCell"><div class="k">${esc(keyLabel(k))}</div><div class="v">${esc(String(dna[k]))}</div></div>`).join("") ||
+        `<div class="dnaCell"><div class="v">${fa ? "سبک عمومی استخراج شد." : "Extracted a general style."}</div></div>`;
+      $$("reTags").innerHTML = (ref && ref.hashtags || []).slice(0, 10).map(h => `<span class="tag">${esc(h)}</span>`).join("");
+      $$("reBeats").innerHTML = (blueprint.structure || []).map((s, i) => `<div class="beat"><b style="color:#a855f7">${i + 1}.</b> ${esc(String(s))}</div>`).join("") ||
+        `<div class="beat" style="color:#9a938a">${fa ? "—" : "—"}</div>`;
+      $$("reScript").value = String(blueprint.script || "");
+      $$("reCaption").textContent = String(blueprint.caption || "");
+      $$("reOut").style.display = "flex";
+      $$("reBuild").style.display = "";
+      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "region:" + (($$("reRegion").value || "").trim().slice(0, 40)) + " skill:" + (blueprint.skill || $$("reSkill").value));
+      $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
+    }
+    go.disabled = false; go.textContent = old;
+  };
+
+  $$("reCopyCap").onclick = () => { try { navigator.clipboard.writeText($$("reCaption").textContent || ""); vsStatus(fa ? "کپشن کپی شد ✓" : "Caption copied ✓"); } catch (e) {} };
+
+  // Hand the reverse-engineered script to the Studio's build pipeline.
+  $$("reBuild").onclick = () => {
+    const script = ($$("reScript").value || "").trim();
+    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    const skill = (blueprint && blueprint.skill) === "motion_graphic" || $$("reSkill").value === "motion_graphic" ? "motion_graphic"
+      : (blueprint && blueprint.skill) === "editorial" || $$("reSkill").value === "editorial" ? "editorial" : "editorial";
+    // buildAutoVideo treats any URL in the box as an article to fetch, so strip them.
+    const clean = script.replace(/https?:\/\/\S+/gi, "").trim();
+    const region = ($$("reRegion").value || "").trim();
+    const topic = document.querySelector("#vsAutoTopic");
+    if (!topic || typeof buildAutoVideo !== "function") { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); return; }
+    topic.value = "/" + skill + " " + clean + (region ? ("\n\nRegion / market focus: " + region) : "");
+    try { topic.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+    const len = document.querySelector("#vsAutoLen"); if (len) len.value = $$("reLen").value || "medium";
+    const batch = document.querySelector("#vsAutoBatch"); if (batch && batch.checked) { try { batch.click(); } catch (e) {} }
+    close();
+    vsStatus(fa ? "🎬 در حال ساخت ویدیو با سبکِ مهندسی‌معکوس‌شده…" : "🎬 Building your video in the reverse-engineered style…");
+    try { buildAutoVideo(true); } catch (e) {}
+  };
+
+  setTimeout(() => { try { $$("reUrl").focus(); } catch (e) {} }, 50);
+}
+
 // A small loading popup shown WHILE the thumbnail is being generated (distinct
 // from the video-export progress overlay).
 function vsShowCoverLoading(fa) {
@@ -16783,6 +17105,7 @@ function bindEvents() {
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
   on("#vsCoverBtn", "click", () => { try { vsThumbStudio(); } catch (e) {} });
+  on("#vsReverseBtn", "click", () => { try { vsReverseEngineer(); } catch (e) {} });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
