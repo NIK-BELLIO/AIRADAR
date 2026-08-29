@@ -16040,19 +16040,24 @@ async function vsReverseAnalyze(refText, brief) {
     "GENERATOR CAPABILITIES — CRITICAL: this tool does NOT film or generate a person talking to camera. It renders ON-SCREEN TEXT + AI-generated images/B-roll + info cards, with narration as voiceover/captions. " +
     "So even if the reference is a talking-head / selfie / vlog reel, DO NOT write visuals like 'host smiling', 'person on camera', 'talking head'. Convert EVERY visual beat into: a punchy on-screen headline + an AI-image description of a RELEVANT scene, object or place (e.g. a row of houses, a sold sign, city skyline, keys on a table). Keep the spoken lines as the narration. " +
     "Never output bracket placeholders like [Your Brand Name], [City] or [Your Company] — use the user's own info from the BRIEF, and if a detail is missing write natural copy that reads fine without it.\n\n" +
+    "ALSO classify the reference's VIDEO FORMAT as exactly one of:\n" +
+    "  • \"slideshow\"    = carousel / text-on-screen slides / b-roll or photo montage with voiceover — NOBODY talks to camera.\n" +
+    "  • \"talking_head\" = a person / character speaks to camera (selfie, vlog, presenter).\n" +
     "Reply using EXACTLY these section markers and nothing else (no markdown, no code fences):\n" +
     "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
+    "===FORMATTYPE===\nslideshow   (or: talking_head)\n" +
+    "===SETTING===\n<one short phrase describing the reference's on-screen environment/backdrop, e.g. 'modern kitchen', 'outdoors in front of houses', 'plain studio', 'city street' — used to place a presenter in the same vibe>\n" +
     "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n(up to 6 beats)\n" +
     "===SKILL===\neditorial   (or: motion_graphic)\n" +
     "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then 4-6 hook-first scenes. For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
     "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
     skillHint + " A talking-head / advice / vlog / story reel → editorial; only a pure stat/data/number post → motion_graphic. Match the reference's vibe precisely; never reuse its literal topic — only its style.";
   const raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 });
-  return vsReverseParseSections(raw, brief);
+  return vsReverseParseSections(raw, brief, refText);
 }
 
 // Parse the marker-delimited reverse-engineer reply into a blueprint object.
-function vsReverseParseSections(raw, brief) {
+function vsReverseParseSections(raw, brief, refText) {
   brief = brief || {};
   const s = String(raw || "");
   const sec = (name) => {
@@ -16071,11 +16076,24 @@ function vsReverseParseSections(raw, brief) {
   let skill = /motion/i.test(sec("SKILL")) ? "motion_graphic" : "editorial";
   if (brief.skill === "motion_graphic") skill = "motion_graphic";
   else if (brief.skill === "editorial") skill = "editorial";
+  // Format type: talking_head vs slideshow. Strong keyword signals in the actual
+  // reference win first (free models classify inconsistently), then the model's
+  // FORMATTYPE section, then the DNA "format" text.
+  const refBlob = String(refText || "").toLowerCase();   // the ACTUAL reference only
+  const thSig = /(talk\w*|speak\w*|say\w*)\s+(?:straight\s+)?(?:to|into)\s+(?:the\s+)?camera|to camera|talking head|selfie|vlog|\bpov\b|storytime|story time|get ready with me|grwm|voiceover of (?:a|the) (?:host|person)|host (?:talks|speaks|explains)|face(?:s|ing)? the camera|presenter (?:talks|speaks)/i.test(refBlob);
+  const ssSig = /carousel|swipe|slideshow|slide show|photo dump|montage|no (?:voice|talking|face)|series of (?:photos|images|slides)|text[- ]on[- ]screen/i.test(refBlob);
+  let formatType = "";
+  if (thSig && !ssSig) formatType = "talking_head";
+  else if (ssSig && !thSig) formatType = "slideshow";
+  if (!formatType) formatType = /talking[_ ]?head/i.test(sec("FORMATTYPE")) ? "talking_head"
+    : /slide|carousel|montage|voice ?over/i.test(sec("FORMATTYPE")) ? "slideshow" : "";
+  if (!formatType) formatType = /talking head|selfie|vlog|to camera|presenter|speaks|on camera|\bhost\b/i.test(dna.format || "") ? "talking_head" : "slideshow";
+  const setting = sec("SETTING").replace(/^[<"']+|[>"']+$/g, "").replace(/\s{2,}/g, " ").trim().slice(0, 120);
   let script = sec("SCRIPT").replace(/^[<"']+|[>"']+$/g, "").trim();
   const caption = sec("CAPTION").replace(/^[<"']+|[>"']+$/g, "").trim();
   // No markers at all → treat the whole reply as the script so Build still works.
   if (!script && !dnaBlock && !structure.length) script = s.trim();
-  return { styleDNA: dna, structure, skill, script, caption };
+  return { styleDNA: dna, structure, skill, script, caption, formatType, setting };
 }
 
 function vsReverseEngineer(prefill) {
@@ -16157,7 +16175,7 @@ function vsReverseEngineer(prefill) {
        <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
-         <div style="font-size:11.5px;color:#c8b48a;background:rgba(201,162,74,.10);border:1px solid rgba(201,162,74,.28);border-radius:10px;padding:9px 12px;line-height:1.55">${fa ? "ℹ️ این ابزار «تن، هوک، ریتم و اسکریپت» را کپی می‌کند و ویدیو را با <b>متنِ روی صفحه + تصاویرِ AI + کارت‌های اطلاعاتی</b> می‌سازد. اگر پستِ مرجع «آدم جلوی دوربین» باشد، ویدیوی خروجی همان لحن/ساختار را دارد ولی <b>تصویرِ آدمِ سخنگو نیست</b> (این موتور فیلمِ انسان تولید نمی‌کند)." : "ℹ️ This copies the <b>tone, hook, pacing & script</b> and builds the video from <b>on-screen text + AI images + info cards</b>. If the reference is a person talking to camera, your video keeps the same tone/structure but is <b>not a talking-head clip</b> — this engine doesn't film a person."}</div>
+         <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
          <div class="step">
            <div class="lbl">🧬 ${fa ? "دی‌ان‌ای سبک" : "Style DNA"}</div>
            <div id="reDna" class="dna"></div>
@@ -16187,13 +16205,18 @@ function vsReverseEngineer(prefill) {
              <option value="am_adam">${fa ? "مرد — رسا" : "Male — clear"}</option>
            </select>
            <select id="reThGender" style="min-width:110px">
-             <option value="female">${fa ? "چهرهٔ زن" : "Female face"}</option>
-             <option value="male">${fa ? "چهرهٔ مرد" : "Male face"}</option>
+             <option value="female">${fa ? "چهرهٔ زن (خودکار)" : "Female face (auto)"}</option>
+             <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
            </select>
            <span style="flex:1"></span>
-           <span style="font-size:11px;color:#8a8578">${fa ? "≈ $۰.۰۸ برای هر ثانیه (fal)" : "≈ $0.08 / sec (fal)"}</span>
+           <span style="font-size:11px;color:#8a8578">${fa ? "≈ $۰.۰۸ / ثانیه" : "≈ $0.08 / sec"}</span>
          </div>
-         <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو» (fal)" : "Build as talking-head (fal)"}</button>
+         <label id="reThPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
+           <span style="font-size:16px">🖼</span>
+           <span id="reThPhotoTxt">${fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak"}</span>
+           <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
+         </label>
+         <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
        </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
@@ -16278,9 +16301,24 @@ function vsReverseEngineer(prefill) {
       $$("reOut").style.display = "flex";
       $$("reBuild").style.display = "";
       $$("reThRow").style.display = "flex";
+      // ── ROUTE BY DETECTED FORMAT ─────────────────────────────────────────
+      // slideshow → the Studio motion build is the match; talking_head → fal.
+      const ft = blueprint.formatType === "talking_head" ? "talking_head" : "slideshow";
+      const isTH = ft === "talking_head";
+      const fmt = $$("reFmt");
+      fmt.style.background = isTH ? "rgba(250,204,21,.10)" : "rgba(37,99,255,.10)";
+      fmt.style.border = "1px solid " + (isTH ? "rgba(250,204,21,.32)" : "rgba(91,141,255,.32)");
+      fmt.style.color = isTH ? "#e9d19a" : "#a9c2ff";
+      fmt.innerHTML = isTH
+        ? (fa ? "🎤 فرمتِ پست: <b>آدمِ سخنگو</b> — پیشنهاد: با پرزنتر بساز (می‌تونی عکسِ خودتو بدی)." : "🎤 Detected format: <b>talking-head</b> — recommended: build with a presenter (you can use your own photo).")
+        : (fa ? "🎞️ فرمتِ پست: <b>اسلایدشو</b> — پیشنهاد: همون اسلایدشو با دیتای تو (متن + تصاویرِ AI)." : "🎞️ Detected format: <b>slideshow</b> — recommended: build the same slideshow with your data (text + AI images).");
+      // Emphasize the recommended action; keep the other available but muted.
+      $$("reBuild").style.opacity = isTH ? ".6" : "1";
+      $$("reThRow").style.opacity = isTH ? "1" : ".6";
+      $$("reBuild").textContent = "🎬 " + (fa ? "ساختِ اسلایدشو در استودیو" : "Build slideshow in Studio");
       // remember the reference gender guess to pick a matching face by default
-      try { const g = /\b(she|her|woman|female|mom|mother|lady|girl)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
-      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
+      try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
+      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + ft + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
@@ -16310,13 +16348,21 @@ function vsReverseEngineer(prefill) {
     try { buildAutoVideo(true); } catch (e) {}
   };
 
+  // Own-photo picker: remember the file and show its name.
+  let thPhoto = null;
+  $$("reThPhoto").onchange = (e) => {
+    thPhoto = (e.target.files && e.target.files[0]) || null;
+    $$("reThPhotoTxt").textContent = thPhoto
+      ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + thPhoto.name.slice(0, 30)
+      : (fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak");
+  };
   // Build a real TALKING-HEAD clip via fal: TTS → presenter image → lip-sync.
   $$("reBuildTH").onclick = async () => {
     const script = ($$("reScript").value || "").trim();
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value }); }
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto, setting: (blueprint && blueprint.setting) || "" }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -16397,12 +16443,24 @@ async function vsBuildTalkingHead(script, opts) {
   let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
   if (dur) { const cost = (dur * 0.08).toFixed(2); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#8a8578;margin-top:2px"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · هزینهٔ تقریبی ~$${cost}` : `voice ~${Math.round(dur)}s · est. ~$${cost}`); steps.appendChild(note); }
 
-  // 2) Presenter face (our free image gen, hosted URL fal can fetch)
+  // 2) Presenter face — the user's OWN photo (uploaded to fal storage) if given,
+  //    otherwise an AI presenter placed in the SAME setting as the reference.
   setStep("face", "run");
-  const facePrompt = (opts.gender === "male"
-    ? "photorealistic upper-body portrait of a friendly professional male presenter, plain studio background, facing camera, neutral expression, soft lighting, sharp focus"
-    : "photorealistic upper-body portrait of a friendly professional female presenter, plain studio background, facing camera, neutral expression, soft lighting, sharp focus");
-  const imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
+  let imageUrl;
+  if (opts.photo) {
+    try {
+      const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.photo.type || "image/jpeg" }, body: opts.photo });
+      const uj = await up.json().catch(() => ({}));
+      if (!uj.file_url) throw new Error(uj.error || "upload failed");
+      imageUrl = uj.file_url;
+    } catch (e) { setStep("face", "err"); throw new Error((fa ? "آپلودِ عکس ناموفق: " : "photo upload failed: ") + (e.message || e)); }
+  } else {
+    const setting = (opts.setting || "plain studio background").replace(/[^\w ,'-]/g, " ").slice(0, 90);
+    const facePrompt = (opts.gender === "male"
+      ? "photorealistic upper-body portrait of a friendly professional man presenter, " + setting + ", facing camera, neutral expression, soft lighting, sharp focus"
+      : "photorealistic upper-body portrait of a friendly professional woman presenter, " + setting + ", facing camera, neutral expression, soft lighting, sharp focus");
+    imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
+  }
   setStep("face", "done");
 
   // 3) Lip-sync via fal queue
