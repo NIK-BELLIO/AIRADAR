@@ -15936,6 +15936,22 @@ async function vsReverseFetchPost(url) {
   const isProfile = !/\/(p|reel|reels|tv)\//i.test(clean);
   const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "", isProfile };
   const grab = async (u) => { try { const r = await fetch(u); if (!r.ok) return ""; return await r.text(); } catch (e) { return ""; } };
+  // Instagram serves a LOGIN WALL to bots (and Jina renders it as markdown), so
+  // the "caption" we scrape is often just that boilerplate. Detect it and treat
+  // it as a failed read rather than feeding garbage into the reverse-engineer.
+  const isJunk = (t) => {
+    const s = String(t || "").toLowerCase();
+    if (s.length < 8) return true;
+    return /log ?in|logg? in|forgot password|mobile number, username|create new account|see everyday moments|photos and videos from|isn'?t available|page not found|cdninstagram\.com|accounts\/(login|password)|meta ©|© \d{4} instagram|two-factor|reset your password/i.test(s);
+  };
+  // Strip Jina/markdown noise so a real caption reads cleanly.
+  const demark = (t) => String(t || "")
+    .replace(/^[\s\S]*?Markdown Content:\s*/i, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_>#`]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=";
   let html = await grab(WB + encodeURIComponent(clean));
   const metaOf = (prop) => {
@@ -15957,18 +15973,23 @@ async function vsReverseFetchPost(url) {
       .replace(/^["“”']+|["“”'.]+$/g, "")
       .trim();
     if (cap.length < 4 && ogTitle && !/on Instagram/i.test(ogTitle)) cap = ogTitle;
-    out.caption = cap;
+    cap = demark(cap);
+    if (!isJunk(cap)) out.caption = cap;
   }
-  // Fallback: Jina reader often renders the caption text even when meta is thin.
+  // Fallback: Jina reader sometimes renders the caption when meta is thin — but
+  // for a login-walled page it renders the login form, so junk-check it hard.
   if (out.caption.length < 8) {
     const jt = await grab("https://r.jina.ai/" + clean);
     if (jt && jt.length > 40) {
-      const body = jt.replace(/^\s*Title:.*$/im, "").replace(/^\s*URL Source:.*$/im, "").trim();
-      out.caption = out.caption.length >= body.slice(0, 400).length ? out.caption : body.slice(0, 600);
+      const body = demark(jt.replace(/^\s*Title:.*$/im, "").replace(/^\s*URL Source:.*$/im, "")).slice(0, 600);
+      if (!isJunk(body)) out.caption = body;
     }
   }
+  if (isJunk(out.caption)) out.caption = "";
   out.hashtags = Array.from(new Set((out.caption.match(/#[\p{L}\p{N}_]+/gu) || []).slice(0, 20)));
-  out.ok = out.caption.length >= 8 || !!out.thumb;
+  // Only a REAL caption counts as success; a lone thumbnail (e.g. a profile pic
+  // behind a login wall) is not enough — fail honestly so the user pastes text.
+  out.ok = out.caption.length >= 12;
   return out;
 }
 
@@ -16075,7 +16096,7 @@ function vsReverseEngineer(prefill) {
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
-         <details style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط) — بهترین حالت برای تحلیل کل صفحه" : "…or paste one or several posts' captions (one per line) — best way to analyze a whole page"}</summary>
+         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط) — بهترین حالت برای تحلیل کل صفحه" : "…or paste one or several posts' captions (one per line) — best way to analyze a whole page"}</summary>
            <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}" style="margin-top:8px"></textarea>
          </details>
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
@@ -16149,9 +16170,10 @@ function vsReverseEngineer(prefill) {
     try {
       ref = await vsReverseFetchPost(url);
       const card = $$("reRefCard");
-      if (ref && (ref.caption || ref.thumb)) {
+      card.style.display = "flex";
+      // Success = a REAL caption was scraped (junk/login-wall is rejected upstream).
+      if (ref && ref.ok) {
         if (ref.caption && !$$("rePaste").value) $$("rePaste").value = ref.caption;
-        card.style.display = "flex";
         card.innerHTML =
           (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
           `<div style="flex:1;min-width:0">
@@ -16161,12 +16183,20 @@ function vsReverseEngineer(prefill) {
              ${ref.isProfile ? `<div style="font-size:11px;color:#e0b088;margin-top:6px">${fa ? "برای تحلیلِ «همهٔ پست‌ها»، چند تا از کپشن‌های این صفحه را در کادرِ بالا پیست کن تا سبکِ مشترک دقیق دربیاد." : "To analyze ALL posts, paste a few of this page's captions into the box above so the shared style is captured."}</div>` : ""}
            </div>`;
       } else {
-        card.style.display = "flex";
-        card.innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "نشد از لینک خونده بشه (اینستاگرام ربات‌ها رو بلاک می‌کنه). کپشنِ یک یا چند پست رو تو کادرِ بالا دستی پیست کن." : "Couldn't read it from the link (Instagram blocks bots). Paste one or several captions into the box above."}</div>`;
+        // Instagram blocked the read (login wall) — open the paste box for the user.
+        try { $$("rePasteWrap").open = true; } catch (e) {}
+        const isProf = ref && ref.isProfile;
+        card.innerHTML = `<div style="font-size:12.5px;color:#e0b088;line-height:1.6">${
+          isProf
+            ? (fa ? "🔒 اینستاگرام محتوای این <b>صفحه</b> را برای ربات‌ها می‌بندد (صفحهٔ ورود برمی‌گردد). چند تا از کپشن‌های این صفحه را در کادرِ پایین پیست کن — سبکِ مشترکِ همه را درمی‌آورم." : "🔒 Instagram blocks bot reads of this <b>page</b> (it returns a login wall). Paste a few of the page's captions into the box below — I'll extract their shared style.")
+            : (fa ? "🔒 اینستاگرام خواندنِ این پست را بست. کپشنِ پست را در کادرِ پایین پیست کن (می‌توانی چند پست را با هم بگذاری)." : "🔒 Instagram blocked reading this post. Paste the post's caption into the box below (you can paste several posts together).")
+        }</div>`;
+        setTimeout(() => { try { $$("rePaste").focus(); } catch (e) {} }, 30);
       }
     } catch (e) {
       $$("reRefCard").style.display = "flex";
-      $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را دستی پیست کن." : "Error reading the link — paste the caption manually."}</div>`;
+      try { $$("rePasteWrap").open = true; } catch (e2) {}
+      $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را در کادرِ پایین پیست کن." : "Error reading the link — paste the caption into the box below."}</div>`;
     }
     b.disabled = false; b.textContent = old;
   };
