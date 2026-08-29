@@ -16037,13 +16037,16 @@ async function vsReverseAnalyze(refText, brief) {
     "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n" +
     "REFERENCE POST(S) (caption / on-screen text / hashtags — may be several, one per line):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 3000) + "\n\"\"\"\n\n" +
     "BRIEF:\n- Topic: " + (brief.prompt || "") + "\n- User's own info & details to feature (numbers, names, facts, offer): " + (brief.region || "(use the topic)") + "\n- " + (langMap[brief.lang] || langMap.en) + "\n\n" +
+    "GENERATOR CAPABILITIES — CRITICAL: this tool does NOT film or generate a person talking to camera. It renders ON-SCREEN TEXT + AI-generated images/B-roll + info cards, with narration as voiceover/captions. " +
+    "So even if the reference is a talking-head / selfie / vlog reel, DO NOT write visuals like 'host smiling', 'person on camera', 'talking head'. Convert EVERY visual beat into: a punchy on-screen headline + an AI-image description of a RELEVANT scene, object or place (e.g. a row of houses, a sold sign, city skyline, keys on a table). Keep the spoken lines as the narration. " +
+    "Never output bracket placeholders like [Your Brand Name], [City] or [Your Company] — use the user's own info from the BRIEF, and if a detail is missing write natural copy that reads fine without it.\n\n" +
     "Reply using EXACTLY these section markers and nothing else (no markdown, no code fences):\n" +
     "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
     "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n(up to 6 beats)\n" +
     "===SKILL===\neditorial   (or: motion_graphic)\n" +
-    "===SCRIPT===\n<a detailed director's brief for a video generator: restate the tone/pacing/format, then 4-6 hook-first scenes with the actual on-screen lines / narration about the BRIEF for the REGION, matching the reference's rhythm. plain text, NO urls>\n" +
+    "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then 4-6 hook-first scenes. For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
     "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
-    skillHint + " Match the reference's vibe precisely; never reuse its literal topic — only its style.";
+    skillHint + " A talking-head / advice / vlog / story reel → editorial; only a pure stat/data/number post → motion_graphic. Match the reference's vibe precisely; never reuse its literal topic — only its style.";
   const raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 });
   return vsReverseParseSections(raw, brief);
 }
@@ -16154,6 +16157,7 @@ function vsReverseEngineer(prefill) {
        <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
+         <div style="font-size:11.5px;color:#c8b48a;background:rgba(201,162,74,.10);border:1px solid rgba(201,162,74,.28);border-radius:10px;padding:9px 12px;line-height:1.55">${fa ? "ℹ️ این ابزار «تن، هوک، ریتم و اسکریپت» را کپی می‌کند و ویدیو را با <b>متنِ روی صفحه + تصاویرِ AI + کارت‌های اطلاعاتی</b> می‌سازد. اگر پستِ مرجع «آدم جلوی دوربین» باشد، ویدیوی خروجی همان لحن/ساختار را دارد ولی <b>تصویرِ آدمِ سخنگو نیست</b> (این موتور فیلمِ انسان تولید نمی‌کند)." : "ℹ️ This copies the <b>tone, hook, pacing & script</b> and builds the video from <b>on-screen text + AI images + info cards</b>. If the reference is a person talking to camera, your video keeps the same tone/structure but is <b>not a talking-head clip</b> — this engine doesn't film a person."}</div>
          <div class="step">
            <div class="lbl">🧬 ${fa ? "دی‌ان‌ای سبک" : "Style DNA"}</div>
            <div id="reDna" class="dna"></div>
