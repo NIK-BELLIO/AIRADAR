@@ -16505,6 +16505,19 @@ function vsExtractNarration(script) {
   return text;
 }
 
+// Generate a realistic image on fal (FLUX-dev) and load it UNTAINTED (via our
+// CORS proxy) so it can be drawn on a canvas. Returns an <img> or null.
+async function vsFalImage(prompt, w, h) {
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const size = (h >= w * 1.15) ? "portrait_4_3" : (w >= h * 1.15) ? "landscape_4_3" : "square_hd";
+  try {
+    const r = await fetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt, image_size: size, num_inference_steps: 28 } }) });
+    const d = await r.json(); const u = d && d.images && d.images[0] && d.images[0].url;
+    if (!u) return null;
+    return await new Promise(res => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => { im._imgModel = "fal-flux-dev"; res(im); }; im.onerror = () => res(null); im.src = WB + "/fal/img?url=" + encodeURIComponent(u); });
+  } catch (e) { return null; }
+}
+
 // Parse the reverse-engineered script into scenes: {headline, image, narration}.
 function vsParseScriptScenes(script) {
   const scenes = []; let cur = null;
@@ -16613,7 +16626,7 @@ async function vsBuildCarousel(script, opts) {
   let coverImg = null;
   try {
     if (opts.photo) { coverImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = URL.createObjectURL(opts.photo); }); }
-    else { coverImg = await vsEdLoadImage(vsEditorialImagePrompt("professional confident " + (opts.gender === "male" ? "man" : "woman") + " " + (opts.setting || "presenter") + ", clean portrait, looking at camera", opts.topic || ""), Math.round(W * 0.5), H); }
+    else { coverImg = await vsFalImage("candid realistic photograph of a professional confident " + (opts.gender === "male" ? "man" : "woman") + ", " + (opts.setting || "clean studio") + ", looking at camera, natural skin, photorealistic, no text", Math.round(W * 0.55), H); }
   } catch (e) {}
 
   for (let i = 0; i < specs.length; i++) {
