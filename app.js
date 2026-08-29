@@ -16278,6 +16278,14 @@ function vsReverseEngineer(prefill) {
          </label>
          <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
        </div>
+       <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
+         <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
+           <span style="font-size:16px">🖼</span>
+           <span id="reCarPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری)" : "Your photo for the cover slide (optional)"}</span>
+           <input id="reCarPhoto" type="file" accept="image/*" style="display:none"/>
+         </label>
+         <button id="reBuildCar" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#0ea5e9);font-weight:800">🖼 ${fa ? "ساختِ کاروسل (اسلایدِ عکس + متن)" : "Build carousel (image + text slides)"}</button>
+       </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
          <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ موشن‌گرافیک در استودیو" : "Build motion video in Studio"}</button>
@@ -16372,27 +16380,32 @@ function vsReverseEngineer(prefill) {
       $$("reOut").style.display = "flex";
       $$("reBuild").style.display = "";
       $$("reThRow").style.display = "flex";
-      // ── ROUTE BY DETECTED FORMAT ─────────────────────────────────────────
-      // slideshow → the Studio motion build is the match; talking_head → fal.
-      const ft = blueprint.formatType === "talking_head" ? "talking_head" : "slideshow";
-      const isTH = ft === "talking_head";
-      const fmt = $$("reFmt");
-      fmt.style.background = isTH ? "rgba(250,204,21,.10)" : "rgba(37,99,255,.10)";
-      fmt.style.border = "1px solid " + (isTH ? "rgba(250,204,21,.32)" : "rgba(91,141,255,.32)");
-      fmt.style.color = isTH ? "#e9d19a" : "#a9c2ff";
-      // If we actually SAW the cover frame, say so and surface mic/captions.
+      $$("reCarRow").style.display = "flex";
+      // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
+      // The model decides which builder matches the reference: a person talking
+      // → talking-head; image slides with text → carousel; footage/motion → video.
+      const vf = String(blueprint.visFormat || "").toLowerCase();
+      let route;
+      if (blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter/.test(vf)) route = "talking_head";
+      else if (/carousel|slide|graphic|infographic|text/.test(vf) || (blueprint.captions && !/broll|footage|montage|video/.test(vf))) route = "carousel";
+      else if (/broll|footage|montage|video/.test(vf)) route = "video";
+      else route = "carousel";   // default for slideshow-type posts = image slides
       const seen = !!blueprint.visFormat;
       const extras = [];
       if (blueprint.mic) extras.push(fa ? "میکروفون" : "mic");
-      if (blueprint.captions) extras.push(fa ? "کپشنِ درشت" : "big captions");
+      if (blueprint.captions) extras.push(fa ? "متنِ درشت" : "big text");
       const extraTxt = extras.length ? (fa ? " (با " : " (with ") + extras.join(fa ? " و " : " + ") + ")" : "";
-      fmt.innerHTML = isTH
-        ? (fa ? `${seen ? "👁️ از روی ویدیو دیده شد" : "🎤 فرمت"}: <b>آدمِ سخنگو${blueprint.mic ? " / پادکست" : ""}</b>${extraTxt} — پیشنهاد: با پرزنتر بساز (عکسِ خودتو هم می‌تونی بدی).` : `${seen ? "👁️ Watched the video" : "🎤 Format"}: <b>${seen ? esc(blueprint.visFormat.replace(/_/g, " ")) : "talking-head"}</b>${extraTxt} — recommended: build with a presenter (you can use your own photo).`)
-        : (fa ? `${seen ? "👁️ از روی ویدیو دیده شد" : "🎞️ فرمت"}: <b>اسلایدشو</b> — پیشنهاد: همون اسلایدشو با دیتای تو.` : `${seen ? "👁️ Watched the video" : "🎞️ Format"}: <b>slideshow</b> — recommended: build the same slideshow with your data.`);
-      // Emphasize the recommended action; keep the other available but muted.
-      $$("reBuild").style.opacity = isTH ? ".6" : "1";
-      $$("reThRow").style.opacity = isTH ? "1" : ".6";
-      $$("reBuild").textContent = "🎬 " + (fa ? "ساختِ اسلایدشو در استودیو" : "Build slideshow in Studio");
+      const seenTag = seen ? (fa ? "👁️ از روی پست دیده شد" : "👁️ Saw the post") : (fa ? "فرمت" : "Format");
+      const routeName = { talking_head: fa ? "آدمِ سخنگو" : "talking-head", carousel: fa ? "کاروسلِ عکس + متن" : "image + text carousel", video: fa ? "ویدیوی اسلایدشو" : "slideshow video" }[route];
+      const fmt = $$("reFmt");
+      const col = route === "talking_head" ? ["rgba(250,204,21,.10)", "rgba(250,204,21,.32)", "#e9d19a"] : route === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,141,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
+      fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
+      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "همینو برات می‌سازم 👇" : "building exactly this for you 👇"}`;
+      // Emphasize the matching builder; keep the others available but muted.
+      $$("reThRow").style.opacity = route === "talking_head" ? "1" : ".55";
+      $$("reCarRow").style.opacity = route === "carousel" ? "1" : ".55";
+      $$("reBuild").style.opacity = route === "video" ? "1" : ".55";
+      $$("reBuild").textContent = "🎬 " + (fa ? "ساختِ ویدیوی اسلایدشو" : "Build slideshow video");
       // remember the reference gender guess to pick a matching face by default
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + ft + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
@@ -16433,6 +16446,29 @@ function vsReverseEngineer(prefill) {
       ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + thPhoto.name.slice(0, 30)
       : (fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak");
   };
+  // Own-photo picker for the carousel cover.
+  let carPhoto = null;
+  $$("reCarPhoto").onchange = (e) => {
+    carPhoto = (e.target.files && e.target.files[0]) || null;
+    $$("reCarPhotoTxt").textContent = carPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + carPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری)" : "Your photo for the cover slide (optional)");
+  };
+  // Build a postable image carousel from the blueprint.
+  $$("reBuildCar").onclick = async () => {
+    const script = ($$("reScript").value || "").trim();
+    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    const b = $$("reBuildCar"); b.disabled = true; const old = b.textContent; b.textContent = "⏳ …";
+    try {
+      await vsBuildCarousel(script, {
+        topic: ($$("rePrompt").value || "").trim(),
+        subtitle: ($$("rePrompt").value || "").trim(),
+        coverTitle: (blueprint && blueprint.caption ? String(blueprint.caption).split(/[.\n!?]/)[0].slice(0, 60) : "") || "",
+        handle: (ref && ref.username) ? "@" + ref.username : "",
+        photo: carPhoto, gender: $$("reThGender") ? $$("reThGender").value : "female",
+        setting: (blueprint && blueprint.setting) || ""
+      });
+    } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
+    b.disabled = false; b.textContent = old;
+  };
   // Build a real TALKING-HEAD clip via fal: TTS → presenter image → lip-sync.
   $$("reBuildTH").onclick = async () => {
     const script = ($$("reScript").value || "").trim();
@@ -16467,6 +16503,150 @@ function vsExtractNarration(script) {
   // Fabric/TTS get costly with length — keep a sane spoken length.
   if (text.length > 900) text = text.slice(0, 900).replace(/\s+\S*$/, "") + ".";
   return text;
+}
+
+// Parse the reverse-engineered script into scenes: {headline, image, narration}.
+function vsParseScriptScenes(script) {
+  const scenes = []; let cur = null;
+  String(script || "").split(/\r?\n/).forEach(l => {
+    const h = l.match(/^\s*(?:\d+[.)]\s*)?(?:scene\s*\d+\s*[:：-]*\s*)?headline\s*[:：]\s*(.+)$/i);
+    const im = l.match(/^\s*(?:image|visual|b-?roll)\s*[:：]\s*(.+)$/i);
+    const na = l.match(/^\s*(?:narration|voice ?over|vo)\s*[:：]\s*(.+)$/i);
+    if (h) { if (cur) scenes.push(cur); cur = { headline: h[1].replace(/^["'“”]+|["'“”]+$/g, "").trim(), image: "", narration: "" }; }
+    else if (im && cur) cur.image = im[1].trim();
+    else if (na && cur) cur.narration = na[1].trim();
+  });
+  if (cur) scenes.push(cur);
+  return scenes.filter(s => s.headline);
+}
+
+// Render ONE branded carousel slide (1080×1350) → JPEG blob. Kinds: cover
+// (photo + big title + subtitle), content (number + heading + body), cta.
+async function vsRenderCarouselSlide(spec, W, H, coverImg) {
+  const T = { bg1: "#0e1830", bg2: "#0a1020", accent: "#cda24a", ink: "#f5f2ea", mut: "#aeb7c7", FAM: '"Archivo", system-ui, sans-serif' };
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
+  const M = W * 0.075;
+  const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, T.bg1); bg.addColorStop(1, T.bg2);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const wrapText = (text, px, maxW, weight) => { ctx.font = `${weight} ${px}px ${T.FAM}`; const ws = String(text || "").split(/\s+/).filter(Boolean); const ls = []; let cur = ""; ws.forEach(w => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { ls.push(cur); cur = w; } else cur = t; }); if (cur) ls.push(cur); return ls; };
+  const houseLogo = (x, y, s) => { ctx.save(); ctx.strokeStyle = T.accent; ctx.lineWidth = Math.max(3, s * 0.05); ctx.lineJoin = "round"; ctx.beginPath(); ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2); ctx.stroke(); const hs = s * 0.5, hx = x + s / 2 - hs / 2, hy = y + s / 2 - hs * 0.32; ctx.beginPath(); ctx.moveTo(hx, hy + hs * 0.55); ctx.lineTo(x + s / 2, hy); ctx.lineTo(hx + hs, hy + hs * 0.55); ctx.stroke(); ctx.strokeRect(hx + hs * 0.14, hy + hs * 0.55, hs * 0.72, hs * 0.48); ctx.restore(); };
+  const drawTitle = (title, x, y, maxW, startPx, maxLines) => {
+    const meta = vsThumbTitleMeta(title); let px = Math.round(startPx), lines = vsThumbWrap(ctx, meta.words, px, maxW, "900", T.FAM);
+    const tooWide = (ls) => { ctx.font = `900 ${px}px ${T.FAM}`; return ls.some(ln => ctx.measureText(ln.map(o => o.w).join(" ")).width > maxW); };
+    while (px > W * 0.045 && (lines.length > maxLines || tooWide(lines))) { px -= 3; lines = vsThumbWrap(ctx, meta.words, px, maxW, "900", T.FAM); }
+    ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `900 ${px}px ${T.FAM}`; const lh = px * 1.04;
+    lines.forEach((ln, li) => { let cx = x; ln.forEach(({ w, i }) => { ctx.fillStyle = (i === meta.emph) ? T.accent : T.ink; ctx.fillText(w, cx, y + li * lh); cx += ctx.measureText(w + " ").width; }); });
+    return y + lines.length * lh;
+  };
+
+  if (spec.kind === "cover") {
+    if (coverImg && (coverImg.naturalWidth || coverImg.width)) {
+      const pw = W * 0.44, px = W - pw, mw = coverImg.naturalWidth || coverImg.width, mh = coverImg.naturalHeight || coverImg.height, cov = Math.max(pw / mw, H / mh);
+      ctx.save(); ctx.beginPath(); ctx.rect(px, 0, pw, H); ctx.clip(); ctx.drawImage(coverImg, px + (pw - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov); ctx.restore();
+      const g = ctx.createLinearGradient(px, 0, px + pw * 0.8, 0); g.addColorStop(0, T.bg1); g.addColorStop(1, "rgba(14,24,48,0)"); ctx.fillStyle = g; ctx.fillRect(px, 0, pw * 0.8, H);
+    }
+    const colW = (coverImg ? W * 0.56 : W - M * 2) - M;
+    let y = H * 0.14; houseLogo(M, y, W * 0.1); y += W * 0.1 + H * 0.025;
+    y = drawTitle(spec.title || "", M, y, colW, W * 0.085, 4) + H * 0.03;
+    if (spec.subtitle) { const spx = Math.round(W * 0.032); ctx.font = `600 ${spx}px ${T.FAM}`; ctx.fillStyle = T.mut; wrapText(spec.subtitle, spx, colW, "600").slice(0, 4).forEach((l, i) => ctx.fillText(l, M, y + i * spx * 1.34)); }
+    ctx.fillStyle = T.accent; ctx.fillRect(M, H * 0.9, W * 0.055, 4);
+    ctx.font = `700 ${Math.round(W * 0.024)}px ${T.FAM}`; ctx.fillStyle = T.mut; ctx.textBaseline = "middle"; ctx.fillText((spec.handle || "").toUpperCase(), M + W * 0.08, H * 0.9 + 2);
+  } else if (spec.kind === "content") {
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.font = `900 ${Math.round(W * 0.12)}px ${T.FAM}`; ctx.fillStyle = "rgba(205,162,74,0.20)"; ctx.fillText(spec.n, M, H * 0.09);
+    ctx.font = `800 ${Math.round(W * 0.026)}px ${T.FAM}`; ctx.fillStyle = T.accent; ctx.fillText((spec.handle || "AI RADAR").toUpperCase(), M, H * 0.09 + W * 0.12 * 0.12);
+    let y = H * 0.30;
+    const hpx = Math.round(W * 0.06); ctx.font = `900 ${hpx}px ${T.FAM}`; ctx.fillStyle = T.ink;
+    const hl = wrapText(spec.heading, hpx, W - M * 2, "900").slice(0, 3); hl.forEach((l, i) => ctx.fillText(l.toUpperCase(), M, y + i * hpx * 1.06)); y += hl.length * hpx * 1.06 + H * 0.03;
+    ctx.fillStyle = T.accent; ctx.fillRect(M, y, W * 0.12, 5); y += H * 0.035;
+    if (spec.body) { const bpx = Math.round(W * 0.035); ctx.font = `500 ${bpx}px ${T.FAM}`; ctx.fillStyle = T.mut; wrapText(spec.body, bpx, W - M * 2, "500").slice(0, 8).forEach((l, i) => ctx.fillText(l, M, y + i * bpx * 1.42)); }
+    ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.font = `600 ${Math.round(W * 0.022)}px ${T.FAM}`; const sw = "swipe →"; ctx.fillText(sw, W - M - ctx.measureText(sw).width, H * 0.92);
+  } else {
+    houseLogo(W / 2 - W * 0.06, H * 0.28, W * 0.12);
+    const endY = drawTitle(spec.title || "FOLLOW FOR MORE", M, H * 0.44, W - M * 2, W * 0.085, 4);
+    ctx.textAlign = "left"; ctx.fillStyle = T.accent; ctx.font = `800 ${Math.round(W * 0.03)}px ${T.FAM}`; ctx.fillText((spec.handle || "").toUpperCase(), M, endY + H * 0.03);
+  }
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+}
+
+// Build a postable branded CAROUSEL from the blueprint: a cover slide + one
+// content slide per scene + a CTA (1080×1350). Free (our image gen + canvas).
+async function vsBuildCarousel(script, opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  let scenes = vsParseScriptScenes(script);
+  if (!scenes.length) scenes = (opts.structure || []).map(s => ({ headline: String(s).slice(0, 70), narration: "" }));
+  if (!scenes.length) { vsStatus(fa ? "صحنه‌ای برای اسلاید پیدا نشد." : "No scenes found for slides."); return; }
+  const W = 1080, H = 1350, handle = opts.handle || "";
+  // Cover title: an explicit hook if given, else the first scene (then dropped
+  // from the content list so it isn't repeated).
+  const coverTitle = opts.coverTitle || scenes[0].headline;
+  const content = (opts.coverTitle ? scenes : scenes.slice(1)).slice(0, 5);
+  const specs = [{ kind: "cover", title: coverTitle, subtitle: opts.subtitle || opts.topic || "", handle }];
+  content.forEach((s, i) => specs.push({ kind: "content", n: String(i + 1).padStart(2, "0"), heading: s.headline, body: s.narration, handle }));
+  specs.push({ kind: "cta", title: opts.cta || (fa ? "برای اطلاعات بیشتر پیام بده" : "Message me to get started"), handle });
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:16px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML =
+    `<div style="width:min(700px,97vw);max-height:94vh;overflow:auto;background:#14121a;border:1px solid rgba(37,99,255,.28);border-radius:16px;padding:20px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px"><span style="font-size:20px">🖼</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#efe9dc">${fa ? "کاروسل — اسلایدهای عکس + متن" : "Carousel — image + text slides"}</span></div>
+       <div style="font-size:12px;color:#9a938a;margin-bottom:12px">${fa ? `${specs.length} اسلاید ۱۰۸۰×۱۳۵۰ — قابلِ پست در کاروسل` : `${specs.length} slides at 1080×1350 — postable carousel`}</div>
+       <div id="carGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px"></div>
+       <div style="display:flex;gap:9px;margin-top:14px">
+         <button id="carClose" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+         <button id="carZip" type="button" style="display:none;flex:1.4;font:inherit;font-weight:800;padding:11px;border-radius:11px;cursor:pointer;color:#e9d7ad;background:rgba(201,162,74,.14);border:1px solid rgba(201,162,74,.5)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
+       </div>
+     </div>`;
+  document.body.appendChild(ov);
+  const grid = ov.querySelector("#carGrid");
+  const urls = [], results = [];
+  const close = () => { try { ov.remove(); } catch (e) {} urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
+  ov.querySelector("#carClose").onclick = close;
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  const spin = `<div style="aspect-ratio:${W}/${H};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px"><div style="width:26px;height:26px;border:3px solid rgba(255,255,255,.15);border-top-color:#3b82f6;border-radius:50%;animation:vsspin .8s linear infinite"></div></div>`;
+
+  const cells = specs.map(() => { const c = document.createElement("div"); c.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px"; c.innerHTML = spin; grid.appendChild(c); return c; });
+
+  // Cover photo (once): the user's uploaded photo, else a generated presenter.
+  let coverImg = null;
+  try {
+    if (opts.photo) { coverImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = URL.createObjectURL(opts.photo); }); }
+    else { coverImg = await vsEdLoadImage(vsEditorialImagePrompt("professional confident " + (opts.gender === "male" ? "man" : "woman") + " " + (opts.setting || "presenter") + ", clean portrait, looking at camera", opts.topic || ""), Math.round(W * 0.5), H); }
+  } catch (e) {}
+
+  for (let i = 0; i < specs.length; i++) {
+    const cell = cells[i];
+    let blob = null;
+    try { blob = await vsRenderCarouselSlide(specs[i], W, H, specs[i].kind === "cover" ? coverImg : null); } catch (e) {}
+    if (blob) {
+      const u = URL.createObjectURL(blob); urls.push(u);
+      const name = "slide-" + (i + 1) + ".jpg";
+      results.push({ blob, name });
+      cell.innerHTML =
+        `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
+         <a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:7px;border-radius:8px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">⬇ ${fa ? "اسلاید" : "slide"} ${i + 1}</a>`;
+    } else {
+      cell.innerHTML = `<div style="aspect-ratio:${W}/${H};display:flex;align-items:center;justify-content:center;background:#1a1016;border-radius:6px;color:#c88;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
+    }
+  }
+  vsTrackGen("carousel", "local", "slides:" + results.length);
+  const zip = ov.querySelector("#carZip");
+  if (results.length) {
+    zip.style.display = "";
+    zip.onclick = async () => {
+      const old = zip.textContent; zip.disabled = true; zip.textContent = "⏳ …";
+      try {
+        const JSZip = await vsLoadJSZip(); const z = new JSZip();
+        results.forEach(r => z.file(r.name, r.blob));
+        const b = await z.generateAsync({ type: "blob" }); const u = URL.createObjectURL(b);
+        const a = document.createElement("a"); a.href = u; a.download = "carousel.zip"; a.click();
+        setTimeout(() => URL.revokeObjectURL(u), 2000);
+      } catch (e) { vsStatus(fa ? "بسته‌بندی ناموفق — اسلایدها را جدا دانلود کن." : "Zip failed — download slides individually."); }
+      zip.disabled = false; zip.textContent = old;
+    };
+  }
 }
 
 // Orchestrate the fal talking-head pipeline with a live progress overlay.
