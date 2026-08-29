@@ -15935,7 +15935,12 @@ async function vsReverseFetchPost(url) {
   // of the page's captions for a true "analyze all posts" read.
   const isProfile = !/\/(p|reel|reels|tv)\//i.test(clean);
   const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "", isProfile };
-  const grab = async (u) => { try { const r = await fetch(u); if (!r.ok) return ""; return await r.text(); } catch (e) { return ""; } };
+  const grab = async (u) => {
+    // Time-boxed so one slow/blocked reader can't hang the whole chain.
+    const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000);
+    try { const r = await fetch(u, { signal: ctrl.signal }); if (!r.ok) return ""; return await r.text(); }
+    catch (e) { return ""; } finally { clearTimeout(tm); }
+  };
   // Instagram serves a LOGIN WALL to bots (and Jina renders it as markdown), so
   // the "caption" we scrape is often just that boilerplate. Detect it and treat
   // it as a failed read rather than feeding garbage into the reverse-engineer.
@@ -15985,24 +15990,42 @@ async function vsReverseFetchPost(url) {
     if (cm) { try { cap = JSON.parse('"' + cm[1] + '"'); } catch (e) { cap = cm[1]; } }
     if (!cap) { const dm = html.match(/class="Caption"[^>]*>([\s\S]*?)<\/div>/i); if (dm) cap = dm[1].replace(/<[^>]+>/g, " "); }
     res.caption = vsReDecode(cap.replace(/\s+/g, " ")).trim();
-    const im = html.match(/(https:\/\/[^"')]*cdninstagram[^"')]*)/i); if (im) res.thumb = im[1];
+    // The real cover is an og:image / scontent-* media URL — NOT a static
+    // rsrc.php UI sprite (which the naive "first cdninstagram url" match grabbed).
+    const im = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+      || html.match(/"display_url"\s*:\s*"((?:\\.|[^"\\])+)"/)
+      || html.match(/(https:\/\/[^"')\s]*scontent[^"')\s]*cdninstagram[^"')\s]*)/i);
+    if (im) { let u = im[1]; try { u = JSON.parse('"' + u + '"'); } catch (e) {} res.thumb = u.replace(/\\u0026|&amp;/g, "&"); }
     return res;
   };
   if (shortcode) {
     const embedUrl = "https://www.instagram.com/p/" + shortcode + "/embed/captioned/";
-    // Reader chain — resilient to any one reader being rate-limited (Jina's free
-    // tier globally blocks instagram.com during abuse spikes; allorigins/worker fill in).
+    // 1) Worker /insta first — server-side (no browser CORS) and it tries the
+    //    embed + allorigins itself, so it survives Jina's rate-limit windows.
+    try {
+      const ij = await grab("https://airadar-ai.aliniashyn-9b4.workers.dev/insta?url=" + encodeURIComponent(clean));
+      const j = ij ? JSON.parse(ij) : null;
+      const c = j && j.posts && j.posts[0] && j.posts[0].caption;
+      if (c && !isJunk(c)) { out.caption = c.slice(0, 1200); out.username = j.username || out.username; if (j.posts[0].thumb) out.thumb = j.posts[0].thumb; }
+    } catch (e) {}
+    // 2) Reader chain fallback — Jina works from the browser; allorigins/corsproxy
+    //    may CORS-fail client-side but are cheap to try.
     const readers = [
       { u: "https://r.jina.ai/" + embedUrl, html: false },
       { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(embedUrl), html: true },
       { u: "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=" + encodeURIComponent(embedUrl), html: true },
       { u: "https://corsproxy.io/?url=" + encodeURIComponent(embedUrl), html: true }
     ];
-    for (const rd of readers) {
+    // Run the readers when EITHER the caption or the thumbnail is still missing —
+    // /insta gives the caption fast but no cover image; Jina's markdown carries the
+    // cover URL that the vision step needs.
+    if (!out.caption || !out.thumb) for (const rd of readers) {
       const t = await grab(rd.u);
       if (!t || t.length < 40) continue;
       const p = rd.html ? parseEmbedHtml(t) : parseEmbed(t);
-      if (p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; out.thumb = p.thumb || out.thumb; break; }
+      if (!out.caption && p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; }
+      if (!out.thumb && p.thumb) out.thumb = p.thumb;
+      if (out.caption && out.thumb) break;
     }
   }
   // Fallback for anything the embed missed: og:description via our worker (works
@@ -17426,7 +17449,20 @@ function bindEvents() {
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
   on("#vsCoverBtn", "click", () => { try { vsThumbStudio(); } catch (e) {} });
-  on("#vsReverseBtn", "click", () => { try { vsReverseEngineer(); } catch (e) {} });
+  // Reverse Engineer is gated behind a "SOON" lock until it's finalized.
+  // To UNLOCK: set window.VS_REVERSE_SOON = false (or delete this flag).
+  if (typeof window.VS_REVERSE_SOON === "undefined") window.VS_REVERSE_SOON = true;
+  (function () {
+    const btn = $("#vsReverseBtn");
+    if (btn && window.VS_REVERSE_SOON && !btn.querySelector(".vs-soon")) {
+      btn.insertAdjacentHTML("beforeend", ' <span class="vs-soon" style="font-size:10px;font-weight:800;letter-spacing:.06em;background:rgba(255,255,255,.14);color:#fff;padding:2px 7px;border-radius:20px;vertical-align:middle;margin-inline-start:6px">SOON</span>');
+      btn.style.opacity = ".72"; btn.style.cursor = "not-allowed";
+    }
+  })();
+  on("#vsReverseBtn", "click", () => {
+    if (window.VS_REVERSE_SOON) { vsStatus(state.lang === "fa" ? "🧬 «Reverse Engineer» به‌زودی فعال می‌شود…" : "🧬 Reverse Engineer is coming soon…"); return; }
+    try { vsReverseEngineer(); } catch (e) {}
+  });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
