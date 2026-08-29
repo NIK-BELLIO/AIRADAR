@@ -15952,37 +15952,59 @@ async function vsReverseFetchPost(url) {
     .replace(/[*_>#`]+/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=";
-  let html = await grab(WB + encodeURIComponent(clean));
-  const metaOf = (prop) => {
-    if (!html) return "";
-    let m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]*content=["\']([^"\']*)["\']', "i"));
-    if (!m) m = html.match(new RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']' + prop + '["\']', "i"));
-    return m ? vsReDecode(m[1]) : "";
+  // ── POST / REEL: the WINNING free path ──────────────────────────────────
+  // Instagram serves bots a login wall on the normal post page, but the
+  // /embed/captioned/ page rendered through Jina's headless reader exposes the
+  // real caption (handle, likes, full text). This reads public posts reliably.
+  const shortcode = (clean.match(/\/(?:p|reel|reels|tv)\/([^\/?#]+)/i) || [])[1];
+  const parseEmbed = (raw) => {
+    const res = { caption: "", username: "", thumb: "" };
+    if (!raw) return res;
+    const tm = raw.match(/\((https:\/\/[^)]*cdninstagram[^)]*)\)/i); if (tm) res.thumb = tm[1];
+    const md = demark(raw);          // collapses to a single clean line
+    const um = md.match(/([A-Za-z0-9._]{2,30})\s+_?Verified_?/i) || md.match(/([A-Za-z0-9._]{2,30})\s+\d[\d,.KMB]*\s*posts/i);
+    if (um) res.username = um[1];
+    // caption sits after "<N> likes <handle>" and runs to the comment box.
+    let cap = "";
+    const cm = md.match(/\d[\d,.KMB]*\s*(?:likes?|views?)\s+([A-Za-z0-9._]{2,30})\s+([\s\S]*?)(?:Add a comment|View all|View more on Instagram|_Instagram_|$)/i);
+    if (cm) { if (!res.username) res.username = cm[1]; cap = cm[2]; }
+    if (!cap) { const ac = md.indexOf("Add a comment"); if (ac > 30) cap = md.slice(Math.max(0, ac - 500), ac); }
+    cap = cap.replace(/\b_?(Like|Comment|Share|Save|Verified)_?\b/g, " ").replace(/View profile/gi, " ").replace(/\s{2,}/g, " ").trim();
+    // the handle often repeats at the very start of the caption block — drop it.
+    if (res.username) cap = cap.replace(new RegExp("^(?:" + res.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+)+", "i"), "").trim();
+    res.caption = cap;
+    return res;
   };
-  if (html) {
-    out.thumb = metaOf("og:image");
-    const ogTitle = metaOf("og:title");
-    let desc = metaOf("og:description") || metaOf("description");
-    // IG description looks like: "12K likes, 340 comments - username on DATE: "caption"."
-    const um = desc.match(/-\s*([A-Za-z0-9._]+)\s+on\s/i) || ogTitle.match(/^([A-Za-z0-9._]+)\s+on\s+Instagram/i);
-    if (um) out.username = um[1];
-    let cap = desc
-      .replace(/^[\d.,KMB]+\s*likes?,?\s*[\d.,KMB]*\s*comments?\s*-\s*/i, "")
-      .replace(/^.*?\bon\b\s+[A-Za-z0-9 ,]+?:\s*/i, "")
-      .replace(/^["“”']+|["“”'.]+$/g, "")
-      .trim();
-    if (cap.length < 4 && ogTitle && !/on Instagram/i.test(ogTitle)) cap = ogTitle;
-    cap = demark(cap);
-    if (!isJunk(cap)) out.caption = cap;
+  if (shortcode) {
+    const jt = await grab("https://r.jina.ai/https://www.instagram.com/p/" + shortcode + "/embed/captioned/");
+    const p = parseEmbed(jt);
+    if (p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; out.thumb = p.thumb || out.thumb; }
   }
-  // Fallback: Jina reader sometimes renders the caption when meta is thin — but
-  // for a login-walled page it renders the login form, so junk-check it hard.
-  if (out.caption.length < 8) {
-    const jt = await grab("https://r.jina.ai/" + clean);
-    if (jt && jt.length > 40) {
-      const body = demark(jt.replace(/^\s*Title:.*$/im, "").replace(/^\s*URL Source:.*$/im, "")).slice(0, 600);
-      if (!isJunk(body)) out.caption = body;
+  // Fallback for anything the embed missed: og:description via our worker (works
+  // for a few posts; profiles stay login-walled → user pastes captions).
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=";
+  if (!out.caption) {
+    const html = await grab(WB + encodeURIComponent(clean));
+    const metaOf = (prop) => {
+      if (!html) return "";
+      let m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]*content=["\']([^"\']*)["\']', "i"));
+      if (!m) m = html.match(new RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']' + prop + '["\']', "i"));
+      return m ? vsReDecode(m[1]) : "";
+    };
+    if (html) {
+      if (!out.thumb) out.thumb = metaOf("og:image");
+      const ogTitle = metaOf("og:title");
+      let desc = metaOf("og:description") || metaOf("description");
+      const um = desc.match(/-\s*([A-Za-z0-9._]+)\s+on\s/i) || ogTitle.match(/^([A-Za-z0-9._]+)\s+on\s+Instagram/i);
+      if (um && !out.username) out.username = um[1];
+      let cap = desc
+        .replace(/^[\d.,KMB]+\s*likes?,?\s*[\d.,KMB]*\s*comments?\s*-\s*/i, "")
+        .replace(/^.*?\bon\b\s+[A-Za-z0-9 ,]+?:\s*/i, "")
+        .replace(/^["“”']+|["“”'.]+$/g, "")
+        .trim();
+      if (cap.length < 4 && ogTitle && !/on Instagram/i.test(ogTitle)) cap = ogTitle;
+      cap = demark(cap);
+      if (!isJunk(cap)) out.caption = cap;
     }
   }
   if (isJunk(out.caption)) out.caption = "";
