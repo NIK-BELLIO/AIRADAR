@@ -16177,9 +16177,27 @@ function vsReverseEngineer(prefill) {
          </div>
        </div>
 
+       <div id="reThRow" style="display:none;flex-direction:column;gap:8px">
+         <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+           <span class="lbl">${fa ? "پرزنترِ سخنگو" : "Talking-head presenter"}</span>
+           <select id="reThVoice" style="min-width:120px">
+             <option value="af_heart">${fa ? "زن — گرم" : "Female — warm"}</option>
+             <option value="af_bella">${fa ? "زن — روشن" : "Female — bright"}</option>
+             <option value="am_michael">${fa ? "مرد — پخته" : "Male — mature"}</option>
+             <option value="am_adam">${fa ? "مرد — رسا" : "Male — clear"}</option>
+           </select>
+           <select id="reThGender" style="min-width:110px">
+             <option value="female">${fa ? "چهرهٔ زن" : "Female face"}</option>
+             <option value="male">${fa ? "چهرهٔ مرد" : "Male face"}</option>
+           </select>
+           <span style="flex:1"></span>
+           <span style="font-size:11px;color:#8a8578">${fa ? "≈ $۰.۰۸ برای هر ثانیه (fal)" : "≈ $0.08 / sec (fal)"}</span>
+         </div>
+         <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو» (fal)" : "Build as talking-head (fal)"}</button>
+       </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساخت ویدیو در استودیو" : "Build video in Studio"}</button>
+         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ موشن‌گرافیک در استودیو" : "Build motion video in Studio"}</button>
        </div>
      </div>`;
   document.body.appendChild(ov);
@@ -16259,6 +16277,9 @@ function vsReverseEngineer(prefill) {
       $$("reCaption").textContent = String(blueprint.caption || "");
       $$("reOut").style.display = "flex";
       $$("reBuild").style.display = "";
+      $$("reThRow").style.display = "flex";
+      // remember the reference gender guess to pick a matching face by default
+      try { const g = /\b(she|her|woman|female|mom|mother|lady|girl)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
@@ -16289,7 +16310,127 @@ function vsReverseEngineer(prefill) {
     try { buildAutoVideo(true); } catch (e) {}
   };
 
+  // Build a real TALKING-HEAD clip via fal: TTS → presenter image → lip-sync.
+  $$("reBuildTH").onclick = async () => {
+    const script = ($$("reScript").value || "").trim();
+    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    const voice = $$("reThVoice").value, gender = $$("reThGender").value;
+    const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value }); }
+    catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
+    b.disabled = false; b.textContent = old;
+  };
+
   setTimeout(() => { try { $$("reUrl").focus(); } catch (e) {} }, 50);
+}
+
+// Pull just the spoken words out of the reverse-engineered script (the lines the
+// presenter should say) — dropping HEADLINE/IMAGE stage directions and scene tags.
+function vsExtractNarration(script) {
+  const lines = String(script || "").split(/\r?\n/);
+  // Preferred: explicit NARRATION/VO lines only (drop the director's brief + visuals).
+  const tagged = [];
+  lines.forEach(l => { const m = l.match(/^\s*(?:narration|voice ?over|vo|say|script)\s*[:：]\s*(.+)$/i); if (m) tagged.push(m[1].trim()); });
+  let out = tagged;
+  if (!out.length) {
+    // No tags — keep prose, dropping stage-direction / scene-header lines.
+    out = lines.filter(l => {
+      if (/^\s*(?:headline|image|visual|on[- ]?screen|scene|shot|b-?roll|text|caption|cta|title|tone|pacing|format)\s*[:：]/i.test(l)) return false;
+      if (/^\s*(?:scene\s*\d+|#{1,3}\s|\d+[.)]\s)/i.test(l) && l.length < 70) return false;
+      return l.trim().length > 0;
+    }).map(l => l.trim());
+  }
+  let text = (out.join(" ") || script).replace(/https?:\/\/\S+/g, "").replace(/[*_#>`"\[\]]+/g, " ").replace(/\s{2,}/g, " ").trim();
+  // Fabric/TTS get costly with length — keep a sane spoken length.
+  if (text.length > 900) text = text.slice(0, 900).replace(/\s+\S*$/, "") + ".";
+  return text;
+}
+
+// Orchestrate the fal talking-head pipeline with a live progress overlay.
+async function vsBuildTalkingHead(script, opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const narration = vsExtractNarration(script);
+  if (!narration || narration.length < 6) throw new Error(fa ? "متنِ گفتاری پیدا نشد" : "no narration found");
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML =
+    `<div style="width:min(540px,96vw);background:#121016;border:1px solid rgba(250,204,21,.28);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:20px">🎤</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#efe9dc">${fa ? "ساختِ آدمِ سخنگو" : "Building talking-head"}</span></div>
+       <div id="thSteps" style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#cfc8ba"></div>
+       <div id="thResult" style="margin-top:14px"></div>
+       <button id="thClose" type="button" style="margin-top:16px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+     </div>`;
+  document.body.appendChild(ov);
+  const steps = ov.querySelector("#thSteps"), result = ov.querySelector("#thResult");
+  let closed = false;
+  ov.querySelector("#thClose").onclick = () => { closed = true; try { ov.remove(); } catch (e) {} };
+  const stepEls = {};
+  const S = (fa
+    ? { voice: "۱) نوشتنِ صدا (گفتار)", face: "۲) ساختِ چهرهٔ پرزنتر", sync: "۳) هماهنگیِ لب و صدا (~۱ دقیقه)" }
+    : { voice: "1) Writing the voice", face: "2) Creating the presenter", sync: "3) Lip-syncing (~1 min)" });
+  Object.keys(S).forEach(k => {
+    const row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:10px";
+    row.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center">◦</span><span>${S[k]}</span>`;
+    steps.appendChild(row); stepEls[k] = row.querySelector(".ic");
+  });
+  const setStep = (k, st) => {
+    const el = stepEls[k]; if (!el) return;
+    if (st === "run") el.innerHTML = `<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>`;
+    else if (st === "done") { el.textContent = "✓"; el.style.color = "#4ade80"; }
+    else if (st === "err") { el.textContent = "✕"; el.style.color = "#f87171"; }
+  };
+  const post = async (path, body) => {
+    const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t;
+  };
+
+  // 1) Voice
+  setStep("voice", "run");
+  const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
+  const audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) { setStep("voice", "err"); throw new Error("TTS failed"); }
+  setStep("voice", "done");
+  // audio duration → cost estimate
+  let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
+  if (dur) { const cost = (dur * 0.08).toFixed(2); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#8a8578;margin-top:2px"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · هزینهٔ تقریبی ~$${cost}` : `voice ~${Math.round(dur)}s · est. ~$${cost}`); steps.appendChild(note); }
+
+  // 2) Presenter face (our free image gen, hosted URL fal can fetch)
+  setStep("face", "run");
+  const facePrompt = (opts.gender === "male"
+    ? "photorealistic upper-body portrait of a friendly professional male presenter, plain studio background, facing camera, neutral expression, soft lighting, sharp focus"
+    : "photorealistic upper-body portrait of a friendly professional female presenter, plain studio background, facing camera, neutral expression, soft lighting, sharp focus");
+  const imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
+  setStep("face", "done");
+
+  // 3) Lip-sync via fal queue
+  setStep("sync", "run");
+  const sub = await post("/fal/submit", { model: "veed/fabric-1.0", input: { image_url: imageUrl, audio_url: audioUrl, resolution: "480p" } });
+  const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+  if (!statusUrl) { setStep("sync", "err"); throw new Error("submit failed"); }
+  const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+  let videoUrl = null;
+  for (let i = 0; i < 90 && !closed; i++) {
+    await new Promise(r => setTimeout(r, 4000));
+    let st = "?"; try { const j = await (await fetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
+    if (st === "COMPLETED") { try { const j = await (await fetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
+    if (st === "FAILED" || st === "ERROR") break;
+  }
+  if (closed) return;
+  if (!videoUrl) { setStep("sync", "err"); throw new Error(fa ? "هماهنگی ناموفق بود" : "lip-sync failed"); }
+  setStep("sync", "done");
+
+  // Deliver: preview + download + save to dashboard
+  let blob = null; try { blob = await (await fetch(videoUrl)).blob(); } catch (e) {}
+  const dlUrl = blob ? URL.createObjectURL(blob) : videoUrl;
+  result.innerHTML =
+    `<video src="${dlUrl}" controls autoplay muted playsinline style="width:100%;border-radius:10px;background:#000"></video>
+     <a href="${dlUrl}" download="talking-head.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+  vsTrackGen("talkinghead", "veed/fabric-1.0+kokoro", "dur:" + Math.round(dur) + "s voice:" + (opts.voice || "af_heart"));
+  try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "talking-head"); } catch (e) {}
+  vsStatus(fa ? "✅ ویدیوی آدمِ سخنگو آماده شد." : "✅ Talking-head video ready.");
 }
 
 // A small loading popup shown WHILE the thumbnail is being generated (distinct
