@@ -16199,7 +16199,12 @@ function vsReverseEngineer(prefill) {
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
-         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط) — بهترین حالت برای تحلیل کل صفحه" : "…or paste one or several posts' captions (one per line) — best way to analyze a whole page"}</summary>
+         <label id="reUploadLbl" style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:#cfc8ba;background:rgba(168,85,247,.07);border:1px dashed rgba(168,85,247,.35);border-radius:10px;padding:10px 12px;cursor:pointer">
+           <span style="font-size:17px">🖼🎬</span>
+           <span id="reUploadTxt">${fa ? "یا عکس/ویدیوی خودِ پست را آپلود کن — مستقیم تحلیلش می‌کنم" : "…or upload the post's image/video — I'll analyze it directly"}</span>
+           <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
+         </label>
+         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط)" : "…or paste one or several posts' captions (one per line)"}</summary>
            <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}" style="margin-top:8px"></textarea>
          </details>
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
@@ -16336,6 +16341,29 @@ function vsReverseEngineer(prefill) {
     b.disabled = false; b.textContent = old;
   };
 
+  // Upload the POST's own image/video → analyze it directly (no IG fetch needed).
+  $$("reUpload").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const lbl = $$("reUploadTxt"); const old = lbl.textContent;
+    lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
+    try {
+      let imgBlob = file;
+      if (/^video\//.test(file.type)) { imgBlob = await vsVideoFirstFrame(file); if (!imgBlob) throw new Error(fa ? "فریمِ ویدیو گرفته نشد" : "couldn't read a video frame"); }
+      const up = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/fal/upload", { method: "POST", headers: { "Content-Type": imgBlob.type || "image/jpeg" }, body: imgBlob });
+      const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error(uj.error || "upload failed");
+      const vision = await vsVisionAnalyze(uj.file_url);
+      const parts = [];
+      if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: uj.file_url, username: "", hashtags: [], vision, uploaded: true, isProfile: false };
+      const card = $$("reRefCard"); card.style.display = "flex";
+      const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
+      card.innerHTML = `<img src="${esc(uj.file_url)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none"/>
+        <div style="flex:1;min-width:0"><div style="font-weight:800;color:#efe9dc;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
+        <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div></div>`;
+    } catch (err) { $$("reRefCard").style.display = "flex"; $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
+    lbl.textContent = old; e.target.value = "";
+  };
+
   // Reverse-engineer + generate the blueprint.
   $$("reGo").onclick = async () => {
     const prompt = ($$("rePrompt").value || "").trim();
@@ -16354,8 +16382,8 @@ function vsReverseEngineer(prefill) {
       // ── REAL-VIDEO ANALYSIS: "watch" the cover frame and let it OVERRIDE the
       // text-only guess (podcast? mic? burned captions? environment?). ──────────
       if (ref && ref.thumb) {
-        go.textContent = "👁️ " + (fa ? "در حال دیدنِ ویدیو…" : "Watching the video…");
-        const vis = await vsVisionAnalyze(ref.thumb);
+        go.textContent = "👁️ " + (fa ? "در حال دیدنِ پست…" : "Watching the post…");
+        const vis = ref.vision || await vsVisionAnalyze(ref.thumb);   // reuse upload's analysis
         if (vis) {
           if (vis.format) blueprint.formatType = /podcast|talking|selfie|presenter/i.test(vis.format) ? "talking_head" : "slideshow";
           if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
@@ -16503,6 +16531,27 @@ function vsExtractNarration(script) {
   // Fabric/TTS get costly with length — keep a sane spoken length.
   if (text.length > 900) text = text.slice(0, 900).replace(/\s+\S*$/, "") + ".";
   return text;
+}
+
+// Grab a representative frame from an uploaded video → JPEG blob (for vision).
+async function vsVideoFirstFrame(file) {
+  return new Promise((resolve) => {
+    try {
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "metadata";
+      const url = URL.createObjectURL(file);
+      v.onloadedmetadata = () => { try { v.currentTime = Math.min(1.2, (v.duration || 2) * 0.3); } catch (e) { resolve(null); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas"); c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+          c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(b => { try { URL.revokeObjectURL(url); } catch (e) {} resolve(b); }, "image/jpeg", 0.9);
+        } catch (e) { resolve(null); }
+      };
+      v.onerror = () => resolve(null);
+      v.src = url;
+    } catch (e) { resolve(null); }
+  });
 }
 
 // Generate a realistic image on fal (FLUX-dev) and load it UNTAINTED (via our
