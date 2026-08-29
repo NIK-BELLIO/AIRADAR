@@ -15975,10 +15975,35 @@ async function vsReverseFetchPost(url) {
     res.caption = cap;
     return res;
   };
+  // Parse the RAW embed HTML (when a reader returns HTML rather than Jina markdown).
+  const parseEmbedHtml = (html) => {
+    const res = { caption: "", username: "", thumb: "" };
+    if (!html) return res;
+    const um = html.match(/class="UsernameText"[^>]*>([^<]+)</i); if (um) res.username = um[1].trim();
+    let cap = "";
+    const cm = html.match(/"edge_media_to_caption"[\s\S]*?"text"\s*:\s*"((?:\\.|[^"\\])*)"/);
+    if (cm) { try { cap = JSON.parse('"' + cm[1] + '"'); } catch (e) { cap = cm[1]; } }
+    if (!cap) { const dm = html.match(/class="Caption"[^>]*>([\s\S]*?)<\/div>/i); if (dm) cap = dm[1].replace(/<[^>]+>/g, " "); }
+    res.caption = vsReDecode(cap.replace(/\s+/g, " ")).trim();
+    const im = html.match(/(https:\/\/[^"')]*cdninstagram[^"')]*)/i); if (im) res.thumb = im[1];
+    return res;
+  };
   if (shortcode) {
-    const jt = await grab("https://r.jina.ai/https://www.instagram.com/p/" + shortcode + "/embed/captioned/");
-    const p = parseEmbed(jt);
-    if (p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; out.thumb = p.thumb || out.thumb; }
+    const embedUrl = "https://www.instagram.com/p/" + shortcode + "/embed/captioned/";
+    // Reader chain — resilient to any one reader being rate-limited (Jina's free
+    // tier globally blocks instagram.com during abuse spikes; allorigins/worker fill in).
+    const readers = [
+      { u: "https://r.jina.ai/" + embedUrl, html: false },
+      { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(embedUrl), html: true },
+      { u: "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=" + encodeURIComponent(embedUrl), html: true },
+      { u: "https://corsproxy.io/?url=" + encodeURIComponent(embedUrl), html: true }
+    ];
+    for (const rd of readers) {
+      const t = await grab(rd.u);
+      if (!t || t.length < 40) continue;
+      const p = rd.html ? parseEmbedHtml(t) : parseEmbed(t);
+      if (p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; out.thumb = p.thumb || out.thumb; break; }
+    }
   }
   // Fallback for anything the embed missed: og:description via our worker (works
   // for a few posts; profiles stay login-walled → user pastes captions).
@@ -16013,6 +16038,18 @@ async function vsReverseFetchPost(url) {
   // behind a login wall) is not enough — fail honestly so the user pastes text.
   out.ok = out.caption.length >= 12;
   return out;
+}
+
+// "See" the post's cover frame with a vision model → { format, mic, captions,
+// setting, subject }. This is how we know it's a podcast / has burned captions /
+// what the environment is — things the caption text alone can't tell us.
+async function vsVisionAnalyze(imgUrl) {
+  if (!imgUrl) return null;
+  try {
+    const r = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/vision?fal=1&img=" + encodeURIComponent(imgUrl));
+    const d = await r.json();
+    return (d && d.ok) ? d : null;
+  } catch (e) { return null; }
 }
 
 // One AI pass: extract the reference's style DNA and write a NEW blueprint in
@@ -16283,6 +16320,17 @@ function vsReverseEngineer(prefill) {
       // A transient empty AI response yields no usable script — surface a retry
       // rather than an empty blueprint with a dead Build button.
       if (!blueprint || !String(blueprint.script || "").trim()) throw new Error("empty blueprint");
+      // ── REAL-VIDEO ANALYSIS: "watch" the cover frame and let it OVERRIDE the
+      // text-only guess (podcast? mic? burned captions? environment?). ──────────
+      if (ref && ref.thumb) {
+        go.textContent = "👁️ " + (fa ? "در حال دیدنِ ویدیو…" : "Watching the video…");
+        const vis = await vsVisionAnalyze(ref.thumb);
+        if (vis) {
+          if (vis.format) blueprint.formatType = /podcast|talking|selfie|presenter/i.test(vis.format) ? "talking_head" : "slideshow";
+          if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
+          blueprint.mic = !!vis.mic; blueprint.captions = !!vis.captions; blueprint.visFormat = vis.format || "";
+        }
+      }
       const dna = (blueprint && blueprint.styleDNA) || {};
       const dnaLabels = fa
         ? { tone: "لحن", voice: "زاویهٔ روایت", hook: "هوک", pacing: "ریتم", format: "فرمت", emoji: "ایموجی", hashtags: "هشتگ", audience: "مخاطب" }
@@ -16309,9 +16357,15 @@ function vsReverseEngineer(prefill) {
       fmt.style.background = isTH ? "rgba(250,204,21,.10)" : "rgba(37,99,255,.10)";
       fmt.style.border = "1px solid " + (isTH ? "rgba(250,204,21,.32)" : "rgba(91,141,255,.32)");
       fmt.style.color = isTH ? "#e9d19a" : "#a9c2ff";
+      // If we actually SAW the cover frame, say so and surface mic/captions.
+      const seen = !!blueprint.visFormat;
+      const extras = [];
+      if (blueprint.mic) extras.push(fa ? "میکروفون" : "mic");
+      if (blueprint.captions) extras.push(fa ? "کپشنِ درشت" : "big captions");
+      const extraTxt = extras.length ? (fa ? " (با " : " (with ") + extras.join(fa ? " و " : " + ") + ")" : "";
       fmt.innerHTML = isTH
-        ? (fa ? "🎤 فرمتِ پست: <b>آدمِ سخنگو</b> — پیشنهاد: با پرزنتر بساز (می‌تونی عکسِ خودتو بدی)." : "🎤 Detected format: <b>talking-head</b> — recommended: build with a presenter (you can use your own photo).")
-        : (fa ? "🎞️ فرمتِ پست: <b>اسلایدشو</b> — پیشنهاد: همون اسلایدشو با دیتای تو (متن + تصاویرِ AI)." : "🎞️ Detected format: <b>slideshow</b> — recommended: build the same slideshow with your data (text + AI images).");
+        ? (fa ? `${seen ? "👁️ از روی ویدیو دیده شد" : "🎤 فرمت"}: <b>آدمِ سخنگو${blueprint.mic ? " / پادکست" : ""}</b>${extraTxt} — پیشنهاد: با پرزنتر بساز (عکسِ خودتو هم می‌تونی بدی).` : `${seen ? "👁️ Watched the video" : "🎤 Format"}: <b>${seen ? esc(blueprint.visFormat.replace(/_/g, " ")) : "talking-head"}</b>${extraTxt} — recommended: build with a presenter (you can use your own photo).`)
+        : (fa ? `${seen ? "👁️ از روی ویدیو دیده شد" : "🎞️ فرمت"}: <b>اسلایدشو</b> — پیشنهاد: همون اسلایدشو با دیتای تو.` : `${seen ? "👁️ Watched the video" : "🎞️ Format"}: <b>slideshow</b> — recommended: build the same slideshow with your data.`);
       // Emphasize the recommended action; keep the other available but muted.
       $$("reBuild").style.opacity = isTH ? ".6" : "1";
       $$("reThRow").style.opacity = isTH ? "1" : ".6";
@@ -16362,7 +16416,7 @@ function vsReverseEngineer(prefill) {
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto, setting: (blueprint && blueprint.setting) || "" }); }
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -16455,11 +16509,22 @@ async function vsBuildTalkingHead(script, opts) {
       imageUrl = uj.file_url;
     } catch (e) { setStep("face", "err"); throw new Error((fa ? "آپلودِ عکس ناموفق: " : "photo upload failed: ") + (e.message || e)); }
   } else {
-    const setting = (opts.setting || "plain studio background").replace(/[^\w ,'-]/g, " ").slice(0, 90);
-    const facePrompt = (opts.gender === "male"
-      ? "photorealistic upper-body portrait of a friendly professional man presenter, " + setting + ", facing camera, neutral expression, soft lighting, sharp focus"
-      : "photorealistic upper-body portrait of a friendly professional woman presenter, " + setting + ", facing camera, neutral expression, soft lighting, sharp focus");
-    imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
+    // Realistic presenter via fal FLUX-dev (the CF fast model looked too "AI"),
+    // candid/natural, placed in the reference's setting, NO microphone/studio gear.
+    const setting = (opts.setting || "cozy home interior").replace(/[^\w ,'-]/g, " ").replace(/\bstudio\b/gi, "room").slice(0, 90);
+    // Match the reference: a podcast reel → the presenter sits at a big mic.
+    const micPart = opts.mic
+      ? ", sitting at a desk speaking into a large professional podcast microphone, gesturing naturally"
+      : ", no microphone, no studio equipment, no headset";
+    const facePrompt = "candid realistic photograph of a real " + (opts.gender === "male" ? "man" : "woman")
+      + ", natural skin texture, casual everyday clothes, warm genuine smile, " + setting
+      + micPart + ", facing camera, shot on smartphone, natural lighting, photorealistic, ultra realistic";
+    try {
+      const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: facePrompt, image_size: "square_hd", num_inference_steps: 28 } });
+      imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url;
+    } catch (e) {}
+    // Fallback to our own image endpoint if fal image failed.
+    if (!imageUrl) imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
   }
   setStep("face", "done");
 
