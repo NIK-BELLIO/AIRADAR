@@ -15746,6 +15746,43 @@ async function vsGenerateCover() {
   vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
 }
 
+// A high-CTR YouTube THUMBNAIL (exactly 1280x720, 16:9) on canvas: bold hook
+// text with a thick outline, an accent word, a punchy colour wash and a focal
+// ring — following YouTube thumbnail best practices (not the editorial covers).
+async function vsRenderYTThumb(hook, img, opts) {
+  opts = opts || {}; const W = 1280, H = 720, FAM = '"Archivo", system-ui, sans-serif';
+  const accent = opts.accent || "#ffe000";
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  if (img && (img.naturalWidth || img.width)) {
+    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh);
+    x.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+  } else { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#132540"); g.addColorStop(1, "#0a0f1c"); x.fillStyle = g; x.fillRect(0, 0, W, H); }
+  x.save(); x.globalAlpha = 0.13; x.fillStyle = accent; x.fillRect(0, 0, W, H); x.globalAlpha = 1; x.restore();
+  const g2 = x.createLinearGradient(0, 0, W, 0); g2.addColorStop(0, "rgba(3,5,11,.94)"); g2.addColorStop(.55, "rgba(3,5,11,.4)"); g2.addColorStop(1, "rgba(3,5,11,0)");
+  x.fillStyle = g2; x.fillRect(0, 0, W, H);
+  const g3 = x.createLinearGradient(0, H * 0.55, 0, H); g3.addColorStop(0, "rgba(2,4,9,0)"); g3.addColorStop(1, "rgba(2,4,9,.7)"); x.fillStyle = g3; x.fillRect(0, 0, W, H);
+  // focal ring (upper-right, away from the bottom-right watch-time corner)
+  x.save(); x.strokeStyle = accent; x.lineWidth = W * 0.011; x.globalAlpha = .9; x.beginPath(); x.arc(W * 0.82, H * 0.36, W * 0.105, 0, Math.PI * 2); x.stroke(); x.restore();
+  // hook text — big, left-anchored, thick black stroke, accent emphasis word
+  const M = W * 0.05, meta = vsThumbTitleMeta(hook), maxW = W * 0.62;
+  let px = Math.round(W * 0.135), lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM);
+  const tooWide = (ls) => { x.font = `900 ${px}px ${FAM}`; return ls.some(ln => x.measureText(ln.map(o => o.w).join(" ")).width > maxW); };
+  while (px > W * 0.055 && (lines.length > 3 || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM); }
+  const lh = px * 1.02, blockH = lines.length * lh, startY = (H - blockH) / 2;
+  x.fillStyle = accent; x.fillRect(M, startY - W * 0.03, W * 0.13, Math.max(8, H * 0.022));
+  x.textAlign = "left"; x.textBaseline = "top"; x.lineJoin = "round"; x.font = `900 ${px}px ${FAM}`;
+  lines.forEach((ln, li) => {
+    let cx = M; const y = startY + li * lh;
+    ln.forEach(({ w, i }) => {
+      x.strokeStyle = "#000"; x.lineWidth = px * 0.11; x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = W * 0.01; x.shadowOffsetY = H * 0.006;
+      x.strokeText(w, cx, y); x.shadowBlur = 0; x.shadowOffsetY = 0;
+      x.fillStyle = (i === meta.emph) ? accent : "#fff"; x.fillText(w, cx, y);
+      cx += x.measureText(w + " ").width;
+    });
+  });
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+}
+
 // A bold-poster QUOTE card (1080x1350) rendered on canvas (free, text stays crisp).
 async function vsRenderQuoteCard(quote, opts) {
   opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
@@ -15903,7 +15940,7 @@ function vsCreatorTools(opts) {
     else if (id === "score") toolScore();
     else if (id === "profile") toolProfile();
     else if (id === "carousel") toolCarousel();
-    else if (id === "thumb") { try { vsThumbStudio(); } catch (e) {} return; }
+    else if (id === "thumb") toolThumb();
     else if (id === "pinned") toolText("pinned");
     else if (id === "news") toolText("news");
     else if (id === "voice") toolText("voice");
@@ -16194,6 +16231,53 @@ function vsCreatorTools(opts) {
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
       $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(txt)}</pre></div>`;
       $$(kind + "Copy").onclick = () => copy(txt, $$(kind + "Copy"));
+    };
+  }
+
+  // ---- YouTube Thumbnail (dedicated 1280x720 high-CTR generator) ----
+  function toolThumb() {
+    body.innerHTML = backBar("🖼️ " + (fa ? "تامبنیلِ یوتیوب" : "YouTube Thumbnail")) +
+      `<div style="font-size:12px;color:#7f8a86;margin-bottom:10px">${fa ? "۱۲۸۰×۷۲۰ (۱۶:۹) · سبکِ پرکلیک" : "1280×720 (16:9) · high-CTR style"}</div>
+       <div class="row" style="margin-bottom:10px">
+         <div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("ytLang")}</div>
+         <div><div class="lbl">${fa ? "حال‌وهوا" : "Tone"}</div><select id="ytTone"><option value="shock">${fa ? "شوک" : "Shock"}</option><option value="curious">${fa ? "کنجکاو" : "Curious"}</option><option value="confident">${fa ? "مطمئن" : "Confident"}</option><option value="intense">${fa ? "پرتنش" : "Intense"}</option></select></div>
+         <div><div class="lbl">${fa ? "رنگِ اکسنت" : "Accent"}</div><select id="ytAcc"><option value="#ffe000">Yellow</option><option value="#ff3131">Red</option><option value="#22d3ee">Cyan</option><option value="#22e06a">Green</option><option value="#ff7a00">Orange</option></select></div>
+       </div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "عنوانِ ویدیو" : "Video title"}</div><input id="ytTitle" type="text" placeholder="${fa ? "عنوانِ ویدیوی یوتیوب…" : "Your YouTube video title…"}"/></div>
+       <label id="ytPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
+         <span style="font-size:16px">🖼</span><span id="ytPhotoTxt">${fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"}</span>
+         <input id="ytPhoto" type="file" accept="image/*" style="display:none"/></label>
+       <button id="ytGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#f43f5e,#f59e0b);font-weight:800">✨ ${fa ? "ساختِ تامبنیل" : "Generate thumbnail"}</button>
+       <div id="ytOut" style="margin-top:14px"></div>`;
+    let ytPhoto = null;
+    $$("ytPhoto").onchange = (e) => { ytPhoto = (e.target.files && e.target.files[0]) || null; $$("ytPhotoTxt").textContent = ytPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + ytPhoto.name.slice(0, 28) : (fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"); };
+    $$("ytGo").onclick = async () => {
+      const title = ($$("ytTitle").value || "").trim(); if (!title) { $$("ytTitle").focus(); return; }
+      const lang = $$("ytLang").value, tone = $$("ytTone").value, accent = $$("ytAcc").value;
+      const g = $$("ytGo"); g.disabled = true; g.style.opacity = ".6"; $$("ytOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
+      const toneDesc = { shock: "shocked, wide eyes, high energy", curious: "curious, intriguing, mysterious", confident: "confident, bold, direct", intense: "intense, dramatic, high-stakes" }[tone];
+      const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS-friendly punchy hook phrase, NOT a sentence>","imagePrompt":"<one vivid ${toneDesc} real-photo subject that represents the video, cinematic, high contrast, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      const data = vsParseAiJson(raw || "") || {};
+      const hook = (data.hook || title).toString().slice(0, 40);
+      const imgPrompt = (data.imagePrompt || title).toString().slice(0, 180);
+      // image: your own photo → else free CF image → else fal (quality)
+      let img = null;
+      try {
+        if (ytPhoto) { img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = URL.createObjectURL(ytPhoto); }); }
+        else { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, title), 1024, 576); if (!img) img = await vsFalImage(imgPrompt + ", cinematic, high contrast, no text", 1280, 720); }
+      } catch (e) {}
+      let blob = null; try { blob = await vsRenderYTThumb(hook, img, { accent }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!blob) { $$("ytOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const u = URL.createObjectURL(blob);
+      $$("ytOut").innerHTML = `<img src="${u}" style="width:100%;border-radius:10px;background:#000;display:block"/>
+        <div style="display:flex;gap:9px;margin-top:10px">
+          <a href="${u}" download="youtube-thumbnail-1280x720.jpg" style="flex:2;text-align:center;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#f43f5e,#f59e0b)">⬇ ${fa ? "دانلود (۱۲۸۰×۷۲۰)" : "Download (1280×720)"}</a>
+          <button id="ytAgain" class="btn" style="flex:1;color:#cfc8ba;background:rgba(255,255,255,.06)">↻ ${fa ? "دوباره" : "Again"}</button>
+        </div>`;
+      vsTrackGen("ytthumb", (img && img._imgModel) || "canvas", "tone:" + tone);
+      $$("ytAgain").onclick = () => $$("ytGo").click();
     };
   }
 
