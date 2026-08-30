@@ -16125,8 +16125,15 @@ function vsCreatorTools(opts) {
     body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
+       <label id="caPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
+         <span style="font-size:16px">🖼</span>
+         <span id="caPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"}</span>
+         <input id="caPhoto" type="file" accept="image/*" style="display:none"/>
+       </label>
        <button id="caGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563ff)">✨ ${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
        <div id="caOut" style="margin-top:12px"></div>`;
+    let caPhoto = null;
+    $$("caPhoto").onchange = (e) => { caPhoto = (e.target.files && e.target.files[0]) || null; $$("caPhotoTxt").textContent = caPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + caPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"); };
     $$("caGo").onclick = async () => {
       const topic = ($$("caTopic").value || "").trim(); if (!topic) { $$("caTopic").focus(); return; }
       const plat = $$("caPlat").value, lang = $$("caLang").value;
@@ -16139,7 +16146,7 @@ function vsCreatorTools(opts) {
       const cover = (raw.match(/^\s*COVER\s*[:：]\s*(.+)$/im) || [])[1] || topic;
       const sub = (raw.match(/^\s*SUB\s*[:：]\s*(.+)$/im) || [])[1] || "";
       const cta = (raw.match(/^\s*CTA\s*[:：]\s*(.+)$/im) || [])[1] || (fa ? "برای ادامه پیام بده" : "Follow for more");
-      try { await vsBuildCarousel(raw, { topic, coverTitle: cover, subtitle: sub, cta, handle: ($$("caHandle").value || "").trim() }); }
+      try { await vsBuildCarousel(raw, { topic, coverTitle: cover, subtitle: sub, cta, handle: ($$("caHandle").value || "").trim(), photo: caPhoto }); }
       catch (e) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در ساخت." : "Build error."}</div>`; }
     };
   }
