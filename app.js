@@ -15753,30 +15753,40 @@ async function vsRenderYTThumb(hook, img, opts) {
   opts = opts || {}; const W = 1280, H = 720, FAM = '"Archivo", system-ui, sans-serif';
   const accent = opts.accent || "#ffe000";
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  // background: the (bright) subject photo, cover-fit — or a punchy accent gradient
   if (img && (img.naturalWidth || img.width)) {
     const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh);
     x.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
-  } else { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#132540"); g.addColorStop(1, "#0a0f1c"); x.fillStyle = g; x.fillRect(0, 0, W, H); }
-  x.save(); x.globalAlpha = 0.13; x.fillStyle = accent; x.fillRect(0, 0, W, H); x.globalAlpha = 1; x.restore();
-  const g2 = x.createLinearGradient(0, 0, W, 0); g2.addColorStop(0, "rgba(3,5,11,.94)"); g2.addColorStop(.55, "rgba(3,5,11,.4)"); g2.addColorStop(1, "rgba(3,5,11,0)");
+  } else { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, accent); g.addColorStop(1, "#0a0f1c"); x.fillStyle = g; x.fillRect(0, 0, W, H); }
+  // LEFT text zone shade only (keeps the bright photo visible on the right)
+  const g2 = x.createLinearGradient(0, 0, W, 0); g2.addColorStop(0, "rgba(4,6,12,.84)"); g2.addColorStop(.46, "rgba(4,6,12,.34)"); g2.addColorStop(.72, "rgba(4,6,12,0)");
   x.fillStyle = g2; x.fillRect(0, 0, W, H);
-  const g3 = x.createLinearGradient(0, H * 0.55, 0, H); g3.addColorStop(0, "rgba(2,4,9,0)"); g3.addColorStop(1, "rgba(2,4,9,.7)"); x.fillStyle = g3; x.fillRect(0, 0, W, H);
-  // focal ring (upper-right, away from the bottom-right watch-time corner)
-  x.save(); x.strokeStyle = accent; x.lineWidth = W * 0.011; x.globalAlpha = .9; x.beginPath(); x.arc(W * 0.82, H * 0.36, W * 0.105, 0, Math.PI * 2); x.stroke(); x.restore();
-  // hook text — big, left-anchored, thick black stroke, accent emphasis word
-  const M = W * 0.05, meta = vsThumbTitleMeta(hook), maxW = W * 0.62;
-  let px = Math.round(W * 0.135), lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM);
+  const g3 = x.createLinearGradient(0, H * 0.6, 0, H); g3.addColorStop(0, "rgba(2,4,9,0)"); g3.addColorStop(1, "rgba(2,4,9,.5)"); x.fillStyle = g3; x.fillRect(0, 0, W, H);
+  // hook text — big, left-anchored; emphasis word sits in a FILLED accent box
+  const M = W * 0.055, meta = vsThumbTitleMeta(hook), maxW = W * 0.6;
+  let px = Math.round(W * 0.15), lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM);
   const tooWide = (ls) => { x.font = `900 ${px}px ${FAM}`; return ls.some(ln => x.measureText(ln.map(o => o.w).join(" ")).width > maxW); };
-  while (px > W * 0.055 && (lines.length > 3 || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM); }
-  const lh = px * 1.02, blockH = lines.length * lh, startY = (H - blockH) / 2;
-  x.fillStyle = accent; x.fillRect(M, startY - W * 0.03, W * 0.13, Math.max(8, H * 0.022));
+  while (px > W * 0.06 && (lines.length > 3 || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM); }
+  const lh = px * 1.04, blockH = lines.length * lh, startY = (H - blockH) / 2;
+  x.fillStyle = accent; x.fillRect(M, startY - W * 0.034, W * 0.11, Math.max(9, H * 0.024));
   x.textAlign = "left"; x.textBaseline = "top"; x.lineJoin = "round"; x.font = `900 ${px}px ${FAM}`;
+  const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)); };
+  const boxTextCol = lum(accent) > 150 ? "#0b0f18" : "#ffffff";
   lines.forEach((ln, li) => {
     let cx = M; const y = startY + li * lh;
     ln.forEach(({ w, i }) => {
-      x.strokeStyle = "#000"; x.lineWidth = px * 0.11; x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = W * 0.01; x.shadowOffsetY = H * 0.006;
-      x.strokeText(w, cx, y); x.shadowBlur = 0; x.shadowOffsetY = 0;
-      x.fillStyle = (i === meta.emph) ? accent : "#fff"; x.fillText(w, cx, y);
+      const ww = x.measureText(w).width;
+      if (i === meta.emph) {
+        const pad = px * 0.09, bx = cx - pad, by = y - px * 0.02, bw = ww + pad * 2, bh = px * 1.02;
+        x.save(); x.fillStyle = accent; x.shadowColor = "rgba(0,0,0,.5)"; x.shadowBlur = W * 0.012; x.shadowOffsetY = H * 0.008; x.beginPath();
+        if (x.roundRect) x.roundRect(bx, by, bw, bh, px * 0.12); else x.rect(bx, by, bw, bh);
+        x.fill(); x.restore();
+        x.fillStyle = boxTextCol; x.fillText(w, cx, y);
+      } else {
+        x.strokeStyle = "#000"; x.lineWidth = px * 0.14; x.shadowColor = "rgba(0,0,0,.55)"; x.shadowBlur = W * 0.011; x.shadowOffsetY = H * 0.007;
+        x.strokeText(w, cx, y); x.shadowBlur = 0; x.shadowOffsetY = 0;
+        x.fillStyle = "#fff"; x.fillText(w, cx, y);
+      }
       cx += x.measureText(w + " ").width;
     });
   });
@@ -16254,18 +16264,22 @@ function vsCreatorTools(opts) {
     $$("ytGo").onclick = async () => {
       const title = ($$("ytTitle").value || "").trim(); if (!title) { $$("ytTitle").focus(); return; }
       const lang = $$("ytLang").value, tone = $$("ytTone").value, accent = $$("ytAcc").value;
+      const accWord = (($$("ytAcc").selectedOptions[0] || {}).textContent || "yellow").toLowerCase();
       const g = $$("ytGo"); g.disabled = true; g.style.opacity = ".6"; $$("ytOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
-      const toneDesc = { shock: "shocked, wide eyes, high energy", curious: "curious, intriguing, mysterious", confident: "confident, bold, direct", intense: "intense, dramatic, high-stakes" }[tone];
-      const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS-friendly punchy hook phrase, NOT a sentence>","imagePrompt":"<one vivid ${toneDesc} real-photo subject that represents the video, cinematic, high contrast, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
+      // Facial reactions — the #1 thing real high-CTR YouTube thumbnails have.
+      const faceDesc = { shock: "shocked, mouth wide open, eyes wide, hands on head", curious: "curious, one eyebrow raised, intrigued half-smile", confident: "confident big smile, pointing straight at the camera", intense: "intense dramatic stare, serious, leaning in" }[tone];
+      const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS punchy hook phrase, NOT a sentence>","imagePrompt":"<a real person with an exaggerated ${faceDesc} expression looking straight at the camera, upper body, in a scene tied to the video topic, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
       let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
       const data = vsParseAiJson(raw || "") || {};
       const hook = (data.hook || title).toString().slice(0, 40);
-      const imgPrompt = (data.imagePrompt || title).toString().slice(0, 180);
+      const imgPrompt = (data.imagePrompt || ("a person reacting to " + title)).toString().slice(0, 180);
+      // Force the bright, saturated, expressive-YouTuber look (NOT dark/cinematic).
+      const thumbImg = imgPrompt + `, professional YouTube thumbnail, real person with exaggerated ${faceDesc} expression, looking straight at camera, bright vivid ${accWord} studio background, punchy saturated colors, strong rim lighting, ultra sharp, subject on the right side, photorealistic, no text, no words, no logo`;
       // image: your own photo → else free CF image → else fal (quality)
       let img = null;
       try {
         if (ytPhoto) { img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = URL.createObjectURL(ytPhoto); }); }
-        else { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, title), 1024, 576); if (!img) img = await vsFalImage(imgPrompt + ", cinematic, high contrast, no text", 1280, 720); }
+        else { img = await vsEdLoadImage(thumbImg, 1024, 576); if (!img) img = await vsFalImage(thumbImg, 1280, 720); }
       } catch (e) {}
       let blob = null; try { blob = await vsRenderYTThumb(hook, img, { accent }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
