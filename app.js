@@ -15746,6 +15746,185 @@ async function vsGenerateCover() {
   vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
 }
 
+// ── Creator Tools ─────────────────────────────────────────────────────────
+// A hub of text-content generators ported faithfully from the social-media
+// skills (hook-generator, post-formatter, content-matrix). Free — uses /chat.
+function vsCreatorTools() {
+  const fa = state.lang === "fa";
+  const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
+  ov.innerHTML =
+    `<div id="ctModal" style="width:min(760px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:14px;background:#12141a;border:1px solid rgba(16,185,129,.28);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
+       <style>
+         #ctModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7f8a86;margin-bottom:6px}
+         #ctModal input[type=text],#ctModal textarea,#ctModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#eef2f0;font:inherit;border-radius:11px;padding:11px 12px;outline:none;box-sizing:border-box}
+         #ctModal input:focus,#ctModal textarea:focus,#ctModal select:focus{border-color:#10b981}
+         #ctModal textarea{resize:vertical;line-height:1.5}
+         #ctModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
+         #ctModal .btn:hover{filter:brightness(1.08)}
+         #ctModal .card{text-align:left;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px;cursor:pointer;transition:.15s}
+         #ctModal .card:hover{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08);transform:translateY(-2px)}
+         #ctModal .row{display:flex;gap:10px;flex-wrap:wrap}
+         #ctModal .row>div{flex:1;min-width:120px}
+         #ctModal .cp{font:inherit;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;border:none;background:rgba(16,185,129,.16);color:#7ff0cf}
+         #ctModal .cp:hover{background:rgba(16,185,129,.28)}
+         #ctModal pre{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:13.5px;line-height:1.55;color:#e9edeb;margin:0}
+         #ctModal .tbl{border-collapse:collapse;font-size:11.5px;min-width:760px}
+         #ctModal .tbl th,#ctModal .tbl td{border:1px solid rgba(255,255,255,.12);padding:7px 8px;vertical-align:top;text-align:left}
+         #ctModal .tbl th{background:rgba(16,185,129,.14);color:#c7f5e6;font-weight:800;white-space:nowrap}
+         #ctModal .tbl td:first-child{background:rgba(255,255,255,.05);font-weight:800;color:#eef2f0;white-space:nowrap}
+         #ctModal .tbl td{color:#cfd6d2}
+       </style>
+       <div style="display:flex;align-items:center;gap:10px">
+         <span style="font-size:22px">🧰</span>
+         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#eef2f0">Creator Tools</span>
+         <span style="flex:1"></span>
+         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${fa ? "بستن" : "Close"}</button>
+       </div>
+       <div id="ctBody"></div>
+     </div>`;
+  document.body.appendChild(ov);
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  const $$ = (id) => ov.querySelector("#" + id);
+  const body = $$("ctBody");
+  const close = () => { try { ov.remove(); } catch (e) {} };
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  $$("ctClose").onclick = close;
+  const spin = (t) => `<div style="display:flex;align-items:center;gap:10px;color:#9aa39f;font-size:13px;padding:6px 0"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:#10b981;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>${t}</div>`;
+  const copy = (str, btn) => { try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
+  const platSel = (id) => `<select id="${id}"><option value="Instagram">Instagram</option><option value="LinkedIn">LinkedIn</option><option value="X (Twitter)">X / Twitter</option><option value="TikTok">TikTok</option></select>`;
+  const langSel = (id) => `<select id="${id}"><option value="English">English</option><option value="Spanish">Español</option></select>`;
+  const langLine = (v) => v === "Spanish" ? "Write ALL output in Spanish." : "Write ALL output in English.";
+
+  const TOOLS = [
+    { id: "hook", icon: "🪝", name: fa ? "هوک‌ساز" : "Hook Generator", desc: fa ? "۶ هوکِ کلیک‌بیتیِ دوخطی برای هر موضوع" : "6 two-line clickbait hooks for any topic", accent: "#f59e0b" },
+    { id: "post", icon: "📝", name: fa ? "پست‌نویس" : "Post Writer", desc: fa ? "پستِ آماده با فریم‌ورک (PAS/AIDA/…)" : "Ready post with a framework (PAS/AIDA/…)", accent: "#3b82f6" },
+    { id: "matrix", icon: "🗂️", name: fa ? "ماتریسِ محتوا" : "Content Matrix", desc: fa ? "۳۲+ ایدهٔ پست (ستون‌ها × موضوع‌ها)" : "32+ post ideas (pillars × 8 formats)", accent: "#a855f7" },
+  ];
+
+  function hub() {
+    body.innerHTML =
+      `<div style="font-size:12.5px;color:#9aa39f;margin-bottom:12px">${fa ? "یک ابزار را انتخاب کن — همه رایگان‌اند." : "Pick a tool — all free (text)."}</div>
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
+         ${TOOLS.map(t => `<div class="card" data-tool="${t.id}"><div style="font-size:26px">${t.icon}</div>
+            <div style="font-weight:800;color:#eef2f0;font-size:15px;margin-top:6px">${t.name}</div>
+            <div style="font-size:12px;color:#9aa39f;margin-top:4px;line-height:1.45">${t.desc}</div>
+            <div style="height:3px;width:40px;border-radius:2px;margin-top:11px;background:${t.accent}"></div></div>`).join("")}
+       </div>`;
+    body.querySelectorAll(".card").forEach(c => c.onclick = () => openTool(c.getAttribute("data-tool")));
+  }
+  const backBar = (title) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button id="ctBack" type="button" class="btn" style="background:rgba(255,255,255,.06);color:#cfc8ba;padding:7px 12px;font-size:13px">← ${fa ? "برگشت" : "Back"}</button><span style="font-weight:800;color:#eef2f0;font-size:16px">${title}</span></div>`;
+
+  function openTool(id) {
+    if (id === "hook") toolHook();
+    else if (id === "post") toolPost();
+    else if (id === "matrix") toolMatrix();
+    setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
+  }
+
+  // ---- Hook Generator ----
+  function toolHook() {
+    body.innerHTML = backBar("🪝 " + (fa ? "هوک‌ساز" : "Hook Generator")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("hkPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("hkLang")}</div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="hkTopic" type="text" placeholder="${fa ? "موضوعِ پست…" : "What's the post about?"}"/></div>
+       <button id="hkGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#f59e0b,#facc15)">✨ ${fa ? "ساختِ ۶ هوک" : "Generate 6 hooks"}</button>
+       <div id="hkOut" style="margin-top:14px"></div>`;
+    $$("hkGo").onclick = async () => {
+      const topic = ($$("hkTopic").value || "").trim(); if (!topic) { $$("hkTopic").focus(); return; }
+      const plat = $$("hkPlat").value, lang = $$("hkLang").value;
+      const g = $$("hkGo"); g.disabled = true; g.style.opacity = ".6"; $$("hkOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      const prompt = `You are a world-class ${plat} hook writer. Generate EXACTLY 6 two-line hooks for a ${plat} post about: "${topic}".\n` +
+        `Each hook: Line 1 = opening, MAX 40 characters, NO questions, unexpected/specific/punchy. Line 2 = contrast, MAX 40 characters, contradicts or reframes line 1.\n` +
+        `Include a digit/metric where possible; build tension + a curiosity gap; use an "I" or "How I" statement across the two lines. No em dashes, no filler, prefer digits over spelled numbers.\n` +
+        `Use these 6 angles IN ORDER: 1) Number-led 2) Contrarian 3) Personal transformation 4) Authority steal (a name/tool/brand) 5) Admission (a mistake/loss) 6) Future shock (a prediction).\n` +
+        `${langLine(lang)}\nOutput EXACTLY this shape and nothing else:\n1. Number-led\n<line1>\n<line2>\n\n2. Contrarian\n<line1>\n<line2>\n\n3. Personal transformation\n<line1>\n<line2>\n\n4. Authority steal\n<line1>\n<line2>\n\n5. Admission\n<line1>\n<line2>\n\n6. Future shock\n<line1>\n<line2>`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!raw) { $$("hkOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const blocks = raw.trim().split(/\n\s*\n/).filter(b => b.trim());
+      $$("hkOut").innerHTML = blocks.map(b => {
+        const lines = b.split(/\n/).map(l => l.trim()).filter(Boolean);
+        const label = lines[0].replace(/^\d+[.)]\s*/, "");
+        const hook = lines.slice(1).join("\n");
+        return `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:12px;margin-bottom:9px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#f59e0b">${esc(label)}</span><span style="flex:1"></span><button class="cp" data-h="${esc(hook)}">${fa ? "کپی" : "Copy"}</button></div>
+          <div style="font-size:14.5px;font-weight:700;color:#eef2f0;line-height:1.4;white-space:pre-wrap">${esc(hook)}</div></div>`;
+      }).join("");
+      $$("hkOut").querySelectorAll(".cp").forEach(b => b.onclick = () => copy(b.getAttribute("data-h").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"'), b));
+    };
+  }
+
+  // ---- Post Writer (framework) ----
+  function toolPost() {
+    body.innerHTML = backBar("📝 " + (fa ? "پست‌نویس" : "Post Writer")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("psPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("psLang")}</div><div><div class="lbl">${fa ? "فریم‌ورک" : "Framework"}</div><select id="psFw"><option value="Auto">${fa ? "خودکار" : "Pick for me"}</option><option>PAS</option><option>AIDA</option><option>BAB</option><option>STAR</option><option>SLAY</option></select></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="psTopic" type="text" placeholder="${fa ? "موضوع یا خلاصهٔ پست…" : "Topic or a context dump…"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "جزئیاتِ اضافه (اختیاری)" : "Extra notes (optional)"}</div><textarea id="psNotes" rows="2" placeholder="${fa ? "آمار، لحن، مخاطب…" : "Facts, stats, tone, who it's for…"}"></textarea></div>
+       <button id="psGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#3b82f6)">✨ ${fa ? "نوشتنِ پست" : "Write the post"}</button>
+       <div id="psOut" style="margin-top:14px"></div>`;
+    $$("psGo").onclick = async () => {
+      const topic = ($$("psTopic").value || "").trim(); if (!topic) { $$("psTopic").focus(); return; }
+      const plat = $$("psPlat").value, lang = $$("psLang").value, fw = $$("psFw").value, notes = ($$("psNotes").value || "").trim();
+      const g = $$("psGo"); g.disabled = true; g.style.opacity = ".6"; $$("psOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      const prompt = `Write ONE ready-to-publish ${plat} post about: "${topic}" using the ${fw === "Auto" ? "best-fitting" : fw} framework${fw === "Auto" ? " (choose it yourself)" : ""}.\n` +
+        (notes ? `Extra context: ${notes}\n` : "") +
+        `RULES: max 20 lines; 200-250 words; a BLANK LINE after every line; most lines one sentence <=55 chars; up to 4 mini-paragraphs (<=110 chars); grade-6 words; zero adverbs/jargon/fluff; no em dashes; no questions unless the hook is a question; no emojis except checkmarks for numbered lists and the recycle symbol in the CTA.\n` +
+        `STRUCTURE: Line 1 = bold hook (<=50 chars). Line 2 = twist/contrast (<=50 chars). Core = the framework across 3-5 lines per stage (any in-stage list has EXACTLY 3 items: 1. 2. 3.). Final 2-3 lines = wrap + CTA ending with "Repost if" or "If this helped, repost" followed by the recycle symbol.\n` +
+        `Framework maps: PAS=Problem->Agitation->Solution; AIDA=Attention->Interest->Desire->Action; BAB=Before->After->Bridge; STAR=Situation->Task->Action->Result; SLAY=Story->Lesson->Actionable advice->You.\n` +
+        `${langLine(lang)} Output ONLY the finished post, nothing else.`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.8 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!raw) { $$("psOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const post = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+      $$("psOut").innerHTML =
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پستِ آماده" : "Ready to post"}</span><span style="flex:1"></span><button id="psCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div>
+         <div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(post)}</pre></div>`;
+      $$("psCopy").onclick = () => copy(post, $$("psCopy"));
+    };
+  }
+
+  // ---- Content Matrix ----
+  function toolMatrix() {
+    body.innerHTML = backBar("🗂️ " + (fa ? "ماتریسِ محتوا" : "Content Matrix")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("mxPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("mxLang")}</div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "دربارهٔ تو / کسب‌وکارت" : "About you / your business"}</div><textarea id="mxAbout" rows="3" placeholder="${fa ? "کی هستی، چه‌کار می‌کنی، دربارهٔ چی حرف می‌زنی…" : "Who you are, what you do, what you talk about…"}"></textarea></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "ستون‌های محتوا (اختیاری — خالی بذاری خودم پیشنهاد می‌دم)" : "Content pillars (optional — leave blank and I'll suggest)"}</div><input id="mxPillars" type="text" placeholder="${fa ? "مثلاً: بازاریابی، سازندگی، رشد" : "e.g. marketing, building, growth"}"/></div>
+       <button id="mxGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#a855f7,#7c3aed)">✨ ${fa ? "ساختِ ماتریس (۳۲+ ایده)" : "Build matrix (32+ ideas)"}</button>
+       <div id="mxOut" style="margin-top:14px"></div>`;
+    $$("mxGo").onclick = async () => {
+      const about = ($$("mxAbout").value || "").trim(); if (!about) { $$("mxAbout").focus(); return; }
+      const plat = $$("mxPlat").value, lang = $$("mxLang").value, pillars = ($$("mxPillars").value || "").trim();
+      const g = $$("mxGo"); g.disabled = true; g.style.opacity = ".6"; $$("mxOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
+      const FORMATS = ["Actionable", "Motivational", "Analytical", "Contrarian", "Observation", "X vs Y", "Present vs Future", "Listicle"];
+      const prompt = `Build a ${plat} content-idea matrix.\nAbout the creator: ${about}\n` +
+        (pillars ? `Content pillars (rows), use these: ${pillars}\n` : `No pillars given — derive 4 specific pillars from the about text and use them as rows.\n`) +
+        `Columns = these 8 formats IN THIS ORDER: ${FORMATS.join(", ")}.\n` +
+        `For EACH pillar x format cell, write ONE specific, concrete post HEADLINE (not a theme, a real headline) tuned to that pillar AND that format. Never reuse an idea across pillars.\n` +
+        `Format defs: Actionable=ultra-specific how-to; Motivational=inspiring story of someone extraordinary; Analytical=why something works; Contrarian=go against common advice; Observation=a hidden/underdiscussed trend; X vs Y=compare two things; Present vs Future=current state vs a specific prediction; Listicle=a list of tips/mistakes/steps.\n` +
+        `${langLine(lang)}\nReturn ONLY a JSON object: {"pillars":["..."],"rows":[["c1","c2","c3","c4","c5","c6","c7","c8"], ...]} where rows[i] holds the 8 headline strings for pillars[i] in the format order above. No prose, no code fence.`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      const data = vsParseAiJson(raw || "");
+      if (!data || !Array.isArray(data.rows) || !data.rows.length) { $$("mxOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن یا توضیحِ بیشتری بده." : "Failed — try again or add more detail."}</div>`; return; }
+      const P = data.pillars || data.rows.map((_, i) => "Pillar " + (i + 1));
+      let md = "| Pillar | " + FORMATS.join(" | ") + " |\n|" + Array(FORMATS.length + 1).fill("---").join("|") + "|\n";
+      const th = "<tr><th>" + (fa ? "موضوع" : "Pillar") + "</th>" + FORMATS.map(f => `<th>${f}</th>`).join("") + "</tr>";
+      const trs = data.rows.map((row, i) => {
+        md += "| " + esc(P[i] || "") + " | " + FORMATS.map((_, j) => String(row[j] || "").replace(/\|/g, "/")).join(" | ") + " |\n";
+        return `<tr><td>${esc(P[i] || "")}</td>` + FORMATS.map((_, j) => `<td>${esc(row[j] || "")}</td>`).join("") + "</tr>";
+      }).join("");
+      $$("mxOut").innerHTML =
+        `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "ماتریسِ محتوا" : "Content matrix"}</span><span style="flex:1"></span><button id="mxCopy" class="cp">${fa ? "کپیِ جدول" : "Copy table"}</button></div>
+         <div style="overflow-x:auto;border:1px solid rgba(255,255,255,.10);border-radius:12px"><table class="tbl">${th}${trs}</table></div>
+         <div style="font-size:11px;color:#7f8a86;margin-top:8px">${fa ? "برای دیدنِ کاملِ هر خانه نگه‌دار/بکش. «کپیِ جدول» به‌صورتِ Markdown کپی می‌کند." : "Scroll to see all cells. 'Copy table' copies as Markdown."}</div>`;
+      $$("mxCopy").onclick = () => copy(md, $$("mxCopy"));
+    };
+  }
+
+  hub();
+}
+
 // Standalone Thumbnail Studio — generate ONE or several thumbnails at any size
 // (including a 486×279 thumbnail or a fully custom W×H), from a topic, WITHOUT
 // needing to build a video first. Each result has its own Download.
@@ -17705,6 +17884,7 @@ function bindEvents() {
     if (window.VS_REVERSE_SOON) { vsStatus(state.lang === "fa" ? "🧬 «Reverse Engineer» به‌زودی فعال می‌شود…" : "🧬 Reverse Engineer is coming soon…"); return; }
     try { vsReverseEngineer(); } catch (e) {}
   });
+  on("#vsCreatorBtn", "click", () => { try { vsCreatorTools(); } catch (e) {} });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
