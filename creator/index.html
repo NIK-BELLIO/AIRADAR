@@ -52,9 +52,220 @@
         <button type="button" class="seg-btn" data-lang="en">EN</button>
         <button type="button" class="seg-btn" data-lang="fa">فا</button>
       </div>
-      <a href="/dashboard" class="arh-signin">Dashboard</a>
+      <button type="button" id="authSignInBtn" class="arh-signin">Sign in</button>
+      <div id="authAccount" class="auth-account" hidden>
+        <button type="button" id="authAccountBtn" class="arh-avatar" aria-haspopup="true" aria-expanded="false">
+          <span id="authInitial" class="auth-initial">?</span>
+        </button>
+        <div id="authMenu" class="auth-menu" hidden>
+          <div class="auth-menu-head">
+            <p id="authEmail" class="auth-menu-email"></p>
+            <p id="authCredits" class="auth-menu-credits"></p>
+          </div>
+          <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+          <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+        </div>
+      </div>
     </div>
   </header>
+      <div id="authModal" class="auth-modal" hidden>
+      <div class="auth-modal-backdrop" id="authModalBackdrop"></div>
+      <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">✕</button>
+        <div class="auth-brand"><img src="/logo-mono.svg" alt="" class="auth-brand-logo" /><span>AI Radar</span></div>
+        <h3 id="authTitle" class="auth-title">Sign in to create</h3>
+        <p class="auth-sub">One account for AI Creator, Prompt Lab &amp; Video Studio.</p>
+
+        <button type="button" id="authGoogleBtn" class="button auth-submit" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:none;font-weight:700;margin-bottom:12px">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.95L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+          Continue with Google
+        </button>
+        <div class="auth-or" style="display:flex;align-items:center;gap:10px;color:#8a8578;font-size:12px;margin:2px 0 12px"><span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span>or<span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span></div>
+
+        <!-- Email + password (works for any email, no code needed) -->
+        <form id="authPwForm" class="auth-form">
+          <label class="auth-label" for="authEmailInput">Email</label>
+          <input id="authEmailInput" class="auth-input" type="email" required autocomplete="email" placeholder="you@example.com" />
+          <label class="auth-label" for="authPwInput">Password</label>
+          <input id="authPwInput" class="auth-input" type="password" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters" />
+          <button type="submit" class="button primary auth-submit" id="authPwSubmit">Sign in / Create account</button>
+        </form>
+        <button type="button" class="auth-back" id="authOtpLink" style="margin-top:8px">Email me a code instead</button>
+
+        <!-- Step 1 (alt): email code -->
+        <form id="authEmailForm" class="auth-form" hidden>
+          <button type="submit" class="button primary auth-submit" id="authEmailSubmit">Send me a code</button>
+        </form>
+
+        <!-- Step 2: code -->
+        <form id="authCodeForm" class="auth-form" hidden>
+          <label class="auth-label" for="authCodeInput">Enter the 6-digit code sent to <b id="authSentTo"></b></label>
+          <input id="authCodeInput" class="auth-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="••••••" />
+          <button type="submit" class="button primary auth-submit" id="authCodeSubmit">Verify &amp; sign in</button>
+          <button type="button" class="auth-back" id="authBackBtn">← Use a different email</button>
+        </form>
+
+        <p id="authError" class="auth-error" hidden></p>
+      </div>
+    </div>
+    <script>
+      /* ── Unified auth for airadar.me — one login shared across the whole
+         domain (main site + /studio + /dashboard) via a host-only cookie the
+         studio Worker sets. All calls hit same-origin /api/* which Cloudflare
+         routes to the Worker. ───────────────────────────────────────────── */
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const modal = $("authModal");
+        const err = $("authError");
+        let email = "";
+
+        const showErr = (m) => { err.textContent = m; err.hidden = false; };
+        const clearErr = () => { err.hidden = true; };
+        const openModal = () => { modal.hidden = false; clearErr(); $("authEmailInput").focus(); };
+        const closeModal = () => { modal.hidden = true; };
+
+        async function api(path, body) {
+          const res = await fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            credentials: "include",
+          });
+          return res.json().catch(() => ({ ok: false, error: "Network error" }));
+        }
+
+        // Reflect signed-in state in the header
+        async function refreshAuth() {
+          try {
+            const me = await fetch("/api/me", { credentials: "include" }).then((r) => r.json());
+            if (me && me.ok && me.user) {
+              $("authSignInBtn").hidden = true;
+              $("authAccount").hidden = false;
+              $("authInitial").textContent = (me.user.email[0] || "?").toUpperCase();
+              $("authEmail").textContent = me.user.email;
+              $("authCredits").textContent = (me.credits ?? 0) + " credits";
+            } else {
+              $("authSignInBtn").hidden = false;
+              $("authAccount").hidden = true;
+            }
+          } catch (_) { /* offline — leave as signed-out */ }
+        }
+
+        // Header buttons
+        $("authSignInBtn").addEventListener("click", openModal);
+        $("authCloseBtn").addEventListener("click", closeModal);
+        $("authModalBackdrop").addEventListener("click", closeModal);
+
+        // Account menu
+        const menu = $("authMenu");
+        $("authAccountBtn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          menu.hidden = !menu.hidden;
+        });
+        document.addEventListener("click", (e) => {
+          if (!$("authAccount").contains(e.target)) menu.hidden = true;
+        });
+        $("authLogoutBtn").addEventListener("click", async () => {
+          await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+          menu.hidden = true;
+          refreshAuth();
+        });
+
+        // Google sign-in — works for any Google account (no email delivery needed)
+        $("authGoogleBtn").addEventListener("click", () => {
+          window.location.href = "/api/auth/google/start";
+        });
+
+        // Email + password — sign in or create an account instantly for ANY email
+        $("authPwForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr();
+          const btn = $("authPwSubmit");
+          email = $("authEmailInput").value.trim();
+          const password = $("authPwInput").value;
+          btn.disabled = true; btn.textContent = "Please wait…";
+          const r = await api("/api/auth/password", { email, password });
+          btn.disabled = false; btn.textContent = "Sign in / Create account";
+          if (!r.ok) return showErr(r.error || "Couldn't sign in. Try again.");
+          closeModal();
+          $("authPwInput").value = "";
+          refreshAuth();
+        });
+
+        // "Email me a code instead" → request an OTP for the typed email
+        $("authOtpLink").addEventListener("click", async () => {
+          clearErr();
+          email = $("authEmailInput").value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr("Enter your email first.");
+          const link = $("authOtpLink");
+          link.disabled = true; link.textContent = "Sending…";
+          const r = await api("/api/auth/request-otp", { email });
+          link.disabled = false; link.textContent = "Email me a code instead";
+          if (!r.ok) return showErr(r.error || "Couldn't send the code. Try again.");
+          $("authSentTo").textContent = email;
+          $("authPwForm").hidden = true;
+          $("authOtpLink").hidden = true;
+          $("authCodeForm").hidden = false;
+          $("authCodeInput").focus();
+        });
+
+        // Step 2 — verify
+        $("authCodeForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr();
+          const btn = $("authCodeSubmit");
+          const code = $("authCodeInput").value.trim();
+          btn.disabled = true; btn.textContent = "Verifying…";
+          const r = await api("/api/auth/verify-otp", { email, code });
+          btn.disabled = false; btn.textContent = "Verify & sign in";
+          if (!r.ok) return showErr(r.error || "That code didn't work.");
+          closeModal();
+          $("authCodeForm").hidden = true;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = false;
+          $("authCodeInput").value = "";
+          refreshAuth();
+        });
+
+        $("authBackBtn").addEventListener("click", () => {
+          clearErr();
+          $("authCodeForm").hidden = true;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = false;
+        });
+
+        // Let any element with data-requires-auth open the modal when signed out
+        document.addEventListener("click", (e) => {
+          const t = e.target.closest("[data-requires-auth]");
+          if (t && $("authSignInBtn").hidden === false) { e.preventDefault(); openModal(); }
+        });
+
+        // Wire the "free" promo popup's primary CTA to open this login modal
+        // (the popup is added separately; find its "Try it free" button by text).
+        function wireFreePopup() {
+          const btns = document.querySelectorAll(".free-popup-actions .button, .free-popup button, [id^='freePopup']");
+          btns.forEach((b) => {
+            const t = (b.textContent || "").trim().toLowerCase();
+            if (t.includes("try it free") || t.includes("sign in") || t.includes("start")) {
+              b.addEventListener("click", (e) => {
+                if (b.id === "freePopupDismiss") return;
+                e.preventDefault();
+                const pop = b.closest(".free-popup, [class*='free-popup']");
+                if (pop) pop.hidden = true;
+                openModal();
+              });
+            }
+          });
+        }
+        wireFreePopup();
+
+        // Expose so other scripts can trigger it
+        window.AIRadarAuth = { open: openModal, refresh: refreshAuth };
+        refreshAuth();
+      })();
+    </script>
+
+
 
   <div class="spk-hero">
     <span class="spk-kicker">⚡ Spark</span>
