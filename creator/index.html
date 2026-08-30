@@ -10,16 +10,29 @@
   <link rel="stylesheet" href="/styles.css" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
-    .spk-hero { max-width: 1040px; margin: 0 auto; padding: 34px 22px 6px; }
-    .spk-kicker { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-      color: #8fd7ea; background: rgba(34,211,238,.10); border: 1px solid rgba(34,211,238,.28); padding: 5px 11px; border-radius: 20px; }
-    .spk-hero h1 { font-family: "Prata", Georgia, serif; font-weight: 400; font-size: clamp(28px, 5.2vw, 50px); line-height: 1.05; margin: 15px 0 10px; color: #fff; letter-spacing: 0; }
-    .spk-hero h1 b { font-family: "Archivo", sans-serif; font-weight: 900; background: linear-gradient(120deg, #67e8f9, #4f8bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .spk-hero p { color: #96a0ac; font-size: 15.5px; line-height: 1.55; max-width: 620px; margin: 0; }
-    .spk-chips { display: flex; flex-wrap: wrap; gap: 9px; margin: 18px 0 4px; }
-    .spk-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: #c7d2dd;
-      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); padding: 8px 12px; border-radius: 11px; }
-    .spk-chip b { color: #fff; }
+    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px); background-size: 26px 26px;
+      -webkit-mask-image: radial-gradient(120% 85% at 72% -5%, #000, transparent 66%); mask-image: radial-gradient(120% 85% at 72% -5%, #000, transparent 66%); }
+    header, .spk-hero, .spk-guide, .spk-body { position: relative; z-index: 1; }
+    .spk-hero { position: relative; max-width: 1040px; margin: 0 auto; padding: 48px 22px 10px; overflow: hidden; }
+    .spk-eyebrow { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #7fe3f2; }
+    .spk-hero h1 { font-family: "Prata", Georgia, serif; font-weight: 400; font-size: clamp(32px, 6.2vw, 60px); line-height: 1.03; margin: 16px 0 14px; color: #fff; letter-spacing: -.01em; }
+    .spk-hero h1 b { font-family: "Prata", Georgia, serif; font-weight: 400; background: linear-gradient(115deg, #67e8f9, #4f8bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .spk-hero p { color: #9aa4b0; font-size: 15.5px; line-height: 1.6; max-width: 560px; margin: 0; }
+    .spk-stats { display: flex; flex-wrap: wrap; margin: 24px 0 4px; border-top: 1px solid rgba(255,255,255,.09); }
+    .spk-stats > div { padding: 15px 26px 2px 0; margin-right: 26px; border-right: 1px solid rgba(255,255,255,.09); }
+    .spk-stats > div:last-child { border-right: none; margin-right: 0; }
+    .spk-stats b { display: block; font-family: "Space Grotesk", system-ui, sans-serif; font-size: 22px; font-weight: 700; color: #eef2f0; letter-spacing: -.01em; }
+    .spk-stats span { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: #7f8a86; }
+    .spk-radar { position: absolute; top: -46px; right: -64px; width: 330px; height: 330px; pointer-events: none; }
+    .spk-radar .r { position: absolute; inset: 0; margin: auto; border-radius: 50%; border: 1px solid rgba(103,232,249,.16); }
+    .spk-radar .r1 { width: 330px; height: 330px; } .spk-radar .r2 { width: 216px; height: 216px; } .spk-radar .r3 { width: 104px; height: 104px; }
+    .spk-radar .sweep { position: absolute; inset: 0; margin: auto; width: 330px; height: 330px; border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(103,232,249,.26), rgba(103,232,249,0) 72deg, transparent); animation: spkSweep 5.5s linear infinite; transform-origin: 50% 50%; }
+    .spk-radar .blip { position: absolute; top: 92px; right: 104px; width: 9px; height: 9px; border-radius: 50%; background: #67e8f9; box-shadow: 0 0 14px 3px rgba(103,232,249,.55); animation: spkBlip 5.5s ease-in-out infinite; }
+    @keyframes spkSweep { to { transform: rotate(360deg); } }
+    @keyframes spkBlip { 0%,22%,100% { opacity: 0; } 9% { opacity: 1; } }
+    @media (max-width: 720px) { .spk-radar { display: none; } .spk-stats > div { padding-right: 18px; margin-right: 18px; } }
     .spk-guide { max-width: 1040px; margin: 20px auto 0; padding: 0 22px; }
     .spk-guide details { background: rgba(34,211,238,.05); border: 1px solid rgba(34,211,238,.20); border-radius: 14px; overflow: hidden; }
     .spk-guide summary { cursor: pointer; list-style: none; padding: 14px 16px; font-weight: 800; font-size: 14px; color: #bfeaf6; display: flex; align-items: center; gap: 9px; }
@@ -264,15 +277,18 @@
 
 
   <div class="spk-hero">
-    <span class="spk-kicker">⚡ Spark</span>
-    <h1>Your social content, <b>done in seconds.</b></h1>
-    <p>Hooks, posts, carousels, quotes, whiteboard infographics, scoring and profile rewrites — a complete social toolkit powered by AI. Pick a tool below and go.</p>
-    <div class="spk-chips">
-      <span class="spk-chip">🧰 <b>13</b> tools</span>
-      <span class="spk-chip">⚡ <b>100%</b> free</span>
-      <span class="spk-chip">📐 <b>1080×1350</b> exports</span>
-      <span class="spk-chip">🌐 English · Español</span>
-      <span class="spk-chip">📋 One-click copy</span>
+    <div class="spk-radar" aria-hidden="true">
+      <span class="r r1"></span><span class="r r2"></span><span class="r r3"></span>
+      <span class="sweep"></span><span class="blip"></span>
+    </div>
+    <span class="spk-eyebrow">◉ AI&nbsp;RADAR &nbsp;/&nbsp; CREATOR&nbsp;OS</span>
+    <h1>Make content that<br><b>stops the scroll.</b></h1>
+    <p>Thirteen AI tools for hooks, posts, carousels, quotes, infographics, thumbnails, scoring and profile rewrites. Pick one, ship in seconds.</p>
+    <div class="spk-stats">
+      <div><b>13</b><span>tools</span></div>
+      <div><b>100%</b><span>free</span></div>
+      <div><b>1080×1350</b><span>exports</span></div>
+      <div><b>1‑click</b><span>copy</span></div>
     </div>
   </div>
 
@@ -302,7 +318,7 @@
 
   <div class="spk-body"><div id="creatorMount"></div></div>
 
-  <script src="/app.js?v=v476"></script>
+  <script src="/app.js?v=v477"></script>
   <script>
     (function () {
       var tries = 0;

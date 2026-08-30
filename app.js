@@ -15812,14 +15812,17 @@ function vsCreatorTools(opts) {
          #ctModal textarea{resize:vertical;line-height:1.5}
          #ctModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
          #ctModal .btn:hover{filter:brightness(1.08)}
-         #ctModal .card{position:relative;text-align:left;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;overflow:hidden}
-         #ctModal .card:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.45);box-shadow:0 14px 34px rgba(0,0,0,.35),0 0 0 1px rgba(34,211,238,.2)}
-         #ctModal .card .tile{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;margin-bottom:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
-         #ctModal .card .nm{font-weight:800;color:#f2f6f4;font-size:15.5px}
-         #ctModal .card .ds{font-size:12.5px;color:#96a0ac;margin-top:5px;line-height:1.5}
-         #ctModal .card .go{position:absolute;top:16px;right:16px;color:#7fe3f2;font-size:16px;opacity:0;transform:translateX(-4px);transition:.16s}
-         #ctModal .card:hover .go{opacity:1;transform:translateX(0)}
-         #ctModal .card .free{display:inline-block;margin-top:11px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#8fe6c8;background:rgba(16,185,129,.14);padding:3px 8px;border-radius:20px}
+         #ctModal .card{position:relative;text-align:left;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px 16px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s;overflow:hidden;min-height:150px}
+         #ctModal .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,#22d3ee);opacity:0;transition:.18s}
+         #ctModal .card:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.05)}
+         #ctModal .card:hover::before{opacity:1}
+         #ctModal .card .idx{position:absolute;top:12px;right:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:26px;font-weight:800;color:rgba(255,255,255,.08);letter-spacing:-.02em;transition:.18s}
+         #ctModal .card:hover .idx{color:var(--ac,#22d3ee);opacity:.55}
+         #ctModal .card .ic{font-size:22px;line-height:1;margin-bottom:12px}
+         #ctModal .card .nm{font-weight:800;color:#f2f6f4;font-size:15.5px;letter-spacing:-.01em}
+         #ctModal .card .ds{font-size:12.5px;color:#96a0ac;margin-top:5px;line-height:1.5;max-width:92%}
+         #ctModal .card .tag{position:absolute;left:18px;bottom:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#7f8a86}
+         #ctModal .card .tag b{color:#8fe6c8}
          #ctModal .row{display:flex;gap:10px;flex-wrap:wrap}
          #ctModal .row>div{flex:1;min-width:120px}
          #ctModal .cp{font:inherit;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;border:none;background:rgba(16,185,129,.16);color:#7ff0cf}
@@ -15871,15 +15874,21 @@ function vsCreatorTools(opts) {
   function hub() {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
+    const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1 };
+    const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
-      `${page ? "" : `<div style="font-size:12.5px;color:#9aa39f;margin-bottom:12px">${fa ? "یک ابزار را انتخاب کن — همه رایگان‌اند." : "Pick a tool — all free."}</div>`}
-       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:${page ? "16px" : "12px"}">
-         ${TOOLS.map(t => `<div class="card" data-tool="${t.id}">
-            <span class="go">→</span>
-            <div class="tile" style="background:linear-gradient(135deg,${tint(t.accent, .28)},${tint(t.accent, .12)});color:${t.accent}">${t.icon}</div>
+      `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
+         <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#7fe3f2">// TOOLKIT</span>
+         <span style="font-size:12px;color:#7f8a86">${fa ? `${TOOLS.length} ابزار · همه رایگان` : `${TOOLS.length} tools · all free`}</span>
+         <span style="flex:1;height:1px;background:rgba(255,255,255,.08)"></span>
+       </div>
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:${page ? "14px" : "12px"}">
+         ${TOOLS.map((t, i) => `<div class="card" data-tool="${t.id}" style="--ac:${t.accent}">
+            <div class="idx">${String(i + 1).padStart(2, "0")}</div>
+            <div class="ic">${t.icon}</div>
             <div class="nm">${t.name}</div>
             <div class="ds">${t.desc}</div>
-            <span class="free">${fa ? "رایگان" : "FREE"}</span></div>`).join("")}
+            <div class="tag">${catOf(t.id)} · <b>${fa ? "رایگان" : "FREE"}</b></div></div>`).join("")}
        </div>`;
     body.querySelectorAll(".card").forEach(c => c.onclick = () => openTool(c.getAttribute("data-tool")));
   }
