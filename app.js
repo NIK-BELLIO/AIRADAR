@@ -18051,7 +18051,6 @@ function bindEvents() {
     if (window.VS_REVERSE_SOON) { vsStatus(state.lang === "fa" ? "🧬 «Reverse Engineer» به‌زودی فعال می‌شود…" : "🧬 Reverse Engineer is coming soon…"); return; }
     try { vsReverseEngineer(); } catch (e) {}
   });
-  on("#vsCreatorBtn", "click", () => { location.href = "/creator/"; });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
