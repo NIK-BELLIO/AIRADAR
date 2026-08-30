@@ -15812,8 +15812,14 @@ function vsCreatorTools(opts) {
          #ctModal textarea{resize:vertical;line-height:1.5}
          #ctModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
          #ctModal .btn:hover{filter:brightness(1.08)}
-         #ctModal .card{text-align:left;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px;cursor:pointer;transition:.15s}
-         #ctModal .card:hover{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08);transform:translateY(-2px)}
+         #ctModal .card{position:relative;text-align:left;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;overflow:hidden}
+         #ctModal .card:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.45);box-shadow:0 14px 34px rgba(0,0,0,.35),0 0 0 1px rgba(34,211,238,.2)}
+         #ctModal .card .tile{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;margin-bottom:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+         #ctModal .card .nm{font-weight:800;color:#f2f6f4;font-size:15.5px}
+         #ctModal .card .ds{font-size:12.5px;color:#96a0ac;margin-top:5px;line-height:1.5}
+         #ctModal .card .go{position:absolute;top:16px;right:16px;color:#7fe3f2;font-size:16px;opacity:0;transform:translateX(-4px);transition:.16s}
+         #ctModal .card:hover .go{opacity:1;transform:translateX(0)}
+         #ctModal .card .free{display:inline-block;margin-top:11px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#8fe6c8;background:rgba(16,185,129,.14);padding:3px 8px;border-radius:20px}
          #ctModal .row{display:flex;gap:10px;flex-wrap:wrap}
          #ctModal .row>div{flex:1;min-width:120px}
          #ctModal .cp{font:inherit;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;border:none;background:rgba(16,185,129,.16);color:#7ff0cf}
@@ -15825,12 +15831,12 @@ function vsCreatorTools(opts) {
          #ctModal .tbl td:first-child{background:rgba(255,255,255,.05);font-weight:800;color:#eef2f0;white-space:nowrap}
          #ctModal .tbl td{color:#cfd6d2}
        </style>
-       <div style="display:flex;align-items:center;gap:10px">
+       ${page ? "" : `<div style="display:flex;align-items:center;gap:10px">
          <span style="font-size:22px">🧰</span>
-         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#eef2f0">Creator Tools</span>
+         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#eef2f0">Spark</span>
          <span style="flex:1"></span>
-         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${page ? (fa ? "← خانه" : "← Home") : (fa ? "بستن" : "Close")}</button>
-       </div>
+         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${fa ? "بستن" : "Close"}</button>
+       </div>`}
        <div id="ctBody"></div>
      </div>`;
   if (!page) document.body.appendChild(ov);
@@ -15839,7 +15845,7 @@ function vsCreatorTools(opts) {
   const body = $$("ctBody");
   const close = () => { if (page) { location.href = opts.home || "/"; return; } try { ov.remove(); } catch (e) {} };
   if (!page) ov.addEventListener("click", e => { if (e.target === ov) close(); });
-  $$("ctClose").onclick = close;
+  if ($$("ctClose")) $$("ctClose").onclick = close;
   const spin = (t) => `<div style="display:flex;align-items:center;gap:10px;color:#9aa39f;font-size:13px;padding:6px 0"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:#10b981;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>${t}</div>`;
   const copy = (str, btn) => { try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
   const platSel = (id) => `<select id="${id}"><option value="Instagram">Instagram</option><option value="LinkedIn">LinkedIn</option><option value="X (Twitter)">X / Twitter</option><option value="TikTok">TikTok</option></select>`;
@@ -15857,13 +15863,17 @@ function vsCreatorTools(opts) {
   ];
 
   function hub() {
+    const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
+    const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
     body.innerHTML =
-      `<div style="font-size:12.5px;color:#9aa39f;margin-bottom:12px">${fa ? "یک ابزار را انتخاب کن — همه رایگان‌اند." : "Pick a tool — all free (text)."}</div>
-       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
-         ${TOOLS.map(t => `<div class="card" data-tool="${t.id}"><div style="font-size:26px">${t.icon}</div>
-            <div style="font-weight:800;color:#eef2f0;font-size:15px;margin-top:6px">${t.name}</div>
-            <div style="font-size:12px;color:#9aa39f;margin-top:4px;line-height:1.45">${t.desc}</div>
-            <div style="height:3px;width:40px;border-radius:2px;margin-top:11px;background:${t.accent}"></div></div>`).join("")}
+      `${page ? "" : `<div style="font-size:12.5px;color:#9aa39f;margin-bottom:12px">${fa ? "یک ابزار را انتخاب کن — همه رایگان‌اند." : "Pick a tool — all free."}</div>`}
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:${page ? "16px" : "12px"}">
+         ${TOOLS.map(t => `<div class="card" data-tool="${t.id}">
+            <span class="go">→</span>
+            <div class="tile" style="background:linear-gradient(135deg,${tint(t.accent, .28)},${tint(t.accent, .12)});color:${t.accent}">${t.icon}</div>
+            <div class="nm">${t.name}</div>
+            <div class="ds">${t.desc}</div>
+            <span class="free">${fa ? "رایگان" : "FREE"}</span></div>`).join("")}
        </div>`;
     body.querySelectorAll(".card").forEach(c => c.onclick = () => openTool(c.getAttribute("data-tool")));
   }
