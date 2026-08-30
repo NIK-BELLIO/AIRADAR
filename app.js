@@ -15746,16 +15746,65 @@ async function vsGenerateCover() {
   vsShowCoverPreview(out.blob, out.coverTitle, { topic, source });
 }
 
+// A bold-poster QUOTE card (1080x1350) rendered on canvas (free, text stays crisp).
+async function vsRenderQuoteCard(quote, opts) {
+  opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0e1830"); g.addColorStop(1, "#0a1020"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  const M = W * 0.11;
+  x.fillStyle = "#cda24a"; x.font = `900 ${Math.round(W * 0.22)}px Georgia, serif`; x.textAlign = "left"; x.textBaseline = "top"; x.globalAlpha = 0.9; x.fillText("“", M - 12, H * 0.09); x.globalAlpha = 1;
+  const words = String(quote || "").split(/\s+/).filter(Boolean), maxW = W - M * 2;
+  const wrap = (p) => { x.font = `800 ${p}px ${FAM}`; const out = []; let cur = ""; words.forEach(w => { const t = cur ? cur + " " + w : w; if (x.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }); if (cur) out.push(cur); return out; };
+  let px = Math.round(W * 0.078), lines = wrap(px);
+  while (px > W * 0.04 && (lines.length > 7 || lines.some(l => { x.font = `800 ${px}px ${FAM}`; return x.measureText(l).width > maxW; }))) { px -= 3; lines = wrap(px); }
+  const lh = px * 1.18, blockH = lines.length * lh, startY = (H - blockH) / 2;
+  x.textAlign = "left"; x.textBaseline = "top"; x.font = `800 ${px}px ${FAM}`; x.fillStyle = "#f5f2ea";
+  lines.forEach((l, i) => x.fillText(l, M, startY + i * lh));
+  x.fillStyle = "#cda24a"; x.fillRect(M, startY + blockH + H * 0.03, W * 0.1, 6);
+  if (opts.handle) { x.font = `700 ${Math.round(W * 0.026)}px ${FAM}`; x.fillStyle = "rgba(255,255,255,.7)"; x.fillText(String(opts.handle).toUpperCase(), M, H * 0.9); }
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+}
+
+// A hand-drawn "whiteboard/notebook" INFOGRAPHIC (1080x1350) on canvas (free).
+async function vsRenderInfographic(brief, opts) {
+  opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  x.fillStyle = "#f6f0e2"; x.fillRect(0, 0, W, H);
+  x.strokeStyle = "rgba(0,0,0,0.045)"; for (let i = 0; i < H; i += 46) { x.beginPath(); x.moveTo(0, i); x.lineTo(W, i); x.stroke(); }
+  const M = W * 0.08, ink = "#1b2340", marker = ["#c0392b", "#2563a8", "#2e7d47", "#b8860b"];
+  const wrap = (t, p, mw, weight) => { x.font = `${weight} ${p}px ${FAM}`; const ws = String(t || "").split(/\s+/).filter(Boolean); const out = []; let cur = ""; ws.forEach(w => { const s = cur ? cur + " " + w : w; if (x.measureText(s).width > mw && cur) { out.push(cur); cur = w; } else cur = s; }); if (cur) out.push(cur); return out; };
+  let y = H * 0.075; x.textAlign = "left"; x.textBaseline = "top";
+  const tp = Math.round(W * 0.072), tl = wrap(brief.title, tp, W - M * 2, "900").slice(0, 3);
+  x.fillStyle = ink; tl.forEach((l, i) => x.fillText(l, M, y + i * tp * 1.05)); y += tl.length * tp * 1.05 + H * 0.008;
+  x.strokeStyle = "#b8860b"; x.lineWidth = 7; x.lineCap = "round"; x.beginPath(); x.moveTo(M, y); for (let i = 0; i <= 10; i++) x.lineTo(M + i * (W * 0.5 / 10), y + (i % 2 ? 4 : -4)); x.stroke(); y += H * 0.03;
+  if (brief.subtitle) { const sp = Math.round(W * 0.032); x.fillStyle = "#4a5163"; wrap(brief.subtitle, sp, W - M * 2, "600").slice(0, 2).forEach((l, i) => x.fillText(l, M, y + i * sp * 1.3)); y += H * 0.055; }
+  const pts = (brief.points || []).slice(0, 7), bp = Math.round(W * 0.036);
+  pts.forEach((pt, i) => {
+    const col = marker[i % marker.length];
+    x.fillStyle = col; x.fillRect(M, y, W * 0.056, W * 0.056);
+    x.fillStyle = "#fff"; x.font = `900 ${Math.round(W * 0.03)}px ${FAM}`; x.textAlign = "center"; x.fillText(String(i + 1), M + W * 0.028, y + W * 0.009);
+    x.textAlign = "left"; x.fillStyle = ink;
+    const ls = wrap(pt, bp, W - M * 2 - W * 0.085, "700").slice(0, 2);
+    ls.forEach((l, k) => x.fillText(l, M + W * 0.085, y + k * bp * 1.25));
+    y += Math.max(W * 0.062, ls.length * bp * 1.25) + H * 0.016;
+  });
+  const foot = brief.footer || "Follow for more  |  Repost ♻";
+  x.fillStyle = "#c0392b"; x.textAlign = "left"; wrap(foot, Math.round(W * 0.028), W - M * 2, "800").slice(0, 2).forEach((l, i) => x.fillText(l, M, H * 0.915 + i * W * 0.034));
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+}
+
 // ── Creator Tools ─────────────────────────────────────────────────────────
-// A hub of text-content generators ported faithfully from the social-media
-// skills (hook-generator, post-formatter, content-matrix). Free — uses /chat.
-function vsCreatorTools() {
+// A hub of content generators ported faithfully from the social-media skills.
+// All FREE: text tools use /chat; quote + infographic render on canvas.
+function vsCreatorTools(opts) {
+  opts = opts || {};
+  const page = !!opts.mount;   // page mode = render inline (its own page), not a modal
   const fa = state.lang === "fa";
   const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
+  const ov = page ? opts.mount : document.createElement("div");
+  if (!page) ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
-    `<div id="ctModal" style="width:min(760px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:14px;background:#12141a;border:1px solid rgba(16,185,129,.28);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
+    `<div id="ctModal" style="${page ? "width:min(920px,100%);margin:0 auto;background:transparent;border:none;box-shadow:none;padding:0" : "width:min(760px,97vw);max-height:94vh;overflow:auto;background:#12141a;border:1px solid rgba(16,185,129,.28);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)"};display:flex;flex-direction:column;gap:14px">
        <style>
          #ctModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7f8a86;margin-bottom:6px}
          #ctModal input[type=text],#ctModal textarea,#ctModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#eef2f0;font:inherit;border-radius:11px;padding:11px 12px;outline:none;box-sizing:border-box}
@@ -15780,16 +15829,16 @@ function vsCreatorTools() {
          <span style="font-size:22px">🧰</span>
          <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#eef2f0">Creator Tools</span>
          <span style="flex:1"></span>
-         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${fa ? "بستن" : "Close"}</button>
+         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${page ? (fa ? "← خانه" : "← Home") : (fa ? "بستن" : "Close")}</button>
        </div>
        <div id="ctBody"></div>
      </div>`;
-  document.body.appendChild(ov);
+  if (!page) document.body.appendChild(ov);
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
   const $$ = (id) => ov.querySelector("#" + id);
   const body = $$("ctBody");
-  const close = () => { try { ov.remove(); } catch (e) {} };
-  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  const close = () => { if (page) { location.href = opts.home || "/"; return; } try { ov.remove(); } catch (e) {} };
+  if (!page) ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("ctClose").onclick = close;
   const spin = (t) => `<div style="display:flex;align-items:center;gap:10px;color:#9aa39f;font-size:13px;padding:6px 0"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:#10b981;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>${t}</div>`;
   const copy = (str, btn) => { try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
@@ -15801,6 +15850,10 @@ function vsCreatorTools() {
     { id: "hook", icon: "🪝", name: fa ? "هوک‌ساز" : "Hook Generator", desc: fa ? "۶ هوکِ کلیک‌بیتیِ دوخطی برای هر موضوع" : "6 two-line clickbait hooks for any topic", accent: "#f59e0b" },
     { id: "post", icon: "📝", name: fa ? "پست‌نویس" : "Post Writer", desc: fa ? "پستِ آماده با فریم‌ورک (PAS/AIDA/…)" : "Ready post with a framework (PAS/AIDA/…)", accent: "#3b82f6" },
     { id: "matrix", icon: "🗂️", name: fa ? "ماتریسِ محتوا" : "Content Matrix", desc: fa ? "۳۲+ ایدهٔ پست (ستون‌ها × موضوع‌ها)" : "32+ post ideas (pillars × 8 formats)", accent: "#a855f7" },
+    { id: "quote", icon: "❝", name: fa ? "پستِ نقلِ‌قول" : "Quote Post", desc: fa ? "نقلِ‌قولِ انگیزشی + گرافیکِ آماده" : "Viral quotes + a ready graphic", accent: "#22d3ee" },
+    { id: "info", icon: "📊", name: fa ? "اینفوگرافیک" : "Infographic", desc: fa ? "اینفوگرافیکِ وایت‌بوردیِ دست‌نویس" : "Hand-drawn whiteboard infographic", accent: "#10b981" },
+    { id: "score", icon: "🎯", name: fa ? "امتیازِ پست" : "Post Scorer", desc: fa ? "نمرهٔ پست /۵۰ + اصلاح‌ها" : "Score a post /50 + concrete fixes", accent: "#ef4444" },
+    { id: "profile", icon: "👤", name: fa ? "بهینهٔ پروفایل" : "Profile Optimizer", desc: fa ? "تیتر، درباره، تجربه + پرامپتِ عکس" : "Headline, about, experience + image prompts", accent: "#8b5cf6" },
   ];
 
   function hub() {
@@ -15820,8 +15873,17 @@ function vsCreatorTools() {
     if (id === "hook") toolHook();
     else if (id === "post") toolPost();
     else if (id === "matrix") toolMatrix();
+    else if (id === "quote") toolQuote();
+    else if (id === "info") toolInfographic();
+    else if (id === "score") toolScore();
+    else if (id === "profile") toolProfile();
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
+  const showImg = (outEl, blob, name) => {
+    const u = URL.createObjectURL(blob);
+    outEl.innerHTML = `<img src="${u}" style="width:min(360px,100%);border-radius:12px;display:block;margin:0 auto;background:#000"/>
+      <a href="${u}" download="${name}" style="display:block;max-width:360px;margin:10px auto 0;text-align:center;font:inherit;font-weight:800;padding:11px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#10b981)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+  };
 
   // ---- Hook Generator ----
   function toolHook() {
@@ -15919,6 +15981,111 @@ function vsCreatorTools() {
          <div style="overflow-x:auto;border:1px solid rgba(255,255,255,.10);border-radius:12px"><table class="tbl">${th}${trs}</table></div>
          <div style="font-size:11px;color:#7f8a86;margin-top:8px">${fa ? "برای دیدنِ کاملِ هر خانه نگه‌دار/بکش. «کپیِ جدول» به‌صورتِ Markdown کپی می‌کند." : "Scroll to see all cells. 'Copy table' copies as Markdown."}</div>`;
       $$("mxCopy").onclick = () => copy(md, $$("mxCopy"));
+    };
+  }
+
+  // ---- Quote Post (free canvas graphic) ----
+  function toolQuote() {
+    body.innerHTML = backBar("❝ " + (fa ? "پستِ نقلِ‌قول" : "Quote Post")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("qtPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("qtLang")}</div><div><div class="lbl">${fa ? "هندل (اختیاری)" : "Handle (optional)"}</div><input id="qtHandle" type="text" placeholder="@yourname"/></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع / کپشن" : "Topic / caption"}</div><textarea id="qtCap" rows="2" placeholder="${fa ? "نقلِ‌قول باید پیامِ این را تقویت کند…" : "The quote should reinforce this message…"}"></textarea></div>
+       <button id="qtGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#10b981)">✨ ${fa ? "ساختِ ۹ نقلِ‌قول" : "Generate 9 quotes"}</button>
+       <div id="qtList" style="margin-top:14px"></div><div id="qtGfx" style="margin-top:12px"></div>`;
+    const makeGfx = async (q) => {
+      $$("qtGfx").innerHTML = spin(fa ? "در حال رندر…" : "Rendering…");
+      try { const blob = await vsRenderQuoteCard(q, { handle: ($$("qtHandle").value || "").trim() }); showImg($$("qtGfx"), blob, "quote.jpg"); vsTrackGen("quote", "local", "canvas"); }
+      catch (e) { $$("qtGfx").innerHTML = ""; }
+    };
+    $$("qtGo").onclick = async () => {
+      const cap = ($$("qtCap").value || "").trim(); if (!cap) { $$("qtCap").focus(); return; }
+      const lang = $$("qtLang").value;
+      const g = $$("qtGo"); g.disabled = true; g.style.opacity = ".6"; $$("qtList").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      const prompt = `Write 9 viral motivational quotes to accompany this caption: "${cap}".\n` +
+        `Group them into 3 categories of 3: 1) Growth and transformation, 2) Resilience and grit, 3) Contrarian / bold.\n` +
+        `Each quote: under 15 words, human and authentic (not corporate), no jargon, works standalone, punches hard in the first 3 words. No em dashes. Never fabricate attribution.\n` +
+        `${langLine(lang)}\nReturn ONLY JSON: {"groups":[{"name":"Growth and transformation","quotes":["","",""]},{"name":"Resilience and grit","quotes":["","",""]},{"name":"Contrarian / bold","quotes":["","",""]}]}`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      const data = vsParseAiJson(raw || "");
+      if (!data || !Array.isArray(data.groups)) { $$("qtList").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      $$("qtList").innerHTML = data.groups.map(gr =>
+        `<div style="margin-bottom:12px"><div class="lbl" style="color:#22d3ee">${esc(gr.name || "")}</div>` +
+        (gr.quotes || []).map(q => `<div style="display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px;margin-bottom:7px"><div style="flex:1;font-size:14px;color:#eef2f0;font-weight:600">${esc(q)}</div><button class="cp" data-q="${esc(q)}">🎨 ${fa ? "گرافیک" : "Graphic"}</button></div>`).join("") + `</div>`).join("") +
+        `<div style="display:flex;gap:8px;margin-top:6px"><input id="qtOwn" type="text" placeholder="${fa ? "یا نقلِ‌قولِ خودت…" : "…or your own quote"}"/><button id="qtOwnGo" class="btn" style="white-space:nowrap;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#10b981)">🎨</button></div>`;
+      $$("qtList").querySelectorAll(".cp").forEach(b => b.onclick = () => makeGfx(b.getAttribute("data-q").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')));
+      $$("qtOwnGo").onclick = () => { const v = ($$("qtOwn").value || "").trim(); if (v) makeGfx(v); };
+    };
+  }
+
+  // ---- Infographic (free canvas, whiteboard style) ----
+  function toolInfographic() {
+    body.innerHTML = backBar("📊 " + (fa ? "اینفوگرافیک" : "Infographic")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("igLang")}</div><div><div class="lbl">${fa ? "فوتر (نام/تگ‌لاین)" : "Footer (name/tagline)"}</div><input id="igFoot" type="text" placeholder="${fa ? "مثلاً @yourname برای محتوای بیشتر" : "e.g. @yourname for more"}"/></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "محتوا (پست، خبرنامه، بولت…)" : "Content (post, newsletter, bullets…)"}</div><textarea id="igSrc" rows="4" placeholder="${fa ? "متنی که می‌خوای به اینفوگرافیک تبدیل شود…" : "Paste what you want turned into an infographic…"}"></textarea></div>
+       <button id="igGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#10b981,#22d3ee)">✨ ${fa ? "ساختِ اینفوگرافیک" : "Build infographic"}</button>
+       <div id="igOut" style="margin-top:14px"></div>`;
+    $$("igGo").onclick = async () => {
+      const src = ($$("igSrc").value || "").trim(); if (!src) { $$("igSrc").focus(); return; }
+      const lang = $$("igLang").value, foot = ($$("igFoot").value || "").trim();
+      const g = $$("igGo"); g.disabled = true; g.style.opacity = ".6"; $$("igOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
+      const prompt = `Turn this content into a punchy infographic brief:\n"""${src.slice(0, 2000)}"""\n` +
+        `Give: a punchy TITLE (6 words or fewer), an optional one-line SUBTITLE, and 3 to 7 KEY POINTS (each 10 words or fewer, specific and concrete).\n` +
+        `${langLine(lang)}\nReturn ONLY JSON: {"title":"","subtitle":"","points":["","",""]}`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.7 }); } catch (e) {}
+      const data = vsParseAiJson(raw || "");
+      g.disabled = false; g.style.opacity = "1";
+      if (!data || !data.title) { $$("igOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const brief = { title: data.title, subtitle: data.subtitle, points: data.points || [], footer: foot ? (foot + "  |  Repost ♻") : "Follow for more  |  Repost ♻" };
+      try { const blob = await vsRenderInfographic(brief, {}); showImg($$("igOut"), blob, "infographic.jpg"); vsTrackGen("infographic", "local", "canvas"); }
+      catch (e) { $$("igOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رندر." : "Render error."}</div>`; }
+    };
+  }
+
+  // ---- Post Scorer (free) ----
+  function toolScore() {
+    body.innerHTML = backBar("🎯 " + (fa ? "امتیازِ پست" : "Post Scorer")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("scPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("scLang")}</div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "پست را پیست کن" : "Paste the post"}</div><textarea id="scPost" rows="6" placeholder="${fa ? "پستی که می‌خوای نمره بگیره…" : "The post you want scored…"}"></textarea></div>
+       <button id="scGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#ef4444,#f59e0b)">✨ ${fa ? "نمره بده" : "Score it"}</button>
+       <div id="scOut" style="margin-top:14px"></div>`;
+    $$("scGo").onclick = async () => {
+      const post = ($$("scPost").value || "").trim(); if (!post) { $$("scPost").focus(); return; }
+      const plat = $$("scPlat").value, lang = $$("scLang").value;
+      const g = $$("scGo"); g.disabled = true; g.style.opacity = ".6"; $$("scOut").innerHTML = spin(fa ? "در حال بررسی…" : "Analyzing…");
+      const prompt = `Score this ${plat} post against best-practice principles. Be strict and specific.\nPOST:\n"""${post}"""\n` +
+        `Score 5 criteria, each 1-10: Hook strength, Voice/tone, Value density, Structure & format, Publish readiness. Sum to a TOTAL /50.\n` +
+        `Then give a one-sentence VERDICT, 3 concrete FIXES, and a rewritten stronger HOOK line.\n` +
+        `${langLine(lang)}\nOutput EXACTLY this shape (plain text):\nPOST SCORE\n\nHook strength:        X/10\nVoice/tone:           X/10\nValue density:        X/10\nStructure & format:   X/10\nPublish readiness:    X/10\n----------------------------------\nTOTAL:                XX/50\n\nVERDICT: ...\n\nFIXES:\n1. ...\n2. ...\n3. ...\n\nSTRONGER HOOK: ...`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.5 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!raw) { $$("scOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span><span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$("scCopy").onclick = () => copy(txt, $$("scCopy"));
+    };
+  }
+
+  // ---- Profile Optimizer (free) ----
+  function toolProfile() {
+    body.innerHTML = backBar("👤 " + (fa ? "بهینهٔ پروفایل" : "Profile Optimizer")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("pfPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("pfLang")}</div><div><div class="lbl">${fa ? "هدف" : "Goal"}</div><select id="pfGoal"><option value="Booked calls">${fa ? "تماس/دمو" : "Booked calls"}</option><option value="Inbound leads">${fa ? "لیدِ ورودی" : "Inbound leads"}</option><option value="Newsletter subscribers">${fa ? "مشترکِ خبرنامه" : "Newsletter subs"}</option><option value="Job opportunities">${fa ? "فرصتِ شغلی" : "Job offers"}</option></select></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "نام و نقش" : "Name & role"}</div><input id="pfWho" type="text" placeholder="${fa ? "مثلاً سارا — مشاورِ املاک" : "e.g. Sara — real estate agent"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "آفر + مدرکِ اجتماعی (اختیاری)" : "Offer + social proof (optional)"}</div><textarea id="pfProof" rows="2" placeholder="${fa ? "چه کمکی می‌کنی، به کی، با چه نتیجه‌ای…" : "What you offer, to whom, with what results…"}"></textarea></div>
+       <button id="pfGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#8b5cf6,#6366f1)">✨ ${fa ? "بازنویسیِ پروفایل" : "Rebuild profile"}</button>
+       <div id="pfOut" style="margin-top:14px"></div>`;
+    $$("pfGo").onclick = async () => {
+      const who = ($$("pfWho").value || "").trim(); if (!who) { $$("pfWho").focus(); return; }
+      const plat = $$("pfPlat").value, lang = $$("pfLang").value, goal = $$("pfGoal").value, proof = ($$("pfProof").value || "").trim();
+      const g = $$("pfGo"); g.disabled = true; g.style.opacity = ".6"; $$("pfOut").innerHTML = spin(fa ? "در حال بازنویسی…" : "Rebuilding…");
+      const prompt = `Rebuild a ${plat} profile for maximum conversions.\nPerson: ${who}\nPrimary goal: ${goal}\n` + (proof ? `Offer & proof: ${proof}\n` : "") +
+        `Produce, clearly labelled: (1) 3 HEADLINE options (each <=220 chars, conversion-focused). (2) An ABOUT section (short, punchy, first-person, ends with a CTA toward the goal). (3) 3-5 EXPERIENCE bullet lines. (4) FEATURED strategy (what 3 things to pin). (5) 4 IMAGE PROMPTS: banner, profile picture, and 2 featured tiles.\n` +
+        `No em dashes. ${langLine(lang)}\nOutput plain text with clear section headings.`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.7, timeout: 60000 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!raw) { $$("pfOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+      $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$("pfCopy").onclick = () => copy(txt, $$("pfCopy"));
     };
   }
 
@@ -17884,7 +18051,7 @@ function bindEvents() {
     if (window.VS_REVERSE_SOON) { vsStatus(state.lang === "fa" ? "🧬 «Reverse Engineer» به‌زودی فعال می‌شود…" : "🧬 Reverse Engineer is coming soon…"); return; }
     try { vsReverseEngineer(); } catch (e) {}
   });
-  on("#vsCreatorBtn", "click", () => { try { vsCreatorTools(); } catch (e) {} });
+  on("#vsCreatorBtn", "click", () => { location.href = "/creator/"; });
   on("#vsUsePexels", "change", () => {
     const w = $("#vsPexelsKeyWrap");
     // when the site already has an embedded key, never show the field
