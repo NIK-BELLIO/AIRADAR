@@ -16820,6 +16820,7 @@ function vsReverseEngineer(prefill) {
            <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
          <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
+         <button id="reBuildMotion" type="button" class="btn" style="width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800">🎬 ${fa ? "نمای سینمایی (حرکتِ دوربین) — قبل از خرج تأیید می‌گیرد" : "Cinematic motion (camera move) — asks before spending"}</button>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
@@ -17044,6 +17045,19 @@ function vsReverseEngineer(prefill) {
     try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
+  };
+  // Cinematic motion clip (H3 Max) — the "copy the camera / angle change" part.
+  // It opens its OWN confirm dialog and never spends without an explicit click.
+  $$("reBuildMotion").onclick = () => {
+    try {
+      vsReverseMotionClip({
+        photo: thPhoto,
+        gender: $$("reThGender") ? $$("reThGender").value : "female",
+        setting: (blueprint && blueprint.setting) || "",
+        motion: (blueprint && (blueprint.motion || blueprint.camera)) || "",
+        caption: (blueprint && blueprint.caption) || ""
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
 
   setTimeout(() => { try { $$("reUrl").focus(); } catch (e) {} }, 50);
@@ -17357,6 +17371,120 @@ async function vsBuildTalkingHead(script, opts) {
   vsTrackGen("talkinghead", "veed/fabric-1.0+kokoro", "dur:" + Math.round(dur) + "s voice:" + (opts.voice || "af_heart"));
   try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "talking-head"); } catch (e) {}
   vsStatus(fa ? "✅ ویدیوی آدمِ سخنگو آماده شد." : "✅ Talking-head video ready.");
+}
+
+// ── Cinematic motion clip (MiniMax H3 Max image-to-video) ──────────────────
+// Turns ONE still (the user's own photo, or an AI frame of the reference's
+// setting) into a short MOVING clip with camera movement / angle change — the
+// "copy the camera & angle" part of Reverse Engineer. This is the only place a
+// paid VIDEO model is called, so it ALWAYS asks first (shows the exact fal cost)
+// and never spends a cent without an explicit "Generate" click. No lip-sync.
+async function vsReverseMotionClip(opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const post = async (path, body) => {
+    const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t;
+  };
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML =
+    `<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.32);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px">🎬</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#eaf1ff">${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</span></div>
+       <p style="font-size:12.5px;color:#9fb0c8;line-height:1.55;margin:0 0 14px">${fa ? "یک عکس را به یک کلیپِ کوتاهِ متحرک با حرکتِ دوربین/تغییرِ زاویه تبدیل می‌کند — همون حسِ ویدیوی مرجع. لب‌همزمانی ندارد." : "Turns one still into a short moving clip with camera movement / angle change — the feel of the reference video. No lip-sync."}</p>
+       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+         <select id="mcRes"><option value="768P">768p</option><option value="480P">480p</option></select>
+         <select id="mcDur"><option value="6">6s</option><option value="10">10s</option></select>
+         <span style="flex:1"></span>
+         <span id="mcCost" style="font-size:12.5px;color:#ffd479;font-weight:800"></span>
+       </div>
+       <label id="mcPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer;margin-bottom:12px">
+         <span style="font-size:16px">🖼</span><span id="mcPhotoTxt">${fa ? "عکسِ خودت (اختیاری) — وگرنه یک فریمِ صحنه ساخته می‌شود" : "Your own photo (optional) — else an AI frame of the scene"}</span>
+         <input id="mcPhoto" type="file" accept="image/*" style="display:none"/></label>
+       <div id="mcSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>
+       <div id="mcResult" style="margin-top:12px"></div>
+       <div style="display:flex;gap:9px;margin-top:14px">
+         <button id="mcCancel" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "انصراف" : "Cancel"}</button>
+         <button id="mcGo" type="button" class="btn" style="flex:2;color:#eaf1ff;background:linear-gradient(135deg,#2563ff,#0ea5e9);font-weight:800"></button>
+       </div>
+     </div>`;
+  document.body.appendChild(ov);
+  const $ = (id) => ov.querySelector("#" + id);
+  let closed = false, running = false;
+  const close = () => { if (running) return; closed = true; try { ov.remove(); } catch (e) {} };
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  $("mcCancel").onclick = close;
+  let mcPhoto = opts.photo || null;
+  if (mcPhoto) $("mcPhotoTxt").textContent = (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + (mcPhoto.name || "").slice(0, 30);
+  $("mcPhoto").onchange = (e) => { mcPhoto = (e.target.files && e.target.files[0]) || null; $("mcPhotoTxt").textContent = mcPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + mcPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت (اختیاری) — وگرنه یک فریمِ صحنه ساخته می‌شود" : "Your own photo (optional) — else an AI frame of the scene"); };
+  // live cost estimate (regular fal rate: 480P $0.05/s, 768P $0.08/s)
+  const refreshCost = () => {
+    const res = $("mcRes").value, dur = parseInt($("mcDur").value, 10) || 6;
+    const rate = res === "768P" ? 0.08 : 0.05, est = (dur * rate).toFixed(2);
+    $("mcCost").textContent = (fa ? `هزینهٔ fal ≈ $${est}` : `fal cost ≈ $${est}`);
+    $("mcGo").textContent = (fa ? `💳 بساز (≈ $${est})` : `💳 Generate (≈ $${est})`);
+  };
+  $("mcRes").onchange = refreshCost; $("mcDur").onchange = refreshCost; refreshCost();
+
+  const steps = $("mcSteps");
+  const line = (txt) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#0ea5e9;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${txt}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+
+  $("mcGo").onclick = async () => {
+    if (running) return; running = true;
+    $("mcGo").disabled = true; $("mcGo").style.opacity = ".6"; $("mcCancel").disabled = true;
+    const res = $("mcRes").value, dur = parseInt($("mcDur").value, 10) || 6;
+    try {
+      // 1) source image — the user's photo (→ fal storage) or an AI scene frame
+      let ic = line(fa ? "آماده‌سازیِ فریمِ اول" : "Preparing the first frame");
+      let imageUrl;
+      if (mcPhoto) {
+        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": mcPhoto.type || "image/jpeg" }, body: mcPhoto });
+        const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error(uj.error || "photo upload failed");
+        imageUrl = uj.file_url;
+      } else {
+        const setting = (opts.setting || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 90);
+        const framePrompt = "cinematic photograph, " + (opts.gender === "male" ? "a man" : "a woman") + " in " + setting + ", shallow depth of field, natural lighting, photorealistic, ultra realistic, film still";
+        const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: framePrompt, image_size: "landscape_16_9", num_inference_steps: 28 } });
+        imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url;
+        if (!imageUrl) throw new Error("frame image failed");
+      }
+      done(ic);
+      // 2) submit the motion job
+      ic = line(fa ? "ساختِ حرکت (H3 Max) ~۱ دقیقه" : "Generating motion (H3 Max) ~1 min");
+      const motion = (opts.motion || "").toString().slice(0, 120) ||
+        "smooth cinematic camera movement, slow push-in then a subtle angle change, gentle parallax, handheld realism";
+      const prompt = motion + ", matching the reference video's energy, high quality, no text, no captions";
+      const sub = await post("/fal/submit", { model: "minimax/h3-max/image-to-video", input: { prompt, image_url: imageUrl, duration: dur, resolution: res, prompt_expansion_mode: "quality" } });
+      const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+      if (!statusUrl) throw new Error("submit failed");
+      const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+      let videoUrl = null;
+      for (let i = 0; i < 90 && !closed; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        let st = "?"; try { const j = await (await fetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
+        if (st === "COMPLETED") { try { const j = await (await fetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
+        if (st === "FAILED" || st === "ERROR") break;
+      }
+      if (!videoUrl) throw new Error(fa ? "ساختِ حرکت ناموفق بود" : "motion generation failed");
+      done(ic);
+      // 3) deliver
+      let blob = null; try { blob = await (await fetch(videoUrl)).blob(); } catch (e) {}
+      const dlUrl = blob ? URL.createObjectURL(blob) : videoUrl;
+      $("mcResult").innerHTML =
+        `<video src="${dlUrl}" controls autoplay muted loop playsinline style="width:100%;border-radius:10px;background:#000"></video>
+         <a href="${dlUrl}" download="cinematic-motion.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#eaf1ff;background:linear-gradient(135deg,#2563ff,#0ea5e9)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+      vsTrackGen("cinematicmotion", "minimax/h3-max", "res:" + res + " dur:" + dur + "s");
+      try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "cinematic-motion"); } catch (e) {}
+      $("mcCancel").disabled = false; $("mcCancel").textContent = fa ? "بستن" : "Close";
+    } catch (e) {
+      $("mcResult").innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد: " : "Failed: ") + (e && e.message ? e.message : e)}</div>`;
+      $("mcCancel").disabled = false; $("mcGo").disabled = false; $("mcGo").style.opacity = "1";
+    }
+    running = false;
+  };
 }
 
 // A small loading popup shown WHILE the thumbnail is being generated (distinct
