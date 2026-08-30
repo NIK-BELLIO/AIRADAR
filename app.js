@@ -15860,6 +15860,12 @@ function vsCreatorTools(opts) {
     { id: "info", icon: "📊", name: fa ? "اینفوگرافیک" : "Infographic", desc: fa ? "اینفوگرافیکِ وایت‌بوردیِ دست‌نویس" : "Hand-drawn whiteboard infographic", accent: "#10b981" },
     { id: "score", icon: "🎯", name: fa ? "امتیازِ پست" : "Post Scorer", desc: fa ? "نمرهٔ پست /۵۰ + اصلاح‌ها" : "Score a post /50 + concrete fixes", accent: "#ef4444" },
     { id: "profile", icon: "👤", name: fa ? "بهینهٔ پروفایل" : "Profile Optimizer", desc: fa ? "تیتر، درباره، تجربه + پرامپتِ عکس" : "Headline, about, experience + image prompts", accent: "#8b5cf6" },
+    { id: "carousel", icon: "🎠", name: fa ? "کاروسل" : "Carousel", desc: fa ? "کاروسلِ چنداسلایدیِ برندشده از یک موضوع" : "A branded multi-slide carousel from a topic", accent: "#0ea5e9" },
+    { id: "thumb", icon: "🖼️", name: fa ? "تامبنیلِ یوتیوب" : "YouTube Thumbnail", desc: fa ? "تامبنیلِ پرکلیک از عنوانِ ویدیو" : "High-CTR thumbnail from a video title", accent: "#f43f5e" },
+    { id: "pinned", icon: "📌", name: fa ? "کامنتِ پین‌شده" : "Pinned Comment", desc: fa ? "کامنتِ اولِ ۴خطی + پرامپتِ عکس" : "A 4-line first comment + image prompt", accent: "#14b8a6" },
+    { id: "news", icon: "✉️", name: fa ? "خبرنامه‌نویس" : "Newsletter Writer", desc: fa ? "یک شمارهٔ خبرنامهٔ آماده" : "A ready-to-send newsletter issue", accent: "#f59e0b" },
+    { id: "voice", icon: "🎙️", name: fa ? "پروفایلِ صدا" : "Voice Profile", desc: fa ? "از نمونه‌ها لحن و سبکِ نوشتنت را می‌سازد" : "Learn your tone & style from samples", accent: "#a3e635" },
+    { id: "graphic", icon: "🎨", name: fa ? "گرافیکِ پست" : "Post Graphic", desc: fa ? "کارتِ متنیِ درشت برای پست" : "A bold statement card for a post", accent: "#ec4899" },
   ];
 
   function hub() {
@@ -15887,6 +15893,12 @@ function vsCreatorTools(opts) {
     else if (id === "info") toolInfographic();
     else if (id === "score") toolScore();
     else if (id === "profile") toolProfile();
+    else if (id === "carousel") toolCarousel();
+    else if (id === "thumb") { try { vsThumbStudio(); } catch (e) {} return; }
+    else if (id === "pinned") toolText("pinned");
+    else if (id === "news") toolText("news");
+    else if (id === "voice") toolText("voice");
+    else if (id === "graphic") toolGraphic();
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
   const showImg = (outEl, blob, name) => {
@@ -16096,6 +16108,76 @@ function vsCreatorTools(opts) {
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
       $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(txt)}</pre></div>`;
       $$("pfCopy").onclick = () => copy(txt, $$("pfCopy"));
+    };
+  }
+
+  // ---- Carousel (branded slides from a topic) ----
+  function toolCarousel() {
+    body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
+       <button id="caGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#0ea5e9,#2563ff)">✨ ${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
+       <div id="caOut" style="margin-top:12px"></div>`;
+    $$("caGo").onclick = async () => {
+      const topic = ($$("caTopic").value || "").trim(); if (!topic) { $$("caTopic").focus(); return; }
+      const plat = $$("caPlat").value, lang = $$("caLang").value;
+      const g = $$("caGo"); g.disabled = true; g.style.opacity = ".6"; $$("caOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      const prompt = `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n` +
+        `Output EXACTLY this shape, nothing else:\nCOVER: <2-5 word hook>\nSUB: <one-line subtitle>\n1. HEADLINE: <slide 1 heading>\nNARRATION: <slide 1 body, 1-2 sentences>\n2. HEADLINE: <...>\nNARRATION: <...>\n3. HEADLINE: <...>\nNARRATION: <...>\n4. HEADLINE: <...>\nNARRATION: <...>\nCTA: <a short call to action>`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
+      if (!raw) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const cover = (raw.match(/^\s*COVER\s*[:：]\s*(.+)$/im) || [])[1] || topic;
+      const sub = (raw.match(/^\s*SUB\s*[:：]\s*(.+)$/im) || [])[1] || "";
+      const cta = (raw.match(/^\s*CTA\s*[:：]\s*(.+)$/im) || [])[1] || (fa ? "برای ادامه پیام بده" : "Follow for more");
+      try { await vsBuildCarousel(raw, { topic, coverTitle: cover, subtitle: sub, cta, handle: ($$("caHandle").value || "").trim() }); }
+      catch (e) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در ساخت." : "Build error."}</div>`; }
+    };
+  }
+
+  // ---- Post Graphic (bold statement card, canvas, free) ----
+  function toolGraphic() {
+    body.innerHTML = backBar("🎨 " + (fa ? "گرافیکِ پست" : "Post Graphic")) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("grLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="grHandle" type="text" placeholder="@yourname"/></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="grTopic" type="text" placeholder="${fa ? "یک جملهٔ محکم می‌سازم…" : "I'll craft one bold statement…"}"/></div>
+       <button id="grGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#ec4899,#8b5cf6)">✨ ${fa ? "ساختِ گرافیک" : "Make graphic"}</button>
+       <div id="grOut" style="margin-top:12px"></div>`;
+    $$("grGo").onclick = async () => {
+      const topic = ($$("grTopic").value || "").trim(); if (!topic) { $$("grTopic").focus(); return; }
+      const g = $$("grGo"); g.disabled = true; g.style.opacity = ".6"; $$("grOut").innerHTML = spin(fa ? "در حال ساخت…" : "Making…");
+      const prompt = `Write ONE bold, punchy statement for a social graphic about "${topic}". Under 14 words, no hashtags, no quotes. ${langLine($$("grLang").value)} Output only the statement.`;
+      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      const line = (raw || topic).replace(/^["'“”]+|["'“”]+$/g, "").split(/\n/)[0].trim();
+      try { const blob = await vsRenderQuoteCard(line, { handle: ($$("grHandle").value || "").trim() }); showImg($$("grOut"), blob, "graphic.jpg"); vsTrackGen("graphic", "local", "canvas"); }
+      catch (e) { $$("grOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رندر." : "Render error."}</div>`; }
+    };
+  }
+
+  // ---- Generic text tools: pinned comment / newsletter / voice profile ----
+  function toolText(kind) {
+    const M = {
+      pinned: { icon: "📌", name: fa ? "کامنتِ پین‌شده" : "Pinned Comment", ph: fa ? "موضوعِ پست…" : "The post's topic…", label: fa ? "موضوعِ پست" : "Post topic", accent: "#14b8a6",
+        prompt: (v, plat, lang) => `For a ${plat} post about "${v}", write a strong PINNED first comment. First output an IMAGE PROMPT for a matching graphic, then a punchy 4-line comment that drives engagement (a hook, a value line, a question, a soft CTA). No hashtags. ${lang}\nOutput:\nIMAGE PROMPT: ...\n\nCOMMENT:\n<line1>\n<line2>\n<line3>\n<line4>` },
+      news: { icon: "✉️", name: fa ? "خبرنامه‌نویس" : "Newsletter Writer", ph: fa ? "موضوع یا خلاصه…" : "Topic or a brief…", label: fa ? "موضوع" : "Topic", accent: "#f59e0b",
+        prompt: (v, plat, lang) => `Write ONE ready-to-send newsletter issue about "${v}". Include: a curiosity-driven SUBJECT line, a 1-line preview, a warm intro, 3 short value sections with subheads, and a clear CTA at the end. Conversational, skimmable, no fluff, no em dashes. ${lang}\nOutput the finished newsletter only.` },
+      voice: { icon: "🎙️", name: fa ? "پروفایلِ صدا" : "Voice Profile", ph: fa ? "۳ تا ۵ نمونه از نوشته‌هایت را اینجا بچسبان…" : "Paste 3-5 samples of your writing here…", label: fa ? "نمونه‌های نوشتهٔ تو" : "Your writing samples", accent: "#a3e635", area: true,
+        prompt: (v, plat, lang) => `Analyse these writing samples and build a reusable VOICE PROFILE:\n"""${v.slice(0, 3000)}"""\nProduce, clearly labelled: TONE (3-5 adjectives), SENTENCE RHYTHM, SIGNATURE MOVES (what this writer does often), VOCABULARY (words they use / avoid), and 3 DO / 3 DON'T rules. Then a one-paragraph "how to sound like me" summary. ${lang}` },
+    }[kind];
+    body.innerHTML = backBar(M.icon + " " + M.name) +
+      `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel(kind + "Plat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel(kind + "Lang")}</div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${M.label}</div>${M.area ? `<textarea id="${kind}In" rows="5" placeholder="${M.ph}"></textarea>` : `<input id="${kind}In" type="text" placeholder="${M.ph}"/>`}</div>
+       <button id="${kind}Go" type="button" class="btn" style="width:100%;color:#fff;background:${M.accent}">✨ ${fa ? "بساز" : "Generate"}</button>
+       <div id="${kind}Out" style="margin-top:14px"></div>`;
+    $$(kind + "Go").onclick = async () => {
+      const v = ($$(kind + "In").value || "").trim(); if (!v) { $$(kind + "In").focus(); return; }
+      const g = $$(kind + "Go"); g.disabled = true; g.style.opacity = ".6"; $$(kind + "Out").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      let raw = ""; try { raw = await vsAutoAiChat(M.prompt(v, $$(kind + "Plat").value, langLine($$(kind + "Lang").value)), { json: false, temperature: 0.75, timeout: 60000 }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!raw) { $$(kind + "Out").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+      $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$(kind + "Copy").onclick = () => copy(txt, $$(kind + "Copy"));
     };
   }
 
