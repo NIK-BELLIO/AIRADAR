@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Creator Tools — AI Radar</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Vazirmatn:wght@400;500;600;700;800&family=Prata&display=swap" rel="stylesheet" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(1200px 600px at 20% -10%, #14203a 0%, #0b0d12 55%) no-repeat, #0b0d12; color: #eef2f0; font-family: "Archivo", system-ui, sans-serif; min-height: 100vh; }
+    .top { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,.08); position: sticky; top: 0; background: rgba(11,13,18,.85); backdrop-filter: blur(8px); z-index: 5; }
+    .top .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; color: #eef2f0; text-decoration: none; font-size: 15px; }
+    .top .brand span { font-family: "Prata", Georgia, serif; font-weight: 400; }
+    .top a.nav { color: #aeb7b3; text-decoration: none; font-weight: 700; font-size: 13.5px; padding: 7px 12px; border-radius: 9px; transition: .15s; }
+    .top a.nav:hover { color: #fff; background: rgba(255,255,255,.06); }
+    .hero { max-width: 960px; margin: 0 auto; padding: 30px 18px 6px; }
+    .hero h1 { font-family: "Prata", Georgia, serif; font-weight: 400; font-size: clamp(26px, 5vw, 40px); margin: 0 0 8px; }
+    .hero p { color: #9aa39f; margin: 0; font-size: 14.5px; max-width: 560px; line-height: 1.5; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 20px 18px 70px; }
+    #creatorMount:empty::after { content: "Loading Creator Tools…"; color: #7f8a86; font-size: 14px; }
+    :lang(fa) body, [dir="rtl"] body { font-family: "Vazirmatn", "Archivo", system-ui, sans-serif; }
+    .guide { max-width: 960px; margin: 8px auto 0; padding: 0 18px; }
+    .guide details { background: rgba(16,185,129,.06); border: 1px solid rgba(16,185,129,.22); border-radius: 14px; overflow: hidden; }
+    .guide summary { cursor: pointer; list-style: none; padding: 14px 16px; font-weight: 800; font-size: 14px; color: #c7f5e6; display: flex; align-items: center; gap: 9px; }
+    .guide summary::-webkit-details-marker { display: none; }
+    .guide summary .chev { margin-left: auto; transition: .2s; color: #7ff0cf; }
+    .guide details[open] summary .chev { transform: rotate(180deg); }
+    .guide .gbody { padding: 4px 18px 18px; }
+    .guide .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 12px; margin: 8px 0 14px; }
+    .guide .g { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 13px; }
+    .guide .g b { display: block; color: #eef2f0; font-size: 13.5px; margin-bottom: 3px; }
+    .guide .g span { color: #9aa39f; font-size: 12.5px; line-height: 1.5; }
+    .guide .tips { margin: 0; padding-left: 18px; color: #aeb7b3; font-size: 12.8px; line-height: 1.7; }
+    .guide .tips b { color: #eef2f0; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="../">🛰 AI <span>Radar</span></a>
+    <span style="flex:1"></span>
+    <a class="nav" href="../studio/">Video Studio</a>
+    <a class="nav" href="../">Home</a>
+  </div>
+  <div class="hero">
+    <h1>🧰 Creator Tools</h1>
+    <p>Hooks, posts, carousels, quotes, infographics, scoring and profile — a full social-content toolkit. Free to use.</p>
+  </div>
+  <div class="guide">
+    <details>
+      <summary>📖 How to use Creator Tools <span class="chev">▾</span></summary>
+      <div class="gbody">
+        <p style="color:#9aa39f;font-size:13px;margin:6px 0 4px;line-height:1.55">Pick a tool, set the <b>platform</b> and <b>language</b>, type your topic, and hit generate. Everything here is <b>free</b> — text tools use our AI, and Quote + Infographic are drawn on canvas (crisp, legible text).</p>
+        <div class="steps">
+          <div class="g"><b>🪝 Hook Generator</b><span>6 two-line scroll-stopping hooks across 6 angles. Copy any one.</span></div>
+          <div class="g"><b>📝 Post Writer</b><span>A ready post using a framework (PAS / AIDA / BAB / STAR / SLAY / Auto).</span></div>
+          <div class="g"><b>🗂️ Content Matrix</b><span>32+ post ideas — your pillars × 8 formats. Copy the whole table.</span></div>
+          <div class="g"><b>❝ Quote Post</b><span>9 viral quotes → click one to render a ready-to-post quote graphic.</span></div>
+          <div class="g"><b>📊 Infographic</b><span>Paste content → a clean whiteboard-style infographic (1080×1350).</span></div>
+          <div class="g"><b>🎯 Post Scorer</b><span>Score a draft /50 across 5 criteria + 3 fixes + a stronger hook.</span></div>
+          <div class="g"><b>👤 Profile Optimizer</b><span>New headline, about, experience, featured strategy + image prompts.</span></div>
+        </div>
+        <ul class="tips">
+          <li><b>Tip:</b> start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.</li>
+          <li><b>Tip:</b> for a carousel post, use the <b>Reverse Engineer</b> tool in Video Studio.</li>
+          <li><b>Copy buttons</b> are everywhere — nothing needs to be re-typed.</li>
+          <li>Images download as <b>1080×1350</b> (Instagram/LinkedIn vertical) JPEGs.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+  <div class="wrap"><div id="creatorMount"></div></div>
+
+  <script src="/app.js?v=v473"></script>
+  <script>
+    (function () {
+      var tries = 0;
+      function boot() {
+        tries++;
+        if (typeof vsCreatorTools === "function") {
+          try { vsCreatorTools({ mount: document.getElementById("creatorMount"), home: "../" }); return; }
+          catch (e) { /* fall through to retry */ }
+        }
+        if (tries < 40) setTimeout(boot, 150);
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(boot, 120); });
+      else setTimeout(boot, 120);
+    })();
+  </script>
+</body>
+</html>
