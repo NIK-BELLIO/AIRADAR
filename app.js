@@ -15818,6 +15818,57 @@ async function vsRenderYTThumb(hook, img, opts) {
   return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
 }
 
+// ── Logo / Wordmark maker (transparent PNG) ────────────────────────────────
+async function vsRenderWordmark(spec) {
+  spec = spec || {};
+  const W = 1600, H = 600, FAM = '"Archivo", system-ui, sans-serif';
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  const name = (spec.name || "Brand").trim().slice(0, 26) || "Brand";
+  const tag = (spec.tagline || "").trim().slice(0, 42);
+  const style = spec.style || "gradient", mark = spec.mark || "rounded";
+  const initial = name.replace(/[^A-Za-z0-9؀-ۿ]/, "").charAt(0).toUpperCase() || name.charAt(0);
+  const solid = { white: "#f6f9ff", black: "#0b1020", gold: "#f5c451" };
+  // size the name to fit
+  let fs = 190; x.font = `900 ${fs}px ${FAM}`;
+  const markSize = mark === "none" ? 0 : Math.round(H * 0.62);
+  const gap = markSize ? Math.round(W * 0.03) : 0;
+  const maxTextW = W - Math.round(W * 0.09) - markSize - gap;
+  while (x.measureText(name).width > maxTextW && fs > 54) { fs -= 6; x.font = `900 ${fs}px ${FAM}`; }
+  const nameW = x.measureText(name).width;
+  const groupW = markSize + gap + nameW, startX = (W - groupW) / 2;
+  const cy = H / 2 - (tag ? Math.round(H * 0.045) : 0);
+  // accent for the mark / gradient
+  const accents = { gradient: ["#22d3ee", "#2563ff"], violet: ["#c084fc", "#6366f1"], gold: ["#f5c451", "#e0a93a"], white: ["#f6f9ff", "#f6f9ff"], black: ["#0b1020", "#0b1020"] }[style] || ["#22d3ee", "#2563ff"];
+  // mark
+  if (markSize) {
+    const mx = startX, my = cy - markSize / 2;
+    const mg = x.createLinearGradient(mx, my, mx + markSize, my + markSize);
+    mg.addColorStop(0, accents[0]); mg.addColorStop(1, accents[1]);
+    x.fillStyle = mg; x.beginPath();
+    if (mark === "circle") x.arc(mx + markSize / 2, cy, markSize / 2, 0, Math.PI * 2);
+    else if (x.roundRect) x.roundRect(mx, my, markSize, markSize, markSize * 0.24); else x.rect(mx, my, markSize, markSize);
+    x.fill();
+    x.fillStyle = style === "white" ? "#0b1020" : "#0b1020"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = `900 ${Math.round(markSize * 0.58)}px ${FAM}`;
+    x.fillText(initial, mx + markSize / 2, cy + markSize * 0.02);
+  }
+  // name
+  const tx = startX + markSize + gap;
+  let paint;
+  if (style === "gradient" || style === "violet" || style === "gold") {
+    const g = x.createLinearGradient(tx, 0, tx + nameW, 0); g.addColorStop(0, accents[0]); g.addColorStop(1, accents[1]); paint = g;
+  } else paint = solid[style] || solid.white;
+  x.fillStyle = paint; x.textAlign = "left"; x.textBaseline = "middle"; x.font = `900 ${fs}px ${FAM}`;
+  x.fillText(name, tx, cy);
+  // tagline (letter-spaced, muted)
+  if (tag) {
+    x.fillStyle = style === "black" ? "rgba(11,16,32,.6)" : "rgba(160,174,204,.9)";
+    x.font = `600 ${Math.round(fs * 0.19)}px ${FAM}`; x.textAlign = "left"; try { x.letterSpacing = "3px"; } catch (e) {}
+    x.fillText(tag.toUpperCase(), tx + 3, cy + fs * 0.62); try { x.letterSpacing = "0px"; } catch (e) {}
+  }
+  return await new Promise(r => c.toBlob(r, "image/png"));
+}
+
 // ── Canva-style SOCIAL POST maker ─────────────────────────────────────────
 // One flexible canvas renderer that makes clean, on-brand posts at any social
 // size (IG square/story, X, LinkedIn) with a palette style, a big headline, a
@@ -15831,6 +15882,7 @@ const VS_SOCIAL_STYLES = {
 };
 const VS_SOCIAL_SIZES = {
   ig_square: [1080, 1080], ig_story: [1080, 1920], x_post: [1600, 900], linkedin: [1200, 628], pinterest: [1000, 1500],
+  li_banner: [1584, 396], x_header: [1500, 500], fb_cover: [1640, 624],
 };
 async function vsRenderSocialPost(spec) {
   spec = spec || {};
@@ -16025,6 +16077,9 @@ function vsCreatorTools(opts) {
     { id: "xopt", icon: "𝕏", name: fa ? "بهینه‌سازِ X" : "X Optimizer", desc: fa ? "توییتت را برای بیشترین reach بازنویسی می‌کند" : "Rewrite a tweet for maximum reach", accent: "#38bdf8" },
     { id: "meeting", icon: "📋", name: fa ? "تحلیلِ جلسه" : "Meeting Insights", desc: fa ? "خلاصه، تصمیم‌ها و کارهای بعدی از یک متن" : "Summary, decisions & action items from a transcript", accent: "#f472b6" },
     { id: "social", icon: "🖼️", name: fa ? "پست‌سازِ سوشال" : "Social Post Maker", desc: fa ? "پستِ آمادهٔ کانوا‌طور در همهٔ سایزها" : "Canva-style posts in every social size", accent: "#8b5cf6" },
+    { id: "logo", icon: "✳️", name: fa ? "لوگو / وردمارک" : "Logo / Wordmark", desc: fa ? "وردمارکِ برند + نشان، PNGِ شفاف" : "A brand wordmark + mark, transparent PNG", accent: "#22d3ee" },
+    { id: "adcopy", icon: "📣", name: fa ? "متنِ تبلیغ" : "Ad Copy", desc: fa ? "۳ نسخهٔ تبلیغِ پرتبدیل + هوک‌های A/B" : "3 high-converting ad variations + A/B hooks", accent: "#fb7185" },
+    { id: "bio", icon: "🔗", name: fa ? "بایو / لینک‌این‌بایو" : "Bio / Link-in-bio", desc: fa ? "بایوی بهینه + چیدمانِ لینک‌این‌بایو" : "Optimised bios + a link-in-bio layout", accent: "#22c55e" },
   ];
 
   // Clean monoline icons (accent-tinted via currentColor) — replaces the emoji
@@ -16047,14 +16102,17 @@ function vsCreatorTools(opts) {
       graphic: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M6 18l4.5-4.5 3 3L17 12l3 3"/>',
       xopt: '<path d="M5 5l14 14M19 5L5 19"/>',
       meeting: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10h7"/><path d="M8.5 14h5"/>',
-      social: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.7"/><path d="M4 16l4-4 3 2.5L16 8l4 4"/>'
+      social: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.7"/><path d="M4 16l4-4 3 2.5L16 8l4 4"/>',
+      logo: '<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/>',
+      adcopy: '<path d="M3 11l14-6v14L3 13z"/><path d="M17 8a3 3 0 0 1 0 6"/><path d="M6 13v4a2 2 0 0 0 4 0"/>',
+      bio: '<path d="M9 15l6-6"/><path d="M8 12l-2 2a3 3 0 0 0 4 4l2-2"/><path d="M16 12l2-2a3 3 0 0 0-4-4l-2 2"/>'
     };
     return svg(G[id] || G.post);
   }
   function hub() {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
-    const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1, social: 1 };
+    const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1, social: 1, logo: 1 };
     const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
@@ -16091,6 +16149,9 @@ function vsCreatorTools(opts) {
     else if (id === "xopt") toolText("xopt");
     else if (id === "meeting") toolText("meeting");
     else if (id === "social") toolSocial();
+    else if (id === "logo") toolLogo();
+    else if (id === "adcopy") toolText("adcopy");
+    else if (id === "bio") toolText("bio");
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
   const showImg = (outEl, blob, name) => {
@@ -16366,6 +16427,10 @@ function vsCreatorTools(opts) {
         prompt: (v, plat, lang) => `Rewrite this tweet for MAXIMUM reach, based on X's open-sourced ranking algorithm (it rewards replies & real conversation, dwell time, and profile visits; it penalises external links in the body, many hashtags, and engagement-bait). Tweet:\n"""${v.slice(0, 600)}"""\nOutput, clearly labelled:\n3 REWRITES — each ≤280 chars, a strong scroll-stopping first line, phrased to invite replies, at most 1 hashtag, NO link in the body.\nWHY — one line per rewrite on what makes it work.\nFIX LIST — what hurt the original (bullets).\n${lang}` },
       meeting: { icon: "📋", name: fa ? "تحلیلِ جلسه" : "Meeting Insights", ph: fa ? "متنِ جلسه یا زیرنویسِ ویدیو را بچسبان…" : "Paste a meeting transcript or video captions…", label: fa ? "متنِ جلسه / زیرنویس" : "Transcript", accent: "#f472b6", area: true,
         prompt: (v, plat, lang) => `Analyse this meeting transcript / captions:\n"""${v.slice(0, 6000)}"""\nProduce, clearly labelled: TL;DR (max 3 lines), KEY DECISIONS (bullets), ACTION ITEMS (owner → task → due date if stated), OPEN QUESTIONS / RISKS, and NOTABLE QUOTES. Be concrete and do NOT invent anything that is not in the text. ${lang}` },
+      adcopy: { icon: "📣", name: fa ? "متنِ تبلیغ" : "Ad Copy", ph: fa ? "محصول یا آفرت را توضیح بده…" : "Describe your product or offer…", label: fa ? "محصول / آفر" : "Product / offer", accent: "#fb7185",
+        prompt: (v, plat, lang) => `Write high-converting ${plat} ad copy for: "${v}". Output 3 AD VARIATIONS, each clearly labelled and containing: HEADLINE (≤6 words), PRIMARY TEXT (2-3 punchy sentences, one clear benefit + a reason to act now), and a CTA (2-4 words). Then 5 HEADLINE-ONLY hooks to A/B test. No hype clichés, no emojis unless natural. ${lang}` },
+      bio: { icon: "🔗", name: fa ? "بایو و لینک‌این‌بایو" : "Bio / Link-in-bio", ph: fa ? "تو کی هستی و چی‌کار می‌کنی؟…" : "Who are you and what do you do?…", label: fa ? "دربارهٔ تو" : "About you", accent: "#22c55e",
+        prompt: (v, plat, lang) => `For "${v}", craft an optimised ${plat} profile. Output, clearly labelled: 3 BIO OPTIONS (each within the platform's character limit — ~150 for Instagram/X, ~220 for LinkedIn headline; front-load who-you-help + outcome, add 1 credibility proof and a soft CTA), and a LINK-IN-BIO layout: 4-6 button labels in priority order (each ≤22 chars) with a one-line purpose for each. ${lang}` },
     }[kind];
     body.innerHTML = backBar(M.icon + " " + M.name) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel(kind + "Plat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel(kind + "Lang")}</div></div>
@@ -16453,6 +16518,9 @@ function vsCreatorTools(opts) {
            <option value="x_post">X / Twitter · 1600×900</option>
            <option value="linkedin">LinkedIn · 1200×628</option>
            <option value="pinterest">Pinterest · 1000×1500</option>
+           <option value="li_banner">${fa ? "بنرِ لینکدین" : "LinkedIn banner"} · 1584×396</option>
+           <option value="x_header">${fa ? "هدرِ X" : "X header"} · 1500×500</option>
+           <option value="fb_cover">${fa ? "کاورِ فیسبوک" : "Facebook cover"} · 1640×624</option>
          </select></div>
          <div><div class="lbl">${fa ? "استایل" : "Style"}</div><select id="soStyle">
            <option value="midnight">Midnight</option><option value="violet">Violet</option>
@@ -16505,6 +16573,44 @@ function vsCreatorTools(opts) {
       if (!blob) { $$("soOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       showImg($$("soOut"), blob, "social-" + $$("soSize").value + ".jpg");
       vsTrackGen("socialpost", "canvas", "size:" + $$("soSize").value + " style:" + $$("soStyle").value);
+    };
+  }
+
+  // ---- Logo / Wordmark maker (transparent PNG) ----
+  function toolLogo() {
+    body.innerHTML = backBar("✳️ " + (fa ? "لوگو / وردمارک" : "Logo / Wordmark")) +
+      `<div style="font-size:12px;color:#7f8a86;margin-bottom:10px">${fa ? "PNGِ شفاف · ۱۶۰۰×۶۰۰" : "Transparent PNG · 1600×600"}</div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "نامِ برند" : "Brand name"}</div><input id="lgName" type="text" maxlength="26" placeholder="${fa ? "اسمِ برندت…" : "Your brand name…"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "شعار (اختیاری)" : "Tagline (optional)"}</div><input id="lgTag" type="text" maxlength="42" placeholder="${fa ? "یک خطِ کوتاه…" : "a short line…"}"/></div>
+       <div class="row" style="margin-bottom:10px">
+         <div><div class="lbl">${fa ? "استایل" : "Style"}</div><select id="lgStyle">
+           <option value="gradient">Gradient (cyan→blue)</option><option value="violet">Violet</option>
+           <option value="gold">Gold</option><option value="white">Mono white</option><option value="black">Mono black</option>
+         </select></div>
+         <div><div class="lbl">${fa ? "نشان" : "Mark"}</div><select id="lgMark">
+           <option value="rounded">${fa ? "حرفِ اول (مربع)" : "Initial (rounded)"}</option>
+           <option value="circle">${fa ? "حرفِ اول (دایره)" : "Initial (circle)"}</option>
+           <option value="none">${fa ? "بدونِ نشان" : "No mark"}</option>
+         </select></div>
+       </div>
+       <button id="lgGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff);font-weight:800">✨ ${fa ? "ساختِ لوگو" : "Generate logo"}</button>
+       <div id="lgOut" style="margin-top:14px"></div>`;
+    $$("lgGo").onclick = async () => {
+      const name = ($$("lgName").value || "").trim(); if (!name) { $$("lgName").focus(); return; }
+      const g = $$("lgGo"); g.disabled = true; g.style.opacity = ".6"; $$("lgOut").innerHTML = spin(fa ? "در حال ساخت…" : "Rendering…");
+      let blob = null;
+      try { blob = await vsRenderWordmark({ name, tagline: ($$("lgTag").value || "").trim(), style: $$("lgStyle").value, mark: $$("lgMark").value }); } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!blob) { $$("lgOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      // preview on a light + dark swatch so transparency reads
+      const u = URL.createObjectURL(blob);
+      $$("lgOut").innerHTML =
+        `<div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1)">
+           <div style="background:#0b1020;padding:14px;display:flex;justify-content:center"><img src="${u}" style="width:min(320px,100%)"/></div>
+           <div style="background:#f4f1ea;padding:14px;display:flex;justify-content:center"><img src="${u}" style="width:min(320px,100%)"/></div>
+         </div>
+         <a href="${u}" download="logo.png" style="display:block;max-width:340px;margin:12px auto 0;text-align:center;font:inherit;font-weight:800;padding:11px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#10b981)">⬇ ${fa ? "دانلودِ PNG" : "Download PNG"}</a>`;
+      vsTrackGen("logo", "canvas", "style:" + $$("lgStyle").value + " mark:" + $$("lgMark").value);
     };
   }
 
