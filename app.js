@@ -20272,6 +20272,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
   };
 
   function boot() {
+    return; // Floating "Assistant" chat widget removed site-wide (nav Assistant page stays).
     if ($id("arChatBtn")) return;
     var st = document.createElement("style");
     st.textContent = [
