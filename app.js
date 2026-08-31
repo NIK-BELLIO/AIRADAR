@@ -16369,6 +16369,7 @@ function vsCreatorTools(opts) {
     body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "متن / دیتای خودت (اختیاری)" : "Your own text / data (optional)"}</div><textarea id="caOwn" rows="4" placeholder="${fa ? "اگه محتوای خودت رو داری اینجا بذار — همونو به اسلاید تبدیل می‌کنم. خالی بذار تا خودم بنویسم." : "Have your own content? Paste it — I'll turn it into slides. Leave empty and I'll write it for you."}"></textarea></div>
        <label id="caPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
          <span style="font-size:16px">🖼</span>
          <span id="caPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"}</span>
@@ -16379,11 +16380,17 @@ function vsCreatorTools(opts) {
     let caPhoto = null;
     $$("caPhoto").onchange = (e) => { caPhoto = (e.target.files && e.target.files[0]) || null; $$("caPhotoTxt").textContent = caPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + caPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"); };
     $$("caGo").onclick = async () => {
-      const topic = ($$("caTopic").value || "").trim(); if (!topic) { $$("caTopic").focus(); return; }
+      const topic = ($$("caTopic").value || "").trim();
+      const own = ($$("caOwn").value || "").trim();
+      if (!topic && !own) { $$("caTopic").focus(); return; }
       const plat = $$("caPlat").value, lang = $$("caLang").value;
       const g = $$("caGo"); g.disabled = true; g.style.opacity = ".6"; $$("caOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
-      const prompt = `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n` +
-        `Output EXACTLY this shape, nothing else:\nCOVER: <2-5 word hook>\nSUB: <one-line subtitle>\n1. HEADLINE: <slide 1 heading>\nNARRATION: <slide 1 body, 1-2 sentences>\n2. HEADLINE: <...>\nNARRATION: <...>\n3. HEADLINE: <...>\nNARRATION: <...>\n4. HEADLINE: <...>\nNARRATION: <...>\nCTA: <a short call to action>`;
+      const shape = `Output EXACTLY this shape, nothing else:\nCOVER: <2-5 word hook>\nSUB: <one-line subtitle>\n1. HEADLINE: <slide 1 heading>\nNARRATION: <slide 1 body, 1-2 sentences>\n2. HEADLINE: <...>\nNARRATION: <...>\n3. HEADLINE: <...>\nNARRATION: <...>\n4. HEADLINE: <...>\nNARRATION: <...>\nCTA: <a short call to action>`;
+      // If the user pasted their OWN content, structure THAT into slides (use
+      // only their facts). Otherwise auto-write from the topic.
+      const prompt = own
+        ? `Turn the user's OWN content below into a ${plat} carousel — a punchy hook cover, then one content slide per key point, then a CTA. Use ONLY their facts; do not invent details.${topic ? ` The topic is "${topic}".` : ""}\nTheir content:\n"""${own.slice(0, 3000)}"""\n${langLine(lang)}\n${shape}`
+        : `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n${shape}`;
       let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
       if (!raw) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
@@ -17469,6 +17476,50 @@ function vsParseScriptScenes(script) {
 
 // Render ONE branded carousel slide (1080×1350) → JPEG blob. Kinds: cover
 // (photo + big title + subtitle), content (number + heading + body), cta.
+// Pick a topic-relevant line icon (drawn inside a ring) for carousel slides,
+// instead of always a house. Falls back to a spark when nothing matches.
+function vsCarouselIcon(ctx, x, y, s, text, accent) {
+  const cx = x + s / 2, cy = y + s / 2, r = s / 2, g = s * 0.26, lw = Math.max(3, s * 0.05);
+  ctx.save(); ctx.strokeStyle = accent; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  const t = String(text || "").toLowerCase();
+  const P = (fn) => { ctx.beginPath(); fn(); ctx.stroke(); };
+  if (/real estate|propert|\bhome\b|\bhouse\b|\brent\b|mortgage|apartment|interior|villa|realtor/.test(t)) {
+    const hs = g * 1.5, hx = cx - hs / 2, hy = cy - hs * 0.30;
+    P(() => { ctx.moveTo(hx, hy + hs * 0.55); ctx.lineTo(cx, hy); ctx.lineTo(hx + hs, hy + hs * 0.55); });
+    ctx.strokeRect(hx + hs * 0.16, hy + hs * 0.55, hs * 0.68, hs * 0.5);
+  } else if (/sport|athlet|fitness|gym|workout|muscle|\brun\b|training|\btrain\b|yoga|exercise|football|soccer|basketball|weight|coach/.test(t)) {
+    P(() => { ctx.moveTo(cx - g, cy); ctx.lineTo(cx + g, cy); });
+    [-1, 1].forEach(d => { P(() => { ctx.moveTo(cx + d * g, cy - g * 0.6); ctx.lineTo(cx + d * g, cy + g * 0.6); }); P(() => { ctx.moveTo(cx + d * g * 0.66, cy - g * 0.4); ctx.lineTo(cx + d * g * 0.66, cy + g * 0.4); }); });
+  } else if (/food|recipe|cook|\beat\b|diet|nutrition|meal|kitchen|restaurant|coffee|drink|cafe|chef/.test(t)) {
+    P(() => { ctx.moveTo(cx - g * 0.5, cy - g); ctx.lineTo(cx - g * 0.5, cy + g); });
+    for (let k = -1; k <= 1; k++) P(() => { ctx.moveTo(cx - g * 0.5 + k * g * 0.28, cy - g); ctx.lineTo(cx - g * 0.5 + k * g * 0.28, cy - g * 0.42); });
+    P(() => { ctx.moveTo(cx + g * 0.5, cy - g); ctx.lineTo(cx + g * 0.5, cy + g); });
+    P(() => { ctx.moveTo(cx + g * 0.5, cy - g); ctx.lineTo(cx + g * 0.18, cy - g * 0.15); });
+  } else if (/travel|trip|\bcity\b|tour|vacation|flight|destination|hotel|beach|adventure|\bmap\b|explore/.test(t)) {
+    P(() => { ctx.moveTo(cx, cy + g); ctx.arc(cx, cy - g * 0.2, g * 0.72, Math.PI * 0.72, Math.PI * 0.28); ctx.closePath(); });
+    ctx.beginPath(); ctx.arc(cx, cy - g * 0.2, g * 0.28, 0, Math.PI * 2); ctx.stroke();
+  } else if (/\bai\b|tech|software|\bcode\b|coding|\bapp\b|\bdata\b|robot|digital|saas|comput|startup|crypto|dev/.test(t)) {
+    const q = g * 0.8; ctx.strokeRect(cx - q, cy - q, q * 2, q * 2); ctx.strokeRect(cx - q * 0.4, cy - q * 0.4, q * 0.8, q * 0.8);
+    [-1, 1].forEach(d => { [-0.5, 0, 0.5].forEach(o => { P(() => { ctx.moveTo(cx + d * q, cy + o * q); ctx.lineTo(cx + d * q * 1.4, cy + o * q); }); P(() => { ctx.moveTo(cx + o * q, cy + d * q); ctx.lineTo(cx + o * q, cy + d * q * 1.4); }); }); });
+  } else if (/business|entrepreneur|market|sales|\bbrand\b|money|finance|invest|profit|revenue|salary|rich|wealth|econom|growth|\bgrow\b|hustle/.test(t)) {
+    P(() => { ctx.moveTo(cx - g, cy - g); ctx.lineTo(cx - g, cy + g); ctx.lineTo(cx + g, cy + g); });
+    P(() => { ctx.moveTo(cx - g * 0.6, cy + g * 0.45); ctx.lineTo(cx - g * 0.1, cy - g * 0.1); ctx.lineTo(cx + g * 0.3, cy + g * 0.2); ctx.lineTo(cx + g * 0.85, cy - g * 0.6); });
+    P(() => { ctx.moveTo(cx + g * 0.42, cy - g * 0.6); ctx.lineTo(cx + g * 0.85, cy - g * 0.6); ctx.lineTo(cx + g * 0.85, cy - g * 0.18); });
+  } else if (/health|wellness|mental|\bmind\b|medita|therapy|sleep|calm|stress|self.?care|\blove\b|heart|relationship|dating/.test(t)) {
+    P(() => { ctx.moveTo(cx, cy + g * 0.85); ctx.bezierCurveTo(cx - g * 1.4, cy - g * 0.35, cx - g * 0.45, cy - g, cx, cy - g * 0.3); ctx.bezierCurveTo(cx + g * 0.45, cy - g, cx + g * 1.4, cy - g * 0.35, cx, cy + g * 0.85); });
+  } else if (/learn|study|course|\btip|guide|how to|educat|skill|\bbook|\bread|lesson|tutorial|school/.test(t)) {
+    P(() => { ctx.moveTo(cx, cy - g); ctx.lineTo(cx, cy + g); });
+    ctx.strokeRect(cx - g, cy - g * 0.8, g * 0.95, g * 1.6); ctx.strokeRect(cx + g * 0.05, cy - g * 0.8, g * 0.95, g * 1.6);
+  } else if (/music|song|audio|beat|podcast|\bsound\b|playlist|\bdj\b|spotify/.test(t)) {
+    ctx.beginPath(); ctx.arc(cx - g * 0.4, cy + g * 0.6, g * 0.35, 0, Math.PI * 2); ctx.stroke();
+    P(() => { ctx.moveTo(cx - g * 0.05, cy + g * 0.6); ctx.lineTo(cx - g * 0.05, cy - g); ctx.lineTo(cx + g * 0.7, cy - g * 0.7); });
+  } else {
+    P(() => { ctx.moveTo(cx, cy - g); ctx.lineTo(cx + g * 0.28, cy - g * 0.28); ctx.lineTo(cx + g, cy); ctx.lineTo(cx + g * 0.28, cy + g * 0.28); ctx.lineTo(cx, cy + g); ctx.lineTo(cx - g * 0.28, cy + g * 0.28); ctx.lineTo(cx - g, cy); ctx.lineTo(cx - g * 0.28, cy - g * 0.28); ctx.closePath(); });
+  }
+  ctx.restore();
+}
+
 async function vsRenderCarouselSlide(spec, W, H, coverImg) {
   const T = { bg1: "#0e1830", bg2: "#0a1020", accent: "#cda24a", ink: "#f5f2ea", mut: "#aeb7c7", FAM: '"Archivo", system-ui, sans-serif' };
   const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
@@ -17493,7 +17544,7 @@ async function vsRenderCarouselSlide(spec, W, H, coverImg) {
       const g = ctx.createLinearGradient(px, 0, px + pw * 0.8, 0); g.addColorStop(0, T.bg1); g.addColorStop(1, "rgba(14,24,48,0)"); ctx.fillStyle = g; ctx.fillRect(px, 0, pw * 0.8, H);
     }
     const colW = (coverImg ? W * 0.56 : W - M * 2) - M;
-    let y = H * 0.14; houseLogo(M, y, W * 0.1); y += W * 0.1 + H * 0.025;
+    let y = H * 0.14; vsCarouselIcon(ctx, M, y, W * 0.1, spec.topic || spec.title, T.accent); y += W * 0.1 + H * 0.025;
     y = drawTitle(spec.title || "", M, y, colW, W * 0.085, 4) + H * 0.03;
     if (spec.subtitle) { const spx = Math.round(W * 0.032); ctx.font = `600 ${spx}px ${T.FAM}`; ctx.fillStyle = T.mut; wrapText(spec.subtitle, spx, colW, "600").slice(0, 4).forEach((l, i) => ctx.fillText(l, M, y + i * spx * 1.34)); }
     ctx.fillStyle = T.accent; ctx.fillRect(M, H * 0.9, W * 0.055, 4);
@@ -17509,7 +17560,7 @@ async function vsRenderCarouselSlide(spec, W, H, coverImg) {
     if (spec.body) { const bpx = Math.round(W * 0.035); ctx.font = `500 ${bpx}px ${T.FAM}`; ctx.fillStyle = T.mut; wrapText(spec.body, bpx, W - M * 2, "500").slice(0, 8).forEach((l, i) => ctx.fillText(l, M, y + i * bpx * 1.42)); }
     ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.font = `600 ${Math.round(W * 0.022)}px ${T.FAM}`; const sw = "swipe →"; ctx.fillText(sw, W - M - ctx.measureText(sw).width, H * 0.92);
   } else {
-    houseLogo(W / 2 - W * 0.06, H * 0.28, W * 0.12);
+    vsCarouselIcon(ctx, W / 2 - W * 0.06, H * 0.28, W * 0.12, spec.topic || spec.title, T.accent);
     const endY = drawTitle(spec.title || "FOLLOW FOR MORE", M, H * 0.44, W - M * 2, W * 0.085, 4);
     ctx.textAlign = "left"; ctx.fillStyle = T.accent; ctx.font = `800 ${Math.round(W * 0.03)}px ${T.FAM}`; ctx.fillText((spec.handle || "").toUpperCase(), M, endY + H * 0.03);
   }
@@ -17529,9 +17580,10 @@ async function vsBuildCarousel(script, opts) {
   // from the content list so it isn't repeated).
   const coverTitle = opts.coverTitle || scenes[0].headline;
   const content = (opts.coverTitle ? scenes : scenes.slice(1)).slice(0, 5);
-  const specs = [{ kind: "cover", title: coverTitle, subtitle: opts.subtitle || opts.topic || "", handle }];
-  content.forEach((s, i) => specs.push({ kind: "content", n: String(i + 1).padStart(2, "0"), heading: s.headline, body: s.narration, handle }));
-  specs.push({ kind: "cta", title: opts.cta || (fa ? "برای اطلاعات بیشتر پیام بده" : "Message me to get started"), handle });
+  const iconTopic = opts.topic || coverTitle || "";
+  const specs = [{ kind: "cover", title: coverTitle, subtitle: opts.subtitle || opts.topic || "", handle, topic: iconTopic }];
+  content.forEach((s, i) => specs.push({ kind: "content", n: String(i + 1).padStart(2, "0"), heading: s.headline, body: s.narration, handle, topic: iconTopic }));
+  specs.push({ kind: "cta", title: opts.cta || (fa ? "برای اطلاعات بیشتر پیام بده" : "Message me to get started"), handle, topic: iconTopic });
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:16px";
