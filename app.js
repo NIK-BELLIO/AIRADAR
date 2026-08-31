@@ -15818,6 +15818,86 @@ async function vsRenderYTThumb(hook, img, opts) {
   return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
 }
 
+// ── Canva-style SOCIAL POST maker ─────────────────────────────────────────
+// One flexible canvas renderer that makes clean, on-brand posts at any social
+// size (IG square/story, X, LinkedIn) with a palette style, a big headline, a
+// subline, a handle, and an optional own-photo background. All free, crisp text.
+const VS_SOCIAL_STYLES = {
+  midnight: { bg: ["#0b1020", "#1e293b"], accent: "#22d3ee", text: "#f6f9ff", muted: "rgba(226,236,255,.72)", onPhoto: true },
+  sunset:   { bg: ["#7a1e0a", "#f43f5e"], accent: "#ffd166", text: "#fff7f2", muted: "rgba(255,240,235,.8)", onPhoto: true },
+  emerald:  { bg: ["#063d30", "#10b981"], accent: "#eafff6", text: "#f2fffb", muted: "rgba(230,255,246,.8)", onPhoto: true },
+  violet:   { bg: ["#3b0a68", "#a855f7"], accent: "#ffe066", text: "#faf5ff", muted: "rgba(245,235,255,.8)", onPhoto: true },
+  ivory:    { bg: ["#f5f2ea", "#e7e0d2"], accent: "#2563ff", text: "#141a2b", muted: "rgba(20,26,43,.62)", onPhoto: false },
+};
+const VS_SOCIAL_SIZES = {
+  ig_square: [1080, 1080], ig_story: [1080, 1920], x_post: [1600, 900], linkedin: [1200, 628], pinterest: [1000, 1500],
+};
+async function vsRenderSocialPost(spec) {
+  spec = spec || {};
+  const [W, H] = VS_SOCIAL_SIZES[spec.size] || VS_SOCIAL_SIZES.ig_square;
+  const st = VS_SOCIAL_STYLES[spec.style] || VS_SOCIAL_STYLES.midnight;
+  const FAM = '"Archivo", system-ui, sans-serif', MFAM = '"JetBrains Mono", ui-monospace, monospace';
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  const S = Math.min(W, H), M = Math.round(W * 0.085);
+  // background: own photo (cover) + scrim, else the palette gradient
+  if (spec.img && (spec.img.naturalWidth || spec.img.width)) {
+    const mw = spec.img.naturalWidth || spec.img.width, mh = spec.img.naturalHeight || spec.img.height, cov = Math.max(W / mw, H / mh);
+    x.drawImage(spec.img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "rgba(5,7,14,.35)"); g.addColorStop(1, "rgba(5,7,14,.9)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  } else {
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, st.bg[0]); g.addColorStop(1, st.bg[1]);
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    // soft accent glow blob (Canva-ish depth)
+    const rg = x.createRadialGradient(W * 0.82, H * 0.15, 0, W * 0.82, H * 0.15, S * 0.55);
+    rg.addColorStop(0, st.accent + "22"); rg.addColorStop(1, "transparent"); x.fillStyle = rg; x.fillRect(0, 0, W, H);
+  }
+  const textCol = (spec.img ? "#ffffff" : st.text), mutedCol = (spec.img ? "rgba(255,255,255,.8)" : st.muted);
+  // eyebrow / label (mono)
+  let y = Math.round(H * (H > W ? 0.16 : 0.16));
+  if (spec.eyebrow) {
+    x.fillStyle = st.accent; x.textAlign = "left"; x.textBaseline = "alphabetic";
+    x.font = `700 ${Math.round(S * 0.026)}px ${MFAM}`;
+    x.fillText(String(spec.eyebrow).toUpperCase().slice(0, 34), M, y);
+  }
+  // accent bar
+  const barY = y + Math.round(S * 0.02);
+  x.fillStyle = st.accent; x.fillRect(M, barY, Math.round(W * 0.12), Math.max(6, Math.round(S * 0.012)));
+  // headline
+  const headline = String(spec.headline || "").trim() || "Say something bold";
+  const meta = vsThumbTitleMeta(headline), maxW = W - M * 2;
+  let px = Math.round(S * 0.115), lines = vsThumbWrap(x, meta.words, px, maxW, "800", FAM);
+  const tooWide = (ls) => { x.font = `800 ${px}px ${FAM}`; return ls.some(ln => x.measureText(ln.map(o => o.w).join(" ")).width > maxW); };
+  const maxLines = H > W * 1.2 ? 5 : 3;
+  while (px > S * 0.05 && (lines.length > maxLines || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "800", FAM); }
+  const lh = px * 1.06, blockTop = barY + Math.round(S * 0.05);
+  x.textAlign = "left"; x.textBaseline = "top"; x.font = `800 ${px}px ${FAM}`;
+  lines.forEach((ln, li) => {
+    let cx = M; const ly = blockTop + li * lh;
+    ln.forEach(({ w, i }) => {
+      x.fillStyle = (i === meta.emph) ? st.accent : textCol;
+      if (spec.img) { x.shadowColor = "rgba(0,0,0,.5)"; x.shadowBlur = S * 0.012; x.shadowOffsetY = S * 0.004; }
+      x.fillText(w, cx, ly); x.shadowBlur = 0; x.shadowOffsetY = 0;
+      cx += x.measureText(w + " ").width;
+    });
+  });
+  // subtext
+  if (spec.subtext) {
+    const sy = blockTop + lines.length * lh + Math.round(S * 0.03);
+    x.fillStyle = mutedCol; x.font = `500 ${Math.round(S * 0.038)}px ${FAM}`;
+    const subWords = vsThumbTitleMeta(String(spec.subtext)).words;
+    let subLines = vsThumbWrap(x, subWords, Math.round(S * 0.038), maxW, "500", FAM);
+    subLines.slice(0, 3).forEach((ln, li) => x.fillText(ln.map(o => o.w).join(" "), M, sy + li * Math.round(S * 0.052)));
+  }
+  // handle + brand dot (bottom-left)
+  if (spec.handle) {
+    x.fillStyle = st.accent; x.beginPath(); x.arc(M + Math.round(S * 0.02), H - M - Math.round(S * 0.005), Math.round(S * 0.02), 0, Math.PI * 2); x.fill();
+    x.fillStyle = textCol; x.textBaseline = "middle"; x.font = `700 ${Math.round(S * 0.032)}px ${FAM}`;
+    x.fillText(String(spec.handle).replace(/^@?/, "@").slice(0, 30), M + Math.round(S * 0.055), H - M);
+  }
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.94));
+}
+
 // A bold-poster QUOTE card (1080x1350) rendered on canvas (free, text stays crisp).
 async function vsRenderQuoteCard(quote, opts) {
   opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
@@ -15942,6 +16022,9 @@ function vsCreatorTools(opts) {
     { id: "news", icon: "✉️", name: fa ? "خبرنامه‌نویس" : "Newsletter Writer", desc: fa ? "یک شمارهٔ خبرنامهٔ آماده" : "A ready-to-send newsletter issue", accent: "#f59e0b" },
     { id: "voice", icon: "🎙️", name: fa ? "پروفایلِ صدا" : "Voice Profile", desc: fa ? "از نمونه‌ها لحن و سبکِ نوشتنت را می‌سازد" : "Learn your tone & style from samples", accent: "#a3e635" },
     { id: "graphic", icon: "🎨", name: fa ? "گرافیکِ پست" : "Post Graphic", desc: fa ? "کارتِ متنیِ درشت برای پست" : "A bold statement card for a post", accent: "#ec4899" },
+    { id: "xopt", icon: "𝕏", name: fa ? "بهینه‌سازِ X" : "X Optimizer", desc: fa ? "توییتت را برای بیشترین reach بازنویسی می‌کند" : "Rewrite a tweet for maximum reach", accent: "#38bdf8" },
+    { id: "meeting", icon: "📋", name: fa ? "تحلیلِ جلسه" : "Meeting Insights", desc: fa ? "خلاصه، تصمیم‌ها و کارهای بعدی از یک متن" : "Summary, decisions & action items from a transcript", accent: "#f472b6" },
+    { id: "social", icon: "🖼️", name: fa ? "پست‌سازِ سوشال" : "Social Post Maker", desc: fa ? "پستِ آمادهٔ کانوا‌طور در همهٔ سایزها" : "Canva-style posts in every social size", accent: "#8b5cf6" },
   ];
 
   // Clean monoline icons (accent-tinted via currentColor) — replaces the emoji
@@ -15961,14 +16044,17 @@ function vsCreatorTools(opts) {
       pinned: '<path d="M9 4h6l-1 6 3 3H7l3-3-1-6z"/><path d="M12 16v4.5"/>',
       news: '<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M5 8.5l7 5 7-5"/>',
       voice: '<rect x="9.5" y="3.5" width="5" height="10" rx="2.5"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v3.5"/>',
-      graphic: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M6 18l4.5-4.5 3 3L17 12l3 3"/>'
+      graphic: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M6 18l4.5-4.5 3 3L17 12l3 3"/>',
+      xopt: '<path d="M5 5l14 14M19 5L5 19"/>',
+      meeting: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10h7"/><path d="M8.5 14h5"/>',
+      social: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.7"/><path d="M4 16l4-4 3 2.5L16 8l4 4"/>'
     };
     return svg(G[id] || G.post);
   }
   function hub() {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
-    const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1 };
+    const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1, social: 1 };
     const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
@@ -16002,6 +16088,9 @@ function vsCreatorTools(opts) {
     else if (id === "news") toolText("news");
     else if (id === "voice") toolText("voice");
     else if (id === "graphic") toolGraphic();
+    else if (id === "xopt") toolText("xopt");
+    else if (id === "meeting") toolText("meeting");
+    else if (id === "social") toolSocial();
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
   const showImg = (outEl, blob, name) => {
@@ -16273,6 +16362,10 @@ function vsCreatorTools(opts) {
         prompt: (v, plat, lang) => `Write ONE ready-to-send newsletter issue about "${v}". Include: a curiosity-driven SUBJECT line, a 1-line preview, a warm intro, 3 short value sections with subheads, and a clear CTA at the end. Conversational, skimmable, no fluff, no em dashes. ${lang}\nOutput the finished newsletter only.` },
       voice: { icon: "🎙️", name: fa ? "پروفایلِ صدا" : "Voice Profile", ph: fa ? "۳ تا ۵ نمونه از نوشته‌هایت را اینجا بچسبان…" : "Paste 3-5 samples of your writing here…", label: fa ? "نمونه‌های نوشتهٔ تو" : "Your writing samples", accent: "#a3e635", area: true,
         prompt: (v, plat, lang) => `Analyse these writing samples and build a reusable VOICE PROFILE:\n"""${v.slice(0, 3000)}"""\nProduce, clearly labelled: TONE (3-5 adjectives), SENTENCE RHYTHM, SIGNATURE MOVES (what this writer does often), VOCABULARY (words they use / avoid), and 3 DO / 3 DON'T rules. Then a one-paragraph "how to sound like me" summary. ${lang}` },
+      xopt: { icon: "𝕏", name: fa ? "بهینه‌سازِ X" : "X Optimizer", ph: fa ? "توییتت را اینجا بچسبان…" : "Paste your tweet here…", label: fa ? "توییتِ تو" : "Your tweet", accent: "#38bdf8", area: true,
+        prompt: (v, plat, lang) => `Rewrite this tweet for MAXIMUM reach, based on X's open-sourced ranking algorithm (it rewards replies & real conversation, dwell time, and profile visits; it penalises external links in the body, many hashtags, and engagement-bait). Tweet:\n"""${v.slice(0, 600)}"""\nOutput, clearly labelled:\n3 REWRITES — each ≤280 chars, a strong scroll-stopping first line, phrased to invite replies, at most 1 hashtag, NO link in the body.\nWHY — one line per rewrite on what makes it work.\nFIX LIST — what hurt the original (bullets).\n${lang}` },
+      meeting: { icon: "📋", name: fa ? "تحلیلِ جلسه" : "Meeting Insights", ph: fa ? "متنِ جلسه یا زیرنویسِ ویدیو را بچسبان…" : "Paste a meeting transcript or video captions…", label: fa ? "متنِ جلسه / زیرنویس" : "Transcript", accent: "#f472b6", area: true,
+        prompt: (v, plat, lang) => `Analyse this meeting transcript / captions:\n"""${v.slice(0, 6000)}"""\nProduce, clearly labelled: TL;DR (max 3 lines), KEY DECISIONS (bullets), ACTION ITEMS (owner → task → due date if stated), OPEN QUESTIONS / RISKS, and NOTABLE QUOTES. Be concrete and do NOT invent anything that is not in the text. ${lang}` },
     }[kind];
     body.innerHTML = backBar(M.icon + " " + M.name) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel(kind + "Plat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel(kind + "Lang")}</div></div>
@@ -16347,6 +16440,71 @@ function vsCreatorTools(opts) {
         </div>`;
       vsTrackGen("ytthumb", (img && img._imgModel) || "canvas", "tone:" + tone);
       $$("ytAgain").onclick = () => $$("ytGo").click();
+    };
+  }
+
+  // ---- Social Post Maker (Canva-style, any size, free) ----
+  function toolSocial() {
+    body.innerHTML = backBar("🖼️ " + (fa ? "پست‌سازِ سوشال" : "Social Post Maker")) +
+      `<div class="row" style="margin-bottom:10px">
+         <div><div class="lbl">${fa ? "سایز" : "Size"}</div><select id="soSize">
+           <option value="ig_square">Instagram · 1080×1080</option>
+           <option value="ig_story">Story / Reel · 1080×1920</option>
+           <option value="x_post">X / Twitter · 1600×900</option>
+           <option value="linkedin">LinkedIn · 1200×628</option>
+           <option value="pinterest">Pinterest · 1000×1500</option>
+         </select></div>
+         <div><div class="lbl">${fa ? "استایل" : "Style"}</div><select id="soStyle">
+           <option value="midnight">Midnight</option><option value="violet">Violet</option>
+           <option value="sunset">Sunset</option><option value="emerald">Emerald</option>
+           <option value="ivory">Ivory (light)</option>
+         </select></div>
+         <div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("soLang")}</div>
+       </div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع (برای نوشتنِ خودکار)" : "Topic (for AI copy)"}</div>
+         <div style="display:flex;gap:8px"><input id="soTopic" type="text" style="flex:1" placeholder="${fa ? "مثلاً: تخفیفِ آخرِ هفته…" : "e.g. weekend flash sale…"}"/>
+         <button id="soAI" type="button" class="btn" style="background:rgba(139,92,246,.16);box-shadow:inset 0 0 0 1px rgba(139,92,246,.5);color:#d9c9ff;white-space:nowrap">✨ ${fa ? "بنویس" : "Write"}</button></div></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "لیبلِ بالا (اختیاری)" : "Eyebrow (optional)"}</div><input id="soEye" type="text" maxlength="34" placeholder="${fa ? "مثلاً NEW DROP" : "e.g. NEW DROP"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "تیترِ اصلی" : "Headline"}</div><input id="soHead" type="text" placeholder="${fa ? "جملهٔ اصلیِ پست…" : "Your main line…"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "زیرمتن (اختیاری)" : "Subtext (optional)"}</div><input id="soSub" type="text" placeholder="${fa ? "یک خط توضیح…" : "one supporting line…"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "هندل (اختیاری)" : "Handle (optional)"}</div><input id="soHandle" type="text" maxlength="30" placeholder="@yourbrand"/></div>
+       <label id="soPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
+         <span style="font-size:16px">🖼</span><span id="soPhotoTxt">${fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"}</span>
+         <input id="soPhoto" type="file" accept="image/*" style="display:none"/></label>
+       <button id="soGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#8b5cf6,#2563ff);font-weight:800">✨ ${fa ? "ساختِ پست" : "Generate post"}</button>
+       <div id="soOut" style="margin-top:14px"></div>`;
+    let soPhoto = null;
+    $$("soPhoto").onchange = (e) => { soPhoto = (e.target.files && e.target.files[0]) || null; $$("soPhotoTxt").textContent = soPhoto ? (fa ? "✓ عکس: " : "✓ Photo: ") + soPhoto.name.slice(0, 26) : (fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"); };
+    $$("soAI").onclick = async () => {
+      const topic = ($$("soTopic").value || "").trim(); if (!topic) { $$("soTopic").focus(); return; }
+      const b = $$("soAI"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
+      const p = `For a social media post about "${topic}", return ONLY JSON: {"eyebrow":"<1-3 word ALL-CAPS kicker>","headline":"<a punchy line, max 8 words>","subtext":"<one supporting line, max 14 words>"}. ${langLine($$("soLang").value)}`;
+      let raw = ""; try { raw = await vsAutoAiChat(p, { json: false, temperature: 0.9 }); } catch (e) {}
+      const d = vsParseAiJson(raw || "") || {};
+      if (d.eyebrow) $$("soEye").value = String(d.eyebrow).slice(0, 34);
+      if (d.headline) $$("soHead").value = String(d.headline).slice(0, 90);
+      if (d.subtext) $$("soSub").value = String(d.subtext).slice(0, 120);
+      b.disabled = false; b.textContent = old;
+      if (!d.headline) vsStatus(fa ? "نشد — دستی بنویس." : "Couldn't write — fill it in.");
+    };
+    $$("soGo").onclick = async () => {
+      const headline = ($$("soHead").value || "").trim();
+      if (!headline) { $$("soHead").focus(); return; }
+      const g = $$("soGo"); g.disabled = true; g.style.opacity = ".6"; $$("soOut").innerHTML = spin(fa ? "در حال ساخت…" : "Rendering…");
+      let img = null;
+      if (soPhoto) { try { img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = URL.createObjectURL(soPhoto); }); } catch (e) {} }
+      let blob = null;
+      try {
+        blob = await vsRenderSocialPost({
+          size: $$("soSize").value, style: $$("soStyle").value,
+          eyebrow: ($$("soEye").value || "").trim(), headline,
+          subtext: ($$("soSub").value || "").trim(), handle: ($$("soHandle").value || "").trim(), img
+        });
+      } catch (e) {}
+      g.disabled = false; g.style.opacity = "1";
+      if (!blob) { $$("soOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
+      showImg($$("soOut"), blob, "social-" + $$("soSize").value + ".jpg");
+      vsTrackGen("socialpost", "canvas", "size:" + $$("soSize").value + " style:" + $$("soStyle").value);
     };
   }
 
