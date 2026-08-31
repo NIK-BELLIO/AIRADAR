@@ -16369,7 +16369,8 @@ function vsCreatorTools(opts) {
     body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
-       <div style="margin-bottom:10px"><div class="lbl">${fa ? "متن / دیتای خودت (اختیاری)" : "Your own text / data (optional)"}</div><textarea id="caOwn" rows="4" placeholder="${fa ? "اگه محتوای خودت رو داری اینجا بذار — همونو به اسلاید تبدیل می‌کنم. خالی بذار تا خودم بنویسم." : "Have your own content? Paste it — I'll turn it into slides. Leave empty and I'll write it for you."}"></textarea></div>
+       <div style="margin-bottom:6px"><div class="lbl">${fa ? "اسلایدهای خودت (اختیاری — دستی)" : "Your own slides (optional — manual)"}</div><textarea id="caOwn" rows="6" placeholder="${fa ? "هر اسلاید = یک بلاک، با یک خطِ خالی از هم جدا. خطِ اولِ هر بلاک = تیتر، بقیه = توضیح.\n\nمثال:\n۳ نکته برای وام\nنرخ‌ها ۲۰۲۷ بالا می‌رود\n\nنقدینگی مهم است\nقبل از افزایش اقدام کن\n\nCTA: پیام بده" : "One slide per block, separated by a BLANK LINE. First line of a block = heading, the rest = detail.\n\nExample:\n3 rate facts\nBoC is holding at 2.25% now\n\nForecasts see 2027 hikes\nAct before rates climb\n\nCTA: DM me to start"}"></textarea></div>
+       <div style="font-size:11.5px;color:#7f8a86;margin-bottom:10px">${fa ? "پُرش کنی → دقیقاً همون‌قدر اسلاید که خودت نوشتی. خالی بذاری → خودکار می‌سازم." : "Fill it → exactly the slides you wrote (no auto count). Leave empty → I auto-write it."}</div>
        <label id="caPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
          <span style="font-size:16px">🖼</span>
          <span id="caPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"}</span>
@@ -16384,13 +16385,28 @@ function vsCreatorTools(opts) {
       const own = ($$("caOwn").value || "").trim();
       if (!topic && !own) { $$("caTopic").focus(); return; }
       const plat = $$("caPlat").value, lang = $$("caLang").value;
-      const g = $$("caGo"); g.disabled = true; g.style.opacity = ".6"; $$("caOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
+      const g = $$("caGo"); g.disabled = true; g.style.opacity = ".6";
+      // ── MANUAL: the user wrote their own slides → build EXACTLY those, no AI,
+      //    no auto slide count. One block (blank-line separated) = one slide. ──
+      if (own) {
+        $$("caOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
+        const clean = own.replace(/\r/g, "").replace(/\\n/g, "\n").replace(/\*\*/g, "");
+        let blocks = clean.split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
+        let cta = "";
+        const ci = blocks.findIndex(b => /^cta\s*[:：]/i.test(b));
+        if (ci >= 0) { cta = blocks[ci].replace(/^cta\s*[:：]\s*/i, "").trim(); blocks.splice(ci, 1); }
+        let coverTitle = topic, subtitle = "";
+        if (!coverTitle) { const b0 = (blocks.shift() || "").split("\n"); coverTitle = (b0[0] || "").trim(); subtitle = b0.slice(1).join(" ").trim(); }
+        let script = "";
+        blocks.forEach((b, i) => { const l = b.split("\n"); const head = (l[0] || "").trim(); const body = l.slice(1).join(" ").trim(); script += `${i + 1}. HEADLINE: ${head}\nNARRATION: ${body}\n`; });
+        g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
+        try { await vsBuildCarousel(script, { topic: coverTitle, coverTitle, subtitle, cta, noCta: !cta, handle: ($$("caHandle").value || "").trim(), photo: caPhoto }); }
+        catch (e) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در ساخت." : "Build error."}</div>`; }
+        return;
+      }
+      $$("caOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
       const shape = `Output EXACTLY this shape, nothing else:\nCOVER: <2-5 word hook>\nSUB: <one-line subtitle>\n1. HEADLINE: <slide 1 heading>\nNARRATION: <slide 1 body, 1-2 sentences>\n2. HEADLINE: <...>\nNARRATION: <...>\n3. HEADLINE: <...>\nNARRATION: <...>\n4. HEADLINE: <...>\nNARRATION: <...>\nCTA: <a short call to action>`;
-      // If the user pasted their OWN content, structure THAT into slides (use
-      // only their facts). Otherwise auto-write from the topic.
-      const prompt = own
-        ? `Turn the user's OWN content below into a ${plat} carousel — a punchy hook cover, then one content slide per key point, then a CTA. Use ONLY their facts; do not invent details.${topic ? ` The topic is "${topic}".` : ""}\nTheir content:\n"""${own.slice(0, 3000)}"""\n${langLine(lang)}\n${shape}`
-        : `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n${shape}`;
+      const prompt = `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n${shape}`;
       let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
       if (!raw) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
@@ -17502,7 +17518,7 @@ function vsCarouselIcon(ctx, x, y, s, text, accent) {
   } else if (/\bai\b|tech|software|\bcode\b|coding|\bapp\b|\bdata\b|robot|digital|saas|comput|startup|crypto|dev/.test(t)) {
     const q = g * 0.8; ctx.strokeRect(cx - q, cy - q, q * 2, q * 2); ctx.strokeRect(cx - q * 0.4, cy - q * 0.4, q * 0.8, q * 0.8);
     [-1, 1].forEach(d => { [-0.5, 0, 0.5].forEach(o => { P(() => { ctx.moveTo(cx + d * q, cy + o * q); ctx.lineTo(cx + d * q * 1.4, cy + o * q); }); P(() => { ctx.moveTo(cx + o * q, cy + d * q); ctx.lineTo(cx + o * q, cy + d * q * 1.4); }); }); });
-  } else if (/business|entrepreneur|market|sales|\bbrand\b|money|finance|invest|profit|revenue|salary|rich|wealth|econom|growth|\bgrow\b|hustle/.test(t)) {
+  } else if (/business|entrepreneur|market|sales|\bbrand\b|money|finance|invest|profit|revenue|salary|rich|wealth|econom|growth|\bgrow\b|hustle|lend|\bloan|banking|\bbank\b|credit|commercial|\brate/.test(t)) {
     P(() => { ctx.moveTo(cx - g, cy - g); ctx.lineTo(cx - g, cy + g); ctx.lineTo(cx + g, cy + g); });
     P(() => { ctx.moveTo(cx - g * 0.6, cy + g * 0.45); ctx.lineTo(cx - g * 0.1, cy - g * 0.1); ctx.lineTo(cx + g * 0.3, cy + g * 0.2); ctx.lineTo(cx + g * 0.85, cy - g * 0.6); });
     P(() => { ctx.moveTo(cx + g * 0.42, cy - g * 0.6); ctx.lineTo(cx + g * 0.85, cy - g * 0.6); ctx.lineTo(cx + g * 0.85, cy - g * 0.18); });
@@ -17552,7 +17568,7 @@ async function vsRenderCarouselSlide(spec, W, H, coverImg) {
   } else if (spec.kind === "content") {
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.font = `900 ${Math.round(W * 0.12)}px ${T.FAM}`; ctx.fillStyle = "rgba(205,162,74,0.20)"; ctx.fillText(spec.n, M, H * 0.09);
-    ctx.font = `800 ${Math.round(W * 0.026)}px ${T.FAM}`; ctx.fillStyle = T.accent; ctx.fillText((spec.handle || "AI RADAR").toUpperCase(), M, H * 0.09 + W * 0.12 * 0.12);
+    if (spec.handle) { ctx.font = `800 ${Math.round(W * 0.026)}px ${T.FAM}`; ctx.fillStyle = T.accent; ctx.fillText(spec.handle.toUpperCase(), M, H * 0.09 + W * 0.12 * 0.12); }
     let y = H * 0.30;
     const hpx = Math.round(W * 0.06); ctx.font = `900 ${hpx}px ${T.FAM}`; ctx.fillStyle = T.ink;
     const hl = wrapText(spec.heading, hpx, W - M * 2, "900").slice(0, 3); hl.forEach((l, i) => ctx.fillText(l.toUpperCase(), M, y + i * hpx * 1.06)); y += hl.length * hpx * 1.06 + H * 0.03;
@@ -17583,7 +17599,8 @@ async function vsBuildCarousel(script, opts) {
   const iconTopic = opts.topic || coverTitle || "";
   const specs = [{ kind: "cover", title: coverTitle, subtitle: opts.subtitle || opts.topic || "", handle, topic: iconTopic }];
   content.forEach((s, i) => specs.push({ kind: "content", n: String(i + 1).padStart(2, "0"), heading: s.headline, body: s.narration, handle, topic: iconTopic }));
-  specs.push({ kind: "cta", title: opts.cta || (fa ? "برای اطلاعات بیشتر پیام بده" : "Message me to get started"), handle, topic: iconTopic });
+  // Auto path adds a CTA slide; manual path skips it unless the user wrote one.
+  if (!opts.noCta) specs.push({ kind: "cta", title: opts.cta || (fa ? "برای اطلاعات بیشتر پیام بده" : "Message me to get started"), handle, topic: iconTopic });
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:16px";
