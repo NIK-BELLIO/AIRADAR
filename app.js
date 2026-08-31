@@ -17044,7 +17044,7 @@ function vsReverseEngineer(prefill) {
       $$("reBuild").textContent = "🎬 " + (fa ? "ساختِ ویدیوی اسلایدشو" : "Build slideshow video");
       // remember the reference gender guess to pick a matching face by default
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
-      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + ft + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
+      vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + route + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
