@@ -15890,7 +15890,8 @@ function vsCreatorTools(opts) {
          #ctModal .card:hover::before{opacity:1}
          #ctModal .card .idx{position:absolute;top:12px;right:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:26px;font-weight:800;color:rgba(255,255,255,.08);letter-spacing:-.02em;transition:.18s}
          #ctModal .card:hover .idx{color:var(--ac,#22d3ee);opacity:.55}
-         #ctModal .card .ic{font-size:22px;line-height:1;margin-bottom:12px}
+         #ctModal .card .ic{width:28px;height:28px;margin-bottom:13px;color:var(--ac,#22d3ee)}
+         #ctModal .card .ic svg{width:100%;height:100%;display:block}
          #ctModal .card .nm{font-weight:800;color:#f2f6f4;font-size:15.5px;letter-spacing:-.01em}
          #ctModal .card .ds{font-size:12.5px;color:#96a0ac;margin-top:5px;line-height:1.5;max-width:92%}
          #ctModal .card .tag{position:absolute;left:18px;bottom:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#7f8a86}
@@ -15943,6 +15944,27 @@ function vsCreatorTools(opts) {
     { id: "graphic", icon: "🎨", name: fa ? "گرافیکِ پست" : "Post Graphic", desc: fa ? "کارتِ متنیِ درشت برای پست" : "A bold statement card for a post", accent: "#ec4899" },
   ];
 
+  // Clean monoline icons (accent-tinted via currentColor) — replaces the emoji
+  // that read as "AI slop"; one minimal glyph per tool.
+  function toolIcon(id) {
+    const svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+    const G = {
+      hook: '<path d="M15 4v8a4 4 0 0 1-8 0"/><circle cx="15" cy="4" r="1.3" fill="currentColor" stroke="none"/>',
+      post: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8h7"/><path d="M8.5 12h7"/><path d="M8.5 16h4"/>',
+      matrix: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+      quote: '<path d="M6 7h4v5a3 3 0 0 1-3 3"/><path d="M14 7h4v5a3 3 0 0 1-3 3"/>',
+      info: '<path d="M4 20h16"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="13" width="3" height="4" rx="1"/>',
+      score: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>',
+      profile: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+      carousel: '<rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8"/><path d="M20 8v8"/>',
+      thumb: '<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M10.5 9.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/>',
+      pinned: '<path d="M9 4h6l-1 6 3 3H7l3-3-1-6z"/><path d="M12 16v4.5"/>',
+      news: '<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M5 8.5l7 5 7-5"/>',
+      voice: '<rect x="9.5" y="3.5" width="5" height="10" rx="2.5"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v3.5"/>',
+      graphic: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M6 18l4.5-4.5 3 3L17 12l3 3"/>'
+    };
+    return svg(G[id] || G.post);
+  }
   function hub() {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
@@ -15957,7 +15979,7 @@ function vsCreatorTools(opts) {
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:${page ? "14px" : "12px"}">
          ${TOOLS.map((t, i) => `<div class="card" data-tool="${t.id}" style="--ac:${t.accent}">
             <div class="idx">${String(i + 1).padStart(2, "0")}</div>
-            <div class="ic">${t.icon}</div>
+            <div class="ic">${toolIcon(t.id)}</div>
             <div class="nm">${t.name}</div>
             <div class="ds">${t.desc}</div>
             <div class="tag">${catOf(t.id)} · <b>${fa ? "رایگان" : "FREE"}</b></div></div>`).join("")}
