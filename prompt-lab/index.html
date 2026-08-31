@@ -140,7 +140,7 @@
             .plw-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
             .plw-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:20px 18px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(155deg,rgba(15,23,42,.7),rgba(5,7,13,.6));color:#fff;box-shadow:none;transition:.15s;cursor:pointer}
             .plw-card:hover{border-color:rgba(34,211,238,.6);transform:translateY(-2px)}
-            .plw-emoji{font-size:30px;line-height:1}
+            .plw-emoji{width:30px;height:30px;line-height:1;color:#22d3ee;margin-bottom:2px}.plw-emoji svg{width:100%;height:100%;display:block}
             .plw-card b{font-size:17px;letter-spacing:-.03em}
             .plw-card small{color:var(--muted);font-size:12px;font-weight:600;line-height:1.4}
             .plw-panelhead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -173,9 +173,9 @@
             <h2>What do you want to create?</h2>
             <p class="lead">Pick one. We show only the engines that fit and write a prompt tuned for it.</p>
             <div class="plw-cards">
-              <button class="plw-card" type="button" data-type="Image prompt"><span class="plw-emoji">🖼️</span><b>Image</b><small>Midjourney · FLUX · DALL·E · Seedream…</small></button>
-              <button class="plw-card" type="button" data-type="Video prompt"><span class="plw-emoji">🎬</span><b>Video</b><small>Sora · Veo · Kling · Runway · Seedance…</small></button>
-              <button class="plw-card" type="button" data-type="AI skill"><span class="plw-emoji">🧠</span><b>AI assistant skill</b><small>Claude · ChatGPT · Gemini · Grok…</small></button>
+              <button class="plw-card" type="button" data-type="Image prompt"><span class="plw-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M6 18l4.5-4.5 3 3L17 12l3 3"/></svg></span><b>Image</b><small>Midjourney · FLUX · DALL·E · Seedream…</small></button>
+              <button class="plw-card" type="button" data-type="Video prompt"><span class="plw-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M10.5 9.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/></svg></span><b>Video</b><small>Sora · Veo · Kling · Runway · Seedance…</small></button>
+              <button class="plw-card" type="button" data-type="AI skill"><span class="plw-emoji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z"/><path d="M18.5 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" fill="currentColor" stroke="none"/></svg></span><b>AI assistant skill</b><small>Claude · ChatGPT · Gemini · Grok…</small></button>
             </div>
           </div>
 
