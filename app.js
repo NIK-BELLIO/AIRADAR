@@ -15884,7 +15884,7 @@ function vsCreatorTools(opts) {
          #ctModal textarea{resize:vertical;line-height:1.5}
          #ctModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
          #ctModal .btn:hover{filter:brightness(1.08)}
-         #ctModal .card{position:relative;text-align:left;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px 16px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s;overflow:hidden;min-height:150px}
+         #ctModal .card{position:relative;text-align:left;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px 46px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s;overflow:hidden;min-height:158px}
          #ctModal .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,#22d3ee);opacity:0;transition:.18s}
          #ctModal .card:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.05)}
          #ctModal .card:hover::before{opacity:1}
