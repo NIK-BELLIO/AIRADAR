@@ -16279,6 +16279,7 @@ function vsCreatorTools(opts) {
          <div><div class="lbl">${fa ? "رنگِ اکسنت" : "Accent"}</div><select id="ytAcc"><option value="#ffe000">Yellow</option><option value="#ff3131">Red</option><option value="#22d3ee">Cyan</option><option value="#22e06a">Green</option><option value="#ff7a00">Orange</option></select></div>
        </div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "عنوانِ ویدیو" : "Video title"}</div><input id="ytTitle" type="text" placeholder="${fa ? "عنوانِ ویدیوی یوتیوب…" : "Your YouTube video title…"}"/></div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "متنِ روی تامبنیل (اختیاری — جملهٔ خودت)" : "Thumbnail text (optional — your own words)"}</div><input id="ytHook" type="text" maxlength="40" placeholder="${fa ? "خالی بذار تا خودم یه هوکِ پرکلیک بسازم" : "Leave empty — I'll write a high-CTR hook"}"/></div>
        <label id="ytPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
          <span style="font-size:16px">🖼</span><span id="ytPhotoTxt">${fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"}</span>
          <input id="ytPhoto" type="file" accept="image/*" style="display:none"/></label>
@@ -16293,11 +16294,18 @@ function vsCreatorTools(opts) {
       const g = $$("ytGo"); g.disabled = true; g.style.opacity = ".6"; $$("ytOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
       // Facial reactions — the #1 thing real high-CTR YouTube thumbnails have.
       const faceDesc = { shock: "shocked, mouth wide open, eyes wide, hands on head", curious: "curious, one eyebrow raised, intrigued half-smile", confident: "confident big smile, pointing straight at the camera", intense: "intense dramatic stare, serious, leaning in" }[tone];
-      const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS punchy hook phrase, NOT a sentence>","imagePrompt":"<a real person with an exaggerated ${faceDesc} expression looking straight at the camera, upper body, in a scene tied to the video topic, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
-      const data = vsParseAiJson(raw || "") || {};
-      const hook = (data.hook || title).toString().slice(0, 40);
-      const imgPrompt = (data.imagePrompt || ("a person reacting to " + title)).toString().slice(0, 180);
+      const customHook = ($$("ytHook").value || "").trim();
+      // Only ask the AI when we actually need it: for the hook (none given) OR
+      // for an image prompt (no own photo). Photo + own words → zero AI calls.
+      let hook = customHook.slice(0, 40), imgPrompt = "";
+      if (!customHook || !ytPhoto) {
+        const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS punchy hook phrase, NOT a sentence>","imagePrompt":"<a real person with an exaggerated ${faceDesc} expression looking straight at the camera, upper body, in a scene tied to the video topic, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
+        let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+        const data = vsParseAiJson(raw || "") || {};
+        if (!customHook) hook = (data.hook || title).toString().slice(0, 40);
+        imgPrompt = (data.imagePrompt || ("a person reacting to " + title)).toString().slice(0, 180);
+      }
+      if (!hook) hook = title.slice(0, 40);
       // Force the bright, saturated, expressive-YouTuber look (NOT dark/cinematic).
       const thumbImg = imgPrompt + `, professional YouTube thumbnail, real person with exaggerated ${faceDesc} expression, looking straight at camera, bright vivid ${accWord} studio background, punchy saturated colors, strong rim lighting, ultra sharp, subject on the right side, photorealistic, no text, no words, no logo`;
       // image: your own photo → else free CF image → else fal (quality)
