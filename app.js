@@ -18692,7 +18692,7 @@ function bindEvents() {
   on("#vsCoverBtn", "click", () => { try { vsThumbStudio(); } catch (e) {} });
   // Reverse Engineer is gated behind a "SOON" lock until it's finalized.
   // To UNLOCK: set window.VS_REVERSE_SOON = false (or delete this flag).
-  if (typeof window.VS_REVERSE_SOON === "undefined") window.VS_REVERSE_SOON = true;
+  if (typeof window.VS_REVERSE_SOON === "undefined") window.VS_REVERSE_SOON = false;
   (function () {
     const btn = $("#vsReverseBtn");
     if (btn && window.VS_REVERSE_SOON && !btn.querySelector(".vs-soon")) {
