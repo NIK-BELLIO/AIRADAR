@@ -15753,43 +15753,68 @@ async function vsRenderYTThumb(hook, img, opts) {
   opts = opts || {}; const W = 1280, H = 720, FAM = '"Archivo", system-ui, sans-serif';
   const accent = opts.accent || "#ffe000";
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
-  // background: the (bright) subject photo, cover-fit — or a punchy accent gradient
+  const shade = (hex, amt) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; const f = amt < 0 ? 0 : 255, p = Math.abs(amt); r = Math.round((f - r) * p + r); g = Math.round((f - g) * p + g); b = Math.round((f - b) * p + b); return `rgb(${r},${g},${b})`; };
+  const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)); };
+  const accDark = shade(accent, -0.62), accInk = lum(accent) > 150 ? "#0b0f18" : "#ffffff";
+  const panelX = W * 0.6;      // the graphic's right panel starts here
+
+  // 1) GRAPHIC BACKGROUND — dark base + a burst of accent rays behind the panel
+  const bg = x.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0c1122"); bg.addColorStop(1, "#05070f"); x.fillStyle = bg; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(panelX + (W - panelX) / 2, H * 0.44);
+  for (let i = 0; i < 20; i++) { x.rotate(Math.PI * 2 / 20); x.globalAlpha = i % 2 ? 0.05 : 0.11; x.fillStyle = accent; x.beginPath(); x.moveTo(0, 0); x.lineTo(1500, -130); x.lineTo(1500, 130); x.closePath(); x.fill(); }
+  x.restore(); x.globalAlpha = 1;
+
+  // 2) RIGHT PANEL — a diagonal slab holding the (coordinated) image, or a big play glyph
+  x.save(); x.beginPath(); x.moveTo(panelX + 90, 0); x.lineTo(W, 0); x.lineTo(W, H); x.lineTo(panelX, H); x.closePath(); x.clip();
   if (img && (img.naturalWidth || img.width)) {
-    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh);
-    x.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
-  } else { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, accent); g.addColorStop(1, "#0a0f1c"); x.fillStyle = g; x.fillRect(0, 0, W, H); }
-  // LEFT text zone shade only (keeps the bright photo visible on the right)
-  const g2 = x.createLinearGradient(0, 0, W, 0); g2.addColorStop(0, "rgba(4,6,12,.84)"); g2.addColorStop(.46, "rgba(4,6,12,.34)"); g2.addColorStop(.72, "rgba(4,6,12,0)");
-  x.fillStyle = g2; x.fillRect(0, 0, W, H);
-  const g3 = x.createLinearGradient(0, H * 0.6, 0, H); g3.addColorStop(0, "rgba(2,4,9,0)"); g3.addColorStop(1, "rgba(2,4,9,.5)"); x.fillStyle = g3; x.fillRect(0, 0, W, H);
-  // hook text — big, left-anchored; emphasis word sits in a FILLED accent box
-  const M = W * 0.055, meta = vsThumbTitleMeta(hook), maxW = W * 0.6;
+    const pw = W - panelX + 90, mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(pw / mw, H / mh);
+    x.drawImage(img, panelX - 20 + (pw - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+    const sh = x.createLinearGradient(panelX, 0, W, 0); sh.addColorStop(0, "rgba(5,7,15,.5)"); sh.addColorStop(.4, "rgba(5,7,15,0)"); x.fillStyle = sh; x.fillRect(panelX - 40, 0, W, H);
+  } else {
+    x.fillStyle = accDark; x.fillRect(panelX - 40, 0, W, H);
+    x.fillStyle = accent; x.globalAlpha = .9; x.font = `900 ${W * 0.2}px ${FAM}`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("▶", panelX + (W - panelX) / 2 + 30, H / 2); x.globalAlpha = 1;
+  }
+  x.restore();
+  // bold accent edge along the diagonal seam
+  x.save(); x.strokeStyle = accent; x.lineWidth = W * 0.012; x.beginPath(); x.moveTo(panelX + 90, -4); x.lineTo(panelX, H + 4); x.stroke();
+  x.strokeStyle = "rgba(0,0,0,.35)"; x.lineWidth = W * 0.004; x.beginPath(); x.moveTo(panelX + 90 + 10, -4); x.lineTo(panelX + 10, H + 4); x.stroke(); x.restore();
+
+  // 3) HOOK TEXT — big, left-anchored, 3D extruded; emphasis word in a filled box
+  const M = W * 0.055, meta = vsThumbTitleMeta(hook), maxW = panelX - M - W * 0.03;
   let px = Math.round(W * 0.15), lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM);
   const tooWide = (ls) => { x.font = `900 ${px}px ${FAM}`; return ls.some(ln => x.measureText(ln.map(o => o.w).join(" ")).width > maxW); };
-  while (px > W * 0.06 && (lines.length > 3 || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM); }
-  const lh = px * 1.04, blockH = lines.length * lh, startY = (H - blockH) / 2;
-  x.fillStyle = accent; x.fillRect(M, startY - W * 0.034, W * 0.11, Math.max(9, H * 0.024));
+  while (px > W * 0.058 && (lines.length > 3 || tooWide(lines))) { px -= 4; lines = vsThumbWrap(x, meta.words, px, maxW, "900", FAM); }
+  const lh = px * 1.06, blockH = lines.length * lh, startY = (H - blockH) / 2 + H * 0.01;
+  // accent bar over the headline
+  x.fillStyle = accent; x.fillRect(M, startY - W * 0.036, W * 0.1, Math.max(9, H * 0.022));
   x.textAlign = "left"; x.textBaseline = "top"; x.lineJoin = "round"; x.font = `900 ${px}px ${FAM}`;
-  const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)); };
-  const boxTextCol = lum(accent) > 150 ? "#0b0f18" : "#ffffff";
+  const ex = Math.max(2.4, px * 0.028);
   lines.forEach((ln, li) => {
     let cx = M; const y = startY + li * lh;
     ln.forEach(({ w, i }) => {
       const ww = x.measureText(w).width;
       if (i === meta.emph) {
-        const pad = px * 0.09, bx = cx - pad, by = y - px * 0.02, bw = ww + pad * 2, bh = px * 1.02;
-        x.save(); x.fillStyle = accent; x.shadowColor = "rgba(0,0,0,.5)"; x.shadowBlur = W * 0.012; x.shadowOffsetY = H * 0.008; x.beginPath();
-        if (x.roundRect) x.roundRect(bx, by, bw, bh, px * 0.12); else x.rect(bx, by, bw, bh);
-        x.fill(); x.restore();
-        x.fillStyle = boxTextCol; x.fillText(w, cx, y);
+        const pad = px * 0.1, bx = cx - pad, by = y - px * 0.02, bw = ww + pad * 2, bh = px * 1.04;
+        x.save(); x.fillStyle = accDark; x.beginPath(); if (x.roundRect) x.roundRect(bx + ex * 3, by + ex * 3, bw, bh, px * 0.12); else x.rect(bx + ex * 3, by + ex * 3, bw, bh); x.fill();
+        x.fillStyle = accent; x.shadowColor = "rgba(0,0,0,.45)"; x.shadowBlur = W * 0.012; x.shadowOffsetY = H * 0.006; x.beginPath(); if (x.roundRect) x.roundRect(bx, by, bw, bh, px * 0.12); else x.rect(bx, by, bw, bh); x.fill(); x.restore();
+        x.fillStyle = accInk; x.fillText(w, cx, y);
       } else {
-        x.strokeStyle = "#000"; x.lineWidth = px * 0.14; x.shadowColor = "rgba(0,0,0,.55)"; x.shadowBlur = W * 0.011; x.shadowOffsetY = H * 0.007;
-        x.strokeText(w, cx, y); x.shadowBlur = 0; x.shadowOffsetY = 0;
+        x.fillStyle = accDark; for (let s = 9; s >= 1; s--) x.fillText(w, cx + s * ex, y + s * ex);
+        x.strokeStyle = "#000"; x.lineWidth = px * 0.12; x.strokeText(w, cx, y);
         x.fillStyle = "#fff"; x.fillText(w, cx, y);
       }
       cx += x.measureText(w + " ").width;
     });
   });
+
+  // 4) corner STARBURST badge — a classic thumbnail graphic accent (top-right,
+  //    over the panel sky so it never collides with the headline)
+  const bx0 = W * 0.915, by0 = H * 0.16, br = W * 0.05;
+  x.save(); x.translate(bx0, by0); x.fillStyle = accent; x.beginPath();
+  const sp = 12; for (let i = 0; i < sp * 2; i++) { const rr = i % 2 ? br : br * 0.74, a = Math.PI / sp * i; const xx = Math.cos(a) * rr, yy = Math.sin(a) * rr; i ? x.lineTo(xx, yy) : x.moveTo(xx, yy); }
+  x.closePath(); x.shadowColor = "rgba(0,0,0,.4)"; x.shadowBlur = W * 0.01; x.shadowOffsetY = H * 0.005; x.fill(); x.shadowBlur = 0;
+  x.fillStyle = accInk; x.font = `900 ${br * 0.44}px ${FAM}`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("NEW", 0, 0); x.restore();
+
   return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
 }
 
