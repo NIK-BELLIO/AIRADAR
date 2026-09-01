@@ -16117,7 +16117,7 @@ function vsCreatorTools(opts) {
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#7fe3f2">// TOOLKIT</span>
-         <span style="font-size:12px;color:#7f8a86">${fa ? `${TOOLS.length} ابزار · همه رایگان` : `${TOOLS.length} tools · all free`}</span>
+         <span style="font-size:12px;color:#7f8a86">${fa ? `${TOOLS.length} ابزار` : `${TOOLS.length} tools`}</span>
          <span style="flex:1;height:1px;background:rgba(255,255,255,.08)"></span>
        </div>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:${page ? "14px" : "12px"}">
@@ -16369,8 +16369,12 @@ function vsCreatorTools(opts) {
     body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
-       <div style="margin-bottom:6px"><div class="lbl">${fa ? "اسلایدهای خودت (اختیاری — دستی)" : "Your own slides (optional — manual)"}</div><textarea id="caOwn" rows="6" placeholder="${fa ? "هر اسلاید = یک بلاک، با یک خطِ خالی از هم جدا. خطِ اولِ هر بلاک = تیتر، بقیه = توضیح.\n\nمثال:\n۳ نکته برای وام\nنرخ‌ها ۲۰۲۷ بالا می‌رود\n\nنقدینگی مهم است\nقبل از افزایش اقدام کن\n\nCTA: پیام بده" : "One slide per block, separated by a BLANK LINE. First line of a block = heading, the rest = detail.\n\nExample:\n3 rate facts\nBoC is holding at 2.25% now\n\nForecasts see 2027 hikes\nAct before rates climb\n\nCTA: DM me to start"}"></textarea></div>
-       <div style="font-size:11.5px;color:#7f8a86;margin-bottom:10px">${fa ? "پُرش کنی → دقیقاً همون‌قدر اسلاید که خودت نوشتی. خالی بذاری → خودکار می‌سازم." : "Fill it → exactly the slides you wrote (no auto count). Leave empty → I auto-write it."}</div>
+       <div style="margin-bottom:6px"><div class="lbl">${fa ? "اسلایدهای خودت (اختیاری — دستی)" : "Your own slides (optional — manual)"}</div>
+         <div id="caSlides" style="display:flex;flex-direction:column;gap:8px"></div>
+         <button id="caAdd" type="button" class="btn" style="margin-top:8px;background:rgba(34,211,238,.08);color:#bfeaf6;box-shadow:inset 0 0 0 1px rgba(34,211,238,.32);font-weight:700;font-size:13px;padding:8px 12px">＋ ${fa ? "افزودنِ اسلاید" : "Add slide"}</button>
+       </div>
+       <div style="margin-bottom:10px"><div class="lbl">${fa ? "CTA (اختیاری)" : "CTA (optional)"}</div><input id="caCta" type="text" placeholder="${fa ? "مثلاً: پیام بده" : "e.g. DM me to start"}"/></div>
+       <div style="font-size:11.5px;color:#7f8a86;margin-bottom:10px">${fa ? "اسلاید اضافه کنی → دقیقاً همون‌ها ساخته می‌شن. هیچ اسلایدی نذاری → از روی موضوع خودکار می‌سازم." : "Add slides → exactly those are built (no auto count). Add none → I auto-write from the topic."}</div>
        <label id="caPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
          <span style="font-size:16px">🖼</span>
          <span id="caPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"}</span>
@@ -16380,25 +16384,42 @@ function vsCreatorTools(opts) {
        <div id="caOut" style="margin-top:12px"></div>`;
     let caPhoto = null;
     $$("caPhoto").onchange = (e) => { caPhoto = (e.target.files && e.target.files[0]) || null; $$("caPhotoTxt").textContent = caPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + caPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"); };
+    // Manual slide rows: each row is one slide (heading + optional detail).
+    const caRenum = () => $$("caSlides").querySelectorAll(".ca-slide .ca-num").forEach((n, i) => n.textContent = i + 1);
+    const caAddSlide = (focus) => {
+      const row = document.createElement("div");
+      row.className = "ca-slide";
+      row.style.cssText = "display:flex;gap:8px;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:9px";
+      row.innerHTML =
+        `<span class="ca-num" style="font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:800;color:#7fe3f2;font-size:13px;margin-top:9px;min-width:16px;text-align:center">1</span>
+         <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+           <input class="ca-h" type="text" placeholder="${fa ? "تیترِ اسلاید…" : "Slide heading…"}"/>
+           <textarea class="ca-b" rows="2" placeholder="${fa ? "توضیح (اختیاری)…" : "Detail (optional)…"}"></textarea>
+         </div>
+         <button class="ca-del" type="button" aria-label="Remove" style="background:transparent;border:none;color:#e08a8a;font-size:15px;cursor:pointer;margin-top:6px">✕</button>`;
+      row.querySelector(".ca-del").onclick = () => { row.remove(); caRenum(); };
+      $$("caSlides").appendChild(row); caRenum();
+      if (focus) row.querySelector(".ca-h").focus();
+    };
+    caAddSlide(); caAddSlide(); caAddSlide();   // start with 3 empty slides
+    $$("caAdd").onclick = () => caAddSlide(true);
     $$("caGo").onclick = async () => {
       const topic = ($$("caTopic").value || "").trim();
-      const own = ($$("caOwn").value || "").trim();
-      if (!topic && !own) { $$("caTopic").focus(); return; }
+      const rows = [...$$("caSlides").querySelectorAll(".ca-slide")]
+        .map(r => ({ head: (r.querySelector(".ca-h").value || "").trim(), body: (r.querySelector(".ca-b").value || "").trim() }))
+        .filter(s => s.head || s.body);
+      if (!topic && !rows.length) { $$("caTopic").focus(); return; }
       const plat = $$("caPlat").value, lang = $$("caLang").value;
       const g = $$("caGo"); g.disabled = true; g.style.opacity = ".6";
-      // ── MANUAL: the user wrote their own slides → build EXACTLY those, no AI,
-      //    no auto slide count. One block (blank-line separated) = one slide. ──
-      if (own) {
+      // ── MANUAL: the user added their own slide rows → build EXACTLY those,
+      //    no AI, no auto slide count. ──
+      if (rows.length) {
         $$("caOut").innerHTML = spin(fa ? "در حال ساخت…" : "Building…");
-        const clean = own.replace(/\r/g, "").replace(/\\n/g, "\n").replace(/\*\*/g, "");
-        let blocks = clean.split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
-        let cta = "";
-        const ci = blocks.findIndex(b => /^cta\s*[:：]/i.test(b));
-        if (ci >= 0) { cta = blocks[ci].replace(/^cta\s*[:：]\s*/i, "").trim(); blocks.splice(ci, 1); }
+        const cta = ($$("caCta").value || "").trim();
         let coverTitle = topic, subtitle = "";
-        if (!coverTitle) { const b0 = (blocks.shift() || "").split("\n"); coverTitle = (b0[0] || "").trim(); subtitle = b0.slice(1).join(" ").trim(); }
+        if (!coverTitle) { const f = rows.shift(); coverTitle = f.head || f.body; subtitle = f.head ? f.body : ""; }
         let script = "";
-        blocks.forEach((b, i) => { const l = b.split("\n"); const head = (l[0] || "").trim(); const body = l.slice(1).join(" ").trim(); script += `${i + 1}. HEADLINE: ${head}\nNARRATION: ${body}\n`; });
+        rows.forEach((s, i) => { const head = s.head || s.body; const body = s.head ? s.body : ""; script += `${i + 1}. HEADLINE: ${head}\nNARRATION: ${body}\n`; });
         g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
         try { await vsBuildCarousel(script, { topic: coverTitle, coverTitle, subtitle, cta, noCta: !cta, handle: ($$("caHandle").value || "").trim(), photo: caPhoto }); }
         catch (e) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در ساخت." : "Build error."}</div>`; }
