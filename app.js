@@ -17570,8 +17570,14 @@ async function vsRenderCarouselSlide(spec, W, H, coverImg) {
     ctx.font = `900 ${Math.round(W * 0.12)}px ${T.FAM}`; ctx.fillStyle = "rgba(205,162,74,0.20)"; ctx.fillText(spec.n, M, H * 0.09);
     if (spec.handle) { ctx.font = `800 ${Math.round(W * 0.026)}px ${T.FAM}`; ctx.fillStyle = T.accent; ctx.fillText(spec.handle.toUpperCase(), M, H * 0.09 + W * 0.12 * 0.12); }
     let y = H * 0.30;
-    const hpx = Math.round(W * 0.06); ctx.font = `900 ${hpx}px ${T.FAM}`; ctx.fillStyle = T.ink;
-    const hl = wrapText(spec.heading, hpx, W - M * 2, "900").slice(0, 3); hl.forEach((l, i) => ctx.fillText(l.toUpperCase(), M, y + i * hpx * 1.06)); y += hl.length * hpx * 1.06 + H * 0.03;
+    // Uppercase FIRST, then wrap/measure at that case (uppercase is wider — measuring
+    // the original case made long headings overflow the frame). Shrink to fit too.
+    const HEAD = String(spec.heading || "").toUpperCase(), maxHW = W - M * 2;
+    let hpx = Math.round(W * 0.06), hl = wrapText(HEAD, hpx, maxHW, "900");
+    const hOver = (ls) => { ctx.font = `900 ${hpx}px ${T.FAM}`; return ls.some(l => ctx.measureText(l).width > maxHW); };
+    while (hpx > W * 0.032 && (hl.length > 3 || hOver(hl))) { hpx -= 3; hl = wrapText(HEAD, hpx, maxHW, "900"); }
+    hl = hl.slice(0, 3); ctx.font = `900 ${hpx}px ${T.FAM}`; ctx.fillStyle = T.ink;
+    hl.forEach((l, i) => ctx.fillText(l, M, y + i * hpx * 1.06)); y += hl.length * hpx * 1.06 + H * 0.03;
     ctx.fillStyle = T.accent; ctx.fillRect(M, y, W * 0.12, 5); y += H * 0.035;
     if (spec.body) { const bpx = Math.round(W * 0.035); ctx.font = `500 ${bpx}px ${T.FAM}`; ctx.fillStyle = T.mut; wrapText(spec.body, bpx, W - M * 2, "500").slice(0, 8).forEach((l, i) => ctx.fillText(l, M, y + i * bpx * 1.42)); }
     ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.font = `600 ${Math.round(W * 0.022)}px ${T.FAM}`; const sw = "swipe →"; ctx.fillText(sw, W - M - ctx.measureText(sw).width, H * 0.92);
