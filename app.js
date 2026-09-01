@@ -16368,7 +16368,8 @@ function vsCreatorTools(opts) {
   function toolCarousel() {
     body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
-       <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
+       <div style="margin-bottom:6px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
+       <div style="font-size:12px;color:#8fe6c8;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);border-radius:9px;padding:8px 11px;margin-bottom:12px">✦ ${fa ? "فقط موضوع رو بده و «ساختِ کاروسل» رو بزن — خودم همهٔ اسلایدها رو می‌نویسم. اگه دوست داری خودت کنترل کنی، پایین اسلاید اضافه کن." : "Just enter a topic and hit Build — I'll write all the slides for you. Want full control? Add your own slides below (optional)."}</div>
        <div style="margin-bottom:6px"><div class="lbl">${fa ? "اسلایدهای خودت (اختیاری — دستی)" : "Your own slides (optional — manual)"}</div>
          <div id="caSlides" style="display:flex;flex-direction:column;gap:8px"></div>
          <button id="caAdd" type="button" class="btn" style="margin-top:8px;background:rgba(34,211,238,.08);color:#bfeaf6;box-shadow:inset 0 0 0 1px rgba(34,211,238,.32);font-weight:700;font-size:13px;padding:8px 12px">＋ ${fa ? "افزودنِ اسلاید" : "Add slide"}</button>
@@ -16401,7 +16402,7 @@ function vsCreatorTools(opts) {
       $$("caSlides").appendChild(row); caRenum();
       if (focus) row.querySelector(".ca-h").focus();
     };
-    caAddSlide(); caAddSlide(); caAddSlide();   // start with 3 empty slides
+    // Start with NO rows — topic-only (auto) is the default; rows are opt-in.
     $$("caAdd").onclick = () => caAddSlide(true);
     $$("caGo").onclick = async () => {
       const topic = ($$("caTopic").value || "").trim();
