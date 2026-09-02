@@ -17169,14 +17169,16 @@ function vsReverseEngineer(prefill, opts) {
     `<div id="reModal" style="width:min(720px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:16px;background:#14121a;border:1px solid rgba(37,99,255,.30);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
        <style>
          #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8ea6c8;margin-bottom:7px}
-         #reModal input[type=text],#reModal textarea,#reModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit;border-radius:11px;padding:11px 12px;outline:none;box-sizing:border-box}
+         #reModal input[type=text],#reModal textarea,#reModal select{width:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);color:#eef4ff;font:inherit;font-size:13.5px;border-radius:12px;padding:12px 13px;outline:none;box-sizing:border-box;transition:.14s}
          #reModal textarea{resize:vertical;line-height:1.5}
-         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:#2563ff}
+         #reModal input::placeholder,#reModal textarea::placeholder{color:#66748c}
+         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:rgba(37,99,255,.7);background:rgba(37,99,255,.06)}
+         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8;margin-bottom:8px;display:flex;align-items:center}
          #reModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
          #reModal .btn:hover{filter:brightness(1.09)}
          #reModal .btn[disabled]{opacity:.55;cursor:default}
-         #reModal .step{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px}
-         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#2563ff,#2563ff);color:#fff;font-size:12px;font-weight:800;margin-inline-end:8px}
+         #reModal .step{background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:17px 16px}
+         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#22d3ee,#2563ff);color:#0b1020;font-size:12px;font-weight:900;margin-inline-end:9px}
          #reModal .row{display:flex;gap:10px;flex-wrap:wrap}
          #reModal .row>div{flex:1;min-width:130px}
          #reModal .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
@@ -17199,8 +17201,8 @@ function vsReverseEngineer(prefill, opts) {
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
-         <label id="reUploadLbl" style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:#cfc8ba;background:rgba(37,99,255,.07);border:1px dashed rgba(37,99,255,.35);border-radius:10px;padding:10px 12px;cursor:pointer">
-           <span style="flex:none;color:#7fb0ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
+         <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
+           <span style="flex:none;color:#7fb0ff"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
            <span id="reUploadTxt">${fa ? "یا عکس/ویدیوی خودِ پست را آپلود کن — مستقیم تحلیلش می‌کنم" : "…or upload the post's image/video — I'll analyze it directly"}</span>
            <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
          </label>
