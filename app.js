@@ -16080,7 +16080,6 @@ function vsCreatorTools(opts) {
     { id: "logo", icon: "✳️", name: fa ? "لوگو / وردمارک" : "Logo / Wordmark", desc: fa ? "وردمارکِ برند + نشان، PNGِ شفاف" : "A brand wordmark + mark, transparent PNG", accent: "#22d3ee" },
     { id: "adcopy", icon: "📣", name: fa ? "متنِ تبلیغ" : "Ad Copy", desc: fa ? "۳ نسخهٔ تبلیغِ پرتبدیل + هوک‌های A/B" : "3 high-converting ad variations + A/B hooks", accent: "#fb7185" },
     { id: "bio", icon: "🔗", name: fa ? "بایو / لینک‌این‌بایو" : "Bio / Link-in-bio", desc: fa ? "بایوی بهینه + چیدمانِ لینک‌این‌بایو" : "Optimised bios + a link-in-bio layout", accent: "#22c55e" },
-    { id: "lipsync", icon: "👄", name: fa ? "لیپ‌سینکِ AI" : "AI Lip-Sync", desc: fa ? "لبِ ویدیوی صورت را با هر صدایی هماهنگ می‌کند" : "Sync a face video's lips to any audio", accent: "#f59e0b", credits: 12 },
   ];
 
   // Clean monoline icons (accent-tinted via currentColor) — replaces the emoji
@@ -16115,7 +16114,7 @@ function vsCreatorTools(opts) {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
     const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1, social: 1, logo: 1 };
-    const catOf = (id) => id === "lipsync" ? (fa ? "ویدیو" : "VIDEO") : id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
+    const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#7fe3f2">// TOOLKIT</span>
@@ -16151,7 +16150,6 @@ function vsCreatorTools(opts) {
     else if (id === "xopt") toolText("xopt");
     else if (id === "meeting") toolText("meeting");
     else if (id === "social") toolSocial();
-    else if (id === "lipsync") toolLipsync();
     else if (id === "logo") toolLogo();
     else if (id === "adcopy") toolText("adcopy");
     else if (id === "bio") toolText("bio");
@@ -17276,7 +17274,7 @@ function vsReverseEngineer(prefill, opts) {
              <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
            </select>
            <span style="flex:1"></span>
-           <span style="font-size:11px;color:#8a8578">${fa ? "≈ $۰.۰۸ / ثانیه" : "≈ $0.08 / sec"}</span>
+           <span style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451">${fa ? "~۵ کردیت / ثانیه" : "~5 credits / sec"}</span>
          </div>
          <label id="reThPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
            <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
@@ -17287,6 +17285,12 @@ function vsReverseEngineer(prefill, opts) {
          <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~5 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
          <button id="reBuildMotion" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</button>
          <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~18 ${fa ? "کردیت" : "credits"}</b></div>
+         <label id="reLsVidLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer;margin-top:4px">
+           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg></span>
+           <span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت را بده (برای لیپ‌سینک)" : "Your own face video (for lip-sync)"}</span>
+           <input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
+         <button id="reBuildLipsync" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#10b981);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg>${fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"} · <b style="color:#f5c451">12 ${fa ? "کردیت" : "credits"}</b></div>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
@@ -17485,6 +17489,15 @@ function vsReverseEngineer(prefill, opts) {
     $$("reThPhotoTxt").textContent = thPhoto
       ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + thPhoto.name.slice(0, 30)
       : (fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak");
+  };
+  // Lip-sync (LatentSync, video→video) — the user's OWN face video, 12 credits.
+  let lsVid = null;
+  if ($$("reLsVid")) $$("reLsVid").onchange = (e) => { lsVid = (e.target.files && e.target.files[0]) || null; $$("reLsVidTxt").textContent = lsVid ? "✓ " + lsVid.name.slice(0, 30) : (fa ? "ویدیوی صورتِ خودت را بده (برای لیپ‌سینک)" : "Your own face video (for lip-sync)"); };
+  if ($$("reBuildLipsync")) $$("reBuildLipsync").onclick = () => {
+    const script = ($$("reScript").value || "").trim();
+    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    if (!lsVid) { $$("reLsVid").click(); return; }
+    try { vsBuildLipsync({ script, video: lsVid, voice: $$("reThVoice").value }); } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
   // Own-photo picker for the carousel cover.
   let carPhoto = null;
@@ -17837,7 +17850,7 @@ async function vsBuildTalkingHead(script, opts) {
   setStep("voice", "done");
   // audio duration → cost estimate
   let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
-  if (dur) { const cost = (dur * 0.08).toFixed(2); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#8a8578;margin-top:2px"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · هزینهٔ تقریبی ~$${cost}` : `voice ~${Math.round(dur)}s · est. ~$${cost}`); steps.appendChild(note); }
+  if (dur) { const cr = Math.ceil(dur * 5); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#f5c451;margin-top:2px;font-family:'JetBrains Mono',ui-monospace,monospace"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · ~${cr} کردیت` : `voice ~${Math.round(dur)}s · ~${cr} credits`); steps.appendChild(note); }
 
   // 2) Presenter face — the user's OWN photo (uploaded to fal storage) if given,
   //    otherwise an AI presenter placed in the SAME setting as the reference.
@@ -17904,6 +17917,67 @@ async function vsBuildTalkingHead(script, opts) {
 // "copy the camera & angle" part of Reverse Engineer. This is the only place a
 // paid VIDEO model is called, so it ALWAYS asks first (shows the exact fal cost)
 // and never spends a cent without an explicit "Generate" click. No lip-sync.
+// Lip-sync build (LatentSync, video→video) for Reverse Engineer: the user gives
+// their OWN face video; we speak the reverse-engineered narration (Kokoro TTS)
+// and sync it onto their video. PAID via the credit system (12 credits, enforced
+// server-side, refunded on failure). The cheapest video route (vs Fabric).
+async function vsBuildLipsync(opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev", COST = 12;
+  const narration = vsExtractNarration(opts.script || "") || (opts.script || "").trim();
+  if (!opts.video) { vsStatus(fa ? "اول ویدیوی صورتت را آپلود کن." : "Upload your face video first."); return; }
+  if (!narration || narration.length < 4) { vsStatus(fa ? "متنِ گفتاری پیدا نشد." : "No narration found."); return; }
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = `<div style="width:min(540px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff">${fa ? "لیپ‌سینکِ ویدیوی تو" : "Lip-sync your video"}</span><span style="font:600 10px 'JetBrains Mono',monospace;color:#f5c451">LatentSync · ${COST} ${fa ? "کردیت" : "credits"}</span></div>
+       <div id="lsxSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>
+       <div id="lsxResult" style="margin-top:12px"></div>
+       <button id="lsxClose" type="button" style="margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+     </div>`;
+  document.body.appendChild(ov);
+  const steps = ov.querySelector("#lsxSteps"), result = ov.querySelector("#lsxResult");
+  ov.querySelector("#lsxClose").onclick = () => { try { ov.remove(); } catch (e) {} };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#22d3ee;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  // 1) reserve credits (enforced server-side)
+  let jobId = null;
+  try {
+    const r = await fetch("/api/generate/lipsync", { method: "POST", credentials: "include" });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "اول وارد شو." : "Please sign in first."}</div>`; try { document.getElementById("authSignInBtn") && document.getElementById("authSignInBtn").click(); } catch (e) {} return; }
+    if (r.status === 402) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? `کردیتِ کافی نداری — ${COST} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${COST}, you have ${j.balance || 0}.`}</div>`; return; }
+    if (!j.ok || !j.jobId) throw new Error(j.error || "reserve failed");
+    jobId = j.jobId;
+  } catch (e) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رزرو کردیت." : "Could not reserve credits."}</div>`; return; }
+  const settle = async (status) => { try { await fetch("/api/generate/lipsync/finish", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} };
+  try {
+    let ic = line(fa ? "نوشتنِ صدا" : "Writing the voice");
+    const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
+    const audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed"); done(ic);
+    ic = line(fa ? "آپلودِ ویدیوی تو" : "Uploading your video");
+    const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.video.type || "video/mp4" }, body: opts.video });
+    const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error("upload failed"); done(ic);
+    ic = line(fa ? "لب‌همزمانی (~۱ دقیقه)" : "Lip-syncing (~1 min)");
+    const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: uj.file_url, audio_url: audioUrl } });
+    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+    if (!statusUrl) throw new Error("submit failed");
+    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    let out = null;
+    for (let k = 0; k < 90; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
+    if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed"); done(ic);
+    await settle("done");
+    vsTrackGen("lipsync", "fal-ai/latentsync", "via:reverse cost:" + COST);
+    let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+    const u = blob ? URL.createObjectURL(blob) : out;
+    result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="lipsync.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#22d3ee,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+    try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "lipsync"); } catch (e) {}
+  } catch (e) { await settle("failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`; }
+}
+
 async function vsReverseMotionClip(opts) {
   opts = opts || {};
   const fa = state.lang === "fa";
@@ -17944,12 +18018,12 @@ async function vsReverseMotionClip(opts) {
   let mcPhoto = opts.photo || null;
   if (mcPhoto) $("mcPhotoTxt").textContent = (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + (mcPhoto.name || "").slice(0, 30);
   $("mcPhoto").onchange = (e) => { mcPhoto = (e.target.files && e.target.files[0]) || null; $("mcPhotoTxt").textContent = mcPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + mcPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت (اختیاری) — وگرنه یک فریمِ صحنه ساخته می‌شود" : "Your own photo (optional) — else an AI frame of the scene"); };
-  // live cost estimate (regular fal rate: 480P $0.05/s, 768P $0.08/s)
+  // live cost estimate in CREDITS (480P ~3 cr/s, 768P ~5 cr/s)
   const refreshCost = () => {
     const res = $("mcRes").value, dur = parseInt($("mcDur").value, 10) || 6;
-    const rate = res === "768P" ? 0.08 : 0.05, est = (dur * rate).toFixed(2);
-    $("mcCost").textContent = (fa ? `هزینهٔ fal ≈ $${est}` : `fal cost ≈ $${est}`);
-    $("mcGo").textContent = (fa ? `💳 بساز (≈ $${est})` : `💳 Generate (≈ $${est})`);
+    const est = Math.ceil(dur * (res === "768P" ? 5 : 3));
+    $("mcCost").textContent = (fa ? `≈ ${est} کردیت` : `≈ ${est} credits`);
+    $("mcGo").textContent = (fa ? `بساز (${est} کردیت)` : `Generate (${est} credits)`);
   };
   $("mcRes").onchange = refreshCost; $("mcDur").onchange = refreshCost; refreshCost();
 
