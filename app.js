@@ -17168,45 +17168,45 @@ function vsReverseEngineer(prefill, opts) {
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
-    `<div id="reModal" style="width:min(720px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:16px;background:#14121a;border:1px solid rgba(168,85,247,.30);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
+    `<div id="reModal" style="width:min(720px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:16px;background:#14121a;border:1px solid rgba(37,99,255,.30);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
        <style>
-         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a8fb5;margin-bottom:7px}
+         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8ea6c8;margin-bottom:7px}
          #reModal input[type=text],#reModal textarea,#reModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#efe9dc;font:inherit;border-radius:11px;padding:11px 12px;outline:none;box-sizing:border-box}
          #reModal textarea{resize:vertical;line-height:1.5}
-         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:#a855f7}
+         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:#2563ff}
          #reModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
          #reModal .btn:hover{filter:brightness(1.09)}
          #reModal .btn[disabled]{opacity:.55;cursor:default}
          #reModal .step{background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px}
-         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#2563ff);color:#fff;font-size:12px;font-weight:800;margin-inline-end:8px}
+         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#2563ff,#2563ff);color:#fff;font-size:12px;font-weight:800;margin-inline-end:8px}
          #reModal .row{display:flex;gap:10px;flex-wrap:wrap}
          #reModal .row>div{flex:1;min-width:130px}
          #reModal .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
-         #reModal .dna .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#9a8fb5}
+         #reModal .dna .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8ea6c8}
          #reModal .dna .v{font-size:13px;color:#efe9dc;margin-top:2px}
-         #reModal .dnaCell{background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.16);border-radius:10px;padding:9px 11px}
-         #reModal .tag{display:inline-block;font-size:11px;color:#cbb8ee;background:rgba(168,85,247,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
+         #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
+         #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
        </style>
-       <div style="display:flex;align-items:center;gap:10px">
-         <span style="font-size:22px">🧬</span>
-         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#efe9dc">Reverse Engineer</span>
-         <span style="font-size:11px;color:#c9b8ee;background:rgba(168,85,247,.14);padding:3px 9px;border-radius:20px">Style Match</span>
+       <div style="display:flex;align-items:center;gap:9px">
+         <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
+         <span style="font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em;color:#f2f6ff">Reverse Engineer</span>
+         <span style="font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:#7fb0ff;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);padding:3px 8px;border-radius:6px">STYLE MATCH</span>
        </div>
-       <div style="font-size:12.5px;color:#9a938a;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
+       <div style="font-size:12.5px;color:#96a0ac;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
 
        <div class="step">
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
+           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
-         <label id="reUploadLbl" style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:#cfc8ba;background:rgba(168,85,247,.07);border:1px dashed rgba(168,85,247,.35);border-radius:10px;padding:10px 12px;cursor:pointer">
+         <label id="reUploadLbl" style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:#cfc8ba;background:rgba(37,99,255,.07);border:1px dashed rgba(37,99,255,.35);border-radius:10px;padding:10px 12px;cursor:pointer">
            <span style="font-size:17px">🖼🎬</span>
            <span id="reUploadTxt">${fa ? "یا عکس/ویدیوی خودِ پست را آپلود کن — مستقیم تحلیلش می‌کنم" : "…or upload the post's image/video — I'll analyze it directly"}</span>
            <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
          </label>
-         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#9a8fb5">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط)" : "…or paste one or several posts' captions (one per line)"}</summary>
+         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#8ea6c8">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط)" : "…or paste one or several posts' captions (one per line)"}</summary>
            <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}" style="margin-top:8px"></textarea>
          </details>
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
@@ -17239,7 +17239,7 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#a855f7,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
+       <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
@@ -17329,7 +17329,7 @@ function vsReverseEngineer(prefill, opts) {
         card.innerHTML =
           (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
           `<div style="flex:1;min-width:0">
-             ${ref.username ? `<div style="font-weight:800;color:#efe9dc;font-size:13px">@${esc(ref.username)}${ref.isProfile ? ` <span style="font-weight:600;color:#9a8fb5">· ${fa ? "صفحه" : "page"}</span>` : ""}</div>` : ""}
+             ${ref.username ? `<div style="font-weight:800;color:#efe9dc;font-size:13px">@${esc(ref.username)}${ref.isProfile ? ` <span style="font-weight:600;color:#8ea6c8">· ${fa ? "صفحه" : "page"}</span>` : ""}</div>` : ""}
              <div style="font-size:12px;color:#b8b1a4;margin-top:3px;max-height:66px;overflow:auto;line-height:1.5">${esc((ref.caption || "").slice(0, 320))}</div>
              ${ref.hashtags && ref.hashtags.length ? `<div style="margin-top:5px">${ref.hashtags.slice(0, 8).map(h => `<span class="tag">${esc(h)}</span>`).join("")}</div>` : ""}
              ${ref.isProfile ? `<div style="font-size:11px;color:#e0b088;margin-top:6px">${fa ? "برای تحلیلِ «همهٔ پست‌ها»، چند تا از کپشن‌های این صفحه را در کادرِ بالا پیست کن تا سبکِ مشترک دقیق دربیاد." : "To analyze ALL posts, paste a few of this page's captions into the box above so the shared style is captured."}</div>` : ""}
@@ -17413,7 +17413,7 @@ function vsReverseEngineer(prefill, opts) {
         `<div class="dnaCell"><div class="k">${esc(keyLabel(k))}</div><div class="v">${esc(String(dna[k]))}</div></div>`).join("") ||
         `<div class="dnaCell"><div class="v">${fa ? "سبک عمومی استخراج شد." : "Extracted a general style."}</div></div>`;
       $$("reTags").innerHTML = (ref && ref.hashtags || []).slice(0, 10).map(h => `<span class="tag">${esc(h)}</span>`).join("");
-      $$("reBeats").innerHTML = (blueprint.structure || []).map((s, i) => `<div class="beat"><b style="color:#a855f7">${i + 1}.</b> ${esc(String(s))}</div>`).join("") ||
+      $$("reBeats").innerHTML = (blueprint.structure || []).map((s, i) => `<div class="beat"><b style="color:#2563ff">${i + 1}.</b> ${esc(String(s))}</div>`).join("") ||
         `<div class="beat" style="color:#9a938a">${fa ? "—" : "—"}</div>`;
       $$("reScript").value = String(blueprint.script || "");
       $$("reCaption").textContent = String(blueprint.caption || "");
