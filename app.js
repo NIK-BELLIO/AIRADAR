@@ -17884,6 +17884,12 @@ async function vsBuildTalkingHead(script, opts) {
   // audio duration → cost estimate
   let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
   if (dur) { const cr = Math.ceil(dur * 5); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#f5c451;margin-top:2px;font-family:'JetBrains Mono',ui-monospace,monospace"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · ~${cr} کردیت` : `voice ~${Math.round(dur)}s · ~${cr} credits`); steps.appendChild(note); }
+  // Charge per-second NOW that the audio length is known (before the costly
+  // Fabric render). Enforced server-side; refunded on failure/cancel.
+  const _thc = await vsCharge("talkinghead", { seconds: Math.round(dur) || 10 });
+  if (_thc.block) { try { ov.remove(); } catch (e) {} return; }
+  const thJob = _thc.jobId;
+  try {
 
   // 2) Presenter face — the user's OWN photo (uploaded to fal storage) if given,
   //    otherwise an AI presenter placed in the SAME setting as the reference.
@@ -17929,7 +17935,7 @@ async function vsBuildTalkingHead(script, opts) {
     if (st === "COMPLETED") { try { const j = await (await fetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
     if (st === "FAILED" || st === "ERROR") break;
   }
-  if (closed) return;
+  if (closed) { vsSettle(thJob, "failed"); return; }
   if (!videoUrl) { setStep("sync", "err"); throw new Error(fa ? "هماهنگی ناموفق بود" : "lip-sync failed"); }
   setStep("sync", "done");
 
@@ -17941,7 +17947,9 @@ async function vsBuildTalkingHead(script, opts) {
      <a href="${dlUrl}" download="talking-head.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
   vsTrackGen("talkinghead", "veed/fabric-1.0+kokoro", "dur:" + Math.round(dur) + "s voice:" + (opts.voice || "af_heart"));
   try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "talking-head"); } catch (e) {}
+  vsSettle(thJob, "done");
   vsStatus(fa ? "✅ ویدیوی آدمِ سخنگو آماده شد." : "✅ Talking-head video ready.");
+  } catch (thErr) { vsSettle(thJob, "failed"); throw thErr; }
 }
 
 // ── Cinematic motion clip (MiniMax H3 Max image-to-video) ──────────────────
@@ -18065,7 +18073,9 @@ async function vsReverseMotionClip(opts) {
   const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
 
   $("mcGo").onclick = async () => {
-    if (running) return; running = true;
+    if (running) return;
+    const charge = await vsCharge("cinematic"); if (charge.block) return;   // 18 credits, enforced
+    running = true;
     $("mcGo").disabled = true; $("mcGo").style.opacity = ".6"; $("mcCancel").disabled = true;
     const res = $("mcRes").value, dur = parseInt($("mcDur").value, 10) || 6;
     try {
@@ -18110,9 +18120,11 @@ async function vsReverseMotionClip(opts) {
          <a href="${dlUrl}" download="cinematic-motion.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#eaf1ff;background:linear-gradient(135deg,#2563ff,#0ea5e9)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
       vsTrackGen("cinematicmotion", "minimax/h3-max", "res:" + res + " dur:" + dur + "s");
       try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "cinematic-motion"); } catch (e) {}
+      vsSettle(charge.jobId, "done");
       $("mcCancel").disabled = false; $("mcCancel").textContent = fa ? "بستن" : "Close";
     } catch (e) {
-      $("mcResult").innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد: " : "Failed: ") + (e && e.message ? e.message : e)}</div>`;
+      vsSettle(charge.jobId, "failed");   // refund on failure
+      $("mcResult").innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
       $("mcCancel").disabled = false; $("mcGo").disabled = false; $("mcGo").style.opacity = "1";
     }
     running = false;
