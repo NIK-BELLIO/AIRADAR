@@ -17187,6 +17187,12 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
          #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:8px 13px;transition:.14s}
+         #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
+         #reModal .re-fieldrow .fl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8;margin-bottom:1px}
+         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:1px 22px 1px 0!important;margin:0;font-weight:800;font-size:14px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer}
+         #reModal .re-fieldrow select:focus{background:transparent!important}
+         #reModal .re-fieldrow::after{content:"›";position:absolute;right:13px;top:56%;transform:translateY(-50%);color:#8ea6c8;font-size:19px;font-weight:700;pointer-events:none}
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
@@ -17219,19 +17225,19 @@ function vsReverseEngineer(prefill, opts) {
          <div class="row" style="margin-bottom:10px">
            <div><input id="reRegion" type="text" placeholder="${fa ? "اطلاعات و جزئیاتِ خودت (اعداد، اسم‌ها، آفر…) — ویدیو از همین استفاده می‌کند" : "Your own info & details (numbers, names, offer…) — the video features THIS"}"/></div>
          </div>
-         <div class="row">
-           <div><div class="lbl">${fa ? "زبان" : "Language"}</div>
+         <div style="display:flex;flex-direction:column;gap:8px">
+           <div class="re-fieldrow"><div class="fl">${fa ? "زبان" : "Language"}</div>
              <select id="reLang">
                <option value="en">English</option>
                <option value="es">Español (Spanish)</option>
              </select></div>
-           <div><div class="lbl">${fa ? "سبک" : "Style"}</div>
+           <div class="re-fieldrow"><div class="fl">${fa ? "سبک" : "Style"}</div>
              <select id="reSkill">
                <option value="auto">${fa ? "خودکار" : "Auto"}</option>
                <option value="editorial">${fa ? "ادیتوریال (تصویری)" : "Editorial (image)"}</option>
                <option value="motion_graphic">${fa ? "موشن‌گرافیک (داده)" : "Motion graphic (data)"}</option>
              </select></div>
-           <div><div class="lbl">${fa ? "طول" : "Length"}</div>
+           <div class="re-fieldrow"><div class="fl">${fa ? "طول" : "Length"}</div>
              <select id="reLen">
                <option value="short">${fa ? "کوتاه" : "Short"}</option>
                <option value="medium" selected>${fa ? "متوسط" : "Medium"}</option>
@@ -17240,7 +17246,7 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
+       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "مهندسی معکوس و ساخت نقشه" : "Reverse-engineer & build blueprint"}<span style="font:800 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;background:rgba(0,0,0,.28);color:#eafff6;padding:3px 7px;border-radius:6px">${fa ? "رایگان" : "FREE"}</span></button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
