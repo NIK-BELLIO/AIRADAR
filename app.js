@@ -17202,7 +17202,7 @@ function vsReverseEngineer(prefill, opts) {
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
          <label id="reUploadLbl" style="display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:#cfc8ba;background:rgba(37,99,255,.07);border:1px dashed rgba(37,99,255,.35);border-radius:10px;padding:10px 12px;cursor:pointer">
-           <span style="font-size:17px">🖼🎬</span>
+           <span style="flex:none;color:#7fb0ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
            <span id="reUploadTxt">${fa ? "یا عکس/ویدیوی خودِ پست را آپلود کن — مستقیم تحلیلش می‌کنم" : "…or upload the post's image/video — I'll analyze it directly"}</span>
            <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
          </label>
@@ -17239,7 +17239,7 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <button id="reGo" type="button" class="btn" style="width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">🧬 ${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
+       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "مهندسی معکوس و ساخت نقشهٔ سبک" : "Reverse-engineer & build blueprint"}</button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
@@ -17279,27 +17279,27 @@ function vsReverseEngineer(prefill, opts) {
            <span style="font-size:11px;color:#8a8578">${fa ? "≈ $۰.۰۸ / ثانیه" : "≈ $0.08 / sec"}</span>
          </div>
          <label id="reThPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-           <span style="font-size:16px">🖼</span>
+           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
            <span id="reThPhotoTxt">${fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak"}</span>
            <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
-         <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8a8578;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "مدل: VEED Fabric 1.0 · عکس→ویدیو · ~$0.08/ثانیه" : "Model: VEED Fabric 1.0 · image→video · ~$0.08/sec"}</div>
-         <button id="reBuildMotion" type="button" class="btn" style="width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800">🎬 ${fa ? "نمای سینمایی (حرکتِ دوربین) — قبل از خرج تأیید می‌گیرد" : "Cinematic motion (camera move) — asks before spending"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8a8578;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "مدل: MiniMax H3 Max · عکس→ویدیو · از $0.30" : "Model: MiniMax H3 Max · image→video · from $0.30"}</div>
+         <button id="reBuildTH" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~5 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
+         <button id="reBuildMotion" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~18 ${fa ? "کردیت" : "credits"}</b></div>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-           <span style="font-size:16px">🖼</span>
+           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
            <span id="reCarPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری)" : "Your photo for the cover slide (optional)"}</span>
            <input id="reCarPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
-         <button id="reBuildCar" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#0ea5e9);font-weight:800">🖼 ${fa ? "ساختِ کاروسل (اسلایدِ عکس + متن)" : "Build carousel (image + text slides)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8fe6c8;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "رایگان · کنواسِ درون‌مرورگری" : "Free · on-device canvas"}</div>
+         <button id="reBuildCar" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#0ea5e9);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8M20 8v8"/></svg>${fa ? "ساختِ کاروسل (اسلایدِ عکس + متن)" : "Build carousel (image + text slides)"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8fe6c8;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "کنواسِ درون‌مرورگری" : "on-device canvas"} · <b>${fa ? "رایگان" : "FREE · 0 credits"}</b></div>
        </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ ویدیوی اسلایدشو (رایگان · استودیو)" : "Build slideshow video (Free · Studio)"}</button>
+         <button id="reBuild" type="button" class="btn" style="display:none;align-items:center;justify-content:center;gap:8px;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg>${fa ? "اسلایدشو (رایگان)" : "Slideshow (FREE · 0 credits)"}</button>
        </div>
      </div>`;
   // Page mode: render the panel inline into a mount (a dedicated /reverse-engineer
