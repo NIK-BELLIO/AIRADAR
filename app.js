@@ -16080,6 +16080,7 @@ function vsCreatorTools(opts) {
     { id: "logo", icon: "✳️", name: fa ? "لوگو / وردمارک" : "Logo / Wordmark", desc: fa ? "وردمارکِ برند + نشان، PNGِ شفاف" : "A brand wordmark + mark, transparent PNG", accent: "#22d3ee" },
     { id: "adcopy", icon: "📣", name: fa ? "متنِ تبلیغ" : "Ad Copy", desc: fa ? "۳ نسخهٔ تبلیغِ پرتبدیل + هوک‌های A/B" : "3 high-converting ad variations + A/B hooks", accent: "#fb7185" },
     { id: "bio", icon: "🔗", name: fa ? "بایو / لینک‌این‌بایو" : "Bio / Link-in-bio", desc: fa ? "بایوی بهینه + چیدمانِ لینک‌این‌بایو" : "Optimised bios + a link-in-bio layout", accent: "#22c55e" },
+    { id: "lipsync", icon: "👄", name: fa ? "لیپ‌سینکِ AI" : "AI Lip-Sync", desc: fa ? "لبِ ویدیوی صورت را با هر صدایی هماهنگ می‌کند" : "Sync a face video's lips to any audio", accent: "#f59e0b", credits: 12 },
   ];
 
   // Clean monoline icons (accent-tinted via currentColor) — replaces the emoji
@@ -16105,7 +16106,8 @@ function vsCreatorTools(opts) {
       social: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.7"/><path d="M4 16l4-4 3 2.5L16 8l4 4"/>',
       logo: '<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/>',
       adcopy: '<path d="M3 11l14-6v14L3 13z"/><path d="M17 8a3 3 0 0 1 0 6"/><path d="M6 13v4a2 2 0 0 0 4 0"/>',
-      bio: '<path d="M9 15l6-6"/><path d="M8 12l-2 2a3 3 0 0 0 4 4l2-2"/><path d="M16 12l2-2a3 3 0 0 0-4-4l-2 2"/>'
+      bio: '<path d="M9 15l6-6"/><path d="M8 12l-2 2a3 3 0 0 0 4 4l2-2"/><path d="M16 12l2-2a3 3 0 0 0-4-4l-2 2"/>',
+      lipsync: '<path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/>'
     };
     return svg(G[id] || G.post);
   }
@@ -16113,7 +16115,7 @@ function vsCreatorTools(opts) {
     const hx = (c) => { c = String(c).replace("#", ""); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
     const tint = (c, a) => { const [r, g, b] = hx(c); return `rgba(${r},${g},${b},${a})`; };
     const GRAPHIC = { quote: 1, info: 1, graphic: 1, carousel: 1, thumb: 1, social: 1, logo: 1 };
-    const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
+    const catOf = (id) => id === "lipsync" ? (fa ? "ویدیو" : "VIDEO") : id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#7fe3f2">// TOOLKIT</span>
@@ -16126,7 +16128,7 @@ function vsCreatorTools(opts) {
             <div class="ic">${toolIcon(t.id)}</div>
             <div class="nm">${t.name}</div>
             <div class="ds">${t.desc}</div>
-            <div class="tag">${catOf(t.id)} · <b>${fa ? "رایگان" : "FREE"}</b></div></div>`).join("")}
+            <div class="tag">${catOf(t.id)} · ${t.credits ? `<b style="color:#f5c451">${t.credits} ${fa ? "کردیت" : "credits"}</b>` : `<b>${fa ? "رایگان" : "FREE"}</b>`}</div></div>`).join("")}
        </div>`;
     body.querySelectorAll(".card").forEach(c => c.onclick = () => openTool(c.getAttribute("data-tool")));
   }
@@ -16149,6 +16151,7 @@ function vsCreatorTools(opts) {
     else if (id === "xopt") toolText("xopt");
     else if (id === "meeting") toolText("meeting");
     else if (id === "social") toolSocial();
+    else if (id === "lipsync") toolLipsync();
     else if (id === "logo") toolLogo();
     else if (id === "adcopy") toolText("adcopy");
     else if (id === "bio") toolText("bio");
@@ -16618,6 +16621,88 @@ function vsCreatorTools(opts) {
       if (!blob) { $$("soOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       showImg($$("soOut"), blob, "social-" + $$("soSize").value + ".jpg");
       vsTrackGen("socialpost", "canvas", "size:" + $$("soSize").value + " style:" + $$("soStyle").value);
+    };
+  }
+
+  // ---- AI Lip-Sync (LatentSync via fal — PAID, 12 credits) ----
+  function toolLipsync() {
+    const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev", COST = 12;
+    body.innerHTML = backBar("👄 " + (fa ? "لیپ‌سینکِ AI" : "AI Lip-Sync")) +
+      `<div style="font-size:12.5px;color:#f5c451;background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.3);border-radius:10px;padding:9px 12px;margin-bottom:12px">💳 ${fa ? `هر ساخت <b>${COST} کردیت</b> · نیاز به ورود · ویدیوی صورت تا ۴۰ ثانیه` : `<b>${COST} credits</b> per run · sign-in required · face video up to 40s`}</div>
+       <label id="lsVidLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;cursor:pointer">
+         <span style="font-size:16px">🎬</span><span id="lsVidTxt">${fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"}</span>
+         <input id="lsVid" type="file" accept="video/*" style="display:none"/></label>
+       <div class="row" style="margin-bottom:10px">
+         <div><div class="lbl">${fa ? "صدا" : "Audio"}</div><select id="lsMode"><option value="file">${fa ? "آپلودِ فایلِ صدا" : "Upload audio file"}</option><option value="text">${fa ? "متن → گفتار" : "Text → speech"}</option></select></div>
+         <div id="lsVoiceWrap" style="display:none"><div class="lbl">${fa ? "صدا" : "Voice"}</div><select id="lsVoice"><option value="af_heart">${fa ? "زن — گرم" : "Female — warm"}</option><option value="af_bella">${fa ? "زن — روشن" : "Female — bright"}</option><option value="am_michael">${fa ? "مرد — پخته" : "Male — mature"}</option><option value="am_adam">${fa ? "مرد — رسا" : "Male — clear"}</option></select></div>
+       </div>
+       <label id="lsAudLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;cursor:pointer">
+         <span style="font-size:16px">🎵</span><span id="lsAudTxt">${fa ? "فایلِ صدا را آپلود کن" : "Upload the audio file"}</span>
+         <input id="lsAud" type="file" accept="audio/*" style="display:none"/></label>
+       <textarea id="lsText" rows="3" placeholder="${fa ? "متنی که گفته بشه…" : "The words to be spoken…"}" style="display:none;margin-bottom:10px"></textarea>
+       <button id="lsGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#f5c451,#f59e0b);font-weight:800">💳 ${fa ? `ساخت (${COST} کردیت)` : `Generate (${COST} credits)`}</button>
+       <div id="lsOut" style="margin-top:14px"></div>`;
+    let lsVid = null, lsAud = null;
+    $$("lsVid").onchange = (e) => { lsVid = (e.target.files && e.target.files[0]) || null; $$("lsVidTxt").textContent = lsVid ? "✓ " + lsVid.name.slice(0, 30) : (fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"); };
+    $$("lsAud").onchange = (e) => { lsAud = (e.target.files && e.target.files[0]) || null; $$("lsAudTxt").textContent = lsAud ? "✓ " + lsAud.name.slice(0, 30) : (fa ? "فایلِ صدا را آپلود کن" : "Upload the audio file"); };
+    $$("lsMode").onchange = () => { const t = $$("lsMode").value === "text"; $$("lsText").style.display = t ? "block" : "none"; $$("lsVoiceWrap").style.display = t ? "block" : "none"; $$("lsAudLbl").style.display = t ? "none" : "flex"; };
+    const post = async (path, bdy) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bdy) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+    const upload = async (fileOrBlob, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || fileOrBlob.type || "application/octet-stream" }, body: fileOrBlob }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
+    $$("lsGo").onclick = async () => {
+      if (!lsVid) { $$("lsVid").click(); return; }
+      const mode = $$("lsMode").value;
+      if (mode === "file" && !lsAud) { $$("lsAud").click(); return; }
+      if (mode === "text" && !($$("lsText").value || "").trim()) { $$("lsText").focus(); return; }
+      const g = $$("lsGo"); g.disabled = true; g.style.opacity = ".6";
+      const steps = [];
+      const setOut = () => { $$("lsOut").innerHTML = `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;font-size:13px;color:#cfc8ba;line-height:1.9">${steps.join("<br>")}</div>`; };
+      const step = (t) => { steps.push("⏳ " + t); setOut(); return steps.length - 1; };
+      const done = (i) => { steps[i] = steps[i].replace("⏳", "✓"); setOut(); };
+      // 1) Reserve credits (enforced, server-side)
+      let jobId = null;
+      try {
+        const r = await fetch("/api/generate/lipsync", { method: "POST", credentials: "include" });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 401) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "اول وارد شو." : "Please sign in first."}</div>`; try { document.getElementById("authSignInBtn") && document.getElementById("authSignInBtn").click(); } catch (e) {} return; }
+        if (r.status === 402) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? `کردیتِ کافی نداری — ${COST} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${COST}, you have ${j.balance || 0}.`}</div>`; return; }
+        if (!j.ok || !j.jobId) throw new Error(j.error || "reserve failed");
+        jobId = j.jobId;
+      } catch (e) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رزرو کردیت." : "Could not reserve credits."}</div>`; return; }
+      const settle = async (status) => { try { await fetch("/api/generate/lipsync/finish", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} };
+      try {
+        const si = step(fa ? "آپلودِ ویدیو" : "Uploading video");
+        const videoUrl = await upload(lsVid, lsVid.type); done(si);
+        const ai = step(fa ? "آماده‌سازیِ صدا" : "Preparing audio");
+        let audioUrl;
+        if (mode === "text") { const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: ($$("lsText").value || "").trim(), voice: $$("lsVoice").value } }); audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed"); }
+        else { audioUrl = await upload(lsAud, lsAud.type); }
+        done(ai);
+        const li = step(fa ? "لب‌همزمانی (~۱ دقیقه)" : "Lip-syncing (~1 min)");
+        const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: videoUrl, audio_url: audioUrl } });
+        const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+        if (!statusUrl) throw new Error("submit failed");
+        const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+        let out = null;
+        for (let k = 0; k < 90; k++) {
+          await new Promise(r => setTimeout(r, 4000));
+          let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+          if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; }
+          if (st === "FAILED" || st === "ERROR") break;
+        }
+        if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
+        done(li);
+        await settle("done");
+        vsTrackGen("lipsync", "fal-ai/latentsync", "cost:" + COST);
+        let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+        const u = blob ? URL.createObjectURL(blob) : out;
+        $$("lsOut").innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>
+          <a href="${u}" download="lipsync.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#f5c451,#f59e0b)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+        try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "lipsync"); } catch (e) {}
+      } catch (e) {
+        await settle("failed");
+        $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+      }
+      g.disabled = false; g.style.opacity = "1";
     };
   }
 
