@@ -17284,7 +17284,9 @@ function vsReverseEngineer(prefill, opts) {
            <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
          <button id="reBuildTH" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f59e0b);font-weight:800">🎤 ${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8a8578;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "مدل: VEED Fabric 1.0 · عکس→ویدیو · ~$0.08/ثانیه" : "Model: VEED Fabric 1.0 · image→video · ~$0.08/sec"}</div>
          <button id="reBuildMotion" type="button" class="btn" style="width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800">🎬 ${fa ? "نمای سینمایی (حرکتِ دوربین) — قبل از خرج تأیید می‌گیرد" : "Cinematic motion (camera move) — asks before spending"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8a8578;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "مدل: MiniMax H3 Max · عکس→ویدیو · از $0.30" : "Model: MiniMax H3 Max · image→video · from $0.30"}</div>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
@@ -17293,10 +17295,11 @@ function vsReverseEngineer(prefill, opts) {
            <input id="reCarPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
          <button id="reBuildCar" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#0ea5e9);font-weight:800">🖼 ${fa ? "ساختِ کاروسل (اسلایدِ عکس + متن)" : "Build carousel (image + text slides)"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8fe6c8;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "رایگان · کنواسِ درون‌مرورگری" : "Free · on-device canvas"}</div>
        </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ موشن‌گرافیک در استودیو" : "Build motion video in Studio"}</button>
+         <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ ویدیوی اسلایدشو (رایگان · استودیو)" : "Build slideshow video (Free · Studio)"}</button>
        </div>
      </div>`;
   // Page mode: render the panel inline into a mount (a dedicated /reverse-engineer
@@ -17304,7 +17307,9 @@ function vsReverseEngineer(prefill, opts) {
   const page = !!(opts && opts.mount);
   if (page) { const panel = ov.querySelector("#reModal"); opts.mount.innerHTML = ""; opts.mount.appendChild(panel); }
   else document.body.appendChild(ov);
-  const $$ = (id) => (page ? opts.mount : ov).querySelector("#" + id);
+  // In page mode, query by document so the page can relocate output nodes into a
+  // second column (Higgsfield-style split) without breaking these handlers.
+  const $$ = (id) => (page ? document : ov).querySelector("#" + id);
   const close = () => { if (page) { location.href = (opts && opts.home) || "/"; return; } try { ov.remove(); } catch (e) {} };
   if (!page) ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("reClose").onclick = close;
