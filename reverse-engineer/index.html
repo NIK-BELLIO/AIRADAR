@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Spark — AI Radar</title>
+  <title>Reverse Engineer — AI Radar</title>
   <link rel="icon" href="/icon.svg?v=2" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
@@ -56,8 +56,8 @@
     <nav class="arh-nav" aria-label="Primary navigation">
       <a href="/prompt-lab/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>Prompt Lab</a>
       <a href="/studio/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/video-icon.svg" alt="" /></span>Video Studio</a>
-      <a href="/creator/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark<span class="arh-new">NEW</span></a>
-      <a href="/reverse-engineer/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer<span class="arh-new">NEW</span></a>
+      <a href="/creator/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark<span class="arh-new">NEW</span></a>
+      <a href="/reverse-engineer/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer<span class="arh-new">NEW</span></a>
       <a href="/assistant" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/chat-icon.svg" alt="" /></span>Assistant</a>
     </nav>
     <div class="arh-right">
@@ -276,49 +276,57 @@
 
 
 
-  <div class="spk-hero">
-    <span class="spk-eyebrow">◉ CREATOR&nbsp;OS</span>
-    <h1 class="motion-title">Make content that<br>stops the scroll.</h1>
-    <p>Nineteen tools for posts, carousels, thumbnails, logos, quotes, infographics, ad copy, bios and more. Pick one, ship in seconds.</p>
-  </div>
+<style>
+    .re-wrap{max-width:1180px;margin:0 auto;padding:26px 22px 90px;position:relative;z-index:1}
+    .re-eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.18em;color:#c9b8ee;display:inline-flex;align-items:center;gap:8px}
+    .re-eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:#a855f7;box-shadow:0 0 12px 2px rgba(168,85,247,.6)}
+    .re-h1{font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:clamp(30px,5vw,52px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 10px;
+      background:linear-gradient(100deg,#a855f7,#c084fc,#22d3ee,#2563ff,#a855f7);background-size:280% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:reFlow 9s linear infinite}
+    @keyframes reFlow{0%{background-position:0 50%}100%{background-position:280% 50%}}
+    .re-sub{color:#9aa4b0;font-size:15px;line-height:1.6;max-width:640px;margin:0}
+    .re-stage{margin-top:22px;border:1px solid rgba(168,85,247,.22);border-radius:18px;background:linear-gradient(180deg,rgba(20,18,26,.92),rgba(10,8,14,.92));overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.7)}
+    .re-bar{display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+    .re-dot{width:11px;height:11px;border-radius:50%}
+    .re-tabs{margin-inline-start:14px;display:flex;gap:6px;flex-wrap:wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;color:#7f8a86}
+    .re-tabs b{color:#cbb8ee;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.28);border-radius:6px;padding:3px 8px;font-weight:700}
+    .re-tabs span{padding:3px 8px}
+    .re-stagebody{padding:20px}
+    #reMount #reModal{width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important}
+    .re-ruler{height:26px;border-top:1px solid rgba(255,255,255,.07);background:repeating-linear-gradient(90deg,rgba(255,255,255,.09) 0 1px,transparent 1px 42px);opacity:.5}
+    .re-guide{max-width:1180px;margin:16px auto 0;padding:0 22px}
+    .re-guide details{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-radius:14px;overflow:hidden}
+    .re-guide summary{cursor:pointer;list-style:none;padding:13px 16px;font-weight:800;font-size:13.5px;color:#d6c7f5;display:flex;align-items:center;gap:9px}
+    .re-guide summary::-webkit-details-marker{display:none}
+    .re-guide .gb{padding:2px 18px 16px;color:#9aa4b0;font-size:13px;line-height:1.75}
+    .re-guide .gb b{color:#eef2f0}
+  </style>
 
-  <div class="spk-guide">
-    <details>
-      <summary>📖 How to use Spark <span class="chev">▾</span></summary>
-      <div class="gbody">
-        <p style="color:#96a0ac;font-size:13px;margin:6px 0 4px;line-height:1.55">Pick a tool, set the <b>platform</b> and <b>language</b>, type your topic, and hit generate. Everything here is <b>free</b> — every tool renders crisp, ready-to-post output with legible text.</p>
-        <div class="steps">
-          <div class="g"><b>Hook Generator</b><span>6 two-line scroll-stopping hooks across 6 angles. Copy any one.</span></div>
-          <div class="g"><b>Post Writer</b><span>A ready post using a framework (PAS / AIDA / BAB / STAR / SLAY / Auto).</span></div>
-          <div class="g"><b>Content Matrix</b><span>32+ post ideas — your pillars × 8 formats. Copy the whole table.</span></div>
-          <div class="g"><b>Quote Post</b><span>9 viral quotes → click one to render a ready-to-post quote graphic.</span></div>
-          <div class="g"><b>Infographic</b><span>Paste content → a clean whiteboard-style infographic (1080×1350).</span></div>
-          <div class="g"><b>Post Scorer</b><span>Score a draft /50 across 5 criteria + 3 fixes + a stronger hook.</span></div>
-          <div class="g"><b>Profile Optimizer</b><span>New headline, about, experience, featured strategy + image prompts.</span></div>
-          <div class="g"><b>Carousel</b><span>A branded multi-slide carousel from a topic — use your own cover photo.</span></div>
-          <div class="g"><b>YouTube Thumbnail</b><span>A designed 1280×720 high-CTR thumbnail from a video title — or your own words.</span></div>
-          <div class="g"><b>Pinned Comment</b><span>A punchy 4-line first comment plus a matching image prompt.</span></div>
-          <div class="g"><b>Newsletter Writer</b><span>A ready-to-send newsletter issue: subject, sections and a CTA.</span></div>
-          <div class="g"><b>Voice Profile</b><span>Paste your writing samples → a reusable tone & style guide.</span></div>
-          <div class="g"><b>Post Graphic</b><span>A bold statement card from a topic — ready to post.</span></div>
-          <div class="g"><b>Social Post Maker</b><span>Canva-style posts in 8 sizes (IG, Story, X, LinkedIn, banners) — AI copy + your own photo.</span></div>
-          <div class="g"><b>Logo / Wordmark</b><span>A brand wordmark + initial mark in 5 styles — transparent PNG.</span></div>
-          <div class="g"><b>X Optimizer</b><span>Rewrites a tweet for max reach (3 versions) per X's open algorithm.</span></div>
-          <div class="g"><b>Meeting Insights</b><span>Paste a transcript → TL;DR, decisions, action items, risks.</span></div>
-          <div class="g"><b>Ad Copy</b><span>3 high-converting ad variations (headline + text + CTA) + A/B hooks.</span></div>
-          <div class="g"><b>Bio / Link-in-bio</b><span>3 optimised bios within each platform's limit + a link-in-bio layout.</span></div>
-        </div>
-        <ul class="tips">
-          <li><b>Tip:</b> start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.</li>
-          <li><b>Tip:</b> for a carousel post, use the <b>Reverse Engineer</b> tool in Video Studio.</li>
-          <li><b>Copy buttons</b> are everywhere — nothing needs to be re-typed.</li>
-          <li><b>Social Post Maker</b> exports at the exact size you pick; <b>Logo / Wordmark</b> exports a transparent PNG.</li>
-        </ul>
+  <div class="re-wrap">
+    <span class="re-eyebrow">◉ REVERSE ENGINEER · STUDIO</span>
+    <h1 class="re-h1">Clone any post's<br>style. Your story.</h1>
+    <p class="re-sub">Drop an Instagram post — or a whole page — and we reverse-engineer its style, tone and structure, then rebuild the same video with <b style="color:#cbb8ee">your own</b> info: talking-head, carousel, slideshow or cinematic motion.</p>
+
+    <div class="re-stage">
+      <div class="re-bar">
+        <span class="re-dot" style="background:#ff5f57"></span><span class="re-dot" style="background:#febc2e"></span><span class="re-dot" style="background:#28c840"></span>
+        <div class="re-tabs"><b>REVERSE&nbsp;ENGINEER</b><span>SOURCE</span><span>STYLE&nbsp;DNA</span><span>SCRIPT</span><span>RENDER</span></div>
       </div>
-    </details>
-  </div>
+      <div class="re-stagebody"><div id="reMount"></div></div>
+      <div class="re-ruler"></div>
+    </div>
 
-  <div class="spk-body"><div id="creatorMount"></div></div>
+    <div class="re-guide">
+      <details>
+        <summary>📖 How Reverse Engineer works <span style="margin-inline-start:auto;color:#a78bce">▾</span></summary>
+        <div class="gb">
+          <b>1 · Source</b> — paste a reel/post link (or a profile), or upload the post's own photo/video.<br>
+          <b>2 · Style DNA</b> — the AI reads its tone, hook, pacing, format &amp; hashtags, and “watches” the cover frame.<br>
+          <b>3 · Script</b> — it rewrites the SAME structure beat-for-beat with your topic and your facts (fully editable).<br>
+          <b>4 · Render</b> — build a talking-head, an image+text carousel, a slideshow video, or add cinematic motion. Paid renders always ask before spending.
+        </div>
+      </details>
+    </div>
+  </div>
 
   <script src="/app.js?v=v498"></script>
   <script>
@@ -326,8 +334,8 @@
       var tries = 0;
       function boot() {
         tries++;
-        if (typeof vsCreatorTools === "function") {
-          try { vsCreatorTools({ mount: document.getElementById("creatorMount"), home: "../", page: true }); return; }
+        if (typeof vsReverseEngineer === "function") {
+          try { window.VS_REVERSE_SOON = false; vsReverseEngineer(null, { mount: document.getElementById("reMount"), home: "/" }); return; }
           catch (e) { /* retry */ }
         }
         if (tries < 40) setTimeout(boot, 150);

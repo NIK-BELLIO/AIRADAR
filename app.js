@@ -17157,7 +17157,8 @@ function vsReverseParseSections(raw, brief, refText) {
   return { styleDNA: dna, structure, skill, script, caption, formatType, setting };
 }
 
-function vsReverseEngineer(prefill) {
+function vsReverseEngineer(prefill, opts) {
+  opts = opts || {};
   const fa = state.lang === "fa";
   const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const sd = vstudio.storyData || {};
@@ -17298,10 +17299,14 @@ function vsReverseEngineer(prefill) {
          <button id="reBuild" type="button" class="btn" style="display:none;flex:2;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">🎬 ${fa ? "ساختِ موشن‌گرافیک در استودیو" : "Build motion video in Studio"}</button>
        </div>
      </div>`;
-  document.body.appendChild(ov);
-  const $$ = (id) => ov.querySelector("#" + id);
-  const close = () => { try { ov.remove(); } catch (e) {} };
-  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  // Page mode: render the panel inline into a mount (a dedicated /reverse-engineer
+  // page) instead of a fixed modal overlay over the Studio.
+  const page = !!(opts && opts.mount);
+  if (page) { const panel = ov.querySelector("#reModal"); opts.mount.innerHTML = ""; opts.mount.appendChild(panel); }
+  else document.body.appendChild(ov);
+  const $$ = (id) => (page ? opts.mount : ov).querySelector("#" + id);
+  const close = () => { if (page) { location.href = (opts && opts.home) || "/"; return; } try { ov.remove(); } catch (e) {} };
+  if (!page) ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("reClose").onclick = close;
 
   // Analyze the reference link (or paste box).
