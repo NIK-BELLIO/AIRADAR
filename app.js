@@ -17186,12 +17186,12 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
        </style>
-       <div style="display:flex;align-items:center;gap:9px">
+       <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
          <span style="font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em;color:#f2f6ff">Reverse Engineer</span>
          <span style="font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.1em;color:#7fb0ff;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);padding:3px 8px;border-radius:6px">STYLE MATCH</span>
        </div>
-       <div style="font-size:12.5px;color:#96a0ac;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
+       <div class="re-paneldesc" style="font-size:12.5px;color:#96a0ac;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
 
        <div class="step">
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
