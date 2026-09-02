@@ -17187,12 +17187,12 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
          #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
-         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:8px 13px;transition:.14s}
+         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:4px 12px 5px;transition:.14s}
          #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
-         #reModal .re-fieldrow .fl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8;margin-bottom:1px}
-         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:1px 22px 1px 0!important;margin:0;font-weight:800;font-size:14px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer}
+         #reModal .re-fieldrow .fl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8}
+         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0;font-weight:700;font-size:13px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.3}
          #reModal .re-fieldrow select:focus{background:transparent!important}
-         #reModal .re-fieldrow::after{content:"›";position:absolute;right:13px;top:56%;transform:translateY(-50%);color:#8ea6c8;font-size:19px;font-weight:700;pointer-events:none}
+         #reModal .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
@@ -17205,8 +17205,9 @@ function vsReverseEngineer(prefill, opts) {
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
+           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
+         <div style="font:600 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451;margin-top:6px">${fa ? "خواندنِ پست از اینستاگرام · ۱ کردیت" : "reads the post from Instagram · 1 credit"}</div>
          <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
            <span style="flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#7fb0ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
            <b style="font-size:13.5px;font-weight:800;color:#eef4ff">${fa ? "عکس یا ویدیوی پست را آپلود کن" : "Upload the post's image or video"}</b>
@@ -17225,7 +17226,7 @@ function vsReverseEngineer(prefill, opts) {
          <div class="row" style="margin-bottom:10px">
            <div><input id="reRegion" type="text" placeholder="${fa ? "اطلاعات و جزئیاتِ خودت (اعداد، اسم‌ها، آفر…) — ویدیو از همین استفاده می‌کند" : "Your own info & details (numbers, names, offer…) — the video features THIS"}"/></div>
          </div>
-         <div style="display:flex;flex-direction:column;gap:8px">
+         <div style="display:flex;flex-direction:column;gap:6px">
            <div class="re-fieldrow"><div class="fl">${fa ? "زبان" : "Language"}</div>
              <select id="reLang">
                <option value="en">English</option>
@@ -17246,7 +17247,7 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "مهندسی معکوس و ساخت نقشه" : "Reverse-engineer & build blueprint"}<span style="font:800 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;background:rgba(0,0,0,.28);color:#eafff6;padding:3px 7px;border-radius:6px">${fa ? "رایگان" : "FREE"}</span></button>
+       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}<span style="font:800 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;background:rgba(0,0,0,.28);color:#f5c451;padding:3px 7px;border-radius:6px">2 ${fa ? "کردیت" : "credits"}</span></button>
 
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
