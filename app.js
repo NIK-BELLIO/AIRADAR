@@ -17202,8 +17202,9 @@ function vsReverseEngineer(prefill, opts) {
            <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
          </div>
          <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
-           <span style="flex:none;color:#7fb0ff"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
-           <span id="reUploadTxt">${fa ? "یا عکس/ویدیوی خودِ پست را آپلود کن — مستقیم تحلیلش می‌کنم" : "…or upload the post's image/video — I'll analyze it directly"}</span>
+           <span style="flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#7fb0ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
+           <b style="font-size:13.5px;font-weight:800;color:#eef4ff">${fa ? "عکس یا ویدیوی پست را آپلود کن" : "Upload the post's image or video"}</b>
+           <span id="reUploadTxt" style="font-size:11.5px;color:#8ea6c8;font-weight:500">${fa ? "مستقیم تحلیلش می‌کنم — بدونِ نیاز به لینک" : "I'll analyze it directly — no link needed"}</span>
            <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
          </label>
          <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#8ea6c8">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط)" : "…or paste one or several posts' captions (one per line)"}</summary>
