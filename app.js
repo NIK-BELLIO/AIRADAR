@@ -17207,7 +17207,7 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:2px 12px 3px;transition:.14s}
          #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
          #reModal .re-fieldrow .fl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8ea6c8;line-height:1.4}
-         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.2;height:auto}
+         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0!important;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.15;min-height:0!important;height:20px!important;box-shadow:none!important}
          #reModal .re-fieldrow select:focus{background:transparent!important}
          #reModal .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
        </style>
