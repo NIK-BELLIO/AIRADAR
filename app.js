@@ -17155,6 +17155,23 @@ function vsReverseParseSections(raw, brief, refText) {
   return { styleDNA: dna, structure, skill, script, caption, formatType, setting };
 }
 
+// Charge credits for a Reverse Engineer action (enforced server-side). Returns
+// {jobId} when charged, {block:true} when the user must sign in / lacks credits
+// (caller aborts), or {skip:true} when the API is unreachable (local dev) so the
+// flow still works. Settle with vsSettle(jobId, "done"|"failed").
+async function vsCharge(action, extra) {
+  const fa = state.lang === "fa";
+  try {
+    const r = await fetch("/api/credits/charge", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...(extra || {}) }) });
+    if (r.status === 401) { vsStatus(fa ? "برای این کار اول وارد شو." : "Please sign in to continue."); try { const b = document.getElementById("authSignInBtn"); if (b) b.click(); } catch (e) {} return { block: true }; }
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 402) { vsStatus(fa ? `کردیتِ کافی نداری — ${j.cost} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${j.cost}, you have ${j.balance || 0}.`); return { block: true }; }
+    if (j && j.ok && j.jobId) return { jobId: j.jobId, balance: j.balance };
+    return { skip: true };
+  } catch (e) { return { skip: true }; }
+}
+function vsSettle(jobId, status) { if (!jobId) return; try { fetch("/api/credits/settle", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} }
+
 function vsReverseEngineer(prefill, opts) {
   opts = opts || {};
   const fa = state.lang === "fa";
@@ -17187,10 +17204,10 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
          #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
-         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:4px 12px 5px;transition:.14s}
+         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:2px 12px 3px;transition:.14s}
          #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
-         #reModal .re-fieldrow .fl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8}
-         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0;font-weight:700;font-size:13px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.3}
+         #reModal .re-fieldrow .fl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8ea6c8;line-height:1.4}
+         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.2;height:auto}
          #reModal .re-fieldrow select:focus{background:transparent!important}
          #reModal .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
        </style>
@@ -17205,9 +17222,8 @@ function vsReverseEngineer(prefill, opts) {
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="btn" style="white-space:nowrap;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "تحلیل" : "Analyze"}</button>
+           <button id="reFetch" type="button" class="btn" style="display:flex;align-items:center;gap:7px;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#22d3ee,#2563ff)">${fa ? "تحلیل" : "Analyze"}<span style="font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:2px 6px;border-radius:5px">1</span></button>
          </div>
-         <div style="font:600 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451;margin-top:6px">${fa ? "خواندنِ پست از اینستاگرام · ۱ کردیت" : "reads the post from Instagram · 1 credit"}</div>
          <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
            <span style="flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#7fb0ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
            <b style="font-size:13.5px;font-weight:800;color:#eef4ff">${fa ? "عکس یا ویدیوی پست را آپلود کن" : "Upload the post's image or video"}</b>
@@ -17332,9 +17348,12 @@ function vsReverseEngineer(prefill, opts) {
   $$("reFetch").onclick = async () => {
     const url = ($$("reUrl").value || "").trim();
     if (!url) { $$("reUrl").focus(); return; }
+    const charge = await vsCharge("analyze"); if (charge.block) return;   // 1 credit (Apify read)
     const b = $$("reFetch"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
     try {
       ref = await vsReverseFetchPost(url);
+      // Only a real caption counts — refund the credit if IG couldn't be read.
+      vsSettle(charge.jobId, (ref && ref.ok) ? "done" : "failed");
       const card = $$("reRefCard");
       card.style.display = "flex";
       // Success = a REAL caption was scraped (junk/login-wall is rejected upstream).
@@ -17360,6 +17379,7 @@ function vsReverseEngineer(prefill, opts) {
         setTimeout(() => { try { $$("rePaste").focus(); } catch (e) {} }, 30);
       }
     } catch (e) {
+      vsSettle(charge.jobId, "failed");   // refund the credit if the read errored
       $$("reRefCard").style.display = "flex";
       try { $$("rePasteWrap").open = true; } catch (e2) {}
       $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را در کادرِ پایین پیست کن." : "Error reading the link — paste the caption into the box below."}</div>`;
@@ -17395,6 +17415,7 @@ function vsReverseEngineer(prefill, opts) {
     const prompt = ($$("rePrompt").value || "").trim();
     const refText = ($$("rePaste").value || "").trim() || (ref && ref.caption) || "";
     if (!prompt) { vsStatus(fa ? "اول موضوع/پرامپت را بنویس." : "Enter your topic / prompt first."); $$("rePrompt").focus(); return; }
+    const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
     const go = $$("reGo"); go.disabled = true; const old = go.textContent;
     go.textContent = "⏳ " + (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
     try {
@@ -17464,7 +17485,9 @@ function vsReverseEngineer(prefill, opts) {
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + route + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
+      vsSettle(charge.jobId, "done");
     } catch (e) {
+      vsSettle(charge.jobId, "failed");   // refund the 2 credits on failure
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
     }
     go.disabled = false; go.textContent = old;
