@@ -24,7 +24,11 @@ html { background: #0b1020; }
 .arh-new{padding:2px 6px;border-radius:999px;font-size:8.5px;font-weight:800;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%)}
 .arh-right{flex:0 0 auto;display:flex;align-items:center;gap:10px}
 .arh-signin{padding:9px 18px;border-radius:999px;cursor:pointer;font-weight:700;font-size:14px;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#3b78ff,#2563ff);border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 22px -8px rgba(37,99,255,.6);text-decoration:none}
-.arh-avatar{width:38px;height:38px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;text-decoration:none;background:linear-gradient(135deg,#3b78ff,#2563ff);border:1px solid rgba(255,255,255,.18);cursor:pointer}
+.arh-avatar{position:relative;width:38px;height:38px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;text-decoration:none;background:linear-gradient(135deg,#3b78ff,#2563ff);border:1px solid rgba(255,255,255,.18);cursor:pointer}
+/* Credit ring: when signed in we stamp data-credits on the avatar → a branded
+   blue ring + a gold credit pill, so the balance reads right off the profile. */
+.arh-avatar[data-credits]{box-shadow:0 0 0 2px #0a0f1e,0 0 0 4px rgba(37,99,255,.95),0 0 12px 1px rgba(37,99,255,.5)}
+.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;line-height:1;color:#241a06;background:#f5c451 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23241a06'%3E%3Cpath d='M6 3h12l3.5 6L12 22 2.5 9z'/%3E%3C/svg%3E") 5px center/8px 8px no-repeat;padding:3px 7px 3px 16px;border-radius:999px;border:1.5px solid #0a0f1e;white-space:nowrap;box-shadow:0 3px 9px -2px rgba(0,0,0,.55);pointer-events:none}
 /* language toggle sitting in the header */
 .arh .seg-toggle{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
 .arh .seg-btn{padding:5px 10px;border-radius:999px;border:0;background:transparent;color:#b8c6e6;font-size:12px;font-weight:700;cursor:pointer;min-height:0;height:auto}
