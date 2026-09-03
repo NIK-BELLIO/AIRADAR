@@ -14897,6 +14897,57 @@ async function vsConvertToMp4(webmBlob) {
   return new Blob([data.buffer], { type: "video/mp4" });
 }
 
+// Burn a short, bold TITLE-CARD graphic onto the first few seconds of a
+// rebuilt video — matching a reference's dramatic on-screen name/title
+// overlay (e.g. "ALINA" over a talking-head shot). This is what makes the
+// output actually LOOK like the reference, not just share its topic. Uses
+// the same ffmpeg.wasm instance as MP4 export, via drawtext (real font,
+// fade in/out, centered). Returns a new mp4 Blob, or the ORIGINAL blob
+// untouched if anything fails — a burn-in failure must never block the user
+// from getting their (already-paid-for) video.
+async function vsBurnTitleCard(videoBlob, opts) {
+  opts = opts || {};
+  const text = String(opts.text || "").trim().toUpperCase();
+  if (!text || !videoBlob || !videoBlob.size) return videoBlob;
+  const colorMap = {
+    red: "0xE5342A", white: "0xFFFFFF", black: "0x111111", gold: "0xD4AF37",
+    yellow: "0xF5C451", blue: "0x2563FF", green: "0x22C55E", pink: "0xEC4899",
+    orange: "0xF97316", purple: "0x9333EA", gray: "0xCBD5E1", grey: "0xCBD5E1"
+  };
+  const fontColor = colorMap[opts.color] || "0xFFFFFF";
+  const hold = Math.max(1.5, Math.min(5, opts.holdSeconds || 3));
+  try {
+    const ffmpeg = await vsGetFfmpeg();
+    // Bold license-free Google Fonts matching the detected style — a heavy
+    // serif for a dramatic/editorial name-card, a heavy sans for a punchy one.
+    const fontUrl = opts.font === "serif"
+      ? "https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKfsukDQ.ttf"
+      : "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6OYs.ttf";
+    const fontBuf = new Uint8Array(await (await fetch(fontUrl)).arrayBuffer());
+    await ffmpeg.writeFile("title.ttf", fontBuf);
+    const vidBuf = new Uint8Array(await videoBlob.arrayBuffer());
+    await ffmpeg.writeFile("in.mp4", vidBuf);
+    // Escape for ffmpeg's drawtext text= value.
+    const esc = text.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\\'").replace(/%/g, "\\%");
+    const fade = `if(lt(t\\,0.25)\\,t/0.25\\,if(lt(t\\,${(hold - 0.35).toFixed(2)})\\,1\\,if(lt(t\\,${hold})\\,(${hold}-t)/0.35\\,0)))`;
+    const filter = `drawtext=fontfile=title.ttf:text='${esc}':fontcolor=${fontColor}:fontsize=h/9:x=(w-text_w)/2:y=h*0.2:alpha='${fade}'`;
+    await ffmpeg.exec([
+      "-i", "in.mp4",
+      "-vf", filter,
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "192k",
+      "-movflags", "+faststart",
+      "out.mp4"
+    ]);
+    const data = await ffmpeg.readFile("out.mp4");
+    try { await ffmpeg.deleteFile("in.mp4"); await ffmpeg.deleteFile("out.mp4"); await ffmpeg.deleteFile("title.ttf"); } catch (e) {}
+    return new Blob([data.buffer], { type: "video/mp4" });
+  } catch (e) {
+    try { console.warn("[titleCard] burn-in failed, delivering the plain video", e); } catch (_) {}
+    return videoBlob;
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // DETERMINISTIC OFFLINE ENCODER (freeze-proof).
 //
@@ -17621,6 +17672,14 @@ function vsReverseEngineer(prefill, opts) {
           // else: keep the text-derived formatType as-is
           if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
           blueprint.mic = !!vis.mic; blueprint.captions = !!vis.captions; blueprint.visFormat = vis.format || "";
+          // A prominent name/title-card graphic (e.g. a dramatic bold name overlay
+          // on a talking-head shot) — burned onto the REBUILT video too, so the
+          // output actually looks like the reference, not just matches its topic.
+          if (vis.title_card && vis.title_text && String(vis.title_text).trim()) {
+            blueprint.titleCard = String(vis.title_text).trim().slice(0, 40);
+            blueprint.titleColor = String(vis.title_color || "white").trim().toLowerCase();
+            blueprint.titleFont = /serif/i.test(vis.title_font || "") ? "serif" : "sans";
+          }
           // Let the VISION MODEL decide whether the reference actually shows a
           // PERSON (so the rebuilt cover matches: a person-led post → a portrait
           // cover; a pure text/graphic post → NO photo, text-only). Uses the
@@ -17674,13 +17733,15 @@ function vsReverseEngineer(prefill, opts) {
       const extras = [];
       if (blueprint.mic) extras.push(fa ? "میکروفون" : "mic");
       if (blueprint.captions) extras.push(fa ? "متنِ درشت" : "big text");
+      if (blueprint.titleCard) extras.push((fa ? "کارتِ عنوان: " : "title card: ") + "“" + blueprint.titleCard + "”");
       const extraTxt = extras.length ? (fa ? " (با " : " (with ") + extras.join(fa ? " و " : " + ") + ")" : "";
       const seenTag = seen ? (fa ? "👁️ از روی پست دیده شد" : "👁️ Saw the post") : (fa ? "فرمت" : "Format");
       const routeName = { talking_head: fa ? "آدمِ سخنگو" : "talking-head", carousel: fa ? "کاروسلِ عکس + متن" : "image + text carousel", video: fa ? "ویدیوی اسلایدشو" : "slideshow video" }[route];
       const fmt = $$("reFmt");
       const col = route === "talking_head" ? ["rgba(250,204,21,.10)", "rgba(250,204,21,.32)", "#e9d19a"] : route === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,141,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
       fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
-      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}`;
+      const titleNote = blueprint.titleCard && route === "talking_head" ? (fa ? ` — عنوانِ «${blueprint.titleCard}» رویِ ویدیوی نهایی هم سوار می‌شود` : ` — the “${blueprint.titleCard}” title card will be burned onto the final video too`) : "";
+      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}${titleNote}`;
       // Highlight the matching builder cards (badge + pull to front); the rest
       // stay available but muted. A slideshow/photo post recommends BOTH the
       // carousel and the free slideshow-video builders, so it's built LIKE the
@@ -17797,7 +17858,8 @@ function vsReverseEngineer(prefill, opts) {
         title: fa ? "آدمِ سخنگو (Happy Horse)" : "Talking-head (Happy Horse)",
         action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
         input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: asp, resolution: "720p", duration: sec },
-        name: "talking-head"
+        name: "talking-head",
+        titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -17820,7 +17882,8 @@ function vsReverseEngineer(prefill, opts) {
         title: fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)",
         action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
         input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: res, duration: sec },
-        name: "cinematic"
+        name: "cinematic",
+        titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -17859,7 +17922,7 @@ function vsReverseEngineer(prefill, opts) {
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
     const aspTH = ($$("reThAsp") && $$("reThAsp").value) || "9:16";
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || "" }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -18342,6 +18405,17 @@ async function vsBuildTalkingHead(script, opts) {
 
   // Deliver: preview + download + save to dashboard
   let blob = null; try { blob = await (await fetch(videoUrl)).blob(); } catch (e) {}
+  // Burn the reference's detected title-card text onto the video (e.g. a bold
+  // name-card intro) so the rebuild actually LOOKS like the reference, not
+  // just shares its topic. Never blocks delivery if it fails.
+  if (opts.titleCard && blob) {
+    const tcRow = document.createElement("div"); tcRow.style.cssText = "display:flex;align-items:center;gap:10px";
+    tcRow.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${fa ? "۴) سوارکردنِ عنوان روی ویدیو" : "4) Adding the title card"}</span>`;
+    steps.appendChild(tcRow);
+    const tcIc = tcRow.querySelector(".ic");
+    try { blob = await vsBurnTitleCard(blob, { text: opts.titleCard, color: opts.titleColor, font: opts.titleFont }); tcIc.textContent = "✓"; tcIc.style.color = "#4ade80"; }
+    catch (e) { tcIc.textContent = "✕"; tcIc.style.color = "#f87171"; }
+  }
   const dlUrl = blob ? URL.createObjectURL(blob) : videoUrl;
   result.innerHTML =
     `<video src="${dlUrl}" controls autoplay muted playsinline style="width:100%;border-radius:10px;background:#000"></video>
@@ -18512,6 +18586,14 @@ async function vsBuildVideoModel(cfg) {
     vsSettle(charge.jobId, "done");
     vsTrackGen(cfg.action, cfg.model, "sec:" + cfg.seconds);
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+    // Burn the reference's detected title-card text onto the video (e.g. a
+    // bold name-card intro) so the rebuild actually LOOKS like the reference.
+    // Never blocks delivery — falls back to the plain video on any failure.
+    if (cfg.titleCard && blob) {
+      const tcIc = line(fa ? "سوارکردنِ عنوان روی ویدیو" : "Adding the title card");
+      try { blob = await vsBurnTitleCard(blob, { text: cfg.titleCard, color: cfg.titleColor, font: cfg.titleFont }); done(tcIc); }
+      catch (e) { fail(tcIc); }
+    }
     const u = blob ? URL.createObjectURL(blob) : out;
     result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="${cfg.name || "video"}.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ${fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard"}</div>`;
     try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", cfg.name || "video"); } catch (e) {}
