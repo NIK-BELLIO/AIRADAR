@@ -17317,6 +17317,11 @@ function vsReverseEngineer(prefill, opts) {
            <input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
          <button id="reBuildLipsync" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg>${fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video"}</button>
          <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"} · <b style="color:#f5c451">12 ${fa ? "کردیت" : "credits"}</b></div>
+         <div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>
+         <button id="reBuildHappy" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "آدمِ سخنگو — پرزنترِ AI" : "Talking-head — AI presenter"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Happy Horse · ${fa ? "متن→ویدیو · لیپ‌سینکِ چندزبانه" : "text→video · multilingual lip-sync"} · <b style="color:#f5c451">~9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
+         <button id="reBuildGrok" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)"}</button>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"} · <b style="color:#f5c451">~9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
@@ -17531,6 +17536,43 @@ function vsReverseEngineer(prefill, opts) {
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     if (!lsVid) { $$("reLsVid").click(); return; }
     try { vsBuildLipsync({ script, video: lsVid, voice: $$("reThVoice").value }); } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
+  };
+  // Happy Horse — text→talking-head with native lip-sync (works for ANY post:
+  // product intro, tips, story…). Uses the reverse-engineered script directly.
+  if ($$("reBuildHappy")) $$("reBuildHappy").onclick = () => {
+    const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    const nar = vsExtractNarration(script) || script;
+    const sec = vsEstSeconds(script);
+    const setting = ((blueprint && blueprint.setting) || "clean studio").replace(/[^\w ,'-]/g, " ").slice(0, 80);
+    try {
+      vsBuildVideoModel({
+        title: fa ? "آدمِ سخنگو (Happy Horse)" : "Talking-head (Happy Horse)",
+        action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
+        input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: "9:16", resolution: "720p", duration: sec },
+        name: "talking-head"
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
+  };
+  // Grok Imagine — image→video WITH audio, cinematic. Uses the user's own photo
+  // (product / person / scene) if given, else a generated frame of the setting.
+  if ($$("reBuildGrok")) $$("reBuildGrok").onclick = async () => {
+    const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    const sec = vsEstSeconds(script), nar = vsExtractNarration(script) || script;
+    const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+    let imageUrl = "";
+    try {
+      if (thPhoto) { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": thPhoto.type || "image/jpeg" }, body: thPhoto }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
+      if (!imageUrl) { const setting = ((blueprint && blueprint.setting) || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 80); const fim = await (await fetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt: "cinematic photograph, " + setting + ", a person, shallow depth of field, photorealistic, film still", image_size: "portrait_16_9", num_inference_steps: 28 } }) })).json().catch(() => ({})); imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url; }
+    } catch (e) {}
+    if (!imageUrl) { vsStatus(fa ? "عکسِ اولیه ساخته نشد — عکسِ خودت رو آپلود کن." : "Couldn't get a frame — upload your own photo."); return; }
+    try {
+      vsBuildVideoModel({
+        title: fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)",
+        action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
+        input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: "720p", duration: sec },
+        name: "cinematic"
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
   // Own-photo picker for the carousel cover.
   let carPhoto = null;
@@ -18018,6 +18060,52 @@ async function vsBuildLipsync(opts) {
     try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "lipsync"); } catch (e) {}
   } catch (e) { await settle("failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`; }
 }
+
+// Generic paid VIDEO build for Reverse Engineer (Happy Horse text→video, Grok
+// image→video+audio). Charges credits per second up front, drives fal via the
+// worker, refunds on failure. cfg = {title, action, seconds, model, input, name}.
+async function vsBuildVideoModel(cfg) {
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = `<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff">${cfg.title}</span><span id="vmCr" style="font:600 10px 'JetBrains Mono',monospace;color:#f5c451"></span></div>
+       <div id="vmSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>
+       <div id="vmResult" style="margin-top:12px"></div>
+       <button id="vmClose" type="button" style="margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button></div>`;
+  document.body.appendChild(ov);
+  const steps = ov.querySelector("#vmSteps"), result = ov.querySelector("#vmResult");
+  ov.querySelector("#vmClose").onclick = () => { try { ov.remove(); } catch (e) {} };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+  // 1) charge credits (per second)
+  const charge = await vsCharge(cfg.action, { seconds: cfg.seconds });
+  if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  ov.querySelector("#vmCr").textContent = charge.jobId ? "" : "";
+  try {
+    let ic = line(fa ? "ساختِ ویدیو (~۱–۲ دقیقه)" : "Rendering video (~1-2 min)");
+    const sub = await post("/fal/submit", { model: cfg.model, input: cfg.input });
+    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+    if (!statusUrl) throw new Error("submit failed");
+    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    let out = null;
+    for (let k = 0; k < 120; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
+    if (!out) throw new Error(fa ? "ساخت ناموفق بود" : "generation failed");
+    done(ic);
+    vsSettle(charge.jobId, "done");
+    vsTrackGen(cfg.action, cfg.model, "sec:" + cfg.seconds);
+    let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+    const u = blob ? URL.createObjectURL(blob) : out;
+    result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="${cfg.name || "video"}.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+    try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", cfg.name || "video"); } catch (e) {}
+  } catch (e) { vsSettle(charge.jobId, "failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`; }
+}
+
+// Estimate a talking clip length (seconds) from the narration word count.
+function vsEstSeconds(script) { const n = (vsExtractNarration(script || "") || "").split(/\s+/).filter(Boolean).length; return Math.min(Math.max(Math.ceil(n / 2.6), 5), 15); }
 
 async function vsReverseMotionClip(opts) {
   opts = opts || {};
