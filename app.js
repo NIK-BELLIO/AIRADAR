@@ -19942,15 +19942,22 @@ function bindEvents() {
   });
 }
 
-renderMetrics();
-renderControls();
-bindEvents();
-setToolView(state.viewMode);
-applyTheme("dark"); // AI Radar is dark-only — light theme removed
-renderModelsTicker();
-startHeroMotion();
-renderTemplatePicker();
-bindIntroEditor();
+// This boot sequence runs on EVERY page that loads app.js — including Spark
+// and Reverse Engineer, which don't have the tool-catalog markup the earlier
+// functions were written for. Run each step in its own try/catch so one
+// page-specific step failing (missing element, etc.) can never block the
+// rest of boot (auth header, theme, hero motion, RE's own init...) — and so
+// any failure is precisely logged instead of a silent dead page.
+const _bootStep = (name, fn) => { try { fn(); } catch (e) { console.error("[boot] " + name + " failed:", e); } };
+_bootStep("renderMetrics", renderMetrics);
+_bootStep("renderControls", renderControls);
+_bootStep("bindEvents", bindEvents);
+_bootStep("setToolView", () => setToolView(state.viewMode));
+_bootStep("applyTheme", () => applyTheme("dark")); // AI Radar is dark-only — light theme removed
+_bootStep("renderModelsTicker", renderModelsTicker);
+_bootStep("startHeroMotion", startHeroMotion);
+_bootStep("renderTemplatePicker", renderTemplatePicker);
+_bootStep("bindIntroEditor", bindIntroEditor);
 // The tool-catalog GitHub-stats fetch only matters on pages that actually
 // show the catalog (#toolGrid / #performanceChart) — Spark and Reverse
 // Engineer share this app.js but have neither, so running it there would
@@ -19958,13 +19965,13 @@ bindIntroEditor();
 // nothing every page load AND every 5-minute interval.
 const _hasCatalog = !!($("#toolGrid") || $("#performanceChart"));
 if (_hasCatalog) {
-  fetchLiveChartData();
+  _bootStep("fetchLiveChartData", fetchLiveChartData);
   // Auto-refresh from the GitHub API every 5 minutes.
   // (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
   // repos per refresh, a 5-minute interval stays well within budget.)
   setInterval(fetchLiveChartData, 5 * 60 * 1000);
 }
-setLanguage(state.lang);
+_bootStep("setLanguage", () => setLanguage(state.lang));
 
 // Render the live chart once the page is ready.
 if (_hasCatalog) window.addEventListener("load", () => renderLiveChart());
