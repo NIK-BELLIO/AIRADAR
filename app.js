@@ -19139,7 +19139,7 @@ function bindEvents() {
   on("#budgetFilter", "change", (event) => { state.budget = event.target.value; renderTools(); });
   on("#sortFilter", "change", (event) => { state.sort = event.target.value; renderTools(); });
 
-  toolGrid.addEventListener("click", (event) => {
+  if (toolGrid) toolGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-compare]");
     if (button) toggleCompare(button.dataset.compare);
   });
