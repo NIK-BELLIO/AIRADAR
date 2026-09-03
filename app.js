@@ -16934,9 +16934,11 @@ async function vsReverseFetchPost(url) {
   // of the page's captions for a true "analyze all posts" read.
   const isProfile = !/\/(p|reel|reels|tv)\//i.test(clean);
   const out = { ok: false, caption: "", hashtags: [], thumb: "", username: "", isProfile };
-  const grab = async (u) => {
-    // Time-boxed so one slow/blocked reader can't hang the whole chain.
-    const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000);
+  const grab = async (u, timeoutMs) => {
+    // Time-boxed so one slow/blocked reader can't hang the whole chain. The
+    // worker /insta needs a long budget because the Apify scraper run takes
+    // ~30-90s; the free readers stay short.
+    const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
     try { const r = await fetch(u, { signal: ctrl.signal }); if (!r.ok) return ""; return await r.text(); }
     catch (e) { return ""; } finally { clearTimeout(tm); }
   };
@@ -17002,7 +17004,7 @@ async function vsReverseFetchPost(url) {
     // 1) Worker /insta first — server-side (no browser CORS) and it tries the
     //    embed + allorigins itself, so it survives Jina's rate-limit windows.
     try {
-      const ij = await grab("https://airadar-ai.aliniashyn-9b4.workers.dev/insta?url=" + encodeURIComponent(clean));
+      const ij = await grab("https://airadar-ai.aliniashyn-9b4.workers.dev/insta?url=" + encodeURIComponent(clean), 95000);
       const j = ij ? JSON.parse(ij) : null;
       const c = j && j.posts && j.posts[0] && j.posts[0].caption;
       if (c && !isJunk(c)) { out.caption = c.slice(0, 1200); out.username = j.username || out.username; if (j.posts[0].thumb) out.thumb = j.posts[0].thumb; }
@@ -17304,7 +17306,7 @@ function vsReverseEngineer(prefill, opts) {
              <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
            </select>
            <span style="flex:1"></span>
-           <span style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451">${fa ? "~۵ کردیت / ثانیه" : "~5 credits / sec"}</span>
+           <span style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451">${fa ? "۵ کردیت / ثانیه" : "5 credits / sec"}</span>
          </div>
          <label id="reThPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
            <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
@@ -17312,9 +17314,9 @@ function vsReverseEngineer(prefill, opts) {
            <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
          </label>
          <button id="reBuildTH" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~5 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">5 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
          <button id="reBuildMotion" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">~18 ${fa ? "کردیت" : "credits"}</b></div>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">18 ${fa ? "کردیت" : "credits"}</b></div>
          <label id="reLsVidLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer;margin-top:4px">
            <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg></span>
            <span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت را بده (برای لیپ‌سینک)" : "Your own face video (for lip-sync)"}</span>
@@ -17323,9 +17325,9 @@ function vsReverseEngineer(prefill, opts) {
          <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"} · <b style="color:#f5c451">12 ${fa ? "کردیت" : "credits"}</b></div>
          <div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>
          <button id="reBuildHappy" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "آدمِ سخنگو — پرزنترِ AI" : "Talking-head — AI presenter"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Happy Horse · ${fa ? "متن→ویدیو · لیپ‌سینکِ چندزبانه" : "text→video · multilingual lip-sync"} · <b style="color:#f5c451">~9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Happy Horse · ${fa ? "متن→ویدیو · لیپ‌سینکِ چندزبانه" : "text→video · multilingual lip-sync"} · <b style="color:#f5c451">9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
          <button id="reBuildGrok" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"} · <b style="color:#f5c451">~9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
+         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"} · <b style="color:#f5c451">9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
        </div>
        <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
          <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
@@ -17358,7 +17360,7 @@ function vsReverseEngineer(prefill, opts) {
     const url = ($$("reUrl").value || "").trim();
     if (!url) { $$("reUrl").focus(); return; }
     const charge = await vsCharge("analyze"); if (charge.block) return;   // 1 credit (Apify read)
-    const b = $$("reFetch"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
+    const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "⏳";
     try {
       ref = await vsReverseFetchPost(url);
       // Only a real caption counts — refund the credit if IG couldn't be read.
@@ -17393,7 +17395,7 @@ function vsReverseEngineer(prefill, opts) {
       try { $$("rePasteWrap").open = true; } catch (e2) {}
       $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را در کادرِ پایین پیست کن." : "Error reading the link — paste the caption into the box below."}</div>`;
     }
-    b.disabled = false; b.textContent = old;
+    b.disabled = false; b.innerHTML = old;
   };
 
   // Upload the POST's own image/video → analyze it directly (no IG fetch needed).
@@ -17425,7 +17427,7 @@ function vsReverseEngineer(prefill, opts) {
     const refText = ($$("rePaste").value || "").trim() || (ref && ref.caption) || "";
     if (!prompt) { vsStatus(fa ? "اول موضوع/پرامپت را بنویس." : "Enter your topic / prompt first."); $$("rePrompt").focus(); return; }
     const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
-    const go = $$("reGo"); go.disabled = true; const old = go.textContent;
+    const go = $$("reGo"); go.disabled = true; const old = go.innerHTML;
     go.textContent = "⏳ " + (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
     try {
       blueprint = await vsReverseAnalyze(refText, {
@@ -17499,7 +17501,7 @@ function vsReverseEngineer(prefill, opts) {
       vsSettle(charge.jobId, "failed");   // refund the 2 credits on failure
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
     }
-    go.disabled = false; go.textContent = old;
+    go.disabled = false; go.innerHTML = old;
   };
 
   $$("reCopyCap").onclick = () => { try { navigator.clipboard.writeText($$("reCaption").textContent || ""); vsStatus(fa ? "کپشن کپی شد ✓" : "Caption copied ✓"); } catch (e) {} };
