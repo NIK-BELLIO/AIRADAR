@@ -17187,59 +17187,59 @@ function vsReverseEngineer(prefill, opts) {
   ov.innerHTML =
     `<div id="reModal" style="width:min(720px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:16px;background:#14121a;border:1px solid rgba(37,99,255,.30);border-radius:18px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)">
        <style>
-         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8ea6c8;margin-bottom:7px}
-         #reModal input[type=text],#reModal textarea,#reModal select{width:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);color:#eef4ff;font:inherit;font-size:13.5px;border-radius:12px;padding:12px 13px;outline:none;box-sizing:border-box;transition:.14s}
-         #reModal textarea{resize:vertical;line-height:1.5}
-         #reModal input::placeholder,#reModal textarea::placeholder{color:#66748c}
-         #reModal input:focus,#reModal textarea:focus,#reModal select:focus{border-color:rgba(37,99,255,.7);background:rgba(37,99,255,.06)}
-         #reModal .lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8;margin-bottom:8px;display:flex;align-items:center}
-         #reModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
-         #reModal .btn:hover{filter:brightness(1.09)}
-         #reModal .btn[disabled]{opacity:.55;cursor:default}
-         #reModal .step{background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:17px 16px}
-         #reModal .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);color:#fff;font-size:12px;font-weight:900;margin-inline-end:9px}
-         #reModal .row{display:flex;gap:10px;flex-wrap:wrap}
-         #reModal .row>div{flex:1;min-width:130px}
-         #reModal .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
-         #reModal .dna .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8ea6c8}
-         #reModal .dna .v{font-size:13px;color:#efe9dc;margin-top:2px}
-         #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
-         #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
-         #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
-         #reModal #reThRow,#reModal #reCarRow{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}
-         #reModal .re-render-h{font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;color:#7fb0ff;margin:0 0 6px;display:flex;align-items:center;gap:7px}
-         #reModal .re-render-h::before{content:"";width:6px;height:6px;border-radius:50%;background:#2563ff;box-shadow:0 0 8px 1px rgba(37,99,255,.7)}
-         #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:2px 12px 3px;transition:.14s}
-         #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
-         #reModal .re-fieldrow .fl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8ea6c8;line-height:1.4}
-         #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0!important;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.15;min-height:0!important;height:20px!important;box-shadow:none!important}
-         #reModal .re-fieldrow select:focus{background:transparent!important}
-         #reModal .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
+         :is(#reModal,#reMainBody) .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8ea6c8;margin-bottom:7px}
+         :is(#reModal,#reMainBody) input[type=text],:is(#reModal,#reMainBody) textarea,:is(#reModal,#reMainBody) select{width:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);color:#eef4ff;font:inherit;font-size:13.5px;border-radius:12px;padding:12px 13px;outline:none;box-sizing:border-box;transition:.14s}
+         :is(#reModal,#reMainBody) textarea{resize:vertical;line-height:1.5}
+         :is(#reModal,#reMainBody) input::placeholder,:is(#reModal,#reMainBody) textarea::placeholder{color:#66748c}
+         :is(#reModal,#reMainBody) input:focus,:is(#reModal,#reMainBody) textarea:focus,:is(#reModal,#reMainBody) select:focus{border-color:rgba(37,99,255,.7);background:rgba(37,99,255,.06)}
+         :is(#reModal,#reMainBody) .lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ea6c8;margin-bottom:8px;display:flex;align-items:center}
+         :is(#reModal,#reMainBody) .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:12px;cursor:pointer;transition:.14s;border:none}
+         :is(#reModal,#reMainBody) .btn:hover{filter:brightness(1.09)}
+         :is(#reModal,#reMainBody) .btn[disabled]{opacity:.55;cursor:default}
+         :is(#reModal,#reMainBody) .step{background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:17px 16px}
+         :is(#reModal,#reMainBody) .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);color:#fff;font-size:12px;font-weight:900;margin-inline-end:9px}
+         :is(#reModal,#reMainBody) .row{display:flex;gap:10px;flex-wrap:wrap}
+         :is(#reModal,#reMainBody) .row>div{flex:1;min-width:130px}
+         :is(#reModal,#reMainBody) .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
+         :is(#reModal,#reMainBody) .dna .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8ea6c8}
+         :is(#reModal,#reMainBody) .dna .v{font-size:13px;color:#efe9dc;margin-top:2px}
+         :is(#reModal,#reMainBody) .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
+         :is(#reModal,#reMainBody) .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
+         :is(#reModal,#reMainBody) .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+         :is(#reModal,#reMainBody) #reThRow,:is(#reModal,#reMainBody) #reCarRow{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}
+         :is(#reModal,#reMainBody) .re-render-h{font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;color:#7fb0ff;margin:0 0 6px;display:flex;align-items:center;gap:7px}
+         :is(#reModal,#reMainBody) .re-render-h::before{content:"";width:6px;height:6px;border-radius:50%;background:#2563ff;box-shadow:0 0 8px 1px rgba(37,99,255,.7)}
+         :is(#reModal,#reMainBody) .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:2px 12px 3px;transition:.14s}
+         :is(#reModal,#reMainBody) .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
+         :is(#reModal,#reMainBody) .re-fieldrow .fl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8ea6c8;line-height:1.4}
+         :is(#reModal,#reMainBody) .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0!important;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.15;min-height:0!important;height:20px!important;box-shadow:none!important}
+         :is(#reModal,#reMainBody) .re-fieldrow select:focus{background:transparent!important}
+         :is(#reModal,#reMainBody) .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
          /* ── Render model cards ─────────────────────────────────────── */
-         #reModal .re-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
-         #reModal .re-mcard{position:relative;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px 13px 14px;transition:transform .16s,border-color .16s,box-shadow .16s;opacity:.62}
-         #reModal .re-mcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.45);box-shadow:0 14px 30px -14px rgba(37,99,255,.55)}
-         #reModal .re-mcard.rec{opacity:1;order:-1;border-color:rgba(37,99,255,.55);box-shadow:0 0 0 1px rgba(37,99,255,.35),0 16px 34px -16px rgba(37,99,255,.6);background:linear-gradient(180deg,rgba(37,99,255,.12),rgba(37,99,255,.03))}
-         #reModal .re-mcard .mtop{display:flex;gap:11px;align-items:flex-start}
-         #reModal .re-mcard .mico{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
-         #reModal .re-mcard.free .mico{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:#5fe0b0}
-         #reModal .re-mcard .mname{font:800 14px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;letter-spacing:-.01em;line-height:1.2}
-         #reModal .re-mcard .meng{font:600 9.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8ea6c8;margin-top:3px;text-transform:uppercase}
-         #reModal .re-mcard .mdesc{font-size:11.5px;color:#aeb9c9;line-height:1.45;min-height:32px}
-         #reModal .re-mcard .mcred{display:inline-flex;align-items:center;gap:4px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451;background:rgba(0,0,0,.22);border-radius:6px;padding:3px 8px 3px 6px}
-         #reModal .re-mcard.free .mcred{color:#5fe0b0}
-         #reModal .re-mcard .mribbon{position:absolute;top:-9px;right:11px;font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 8px;border-radius:20px;box-shadow:0 4px 12px -3px rgba(37,99,255,.7);display:none}
-         #reModal .re-mcard.rec .mribbon{display:block}
-         #reModal .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border:0;border-radius:11px;cursor:pointer;font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 20px -8px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.26) inset;transition:filter .14s}
-         #reModal .re-mcard .mbtn:hover{filter:brightness(1.08)}
-         #reModal .re-mcard.free .mbtn{background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 8px 20px -8px rgba(16,185,129,.55),0 1px 0 rgba(255,255,255,.26) inset}
-         #reModal .re-mcard .mdrop{display:flex;align-items:center;gap:7px;font-size:11px;color:#bcd0f5;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:9px;padding:7px 9px;cursor:pointer}
-         #reModal .re-mcard .mdrop:hover{border-color:rgba(37,99,255,.4)}
-         #reModal .re-mcard select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:6px 9px!important;min-height:0!important;height:32px!important;color:#eef4ff;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:none!important}
-         #reModal .re-anymedia{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px}
-         #reModal .re-anymedia label{flex:1;min-width:150px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1px dashed rgba(37,99,255,.34);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.14s}
-         #reModal .re-anymedia label:hover{border-color:rgba(37,99,255,.6);background:rgba(37,99,255,.1)}
-         #reModal .re-anymedia .mico2{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         :is(#reModal,#reMainBody) .re-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
+         :is(#reModal,#reMainBody) .re-mcard{position:relative;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px 13px 14px;transition:transform .16s,border-color .16s,box-shadow .16s;opacity:.62}
+         :is(#reModal,#reMainBody) .re-mcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.45);box-shadow:0 14px 30px -14px rgba(37,99,255,.55)}
+         :is(#reModal,#reMainBody) .re-mcard.rec{opacity:1;order:-1;border-color:rgba(37,99,255,.55);box-shadow:0 0 0 1px rgba(37,99,255,.35),0 16px 34px -16px rgba(37,99,255,.6);background:linear-gradient(180deg,rgba(37,99,255,.12),rgba(37,99,255,.03))}
+         :is(#reModal,#reMainBody) .re-mcard .mtop{display:flex;gap:11px;align-items:flex-start}
+         :is(#reModal,#reMainBody) .re-mcard .mico{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         :is(#reModal,#reMainBody) .re-mcard.free .mico{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:#5fe0b0}
+         :is(#reModal,#reMainBody) .re-mcard .mname{font:800 14px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;letter-spacing:-.01em;line-height:1.2}
+         :is(#reModal,#reMainBody) .re-mcard .meng{font:600 9.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8ea6c8;margin-top:3px;text-transform:uppercase}
+         :is(#reModal,#reMainBody) .re-mcard .mdesc{font-size:11.5px;color:#aeb9c9;line-height:1.45;min-height:32px}
+         :is(#reModal,#reMainBody) .re-mcard .mcred{display:inline-flex;align-items:center;gap:4px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451;background:rgba(0,0,0,.22);border-radius:6px;padding:3px 8px 3px 6px}
+         :is(#reModal,#reMainBody) .re-mcard.free .mcred{color:#5fe0b0}
+         :is(#reModal,#reMainBody) .re-mcard .mribbon{position:absolute;top:-9px;right:11px;font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 8px;border-radius:20px;box-shadow:0 4px 12px -3px rgba(37,99,255,.7);display:none}
+         :is(#reModal,#reMainBody) .re-mcard.rec .mribbon{display:block}
+         :is(#reModal,#reMainBody) .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border:0;border-radius:11px;cursor:pointer;font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 20px -8px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.26) inset;transition:filter .14s}
+         :is(#reModal,#reMainBody) .re-mcard .mbtn:hover{filter:brightness(1.08)}
+         :is(#reModal,#reMainBody) .re-mcard.free .mbtn{background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 8px 20px -8px rgba(16,185,129,.55),0 1px 0 rgba(255,255,255,.26) inset}
+         :is(#reModal,#reMainBody) .re-mcard .mdrop{display:flex;align-items:center;gap:7px;font-size:11px;color:#bcd0f5;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:9px;padding:7px 9px;cursor:pointer}
+         :is(#reModal,#reMainBody) .re-mcard .mdrop:hover{border-color:rgba(37,99,255,.4)}
+         :is(#reModal,#reMainBody) .re-mcard select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:6px 9px!important;min-height:0!important;height:32px!important;color:#eef4ff;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:none!important}
+         :is(#reModal,#reMainBody) .re-anymedia{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+         :is(#reModal,#reMainBody) .re-anymedia label{flex:1;min-width:150px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1px dashed rgba(37,99,255,.34);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.14s}
+         :is(#reModal,#reMainBody) .re-anymedia label:hover{border-color:rgba(37,99,255,.6);background:rgba(37,99,255,.1)}
+         :is(#reModal,#reMainBody) .re-anymedia .mico2{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
