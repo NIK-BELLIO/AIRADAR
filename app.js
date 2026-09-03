@@ -17556,6 +17556,13 @@ function vsReverseEngineer(prefill, opts) {
           // else: keep the text-derived formatType as-is
           if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
           blueprint.mic = !!vis.mic; blueprint.captions = !!vis.captions; blueprint.visFormat = vis.format || "";
+          // Let the VISION MODEL decide whether the reference actually shows a
+          // PERSON (so the rebuilt cover matches: a person-led post → a portrait
+          // cover; a pure text/graphic post → NO photo, text-only). Uses the
+          // model's own "subject" description, not a guess.
+          const subj = String((vis.subject || "") + " " + (vis.format || "") + " " + (vis.setting || "")).toLowerCase();
+          blueprint.coverHasPerson = !!vis.mic
+            || /\b(wom(?:a|e)n|m[ae]n|person|people|girl|guy|lady|model|host|presenter|face|portrait|selfie|figure|couple|human|influencer|creator|speaker)\b/i.test(subj);
         }
       }
       const dna = (blueprint && blueprint.styleDNA) || {};
@@ -17733,7 +17740,8 @@ function vsReverseEngineer(prefill, opts) {
         handle: (ref && ref.username) ? "@" + ref.username : "",
         photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || "",
-        theme: (blueprint && blueprint.theme) || null
+        theme: (blueprint && blueprint.theme) || null,
+        coverPerson: !!(blueprint && blueprint.coverHasPerson)
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
@@ -18054,15 +18062,22 @@ async function vsBuildCarousel(script, opts) {
 
   const cells = specs.map(() => { const c = document.createElement("div"); c.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px"; c.innerHTML = spin; grid.appendChild(c); return c; });
 
-  // Cover photo (once): the user's uploaded photo, else a generated presenter.
-  // Editorial QUOTE cards are pure text — only use a photo if the user gave one,
-  // never an AI presenter (that would break the clean text-card look).
+  // Cover photo (once): the user's uploaded photo, else a generated portrait.
+  // The reference cover features a PERSON, so quote/editorial covers get an
+  // elegant editorial portrait on a matching soft background (only the CONTENT
+  // slides stay pure text). The user's own uploaded photo always wins.
   const theme = opts.theme || null;
   const quoteMode = theme && theme.style === "quote";
+  // Only put a PERSON on the cover when the reference itself is person-led
+  // (opts.coverPerson). A pure text/graphic post (coverPerson === false) gets a
+  // clean text-only cover — no invented person. The user's own upload always wins.
+  const genCoverPerson = !!opts.photo || opts.coverPerson !== false;
   let coverImg = null;
   try {
     if (opts.photo) { coverImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = URL.createObjectURL(opts.photo); }); }
-    else if (!quoteMode) { coverImg = await vsFalImage("candid realistic photograph of a professional confident " + (opts.gender === "male" ? "man" : "woman") + ", " + (opts.setting || "clean studio") + ", looking at camera, natural skin, photorealistic, no text", Math.round(W * 0.55), H); }
+    else if (!genCoverPerson) { coverImg = null; }   // text-only style → no photo
+    else if (quoteMode) { coverImg = await vsFalImage("elegant editorial full-length studio portrait of a confident professional " + (opts.gender === "male" ? "man" : "woman") + ", tailored outfit, soft pale blush pink seamless background, high-fashion magazine cover styling, natural soft light, photorealistic, tasteful, no text", Math.round(W * 0.62), H); }
+    else { coverImg = await vsFalImage("candid realistic photograph of a professional confident " + (opts.gender === "male" ? "man" : "woman") + ", " + (opts.setting || "clean studio") + ", looking at camera, natural skin, photorealistic, no text", Math.round(W * 0.55), H); }
   } catch (e) {}
 
   for (let i = 0; i < specs.length; i++) {

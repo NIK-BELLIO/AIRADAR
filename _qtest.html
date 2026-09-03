@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Prata&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#111;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;padding:20px}img{width:260px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5)}</style>
+</head><body>
+<script>
+async function vsRenderCarouselSlide(spec, W, H, coverImg, theme) {
+  theme = theme || {};
+  const serif = !!theme.serif;
+  const HEADFAM = serif ? '"Prata", Georgia, serif' : '"Archivo", system-ui, sans-serif';
+  const BODYFAM = serif ? 'Georgia, "Times New Roman", serif' : '"Archivo", system-ui, sans-serif';
+  const T = { bg1: theme.bg || "#0e1830", bg2: theme.bg2 || theme.bg || "#0a1020", accent: theme.accent || "#cda24a", ink: theme.ink || "#f5f2ea", mut: theme.mut || "#aeb7c7", FAM: HEADFAM, BODY: BODYFAM };
+  const quote = theme.style === "quote";
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
+  const M = W * (quote ? 0.11 : 0.075);
+  const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, T.bg1); bg.addColorStop(1, T.bg2);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  if (quote) {
+    const cxc = W / 2, maxW = W - M * 2;
+    const wrapC = (text, px, weight, fam) => { ctx.font = `${weight} ${px}px ${fam}`; const ws = String(text || "").split(/\s+/).filter(Boolean); const ls = []; let cur = ""; ws.forEach(w => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { ls.push(cur); cur = w; } else cur = t; }); if (cur) ls.push(cur); return ls; };
+    const drawStarDiv = (y, half) => {
+      const sr = W * 0.028, gap = W * 0.03;
+      ctx.strokeStyle = T.accent; ctx.lineWidth = Math.max(1.5, W * 0.0022); ctx.globalAlpha = .85;
+      if (half > 0) { ctx.beginPath(); ctx.moveTo(cxc - half, y); ctx.lineTo(cxc - gap, y); ctx.moveTo(cxc + gap, y); ctx.lineTo(cxc + half, y); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.fillStyle = T.accent; ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const ang = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? sr * 0.42 : sr; const px = cxc + Math.cos(ang) * rr, py = y + Math.sin(ang) * rr; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath(); ctx.fill();
+    };
+    const centerBlock = (text, px, weight, fam, color, y, lhMul, maxLines) => {
+      let lines = wrapC(text, px, weight, fam);
+      while (lines.length > (maxLines || 6) && px > W * 0.03) { px -= 3; lines = wrapC(text, px, weight, fam); }
+      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = color; ctx.font = `${weight} ${px}px ${fam}`;
+      const lh = px * (lhMul || 1.12);
+      lines.forEach((l, i) => ctx.fillText(l, cxc, y + i * lh));
+      return y + lines.length * lh;
+    };
+    if (spec.kind === "cover") {
+      let y = H * 0.11;
+      if (coverImg && (coverImg.naturalWidth || coverImg.width)) {
+        const ph = H * 0.44, pw = ph * ((coverImg.naturalWidth || coverImg.width) / (coverImg.naturalHeight || coverImg.height));
+        const dw = Math.min(pw, W * 0.7), dh = dw * ((coverImg.naturalHeight || coverImg.height) / (coverImg.naturalWidth || coverImg.width));
+        ctx.drawImage(coverImg, cxc - dw / 2, y, dw, dh); y += dh + H * 0.035;
+      } else { y = H * 0.30; }
+      const title = String(spec.title || "").toUpperCase();
+      y = centerBlock(title, Math.round(W * 0.095), "400", HEADFAM, T.ink, y, 1.02, 3) + H * 0.028;
+      drawStarDiv(y, W * 0.14); y += H * 0.045;
+      if (spec.subtitle) centerBlock(spec.subtitle, Math.round(W * 0.036), "400", BODYFAM, T.mut, y, 1.3, 2);
+      if (spec.handle) { ctx.textAlign = "center"; ctx.font = `700 ${Math.round(W * 0.024)}px ${BODYFAM}`; ctx.fillStyle = T.accent; ctx.fillText(spec.handle.toUpperCase(), cxc, H * 0.93); }
+    } else if (spec.kind === "content") {
+      const q = centerBlock(spec.heading || "", Math.round(W * 0.072), "400", HEADFAM, T.ink, H * 0.16, 1.08, 5);
+      let y = q + H * 0.055;
+      if (spec.body) y = centerBlock(spec.body, Math.round(W * 0.042), "400", BODYFAM, T.mut, y, 1.34, 6) + H * 0.05;
+      drawStarDiv(Math.min(y, H * 0.9), W * 0.16);
+      ctx.textAlign = "right"; ctx.fillStyle = T.accent; ctx.globalAlpha = .6; ctx.font = `600 ${Math.round(W * 0.02)}px ${BODYFAM}`; ctx.fillText((spec.n || ""), W - M, H * 0.055); ctx.globalAlpha = 1;
+    } else {
+      let y = centerBlock(String(spec.title || "NOW IT'S YOUR TURN").toUpperCase(), Math.round(W * 0.09), "400", HEADFAM, T.ink, H * 0.32, 1.04, 3) + H * 0.04;
+      drawStarDiv(y, W * 0.14); y += H * 0.05;
+      centerBlock(spec.subtitle || (spec.handle ? spec.handle : "Tell me in the comments."), Math.round(W * 0.036), "400", BODYFAM, T.mut, y, 1.3, 2);
+    }
+    return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+  }
+}
+const theme = { bg:"#f4e7e3", bg2:"#efdfda", ink:"#171310", mut:"#6f6058", accent:"#b08a3e", serif:true, align:"center", divider:"star", style:"quote" };
+const specs = [
+  { kind:"cover", title:"SAM, UNFILTERED", subtitle:"Five questions. Five answers.", handle:"@sammehrbod" },
+  { kind:"content", n:"01", heading:"What do people misunderstand most about you?", body:"I'm far more impacted by disappointing someone I care about than disappointing myself." },
+  { kind:"content", n:"02", heading:"What is the best lesson you've learned the hard way?", body:"The best math you can learn is the future cost of your current decisions." },
+  { kind:"cta", title:"NOW IT'S YOUR TURN.", subtitle:"Tell me in the comments." }
+];
+(async () => {
+  await (document.fonts ? document.fonts.load("400 80px Prata").then(()=>document.fonts.ready) : Promise.resolve());
+  const port = await new Promise(res=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>res(im);im.onerror=()=>res(null);im.src='https://picsum.photos/id/64/640/1000';});
+  for (const s of specs) { const cov = (s.kind==='cover')?port:null; const blob = await vsRenderCarouselSlide(1080 && s, 1080, 1350, cov, theme); const im = new Image(); im.src = URL.createObjectURL(blob); document.body.appendChild(im); }
+})();
+</script>
+</body></html>
