@@ -17606,10 +17606,16 @@ function vsReverseEngineer(prefill, opts) {
           // cover clearly shows someone SPEAKING TO CAMERA, and NEVER against a
           // strong text "slideshow" signal (quote cards / on-screen headlines /
           // carousel wording). Otherwise trust the text classification.
+          // NOTE: blueprint.script is NOT a valid slideshow signal — our OWN script
+          // writer is instructed to ALWAYS emit "on-screen HEADLINE" + "AI-IMAGE"
+          // scene-direction tags for every reference (talking-head included, since
+          // this generator never films a live person), so testing the script for
+          // those words used to match on ~every reference and silently overrode a
+          // correctly-detected talking-head with "slideshow" every time. Only the
+          // REFERENCE's own DNA.format text is a real signal.
           const ssTxt = String((blueprint.styleDNA && blueprint.styleDNA.format) || "");
-          const strongSlideshow = /slide|carousel|montage|voice.?over|text|graphic|quote|photo|caption|swipe/i.test(ssTxt)
-            || /on[- ]screen|headline|ai-?image|slide\s*\d|\bcaption\b|quote/i.test(String(blueprint.script || ""));
-          const camTalk = /talking[_ ]?head|to camera|speaking to camera|piece to camera|selfie video|\bvlog\b|person speaks|speaks to camera/i.test(String(vis.format || ""));
+          const strongSlideshow = /slide|carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe/i.test(ssTxt);
+          const camTalk = /podcast|talking[_ ]?head|to camera|speaking to camera|piece to camera|selfie video|\bvlog\b|person speaks|speaks to camera|interview/i.test(String(vis.format || "")) || !!vis.mic;
           if (camTalk && !strongSlideshow) blueprint.formatType = "talking_head";
           else if (strongSlideshow) blueprint.formatType = "slideshow";
           // else: keep the text-derived formatType as-is
@@ -17654,7 +17660,13 @@ function vsReverseEngineer(prefill, opts) {
       // appearing in visFormat must NOT force talking_head — only an explicit
       // formatType does. Slideshow → carousel (text-on-image slides) unless the
       // reference is genuinely moving b-roll/footage.
-      if (blueprint.formatType === "talking_head") route = "talking_head";
+      // A mic in frame or a "podcast/talking/selfie/presenter" vision format IS a
+      // real person-talking signal on its own — don't require formatType too.
+      // Burned-in captions/title text do NOT override this: plenty of talking-head
+      // reels (like a dramatic name-card intro) also carry on-screen text, and
+      // that text alone must never demote a real talking-head to a carousel.
+      const personSignal = blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter|interview/.test(vf) || blueprint.mic;
+      if (personSignal) route = "talking_head";
       else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || blueprint.captions) route = "carousel";
       else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf)) route = "video";
       else route = "carousel";   // default for slideshow-type posts = image slides
