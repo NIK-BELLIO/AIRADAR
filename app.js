@@ -4219,7 +4219,30 @@ function vsTemplate() {
 }
 function vsStatus(msg) {
   const el = $("#vsStatus");
-  if (el) el.textContent = msg || "";
+  if (el) { el.textContent = msg || ""; return; }
+  // Pages without the Studio's #vsStatus bar (Reverse Engineer, Spark) would
+  // otherwise swallow every status/error message silently — the user clicks
+  // something, nothing visibly happens, even though vsStatus WAS called with
+  // a real message. Fall back to a small floating toast so it's never invisible.
+  if (!msg) return;
+  try {
+    if (!document.getElementById("vsToastKf")) {
+      const st = document.createElement("style"); st.id = "vsToastKf";
+      st.textContent = "@keyframes vsToastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}";
+      document.head.appendChild(st);
+    }
+    let host = document.getElementById("vsToastHost");
+    if (!host) {
+      host = document.createElement("div"); host.id = "vsToastHost";
+      host.style.cssText = "position:fixed;left:50%;bottom:26px;z-index:200000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none";
+      document.body.appendChild(host);
+    }
+    const t = document.createElement("div");
+    t.style.cssText = "pointer-events:auto;max-width:min(420px,92vw);background:#14121a;border:1px solid rgba(37,99,255,.35);color:#eef4ff;font:600 13px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;padding:11px 16px;border-radius:12px;box-shadow:0 14px 34px -10px rgba(0,0,0,.6);animation:vsToastIn .18s ease-out;text-align:center";
+    t.textContent = msg;
+    host.appendChild(t);
+    setTimeout(() => { t.style.transition = "opacity .25s"; t.style.opacity = "0"; setTimeout(() => { try { t.remove(); } catch (e) {} }, 260); }, 4200);
+  } catch (e) {}
 }
 function vsVal(id, fallback) {
   const el = $(id);
@@ -17679,15 +17702,28 @@ function vsReverseEngineer(prefill, opts) {
     // buildAutoVideo treats any URL in the box as an article to fetch, so strip them.
     const clean = script.replace(/https?:\/\/\S+/gi, "").trim();
     const info = ($$("reRegion").value || "").trim();
+    const topicVal = "/" + skill + " " + clean + (info ? ("\n\nUse THIS info / details: " + info) : "");
+    const lenVal = $$("reLen").value || "medium";
+    const aspVal = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
     const topic = document.querySelector("#vsAutoTopic");
-    if (!topic || typeof buildAutoVideo !== "function") { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); return; }
-    topic.value = "/" + skill + " " + clean + (info ? ("\n\nUse THIS info / details: " + info) : "");
+    // The standalone /reverse-engineer/ page doesn't have the Studio canvas
+    // (#vsAutoTopic, buildAutoVideo) — hand the script off via localStorage and
+    // open Studio, which picks it up and builds automatically on load.
+    if (!topic || typeof buildAutoVideo !== "function") {
+      try {
+        localStorage.setItem("vsReHandoff", JSON.stringify({ topic: topicVal, len: lenVal, aspect: aspVal, ts: Date.now() }));
+        vsStatus(fa ? "🎬 در حال بازکردنِ استودیوی ویدیو…" : "🎬 Opening Video Studio…");
+        location.href = "/studio/?reHandoff=1";
+      } catch (e) { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); }
+      return;
+    }
+    topic.value = topicVal;
     try { topic.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
-    const len = document.querySelector("#vsAutoLen"); if (len) len.value = $$("reLen").value || "medium";
+    const len = document.querySelector("#vsAutoLen"); if (len) len.value = lenVal;
     // Carry the chosen aspect into the Studio canvas so the slideshow renders at
     // the size the user picked on the card.
-    const asp = document.querySelector("#vsAspect"); const wantAsp = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
-    if (asp) { asp.value = wantAsp; try { asp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e) {} }
+    const asp = document.querySelector("#vsAspect");
+    if (asp) { asp.value = aspVal; try { asp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e) {} }
     const batch = document.querySelector("#vsAutoBatch"); if (batch && batch.checked) { try { batch.click(); } catch (e) {} }
     close();
     vsStatus(fa ? "🎬 در حال ساخت ویدیو با سبکِ مهندسی‌معکوس‌شده…" : "🎬 Building your video in the reverse-engineered style…");

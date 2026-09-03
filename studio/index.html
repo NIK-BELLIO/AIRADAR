@@ -2635,7 +2635,38 @@
       })();
     </script>
 
-    <script src="/app.js?v=v530"></script>
+    <script src="/app.js?v=v531"></script>
+
+    <script>
+      /* Receive a script handed off from the standalone Reverse Engineer page
+         (/reverse-engineer/ → "Build slideshow"), which has no Studio canvas of
+         its own. If ?reHandoff=1 is present, fill the topic/length/aspect from
+         localStorage and build automatically — mirrors what the RE panel does
+         when it runs as a Studio modal. */
+      (function () {
+        try {
+          if (!/[?&]reHandoff=1/.test(location.search)) return;
+          var raw = localStorage.getItem("vsReHandoff");
+          if (!raw) return;
+          localStorage.removeItem("vsReHandoff");
+          var data = JSON.parse(raw);
+          if (!data || !data.topic || (Date.now() - (data.ts || 0)) > 5 * 60 * 1000) return;   // stale (>5min) — ignore
+          var tries = 0;
+          (function go() {
+            tries++;
+            var topic = document.getElementById("vsAutoTopic");
+            if (!topic || typeof buildAutoVideo !== "function") { if (tries < 40) return void setTimeout(go, 100); return; }
+            topic.value = data.topic;
+            try { topic.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+            var len = document.getElementById("vsAutoLen"); if (len && data.len) len.value = data.len;
+            var asp = document.getElementById("vsAspect");
+            if (asp && data.aspect) { asp.value = data.aspect; try { asp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e) {} }
+            try { history.replaceState(null, "", location.pathname); } catch (e) {}   // drop ?reHandoff=1 from the URL
+            try { buildAutoVideo(true); } catch (e) {}
+          })();
+        } catch (e) {}
+      })();
+    </script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
