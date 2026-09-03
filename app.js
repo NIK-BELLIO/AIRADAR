@@ -17204,6 +17204,9 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .dnaCell{background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.16);border-radius:10px;padding:9px 11px}
          #reModal .tag{display:inline-block;font-size:11px;color:#bcd0f5;background:rgba(37,99,255,.14);border-radius:20px;padding:3px 9px;margin:2px 3px 0 0}
          #reModal .beat{font-size:13px;color:#d8d2c6;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+         #reModal #reThRow,#reModal #reCarRow{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px}
+         #reModal .re-render-h{font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;color:#7fb0ff;margin:0 0 6px;display:flex;align-items:center;gap:7px}
+         #reModal .re-render-h::before{content:"";width:6px;height:6px;border-radius:50%;background:#2563ff;box-shadow:0 0 8px 1px rgba(37,99,255,.7)}
          #reModal .re-fieldrow{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:2px 12px 3px;transition:.14s}
          #reModal .re-fieldrow:hover{border-color:rgba(37,99,255,.42)}
          #reModal .re-fieldrow .fl{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8ea6c8;line-height:1.4}
@@ -17287,6 +17290,7 @@ function vsReverseEngineer(prefill, opts) {
        </div>
 
        <div id="reThRow" style="display:none;flex-direction:column;gap:8px">
+         <div class="re-render-h">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
            <span class="lbl">${fa ? "پرزنترِ سخنگو" : "Talking-head presenter"}</span>
            <select id="reThVoice" style="min-width:120px">
