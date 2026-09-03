@@ -21047,3 +21047,19 @@ A video is made of one or more SCENES that play one after another. Each scene ha
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
   else boot();
 })();
+
+/* Mobile nav: on narrow screens the header nav is a horizontal scroll strip, so
+   bring the ACTIVE page's link into view (centered) instead of leaving it off to
+   the right. No-op on desktop where the whole nav fits. */
+(function () {
+  function centerActiveNav() {
+    try {
+      if (window.innerWidth > 640) return;
+      var nav = document.querySelector(".arh-nav");
+      var act = nav && nav.querySelector('.arh-link[aria-current="page"], .arh-link.arh-active');
+      if (nav && act) nav.scrollLeft = Math.max(0, act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2);
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", centerActiveNav, { once: true });
+  else centerActiveNav();
+})();
