@@ -14907,15 +14907,20 @@ async function vsConvertToMp4(webmBlob) {
 // from getting their (already-paid-for) video.
 async function vsBurnTitleCard(videoBlob, opts) {
   opts = opts || {};
-  const text = String(opts.text || "").trim().toUpperCase();
-  if (!text || !videoBlob || !videoBlob.size) return videoBlob;
+  // A PROGRESSIVE caption reveal (multi-frame upload caught "MY" → "I'M" →
+  // "HOW TO…") is the single most defining visual signature of a reel like
+  // this — prefer it, sequencing one phrase after another, over a single
+  // static title. Falls back to the old one-card behavior when only a
+  // single `text` was ever captured (Instagram-link/Apify path).
+  const cards = (Array.isArray(opts.cards) && opts.cards.length ? opts.cards : (opts.text ? [opts.text] : []))
+    .map(t => String(t || "").trim().toUpperCase()).filter(Boolean).slice(0, 6);
+  if (!cards.length || !videoBlob || !videoBlob.size) return videoBlob;
   const colorMap = {
     red: "0xE5342A", white: "0xFFFFFF", black: "0x111111", gold: "0xD4AF37",
     yellow: "0xF5C451", blue: "0x2563FF", green: "0x22C55E", pink: "0xEC4899",
     orange: "0xF97316", purple: "0x9333EA", gray: "0xCBD5E1", grey: "0xCBD5E1"
   };
   const fontColor = colorMap[opts.color] || "0xFFFFFF";
-  const hold = Math.max(1.5, Math.min(5, opts.holdSeconds || 3));
   try {
     const ffmpeg = await vsGetFfmpeg();
     // Bold license-free Google Fonts matching the detected style — a heavy
@@ -14927,13 +14932,19 @@ async function vsBurnTitleCard(videoBlob, opts) {
     await ffmpeg.writeFile("title.ttf", fontBuf);
     const vidBuf = new Uint8Array(await videoBlob.arrayBuffer());
     await ffmpeg.writeFile("in.mp4", vidBuf);
-    // Escape for ffmpeg's drawtext text= value.
-    const esc = text.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\\'").replace(/%/g, "\\%");
-    const fade = `if(lt(t\\,0.25)\\,t/0.25\\,if(lt(t\\,${(hold - 0.35).toFixed(2)})\\,1\\,if(lt(t\\,${hold})\\,(${hold}-t)/0.35\\,0)))`;
-    const filter = `drawtext=fontfile=title.ttf:text='${esc}':fontcolor=${fontColor}:fontsize=h/9:x=(w-text_w)/2:y=h*0.2:alpha='${fade}'`;
+    const escTxt = (t) => t.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\\'").replace(/%/g, "\\%");
+    // Slot the cards one after another — each holds ~1.1s (a snappy word-by-
+    // word pace, matching how these reveal on the original), starting right
+    // at the top of the clip.
+    const per = 1.1, gap = 0.12;
+    const filters = cards.map((card, i) => {
+      const start = i * (per + gap), end = start + per;
+      const fade = `if(lt(t\\,${(start + 0.18).toFixed(2)})\\,(t-${start.toFixed(2)})/0.18\\,if(lt(t\\,${(end - 0.22).toFixed(2)})\\,1\\,if(lt(t\\,${end.toFixed(2)})\\,(${end.toFixed(2)}-t)/0.22\\,0)))`;
+      return `drawtext=fontfile=title.ttf:text='${escTxt(card)}':fontcolor=${fontColor}:fontsize=h/9:x=(w-text_w)/2:y=h*0.2:enable='between(t\\,${start.toFixed(2)}\\,${end.toFixed(2)})':alpha='${fade}'`;
+    }).join(",");
     await ffmpeg.exec([
       "-i", "in.mp4",
-      "-vf", filter,
+      "-vf", filters,
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
       "-c:a", "aac", "-b:a", "192k",
       "-movflags", "+faststart",
@@ -17098,7 +17109,7 @@ async function vsReverseFetchPost(url) {
       const ij = await grab("https://airadar-ai.aliniashyn-9b4.workers.dev/insta?url=" + encodeURIComponent(clean), 95000);
       const j = ij ? JSON.parse(ij) : null;
       const c = j && j.posts && j.posts[0] && j.posts[0].caption;
-      if (c && !isJunk(c)) { out.caption = c.slice(0, 1200); out.username = j.username || out.username; if (j.posts[0].thumb) out.thumb = j.posts[0].thumb; }
+      if (c && !isJunk(c)) { out.caption = c.slice(0, 1200); out.username = j.username || out.username; if (j.posts[0].thumb) out.thumb = j.posts[0].thumb; if (j.posts[0].videoUrl) out.videoUrl = j.posts[0].videoUrl; }
     } catch (e) {}
     // 2) Reader chain fallback — Jina works from the browser; allorigins/corsproxy
     //    may CORS-fail client-side but are cheap to try.
@@ -17610,21 +17621,46 @@ function vsReverseEngineer(prefill, opts) {
   $$("reUpload").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const lbl = $$("reUploadTxt"); const old = lbl.textContent;
-    lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
+    const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+    const upload1 = async (blob) => { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
     try {
-      let imgBlob = file;
-      if (/^video\//.test(file.type)) { imgBlob = await vsVideoFirstFrame(file); if (!imgBlob) throw new Error(fa ? "فریمِ ویدیو گرفته نشد" : "couldn't read a video frame"); }
-      const up = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/fal/upload", { method: "POST", headers: { "Content-Type": imgBlob.type || "image/jpeg" }, body: imgBlob });
-      const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error(uj.error || "upload failed");
-      const vision = await vsVisionAnalyze(uj.file_url);
+      let thumbUrl = "", vision = null, titleCards = [];
+      if (/^video\//.test(file.type)) {
+        // A single first-frame grab only ever sees whatever is on screen at
+        // t=0 — a progressive caption reveal ("MY" → "I'M" → "HOW TO…") or a
+        // later scene/angle change is invisible to it. Sample several points
+        // across the clip and vision-analyze each, so the burned-in title
+        // cards (and the format/setting guess) reflect the WHOLE video, not
+        // one frozen instant.
+        lbl.textContent = (fa ? "⏳ در حال نمونه‌برداری از ویدیو…" : "⏳ Sampling the video…");
+        const frames = await vsVideoFrames(file, [0.06, 0.3, 0.55, 0.8]);
+        if (!frames.length) throw new Error(fa ? "فریمی از ویدیو گرفته نشد" : "couldn't read any video frame");
+        for (let i = 0; i < frames.length; i++) {
+          lbl.textContent = (fa ? `⏳ تحلیلِ فریمِ ${i + 1}/${frames.length}` : `⏳ Analyzing frame ${i + 1}/${frames.length}`);
+          const url = await upload1(frames[i]); if (!url) continue;
+          if (!thumbUrl) thumbUrl = url;
+          const vis = await vsVisionAnalyze(url); if (!vis) continue;
+          if (!vision || (vis.onscreen_text && !vision.onscreen_text)) vision = vis;   // keep the richest read for format/setting/mic
+          const t = String(vis.title_text || vis.onscreen_text || "").trim();
+          if (t && titleCards[titleCards.length - 1] !== t) titleCards.push(t.slice(0, 40));
+        }
+        if (!thumbUrl) throw new Error(fa ? "آپلودِ فریم‌ها ناموفق بود" : "frame upload failed");
+      } else {
+        lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
+        thumbUrl = await upload1(file); if (!thumbUrl) throw new Error(fa ? "آپلود ناموفق بود" : "upload failed");
+        vision = await vsVisionAnalyze(thumbUrl);
+        const t = vision && String(vision.title_text || "").trim(); if (t) titleCards = [t.slice(0, 40)];
+      }
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: uj.file_url, username: "", hashtags: [], vision, uploaded: true, isProfile: false };
+      if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, uploaded: true, isProfile: false };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
-      card.innerHTML = `<img src="${esc(uj.file_url)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none"/>
+      const cardsTxt = titleCards.length ? `<div style="font-size:11.5px;color:#f5c451;margin-top:3px">${fa ? "کپشن‌های دیده‌شده: " : "Captions seen: "}“${esc(titleCards.join('” → “'))}”</div>` : "";
+      card.innerHTML = `<img src="${esc(thumbUrl)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:9px;background:#000;flex:none"/>
         <div style="flex:1;min-width:0"><div style="font-weight:800;color:#efe9dc;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
-        <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div></div>`;
+        <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div>${cardsTxt}</div>`;
     } catch (err) { $$("reRefCard").style.display = "flex"; $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
     lbl.textContent = old; e.target.value = "";
   };
@@ -17650,6 +17686,19 @@ function vsReverseEngineer(prefill, opts) {
       if (ref && ref.thumb) {
         go.textContent = "👁️ " + (fa ? "در حال دیدنِ پست…" : "Watching the post…");
         const vis = ref.vision || await vsVisionAnalyze(ref.thumb);   // reuse upload's analysis
+        // A pasted Instagram link only ever gives us ONE static cover image from
+        // Apify — that misses a progressive on-screen caption reveal ("MY" →
+        // "I'M" → "HOW TO…") or a later scene/angle change entirely, which is
+        // often the single most defining visual signature of the reference. If
+        // Apify also handed back the reel's own videoUrl, pull the ACTUAL clip
+        // through our CDN relay and sample several frames across it instead.
+        let linkTitleCards = [];
+        if (ref.videoUrl && !ref.uploaded) {
+          try {
+            go.textContent = "👁️ " + (fa ? "در حال دیدنِ کلیپ…" : "Watching the full clip…");
+            linkTitleCards = await vsSampleVideoTitleCards(ref.videoUrl);
+          } catch (e) {}
+        }
         if (vis) {
           // A person in ONE cover frame does NOT make the post a talking-head
           // VIDEO — quote-card carousels and slideshows very often put the
@@ -17679,6 +17728,19 @@ function vsReverseEngineer(prefill, opts) {
             blueprint.titleCard = String(vis.title_text).trim().slice(0, 40);
             blueprint.titleColor = String(vis.title_color || "white").trim().toLowerCase();
             blueprint.titleFont = /serif/i.test(vis.title_font || "") ? "serif" : "sans";
+          }
+          // Multi-frame sampling (either the user's own uploaded video, via
+          // vsVideoFrames, or the reel's real videoUrl fetched above via
+          // vsSampleVideoTitleCards) may have caught a PROGRESSIVE caption
+          // reveal across the clip ("MY" → "I'M" → "HOW TO…") — that full
+          // sequence is the single most defining visual signature of a reel
+          // like this, so carry it through and prefer it over the single-frame
+          // titleCard above.
+          const multiCards = (linkTitleCards && linkTitleCards.length) ? linkTitleCards : (ref.titleCards || []);
+          if (multiCards.length) {
+            blueprint.titleCards = multiCards.slice(0, 6);
+            if (!blueprint.titleColor) blueprint.titleColor = String((vis && vis.title_color) || "red").trim().toLowerCase();
+            if (!blueprint.titleFont) blueprint.titleFont = /serif/i.test((vis && vis.title_font) || "") ? "serif" : "sans";
           }
           // Let the VISION MODEL decide whether the reference actually shows a
           // PERSON (so the rebuilt cover matches: a person-led post → a portrait
@@ -17859,7 +17921,7 @@ function vsReverseEngineer(prefill, opts) {
         action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
         input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: asp, resolution: "720p", duration: sec },
         name: "talking-head",
-        titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
+        titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -17883,7 +17945,7 @@ function vsReverseEngineer(prefill, opts) {
         action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
         input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: res, duration: sec },
         name: "cinematic",
-        titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
+        titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -17922,7 +17984,7 @@ function vsReverseEngineer(prefill, opts) {
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
     const aspTH = ($$("reThAsp") && $$("reThAsp").value) || "9:16";
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCard: (blueprint && blueprint.titleCard) || "", titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || "" }); }
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || "" }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -17967,24 +18029,68 @@ function vsExtractNarration(script) {
 }
 
 // Grab a representative frame from an uploaded video → JPEG blob (for vision).
-async function vsVideoFirstFrame(file) {
+// Sample MULTIPLE frames across a video's timeline (not just t=0/0.3) — a
+// single first-frame grab misses a progressive caption reveal ("MY" then
+// "I'M" then "HOW TO...") or any scene/angle change later in the clip, which
+// is exactly the kind of thing the style-match is supposed to copy. `fracs`
+// are relative positions (0..1) into the duration; returns an array of JPEG
+// blobs in the same order (skipping any frame that fails to seek/draw).
+async function vsVideoFrames(file, fracs) {
+  fracs = (fracs && fracs.length) ? fracs : [0.3];
   return new Promise((resolve) => {
     try {
       const v = document.createElement("video");
       v.muted = true; v.playsInline = true; v.preload = "metadata";
       const url = URL.createObjectURL(file);
-      v.onloadedmetadata = () => { try { v.currentTime = Math.min(1.2, (v.duration || 2) * 0.3); } catch (e) { resolve(null); } };
-      v.onseeked = () => {
-        try {
-          const c = document.createElement("canvas"); c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
-          c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
-          c.toBlob(b => { try { URL.revokeObjectURL(url); } catch (e) {} resolve(b); }, "image/jpeg", 0.9);
-        } catch (e) { resolve(null); }
+      const c = document.createElement("canvas");
+      const out = []; let i = 0;
+      const finish = () => { try { URL.revokeObjectURL(url); } catch (e) {} resolve(out); };
+      const grabNext = () => {
+        if (i >= fracs.length) return finish();
+        const dur = v.duration || 2;
+        try { v.currentTime = Math.max(0, Math.min(dur - 0.08, dur * fracs[i])); }
+        catch (e) { i++; grabNext(); }
       };
-      v.onerror = () => resolve(null);
+      v.onloadedmetadata = () => { c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280; grabNext(); };
+      v.onseeked = () => {
+        try { c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); c.toBlob(b => { if (b) out.push(b); i++; grabNext(); }, "image/jpeg", 0.88); }
+        catch (e) { i++; grabNext(); }
+      };
+      v.onerror = () => finish();
       v.src = url;
-    } catch (e) { resolve(null); }
+    } catch (e) { resolve([]); }
   });
+}
+// Back-compat single-frame helper (still used as a quick synchronous grab elsewhere).
+async function vsVideoFirstFrame(file) { const fr = await vsVideoFrames(file, [0.3]); return fr[0] || null; }
+
+// For a pasted Instagram link: fetch the reel's ACTUAL video (via the worker's
+// CDN relay — Instagram's own CDN doesn't allow cross-origin fetches) and
+// sample several frames across it, vision-analyzing each, to catch a
+// progressive on-screen caption reveal ("MY" → "I'M" → "HOW TO…") that a
+// single cover-thumbnail read would only ever see one frame of. Returns an
+// ordered array of distinct short title/caption phrases (possibly empty —
+// this never blocks the rest of Analyze if the video can't be fetched).
+async function vsSampleVideoTitleCards(videoUrl) {
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  try {
+    const r = await fetch(WB + "/insta/video?url=" + encodeURIComponent(videoUrl));
+    if (!r.ok) return [];
+    const blob = await r.blob();
+    if (!blob || blob.size < 1000) return [];
+    const frames = await vsVideoFrames(blob, [0.06, 0.3, 0.55, 0.8]);
+    const cards = [];
+    for (const fr of frames) {
+      try {
+        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
+        const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
+        const vis = await vsVisionAnalyze(uj.file_url); if (!vis) continue;
+        const t = String(vis.title_text || "").trim();
+        if (t && cards[cards.length - 1] !== t) cards.push(t.slice(0, 40));
+      } catch (e) {}
+    }
+    return cards;
+  } catch (e) { return []; }
 }
 
 // Generate a realistic image on fal (FLUX-dev) and load it UNTAINTED (via our
@@ -18408,12 +18514,12 @@ async function vsBuildTalkingHead(script, opts) {
   // Burn the reference's detected title-card text onto the video (e.g. a bold
   // name-card intro) so the rebuild actually LOOKS like the reference, not
   // just shares its topic. Never blocks delivery if it fails.
-  if (opts.titleCard && blob) {
+  if ((opts.titleCard || (opts.titleCards && opts.titleCards.length)) && blob) {
     const tcRow = document.createElement("div"); tcRow.style.cssText = "display:flex;align-items:center;gap:10px";
     tcRow.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${fa ? "۴) سوارکردنِ عنوان روی ویدیو" : "4) Adding the title card"}</span>`;
     steps.appendChild(tcRow);
     const tcIc = tcRow.querySelector(".ic");
-    try { blob = await vsBurnTitleCard(blob, { text: opts.titleCard, color: opts.titleColor, font: opts.titleFont }); tcIc.textContent = "✓"; tcIc.style.color = "#4ade80"; }
+    try { blob = await vsBurnTitleCard(blob, { text: opts.titleCard, cards: opts.titleCards, color: opts.titleColor, font: opts.titleFont }); tcIc.textContent = "✓"; tcIc.style.color = "#4ade80"; }
     catch (e) { tcIc.textContent = "✕"; tcIc.style.color = "#f87171"; }
   }
   const dlUrl = blob ? URL.createObjectURL(blob) : videoUrl;
@@ -18589,9 +18695,9 @@ async function vsBuildVideoModel(cfg) {
     // Burn the reference's detected title-card text onto the video (e.g. a
     // bold name-card intro) so the rebuild actually LOOKS like the reference.
     // Never blocks delivery — falls back to the plain video on any failure.
-    if (cfg.titleCard && blob) {
+    if ((cfg.titleCard || (cfg.titleCards && cfg.titleCards.length)) && blob) {
       const tcIc = line(fa ? "سوارکردنِ عنوان روی ویدیو" : "Adding the title card");
-      try { blob = await vsBurnTitleCard(blob, { text: cfg.titleCard, color: cfg.titleColor, font: cfg.titleFont }); done(tcIc); }
+      try { blob = await vsBurnTitleCard(blob, { text: cfg.titleCard, cards: cfg.titleCards, color: cfg.titleColor, font: cfg.titleFont }); done(tcIc); }
       catch (e) { fail(tcIc); }
     }
     const u = blob ? URL.createObjectURL(blob) : out;
