@@ -18390,36 +18390,90 @@ async function vsBuildVideoModel(cfg) {
   ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
   ov.innerHTML = `<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
-       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff">${cfg.title}</span><span id="vmCr" style="font:600 10px 'JetBrains Mono',monospace;color:#f5c451"></span></div>
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff">${cfg.title}</span></div>
+       <div id="vmStage" style="font-size:12px;color:#7fb0ff;font-weight:700;margin-bottom:12px;min-height:16px"></div>
        <div id="vmSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>
+       <div id="vmNote" style="display:none;margin-top:10px;font-size:11.5px;color:#8ea6c8;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 11px;line-height:1.5"></div>
        <div id="vmResult" style="margin-top:12px"></div>
-       <button id="vmClose" type="button" style="margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button></div>`;
+       <div id="vmBtns" style="display:flex;gap:9px;margin-top:14px">
+         <button id="vmCancel" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#e0a0a0;border:1px solid rgba(240,120,120,.35)">${fa ? "لغو (کردیت برمی‌گردد)" : "Cancel (refunds credits)"}</button>
+         <button id="vmBg" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "در پس‌زمینه ادامه بده" : "Continue in background"}</button>
+       </div>
+       <button id="vmClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button></div>`;
   document.body.appendChild(ov);
-  const steps = ov.querySelector("#vmSteps"), result = ov.querySelector("#vmResult");
-  ov.querySelector("#vmClose").onclick = () => { try { ov.remove(); } catch (e) {} };
+  const steps = ov.querySelector("#vmSteps"), result = ov.querySelector("#vmResult"), stageEl = ov.querySelector("#vmStage"), noteEl = ov.querySelector("#vmNote");
+  const btns = ov.querySelector("#vmBtns"), closeBtn = ov.querySelector("#vmClose"), cancelBtn = ov.querySelector("#vmCancel"), bgBtn = ov.querySelector("#vmBg");
+  let cancelled = false;
+  const finishUi = () => { btns.style.display = "none"; closeBtn.style.display = ""; stageEl.textContent = ""; };
+  closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
+  // "Continue in background" — just hides the dialog; the poll loop below keeps
+  // running (this tab must stay open) and the video still auto-saves to the
+  // Dashboard when it finishes, so the user never loses the result.
+  bgBtn.onclick = () => {
+    try { ov.remove(); } catch (e) {}
+    vsStatus(fa ? "⏳ در پس‌زمینه ادامه دارد — وقتی آماده شد در داشبورد ذخیره می‌شود." : "⏳ Still rendering in the background — it'll be saved to your Dashboard when ready.");
+  };
   const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
   const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+  const fail = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
   // 1) charge credits (per second)
   const charge = await vsCharge(cfg.action, { seconds: cfg.seconds });
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
-  ov.querySelector("#vmCr").textContent = charge.jobId ? "" : "";
+  cancelBtn.onclick = () => {
+    cancelled = true;
+    vsSettle(charge.jobId, "failed");   // refund — we stop polling; the fal job itself can't be recalled, but we never charge for what we don't deliver
+    stageEl.textContent = "";
+    steps.innerHTML = "";
+    noteEl.style.display = "none";
+    result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
+    finishUi();
+  };
   try {
-    let ic = line(fa ? "ساختِ ویدیو (~۱–۲ دقیقه)" : "Rendering video (~1-2 min)");
+    let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
     const sub = await post("/fal/submit", { model: cfg.model, input: cfg.input });
+    if (cancelled) return;
     const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error("submit failed");
-    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
-    let out = null;
-    for (let k = 0; k < 120; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
-    if (!out) throw new Error(fa ? "ساخت ناموفق بود" : "generation failed");
     done(ic);
+    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    const renderIc = line(fa ? "در حالِ رندر" : "Rendering");
+    const startedAt = Date.now();
+    let out = null, lastStatus = "";
+    const STAGE_FA = { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" };
+    const STAGE_EN = { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
+    for (let k = 0; k < 150 && !cancelled; k++) {
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      const mm = Math.floor(elapsed / 60), ss = String(elapsed % 60).padStart(2, "0");
+      const stageWord = (fa ? STAGE_FA[lastStatus] : STAGE_EN[lastStatus]) || (fa ? "در حالِ اتصال" : "connecting");
+      stageEl.textContent = `${stageWord} · ${mm}:${ss}`;
+      if (elapsed > 150 && !noteEl.dataset.shown) {
+        noteEl.style.display = "block"; noteEl.dataset.shown = "1";
+        noteEl.textContent = fa ? "این مدل گاهی چند دقیقه طول می‌کشد — می‌تونی ببندی و در پس‌زمینه ادامه بدی، تمام‌شده خودش در داشبورد ذخیره می‌شود." : "This model can take several minutes — you can let it continue in the background; it'll land in your Dashboard when it's done.";
+      }
+      await new Promise(r => setTimeout(r, 4000));
+      if (cancelled) return;
+      let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      lastStatus = st;
+      if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "FAILED" || st === "ERROR") break;
+    }
+    if (cancelled) return;
+    if (!out) { fail(renderIc); throw new Error(fa ? "ساخت ناموفق بود یا زمان تمام شد" : "generation failed or timed out"); }
+    done(renderIc);
+    stageEl.textContent = "";
     vsSettle(charge.jobId, "done");
     vsTrackGen(cfg.action, cfg.model, "sec:" + cfg.seconds);
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
     const u = blob ? URL.createObjectURL(blob) : out;
-    result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="${cfg.name || "video"}.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+    result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="${cfg.name || "video"}.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ${fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard"}</div>`;
     try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", cfg.name || "video"); } catch (e) {}
-  } catch (e) { vsSettle(charge.jobId, "failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`; }
+    finishUi();
+  } catch (e) {
+    if (cancelled) return;
+    vsSettle(charge.jobId, "failed"); stageEl.textContent = "";
+    result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+    finishUi();
+  }
 }
 
 // Estimate a talking clip length (seconds) from the narration word count.
