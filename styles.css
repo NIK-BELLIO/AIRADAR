@@ -34,7 +34,7 @@ html { background: #0b1020; }
 .arh .auth-menu{position:absolute;top:calc(100% + 10px);right:0;z-index:1001}
 /* the old mobile sidebar trigger is unused now */
 .sidebar-open{display:none!important}
-@media(max-width:640px){.arh{gap:10px;padding:10px 14px}.arh-nav{gap:0}.arh-link{padding:7px 8px;font-size:12px}.arh-new{display:none}.arh .seg-toggle{display:none}}
+@media(max-width:640px){.arh{gap:10px;padding:10px 14px}.arh-nav{gap:4px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.arh-nav::-webkit-scrollbar{display:none}.arh-link{padding:7px 9px;font-size:12px;flex:0 0 auto}.arh-new{display:none}.arh .seg-toggle{display:none}}
 
 /* Current-page nav item lights up blue */
 .nav-group-grid a[aria-current="page"] {

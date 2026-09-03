@@ -17240,6 +17240,12 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-anymedia label{flex:1;min-width:150px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1px dashed rgba(37,99,255,.34);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.14s}
          :is(#reModal,#reMainBody) .re-anymedia label:hover{border-color:rgba(37,99,255,.6);background:rgba(37,99,255,.1)}
          :is(#reModal,#reMainBody) .re-anymedia .mico2{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         /* Mobile: Analyze goes full-width UNDER the link input (no cramped side-by-side) */
+         @media(max-width:640px){
+           :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
+           :is(#reModal,#reMainBody) .re-analyzerow #reFetch{width:100%;justify-content:center;padding-top:12px;padding-bottom:12px}
+           :is(#reModal,#reMainBody) .re-anymedia label{min-width:100%}
+         }
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
@@ -17250,7 +17256,7 @@ function vsReverseEngineer(prefill, opts) {
 
        <div class="step">
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
-         <div style="display:flex;gap:9px">
+         <div class="re-analyzerow" style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
            <button id="reFetch" type="button" class="btn" style="display:flex;align-items:center;gap:7px;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 0 0 1px rgba(255,255,255,.1) inset,0 1px 0 rgba(255,255,255,.28) inset">${fa ? "تحلیل" : "Analyze"}<span style="display:inline-flex;align-items:center;gap:3px;font:800 10px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:2px 6px 2px 5px;border-radius:5px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>1</span></button>
          </div>
