@@ -17541,12 +17541,28 @@ function vsReverseEngineer(prefill, opts) {
         go.textContent = "👁️ " + (fa ? "در حال دیدنِ پست…" : "Watching the post…");
         const vis = ref.vision || await vsVisionAnalyze(ref.thumb);   // reuse upload's analysis
         if (vis) {
-          if (vis.format) blueprint.formatType = /podcast|talking|selfie|presenter/i.test(vis.format) ? "talking_head" : "slideshow";
+          // A person in ONE cover frame does NOT make the post a talking-head
+          // VIDEO — quote-card carousels and slideshows very often put the
+          // creator's photo on the cover. Only flip to talking_head when the
+          // cover clearly shows someone SPEAKING TO CAMERA, and NEVER against a
+          // strong text "slideshow" signal (quote cards / on-screen headlines /
+          // carousel wording). Otherwise trust the text classification.
+          const ssTxt = String((blueprint.styleDNA && blueprint.styleDNA.format) || "");
+          const strongSlideshow = /slide|carousel|montage|voice.?over|text|graphic|quote|photo|caption|swipe/i.test(ssTxt)
+            || /on[- ]screen|headline|ai-?image|slide\s*\d|\bcaption\b|quote/i.test(String(blueprint.script || ""));
+          const camTalk = /talking[_ ]?head|to camera|speaking to camera|piece to camera|selfie video|\bvlog\b|person speaks|speaks to camera/i.test(String(vis.format || ""));
+          if (camTalk && !strongSlideshow) blueprint.formatType = "talking_head";
+          else if (strongSlideshow) blueprint.formatType = "slideshow";
+          // else: keep the text-derived formatType as-is
           if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
           blueprint.mic = !!vis.mic; blueprint.captions = !!vis.captions; blueprint.visFormat = vis.format || "";
         }
       }
       const dna = (blueprint && blueprint.styleDNA) || {};
+      // Derive a carousel THEME from the reference so a rebuilt carousel/slideshow
+      // LOOKS like the original (e.g. an editorial quote-card style) rather than
+      // our fixed brand look.
+      blueprint.theme = vsThemeFromDNA(dna, blueprint.skill);
       const dnaLabels = fa
         ? { tone: "لحن", voice: "زاویهٔ روایت", hook: "هوک", pacing: "ریتم", format: "فرمت", emoji: "ایموجی", hashtags: "هشتگ", audience: "مخاطب" }
         : { tone: "Tone", voice: "Voice", hook: "Hook", pacing: "Pacing", format: "Format", emoji: "Emoji", hashtags: "Hashtags", audience: "Audience" };
@@ -17568,9 +17584,13 @@ function vsReverseEngineer(prefill, opts) {
       // → talking-head; image slides with text → carousel; footage/motion → video.
       const vf = String(blueprint.visFormat || "").toLowerCase();
       let route;
-      if (blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter/.test(vf)) route = "talking_head";
-      else if (/carousel|slide|graphic|infographic|text/.test(vf) || (blueprint.captions && !/broll|footage|montage|video/.test(vf))) route = "carousel";
-      else if (/broll|footage|montage|video/.test(vf)) route = "video";
+      // Trust the (now person-in-cover-proof) formatType first. A person merely
+      // appearing in visFormat must NOT force talking_head — only an explicit
+      // formatType does. Slideshow → carousel (text-on-image slides) unless the
+      // reference is genuinely moving b-roll/footage.
+      if (blueprint.formatType === "talking_head") route = "talking_head";
+      else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || blueprint.captions) route = "carousel";
+      else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf)) route = "video";
       else route = "carousel";   // default for slideshow-type posts = image slides
       const seen = !!blueprint.visFormat;
       const extras = [];
@@ -17712,7 +17732,8 @@ function vsReverseEngineer(prefill, opts) {
         coverTitle: (blueprint && blueprint.caption ? String(blueprint.caption).split(/[.\n!?]/)[0].slice(0, 60) : "") || "",
         handle: (ref && ref.username) ? "@" + ref.username : "",
         photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
-        setting: (blueprint && blueprint.setting) || ""
+        setting: (blueprint && blueprint.setting) || "",
+        theme: (blueprint && blueprint.theme) || null
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
@@ -17861,12 +17882,89 @@ function vsCarouselIcon(ctx, x, y, s, text, accent) {
   ctx.restore();
 }
 
-async function vsRenderCarouselSlide(spec, W, H, coverImg) {
-  const T = { bg1: "#0e1830", bg2: "#0a1020", accent: "#cda24a", ink: "#f5f2ea", mut: "#aeb7c7", FAM: '"Archivo", system-ui, sans-serif' };
+// Pick a carousel THEME from the reference's style DNA so the rebuilt slides
+// LOOK like the original — not our fixed brand. An editorial / quote / minimal
+// reference (light bg, serif, star motif) → a light serif "quote card" theme;
+// anything else keeps the bold dark brand theme.
+function vsThemeFromDNA(dna, skill) {
+  dna = dna || {};
+  const blob = (String(dna.format || "") + " " + String(dna.emoji || "") + " " + String(dna.tone || "") + " " + String(dna.voice || "")).toLowerCase();
+  const star = /star|✶|✦|★|⭐/.test(String(dna.emoji || "") + " " + blob);
+  const editorialWords = /quote|editorial|minimal|introspective|personal|candid|elegant|luxур|luxury|magazine|serif|classic|refined|timeless|clean/i.test(blob);
+  const slideish = /slide|carousel|photo|text|graphic|montage|voice.?over/i.test(String(dna.format || ""));
+  const quote = (skill !== "motion_graphic") && (star || editorialWords) && (slideish || star || editorialWords);
+  if (quote) {
+    // Warm blush editorial (matches the classic pink quote-card look). Colors
+    // are tasteful defaults; the serif + star + centered layout carry the vibe.
+    return { bg: "#f4e7e3", bg2: "#efdfda", ink: "#171310", mut: "#6f6058", accent: "#b08a3e", serif: true, align: "center", divider: "star", style: "quote" };
+  }
+  return null;   // → renderer uses the default bold dark brand theme
+}
+
+async function vsRenderCarouselSlide(spec, W, H, coverImg, theme) {
+  theme = theme || {};
+  const serif = !!theme.serif;
+  const HEADFAM = serif ? '"Prata", Georgia, serif' : '"Archivo", system-ui, sans-serif';
+  const BODYFAM = serif ? 'Georgia, "Times New Roman", serif' : '"Archivo", system-ui, sans-serif';
+  const T = {
+    bg1: theme.bg || "#0e1830", bg2: theme.bg2 || theme.bg || "#0a1020",
+    accent: theme.accent || "#cda24a", ink: theme.ink || "#f5f2ea", mut: theme.mut || "#aeb7c7",
+    FAM: HEADFAM, BODY: BODYFAM
+  };
+  const quote = theme.style === "quote";   // editorial text-card look (matches the reference)
   const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
-  const M = W * 0.075;
+  const M = W * (quote ? 0.11 : 0.075);
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, T.bg1); bg.addColorStop(1, T.bg2);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // ── Editorial QUOTE-CARD renderer: a light, centered, serif text card with a
+  // gold star divider — reproduces the "quote slideshow" style (pink bg, black
+  // serif question, muted answer, ★ between two rules) with the USER's content.
+  if (quote) {
+    const cxc = W / 2, maxW = W - M * 2;
+    const wrapC = (text, px, weight, fam) => { ctx.font = `${weight} ${px}px ${fam}`; const ws = String(text || "").split(/\s+/).filter(Boolean); const ls = []; let cur = ""; ws.forEach(w => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { ls.push(cur); cur = w; } else cur = t; }); if (cur) ls.push(cur); return ls; };
+    const drawStarDiv = (y, half) => {
+      const sr = W * 0.028, gap = W * 0.03;
+      ctx.strokeStyle = T.accent; ctx.lineWidth = Math.max(1.5, W * 0.0022); ctx.globalAlpha = .85;
+      if (half > 0) { ctx.beginPath(); ctx.moveTo(cxc - half, y); ctx.lineTo(cxc - gap, y); ctx.moveTo(cxc + gap, y); ctx.lineTo(cxc + half, y); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.fillStyle = T.accent; ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const ang = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? sr * 0.42 : sr; const px = cxc + Math.cos(ang) * rr, py = y + Math.sin(ang) * rr; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath(); ctx.fill();
+    };
+    const centerBlock = (text, px, weight, fam, color, y, lhMul, maxLines) => {
+      let lines = wrapC(text, px, weight, fam);
+      while (lines.length > (maxLines || 6) && px > W * 0.03) { px -= 3; lines = wrapC(text, px, weight, fam); }
+      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = color; ctx.font = `${weight} ${px}px ${fam}`;
+      const lh = px * (lhMul || 1.12);
+      lines.forEach((l, i) => ctx.fillText(l, cxc, y + i * lh));
+      return y + lines.length * lh;
+    };
+
+    if (spec.kind === "cover") {
+      let y = H * 0.11;
+      if (coverImg && (coverImg.naturalWidth || coverImg.width)) {
+        const ph = H * 0.44, pw = ph * ((coverImg.naturalWidth || coverImg.width) / (coverImg.naturalHeight || coverImg.height));
+        const dw = Math.min(pw, W * 0.7), dh = dw * ((coverImg.naturalHeight || coverImg.height) / (coverImg.naturalWidth || coverImg.width));
+        ctx.drawImage(coverImg, cxc - dw / 2, y, dw, dh); y += dh + H * 0.035;
+      } else { y = H * 0.30; }
+      const title = String(spec.title || "").toUpperCase();
+      y = centerBlock(title, Math.round(W * 0.095), "400", HEADFAM, T.ink, y, 1.02, 3) + H * 0.028;
+      drawStarDiv(y, W * 0.14); y += H * 0.045;
+      if (spec.subtitle) centerBlock(spec.subtitle, Math.round(W * 0.036), "400", BODYFAM, T.mut, y, 1.3, 2);
+      if (spec.handle) { ctx.textAlign = "center"; ctx.font = `700 ${Math.round(W * 0.024)}px ${BODYFAM}`; ctx.fillStyle = T.accent; ctx.fillText(spec.handle.toUpperCase(), cxc, H * 0.93); }
+    } else if (spec.kind === "content") {
+      const q = centerBlock(spec.heading || "", Math.round(W * 0.072), "400", HEADFAM, T.ink, H * 0.16, 1.08, 5);
+      let y = q + H * 0.055;
+      if (spec.body) y = centerBlock(spec.body, Math.round(W * 0.042), "400", BODYFAM, T.mut, y, 1.34, 6) + H * 0.05;
+      drawStarDiv(Math.min(y, H * 0.9), W * 0.16);
+      ctx.textAlign = "right"; ctx.fillStyle = T.accent; ctx.globalAlpha = .6; ctx.font = `600 ${Math.round(W * 0.02)}px ${BODYFAM}`; ctx.fillText((spec.n || ""), W - M, H * 0.055); ctx.globalAlpha = 1;
+    } else {
+      let y = centerBlock(String(spec.title || "NOW IT'S YOUR TURN").toUpperCase(), Math.round(W * 0.09), "400", HEADFAM, T.ink, H * 0.32, 1.04, 3) + H * 0.04;
+      drawStarDiv(y, W * 0.14); y += H * 0.05;
+      centerBlock(spec.subtitle || (spec.handle ? spec.handle : "Tell me in the comments."), Math.round(W * 0.036), "400", BODYFAM, T.mut, y, 1.3, 2);
+    }
+    return await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+  }
   const wrapText = (text, px, maxW, weight) => { ctx.font = `${weight} ${px}px ${T.FAM}`; const ws = String(text || "").split(/\s+/).filter(Boolean); const ls = []; let cur = ""; ws.forEach(w => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { ls.push(cur); cur = w; } else cur = t; }); if (cur) ls.push(cur); return ls; };
   const houseLogo = (x, y, s) => { ctx.save(); ctx.strokeStyle = T.accent; ctx.lineWidth = Math.max(3, s * 0.05); ctx.lineJoin = "round"; ctx.beginPath(); ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2); ctx.stroke(); const hs = s * 0.5, hx = x + s / 2 - hs / 2, hy = y + s / 2 - hs * 0.32; ctx.beginPath(); ctx.moveTo(hx, hy + hs * 0.55); ctx.lineTo(x + s / 2, hy); ctx.lineTo(hx + hs, hy + hs * 0.55); ctx.stroke(); ctx.strokeRect(hx + hs * 0.14, hy + hs * 0.55, hs * 0.72, hs * 0.48); ctx.restore(); };
   const drawTitle = (title, x, y, maxW, startPx, maxLines) => {
@@ -17957,16 +18055,20 @@ async function vsBuildCarousel(script, opts) {
   const cells = specs.map(() => { const c = document.createElement("div"); c.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px"; c.innerHTML = spin; grid.appendChild(c); return c; });
 
   // Cover photo (once): the user's uploaded photo, else a generated presenter.
+  // Editorial QUOTE cards are pure text — only use a photo if the user gave one,
+  // never an AI presenter (that would break the clean text-card look).
+  const theme = opts.theme || null;
+  const quoteMode = theme && theme.style === "quote";
   let coverImg = null;
   try {
     if (opts.photo) { coverImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = URL.createObjectURL(opts.photo); }); }
-    else { coverImg = await vsFalImage("candid realistic photograph of a professional confident " + (opts.gender === "male" ? "man" : "woman") + ", " + (opts.setting || "clean studio") + ", looking at camera, natural skin, photorealistic, no text", Math.round(W * 0.55), H); }
+    else if (!quoteMode) { coverImg = await vsFalImage("candid realistic photograph of a professional confident " + (opts.gender === "male" ? "man" : "woman") + ", " + (opts.setting || "clean studio") + ", looking at camera, natural skin, photorealistic, no text", Math.round(W * 0.55), H); }
   } catch (e) {}
 
   for (let i = 0; i < specs.length; i++) {
     const cell = cells[i];
     let blob = null;
-    try { blob = await vsRenderCarouselSlide(specs[i], W, H, specs[i].kind === "cover" ? coverImg : null); } catch (e) {}
+    try { blob = await vsRenderCarouselSlide(specs[i], W, H, specs[i].kind === "cover" ? coverImg : null, theme); } catch (e) {}
     if (blob) {
       const u = URL.createObjectURL(blob); urls.push(u);
       const name = "slide-" + (i + 1) + ".jpg";
