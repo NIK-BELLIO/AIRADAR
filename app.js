@@ -1564,7 +1564,7 @@ function setLanguage(lang) {
   document.querySelectorAll("#langSeg .seg-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.lang === lang);
   });
-  $("#searchInput").placeholder =
+  if ($("#searchInput")) $("#searchInput").placeholder =
     lang === "fa" ? "جست‌وجو بر اساس کاربرد، قیمت، شغل..." : "Search by use case, price, job...";
   renderControls();
   renderTools();
@@ -1612,43 +1612,55 @@ function uniqueCategories() {
 }
 
 function renderControls() {
-  $("#categoryFilter").innerHTML = uniqueCategories()
-    .map((item) => `<option value="${item.value}">${item.label}</option>`)
-    .join("");
-  $("#categoryFilter").value = state.category;
+  // These catalog filters only exist on the Home / Prompt Lab / Video Studio
+  // pages (they share this app.js with Spark and Reverse Engineer, which don't
+  // have a tool catalog) — guard each so this doesn't throw and abort the rest
+  // of boot() on pages without them.
+  if ($("#categoryFilter")) {
+    $("#categoryFilter").innerHTML = uniqueCategories()
+      .map((item) => `<option value="${item.value}">${item.label}</option>`)
+      .join("");
+    $("#categoryFilter").value = state.category;
+  }
 
-  $("#budgetFilter").innerHTML = [
-    ["all", t("allBudgets")],
-    ["free", t("freeBudget")],
-    ["under20", t("under20")],
-    ["pro", t("proBudget")]
-  ]
-    .map(([value, label]) => `<option value="${value}">${label}</option>`)
-    .join("");
-  $("#budgetFilter").value = state.budget;
+  if ($("#budgetFilter")) {
+    $("#budgetFilter").innerHTML = [
+      ["all", t("allBudgets")],
+      ["free", t("freeBudget")],
+      ["under20", t("under20")],
+      ["pro", t("proBudget")]
+    ]
+      .map(([value, label]) => `<option value="${value}">${label}</option>`)
+      .join("");
+    $("#budgetFilter").value = state.budget;
+  }
 
-  $("#sortFilter").innerHTML = [
-    ["score", t("sortScore")],
-    ["price", t("sortPrice")],
-    ["name", t("sortName")]
-  ]
-    .map(([value, label]) => `<option value="${value}">${label}</option>`)
-    .join("");
-  $("#sortFilter").value = state.sort;
+  if ($("#sortFilter")) {
+    $("#sortFilter").innerHTML = [
+      ["score", t("sortScore")],
+      ["price", t("sortPrice")],
+      ["name", t("sortName")]
+    ]
+      .map(([value, label]) => `<option value="${value}">${label}</option>`)
+      .join("");
+    $("#sortFilter").value = state.sort;
+  }
 
-  $("#modelTypeFilter").innerHTML = [
-    ["all", state.lang === "fa" ? "همه مدل‌ها" : "All model types"],
-    ["text", state.lang === "fa" ? "متن و LLM" : "Text and LLM"],
-    ["multimodal", state.lang === "fa" ? "چندوجهی" : "Multimodal"],
-    ["image", state.lang === "fa" ? "تصویر" : "Image"],
-    ["video", state.lang === "fa" ? "ویدیو" : "Video"],
-    ["audio", state.lang === "fa" ? "صدا" : "Audio"],
-    ["coding", state.lang === "fa" ? "کدنویسی" : "Coding"]
-  ]
-    .map(([value, label]) => `<option value="${value}">${label}</option>`)
-    .join("");
-  $("#modelTypeFilter").value = state.modelType;
-  $("#minScoreFilter").value = state.minScore;
+  if ($("#modelTypeFilter")) {
+    $("#modelTypeFilter").innerHTML = [
+      ["all", state.lang === "fa" ? "همه مدل‌ها" : "All model types"],
+      ["text", state.lang === "fa" ? "متن و LLM" : "Text and LLM"],
+      ["multimodal", state.lang === "fa" ? "چندوجهی" : "Multimodal"],
+      ["image", state.lang === "fa" ? "تصویر" : "Image"],
+      ["video", state.lang === "fa" ? "ویدیو" : "Video"],
+      ["audio", state.lang === "fa" ? "صدا" : "Audio"],
+      ["coding", state.lang === "fa" ? "کدنویسی" : "Coding"]
+    ]
+      .map(([value, label]) => `<option value="${value}">${label}</option>`)
+      .join("");
+    $("#modelTypeFilter").value = state.modelType;
+  }
+  if ($("#minScoreFilter")) $("#minScoreFilter").value = state.minScore;
 
   if ($("#motionSelect")) {
     $("#motionSelect").innerHTML = motions
@@ -1703,6 +1715,9 @@ function filteredTools() {
 }
 
 function renderTools() {
+  // #toolGrid only exists on the Home / Video Studio tool-catalog pages — bail
+  // quietly on Prompt Lab / Spark / Reverse Engineer, which don't have it.
+  if (!toolGrid) return;
   const items = filteredTools();
   const countEl = $("#toolCount");
   if (countEl) {
@@ -1845,6 +1860,8 @@ function renderToolCard(tool) {
 }
 
 function renderCompare() {
+  // #compareTable only exists on the tool-catalog pages — bail quietly elsewhere.
+  if (!compareTable) return;
   const selected = tools.filter((tool) => state.compare.includes(tool.name));
   if (!selected.length) {
     compareTable.innerHTML = `<p class="empty">${t("emptyCompare")}</p>`;
@@ -19934,16 +19951,23 @@ renderModelsTicker();
 startHeroMotion();
 renderTemplatePicker();
 bindIntroEditor();
-fetchLiveChartData();
+// The tool-catalog GitHub-stats fetch only matters on pages that actually
+// show the catalog (#toolGrid / #performanceChart) — Spark and Reverse
+// Engineer share this app.js but have neither, so running it there would
+// just burn through the shared unauth GitHub rate limit (60 req/hr) for
+// nothing every page load AND every 5-minute interval.
+const _hasCatalog = !!($("#toolGrid") || $("#performanceChart"));
+if (_hasCatalog) {
+  fetchLiveChartData();
+  // Auto-refresh from the GitHub API every 5 minutes.
+  // (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
+  // repos per refresh, a 5-minute interval stays well within budget.)
+  setInterval(fetchLiveChartData, 5 * 60 * 1000);
+}
 setLanguage(state.lang);
 
 // Render the live chart once the page is ready.
-window.addEventListener("load", () => renderLiveChart());
-
-// Auto-refresh from the GitHub API every 5 minutes.
-// (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
-// repos per refresh, a 5-minute interval stays well within budget.)
-setInterval(fetchLiveChartData, 5 * 60 * 1000);
+if (_hasCatalog) window.addEventListener("load", () => renderLiveChart());
 
 // ─────────────────────────────────────────────────────────────────────────
 // AI WORLD MAP + AI NEWS PULSE  (replaces the old status monitor)
