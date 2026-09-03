@@ -17182,6 +17182,13 @@ function vsReverseEngineer(prefill, opts) {
   const prompt0 = String(prefill || sd._topic || sd.title || "").slice(0, 120);
   let ref = null;   // last fetched reference
   let blueprint = null;
+  // Per-model control option lists (duration / aspect / size). Duration drives
+  // the live credit on per-second models.
+  const optDur = (sel) => ["auto", "5", "8", "10", "15"].map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v === "auto" ? (fa ? "زمان: خودکار" : "Time: Auto") : (fa ? "زمان: " : "Time: ") + v + "s"}</option>`).join("");
+  const optAsp = (sel) => [["9:16", fa ? "عمودی 9:16" : "Vertical 9:16"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["16:9", fa ? "افقی 16:9" : "Wide 16:9"]].map(([v, l]) => `<option value="${v}"${v === (sel || "9:16") ? " selected" : ""}>${l}</option>`).join("");
+  const optRes = (sel) => [["720p", "720p"], ["1080p", "1080p"]].map(([v, l]) => `<option value="${v}"${v === (sel || "720p") ? " selected" : ""}>${fa ? "کیفیت: " : "Quality: "}${l}</option>`).join("");
+  const optSize = (sel) => [["4:5", fa ? "پرتره 4:5" : "Portrait 4:5"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["9:16", fa ? "استوری 9:16" : "Story 9:16"]].map(([v, l]) => `<option value="${v}"${v === (sel || "4:5") ? " selected" : ""}>${l}</option>`).join("");
+  const gemSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>`;
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
@@ -17240,6 +17247,11 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-anymedia label{flex:1;min-width:150px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1px dashed rgba(37,99,255,.34);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.14s}
          :is(#reModal,#reMainBody) .re-anymedia label:hover{border-color:rgba(37,99,255,.6);background:rgba(37,99,255,.1)}
          :is(#reModal,#reMainBody) .re-anymedia .mico2{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         :is(#reModal,#reMainBody) .re-mctl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+         :is(#reModal,#reMainBody) .re-mctl.one{grid-template-columns:1fr}
+         :is(#reModal,#reMainBody) .re-mctl .cf{position:relative}
+         :is(#reModal,#reMainBody) .re-mctl .cf b{position:absolute;top:4px;left:9px;font:700 7.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#8ea6c8;pointer-events:none}
+         :is(#reModal,#reMainBody) .re-mctl select{padding-top:15px!important;height:40px!important}
          /* Mobile: Analyze goes full-width UNDER the link input (no cramped side-by-side) */
          @media(max-width:640px){
            :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
@@ -17357,8 +17369,9 @@ function vsReverseEngineer(prefill, opts) {
                <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
              </select>
              <label id="reThPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reThPhotoTxt">${fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)"}</span><input id="reThPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reThAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>5 ${fa ? "/ ثانیه" : "/ sec"}</span></div>
+             <span class="mcred">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
            </div>
            <!-- Lip-sync (LatentSync) -->
@@ -17382,8 +17395,9 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "پرزنترِ AI" : "AI presenter"}</div><div class="meng">Happy Horse · ${fa ? "متن→ویدیو" : "text→video"}</div></div>
              </div>
              <div class="mdesc">${fa ? "پرزنترِ کاملاً AI که اسکریپت را چندزبانه با لیپ‌سینکِ طبیعی می‌گوید." : "A fully-AI presenter delivers the script with natural multilingual lip-sync."}</div>
+             <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reHapDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reHapAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="mcred" id="reCredHap">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildHappy" type="button" class="mbtn">${fa ? "ساختِ پرزنتر" : "Build presenter"}</button>
            </div>
            <!-- Cinematic motion (H3 Max) -->
@@ -17394,8 +17408,9 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "نمای سینمایی" : "Cinematic motion"}</div><div class="meng">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"}</div></div>
              </div>
              <div class="mdesc">${fa ? "یک نمای سینمایی با حرکتِ دوربین از کاورِ ساخته‌شده — بدونِ حرف زدن." : "A cinematic camera-move shot from the generated cover — no talking."}</div>
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reMotAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>18</span>
+             <span class="mcred">${gemSvg}18</span>
              <button id="reBuildMotion" type="button" class="mbtn">${fa ? "نمای سینمایی" : "Cinematic shot"}</button>
            </div>
            <!-- Cinematic + audio (Grok) -->
@@ -17406,8 +17421,9 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</div><div class="meng">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"}</div></div>
              </div>
              <div class="mdesc">${fa ? "نمای متحرک با صدای همزمان از عکسِ تو یا کاورِ ساخته‌شده." : "A moving shot with synced audio from your photo or the generated cover."}</div>
+             <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reGrokDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reGrokRes">${optRes("720p")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="mcred" id="reCredGrok">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
            </div>
            <!-- Carousel (image + text slides) — FREE -->
@@ -17419,6 +17435,7 @@ function vsReverseEngineer(prefill, opts) {
              </div>
              <div class="mdesc">${fa ? "یک کاروسلِ چنداسلایدیِ قابلِ پست — دقیقاً مثلِ پست‌های اسلایدشو با عکس." : "A postable multi-slide carousel — exactly like slideshow/photo posts."}</div>
              <label id="reCarPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reCarPhotoTxt">${fa ? "عکسِ کاور (اختیاری)" : "Cover photo (optional)"}</span><input id="reCarPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "سایز" : "Size"}</b><select id="reCarSize">${optSize("4:5")}</select></div></div>
              <div style="flex:1"></div>
              <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
              <button id="reBuildCar" type="button" class="mbtn">${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
@@ -17431,6 +17448,7 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "ویدیوی اسلایدشو" : "Slideshow video"}</div><div class="meng">${fa ? "کنواسِ درون‌مرورگری" : "on-device canvas"}</div></div>
              </div>
              <div class="mdesc">${fa ? "اسلایدشوی ویدیوییِ متن + عکس با ویس‌اوور — رایگان، بدونِ کردیت." : "A text + image slideshow video with voiceover — free, no credits."}</div>
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reSlideAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
              <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
              <button id="reBuild" type="button" class="mbtn">${fa ? "ساختِ اسلایدشو" : "Build slideshow"}</button>
@@ -17648,6 +17666,10 @@ function vsReverseEngineer(prefill, opts) {
     topic.value = "/" + skill + " " + clean + (info ? ("\n\nUse THIS info / details: " + info) : "");
     try { topic.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
     const len = document.querySelector("#vsAutoLen"); if (len) len.value = $$("reLen").value || "medium";
+    // Carry the chosen aspect into the Studio canvas so the slideshow renders at
+    // the size the user picked on the card.
+    const asp = document.querySelector("#vsAspect"); const wantAsp = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
+    if (asp) { asp.value = wantAsp; try { asp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e) {} }
     const batch = document.querySelector("#vsAutoBatch"); if (batch && batch.checked) { try { batch.click(); } catch (e) {} }
     close();
     vsStatus(fa ? "🎬 در حال ساخت ویدیو با سبکِ مهندسی‌معکوس‌شده…" : "🎬 Building your video in the reverse-engineered style…");
@@ -17666,6 +17688,19 @@ function vsReverseEngineer(prefill, opts) {
     anyAud = (e.target.files && e.target.files[0]) || null;
     $$("reAnyAudioTxt").textContent = anyAud ? (fa ? "✓ صدای تو: " : "✓ Your audio: ") + anyAud.name.slice(0, 26) : (fa ? "افزودنِ صدای خودت (اختیاری)" : "Add your voice/audio (optional)");
   };
+  // Live per-model credit: when the user changes a per-second model's Time,
+  // recompute the exact credit shown on that card (ceil(seconds * rate)). "Auto"
+  // shows the per-second rate; a fixed time shows the total it will cost.
+  const durSeconds = (id, script) => { const el = $$(id); const v = el ? el.value : "auto"; return v === "auto" ? vsEstSeconds(script || ($$("reScript") && $$("reScript").value) || "") : Math.min(Math.max(Number(v) || 8, 3), 120); };
+  const updCred = () => {
+    const set = (durId, chipId, rate) => {
+      const d = $$(durId), chip = $$(chipId); if (!d || !chip) return;
+      chip.innerHTML = gemSvg + (d.value === "auto" ? (rate + (fa ? " / ثانیه" : " / sec")) : (Math.ceil(Math.min(Math.max(Number(d.value) || 8, 3), 120) * rate) + (fa ? " کردیت" : "")));
+    };
+    set("reHapDur", "reCredHap", 9); set("reGrokDur", "reCredGrok", 9);
+  };
+  ["reHapDur", "reGrokDur"].forEach(id => { if ($$(id)) $$(id).onchange = updCred; });
+  updCred();
   // Own-photo picker: remember the file and show its name.
   let thPhoto = null;
   $$("reThPhoto").onchange = (e) => {
@@ -17688,13 +17723,14 @@ function vsReverseEngineer(prefill, opts) {
   if ($$("reBuildHappy")) $$("reBuildHappy").onclick = () => {
     const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const nar = vsExtractNarration(script) || script;
-    const sec = vsEstSeconds(script);
+    const sec = durSeconds("reHapDur", script);
+    const asp = ($$("reHapAsp") && $$("reHapAsp").value) || "9:16";
     const setting = ((blueprint && blueprint.setting) || "clean studio").replace(/[^\w ,'-]/g, " ").slice(0, 80);
     try {
       vsBuildVideoModel({
         title: fa ? "آدمِ سخنگو (Happy Horse)" : "Talking-head (Happy Horse)",
         action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
-        input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: "9:16", resolution: "720p", duration: sec },
+        input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: asp, resolution: "720p", duration: sec },
         name: "talking-head"
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
@@ -17703,7 +17739,8 @@ function vsReverseEngineer(prefill, opts) {
   // (product / person / scene) if given, else a generated frame of the setting.
   if ($$("reBuildGrok")) $$("reBuildGrok").onclick = async () => {
     const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
-    const sec = vsEstSeconds(script), nar = vsExtractNarration(script) || script;
+    const sec = durSeconds("reGrokDur", script), nar = vsExtractNarration(script) || script;
+    const res = ($$("reGrokRes") && $$("reGrokRes").value) || "720p";
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     let imageUrl = "";
     try {
@@ -17716,7 +17753,7 @@ function vsReverseEngineer(prefill, opts) {
       vsBuildVideoModel({
         title: fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)",
         action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
-        input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: "720p", duration: sec },
+        input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: res, duration: sec },
         name: "cinematic"
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
@@ -17732,6 +17769,8 @@ function vsReverseEngineer(prefill, opts) {
     const script = ($$("reScript").value || "").trim();
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const b = $$("reBuildCar"); b.disabled = true; const old = b.textContent; b.textContent = "⏳ …";
+    const szMap = { "4:5": [1080, 1350], "1:1": [1080, 1080], "9:16": [1080, 1920] };
+    const sz = szMap[($$("reCarSize") && $$("reCarSize").value) || "4:5"] || szMap["4:5"];
     try {
       await vsBuildCarousel(script, {
         topic: ($$("rePrompt").value || "").trim(),
@@ -17741,7 +17780,8 @@ function vsReverseEngineer(prefill, opts) {
         photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || "",
         theme: (blueprint && blueprint.theme) || null,
-        coverPerson: !!(blueprint && blueprint.coverHasPerson)
+        coverPerson: !!(blueprint && blueprint.coverHasPerson),
+        width: sz[0], height: sz[1]
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
@@ -17752,7 +17792,8 @@ function vsReverseEngineer(prefill, opts) {
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
+    const aspTH = ($$("reThAsp") && $$("reThAsp").value) || "9:16";
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -17765,7 +17806,8 @@ function vsReverseEngineer(prefill, opts) {
         gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || "",
         motion: (blueprint && (blueprint.motion || blueprint.camera)) || "",
-        caption: (blueprint && blueprint.caption) || ""
+        caption: (blueprint && blueprint.caption) || "",
+        aspect: ($$("reMotAsp") && $$("reMotAsp").value) || "9:16"
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -17818,6 +17860,9 @@ async function vsVideoFirstFrame(file) {
 
 // Generate a realistic image on fal (FLUX-dev) and load it UNTAINTED (via our
 // CORS proxy) so it can be drawn on a canvas. Returns an <img> or null.
+// Map a UI aspect ("9:16"/"1:1"/"16:9") to a fal FLUX image_size keyword.
+function vsAspToSize(a) { return a === "1:1" ? "square_hd" : a === "16:9" ? "landscape_16_9" : "portrait_16_9"; }
+
 async function vsFalImage(prompt, w, h) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const size = (h >= w * 1.15) ? "portrait_4_3" : (w >= h * 1.15) ? "landscape_4_3" : "square_hd";
@@ -18028,7 +18073,7 @@ async function vsBuildCarousel(script, opts) {
   let scenes = vsParseScriptScenes(script);
   if (!scenes.length) scenes = (opts.structure || []).map(s => ({ headline: String(s).slice(0, 70), narration: "" }));
   if (!scenes.length) { vsStatus(fa ? "صحنه‌ای برای اسلاید پیدا نشد." : "No scenes found for slides."); return; }
-  const W = 1080, H = 1350, handle = opts.handle || "";
+  const W = opts.width || 1080, H = opts.height || 1350, handle = opts.handle || "";
   // Cover title: an explicit hook if given, else the first scene (then dropped
   // from the content list so it isn't repeated).
   const coverTitle = opts.coverTitle || scenes[0].headline;
@@ -18204,7 +18249,7 @@ async function vsBuildTalkingHead(script, opts) {
       + ", natural skin texture, casual everyday clothes, warm genuine smile, " + setting
       + micPart + ", facing camera, shot on smartphone, natural lighting, photorealistic, ultra realistic";
     try {
-      const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: facePrompt, image_size: "square_hd", num_inference_steps: 28 } });
+      const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: facePrompt, image_size: vsAspToSize(opts.aspect), num_inference_steps: 28 } });
       imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url;
     } catch (e) {}
     // Fallback to our own image endpoint if fal image failed.
@@ -18432,7 +18477,7 @@ async function vsReverseMotionClip(opts) {
       } else {
         const setting = (opts.setting || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 90);
         const framePrompt = "cinematic photograph, " + (opts.gender === "male" ? "a man" : "a woman") + " in " + setting + ", shallow depth of field, natural lighting, photorealistic, ultra realistic, film still";
-        const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: framePrompt, image_size: "landscape_16_9", num_inference_steps: 28 } });
+        const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: framePrompt, image_size: vsAspToSize(opts.aspect), num_inference_steps: 28 } });
         imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url;
         if (!imageUrl) throw new Error("frame image failed");
       }
