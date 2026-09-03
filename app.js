@@ -14932,7 +14932,15 @@ async function vsBurnTitleCard(videoBlob, opts) {
     await ffmpeg.writeFile("title.ttf", fontBuf);
     const vidBuf = new Uint8Array(await videoBlob.arrayBuffer());
     await ffmpeg.writeFile("in.mp4", vidBuf);
-    const escTxt = (t) => t.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\\'").replace(/%/g, "\\%");
+    // The text= value is wrapped in single quotes (text='...'). Per ffmpeg's
+    // OWN filtergraph escaping rules (not shell rules) the only thing that
+    // needs special handling INSIDE a single-quoted segment is a literal
+    // single quote itself — end the quote, escape one, reopen: '\''. A prior
+    // version used a plain backslash (\') which ffmpeg does NOT treat as an
+    // escaped quote there — confirmed live: "I'M" silently vanished from a
+    // burned title sequence while "MY" and "HOW TO" (no apostrophe) rendered
+    // fine. Colon/percent/backslash do NOT need escaping inside the quotes.
+    const escTxt = (t) => t.replace(/'/g, "'\\''");
     // Slot the cards one after another — each holds ~1.1s (a snappy word-by-
     // word pace, matching how these reveal on the original), starting right
     // at the top of the clip.
@@ -18085,7 +18093,12 @@ async function vsSampleVideoTitleCards(videoUrl) {
         const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
         const vis = await vsVisionAnalyze(uj.file_url); if (!vis) continue;
-        const t = String(vis.title_text || "").trim();
+        // The vision model doesn't always classify a bold on-screen phrase as
+        // the strict "title_card" case — it often lands in the more general
+        // onscreen_text field instead (confirmed live: a centered bold caption
+        // came back as onscreen_text, title_text empty). Accept either, same
+        // as the upload-handler path, so a real caption isn't silently missed.
+        const t = String(vis.title_text || vis.onscreen_text || "").trim();
         if (t && cards[cards.length - 1] !== t) cards.push(t.slice(0, 40));
       } catch (e) {}
     }
