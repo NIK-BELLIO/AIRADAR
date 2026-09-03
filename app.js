@@ -17252,10 +17252,11 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-mctl .cf{position:relative}
          :is(#reModal,#reMainBody) .re-mctl .cf b{position:absolute;top:4px;left:9px;font:700 7.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#8ea6c8;pointer-events:none}
          :is(#reModal,#reMainBody) .re-mctl select{padding-top:15px!important;height:40px!important}
-         /* Mobile: Analyze goes full-width UNDER the link input (no cramped side-by-side) */
+         /* Analyze goes full-width UNDER the link input (no cramped side-by-side),
+            at every viewport width — not just mobile. */
+         :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
+         :is(#reModal,#reMainBody) .re-analyzerow #reFetch{width:100%;justify-content:center;padding-top:12px;padding-bottom:12px}
          @media(max-width:640px){
-           :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
-           :is(#reModal,#reMainBody) .re-analyzerow #reFetch{width:100%;justify-content:center;padding-top:12px;padding-bottom:12px}
            :is(#reModal,#reMainBody) .re-anymedia label{min-width:100%}
          }
        </style>
