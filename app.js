@@ -17215,6 +17215,31 @@ function vsReverseEngineer(prefill, opts) {
          #reModal .re-fieldrow select{appearance:none;-webkit-appearance:none;background:transparent!important;border:none!important;padding:0 22px 0 0!important;margin:0!important;font-weight:700;font-size:12.5px;color:#eef4ff;width:100%;border-radius:0;cursor:pointer;line-height:1.15;min-height:0!important;height:20px!important;box-shadow:none!important}
          #reModal .re-fieldrow select:focus{background:transparent!important}
          #reModal .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
+         /* ── Render model cards ─────────────────────────────────────── */
+         #reModal .re-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
+         #reModal .re-mcard{position:relative;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px 13px 14px;transition:transform .16s,border-color .16s,box-shadow .16s;opacity:.62}
+         #reModal .re-mcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.45);box-shadow:0 14px 30px -14px rgba(37,99,255,.55)}
+         #reModal .re-mcard.rec{opacity:1;order:-1;border-color:rgba(37,99,255,.55);box-shadow:0 0 0 1px rgba(37,99,255,.35),0 16px 34px -16px rgba(37,99,255,.6);background:linear-gradient(180deg,rgba(37,99,255,.12),rgba(37,99,255,.03))}
+         #reModal .re-mcard .mtop{display:flex;gap:11px;align-items:flex-start}
+         #reModal .re-mcard .mico{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         #reModal .re-mcard.free .mico{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:#5fe0b0}
+         #reModal .re-mcard .mname{font:800 14px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;letter-spacing:-.01em;line-height:1.2}
+         #reModal .re-mcard .meng{font:600 9.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8ea6c8;margin-top:3px;text-transform:uppercase}
+         #reModal .re-mcard .mdesc{font-size:11.5px;color:#aeb9c9;line-height:1.45;min-height:32px}
+         #reModal .re-mcard .mcred{display:inline-flex;align-items:center;gap:4px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451;background:rgba(0,0,0,.22);border-radius:6px;padding:3px 8px 3px 6px}
+         #reModal .re-mcard.free .mcred{color:#5fe0b0}
+         #reModal .re-mcard .mribbon{position:absolute;top:-9px;right:11px;font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 8px;border-radius:20px;box-shadow:0 4px 12px -3px rgba(37,99,255,.7);display:none}
+         #reModal .re-mcard.rec .mribbon{display:block}
+         #reModal .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border:0;border-radius:11px;cursor:pointer;font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 20px -8px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.26) inset;transition:filter .14s}
+         #reModal .re-mcard .mbtn:hover{filter:brightness(1.08)}
+         #reModal .re-mcard.free .mbtn{background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 8px 20px -8px rgba(16,185,129,.55),0 1px 0 rgba(255,255,255,.26) inset}
+         #reModal .re-mcard .mdrop{display:flex;align-items:center;gap:7px;font-size:11px;color:#bcd0f5;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:9px;padding:7px 9px;cursor:pointer}
+         #reModal .re-mcard .mdrop:hover{border-color:rgba(37,99,255,.4)}
+         #reModal .re-mcard select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;padding:6px 9px!important;min-height:0!important;height:32px!important;color:#eef4ff;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:none!important}
+         #reModal .re-anymedia{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+         #reModal .re-anymedia label{flex:1;min-width:150px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1px dashed rgba(37,99,255,.34);border-radius:11px;padding:9px 11px;cursor:pointer;transition:.14s}
+         #reModal .re-anymedia label:hover{border-color:rgba(37,99,255,.6);background:rgba(37,99,255,.1)}
+         #reModal .re-anymedia .mico2{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
          <img src="/re-icon.svg" alt="" style="width:22px;height:22px"/>
@@ -17291,56 +17316,123 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <div id="reThRow" style="display:none;flex-direction:column;gap:8px">
-         <div class="re-render-h">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
-         <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-           <span class="lbl">${fa ? "پرزنترِ سخنگو" : "Talking-head presenter"}</span>
-           <select id="reThVoice" style="min-width:120px">
-             <option value="af_heart">${fa ? "زن — گرم" : "Female — warm"}</option>
-             <option value="af_bella">${fa ? "زن — روشن" : "Female — bright"}</option>
-             <option value="am_michael">${fa ? "مرد — پخته" : "Male — mature"}</option>
-             <option value="am_adam">${fa ? "مرد — رسا" : "Male — clear"}</option>
-           </select>
-           <select id="reThGender" style="min-width:110px">
-             <option value="female">${fa ? "چهرهٔ زن (خودکار)" : "Female face (auto)"}</option>
-             <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
-           </select>
-           <span style="flex:1"></span>
-           <span style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#f5c451">${fa ? "۵ کردیت / ثانیه" : "5 credits / sec"}</span>
+       <div id="reThRow" style="display:none;flex-direction:column;gap:12px">
+         <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
+         <!-- Shared media: add your OWN image / voice to ANY build ─────── -->
+         <div class="re-anymedia">
+           <label id="reAnyImgLbl">
+             <span class="mico2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
+             <span id="reAnyImgTxt">${fa ? "افزودنِ عکسِ خودت (اختیاری)" : "Add your image (optional)"}</span>
+             <input id="reAnyImg" type="file" accept="image/*" style="display:none"/>
+           </label>
+           <label id="reAnyAudioLbl">
+             <span class="mico2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 7v10M17 7v10M3 10v4M21 10v4"/></svg></span>
+             <span id="reAnyAudioTxt">${fa ? "افزودنِ صدای خودت (اختیاری)" : "Add your voice/audio (optional)"}</span>
+             <input id="reAnyAudio" type="file" accept="audio/*" style="display:none"/>
+           </label>
          </div>
-         <label id="reThPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
-           <span id="reThPhotoTxt">${fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak"}</span>
-           <input id="reThPhoto" type="file" accept="image/*" style="display:none"/>
-         </label>
-         <button id="reBuildTH" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "ساختِ ویدیوی «آدمِ سخنگو»" : "Build as talking-head"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">5 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
-         <button id="reBuildMotion" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#eaf1ff;background:rgba(37,99,255,.14);box-shadow:inset 0 0 0 1px rgba(37,99,255,.42);font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"} · <b style="color:#f5c451">18 ${fa ? "کردیت" : "credits"}</b></div>
-         <label id="reLsVidLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer;margin-top:4px">
-           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg></span>
-           <span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت را بده (برای لیپ‌سینک)" : "Your own face video (for lip-sync)"}</span>
-           <input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
-         <button id="reBuildLipsync" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg>${fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"} · <b style="color:#f5c451">12 ${fa ? "کردیت" : "credits"}</b></div>
-         <div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>
-         <button id="reBuildHappy" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>${fa ? "آدمِ سخنگو — پرزنترِ AI" : "Talking-head — AI presenter"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Happy Horse · ${fa ? "متن→ویدیو · لیپ‌سینکِ چندزبانه" : "text→video · multilingual lip-sync"} · <b style="color:#f5c451">9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
-         <button id="reBuildGrok" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg>${fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8ea6c8;letter-spacing:.02em;margin:-3px 0 3px">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"} · <b style="color:#f5c451">9 ${fa ? "کردیت/ثانیه" : "credits/sec"}</b></div>
-       </div>
-       <div id="reCarRow" style="display:none;flex-direction:column;gap:8px">
-         <label id="reCarPhotoLbl" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-           <span style="flex:none;color:#7fb0ff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg></span>
-           <span id="reCarPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری)" : "Your photo for the cover slide (optional)"}</span>
-           <input id="reCarPhoto" type="file" accept="image/*" style="display:none"/>
-         </label>
-         <button id="reBuildCar" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;font-weight:800"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8M20 8v8"/></svg>${fa ? "ساختِ کاروسل (اسلایدِ عکس + متن)" : "Build carousel (image + text slides)"}</button>
-         <div style="font:600 11px 'JetBrains Mono',ui-monospace,monospace;color:#8fe6c8;letter-spacing:.02em;margin:-3px 0 3px">${fa ? "کنواسِ درون‌مرورگری" : "on-device canvas"} · <b>${fa ? "رایگان" : "FREE · 0 credits"}</b></div>
+         <div class="re-cards">
+           <!-- Talking-head (Fabric) -->
+           <div class="re-mcard" data-route="talking_head">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
+               <div><div class="mname">${fa ? "آدمِ سخنگو" : "Talking-head"}</div><div class="meng">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "یک چهره مستقیم به دوربین اسکریپت را می‌گوید. عکسِ خودت را بده تا همون شخص حرف بزند." : "A face speaks your script to camera. Add your photo and that person presents it."}</div>
+             <select id="reThVoice">
+               <option value="af_heart">${fa ? "صدا: زن — گرم" : "Voice: Female — warm"}</option>
+               <option value="af_bella">${fa ? "صدا: زن — روشن" : "Voice: Female — bright"}</option>
+               <option value="am_michael">${fa ? "صدا: مرد — پخته" : "Voice: Male — mature"}</option>
+               <option value="am_adam">${fa ? "صدا: مرد — رسا" : "Voice: Male — clear"}</option>
+             </select>
+             <select id="reThGender">
+               <option value="female">${fa ? "چهرهٔ زن (خودکار)" : "Female face (auto)"}</option>
+               <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
+             </select>
+             <label id="reThPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reThPhotoTxt">${fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)"}</span><input id="reThPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div style="flex:1"></div>
+             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>5 ${fa ? "/ ثانیه" : "/ sec"}</span></div>
+             <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
+           </div>
+           <!-- Lip-sync (LatentSync) -->
+           <div class="re-mcard" data-route="talking_head">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg></span>
+               <div><div class="mname">${fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video"}</div><div class="meng">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "ویدیوی صورتِ خودت را بده؛ لب‌ها را با اسکریپتِ جدید هماهنگ می‌کنیم." : "Upload your own face video; we re-sync the lips to the new script."}</div>
+             <label id="reLsVidLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg><span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت (لازم)" : "Your face video (required)"}</span><input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
+             <div style="flex:1"></div>
+             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>12</span>
+             <button id="reBuildLipsync" type="button" class="mbtn">${fa ? "لیپ‌سینک" : "Lip-sync"}</button>
+           </div>
+           <!-- AI presenter (Happy Horse) -->
+           <div class="re-mcard" data-route="talking_head">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
+               <div><div class="mname">${fa ? "پرزنترِ AI" : "AI presenter"}</div><div class="meng">Happy Horse · ${fa ? "متن→ویدیو" : "text→video"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "پرزنترِ کاملاً AI که اسکریپت را چندزبانه با لیپ‌سینکِ طبیعی می‌گوید." : "A fully-AI presenter delivers the script with natural multilingual lip-sync."}</div>
+             <div style="flex:1"></div>
+             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <button id="reBuildHappy" type="button" class="mbtn">${fa ? "ساختِ پرزنتر" : "Build presenter"}</button>
+           </div>
+           <!-- Cinematic motion (H3 Max) -->
+           <div class="re-mcard" data-route="video">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg></span>
+               <div><div class="mname">${fa ? "نمای سینمایی" : "Cinematic motion"}</div><div class="meng">MiniMax H3 Max · ${fa ? "عکس→ویدیو" : "image→video"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "یک نمای سینمایی با حرکتِ دوربین از کاورِ ساخته‌شده — بدونِ حرف زدن." : "A cinematic camera-move shot from the generated cover — no talking."}</div>
+             <div style="flex:1"></div>
+             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>18</span>
+             <button id="reBuildMotion" type="button" class="mbtn">${fa ? "نمای سینمایی" : "Cinematic shot"}</button>
+           </div>
+           <!-- Cinematic + audio (Grok) -->
+           <div class="re-mcard" data-route="video">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/><path d="M8 20h8"/></svg></span>
+               <div><div class="mname">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</div><div class="meng">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "نمای متحرک با صدای همزمان از عکسِ تو یا کاورِ ساخته‌شده." : "A moving shot with synced audio from your photo or the generated cover."}</div>
+             <div style="flex:1"></div>
+             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
+           </div>
+           <!-- Carousel (image + text slides) — FREE -->
+           <div class="re-mcard free" data-route="carousel">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8M20 8v8"/></svg></span>
+               <div><div class="mname">${fa ? "کاروسل" : "Carousel"}</div><div class="meng">${fa ? "اسلایدِ عکس + متن" : "image + text slides"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "یک کاروسلِ چنداسلایدیِ قابلِ پست — دقیقاً مثلِ پست‌های اسلایدشو با عکس." : "A postable multi-slide carousel — exactly like slideshow/photo posts."}</div>
+             <label id="reCarPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reCarPhotoTxt">${fa ? "عکسِ کاور (اختیاری)" : "Cover photo (optional)"}</span><input id="reCarPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div style="flex:1"></div>
+             <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
+             <button id="reBuildCar" type="button" class="mbtn">${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
+           </div>
+           <!-- Slideshow video — FREE -->
+           <div class="re-mcard free" data-route="video">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></span>
+               <div><div class="mname">${fa ? "ویدیوی اسلایدشو" : "Slideshow video"}</div><div class="meng">${fa ? "کنواسِ درون‌مرورگری" : "on-device canvas"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "اسلایدشوی ویدیوییِ متن + عکس با ویس‌اوور — رایگان، بدونِ کردیت." : "A text + image slideshow video with voiceover — free, no credits."}</div>
+             <div style="flex:1"></div>
+             <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
+             <button id="reBuild" type="button" class="mbtn">${fa ? "ساختِ اسلایدشو" : "Build slideshow"}</button>
+           </div>
+         </div>
        </div>
        <div style="display:flex;gap:9px">
          <button id="reClose" type="button" class="btn" style="flex:1;background:transparent;color:#cfc8ba;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="reBuild" type="button" class="btn" style="display:none;align-items:center;justify-content:center;gap:8px;flex:2;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 22px -6px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg>${fa ? "اسلایدشو (رایگان)" : "Slideshow (FREE · 0 credits)"}</button>
        </div>
      </div>`;
   // Page mode: render the panel inline into a mount (a dedicated /reverse-engineer
@@ -17464,9 +17556,7 @@ function vsReverseEngineer(prefill, opts) {
       $$("reScript").value = String(blueprint.script || "");
       $$("reCaption").textContent = String(blueprint.caption || "");
       $$("reOut").style.display = "flex";
-      $$("reBuild").style.display = "";
       $$("reThRow").style.display = "flex";
-      $$("reCarRow").style.display = "flex";
       // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
       // The model decides which builder matches the reference: a person talking
       // → talking-head; image slides with text → carousel; footage/motion → video.
@@ -17486,12 +17576,17 @@ function vsReverseEngineer(prefill, opts) {
       const fmt = $$("reFmt");
       const col = route === "talking_head" ? ["rgba(250,204,21,.10)", "rgba(250,204,21,.32)", "#e9d19a"] : route === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,141,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
       fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
-      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "همینو برات می‌سازم 👇" : "building exactly this for you 👇"}`;
-      // Emphasize the matching builder; keep the others available but muted.
-      $$("reThRow").style.opacity = route === "talking_head" ? "1" : ".55";
-      $$("reCarRow").style.opacity = route === "carousel" ? "1" : ".55";
-      $$("reBuild").style.opacity = route === "video" ? "1" : ".55";
-      $$("reBuild").textContent = "🎬 " + (fa ? "ساختِ ویدیوی اسلایدشو" : "Build slideshow video");
+      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}`;
+      // Highlight the matching builder cards (badge + pull to front); the rest
+      // stay available but muted. A slideshow/photo post recommends BOTH the
+      // carousel and the free slideshow-video builders, so it's built LIKE the
+      // original instead of pushing a talking-head that the post never had.
+      const recRoutes = route === "talking_head" ? ["talking_head"] : route === "carousel" ? ["carousel", "video"] : ["video", "carousel"];
+      const root = page ? document : ov;
+      root.querySelectorAll(".re-mcard").forEach((c) => {
+        c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
+      });
+      $$("reRenderH").textContent = fa ? "رندر · مدلِ پیشنهادی بالاست" : "RENDER · RECOMMENDED IS ON TOP";
       // remember the reference gender guess to pick a matching face by default
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + route + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
@@ -17526,13 +17621,25 @@ function vsReverseEngineer(prefill, opts) {
     try { buildAutoVideo(true); } catch (e) {}
   };
 
+  // Shared media — an image and/or a voice track the user can attach to ANY
+  // build (product intro, person, scene…), not tied to one model. Builders use
+  // these as a fallback source when their own picker is empty.
+  let anyImg = null, anyAud = null;
+  if ($$("reAnyImg")) $$("reAnyImg").onchange = (e) => {
+    anyImg = (e.target.files && e.target.files[0]) || null;
+    $$("reAnyImgTxt").textContent = anyImg ? (fa ? "✓ عکسِ تو: " : "✓ Your image: ") + anyImg.name.slice(0, 26) : (fa ? "افزودنِ عکسِ خودت (اختیاری)" : "Add your image (optional)");
+  };
+  if ($$("reAnyAudio")) $$("reAnyAudio").onchange = (e) => {
+    anyAud = (e.target.files && e.target.files[0]) || null;
+    $$("reAnyAudioTxt").textContent = anyAud ? (fa ? "✓ صدای تو: " : "✓ Your audio: ") + anyAud.name.slice(0, 26) : (fa ? "افزودنِ صدای خودت (اختیاری)" : "Add your voice/audio (optional)");
+  };
   // Own-photo picker: remember the file and show its name.
   let thPhoto = null;
   $$("reThPhoto").onchange = (e) => {
     thPhoto = (e.target.files && e.target.files[0]) || null;
     $$("reThPhotoTxt").textContent = thPhoto
       ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + thPhoto.name.slice(0, 30)
-      : (fa ? "عکسِ خودت را بده (اختیاری) — همون شخص حرف می‌زند" : "Use your own photo (optional) — that person will speak");
+      : (fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)");
   };
   // Lip-sync (LatentSync, video→video) — the user's OWN face video, 12 credits.
   let lsVid = null;
@@ -17541,7 +17648,7 @@ function vsReverseEngineer(prefill, opts) {
     const script = ($$("reScript").value || "").trim();
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     if (!lsVid) { $$("reLsVid").click(); return; }
-    try { vsBuildLipsync({ script, video: lsVid, voice: $$("reThVoice").value }); } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
+    try { vsBuildLipsync({ script, video: lsVid, voice: $$("reThVoice").value, audio: anyAud }); } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
   // Happy Horse — text→talking-head with native lip-sync (works for ANY post:
   // product intro, tips, story…). Uses the reverse-engineered script directly.
@@ -17567,7 +17674,8 @@ function vsReverseEngineer(prefill, opts) {
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     let imageUrl = "";
     try {
-      if (thPhoto) { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": thPhoto.type || "image/jpeg" }, body: thPhoto }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
+      const gImg = thPhoto || anyImg;
+      if (gImg) { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": gImg.type || "image/jpeg" }, body: gImg }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
       if (!imageUrl) { const setting = ((blueprint && blueprint.setting) || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 80); const fim = await (await fetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt: "cinematic photograph, " + setting + ", a person, shallow depth of field, photorealistic, film still", image_size: "portrait_16_9", num_inference_steps: 28 } }) })).json().catch(() => ({})); imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url; }
     } catch (e) {}
     if (!imageUrl) { vsStatus(fa ? "عکسِ اولیه ساخته نشد — عکسِ خودت رو آپلود کن." : "Couldn't get a frame — upload your own photo."); return; }
@@ -17597,7 +17705,7 @@ function vsReverseEngineer(prefill, opts) {
         subtitle: ($$("rePrompt").value || "").trim(),
         coverTitle: (blueprint && blueprint.caption ? String(blueprint.caption).split(/[.\n!?]/)[0].slice(0, 60) : "") || "",
         handle: (ref && ref.username) ? "@" + ref.username : "",
-        photo: carPhoto, gender: $$("reThGender") ? $$("reThGender").value : "female",
+        photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || ""
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
@@ -17609,7 +17717,7 @@ function vsReverseEngineer(prefill, opts) {
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions) }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -17618,7 +17726,7 @@ function vsReverseEngineer(prefill, opts) {
   $$("reBuildMotion").onclick = () => {
     try {
       vsReverseMotionClip({
-        photo: thPhoto,
+        photo: thPhoto || anyImg,
         gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || "",
         motion: (blueprint && (blueprint.motion || blueprint.camera)) || "",
@@ -17924,10 +18032,21 @@ async function vsBuildTalkingHead(script, opts) {
     const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t;
   };
 
-  // 1) Voice
+  // 1) Voice — use the user's OWN uploaded audio if they attached one, else TTS.
   setStep("voice", "run");
-  const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
-  const audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) { setStep("voice", "err"); throw new Error("TTS failed"); }
+  let audioUrl;
+  if (opts.audio) {
+    try {
+      const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
+      const uaj = await ua.json().catch(() => ({}));
+      audioUrl = uaj.file_url || "";
+    } catch (e) {}
+    if (!audioUrl) { setStep("voice", "err"); throw new Error(fa ? "آپلودِ صدا ناموفق بود" : "audio upload failed"); }
+  } else {
+    const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
+    audioUrl = tts && tts.audio && tts.audio.url;
+    if (!audioUrl) { setStep("voice", "err"); throw new Error("TTS failed"); }
+  }
   setStep("voice", "done");
   // audio duration → cost estimate
   let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
@@ -18044,9 +18163,16 @@ async function vsBuildLipsync(opts) {
   } catch (e) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رزرو کردیت." : "Could not reserve credits."}</div>`; return; }
   const settle = async (status) => { try { await fetch("/api/generate/lipsync/finish", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} };
   try {
-    let ic = line(fa ? "نوشتنِ صدا" : "Writing the voice");
-    const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
-    const audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed"); done(ic);
+    let ic = line(opts.audio ? (fa ? "آپلودِ صدای تو" : "Uploading your audio") : (fa ? "نوشتنِ صدا" : "Writing the voice"));
+    let audioUrl;
+    if (opts.audio) {
+      const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
+      const uaj = await ua.json().catch(() => ({})); audioUrl = uaj.file_url || ""; if (!audioUrl) throw new Error("audio upload failed");
+    } else {
+      const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
+      audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed");
+    }
+    done(ic);
     ic = line(fa ? "آپلودِ ویدیوی تو" : "Uploading your video");
     const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.video.type || "video/mp4" }, body: opts.video });
     const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error("upload failed"); done(ic);
