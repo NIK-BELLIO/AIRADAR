@@ -17450,6 +17450,10 @@ function vsReverseEngineer(prefill, opts) {
            <div class="lbl">🎬 ${fa ? "ساختار صحنه‌ها" : "Scene structure"}</div>
            <div id="reBeats"></div>
          </div>
+         <div class="step" id="reShotStep" style="display:none">
+           <div class="lbl">🎥 ${fa ? "شات‌لیستِ ویدیوی مرجع (همین بازسازی می‌شود)" : "Reference shot list (this is what gets rebuilt)"}</div>
+           <div id="reShots" class="dna"></div>
+         </div>
          <div class="step">
            <div class="lbl">📝 ${fa ? "اسکریپت (قابل ویرایش — همین ساخته می‌شود)" : "Script (editable — this is what gets built)"}</div>
            <textarea id="reScript" rows="8"></textarea>
@@ -17652,7 +17656,7 @@ function vsReverseEngineer(prefill, opts) {
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     const upload1 = async (blob) => { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
     try {
-      let thumbUrl = "", vision = null, titleCards = [];
+      let thumbUrl = "", vision = null, titleCards = [], shotList = [];
       if (/^video\//.test(file.type)) {
         // A single first-frame grab only ever sees whatever is on screen at
         // t=0 — a progressive caption reveal ("MY" → "I'M" → "HOW TO…") or a
@@ -17663,14 +17667,20 @@ function vsReverseEngineer(prefill, opts) {
         lbl.textContent = (fa ? "⏳ در حال نمونه‌برداری از ویدیو…" : "⏳ Sampling the video…");
         const frames = await vsVideoFrames(file, [0.06, 0.3, 0.55, 0.8]);
         if (!frames.length) throw new Error(fa ? "فریمی از ویدیو گرفته نشد" : "couldn't read any video frame");
+        const fracs = [0.06, 0.3, 0.55, 0.8];
         for (let i = 0; i < frames.length; i++) {
           lbl.textContent = (fa ? `⏳ تحلیلِ فریمِ ${i + 1}/${frames.length}` : `⏳ Analyzing frame ${i + 1}/${frames.length}`);
           const url = await upload1(frames[i]); if (!url) continue;
           if (!thumbUrl) thumbUrl = url;
           const vis = await vsVisionAnalyze(url); if (!vis) continue;
           if (!vision || (vis.onscreen_text && !vision.onscreen_text)) vision = vis;   // keep the richest read for format/setting/mic
-          const t = String(vis.title_text || vis.onscreen_text || "").trim();
-          if (t && titleCards[titleCards.length - 1] !== t) titleCards.push(t.slice(0, 40));
+          const t = vsCleanCardText(vis.title_text || vis.onscreen_text || "", vis);
+          if (t && titleCards[titleCards.length - 1] !== t) titleCards.push(t);
+          // Same frame, second read: the SHOT (framing/camera/angle/blocking),
+          // so an uploaded reference gets the same scene-by-scene understanding
+          // as one pulled from a link.
+          const sc = await vsVisionScene(url);
+          if (sc) shotList.push({ at: fracs[i], shot: sc.shot || "", camera: sc.camera || "", angle: sc.angle || "", subject_pos: sc.subject_pos || "", subject: sc.subject || "", action: sc.action || "", setting: sc.setting || "", lighting: sc.lighting || "" });
         }
         if (!thumbUrl) throw new Error(fa ? "آپلودِ فریم‌ها ناموفق بود" : "frame upload failed");
       } else {
@@ -17682,7 +17692,7 @@ function vsReverseEngineer(prefill, opts) {
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
       if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, uploaded: true, isProfile: false };
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, uploaded: true, isProfile: false };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
       const cardsTxt = titleCards.length ? `<div style="font-size:11.5px;color:#f5c451;margin-top:3px">${fa ? "کپشن‌های دیده‌شده: " : "Captions seen: "}“${esc(titleCards.join('” → “'))}”</div>` : "";
@@ -17747,7 +17757,17 @@ function vsReverseEngineer(prefill, opts) {
         if (ref.videoUrl && !ref.uploaded) {
           try {
             go.textContent = "👁️ " + (fa ? "در حال دیدنِ کلیپ…" : "Watching the full clip…");
-            linkTitleCards = await vsSampleVideoTitleCards(ref.videoUrl);
+            // Pull the real clip once, then read every sampled frame at SHOT
+            // level: framing, camera move, angle, blocking, lighting. That shot
+            // list is what lets the rebuild follow the reference's filmmaking —
+            // same scenes and camera, only the person and the words change.
+            const r = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/insta/video?url=" + encodeURIComponent(ref.videoUrl));
+            const vblob = r.ok ? await r.blob() : null;
+            if (vblob && vblob.size > 1000) {
+              const sl = await vsAnalyzeShotList(vblob);
+              blueprint.shotList = sl.shots;
+              linkTitleCards = sl.cards;
+            }
           } catch (e) {}
         }
         if (vis) {
@@ -17809,6 +17829,8 @@ function vsReverseEngineer(prefill, opts) {
           // logo, a prop, or a hallucinated placeholder — confirmed live on a
           // plain no-overlay reel that produced the literal text "MY NAME",
           // which then got burned across the user's own face.
+          // An uploaded reference carries its own shot list from the upload step.
+          if (!blueprint.shotList && ref.shotList && ref.shotList.length) blueprint.shotList = ref.shotList;
           const multiCards = (linkTitleCards && linkTitleCards.length) ? linkTitleCards : (ref.titleCards || []);
           if (vsHasCaptionStyle(multiCards)) {
             blueprint.captionStyle = {
@@ -17846,6 +17868,18 @@ function vsReverseEngineer(prefill, opts) {
       $$("reTags").innerHTML = (ref && ref.hashtags || []).slice(0, 10).map(h => `<span class="tag">${esc(h)}</span>`).join("");
       $$("reBeats").innerHTML = (blueprint.structure || []).map((s, i) => `<div class="beat"><b style="color:#2563ff">${i + 1}.</b> ${esc(String(s))}</div>`).join("") ||
         `<div class="beat" style="color:#9a938a">${fa ? "—" : "—"}</div>`;
+      // Show the shot list the model actually read off the reference clip, so
+      // what it understood is visible instead of implied.
+      const shots = (blueprint && blueprint.shotList) || [];
+      if (shots.length && $$("reShotStep")) {
+        $$("reShotStep").style.display = "";
+        $$("reShots").innerHTML = shots.map((sh, i) => {
+          const head = [sh.shot, sh.angle].filter(Boolean).map(x => String(x).replace(/_/g, " ")).join(" · ");
+          const move = String(sh.camera || "").replace(/_/g, " ");
+          const body = [sh.action, sh.setting, sh.lighting].filter(Boolean).join(" · ");
+          return `<div class="dnaCell"><div class="k">${esc((fa ? "نمای " : "Shot ") + (i + 1))}${move ? " · " + esc(move) : ""}</div><div class="v">${esc(head)}</div><div class="v" style="font-size:11.5px;color:#aeb9c9;margin-top:3px">${esc(body)}</div></div>`;
+        }).join("");
+      } else if ($$("reShotStep")) { $$("reShotStep").style.display = "none"; }
       $$("reScript").value = String(blueprint.script || "");
       $$("reCaption").textContent = String(blueprint.caption || "");
       stepProg(3);
@@ -18021,7 +18055,8 @@ function vsReverseEngineer(prefill, opts) {
       vsBuildVideoModel({
         title: fa ? "آدمِ سخنگو (Happy Horse)" : "Talking-head (Happy Horse)",
         action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
-        input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: asp, resolution: "720p", duration: sec },
+        input: { prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], (fa ? "" : "") + "a person speaking to camera", nar.slice(0, 700))
+          || `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`), aspect_ratio: asp, resolution: "720p", duration: sec },
         name: "talking-head",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -18045,7 +18080,8 @@ function vsReverseEngineer(prefill, opts) {
       vsBuildVideoModel({
         title: fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)",
         action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
-        input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: res, duration: sec },
+        input: { image_url: imageUrl, prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "", nar.slice(0, 200))
+          || ("cinematic camera movement, natural motion, " + nar.slice(0, 140))), resolution: res, duration: sec },
         name: "cinematic",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -18177,6 +18213,64 @@ async function vsVideoFirstFrame(file) { const fr = await vsVideoFrames(file, [0
 // single cover-thumbnail read would only ever see one frame of. Returns an
 // ordered array of distinct short title/caption phrases (possibly empty —
 // this never blocks the rest of Analyze if the video can't be fetched).
+// Scene-level read of ONE frame (framing, camera move, angle, subject, action,
+// lighting) — the raw material for rebuilding the reference's actual
+// filmmaking instead of only its topic.
+async function vsVisionScene(imgUrl) {
+  if (!imgUrl) return null;
+  try {
+    const r = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/vision?fal=1&scene=1&img=" + encodeURIComponent(imgUrl));
+    const d = await r.json();
+    return (d && d.ok) ? d : null;
+  } catch (e) { return null; }
+}
+
+// Walk a video and build an ordered SHOT LIST: what the camera does at each
+// point in the clip. One upload per sampled frame, reused for BOTH the scene
+// read and the caption-style check so we never pay for the same frame twice.
+// Returns { shots: [{at, shot, camera, angle, subject_pos, action, setting,
+// lighting}], cards: [text…] }.
+async function vsAnalyzeShotList(blob, fracs) {
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const at = fracs && fracs.length ? fracs : [0.06, 0.3, 0.55, 0.8];
+  const out = { shots: [], cards: [] };
+  try {
+    const frames = await vsVideoFrames(blob, at);
+    for (let i = 0; i < frames.length; i++) {
+      try {
+        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
+        const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
+        const sc = await vsVisionScene(uj.file_url); if (!sc) continue;
+        out.shots.push({
+          at: at[i], shot: sc.shot || "", camera: sc.camera || "", angle: sc.angle || "",
+          subject_pos: sc.subject_pos || "", subject: sc.subject || "", action: sc.action || "",
+          setting: sc.setting || "", lighting: sc.lighting || ""
+        });
+        const t = vsCleanCardText(sc.onscreen_text || "", sc);
+        if (t && out.cards[out.cards.length - 1] !== t) out.cards.push(t);
+      } catch (e) {}
+    }
+  } catch (e) {}
+  return out;
+}
+
+// Turn a shot list into one director's line a video model can actually follow —
+// the same scene, camera and blocking as the reference, with the user's own
+// subject and words dropped in.
+function vsShotListToPrompt(shots, subjectPhrase, narration) {
+  if (!shots || !shots.length) return "";
+  const beats = shots.slice(0, 4).map((s, i) => {
+    const bits = [s.shot && s.shot.replace(/_/g, " "), s.angle && s.angle.replace(/_/g, " "), s.camera && s.camera.replace(/_/g, " ") + " camera"]
+      .filter(Boolean).join(", ");
+    const where = [s.setting, s.lighting].filter(Boolean).join(", ");
+    const doing = s.action ? (", " + s.action) : "";
+    return `Shot ${i + 1}: ${bits}${where ? " in " + where : ""}${doing}.`;
+  }).join(" ");
+  const who = subjectPhrase ? `The subject is ${subjectPhrase}. ` : "";
+  const say = narration ? ` They are saying: "${String(narration).slice(0, 400)}"` : "";
+  return `Recreate this exact shot sequence. ${beats} ${who}Keep the framing, camera movement and lighting of each shot.${say}`;
+}
+
 async function vsSampleVideoTitleCards(videoUrl) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   try {
