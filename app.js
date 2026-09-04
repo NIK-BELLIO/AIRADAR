@@ -17733,7 +17733,14 @@ function vsReverseEngineer(prefill, opts) {
           // correctly-detected talking-head with "slideshow" every time. Only the
           // REFERENCE's own DNA.format text is a real signal.
           const ssTxt = String((blueprint.styleDNA && blueprint.styleDNA.format) || "");
-          const strongSlideshow = /slide|carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe/i.test(ssTxt);
+          const strongSlideshow = /slide|carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe/i.test(ssTxt)
+            || /carousel|slide|graphic|quote/i.test(String(vis.format || ""));
+          // Remember this for the route computation below — it must use the
+          // SAME guard as formatType here, or a false-positive "mic" read on
+          // a quote-card cover (bug: confirmed live, Glennda's pink quote-card
+          // slideshow got routed to talking-head purely because vis.mic came
+          // back true) can override a reference that's clearly a slideshow.
+          blueprint._strongSlideshow = strongSlideshow;
           const camTalk = /podcast|talking[_ ]?head|to camera|speaking to camera|piece to camera|selfie video|\bvlog\b|person speaks|speaks to camera|interview/i.test(String(vis.format || "")) || !!vis.mic;
           if (camTalk && !strongSlideshow) blueprint.formatType = "talking_head";
           else if (strongSlideshow) blueprint.formatType = "slideshow";
@@ -17805,7 +17812,14 @@ function vsReverseEngineer(prefill, opts) {
       // Burned-in captions/title text do NOT override this: plenty of talking-head
       // reels (like a dramatic name-card intro) also carry on-screen text, and
       // that text alone must never demote a real talking-head to a carousel.
-      const personSignal = blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter|interview/.test(vf) || blueprint.mic;
+      // BUT a strong slideshow/carousel/quote-card signal from the reference's
+      // OWN DNA always wins over the mic/vf heuristics below — confirmed live:
+      // without this guard, a false-positive "mic" read on a quote-card cover
+      // photo routed a pure slideshow post (Glennda's pink quote cards) to
+      // talking-head, recommending Fabric/LatentSync/Happy Horse for a post
+      // that never had anyone speaking to camera at all.
+      const personSignal = !blueprint._strongSlideshow &&
+        (blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter|interview/.test(vf) || blueprint.mic);
       if (personSignal) route = "talking_head";
       else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || blueprint.captions) route = "carousel";
       else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf)) route = "video";
