@@ -17438,6 +17438,7 @@ function vsReverseEngineer(prefill, opts) {
 
        <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}<span style="display:inline-flex;align-items:center;gap:4px;font:800 11px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:3px 8px 3px 6px;border-radius:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>2 ${fa ? "کردیت" : "credits"}</span></button>
 
+       <div id="reProgress" style="display:none;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22);border-radius:14px;padding:14px 16px"></div>
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
          <div class="step">
@@ -17499,9 +17500,9 @@ function vsReverseEngineer(prefill, opts) {
                <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
              </select>
              <label id="reThPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reThPhotoTxt">${fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)"}</span><input id="reThPhoto" type="file" accept="image/*" style="display:none"/></label>
-             <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reThAsp">${optAsp("9:16")}</select></div></div>
+             <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reThDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reThAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="mcred" id="reCredTH">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
            </div>
            <!-- Lip-sync (LatentSync) -->
@@ -17700,6 +17701,28 @@ function vsReverseEngineer(prefill, opts) {
     const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
     const go = $$("reGo"); go.disabled = true; const old = go.innerHTML;
     go.textContent = "⏳ " + (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
+    // Visible staged progress — a button that just says "working" leaves the
+    // user staring at a blank canvas with no idea which step is running or
+    // whether it's stuck.
+    const prog = $$("reProgress");
+    const progSteps = fa
+      ? ["خواندنِ سبک و لحنِ مرجع", "دیدنِ فریم‌های ویدیو", "نوشتنِ اسکریپت با اطلاعاتِ تو", "آماده‌سازیِ گزینه‌های ساخت"]
+      : ["Reading the reference's style & tone", "Watching the video's frames", "Writing your script with your info", "Preparing the build options"];
+    let progAt = 0;
+    const drawProg = () => {
+      if (!prog) return;
+      prog.style.display = "block";
+      prog.innerHTML = progSteps.map((t, i) => {
+        const ic = i < progAt ? `<span style="color:#4ade80">✓</span>`
+          : i === progAt ? `<span style="width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>`
+            : `<span style="color:#5c6570">○</span>`;
+        const col = i <= progAt ? "#dbe6ff" : "#6b7686";
+        return `<div style="display:flex;align-items:center;gap:9px;padding:3px 0;font-size:12.5px;color:${col}"><span style="width:14px;display:inline-flex;justify-content:center">${ic}</span>${t}</div>`;
+      }).join("");
+    };
+    const stepProg = (n) => { progAt = n; drawProg(); };
+    if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+    stepProg(0);
     try {
       blueprint = await vsReverseAnalyze(refText, {
         prompt, region: ($$("reRegion").value || "").trim(),
@@ -17708,6 +17731,7 @@ function vsReverseEngineer(prefill, opts) {
       // A transient empty AI response yields no usable script — surface a retry
       // rather than an empty blueprint with a dead Build button.
       if (!blueprint || !String(blueprint.script || "").trim()) throw new Error("empty blueprint");
+      stepProg(1);
       // ── REAL-VIDEO ANALYSIS: "watch" the cover frame and let it OVERRIDE the
       // text-only guess (podcast? mic? burned captions? environment?). ──────────
       if (ref && ref.thumb) {
@@ -17770,27 +17794,31 @@ function vsReverseEngineer(prefill, opts) {
           // else: keep the text-derived formatType as-is
           if (vis.setting && !/n\/?a|none/i.test(vis.setting)) blueprint.setting = vis.setting;
           blueprint.mic = !!vis.mic; blueprint.captions = !!vis.captions; blueprint.visFormat = vis.format || "";
-          // A prominent name/title-card graphic (e.g. a dramatic bold name overlay
-          // on a talking-head shot) — burned onto the REBUILT video too, so the
-          // output actually looks like the reference, not just matches its topic.
-          if (vis.title_card && vis.title_text && String(vis.title_text).trim()) {
-            blueprint.titleCard = String(vis.title_text).trim().slice(0, 40);
-            blueprint.titleColor = String(vis.title_color || "white").trim().toLowerCase();
-            blueprint.titleFont = /serif/i.test(vis.title_font || "") ? "serif" : "sans";
-          }
-          // Multi-frame sampling (either the user's own uploaded video, via
-          // vsVideoFrames, or the reel's real videoUrl fetched above via
-          // vsSampleVideoTitleCards) may have caught a PROGRESSIVE caption
-          // reveal across the clip ("MY" → "I'M" → "HOW TO…") — that full
-          // sequence is the single most defining visual signature of a reel
-          // like this, so carry it through and prefer it over the single-frame
-          // titleCard above.
+          // ── ON-SCREEN CAPTION STYLE ──────────────────────────────────────
+          // We copy the reference's STYLE, never its words: burning the
+          // reference creator's own text onto the user's video is both wrong
+          // (those are someone else's words) and pointless (the whole job is
+          // to rebuild it with the USER's content). So all we take from the
+          // reference here is: does it use burned-in captions at all, and if
+          // so in what colour/typeface — the words themselves come from the
+          // user's own generated script at build time.
+          //
+          // And we only claim a caption style when the evidence is REAL:
+          // the same kind of overlay has to show up in at least two sampled
+          // frames of the actual clip. A single frame's read is usually a
+          // logo, a prop, or a hallucinated placeholder — confirmed live on a
+          // plain no-overlay reel that produced the literal text "MY NAME",
+          // which then got burned across the user's own face.
           const multiCards = (linkTitleCards && linkTitleCards.length) ? linkTitleCards : (ref.titleCards || []);
-          if (multiCards.length) {
-            blueprint.titleCards = multiCards.slice(0, 6);
-            if (!blueprint.titleColor) blueprint.titleColor = String((vis && vis.title_color) || "red").trim().toLowerCase();
-            if (!blueprint.titleFont) blueprint.titleFont = /serif/i.test((vis && vis.title_font) || "") ? "serif" : "sans";
+          if (vsHasCaptionStyle(multiCards)) {
+            blueprint.captionStyle = {
+              color: String((vis && vis.title_color) || "white").trim().toLowerCase(),
+              font: /serif/i.test((vis && vis.title_font) || "") ? "serif" : "sans"
+            };
+          } else {
+            blueprint.captionStyle = null;   // reference has no caption style → burn nothing
           }
+          blueprint.titleCard = ""; blueprint.titleCards = [];   // never reuse the reference's literal words
           // Let the VISION MODEL decide whether the reference actually shows a
           // PERSON (so the rebuilt cover matches: a person-led post → a portrait
           // cover; a pure text/graphic post → NO photo, text-only). Uses the
@@ -17800,6 +17828,7 @@ function vsReverseEngineer(prefill, opts) {
             || /\b(wom(?:a|e)n|m[ae]n|person|people|girl|guy|lady|model|host|presenter|face|portrait|selfie|figure|couple|human|influencer|creator|speaker)\b/i.test(subj);
         }
       }
+      stepProg(2);
       const dna = (blueprint && blueprint.styleDNA) || {};
       // Derive a carousel THEME from the reference so a rebuilt carousel/slideshow
       // LOOKS like the original (e.g. an editorial quote-card style) rather than
@@ -17819,6 +17848,8 @@ function vsReverseEngineer(prefill, opts) {
         `<div class="beat" style="color:#9a938a">${fa ? "—" : "—"}</div>`;
       $$("reScript").value = String(blueprint.script || "");
       $$("reCaption").textContent = String(blueprint.caption || "");
+      stepProg(3);
+      if (prog) prog.style.display = "none";
       $$("reOut").style.display = "flex";
       $$("reThRow").style.display = "flex";
       // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
@@ -17890,6 +17921,7 @@ function vsReverseEngineer(prefill, opts) {
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
       vsSettle(charge.jobId, "done");
     } catch (e) {
+      if (prog) prog.style.display = "none";
       vsSettle(charge.jobId, "failed");   // refund the 2 credits on failure
       vsStatus(fa ? "مهندسی معکوس ناموفق بود — دوباره امتحان کن." : "Reverse-engineering failed — try again.");
     }
@@ -17956,9 +17988,9 @@ function vsReverseEngineer(prefill, opts) {
       const d = $$(durId), chip = $$(chipId); if (!d || !chip) return;
       chip.innerHTML = gemSvg + (d.value === "auto" ? (rate + (fa ? " / ثانیه" : " / sec")) : (Math.ceil(Math.min(Math.max(Number(d.value) || 8, 3), 120) * rate) + (fa ? " کردیت" : "")));
     };
-    set("reHapDur", "reCredHap", 9); set("reGrokDur", "reCredGrok", 9);
+    set("reHapDur", "reCredHap", 9); set("reGrokDur", "reCredGrok", 9); set("reThDur", "reCredTH", 5);
   };
-  ["reHapDur", "reGrokDur"].forEach(id => { if ($$(id)) $$(id).onchange = updCred; });
+  ["reHapDur", "reGrokDur", "reThDur"].forEach(id => { if ($$(id)) $$(id).onchange = updCred; });
   updCred();
   // Own-photo picker: remember the file and show its name.
   let thPhoto = null;
@@ -17991,7 +18023,7 @@ function vsReverseEngineer(prefill, opts) {
         action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
         input: { prompt: `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`, aspect_ratio: asp, resolution: "720p", duration: sec },
         name: "talking-head",
-        titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
+        titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -18015,7 +18047,7 @@ function vsReverseEngineer(prefill, opts) {
         action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
         input: { image_url: imageUrl, prompt: "cinematic camera movement, natural motion, " + nar.slice(0, 140), resolution: res, duration: sec },
         name: "cinematic",
-        titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || ""
+        titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -18054,7 +18086,11 @@ function vsReverseEngineer(prefill, opts) {
     const voice = $$("reThVoice").value, gender = $$("reThGender").value;
     const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
     const aspTH = ($$("reThAsp") && $$("reThAsp").value) || "9:16";
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCard: (blueprint && blueprint.titleCard) || "", titleCards: (blueprint && blueprint.titleCards) || [], titleColor: (blueprint && blueprint.titleColor) || "", titleFont: (blueprint && blueprint.titleFont) || "" }); }
+    // "Auto" = as long as the narration actually takes; a fixed pick caps it so
+    // the credits charged match exactly the seconds shown on the card.
+    const thDurSel = ($$("reThDur") && $$("reThDur").value) || "auto";
+    const maxSecTH = thDurSel === "auto" ? 0 : Math.min(Math.max(Number(thDurSel) || 0, 3), 120);
+    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, maxSeconds: maxSecTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "") }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
   };
@@ -18160,18 +18196,88 @@ async function vsSampleVideoTitleCards(videoUrl) {
         // onscreen_text field instead (confirmed live: a centered bold caption
         // came back as onscreen_text, title_text empty). Accept either, same
         // as the upload-handler path, so a real caption isn't silently missed.
-        const t = String(vis.title_text || vis.onscreen_text || "").trim();
-        if (t && cards[cards.length - 1] !== t) cards.push(t.slice(0, 40));
+        const t = vsCleanCardText(vis.title_text || vis.onscreen_text || "", vis);
+        if (t && cards[cards.length - 1] !== t) cards.push(t);
       } catch (e) {}
     }
     return cards;
   } catch (e) { return []; }
 }
 
+// A one-off text read from a SINGLE frame is not evidence that the reference
+// has a caption STYLE — it's usually a logo on a shirt/truck, a business card
+// in shot, or the vision model emitting a generic placeholder. Confirmed live:
+// a plain talking-head reel with zero overlays produced the literal string
+// "MY NAME", which then got burned across the user's own face. Drop obvious
+// placeholders/brand marks so only real, deliberate on-screen copy survives.
+function vsCleanCardText(raw, vis) {
+  let t = String(raw || "").trim();
+  if (!t) return "";
+  // Placeholder-ish / generic junk the model emits when there's nothing real.
+  if (/^(my\s+)?(name|title|text|logo|brand|caption|headline|your\s+\w+)$/i.test(t)) return "";
+  if (/^(n\/?a|none|no\s+text|unknown|null|undefined)$/i.test(t)) return "";
+  // A handle/URL/hashtag is branding, not a caption style.
+  if (/^[@#]/.test(t) || /https?:\/\/|www\./i.test(t)) return "";
+  if (t.length < 2 || t.length > 40) return "";
+  return t;
+}
+
+// Decide whether the reference genuinely uses a burned-in CAPTION STYLE. One
+// frame is never enough — a real caption style shows up across the clip, so
+// require the same kind of overlay in at least TWO sampled frames.
+function vsHasCaptionStyle(cards) {
+  return Array.isArray(cards) && cards.filter(Boolean).length >= 2;
+}
+
+// The words burned onto the rebuilt video must be the USER'S OWN — taken from
+// the headlines of the script we just generated for them — never the
+// reference creator's text. Returns [] when the reference has no caption style
+// at all, so a plain no-overlay reel stays plain instead of getting text it
+// never had invented for it.
+function vsOwnHeadlineCards(script, blueprint) {
+  if (!blueprint || !blueprint.captionStyle) return [];
+  const scenes = vsParseScriptScenes(script || "");
+  return scenes
+    .map(s => String(s.headline || "").trim())
+    .filter(h => h && h.length <= 40)
+    .slice(0, 4);
+}
+
 // Generate a realistic image on fal (FLUX-dev) and load it UNTAINTED (via our
 // CORS proxy) so it can be drawn on a canvas. Returns an <img> or null.
 // Map a UI aspect ("9:16"/"1:1"/"16:9") to a fal FLUX image_size keyword.
 function vsAspToSize(a) { return a === "1:1" ? "square_hd" : a === "16:9" ? "landscape_16_9" : "portrait_16_9"; }
+
+// Crop a photo to the chosen output aspect BEFORE it goes to the video model.
+// Fabric/LatentSync just inherit the input image's dimensions, so a square
+// selfie produced a 640x640 clip even with "Vertical 9:16" selected — the
+// aspect control silently did nothing for an uploaded photo. Centre-crops
+// (never stretches), biased slightly toward the top so a face stays in frame.
+async function vsFitImageToAspect(file, aspect) {
+  const ratios = { "9:16": 9 / 16, "1:1": 1, "16:9": 16 / 9 };
+  const target = ratios[aspect] || ratios["9:16"];
+  try {
+    const img = await new Promise((res, rej) => {
+      const im = new Image(); const u = URL.createObjectURL(file);
+      im.onload = () => { URL.revokeObjectURL(u); res(im); };
+      im.onerror = () => { URL.revokeObjectURL(u); rej(new Error("decode failed")); };
+      im.src = u;
+    });
+    const sw = img.naturalWidth || img.width, sh = img.naturalHeight || img.height;
+    if (!sw || !sh) return file;
+    const cur = sw / sh;
+    if (Math.abs(cur - target) < 0.02) return file;   // already close enough
+    let cw, ch;
+    if (cur > target) { ch = sh; cw = Math.round(sh * target); }     // too wide → crop sides
+    else { cw = sw; ch = Math.round(sw / target); }                  // too tall → crop top/bottom
+    const sx = Math.round((sw - cw) / 2);
+    const sy = Math.round(Math.min(Math.max((sh - ch) * 0.35, 0), sh - ch));   // keep the face high in frame
+    const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+    c.getContext("2d").drawImage(img, sx, sy, cw, ch, 0, 0, cw, ch);
+    const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.92));
+    return blob || file;
+  } catch (e) { return file; }
+}
 
 async function vsFalImage(prompt, w, h) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
@@ -18541,10 +18647,13 @@ async function vsBuildTalkingHead(script, opts) {
   setStep("voice", "done");
   // audio duration → cost estimate
   let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
-  if (dur) { const cr = Math.ceil(dur * 5); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#f5c451;margin-top:2px;font-family:'JetBrains Mono',ui-monospace,monospace"; note.textContent = (fa ? `مدت صدا ~${Math.round(dur)}s · ~${cr} کردیت` : `voice ~${Math.round(dur)}s · ~${cr} credits`); steps.appendChild(note); }
+  // A fixed "Time" pick on the card is a hard cap, so the credits charged are
+  // exactly the seconds the user chose and saw priced — never more.
+  const billSec = opts.maxSeconds ? Math.min(Math.round(dur) || opts.maxSeconds, opts.maxSeconds) : (Math.round(dur) || 10);
+  if (dur) { const cr = Math.ceil(billSec * 5); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#f5c451;margin-top:2px;font-family:'JetBrains Mono',ui-monospace,monospace"; note.textContent = (fa ? `${billSec}s · ${cr} کردیت` : `${billSec}s · ${cr} credits`); steps.appendChild(note); }
   // Charge per-second NOW that the audio length is known (before the costly
   // Fabric render). Enforced server-side; refunded on failure/cancel.
-  const _thc = await vsCharge("talkinghead", { seconds: Math.round(dur) || 10 });
+  const _thc = await vsCharge("talkinghead", { seconds: billSec });
   if (_thc.block) { try { ov.remove(); } catch (e) {} return; }
   const thJob = _thc.jobId;
   try {
@@ -18555,10 +18664,39 @@ async function vsBuildTalkingHead(script, opts) {
   let imageUrl;
   if (opts.photo) {
     try {
-      const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.photo.type || "image/jpeg" }, body: opts.photo });
+      // Crop to the chosen aspect first — the video model inherits the input
+      // image's dimensions, so without this a square photo ignored a "9:16"
+      // selection and produced a square clip.
+      const fitted = await vsFitImageToAspect(opts.photo, opts.aspect);
+      const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": fitted.type || "image/jpeg" }, body: fitted });
       const uj = await up.json().catch(() => ({}));
       if (!uj.file_url) throw new Error(uj.error || "upload failed");
       imageUrl = uj.file_url;
+      // Re-shoot the user in the REFERENCE's environment. Keeping their own
+      // backdrop (a garden, an office they happened to be in) means the
+      // rebuild never looks like the post it's copying — the setting is a big
+      // part of the style. Their face/identity is preserved; only the scene
+      // around them is restyled. Skipped silently if the model call fails.
+      if (opts.setting) {
+        try {
+          const sceneRow = document.createElement("div"); sceneRow.style.cssText = "display:flex;align-items:center;gap:10px";
+          sceneRow.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${fa ? "قراردادنت در فضای مرجع" : "Placing you in the reference's setting"}</span>`;
+          steps.appendChild(sceneRow);
+          const scIc = sceneRow.querySelector(".ic");
+          const scene = String(opts.setting).replace(/[^\w ,'-]/g, " ").slice(0, 90);
+          const i2i = await post("/fal/run", {
+            model: "fal-ai/flux/dev/image-to-image",
+            input: {
+              image_url: imageUrl,
+              prompt: "same person, same face and clothing, photorealistic, relocated to " + scene + ", natural lighting that matches that environment, shot on smartphone",
+              strength: 0.55, num_inference_steps: 28, image_size: vsAspToSize(opts.aspect)
+            }
+          });
+          const nu = i2i && i2i.images && i2i.images[0] && i2i.images[0].url;
+          if (nu) { imageUrl = nu; scIc.textContent = "✓"; scIc.style.color = "#4ade80"; }
+          else { scIc.textContent = "–"; scIc.style.color = "#8ea6c8"; }
+        } catch (e) { /* keep the original photo — never block the build */ }
+      }
     } catch (e) { setStep("face", "err"); throw new Error((fa ? "آپلودِ عکس ناموفق: " : "photo upload failed: ") + (e.message || e)); }
   } else {
     // Realistic presenter via fal FLUX-dev (the CF fast model looked too "AI"),
