@@ -17373,6 +17373,9 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-mctl .cf{position:relative}
          :is(#reModal,#reMainBody) .re-mctl .cf b{position:absolute;top:4px;left:9px;font:700 7.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#8ea6c8;pointer-events:none}
          :is(#reModal,#reMainBody) .re-mctl select{padding-top:15px!important;height:40px!important}
+         :is(#reModal,#reMainBody) .re-fmtseg{font:700 10.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;padding:5px 10px;border-radius:999px;cursor:pointer;background:rgba(255,255,255,.05);color:#aeb9c9;border:1px solid rgba(255,255,255,.14);transition:.14s}
+         :is(#reModal,#reMainBody) .re-fmtseg:hover{border-color:rgba(37,99,255,.5);color:#eef4ff}
+         :is(#reModal,#reMainBody) .re-fmtseg.active{background:linear-gradient(135deg,#5b9bff,#2563ff);color:#fff;border-color:transparent}
          /* Analyze goes full-width UNDER the link input (no cramped side-by-side),
             at every viewport width — not just mobile. */
          :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
@@ -17458,6 +17461,11 @@ function vsReverseEngineer(prefill, opts) {
 
        <div id="reThRow" style="display:none;flex-direction:column;gap:12px">
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
+         <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
+           <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
+           <button type="button" id="reFmtTalk" class="re-fmtseg" data-fmt="talking_head">🗣 ${fa ? "آدمِ سخنگو" : "Talking-head"}</button>
+           <button type="button" id="reFmtSlide" class="re-fmtseg" data-fmt="carousel">🖼 ${fa ? "اسلایدشو/کاروسل" : "Slideshow/carousel"}</button>
+         </div>
          <!-- Shared media: add your OWN image / voice to ANY build ─────── -->
          <div class="re-anymedia">
            <label id="reAnyImgLbl">
@@ -17745,8 +17753,14 @@ function vsReverseEngineer(prefill, opts) {
           // "slide/slideshow" alone must NOT count as strong; only a SPECIFIC
           // carousel/quote-card/voiceover/etc. phrase does — a weak text guess
           // defers to vision's camTalk read instead of overriding it.
+          // Also check the RAW caption directly with a plain regex (deterministic,
+          // same result on every run) rather than only the AI's re-worded DNA.format
+          // (temperature 0.85 — can phrase the SAME caption richly one run and as a
+          // single bare "Slideshow" the next, which is why the DNA-text check above
+          // alone was still unreliable on retries of the identical post).
           const strongSlideshow = /carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe|b-?roll.{0,20}(image|photo|slide)/i.test(ssTxt)
-            || /carousel|graphic|quote/i.test(String(vis.format || ""));
+            || /carousel|graphic|quote/i.test(String(vis.format || ""))
+            || vsCaptionSlideshowSignal(refText);
           // Remember this for the route computation below — it must use the
           // SAME guard as formatType here.
           blueprint._strongSlideshow = strongSlideshow;
@@ -17840,21 +17854,35 @@ function vsReverseEngineer(prefill, opts) {
       if (blueprint.titleCard) extras.push((fa ? "کارتِ عنوان: " : "title card: ") + "“" + blueprint.titleCard + "”");
       const extraTxt = extras.length ? (fa ? " (با " : " (with ") + extras.join(fa ? " و " : " + ") + ")" : "";
       const seenTag = seen ? (fa ? "👁️ از روی پست دیده شد" : "👁️ Saw the post") : (fa ? "فرمت" : "Format");
-      const routeName = { talking_head: fa ? "آدمِ سخنگو" : "talking-head", carousel: fa ? "کاروسلِ عکس + متن" : "image + text carousel", video: fa ? "ویدیوی اسلایدشو" : "slideshow video" }[route];
-      const fmt = $$("reFmt");
-      const col = route === "talking_head" ? ["rgba(250,204,21,.10)", "rgba(250,204,21,.32)", "#e9d19a"] : route === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,141,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
-      fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
-      const titleNote = blueprint.titleCard && route === "talking_head" ? (fa ? ` — عنوانِ «${blueprint.titleCard}» رویِ ویدیوی نهایی هم سوار می‌شود` : ` — the “${blueprint.titleCard}” title card will be burned onto the final video too`) : "";
-      fmt.innerHTML = `${seenTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}${titleNote}`;
-      // Highlight the matching builder cards (badge + pull to front); the rest
-      // stay available but muted. A slideshow/photo post recommends BOTH the
-      // carousel and the free slideshow-video builders, so it's built LIKE the
-      // original instead of pushing a talking-head that the post never had.
-      const recRoutes = route === "talking_head" ? ["talking_head"] : route === "carousel" ? ["carousel", "video"] : ["video", "carousel"];
-      const root = page ? document : ov;
-      root.querySelectorAll(".re-mcard").forEach((c) => {
-        c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
-      });
+      // Apply a route to the UI: badge text/color + which cards get "MATCHES
+      // ORIGINAL". Pulled into a function so BOTH the auto-detect result AND a
+      // manual correction (the "Wrong guess?" toggle below — auto-detection on
+      // a single ambiguous cover photo + an AI-reworded caption can genuinely
+      // go either way) drive the exact same UI update.
+      const applyRoute = (rt, manual) => {
+        const routeName = { talking_head: fa ? "آدمِ سخنگو" : "talking-head", carousel: fa ? "کاروسلِ عکس + متن" : "image + text carousel", video: fa ? "ویدیوی اسلایدشو" : "slideshow video" }[rt];
+        const fmt = $$("reFmt");
+        const col = rt === "talking_head" ? ["rgba(250,204,21,.10)", "rgba(250,204,21,.32)", "#e9d19a"] : rt === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,141,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
+        fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
+        const titleNote = blueprint.titleCard && rt === "talking_head" ? (fa ? ` — عنوانِ «${blueprint.titleCard}» رویِ ویدیوی نهایی هم سوار می‌شود` : ` — the “${blueprint.titleCard}” title card will be burned onto the final video too`) : "";
+        const leadTag = manual ? (fa ? "✋ اصلاحِ دستی" : "✋ Manually corrected") : seenTag;
+        fmt.innerHTML = `${leadTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}${titleNote}`;
+        // Highlight the matching builder cards (badge + pull to front); the rest
+        // stay available but muted. A slideshow/photo post recommends BOTH the
+        // carousel and the free slideshow-video builders, so it's built LIKE the
+        // original instead of pushing a talking-head that the post never had.
+        const recRoutes = rt === "talking_head" ? ["talking_head"] : rt === "carousel" ? ["carousel", "video"] : ["video", "carousel"];
+        const root = page ? document : ov;
+        root.querySelectorAll(".re-mcard").forEach((c) => {
+          c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
+        });
+        if ($$("reFmtTalk")) $$("reFmtTalk").classList.toggle("active", rt === "talking_head");
+        if ($$("reFmtSlide")) $$("reFmtSlide").classList.toggle("active", rt !== "talking_head");
+      };
+      applyRoute(route, false);
+      const fmtOv = $$("reFmtOverride"); if (fmtOv) fmtOv.style.display = "flex";
+      if ($$("reFmtTalk")) $$("reFmtTalk").onclick = () => applyRoute("talking_head", true);
+      if ($$("reFmtSlide")) $$("reFmtSlide").onclick = () => applyRoute("carousel", true);
       $$("reRenderH").textContent = fa ? "رندر · مدلِ پیشنهادی بالاست" : "RENDER · RECOMMENDED IS ON TOP";
       // remember the reference gender guess to pick a matching face by default
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
@@ -18221,6 +18249,19 @@ function vsCarouselIcon(ctx, x, y, s, text, accent) {
 // LOOK like the original — not our fixed brand. An editorial / quote / minimal
 // reference (light bg, serif, star motif) → a light serif "quote card" theme;
 // anything else keeps the bold dark brand theme.
+// Deterministic (plain-regex, non-AI) check for a slideshow/carousel-shaped
+// CAPTION — a "N questions, N answers" or numbered-listicle post reads as a
+// quote-card carousel every time, independent of the AI paraphraser's mood.
+function vsCaptionSlideshowSignal(text) {
+  const c = String(text || "");
+  const qaListicle = /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+questions?\b[\s\S]{0,80}\banswers?\b/i.test(c)
+    || /\banswered\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+questions?\b/i.test(c);
+  const numberedList = (c.match(/(^|\n)\s*\d+[.)]\s+\S/g) || []).length >= 2;
+  const swipeOrCarousel = /\bswipe\b|\bcarousel\b|\bslide\s*\d\b/i.test(c);
+  const manyQuestions = (c.match(/\?/g) || []).length >= 4;
+  return qaListicle || numberedList || swipeOrCarousel || manyQuestions;
+}
+
 function vsThemeFromDNA(dna, skill) {
   dna = dna || {};
   const blob = (String(dna.format || "") + " " + String(dna.emoji || "") + " " + String(dna.tone || "") + " " + String(dna.voice || "")).toLowerCase();
