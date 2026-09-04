@@ -17415,6 +17415,7 @@ function vsReverseEngineer(prefill, opts) {
          <div class="row" style="margin-bottom:10px">
            <div><input id="reRegion" type="text" placeholder="${fa ? "اطلاعات و جزئیاتِ خودت (اعداد، اسم‌ها، آفر…) — ویدیو از همین استفاده می‌کند" : "Your own info & details (numbers, names, offer…) — the video features THIS"}"/></div>
          </div>
+         <div style="margin-bottom:10px"><input id="reHandle" type="text" placeholder="${fa ? "هندلِ خودت (اختیاری) — مثلاً @yourbrand" : "Your own handle (optional) — e.g. @yourbrand"}"/></div>
          <div style="display:flex;flex-direction:column;gap:6px">
            <div class="re-fieldrow"><div class="fl">${fa ? "زبان" : "Language"}</div>
              <select id="reLang">
@@ -17485,6 +17486,19 @@ function vsReverseEngineer(prefill, opts) {
            </label>
          </div>
          <div class="re-cards">
+           <!-- Scene-by-scene rebuild — the only builder that reproduces a
+                multi-shot reference; shown only when a shot list was read. -->
+           <div class="re-mcard" id="reSceneCard" data-route="scene" style="display:none">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="9" height="12" rx="2"/><rect x="13" y="6" width="9" height="12" rx="2"/><path d="M11 12h2"/></svg></span>
+               <div><div class="mname">${fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild"}</div><div class="meng">${fa ? "هر نمای مرجع جدا ساخته می‌شود" : "one clip per reference shot"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "نماهای مرجع (داخلِ ماشین، بیرون، رو به دوربین…) یکی‌یکی ساخته و پشتِ هم چیده می‌شوند — با چهره و حرفِ تو." : "The reference's shots are each generated and stitched in order — with your face and your words."}</div>
+             <div style="flex:1"></div>
+             <span class="mcred" id="reCredScene">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <button id="reBuildScene" type="button" class="mbtn">${fa ? "ساختِ نما‌به‌نما" : "Rebuild scene by scene"}</button>
+           </div>
            <!-- Talking-head (Fabric) -->
            <div class="re-mcard" data-route="talking_head">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
@@ -17871,6 +17885,12 @@ function vsReverseEngineer(prefill, opts) {
       // Show the shot list the model actually read off the reference clip, so
       // what it understood is visible instead of implied.
       const shots = (blueprint && blueprint.shotList) || [];
+      // A reference that actually cuts between different setups can only be
+      // reproduced shot-by-shot — a single lip-synced still never will be.
+      const multiShot = shots.length >= 2 &&
+        new Set(shots.map(s => String(s.setting || "").toLowerCase().trim()).filter(Boolean)).size >= 2;
+      if ($$("reSceneCard")) $$("reSceneCard").style.display = multiShot ? "" : "none";
+      blueprint._multiShot = multiShot;
       if (shots.length && $$("reShotStep")) {
         $$("reShotStep").style.display = "";
         $$("reShots").innerHTML = shots.map((sh, i) => {
@@ -17936,7 +17956,9 @@ function vsReverseEngineer(prefill, opts) {
         // stay available but muted. A slideshow/photo post recommends BOTH the
         // carousel and the free slideshow-video builders, so it's built LIKE the
         // original instead of pushing a talking-head that the post never had.
-        const recRoutes = rt === "talking_head" ? ["talking_head"] : rt === "carousel" ? ["carousel", "video"] : ["video", "carousel"];
+        let recRoutes = rt === "talking_head" ? ["talking_head"] : rt === "carousel" ? ["carousel", "video"] : ["video", "carousel"];
+        // Multi-shot reference → the scene-by-scene builder is the real match.
+        if (blueprint._multiShot && rt === "talking_head") recRoutes = ["scene", "talking_head"];
         const root = page ? document : ov;
         root.querySelectorAll(".re-mcard").forEach((c) => {
           c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
@@ -17983,8 +18005,10 @@ function vsReverseEngineer(prefill, opts) {
     if (!topic || typeof buildAutoVideo !== "function") {
       try {
         localStorage.setItem("vsReHandoff", JSON.stringify({ topic: topicVal, len: lenVal, aspect: aspVal, ts: Date.now() }));
-        vsStatus(fa ? "🎬 در حال بازکردنِ استودیوی ویدیو…" : "🎬 Opening Video Studio…");
-        location.href = "/studio/?reHandoff=1";
+        vsStatus(fa ? "🎬 استودیو در تبِ جدید باز شد — این صفحه دست‌نخورده می‌ماند." : "🎬 Opened Video Studio in a new tab — this page stays as it is.");
+        // A same-tab navigation threw away the whole analysis (blueprint,
+        // script, uploaded photo, shot list) the moment the user hit build.
+        window.open("/studio/?reHandoff=1", "_blank", "noopener");
       } catch (e) { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); }
       return;
     }
@@ -18087,6 +18111,14 @@ function vsReverseEngineer(prefill, opts) {
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
+  // The handle stamped on anything we build belongs to the USER. Falls back to
+  // a name they typed in "your info" rather than ever borrowing the reference
+  // account's handle.
+  const vsOwnHandle = () => {
+    const h = ($$("reHandle") && $$("reHandle").value || "").trim();
+    if (h) return h.startsWith("@") ? h : "@" + h.replace(/^@+/, "");
+    return "";
+  };
   // Own-photo picker for the carousel cover.
   let carPhoto = null;
   $$("reCarPhoto").onchange = (e) => {
@@ -18105,7 +18137,11 @@ function vsReverseEngineer(prefill, opts) {
         topic: ($$("rePrompt").value || "").trim(),
         subtitle: ($$("rePrompt").value || "").trim(),
         coverTitle: (blueprint && blueprint.caption ? String(blueprint.caption).split(/[.\n!?]/)[0].slice(0, 60) : "") || "",
-        handle: (ref && ref.username) ? "@" + ref.username : "",
+        // The USER's own handle — never the reference account's. Stamping the
+        // handle of the post being copied onto the user's slides put someone
+        // else's brand on their carousel; blank is correct when they haven't
+        // given one.
+        handle: vsOwnHandle(),
         photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
         setting: (blueprint && blueprint.setting) || "",
         theme: (blueprint && blueprint.theme) || null,
@@ -18114,6 +18150,21 @@ function vsReverseEngineer(prefill, opts) {
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
+  };
+  // Scene-by-scene: rebuild the reference's actual shot sequence.
+  if ($$("reBuildScene")) $$("reBuildScene").onclick = () => {
+    const script = ($$("reScript").value || "").trim();
+    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    try {
+      vsBuildSceneVideo({
+        shots: (blueprint && blueprint.shotList) || [],
+        narration: vsExtractNarration(script) || script,
+        photo: thPhoto || anyImg, audio: anyAud,
+        voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
+        aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
+        secondsPerShot: 5
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
   // Build a real TALKING-HEAD clip via fal: TTS → presenter image → lip-sync.
   $$("reBuildTH").onclick = async () => {
@@ -18930,6 +18981,180 @@ async function vsBuildLipsync(opts) {
 // Generic paid VIDEO build for Reverse Engineer (Happy Horse text→video, Grok
 // image→video+audio). Charges credits per second up front, drives fal via the
 // worker, refunds on failure. cfg = {title, action, seconds, model, input, name}.
+// ── SCENE-BY-SCENE REBUILD ────────────────────────────────────────────────
+// A lip-sync model animates ONE still's mouth — it can never reproduce a
+// reference that cuts between shots (in the car, getting out, out on the
+// street). This builds the reference's shot list for real: one generated clip
+// per shot, in order, stitched together under one continuous voiceover, with
+// the user's own face and words in place of the original's. Every shot costs
+// real money, so the exact total is shown and confirmed before anything runs.
+async function vsBuildSceneVideo(cfg) {
+  cfg = cfg || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const shots = (cfg.shots || []).slice(0, 4);
+  if (!shots.length) { vsStatus(fa ? "شات‌لیستی از مرجع پیدا نشد." : "No shot list from the reference."); return; }
+  const perShot = Math.min(Math.max(Number(cfg.secondsPerShot) || 5, 3), 10);
+  const totalSec = perShot * shots.length;
+  const RATE = 9;                                  // Grok image→video, per second
+  const totalCredits = Math.ceil(totalSec * RATE);
+
+  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.88);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = `<div style="width:min(620px,96vw);max-height:94vh;overflow:auto;background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff;margin-bottom:4px">${fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild"}</div>
+      <div style="font-size:12.5px;color:#9fb0c8;line-height:1.55;margin-bottom:12px">${fa ? "هر نمای مرجع جداگانه ساخته و پشتِ هم چیده می‌شود، زیرِ یک ویس‌اوورِ پیوسته." : "Each shot of the reference is generated separately and stitched in order, under one continuous voiceover."}</div>
+      <div id="scShots" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px"></div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#cfc8ba;margin-bottom:12px">
+        <span>${fa ? "ثانیه در هر نما" : "Seconds per shot"}</span>
+        <select id="scPer" style="width:auto;padding:6px 10px;min-height:0;height:34px">${[3, 4, 5, 6, 8].map(n => `<option value="${n}"${n === perShot ? " selected" : ""}>${n}s</option>`).join("")}</select>
+        <span style="flex:1"></span>
+        <b id="scCost" style="font:800 13px 'JetBrains Mono',monospace;color:#f5c451"></b>
+      </div>
+      <div id="scSteps" style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:#cfc8ba"></div>
+      <div id="scResult" style="margin-top:12px"></div>
+      <div id="scBtns" style="display:flex;gap:9px;margin-top:14px">
+        <button id="scCancel" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "انصراف" : "Cancel"}</button>
+        <button id="scGo" type="button" style="flex:2;font:inherit;font-weight:800;padding:11px;border-radius:11px;cursor:pointer;color:#fff;border:0;background:linear-gradient(135deg,#5b9bff,#2563ff)"></button>
+      </div>
+      <button id="scClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const $s = (id) => ov.querySelector("#" + id);
+  const steps = $s("scSteps"), result = $s("scResult");
+  let running = false, cancelled = false;
+  $s("scShots").innerHTML = shots.map((sh, i) => {
+    const head = [sh.shot, sh.angle].filter(Boolean).map(x => String(x).replace(/_/g, " ")).join(" · ");
+    const body = [sh.action, sh.setting].filter(Boolean).join(" · ");
+    return `<div style="display:flex;gap:9px;align-items:baseline;font-size:12px"><b style="color:#7fb0ff;font-family:'JetBrains Mono',monospace">${i + 1}</b><span style="color:#dbe6ff">${esc(head)}</span><span style="color:#8ea6c8">${esc(body)}</span></div>`;
+  }).join("");
+  const refreshCost = () => {
+    const p = Number($s("scPer").value) || perShot;
+    const cr = Math.ceil(p * shots.length * RATE);
+    $s("scCost").textContent = (fa ? `${p * shots.length}s · ${cr} کردیت` : `${p * shots.length}s · ${cr} credits`);
+    $s("scGo").textContent = (fa ? `بساز (${cr} کردیت)` : `Build (${cr} credits)`);
+  };
+  $s("scPer").onchange = refreshCost; refreshCost();
+  const close = () => { if (running) return; try { ov.remove(); } catch (e) {} };
+  $s("scCancel").onclick = () => { if (running) { cancelled = true; return; } close(); };
+  $s("scClose").onclick = () => { try { ov.remove(); } catch (e) {} };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+  const fail = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
+
+  $s("scGo").onclick = async () => {
+    if (running) return;
+    const per = Number($s("scPer").value) || perShot;
+    const secs = per * shots.length;
+    const charge = await vsCharge("grok", { seconds: secs });
+    if (charge.block) return;
+    running = true; $s("scBtns").style.display = "none"; $s("scPer").disabled = true;
+    try {
+      // 1) One voiceover for the whole piece — the user's own words.
+      let ic = line(fa ? "نوشتنِ صدا" : "Writing the voice");
+      let audioUrl = "";
+      if (cfg.audio) {
+        const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.audio.type || "audio/mpeg" }, body: cfg.audio });
+        audioUrl = (await ua.json().catch(() => ({}))).file_url || "";
+      } else {
+        const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: cfg.narration, voice: cfg.voice || "af_heart" } });
+        audioUrl = tts && tts.audio && tts.audio.url;
+      }
+      if (!audioUrl) { fail(ic); throw new Error("voice failed"); }
+      done(ic);
+
+      // 2) The user's face, uploaded once and reused to seed every shot so the
+      //    same person appears in all of them.
+      let faceUrl = "";
+      if (cfg.photo) {
+        try {
+          const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.photo.type || "image/jpeg" }, body: cfg.photo });
+          faceUrl = (await up.json().catch(() => ({}))).file_url || "";
+        } catch (e) {}
+      }
+
+      // 3) Each shot: build its still (in that shot's setting/framing), then
+      //    move it for `per` seconds with that shot's camera.
+      const clips = [];
+      for (let i = 0; i < shots.length && !cancelled; i++) {
+        const sh = shots[i];
+        const sic = line((fa ? `نمای ${i + 1}/${shots.length}: ` : `Shot ${i + 1}/${shots.length}: `) + esc([sh.shot, sh.setting].filter(Boolean).join(" · ")));
+        try {
+          const framing = String(sh.shot || "medium").replace(/_/g, " ");
+          const scene = [sh.setting, sh.lighting].filter(Boolean).join(", ").replace(/[^\w ,'-]/g, " ").slice(0, 90);
+          const doing = String(sh.action || "").replace(/[^\w ,'-]/g, " ").slice(0, 60);
+          let stillUrl = "";
+          if (faceUrl) {
+            const i2i = await post("/fal/run", {
+              model: "fal-ai/flux/dev/image-to-image",
+              input: {
+                image_url: faceUrl,
+                prompt: `same person, same face, ${framing} shot, ${doing || "in frame"}, ${scene}, photorealistic, natural lighting`,
+                strength: 0.62, num_inference_steps: 28, image_size: vsAspToSize(cfg.aspect)
+              }
+            });
+            stillUrl = i2i && i2i.images && i2i.images[0] && i2i.images[0].url;
+          }
+          if (!stillUrl) {
+            const t2i = await post("/fal/run", {
+              model: "fal-ai/flux/dev",
+              input: { prompt: `${framing} shot, a person ${doing || "in frame"}, ${scene}, photorealistic, film still`, image_size: vsAspToSize(cfg.aspect), num_inference_steps: 28 }
+            });
+            stillUrl = t2i && t2i.images && t2i.images[0] && t2i.images[0].url;
+          }
+          if (!stillUrl) throw new Error("still failed");
+          if (cancelled) break;
+          const mv = String(sh.camera || "static").replace(/_/g, " ");
+          const sub = await post("/fal/submit", {
+            model: "xai/grok-imagine-video/v1.5/image-to-video",
+            input: { image_url: stillUrl, prompt: `${mv} camera, ${doing || "natural motion"}, ${scene}`, resolution: "720p", duration: per }
+          });
+          const statusUrl = sub.status_url, respUrl = sub.response_url || (statusUrl || "").replace(/\/status$/, "");
+          let out = null;
+          for (let k = 0; k < 90 && !cancelled; k++) {
+            await new Promise(r => setTimeout(r, 4000));
+            let st = "?"; try { st = (await (await fetch(WB + "/fal/poll?url=" + encodeURIComponent(statusUrl))).json()).status || "?"; } catch (e) {}
+            if (st === "COMPLETED") { try { const jj = await (await fetch(WB + "/fal/poll?url=" + encodeURIComponent(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+            if (st === "FAILED" || st === "ERROR") break;
+          }
+          if (!out) throw new Error("shot render failed");
+          clips.push(out); done(sic);
+        } catch (e) { fail(sic); }
+      }
+      if (cancelled) { vsSettle(charge.jobId, "failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — credits refunded."}</div>`; running = false; $s("scClose").style.display = ""; return; }
+      if (!clips.length) throw new Error(fa ? "هیچ نمایی ساخته نشد" : "no shots rendered");
+
+      // 4) Stitch the shots in order and lay the single voiceover over them.
+      const sic = line(fa ? "چسباندنِ نماها و صدا" : "Stitching the shots + voice");
+      const ffmpeg = await vsGetFfmpeg();
+      for (let i = 0; i < clips.length; i++) {
+        const b = new Uint8Array(await (await fetch(clips[i])).arrayBuffer());
+        await ffmpeg.writeFile(`c${i}.mp4`, b);
+      }
+      const ab = new Uint8Array(await (await fetch(audioUrl)).arrayBuffer());
+      await ffmpeg.writeFile("vo.mp3", ab);
+      await ffmpeg.writeFile("list.txt", new TextEncoder().encode(clips.map((_, i) => `file 'c${i}.mp4'`).join("\n")));
+      await ffmpeg.exec(["-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "joined.mp4"]);
+      await ffmpeg.exec(["-i", "joined.mp4", "-i", "vo.mp3", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", "final.mp4"]);
+      const data = await ffmpeg.readFile("final.mp4");
+      let blob = new Blob([data.buffer], { type: "video/mp4" });
+      done(sic);
+      vsSettle(charge.jobId, "done");
+      vsTrackGen("scene", "grok+flux", "shots:" + clips.length + " sec:" + secs);
+      const u = URL.createObjectURL(blob);
+      result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="scene-rebuild.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ${fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard"}</div>`;
+      try { if (typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "scene-rebuild"); } catch (e) {}
+    } catch (e) {
+      vsSettle(charge.jobId, "failed");
+      result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+    }
+    running = false; $s("scBtns").style.display = "none"; $s("scClose").style.display = "";
+  };
+}
+
 async function vsBuildVideoModel(cfg) {
   const fa = state.lang === "fa";
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
