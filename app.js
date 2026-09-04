@@ -17494,10 +17494,9 @@ function vsReverseEngineer(prefill, opts) {
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10v12H4z"/><path d="M18 9v6"/><path d="M14 12h4"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c.8-2 2-3 3.5-3s2.7 1 3.5 3"/></svg></span>
-               <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">WAN VACE · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
+               <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">PIKA SWAPS · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
              </div>
-             <div class="mdesc">${fa ? "خودِ ویدیوی مرجع حرکت را می‌راند: همان حرکتِ دوربین، همان ژست‌ها، همان تایمینگ — فقط شخص، تو می‌شوی." : "The reference clip itself drives it: same camera move, same gestures, same timing — only the person becomes you."}</div>
-             <div class="re-mctl one"><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reMtRes"><option value="480p">480p</option><option value="720p" selected>720p</option></select></div></div>
+             <div class="mdesc">${fa ? "کلِ ویدیوی مرجع با طولِ کامل: همان حرکتِ دوربین، همان پس‌زمینه، همان تایمینگ — فقط شخص، تو می‌شوی." : "The whole reference clip at full length: same camera move, same background, same timing — only the person becomes you."}</div>
              <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
              <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div style="flex:1"></div>
@@ -18247,7 +18246,6 @@ function vsReverseEngineer(prefill, opts) {
       vsBuildMotionTransfer({
         clip, photo,
         seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
-        resolution: ($$("reMtRes") && $$("reMtRes").value) || "720p",
         aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
         // what the reference shot actually IS — read off its own frames
         shot: shot0.shot, camera: shot0.camera, action: shot0.action,
@@ -22281,91 +22279,58 @@ async function vsBuildMotionTransfer(cfg) {
     if (cancelled) return;
     done(ic);
 
-    // WAN VACE tops out at 241 frames (~10s). A longer reference is cut into
-    // pieces, each transferred, then joined — so the rebuild runs the FULL
-    // length of the original instead of stopping a third of the way in.
-    const CHUNK = 9;
-    const nChunks = Math.max(1, Math.ceil(secs / CHUNK));
-    const chunkLen = secs / nChunks;
-    const pieces = [];
+    const clipUrl = await upload(cfg.clip, cfg.clip.type || "video/mp4");
+    if (cancelled) return;
 
-    const renderIc = line(fa ? (nChunks > 1 ? `انتقالِ حرکت (${nChunks} تکه)` : "انتقالِ حرکت") : (nChunks > 1 ? `Transferring the motion (${nChunks} parts)` : "Transferring the motion"));
-    // These models lean on the prompt for fidelity, so build a real one:
-    // WHO (the user's reference photo) + WHAT the reference shot actually is
-    // (framing, action, setting, lighting, read off its own frames) + the
-    // USER's topic, so the result is their subject, not the original's.
+    const renderIc = line(fa ? "انتقالِ حرکت" : "Transferring the motion");
+    // Pika Swaps EDITS the clip rather than regenerating it: no frame cap, so
+    // the full original length comes through in one pass, and everything the
+    // swap doesn't touch (background, camera move, timing) stays pixel-exact.
+    // The generative alternatives all cap out well short — VACE at 241 frames
+    // (~10s), wan v2v at 161 — which is why a 21s reference came back as a
+    // 10s stub before.
     const clean = (v, n) => String(v || "").replace(/[^\w ,'\-]/g, " ").replace(/\s+/g, " ").trim().slice(0, n || 70);
-    const bits = [
-      "the exact person from the reference image, same face and identity",
-      clean(cfg.action) && "performing this action: " + clean(cfg.action),
-      clean(cfg.shot) && clean(cfg.shot).replace(/_/g, " ") + " framing",
-      clean(cfg.camera) && clean(cfg.camera).replace(/_/g, " ") + " camera move",
-      clean(cfg.setting) && "in " + clean(cfg.setting),
-      clean(cfg.lighting),
+    const promptText = [
+      "replace the person with the person from the reference image, same face and identity",
       clean(cfg.topic, 80) && "context: " + clean(cfg.topic, 80),
-      "photorealistic, natural motion, consistent identity, same timing as the source"
-    ].filter(Boolean);
-    const promptText = bits.join(", ");
-    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+      "photorealistic, natural, consistent identity"
+    ].filter(Boolean).join(", ");
 
-    for (let ci = 0; ci < nChunks && !cancelled; ci++) {
-      const partBlob = nChunks === 1 ? cfg.clip : await vsCutClip(cfg.clip, ci * chunkLen, chunkLen);
-      if (cancelled) return;
-      const partUrl = await upload(partBlob, "video/mp4");
-      if (cancelled) return;
-      const sub = await post("/fal/submit", {
-        model: "fal-ai/wan-vace-14b",
-        input: {
-          task: "pose",                     // the reference's motion drives it
-          // preprocess defaults to FALSE, which makes VACE treat the raw clip
-          // as an already-built control map and simply re-emit the original —
-          // that's exactly what shipped back unchanged. true = extract the pose
-          // from the source, then render the reference PERSON onto it.
-          preprocess: true,
-          video_url: partUrl,
-          ref_image_urls: [imageUrl],
-          prompt: promptText,
-          negative_prompt: "distorted face, extra limbs, text, watermark, blurry",
-          match_input_num_frames: true,     // keep the ORIGINAL timing exactly
-          match_input_frames_per_second: true,
-          resolution: cfg.resolution || "720p",
-          aspect_ratio: cfg.aspect || "9:16",
-          video_quality: "high"
-        }
-      });
-      const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-      if (!statusUrl) throw new Error("submit failed");
-      const startedAt = Date.now();
-      let partOut = null, last = "";
-      const WORD = fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
-      for (let k = 0; k < 200 && !cancelled; k++) {
-        const el = Math.round((Date.now() - startedAt) / 1000);
-        stage.textContent = (nChunks > 1 ? (fa ? `تکهٔ ${ci + 1}/${nChunks} · ` : `part ${ci + 1}/${nChunks} · `) : "") +
-          (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
-        if (el > 120 && !note.dataset.shown) {
-          note.dataset.shown = "1"; note.style.display = "block";
-          note.textContent = fa ? "انتقالِ حرکت از ساختِ معمولی سنگین‌تر است و چند دقیقه طول می‌کشد — می‌توانی ببندی، در پس‌زمینه ادامه می‌دهد." : "Motion transfer is heavier than a normal render and takes a few minutes — you can close this, it keeps going in the background.";
-        }
-        await new Promise(r => setTimeout(r, 4000));
-        if (cancelled) return;
-        let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
-        last = st;
-        if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); partOut = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
-        if (st === "FAILED" || st === "ERROR") break;
+    const sub = await post("/fal/submit", {
+      model: "fal-ai/pika/v2/pikaswaps",
+      input: {
+        video_url: clipUrl,
+        image_url: imageUrl,
+        modify_region: "the person",
+        prompt: promptText,
+        negative_prompt: "distorted face, extra limbs, text, watermark, blurry"
       }
+    });
+    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+    if (!statusUrl) throw new Error("submit failed");
+    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    const startedAt = Date.now();
+    let outUrl = null, last = "";
+    const WORD = fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
+    for (let k = 0; k < 240 && !cancelled; k++) {
+      const el = Math.round((Date.now() - startedAt) / 1000);
+      stage.textContent = (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      if (el > 120 && !note.dataset.shown) {
+        note.dataset.shown = "1"; note.style.display = "block";
+        note.textContent = fa ? "انتقالِ حرکت از ساختِ معمولی سنگین‌تر است و چند دقیقه طول می‌کشد — می‌توانی ببندی، در پس‌زمینه ادامه می‌دهد." : "Motion transfer is heavier than a normal render and takes a few minutes — you can close this, it keeps going in the background.";
+      }
+      await new Promise(r => setTimeout(r, 4000));
       if (cancelled) return;
-      if (!partOut) { fail(renderIc); throw new Error(fa ? "انتقالِ حرکت ناموفق بود یا زمان تمام شد" : "motion transfer failed or timed out"); }
-      try { pieces.push(await (await fetch(partOut)).blob()); } catch (e) { throw new Error("could not read the transferred part"); }
+      let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      last = st;
+      if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); outUrl = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "FAILED" || st === "ERROR") break;
     }
     if (cancelled) return;
+    if (!outUrl) { fail(renderIc); throw new Error(fa ? "انتقالِ حرکت ناموفق بود یا زمان تمام شد" : "motion transfer failed or timed out"); }
     done(renderIc); stage.textContent = "";
-
-    let joined = pieces[0];
-    if (pieces.length > 1) {
-      const joinIc = line(fa ? "چسباندنِ تکه‌ها" : "Joining the parts");
-      try { joined = await vsJoinClips(pieces); done(joinIc); } catch (e) { fail(joinIc); }
-    }
-    let out = URL.createObjectURL(joined);
+    let joined = null; try { joined = await (await fetch(outUrl)).blob(); } catch (e) {}
+    let out = joined ? URL.createObjectURL(joined) : outUrl;
 
     // The motion came from the reference; the WORDS must be the user's. Speak
     // their script and re-sync the transferred person's lips onto it, so the
@@ -22401,7 +22366,7 @@ async function vsBuildMotionTransfer(cfg) {
     }
 
     vsSettle(charge.jobId, "done");
-    vsTrackGen(cfg.speak ? "motiontransferspeak" : "motiontransfer", "wan-vace-14b", "sec:" + secs);
+    vsTrackGen(cfg.speak ? "motiontransferspeak" : "motiontransfer", "pika-swaps", "sec:" + secs);
     const blob = joined;          // already in hand — no refetch needed
     const u = out;
     result.innerHTML = '<video src="' + u + '" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>' +
@@ -22416,30 +22381,4 @@ async function vsBuildMotionTransfer(cfg) {
     finish();
   }
 }
-// Cut [start, start+len) out of a video, client-side, for chunked transfer.
-async function vsCutClip(blob, start, len) {
-  const ffmpeg = await vsGetFfmpeg();
-  const inName = "mtin.mp4", outName = "mtcut.mp4";
-  await ffmpeg.writeFile(inName, new Uint8Array(await blob.arrayBuffer()));
-  await ffmpeg.exec(["-ss", String(start), "-i", inName, "-t", String(len), "-c", "copy", "-avoid_negative_ts", "1", outName]);
-  const data = await ffmpeg.readFile(outName);
-  try { await ffmpeg.deleteFile(inName); await ffmpeg.deleteFile(outName); } catch (e) {}
-  return new Blob([data.buffer], { type: "video/mp4" });
-}
 
-// Join transferred chunks back into one continuous clip.
-async function vsJoinClips(blobs) {
-  if (blobs.length === 1) return blobs[0];
-  const ffmpeg = await vsGetFfmpeg();
-  const names = [];
-  for (let i = 0; i < blobs.length; i++) {
-    const n = "mtp" + i + ".mp4";
-    await ffmpeg.writeFile(n, new Uint8Array(await blobs[i].arrayBuffer()));
-    names.push(n);
-  }
-  await ffmpeg.writeFile("mtlist.txt", new TextEncoder().encode(names.map(n => "file '" + n + "'").join("\n")));
-  await ffmpeg.exec(["-f", "concat", "-safe", "0", "-i", "mtlist.txt", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "mtall.mp4"]);
-  const data = await ffmpeg.readFile("mtall.mp4");
-  try { for (const n of names) await ffmpeg.deleteFile(n); await ffmpeg.deleteFile("mtlist.txt"); await ffmpeg.deleteFile("mtall.mp4"); } catch (e) {}
-  return new Blob([data.buffer], { type: "video/mp4" });
-}
