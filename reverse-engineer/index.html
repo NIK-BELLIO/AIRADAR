@@ -329,7 +329,7 @@
     </main>
   </div>
 
-  <script src="/app.js?v=v546"></script>
+  <script src="/app.js?v=v547"></script>
   <script>
     (function () {
       var tries = 0;
@@ -341,7 +341,9 @@
             vsReverseEngineer(null, { mount: document.getElementById("reMount"), home: "/" });
             setTimeout(function () {
               var main = document.getElementById("reMainBody");
-              ["reOut", "reThRow"].forEach(function (id) { var el = document.getElementById(id); if (el && main) main.appendChild(el); });
+              // reProgress rides along so the "generating" steps appear in the
+              // canvas the user is already looking at, not down the side rail.
+              ["reProgress", "reOut", "reThRow"].forEach(function (id) { var el = document.getElementById(id); if (el && main) main.appendChild(el); });
               var vid = document.querySelector(".re-herovid"); if (vid) { vid.addEventListener("timeupdate", function () { var d = vid.duration; if (!d || isNaN(d)) return; var f = 0.4, lo = 0.42, o = 1; if (vid.currentTime < f) o = lo + (1 - lo) * (vid.currentTime / f); else if (d - vid.currentTime < f) o = lo + (1 - lo) * ((d - vid.currentTime) / f); vid.style.opacity = o.toFixed(3); }); }
               var hero = document.getElementById("reHero"), reOut = document.getElementById("reOut");
               function sync() { if (!reOut || !hero) return; hero.style.display = (getComputedStyle(reOut).display !== "none") ? "none" : "flex"; }
