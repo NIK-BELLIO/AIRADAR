@@ -14932,23 +14932,34 @@ async function vsBurnTitleCard(videoBlob, opts) {
     await ffmpeg.writeFile("title.ttf", fontBuf);
     const vidBuf = new Uint8Array(await videoBlob.arrayBuffer());
     await ffmpeg.writeFile("in.mp4", vidBuf);
-    // The text= value is wrapped in single quotes (text='...'). Per ffmpeg's
-    // OWN filtergraph escaping rules (not shell rules) the only thing that
-    // needs special handling INSIDE a single-quoted segment is a literal
-    // single quote itself — end the quote, escape one, reopen: '\''. A prior
-    // version used a plain backslash (\') which ffmpeg does NOT treat as an
-    // escaped quote there — confirmed live: "I'M" silently vanished from a
-    // burned title sequence while "MY" and "HOW TO" (no apostrophe) rendered
-    // fine. Colon/percent/backslash do NOT need escaping inside the quotes.
-    const escTxt = (t) => t.replace(/'/g, "'\\''");
+    // The text= value is wrapped in single quotes (text='...'); a literal
+    // colon inside needs \: (verified live: "TIP: DO THIS" burns correctly).
+    // An apostrophe is a genuine minefield here: neither a plain backslash
+    // (\') nor ffmpeg's own documented '\'' close-escape-reopen sequence
+    // survives when this drawtext is CHAINED with others via commas — both
+    // were live-tested (a 3-card burn of "MY"/"I'M"/"HOW TO") and both
+    // silently dropped "I'M" entirely while "MY" and "HOW TO" rendered fine;
+    // the '\'' form fails even worse, corrupting the whole card into
+    // stray literal characters. Stripping the apostrophe (I'M → IM) instead
+    // of trying to escape it was the only approach that actually survived
+    // the live 3-card chain test — a minor cosmetic loss beats a vanished
+    // card or a broken filtergraph.
+    const escTxt = (t) => t.replace(/['"]/g, "").replace(/\\/g, "").replace(/%/g, "").replace(/:/g, "\\:");
     // Slot the cards one after another — each holds ~1.1s (a snappy word-by-
     // word pace, matching how these reveal on the original), starting right
     // at the top of the clip.
     const per = 1.1, gap = 0.12;
     const filters = cards.map((card, i) => {
       const start = i * (per + gap), end = start + per;
+      const esc = escTxt(card);
+      // A fixed h/9 size overflows a narrow 9:16 frame's width for anything
+      // longer than a couple of words (confirmed live: "TIP: DO THIS" ran off
+      // the right edge) — scale down for longer cards, capped at h/9 for
+      // short punchy ones like "MY"/"HOW TO".
+      const len = Math.max(esc.replace(/\\:/g, ":").length, 1);
+      const fontSizeExpr = `min(h/9\\,w*0.86/(${len}*0.58))`;
       const fade = `if(lt(t\\,${(start + 0.18).toFixed(2)})\\,(t-${start.toFixed(2)})/0.18\\,if(lt(t\\,${(end - 0.22).toFixed(2)})\\,1\\,if(lt(t\\,${end.toFixed(2)})\\,(${end.toFixed(2)}-t)/0.22\\,0)))`;
-      return `drawtext=fontfile=title.ttf:text='${escTxt(card)}':fontcolor=${fontColor}:fontsize=h/9:x=(w-text_w)/2:y=h*0.2:enable='between(t\\,${start.toFixed(2)}\\,${end.toFixed(2)})':alpha='${fade}'`;
+      return `drawtext=fontfile=title.ttf:text='${esc}':fontcolor=${fontColor}:fontsize=${fontSizeExpr}:x=(w-text_w)/2:y=h*0.2:enable='between(t\\,${start.toFixed(2)}\\,${end.toFixed(2)})':alpha='${fade}'`;
     }).join(",");
     await ffmpeg.exec([
       "-i", "in.mp4",
