@@ -17670,7 +17670,7 @@ function vsReverseEngineer(prefill, opts) {
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     const upload1 = async (blob) => { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
     try {
-      let thumbUrl = "", vision = null, titleCards = [], shotList = [];
+      let thumbUrl = "", vision = null, titleCards = [], shotList = [], refDuration = 0;
       if (/^video\//.test(file.type)) {
         // A single first-frame grab only ever sees whatever is on screen at
         // t=0 — a progressive caption reveal ("MY" → "I'M" → "HOW TO…") or a
@@ -17681,6 +17681,7 @@ function vsReverseEngineer(prefill, opts) {
         lbl.textContent = (fa ? "⏳ در حال نمونه‌برداری از ویدیو…" : "⏳ Sampling the video…");
         const frames = await vsVideoFrames(file, [0.06, 0.3, 0.55, 0.8]);
         if (!frames.length) throw new Error(fa ? "فریمی از ویدیو گرفته نشد" : "couldn't read any video frame");
+        refDuration = await vsVideoDuration(file);
         const fracs = [0.06, 0.3, 0.55, 0.8];
         for (let i = 0; i < frames.length; i++) {
           lbl.textContent = (fa ? `⏳ تحلیلِ فریمِ ${i + 1}/${frames.length}` : `⏳ Analyzing frame ${i + 1}/${frames.length}`);
@@ -17706,7 +17707,7 @@ function vsReverseEngineer(prefill, opts) {
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
       if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, uploaded: true, isProfile: false };
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, uploaded: true, isProfile: false };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
       const cardsTxt = titleCards.length ? `<div style="font-size:11.5px;color:#f5c451;margin-top:3px">${fa ? "کپشن‌های دیده‌شده: " : "Captions seen: "}“${esc(titleCards.join('” → “'))}”</div>` : "";
@@ -17780,6 +17781,7 @@ function vsReverseEngineer(prefill, opts) {
             if (vblob && vblob.size > 1000) {
               const sl = await vsAnalyzeShotList(vblob);
               blueprint.shotList = sl.shots;
+              blueprint.refDuration = await vsVideoDuration(vblob);
               linkTitleCards = sl.cards;
             }
           } catch (e) {}
@@ -17845,6 +17847,7 @@ function vsReverseEngineer(prefill, opts) {
           // which then got burned across the user's own face.
           // An uploaded reference carries its own shot list from the upload step.
           if (!blueprint.shotList && ref.shotList && ref.shotList.length) blueprint.shotList = ref.shotList;
+          if (!blueprint.refDuration && ref.refDuration) blueprint.refDuration = ref.refDuration;
           const multiCards = (linkTitleCards && linkTitleCards.length) ? linkTitleCards : (ref.titleCards || []);
           if (vsHasCaptionStyle(multiCards)) {
             blueprint.captionStyle = {
@@ -17891,6 +17894,15 @@ function vsReverseEngineer(prefill, opts) {
         new Set(shots.map(s => String(s.setting || "").toLowerCase().trim()).filter(Boolean)).size >= 2;
       if ($$("reSceneCard")) $$("reSceneCard").style.display = multiShot ? "" : "none";
       blueprint._multiShot = multiShot;
+      // Show the reference's real length and how many shots on the card, so the
+      // scale of the job is clear before the pricing dialog opens.
+      if (multiShot && $$("reCredScene")) {
+        const rd = Math.round(blueprint.refDuration || 0);
+        const est = rd ? Math.min(Math.max(Math.round(rd / shots.length), 3), 10) * shots.length : 0;
+        $$("reCredScene").innerHTML = gemSvg + (est
+          ? (fa ? `~${Math.ceil(est * 9)} کردیت · ${shots.length} نما` : `~${Math.ceil(est * 9)} credits · ${shots.length} shots`)
+          : (fa ? `9 / ثانیه · ${shots.length} نما` : `9 / sec · ${shots.length} shots`));
+      }
       if (shots.length && $$("reShotStep")) {
         $$("reShotStep").style.display = "";
         $$("reShots").innerHTML = shots.map((sh, i) => {
@@ -18162,7 +18174,7 @@ function vsReverseEngineer(prefill, opts) {
         photo: thPhoto || anyImg, audio: anyAud,
         voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
         aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
-        secondsPerShot: 5
+        refDuration: (blueprint && blueprint.refDuration) || 0
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -18281,6 +18293,19 @@ async function vsVisionScene(imgUrl) {
 // read and the caption-style check so we never pay for the same frame twice.
 // Returns { shots: [{at, shot, camera, angle, subject_pos, action, setting,
 // lighting}], cards: [text…] }.
+// Read a video's real duration client-side (metadata only, no cost).
+async function vsVideoDuration(blob) {
+  return new Promise((res) => {
+    try {
+      const v = document.createElement("video"); v.preload = "metadata"; v.muted = true;
+      const u = URL.createObjectURL(blob);
+      v.onloadedmetadata = () => { const d = v.duration || 0; try { URL.revokeObjectURL(u); } catch (e) {} res(d); };
+      v.onerror = () => { try { URL.revokeObjectURL(u); } catch (e) {} res(0); };
+      v.src = u;
+    } catch (e) { res(0); }
+  });
+}
+
 async function vsAnalyzeShotList(blob, fracs) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const at = fracs && fracs.length ? fracs : [0.06, 0.3, 0.55, 0.8];
@@ -18994,10 +19019,13 @@ async function vsBuildSceneVideo(cfg) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const shots = (cfg.shots || []).slice(0, 4);
   if (!shots.length) { vsStatus(fa ? "شات‌لیستی از مرجع پیدا نشد." : "No shot list from the reference."); return; }
-  const perShot = Math.min(Math.max(Number(cfg.secondsPerShot) || 5, 3), 10);
-  const totalSec = perShot * shots.length;
-  const RATE = 9;                                  // Grok image→video, per second
-  const totalCredits = Math.ceil(totalSec * RATE);
+  // Default to the REFERENCE's own length: a 20s original rebuilt as 4x5s
+  // lands on 20s. Picking 5s for a 20s reference just produces a stub that
+  // cuts off mid-story, so the suggestion is derived, not guessed.
+  const refDur = Math.round(Number(cfg.refDuration) || 0);
+  const suggested = refDur ? Math.min(Math.max(Math.round(refDur / shots.length), 3), 10) : 5;
+  const perShot = Math.min(Math.max(Number(cfg.secondsPerShot) || suggested, 3), 10);
+  const RATE = 9;                                  // per second of rendered video
 
   const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
 
@@ -19008,9 +19036,15 @@ async function vsBuildSceneVideo(cfg) {
       <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff;margin-bottom:4px">${fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild"}</div>
       <div style="font-size:12.5px;color:#9fb0c8;line-height:1.55;margin-bottom:12px">${fa ? "هر نمای مرجع جداگانه ساخته و پشتِ هم چیده می‌شود، زیرِ یک ویس‌اوورِ پیوسته." : "Each shot of the reference is generated separately and stitched in order, under one continuous voiceover."}</div>
       <div id="scShots" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px"></div>
-      <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#cfc8ba;margin-bottom:12px">
+      ${refDur ? `<div style="font-size:11.5px;color:#7fb0ff;background:rgba(37,99,255,.08);border:1px solid rgba(37,99,255,.2);border-radius:9px;padding:8px 10px;margin-bottom:10px">${fa ? `ویدیوی مرجع ${refDur} ثانیه است — پیشنهاد: ${suggested} ثانیه در هر نما (${suggested * shots.length}s) تا کوتاه و نصفه در نیاید.` : `The reference runs ${refDur}s — suggested ${suggested}s per shot (${suggested * shots.length}s total) so the rebuild isn't cut short.`}</div>` : ""}
+      <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#cfc8ba;margin-bottom:10px;flex-wrap:wrap">
         <span>${fa ? "ثانیه در هر نما" : "Seconds per shot"}</span>
-        <select id="scPer" style="width:auto;padding:6px 10px;min-height:0;height:34px">${[3, 4, 5, 6, 8].map(n => `<option value="${n}"${n === perShot ? " selected" : ""}>${n}s</option>`).join("")}</select>
+        <select id="scPer" style="width:auto;padding:6px 10px;min-height:0;height:34px"></select>
+        <span>${fa ? "مدل" : "Model"}</span>
+        <select id="scModel" style="width:auto;padding:6px 10px;min-height:0;height:34px">
+          <option value="minimax/h3-max/image-to-video">${fa ? "H3 Max — دقیق‌تر" : "H3 Max — most accurate"}</option>
+          <option value="xai/grok-imagine-video/v1.5/image-to-video">${fa ? "Grok — سریع‌تر" : "Grok — faster"}</option>
+        </select>
         <span style="flex:1"></span>
         <b id="scCost" style="font:800 13px 'JetBrains Mono',monospace;color:#f5c451"></b>
       </div>
@@ -19031,13 +19065,28 @@ async function vsBuildSceneVideo(cfg) {
     const body = [sh.action, sh.setting].filter(Boolean).join(" · ");
     return `<div style="display:flex;gap:9px;align-items:baseline;font-size:12px"><b style="color:#7fb0ff;font-family:'JetBrains Mono',monospace">${i + 1}</b><span style="color:#dbe6ff">${esc(head)}</span><span style="color:#8ea6c8">${esc(body)}</span></div>`;
   }).join("");
+  // Each model accepts its own set of clip lengths — H3 Max only renders 6s or
+  // 10s, so offering 3/4/5s there would just fail the submit.
+  const modelDurations = (m) => /h3-max/.test(m) ? [6, 10] : [3, 4, 5, 6, 8, 10];
+  const nearest = (arr, want) => arr.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a, arr[0]);
+  const refreshDurOpts = () => {
+    const opts = modelDurations($s("scModel").value);
+    const want = Number($s("scPer").value) || perShot;
+    const pick = nearest(opts, want);
+    $s("scPer").innerHTML = opts.map(n => {
+      const isSuggested = n === nearest(opts, suggested);
+      return `<option value="${n}"${n === pick ? " selected" : ""}>${n}s${isSuggested ? (fa ? " ✓ پیشنهادی" : " ✓ suggested") : ""}</option>`;
+    }).join("");
+  };
   const refreshCost = () => {
     const p = Number($s("scPer").value) || perShot;
     const cr = Math.ceil(p * shots.length * RATE);
     $s("scCost").textContent = (fa ? `${p * shots.length}s · ${cr} کردیت` : `${p * shots.length}s · ${cr} credits`);
     $s("scGo").textContent = (fa ? `بساز (${cr} کردیت)` : `Build (${cr} credits)`);
   };
-  $s("scPer").onchange = refreshCost; refreshCost();
+  $s("scModel").onchange = () => { refreshDurOpts(); refreshCost(); };
+  $s("scPer").onchange = refreshCost;
+  refreshDurOpts(); refreshCost();
   const close = () => { if (running) return; try { ov.remove(); } catch (e) {} };
   $s("scCancel").onclick = () => { if (running) { cancelled = true; return; } close(); };
   $s("scClose").onclick = () => { try { ov.remove(); } catch (e) {} };
@@ -19108,10 +19157,12 @@ async function vsBuildSceneVideo(cfg) {
           if (!stillUrl) throw new Error("still failed");
           if (cancelled) break;
           const mv = String(sh.camera || "static").replace(/_/g, " ");
-          const sub = await post("/fal/submit", {
-            model: "xai/grok-imagine-video/v1.5/image-to-video",
-            input: { image_url: stillUrl, prompt: `${mv} camera, ${doing || "natural motion"}, ${scene}`, resolution: "720p", duration: per }
-          });
+          const vmodel = ($s("scModel") && $s("scModel").value) || "minimax/h3-max/image-to-video";
+          const vin = { image_url: stillUrl, prompt: `${mv} camera, ${doing || "natural motion"}, ${scene}`, resolution: "720p", duration: per };
+          // H3 Max is the more faithful renderer — worth it here because this
+          // is reproducing real filmmaking, not just moving a mouth.
+          if (/h3-max/.test(vmodel)) vin.prompt_expansion_mode = "quality";
+          const sub = await post("/fal/submit", { model: vmodel, input: vin });
           const statusUrl = sub.status_url, respUrl = sub.response_url || (statusUrl || "").replace(/\/status$/, "");
           let out = null;
           for (let k = 0; k < 90 && !cancelled; k++) {
@@ -19143,7 +19194,7 @@ async function vsBuildSceneVideo(cfg) {
       let blob = new Blob([data.buffer], { type: "video/mp4" });
       done(sic);
       vsSettle(charge.jobId, "done");
-      vsTrackGen("scene", "grok+flux", "shots:" + clips.length + " sec:" + secs);
+      vsTrackGen("scene", (($s("scModel") && $s("scModel").value) || "h3-max") + "+flux", "shots:" + clips.length + " sec:" + secs);
       const u = URL.createObjectURL(blob);
       result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="scene-rebuild.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ${fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard"}</div>`;
       try { if (typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "scene-rebuild"); } catch (e) {}
