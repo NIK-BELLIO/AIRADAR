@@ -17733,13 +17733,22 @@ function vsReverseEngineer(prefill, opts) {
           // correctly-detected talking-head with "slideshow" every time. Only the
           // REFERENCE's own DNA.format text is a real signal.
           const ssTxt = String((blueprint.styleDNA && blueprint.styleDNA.format) || "");
-          const strongSlideshow = /slide|carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe/i.test(ssTxt)
-            || /carousel|slide|graphic|quote/i.test(String(vis.format || ""));
+          // The TEXT-only classifier is noisy on short/ambiguous captions — live-
+          // tested against two real references with the IDENTICAL signal pattern
+          // (DNA.format says "slideshow", vision's cover-photo read says
+          // "talking_head") but OPPOSITE correct answers: one was genuinely a
+          // quote-card slideshow (its DNA.format spelled out "...voiceover
+          // narration" — a specific, corroborated read), the other a genuine
+          // talking-head reel whose caption was just too terse for the text
+          // classifier to work with (DNA.format came back as the single bare
+          // word "Slideshow" — its default guess, not real evidence). So a bare
+          // "slide/slideshow" alone must NOT count as strong; only a SPECIFIC
+          // carousel/quote-card/voiceover/etc. phrase does — a weak text guess
+          // defers to vision's camTalk read instead of overriding it.
+          const strongSlideshow = /carousel|montage|voice.?over|text[- ]on[- ]screen|quote card|photo dump|swipe|b-?roll.{0,20}(image|photo|slide)/i.test(ssTxt)
+            || /carousel|graphic|quote/i.test(String(vis.format || ""));
           // Remember this for the route computation below — it must use the
-          // SAME guard as formatType here, or a false-positive "mic" read on
-          // a quote-card cover (bug: confirmed live, Glennda's pink quote-card
-          // slideshow got routed to talking-head purely because vis.mic came
-          // back true) can override a reference that's clearly a slideshow.
+          // SAME guard as formatType here.
           blueprint._strongSlideshow = strongSlideshow;
           const camTalk = /podcast|talking[_ ]?head|to camera|speaking to camera|piece to camera|selfie video|\bvlog\b|person speaks|speaks to camera|interview/i.test(String(vis.format || "")) || !!vis.mic;
           if (camTalk && !strongSlideshow) blueprint.formatType = "talking_head";
