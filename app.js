@@ -17486,6 +17486,24 @@ function vsReverseEngineer(prefill, opts) {
            </label>
          </div>
          <div class="re-cards">
+           <!-- MOTION TRANSFER — the most faithful rebuild there is: the
+                reference clip itself drives the motion (camera move, gestures,
+                timing) and only the PERSON becomes the user. Needs the actual
+                video, so it only appears when we have one. -->
+           <div class="re-mcard" id="reMtCard" data-route="motion" style="display:none">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10v12H4z"/><path d="M18 9v6"/><path d="M14 12h4"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c.8-2 2-3 3.5-3s2.7 1 3.5 3"/></svg></span>
+               <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">WAN VACE · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "خودِ ویدیوی مرجع حرکت را می‌راند: همان حرکتِ دوربین، همان ژست‌ها، همان تایمینگ — فقط شخص، تو می‌شوی." : "The reference clip itself drives it: same camera move, same gestures, same timing — only the person becomes you."}</div>
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reMtRes"><option value="480p">480p</option><option value="720p" selected>720p</option></select></div></div>
+             <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
+             <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div style="flex:1"></div>
+             <span class="mcred" id="reCredMt">${gemSvg}14 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <button id="reBuildMt" type="button" class="mbtn">${fa ? "انتقالِ حرکت به من" : "Transfer motion to me"}</button>
+           </div>
            <!-- Scene-by-scene rebuild — the only builder that reproduces a
                 multi-shot reference; shown only when a shot list was read. -->
            <div class="re-mcard" id="reSceneCard" data-route="scene" style="display:none">
@@ -17707,7 +17725,7 @@ function vsReverseEngineer(prefill, opts) {
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
       if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, uploaded: true, isProfile: false };
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, refVideo: file, uploaded: true, isProfile: false };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
       const cardsTxt = titleCards.length ? `<div style="font-size:11.5px;color:#f5c451;margin-top:3px">${fa ? "کپشن‌های دیده‌شده: " : "Captions seen: "}“${esc(titleCards.join('” → “'))}”</div>` : "";
@@ -17782,6 +17800,7 @@ function vsReverseEngineer(prefill, opts) {
               const sl = await vsAnalyzeShotList(vblob);
               blueprint.shotList = sl.shots;
               blueprint.refDuration = await vsVideoDuration(vblob);
+              ref.refVideo = vblob;   // motion transfer drives off the real clip
               linkTitleCards = sl.cards;
             }
           } catch (e) {}
@@ -17893,6 +17912,17 @@ function vsReverseEngineer(prefill, opts) {
       const multiShot = shots.length >= 2 &&
         new Set(shots.map(s => String(s.setting || "").toLowerCase().trim()).filter(Boolean)).size >= 2;
       if ($$("reSceneCard")) $$("reSceneCard").style.display = multiShot ? "" : "none";
+      // Motion transfer needs the ACTUAL reference clip in hand — only offer it
+      // when we have one (a reel link we could fetch, or an uploaded video).
+      const haveClip = !!(ref && ref.refVideo);
+      if ($$("reMtCard")) $$("reMtCard").style.display = haveClip ? "" : "none";
+      if (haveClip && $$("reCredMt")) {
+        const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
+        const mtRate = () => ($$("reMtSpeak") && $$("reMtSpeak").checked) ? 18 : 14;
+        const paintMt = () => { if (mtSec) $$("reCredMt").innerHTML = gemSvg + Math.ceil(mtSec * mtRate()) + (fa ? ` کردیت · ${mtSec}s` : ` credits · ${mtSec}s`); };
+        paintMt();
+        if ($$("reMtSpeak")) $$("reMtSpeak").onchange = paintMt;
+      }
       blueprint._multiShot = multiShot;
       // Show the reference's real length and how many shots on the card, so the
       // scale of the job is clear before the pricing dialog opens.
@@ -18175,6 +18205,39 @@ function vsReverseEngineer(prefill, opts) {
         voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
         aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
         refDuration: (blueprint && blueprint.refDuration) || 0
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
+  };
+  // MOTION TRANSFER — the reference clip drives everything; only the person
+  // becomes the user. Needs the actual reference video + the user's photo.
+  let mtPhoto = null;
+  if ($$("reMtPhoto")) $$("reMtPhoto").onchange = (e) => {
+    mtPhoto = (e.target.files && e.target.files[0]) || null;
+    $$("reMtPhotoTxt").textContent = mtPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + mtPhoto.name.slice(0, 26) : (fa ? "عکسِ خودت (لازم)" : "Your photo (required)");
+  };
+  if ($$("reBuildMt")) $$("reBuildMt").onclick = () => {
+    const photo = mtPhoto || thPhoto || anyImg;
+    if (!photo) { vsStatus(fa ? "اول عکسِ خودت را بده." : "Add your photo first."); $$("reMtPhoto").click(); return; }
+    const clip = ref && ref.refVideo;
+    if (!clip) { vsStatus(fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."); return; }
+    try {
+      const shot0 = ((blueprint && blueprint.shotList) || [])[0] || {};
+      const script = ($$("reScript").value || "").trim();
+      vsBuildMotionTransfer({
+        clip, photo,
+        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        resolution: ($$("reMtRes") && $$("reMtRes").value) || "720p",
+        aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
+        // what the reference shot actually IS — read off its own frames
+        shot: shot0.shot, camera: shot0.camera, action: shot0.action,
+        lighting: shot0.lighting,
+        setting: (blueprint && blueprint.setting) || shot0.setting || "",
+        // and what it should now be ABOUT — the user's own subject
+        topic: [($$("rePrompt").value || "").trim(), ($$("reRegion").value || "").trim()].filter(Boolean).join(", "),
+        speak: !!($$("reMtSpeak") && $$("reMtSpeak").checked),
+        narration: vsExtractNarration(script) || script,
+        voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
+        audio: anyAud
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -22143,3 +22206,164 @@ A video is made of one or more SCENES that play one after another. Each scene ha
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", centerActiveNav, { once: true });
   else centerActiveNav();
 })();
+
+// ── MOTION TRANSFER (WAN VACE 14B, pose task) ─────────────────────────────
+// The most faithful rebuild available: the REFERENCE CLIP itself drives the
+// motion — camera move, gestures, timing all come from the original — and the
+// user's photo supplies who is in it. Every other builder here generates NEW
+// motion from a still; this one transfers the real thing.
+async function vsBuildMotionTransfer(cfg) {
+  cfg = cfg || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  const upload = async (file, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
+
+  const secs = Math.min(Math.max(Math.round(Number(cfg.seconds) || 8), 3), 30);
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = '<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:16px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">' +
+    '<div style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:18px;color:#eaf1ff;margin-bottom:4px">' + (fa ? "انتقالِ حرکت" : "Motion transfer") + '</div>' +
+    '<div id="mtStage" style="font-size:12px;color:#7fb0ff;font-weight:700;margin-bottom:12px;min-height:16px"></div>' +
+    '<div id="mtSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>' +
+    '<div id="mtNote" style="display:none;margin-top:10px;font-size:11.5px;color:#8ea6c8;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 11px;line-height:1.5"></div>' +
+    '<div id="mtResult" style="margin-top:12px"></div>' +
+    '<div id="mtBtns" style="display:flex;gap:9px;margin-top:14px">' +
+      '<button id="mtCancel" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#e0a0a0;border:1px solid rgba(240,120,120,.35)">' + (fa ? "لغو (کردیت برمی‌گردد)" : "Cancel (refunds credits)") + '</button>' +
+      '<button id="mtBg" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "در پس‌زمینه ادامه بده" : "Continue in background") + '</button>' +
+    '</div>' +
+    '<button id="mtClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "بستن" : "Close") + '</button></div>';
+  document.body.appendChild(ov);
+  const $m = (id) => ov.querySelector("#" + id);
+  const steps = $m("mtSteps"), result = $m("mtResult"), stage = $m("mtStage"), note = $m("mtNote"), btns = $m("mtBtns"), closeBtn = $m("mtClose");
+  let cancelled = false;
+  const finish = () => { btns.style.display = "none"; closeBtn.style.display = ""; stage.textContent = ""; };
+  closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
+  $m("mtBg").onclick = () => { try { ov.remove(); } catch (e) {} vsStatus(fa ? "⏳ در پس‌زمینه ادامه دارد — وقتی آماده شد در داشبورد ذخیره می‌شود." : "⏳ Still rendering in the background — it will be saved to your Dashboard when ready."); };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = '<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>' + t + '</span>'; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
+  const fail = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
+
+  const charge = await vsCharge(cfg.speak ? "motiontransferspeak" : "motiontransfer", { seconds: secs });
+  if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  $m("mtCancel").onclick = () => {
+    cancelled = true; vsSettle(charge.jobId, "failed");
+    steps.innerHTML = ""; note.style.display = "none"; stage.textContent = "";
+    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded.") + '</div>';
+    finish();
+  };
+
+  try {
+    let ic = line(fa ? "آپلودِ ویدیوی مرجع و عکسِ تو" : "Uploading the reference clip and your photo");
+    const up = await Promise.all([
+      upload(cfg.clip, cfg.clip.type || "video/mp4"),
+      upload(cfg.photo, cfg.photo.type || "image/jpeg")
+    ]);
+    if (cancelled) return;
+    done(ic);
+
+    const renderIc = line(fa ? "انتقالِ حرکت" : "Transferring the motion");
+    // These models lean on the prompt for fidelity, so build a real one:
+    // WHO (the user's reference photo) + WHAT the reference shot actually is
+    // (framing, action, setting, lighting, read off its own frames) + the
+    // USER's topic, so the result is their subject, not the original's.
+    const clean = (v, n) => String(v || "").replace(/[^\w ,'\-]/g, " ").replace(/\s+/g, " ").trim().slice(0, n || 70);
+    const bits = [
+      "the exact person from the reference image, same face and identity",
+      clean(cfg.action) && "performing this action: " + clean(cfg.action),
+      clean(cfg.shot) && clean(cfg.shot).replace(/_/g, " ") + " framing",
+      clean(cfg.camera) && clean(cfg.camera).replace(/_/g, " ") + " camera move",
+      clean(cfg.setting) && "in " + clean(cfg.setting),
+      clean(cfg.lighting),
+      clean(cfg.topic, 80) && "context: " + clean(cfg.topic, 80),
+      "photorealistic, natural motion, consistent identity, same timing as the source"
+    ].filter(Boolean);
+    const sub = await post("/fal/submit", {
+      model: "fal-ai/wan-vace-14b",
+      input: {
+        task: "pose",                       // the reference's motion drives it
+        video_url: up[0],
+        ref_image_urls: [up[1]],
+        prompt: bits.join(", "),
+        negative_prompt: "distorted face, extra limbs, text, watermark, blurry",
+        match_input_num_frames: true,       // keep the ORIGINAL timing exactly
+        match_input_frames_per_second: true,
+        resolution: cfg.resolution || "720p",
+        aspect_ratio: cfg.aspect || "9:16",
+        video_quality: "high"
+      }
+    });
+    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+    if (!statusUrl) throw new Error("submit failed");
+    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    const startedAt = Date.now();
+    let out = null, last = "";
+    const WORD = fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
+    for (let k = 0; k < 200 && !cancelled; k++) {
+      const el = Math.round((Date.now() - startedAt) / 1000);
+      stage.textContent = (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      if (el > 120 && !note.dataset.shown) {
+        note.dataset.shown = "1"; note.style.display = "block";
+        note.textContent = fa ? "انتقالِ حرکت از ساختِ معمولی سنگین‌تر است و چند دقیقه طول می‌کشد — می‌توانی ببندی، در پس‌زمینه ادامه می‌دهد." : "Motion transfer is heavier than a normal render and takes a few minutes — you can close this, it keeps going in the background.";
+      }
+      await new Promise(r => setTimeout(r, 4000));
+      if (cancelled) return;
+      let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      last = st;
+      if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "FAILED" || st === "ERROR") break;
+    }
+    if (cancelled) return;
+    if (!out) { fail(renderIc); throw new Error(fa ? "انتقالِ حرکت ناموفق بود یا زمان تمام شد" : "motion transfer failed or timed out"); }
+    done(renderIc); stage.textContent = "";
+
+    // The motion came from the reference; the WORDS must be the user's. Speak
+    // their script and re-sync the transferred person's lips onto it, so the
+    // clip is the reference's performance saying the user's own message.
+    if (cfg.speak && (cfg.narration || cfg.audio)) {
+      const voiceIc = line(cfg.audio ? (fa ? "آپلودِ صدای تو" : "Uploading your audio") : (fa ? "نوشتنِ صدا با متنِ تو" : "Speaking your script"));
+      let audioUrl = "";
+      try {
+        if (cfg.audio) audioUrl = await upload(cfg.audio, cfg.audio.type || "audio/mpeg");
+        else {
+          const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: String(cfg.narration).slice(0, 1200), voice: cfg.voice || "af_heart" } });
+          audioUrl = tts && tts.audio && tts.audio.url;
+        }
+      } catch (e) {}
+      if (!audioUrl) { fail(voiceIc); }
+      else {
+        done(voiceIc);
+        const syncIc = line(fa ? "هماهنگیِ لب با حرفِ تو" : "Syncing the lips to your words");
+        try {
+          const ls = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: out, audio_url: audioUrl } });
+          const lsStatus = ls.status_url, lsResp = (ls.response_url || (lsStatus || "").replace(/\/status$/, ""));
+          let synced = null;
+          for (let k = 0; k < 90 && lsStatus && !cancelled; k++) {
+            await new Promise(r => setTimeout(r, 4000));
+            let st = "?"; try { const jj = await (await fetch(pollUrl(lsStatus))).json(); st = jj.status || "?"; } catch (e) {}
+            if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(lsResp))).json(); synced = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+            if (st === "FAILED" || st === "ERROR") break;
+          }
+          if (cancelled) return;
+          if (synced) { out = synced; done(syncIc); } else fail(syncIc);
+        } catch (e) { fail(syncIc); }
+      }
+    }
+
+    vsSettle(charge.jobId, "done");
+    vsTrackGen(cfg.speak ? "motiontransferspeak" : "motiontransfer", "wan-vace-14b", "sec:" + secs);
+    let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+    const u = blob ? URL.createObjectURL(blob) : out;
+    result.innerHTML = '<video src="' + u + '" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>' +
+      '<a href="' + u + '" download="motion-transfer.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ' + (fa ? "دانلود" : "Download") + '</a>' +
+      '<div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ' + (fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard") + '</div>';
+    try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "motion-transfer"); } catch (e) {}
+    finish();
+  } catch (e) {
+    if (cancelled) return;
+    vsSettle(charge.jobId, "failed"); stage.textContent = "";
+    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e) + '</div>';
+    finish();
+  }
+}
