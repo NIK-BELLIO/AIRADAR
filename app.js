@@ -17500,7 +17500,7 @@ function vsReverseEngineer(prefill, opts) {
              <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
              <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredMt">${gemSvg}14 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="mcred" id="reCredMt">${gemSvg}18 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildMt" type="button" class="mbtn">${fa ? "انتقالِ حرکت به من" : "Transfer motion to me"}</button>
            </div>
            <!-- Scene-by-scene rebuild — the only builder that reproduces a
@@ -17936,7 +17936,13 @@ function vsReverseEngineer(prefill, opts) {
       if (haveClip && $$("reCredMt")) {
         const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
         const mtRate = () => ($$("reMtSpeak") && $$("reMtSpeak").checked) ? 18 : 14;
-        const paintMt = () => { if (mtSec) $$("reCredMt").innerHTML = gemSvg + Math.ceil(mtSec * mtRate()) + (fa ? ` کردیت · ${mtSec}s` : ` credits · ${mtSec}s`); };
+        // Always repaint, with or without a known duration — otherwise the card
+        // keeps advertising the no-speech rate while the speech box sits ticked.
+        const paintMt = () => {
+          $$("reCredMt").innerHTML = gemSvg + (mtSec
+            ? Math.ceil(mtSec * mtRate()) + (fa ? ` کردیت · ${mtSec}s` : ` credits · ${mtSec}s`)
+            : mtRate() + (fa ? " / ثانیه" : " / sec"));
+        };
         paintMt();
         if ($$("reMtSpeak")) $$("reMtSpeak").onchange = paintMt;
       }
