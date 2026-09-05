@@ -19321,9 +19321,10 @@ async function vsBuildVideoModel(cfg) {
   // "Continue in background" — just hides the dialog; the poll loop below keeps
   // running (this tab must stay open) and the video still auto-saves to the
   // Dashboard when it finishes, so the user never loses the result.
+  let tray = null;
   bgBtn.onclick = () => {
     try { ov.remove(); } catch (e) {}
-    vsStatus(fa ? "⏳ در پس‌زمینه ادامه دارد — وقتی آماده شد در داشبورد ذخیره می‌شود." : "⏳ Still rendering in the background — it'll be saved to your Dashboard when ready.");
+    if (!tray) tray = vsJobCard(cfg.title || (fa ? "ساختِ ویدیو" : "Rendering video"));
   };
   const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
   const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
@@ -19358,6 +19359,7 @@ async function vsBuildVideoModel(cfg) {
       const mm = Math.floor(elapsed / 60), ss = String(elapsed % 60).padStart(2, "0");
       const stageWord = (fa ? STAGE_FA[lastStatus] : STAGE_EN[lastStatus]) || (fa ? "در حالِ اتصال" : "connecting");
       stageEl.textContent = `${stageWord} · ${mm}:${ss}`;
+      if (tray) tray.stage(`${stageWord} · ${mm}:${ss}`);
       if (elapsed > 150 && !noteEl.dataset.shown) {
         noteEl.style.display = "block"; noteEl.dataset.shown = "1";
         noteEl.textContent = fa ? "این مدل گاهی چند دقیقه طول می‌کشد — می‌تونی ببندی و در پس‌زمینه ادامه بدی، تمام‌شده خودش در داشبورد ذخیره می‌شود." : "This model can take several minutes — you can let it continue in the background; it'll land in your Dashboard when it's done.";
@@ -19387,11 +19389,14 @@ async function vsBuildVideoModel(cfg) {
     const u = blob ? URL.createObjectURL(blob) : out;
     result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="${cfg.name || "video"}.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ${fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard"}</div>`;
     try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", cfg.name || "video"); } catch (e) {}
+    if (tray) tray.done(u, cfg.name || "video");
     finishUi();
   } catch (e) {
     if (cancelled) return;
     vsSettle(charge.jobId, "failed"); stageEl.textContent = "";
-    result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+    const msg = (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e);
+    result.innerHTML = `<div style="color:#e0b088;font-size:13px">${msg}</div>`;
+    if (tray) tray.fail(msg);
     finishUi();
   }
 }
@@ -22265,7 +22270,13 @@ async function vsBuildMotionTransfer(cfg) {
   let cancelled = false;
   const finish = () => { btns.style.display = "none"; closeBtn.style.display = ""; stage.textContent = ""; };
   closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
-  $m("mtBg").onclick = () => { try { ov.remove(); } catch (e) {} vsStatus(fa ? "⏳ در پس‌زمینه ادامه دارد — وقتی آماده شد در داشبورد ذخیره می‌شود." : "⏳ Still rendering in the background — it will be saved to your Dashboard when ready."); };
+  // Going to the background hands the job to the tray, which keeps showing its
+  // stage and finally the video itself — no Dashboard refresh hunting.
+  let tray = null;
+  $m("mtBg").onclick = () => {
+    try { ov.remove(); } catch (e) {}
+    if (!tray) tray = vsJobCard(fa ? "انتقالِ حرکت" : "Motion transfer");
+  };
   const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = '<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>' + t + '</span>'; steps.appendChild(d); return d.querySelector(".ic"); };
   const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#4ade80"; } };
   const fail = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
@@ -22320,7 +22331,9 @@ async function vsBuildMotionTransfer(cfg) {
     const WORD = fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
     for (let k = 0; k < 240 && !cancelled; k++) {
       const el = Math.round((Date.now() - startedAt) / 1000);
-      stage.textContent = (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      const stageTxt = (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      stage.textContent = stageTxt;
+      if (tray) tray.stage(stageTxt);
       if (el > 120 && !note.dataset.shown) {
         note.dataset.shown = "1"; note.style.display = "block";
         note.textContent = fa ? "انتقالِ حرکت از ساختِ معمولی سنگین‌تر است و چند دقیقه طول می‌کشد — می‌توانی ببندی، در پس‌زمینه ادامه می‌دهد." : "Motion transfer is heavier than a normal render and takes a few minutes — you can close this, it keeps going in the background.";
@@ -22389,12 +22402,75 @@ async function vsBuildMotionTransfer(cfg) {
       '<a href="' + u + '" download="motion-transfer.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:11px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ' + (fa ? "دانلود" : "Download") + '</a>' +
       '<div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ' + (fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard") + '</div>';
     try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "motion-transfer"); } catch (e) {}
+    if (tray) tray.done(u, "motion-transfer");
     finish();
   } catch (e) {
     if (cancelled) return;
     vsSettle(charge.jobId, "failed"); stage.textContent = "";
-    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e) + '</div>';
+    const msg = (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e);
+    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + msg + '</div>';
+    if (tray) tray.fail(msg);
     finish();
   }
 }
 
+
+// ── BACKGROUND JOB TRAY ───────────────────────────────────────────────────
+// A render that's been sent to the background must stay VISIBLE. Before this,
+// "Continue in background" dismissed the dialog and the only way to find out
+// whether the video ever landed was to keep reloading the Dashboard. Now every
+// backgrounded render keeps a live card in a corner tray: its stage, elapsed
+// time, and — when it finishes — the video itself, right there.
+function vsJobTray() {
+  let host = document.getElementById("vsJobTray");
+  if (host) return host;
+  host = document.createElement("div");
+  host.id = "vsJobTray";
+  host.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:120000;display:flex;flex-direction:column;gap:10px;align-items:flex-end;max-width:min(340px,92vw)";
+  document.body.appendChild(host);
+  return host;
+}
+
+// Add a job card. Returns handles the caller drives as the render progresses.
+function vsJobCard(title) {
+  const host = vsJobTray();
+  const fa = state.lang === "fa";
+  const card = document.createElement("div");
+  card.style.cssText = "width:min(320px,92vw);background:#0e1420;border:1px solid rgba(37,99,255,.32);border-radius:14px;padding:13px 14px;box-shadow:0 18px 44px -12px rgba(0,0,0,.7);font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif";
+  card.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span class="jt-spin" style="width:13px;height:13px;flex:none;border:2px solid rgba(255,255,255,.18);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>' +
+      '<b style="font-size:12.5px;color:#eaf1ff;flex:1">' + title + '</b>' +
+      '<button class="jt-x" type="button" style="background:transparent;border:0;color:#6b7686;cursor:pointer;font-size:15px;line-height:1;padding:0 2px">✕</button>' +
+    '</div>' +
+    '<div class="jt-stage" style="margin-top:6px;font:600 11px \'JetBrains Mono\',ui-monospace,monospace;color:#7fb0ff"></div>' +
+    '<div class="jt-body" style="margin-top:8px"></div>';
+  host.appendChild(card);
+  if (!document.getElementById("vsSpinKf")) {
+    const st = document.createElement("style"); st.id = "vsSpinKf";
+    st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st);
+  }
+  const stageEl = card.querySelector(".jt-stage");
+  const bodyEl = card.querySelector(".jt-body");
+  const spin = card.querySelector(".jt-spin");
+  const close = () => { try { card.remove(); } catch (e) {} };
+  card.querySelector(".jt-x").onclick = close;
+  return {
+    stage: (t) => { stageEl.textContent = t || ""; },
+    // A finished render lands right here — playable and downloadable without
+    // ever opening the Dashboard.
+    done: (url, name) => {
+      spin.style.animation = "none"; spin.style.border = "0"; spin.textContent = "✓"; spin.style.color = "#4ade80";
+      stageEl.textContent = fa ? "آماده شد" : "Ready";
+      bodyEl.innerHTML =
+        '<video src="' + url + '" controls playsinline style="width:100%;border-radius:9px;background:#000"></video>' +
+        '<a href="' + url + '" download="' + (name || "video") + '.mp4" style="display:block;text-align:center;margin-top:7px;font:800 12px \'Space Grotesk\',sans-serif;padding:9px;border-radius:9px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ' + (fa ? "دانلود" : "Download") + '</a>';
+    },
+    fail: (msg) => {
+      spin.style.animation = "none"; spin.style.border = "0"; spin.textContent = "✕"; spin.style.color = "#f87171";
+      stageEl.textContent = "";
+      bodyEl.innerHTML = '<div style="font-size:11.5px;color:#e0b088">' + (msg || (fa ? "ناموفق" : "Failed")) + '</div>';
+    },
+    close
+  };
+}
