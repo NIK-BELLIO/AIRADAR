@@ -22335,7 +22335,7 @@ async function vsBuildMotionTransfer(cfg) {
     if (cancelled) return;
     if (!outUrl) { fail(renderIc); throw new Error(fa ? "انتقالِ حرکت ناموفق بود یا زمان تمام شد" : "motion transfer failed or timed out"); }
     done(renderIc); stage.textContent = "";
-    let joined = null; try { joined = await (await fetch(outUrl)).blob(); } catch (e) {}
+    let joined = null; try { joined = await (await fetch(outUrl)).blob(); } catch (e) {}   // reassigned after lip-sync
     let out = joined ? URL.createObjectURL(joined) : outUrl;
 
     // The motion came from the reference; the WORDS must be the user's. Speak
@@ -22356,7 +22356,9 @@ async function vsBuildMotionTransfer(cfg) {
         done(voiceIc);
         const syncIc = line(fa ? "هماهنگیِ لب با حرفِ تو" : "Syncing the lips to your words");
         try {
-          const ls = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: out, audio_url: audioUrl } });
+          // MUST be the fal-hosted URL, not the local blob: URL — fal's servers
+          // fetch this themselves and cannot read a browser blob handle.
+          const ls = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: outUrl, audio_url: audioUrl } });
           const lsStatus = ls.status_url, lsResp = (ls.response_url || (lsStatus || "").replace(/\/status$/, ""));
           let synced = null;
           for (let k = 0; k < 90 && lsStatus && !cancelled; k++) {
@@ -22366,7 +22368,15 @@ async function vsBuildMotionTransfer(cfg) {
             if (st === "FAILED" || st === "ERROR") break;
           }
           if (cancelled) return;
-          if (synced) { out = synced; done(syncIc); } else fail(syncIc);
+          if (synced) {
+            // Re-download so the player AND the Dashboard both get the SPOKEN
+            // cut; keeping the pre-sync blob here shipped a silent video to the
+            // dashboard while the preview played the synced one.
+            outUrl = synced;
+            try { const b2 = await (await fetch(synced)).blob(); if (b2 && b2.size) { joined = b2; out = URL.createObjectURL(b2); } else out = synced; }
+            catch (e) { out = synced; }
+            done(syncIc);
+          } else fail(syncIc);
         } catch (e) { fail(syncIc); }
       }
     }
