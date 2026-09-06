@@ -17484,6 +17484,14 @@ function vsReverseEngineer(prefill, opts) {
              <span id="reAnyAudioTxt">${fa ? "افزودنِ صدای خودت (اختیاری)" : "Add your voice/audio (optional)"}</span>
              <input id="reAnyAudio" type="file" accept="audio/*" style="display:none"/>
            </label>
+           <label id="reAssetsLbl">
+             <span class="mico2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M7 20h12a2 2 0 0 0 2-2V9"/><path d="M4 13l3.5-3.5 2.5 2.5L14 8l3 3"/></svg></span>
+             <span id="reAssetsTxt">${fa ? "عکس‌های ملک/محصول (چندتایی)" : "Listing / product photos (multiple)"}</span>
+             <input id="reAssets" type="file" accept="image/*" multiple style="display:none"/>
+           </label>
+         </div>
+         <div style="margin-bottom:11px">
+           <textarea id="reExtraPrompt" rows="2" placeholder="${fa ? "جزئیاتِ خودت — قیمت، تعداد خواب/حمام، متراژ، آدرس، نکتهٔ فروش… (روی متن و ویدیو اعمال می‌شود)" : "Your own details — price, beds/baths, size, address, selling point… (used in the script and the render)"}" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:10px 12px;color:#eef4ff;font:inherit;font-size:12.5px;resize:vertical"></textarea>
          </div>
          <div class="re-cards">
            <!-- MOTION TRANSFER — the most faithful rebuild there is: the
@@ -18118,6 +18126,18 @@ function vsReverseEngineer(prefill, opts) {
   };
   ["reHapDur", "reGrokDur", "reThDur"].forEach(id => { if ($$(id)) $$(id).onchange = updCred; });
   updCred();
+  // Listing / product photos: the reference's own property shots are someone
+  // else's real estate, so a rebuild has to substitute the USER's — otherwise
+  // it would publish another agent's house as theirs.
+  let assetPhotos = [];
+  if ($$("reAssets")) $$("reAssets").onchange = (e) => {
+    assetPhotos = Array.from((e.target.files || []));
+    $$("reAssetsTxt").textContent = assetPhotos.length
+      ? (fa ? `✓ ${assetPhotos.length} عکسِ ملک` : `✓ ${assetPhotos.length} listing photos`)
+      : (fa ? "عکس‌های ملک/محصول (چندتایی)" : "Listing / product photos (multiple)");
+  };
+  const vsExtraPrompt = () => ($$("reExtraPrompt") && $$("reExtraPrompt").value || "").trim();
+
   // Own-photo picker: remember the file and show its name.
   let thPhoto = null;
   $$("reThPhoto").onchange = (e) => {
@@ -18202,7 +18222,7 @@ function vsReverseEngineer(prefill, opts) {
     const sz = szMap[($$("reCarSize") && $$("reCarSize").value) || "4:5"] || szMap["4:5"];
     try {
       await vsBuildCarousel(script, {
-        topic: ($$("rePrompt").value || "").trim(),
+        topic: [($$("rePrompt").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(" — "),
         subtitle: ($$("rePrompt").value || "").trim(),
         coverTitle: (blueprint && blueprint.caption ? String(blueprint.caption).split(/[.\n!?]/)[0].slice(0, 60) : "") || "",
         // The USER's own handle — never the reference account's. Stamping the
@@ -18230,6 +18250,7 @@ function vsReverseEngineer(prefill, opts) {
         photo: thPhoto || anyImg, audio: anyAud,
         voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
         aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
+        assets: assetPhotos,
         refDuration: (blueprint && blueprint.refDuration) || 0
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
@@ -18258,7 +18279,7 @@ function vsReverseEngineer(prefill, opts) {
         lighting: shot0.lighting,
         setting: (blueprint && blueprint.setting) || shot0.setting || "",
         // and what it should now be ABOUT — the user's own subject
-        topic: [($$("rePrompt").value || "").trim(), ($$("reRegion").value || "").trim()].filter(Boolean).join(", "),
+        topic: [($$("rePrompt").value || "").trim(), ($$("reRegion").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
         speak: !!($$("reMtSpeak") && $$("reMtSpeak").checked),
         narration: vsExtractNarration(script) || script,
         voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
@@ -19116,6 +19137,7 @@ async function vsBuildSceneVideo(cfg) {
   const RATE = 9;                                  // per second of rendered video
 
   const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  const upload = async (file, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const jj = await r.json().catch(() => ({})); if (!jj.file_url) throw new Error(jj.error || "upload failed"); return jj.file_url; };
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.88);backdrop-filter:blur(6px);padding:18px";
@@ -19215,6 +19237,14 @@ async function vsBuildSceneVideo(cfg) {
 
       // 3) Each shot: build its still (in that shot's setting/framing), then
       //    move it for `per` seconds with that shot's camera.
+      const assetUrls = [];
+      if (cfg.assets && cfg.assets.length) {
+        const aic = line(fa ? "آپلودِ عکس‌های تو" : "Uploading your photos");
+        for (const a of cfg.assets.slice(0, 8)) {
+          try { assetUrls.push(await upload(a, a.type || "image/jpeg")); } catch (e) {}
+        }
+        assetUrls.length ? done(aic) : fail(aic);
+      }
       const clips = [];
       for (let i = 0; i < shots.length && !cancelled; i++) {
         const sh = shots[i];
@@ -19224,7 +19254,15 @@ async function vsBuildSceneVideo(cfg) {
           const scene = [sh.setting, sh.lighting].filter(Boolean).join(", ").replace(/[^\w ,'-]/g, " ").slice(0, 90);
           const doing = String(sh.action || "").replace(/[^\w ,'-]/g, " ").slice(0, 60);
           let stillUrl = "";
-          if (faceUrl) {
+          // A property/product shot must show the USER's listing, not the
+          // reference's — publishing someone else's house as your own is the
+          // whole thing to avoid. When they've supplied photos, a shot with no
+          // person in it uses theirs directly instead of inventing one.
+          const isPersonShot = /person|man|woman|speak|talk|walk|hold|gestur|face/i.test(String(sh.subject || "") + " " + String(sh.action || ""));
+          if (!isPersonShot && assetUrls.length) {
+            stillUrl = assetUrls[i % assetUrls.length];
+          }
+          if (!stillUrl && faceUrl) {
             const i2i = await post("/fal/run", {
               model: "fal-ai/flux/dev/image-to-image",
               input: {
