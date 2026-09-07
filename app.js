@@ -16115,6 +16115,32 @@ async function vsRenderInfographic(brief, opts) {
 // ── Creator Tools ─────────────────────────────────────────────────────────
 // A hub of content generators ported faithfully from the social-media skills.
 // All FREE: text tools use /chat; quote + infographic render on canvas.
+// ── CREDIT BADGE ───────────────────────────────────────────────────────────
+// A credit cost used to be drawn four different ways depending on where it
+// appeared. These two are now the only source: one icon, one markup shape.
+// `suffix` carries the rate wording ("/ sec") when a price is per-second.
+const arCreditIcon = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+  + '<path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>';
+
+function arCredit(amount, opts) {
+  opts = opts || {};
+  const n = Number(amount) || 0;
+  const cls = ["ar-cred"];
+  const id = opts.id ? ' id="' + opts.id + '"' : "";
+  if (opts.free || n === 0) cls.push("free");
+  if (opts.onBright) cls.push("on-bright");
+  const label = opts.free || n === 0
+    ? (typeof state !== "undefined" && state.lang === "fa" ? "رایگان" : "FREE")
+    : String(n);
+  const suffix = opts.suffix ? " " + opts.suffix : "";
+  // A screen reader should hear what the number means, not just the digits.
+  const said = (opts.free || n === 0)
+    ? (typeof state !== "undefined" && state.lang === "fa" ? "رایگان" : "free")
+    : n + (typeof state !== "undefined" && state.lang === "fa" ? " کردیت" : " credits") + suffix;
+  return '<span' + id + ' class="' + cls.join(" ") + '" title="' + said + '" aria-label="' + said + '">'
+       + arCreditIcon + label + suffix + '</span>';
+}
+
 function vsCreatorTools(opts) {
   opts = opts || {};
   const page = !!opts.mount;   // page mode = render inline (its own page), not a modal
@@ -17303,7 +17329,9 @@ function vsReverseEngineer(prefill, opts) {
   const optAsp = (sel) => [["9:16", fa ? "عمودی 9:16" : "Vertical 9:16"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["16:9", fa ? "افقی 16:9" : "Wide 16:9"]].map(([v, l]) => `<option value="${v}"${v === (sel || "9:16") ? " selected" : ""}>${l}</option>`).join("");
   const optRes = (sel) => [["720p", "720p"], ["1080p", "1080p"]].map(([v, l]) => `<option value="${v}"${v === (sel || "720p") ? " selected" : ""}>${fa ? "کیفیت: " : "Quality: "}${l}</option>`).join("");
   const optSize = (sel) => [["4:5", fa ? "پرتره 4:5" : "Portrait 4:5"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["9:16", fa ? "استوری 9:16" : "Story 9:16"]].map(([v, l]) => `<option value="${v}"${v === (sel || "4:5") ? " selected" : ""}>${l}</option>`).join("");
-  const gemSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>`;
+  // The credit mark. Defined once and reused so a cost never renders two
+  // different ways on the same screen.
+  const gemSvg = arCreditIcon;
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
@@ -17420,7 +17448,7 @@ function vsReverseEngineer(prefill, opts) {
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div class="re-analyzerow" style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="btn" style="display:flex;align-items:center;gap:7px;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 0 0 1px rgba(255,255,255,.1) inset,0 1px 0 rgba(255,255,255,.28) inset">${fa ? "تحلیل" : "Analyze"}<span style="display:inline-flex;align-items:center;gap:3px;font:800 10px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:2px 6px 2px 5px;border-radius:5px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>1</span></button>
+           <button id="reFetch" type="button" class="btn" style="display:flex;align-items:center;gap:7px;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 0 0 1px rgba(255,255,255,.1) inset,0 1px 0 rgba(255,255,255,.28) inset">${fa ? "تحلیل" : "Analyze"}<span style="display:inline-flex;align-items:center;gap:3px;font:800 10px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:2px 6px 2px 5px;border-radius:5px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>1</span></button>
          </div>
          <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
            <span style="flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#7fb0ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
@@ -17462,7 +17490,7 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
-       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}<span style="display:inline-flex;align-items:center;gap:4px;font:800 11px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:3px 8px 3px 6px;border-radius:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>2 ${fa ? "کردیت" : "credits"}</span></button>
+       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}${arCredit(2)}</button>
 
        <div id="reProgress" style="display:none;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22);border-radius:14px;padding:14px 16px"></div>
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
@@ -17553,7 +17581,7 @@ function vsReverseEngineer(prefill, opts) {
              <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
              <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredMt">${gemSvg}18 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredMt">${gemSvg}18 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildMt" type="button" class="mbtn">${fa ? "انتقالِ حرکت به من" : "Transfer motion to me"}</button>
            </div>
            <!-- Scene-by-scene rebuild — the only builder that reproduces a
@@ -17566,7 +17594,7 @@ function vsReverseEngineer(prefill, opts) {
              </div>
              <div class="mdesc">${fa ? "نماهای مرجع (داخلِ ماشین، بیرون، رو به دوربین…) یکی‌یکی ساخته و پشتِ هم چیده می‌شوند — با چهره و حرفِ تو." : "The reference's shots are each generated and stitched in order — with your face and your words."}</div>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredScene">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredScene">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildScene" type="button" class="mbtn">${fa ? "ساختِ نما‌به‌نما" : "Rebuild scene by scene"}</button>
            </div>
            <!-- Talking-head (Fabric) -->
@@ -17590,7 +17618,7 @@ function vsReverseEngineer(prefill, opts) {
              <label id="reThPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reThPhotoTxt">${fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)"}</span><input id="reThPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reThDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reThAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredTH">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredTH">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
            </div>
            <!-- Lip-sync (LatentSync) -->
@@ -17603,7 +17631,7 @@ function vsReverseEngineer(prefill, opts) {
              <div class="mdesc">${fa ? "ویدیوی صورتِ خودت را بده؛ لب‌ها را با اسکریپتِ جدید هماهنگ می‌کنیم." : "Upload your own face video; we re-sync the lips to the new script."}</div>
              <label id="reLsVidLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg><span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت (لازم)" : "Your face video (required)"}</span><input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
              <div style="flex:1"></div>
-             <span class="mcred"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12l3.5 6L12 22 2.5 9z"/></svg>12</span>
+             ${arCredit(12)}
              <button id="reBuildLipsync" type="button" class="mbtn">${fa ? "لیپ‌سینک" : "Lip-sync"}</button>
            </div>
            <!-- AI presenter (Happy Horse) -->
@@ -17616,7 +17644,7 @@ function vsReverseEngineer(prefill, opts) {
              <div class="mdesc">${fa ? "پرزنترِ کاملاً AI که اسکریپت را چندزبانه با لیپ‌سینکِ طبیعی می‌گوید." : "A fully-AI presenter delivers the script with natural multilingual lip-sync."}</div>
              <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reHapDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reHapAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredHap">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredHap">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildHappy" type="button" class="mbtn">${fa ? "ساختِ پرزنتر" : "Build presenter"}</button>
            </div>
            <!-- Cinematic motion (H3 Max) -->
@@ -17629,7 +17657,7 @@ function vsReverseEngineer(prefill, opts) {
              <div class="mdesc">${fa ? "یک نمای سینمایی با حرکتِ دوربین از کاورِ ساخته‌شده — بدونِ حرف زدن." : "A cinematic camera-move shot from the generated cover — no talking."}</div>
              <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reMotAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred">${gemSvg}18</span>
+             <span class="ar-cred">${gemSvg}18</span>
              <button id="reBuildMotion" type="button" class="mbtn">${fa ? "نمای سینمایی" : "Cinematic shot"}</button>
            </div>
            <!-- Cinematic + audio (Grok) -->
@@ -17642,7 +17670,7 @@ function vsReverseEngineer(prefill, opts) {
              <div class="mdesc">${fa ? "نمای متحرک با صدای همزمان از عکسِ تو یا کاورِ ساخته‌شده." : "A moving shot with synced audio from your photo or the generated cover."}</div>
              <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reGrokDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reGrokRes">${optRes("720p")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred" id="reCredGrok">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredGrok">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
            </div>
            <!-- Carousel (image + text slides) — FREE -->
@@ -17656,7 +17684,7 @@ function vsReverseEngineer(prefill, opts) {
              <label id="reCarPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reCarPhotoTxt">${fa ? "عکسِ کاور (اختیاری)" : "Cover photo (optional)"}</span><input id="reCarPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div class="re-mctl one"><div class="cf"><b>${fa ? "سایز" : "Size"}</b><select id="reCarSize">${optSize("4:5")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
+             ${arCredit(0)}
              <button id="reBuildCar" type="button" class="mbtn">${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
            </div>
            <!-- Slideshow video — FREE -->
@@ -17669,7 +17697,7 @@ function vsReverseEngineer(prefill, opts) {
              <div class="mdesc">${fa ? "اسلایدشوی ویدیوییِ متن + عکس با ویس‌اوور — رایگان، بدونِ کردیت." : "A text + image slideshow video with voiceover — free, no credits."}</div>
              <div class="re-mctl one"><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reSlideAsp">${optAsp("9:16")}</select></div></div>
              <div style="flex:1"></div>
-             <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
+             ${arCredit(0)}
              <button id="reBuild" type="button" class="mbtn">${fa ? "ساختِ اسلایدشو" : "Build slideshow"}</button>
            </div>
          </div>
@@ -17705,7 +17733,7 @@ function vsReverseEngineer(prefill, opts) {
 
            <div class="re-swapgo">
              <button type="button" id="reSwapRun" class="mbtn" disabled>${fa ? "ساخت" : "Generate"}</button>
-             <span class="mcred" id="reSwapCost">—</span>
+             <span class="ar-cred" id="reSwapCost">—</span>
              <span class="re-swapnote" style="flex:1;min-width:180px;margin:0">${fa ? "یک بار ساخت به ازای هر کلیک. خودکار دوباره اجرا نمی‌شود." : "One paid render per click. Nothing retries on its own."}</span>
            </div>
            <div id="reSwapProg" class="re-swapprog" style="display:none">
@@ -18039,9 +18067,9 @@ function vsReverseEngineer(prefill, opts) {
         // Always repaint, with or without a known duration — otherwise the card
         // keeps advertising the no-speech rate while the speech box sits ticked.
         const paintMt = () => {
-          $$("reCredMt").innerHTML = gemSvg + (mtSec
-            ? Math.ceil(mtSec * mtRate()) + (fa ? ` کردیت · ${mtSec}s` : ` credits · ${mtSec}s`)
-            : mtRate() + (fa ? " / ثانیه" : " / sec"));
+          $$("reCredMt").outerHTML = mtSec
+            ? arCredit(Math.ceil(mtSec * mtRate()), { id: "reCredMt", suffix: `· ${mtSec}s` })
+            : arCredit(mtRate(), { id: "reCredMt", suffix: fa ? "/ ثانیه" : "/ sec" });
         };
         paintMt();
         if ($$("reMtSpeak")) $$("reMtSpeak").onchange = paintMt;
@@ -18052,9 +18080,9 @@ function vsReverseEngineer(prefill, opts) {
       if (multiShot && $$("reCredScene")) {
         const rd = Math.round(blueprint.refDuration || 0);
         const est = rd ? Math.min(Math.max(Math.round(rd / shots.length), 3), 10) * shots.length : 0;
-        $$("reCredScene").innerHTML = gemSvg + (est
-          ? (fa ? `~${Math.ceil(est * 9)} کردیت · ${shots.length} نما` : `~${Math.ceil(est * 9)} credits · ${shots.length} shots`)
-          : (fa ? `9 / ثانیه · ${shots.length} نما` : `9 / sec · ${shots.length} shots`));
+        $$("reCredScene").outerHTML = est
+          ? arCredit(Math.ceil(est * 9), { id: "reCredScene", suffix: fa ? `· ${shots.length} نما` : `· ${shots.length} shots` })
+          : arCredit(9, { id: "reCredScene", suffix: fa ? `/ ثانیه · ${shots.length} نما` : `/ sec · ${shots.length} shots` });
       }
       if (shots.length && $$("reShotStep")) {
         $$("reShotStep").style.display = "";
@@ -18224,7 +18252,9 @@ function vsReverseEngineer(prefill, opts) {
   const updCred = () => {
     const set = (durId, chipId, rate) => {
       const d = $$(durId), chip = $$(chipId); if (!d || !chip) return;
-      chip.innerHTML = gemSvg + (d.value === "auto" ? (rate + (fa ? " / ثانیه" : " / sec")) : (Math.ceil(Math.min(Math.max(Number(d.value) || 8, 3), 120) * rate) + (fa ? " کردیت" : "")));
+      chip.outerHTML = d.value === "auto"
+        ? arCredit(rate, { id: chipId, suffix: fa ? "/ ثانیه" : "/ sec" })
+        : arCredit(Math.ceil(Math.min(Math.max(Number(d.value) || 8, 3), 120) * rate), { id: chipId });
     };
     set("reHapDur", "reCredHap", 9); set("reGrokDur", "reCredGrok", 9); set("reThDur", "reCredTH", 5);
   };

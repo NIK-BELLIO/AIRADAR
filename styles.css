@@ -28,7 +28,7 @@ html { background: #0b1020; }
 /* Credit ring: when signed in we stamp data-credits on the avatar → a branded
    blue ring + a gold credit pill, so the balance reads right off the profile. */
 .arh-avatar[data-credits]{box-shadow:0 0 0 2px #0a0f1e,0 0 0 4px rgba(37,99,255,.95),0 0 12px 1px rgba(37,99,255,.5)}
-.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;line-height:1;color:#241a06;background:#f5c451 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23241a06'%3E%3Cpath d='M6 3h12l3.5 6L12 22 2.5 9z'/%3E%3C/svg%3E") 5px center/8px 8px no-repeat;padding:3px 7px 3px 16px;border-radius:999px;border:1.5px solid #0a0f1e;white-space:nowrap;box-shadow:0 3px 9px -2px rgba(0,0,0,.55);pointer-events:none}
+.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;line-height:1;color:#241a06;background:#f5c451 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23241a06'%3E%3Cpath d='M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z'/%3E%3C/svg%3E") 5px center/8px 8px no-repeat;padding:3px 7px 3px 16px;border-radius:999px;border:1.5px solid #0a0f1e;white-space:nowrap;box-shadow:0 3px 9px -2px rgba(0,0,0,.55);pointer-events:none}
 /* language toggle sitting in the header */
 .arh .seg-toggle{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
 .arh .seg-btn{padding:5px 10px;border-radius:999px;border:0;background:transparent;color:#b8c6e6;font-size:12px;font-weight:700;cursor:pointer;min-height:0;height:auto}
@@ -4534,3 +4534,16 @@ summary.vstudio-label:hover {
 /* hidden attribute must win over the display rules above */
 .auth-form[hidden], .auth-account[hidden], .auth-menu[hidden],
 .auth-signin[hidden], .auth-error[hidden] { display: none !important; }
+
+/* ── CREDIT BADGE ─────────────────────────────────────────────────────────
+   The single way a credit cost is shown, wherever it appears: on a button, on
+   a card, in the account menu. Inherits its colour so it reads correctly on a
+   dark chip and on a bright button alike. */
+.ar-cred { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+  font: 800 11px "JetBrains Mono", ui-monospace, monospace; letter-spacing: .01em;
+  border-radius: 6px; padding: 3px 8px 3px 6px;
+  background: rgba(0, 0, 0, .28); color: #f5c451; }
+.ar-cred svg { width: 11px; height: 11px; flex: none; }
+.ar-cred.free { color: #5fe0b0; }
+/* On a light/bright button the dark chip would fight the fill, so drop it. */
+.ar-cred.on-bright { background: transparent; color: inherit; padding: 0; }
