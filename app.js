@@ -813,21 +813,6 @@ const tools = [
     tags: ["open source", "models", "datasets"]
   },
   {
-    name: "Gamma",
-    category: { en: "Presentations", fa: "ارائه" },
-    useCase: {
-      en: "AI presentations, pitch decks, docs, microsites, and fast visual storytelling.",
-      fa: "ساخت ارائه AI، pitch deck، سند، میکروسایت و روایت بصری سریع."
-    },
-    price: 10,
-    pricing: { en: "Free tier + paid plans from about $10/mo", fa: "نسخه رایگان + پلن‌های پولی از حدود ۱۰ دلار ماهانه" },
-    plan: "freemium",
-    score: 82,
-    jobs: ["Presentation Designer", "Startup Operator"],
-    url: "https://gamma.app",
-    tags: ["slides", "pitch", "docs"]
-  },
-  {
     name: "Zapier AI",
     category: { en: "Automation", fa: "اتوماسیون" },
     useCase: {
@@ -3246,7 +3231,16 @@ async function fetchLiveChartData() {
       tool.activityDays = stats.activityDays;
       okCount++;
     } catch (e) {
-      if (String(e.message).includes("rate-limited")) { rateLimited = true; break; }
+      // A rate-limited 403 arrives without CORS headers, so it surfaces here as
+      // a network-level TypeError rather than a readable status. Both mean the
+      // same thing - stop asking - so treat them the same instead of grinding
+      // through every remaining repo.
+      const m = String((e && e.message) || e);
+      if (m.includes("rate-limited") || m.includes("Failed to fetch") ||
+          m.includes("NetworkError") || m.includes("Load failed")) {
+        rateLimited = true;
+        break;
+      }
       // leave this tool's cached/previous values in place
     }
     rebuildLiveChartData();
@@ -17345,6 +17339,37 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-fieldrow::after{content:"›";position:absolute;right:12px;top:54%;transform:translateY(-50%);color:#8ea6c8;font-size:17px;font-weight:700;pointer-events:none}
          /* ── Render model cards ─────────────────────────────────────── */
          :is(#reModal,#reMainBody) .re-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
+         /* --- mode fork + subject replacement (scoped like every other RE rule,
+                because the page relocates #reOut/#reThRow into #reMainBody) --- */
+         :is(#reModal,#reMainBody) .re-fork{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px;margin-bottom:16px}
+         :is(#reModal,#reMainBody) .re-forkcard{display:flex;gap:12px;align-items:flex-start;text-align:left;cursor:pointer;padding:15px 15px 16px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.11);transition:border-color .16s,transform .14s,box-shadow .16s;color:inherit;font:inherit}
+         :is(#reModal,#reMainBody) .re-forkcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.5);box-shadow:0 14px 30px -16px rgba(37,99,255,.6)}
+         :is(#reModal,#reMainBody) .re-forkcard[aria-pressed="true"]{border-color:rgba(37,99,255,.7);background:linear-gradient(180deg,rgba(37,99,255,.14),rgba(37,99,255,.03));box-shadow:0 0 0 1px rgba(37,99,255,.35)}
+         :is(#reModal,#reMainBody) .re-forkcard .fico{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
+         :is(#reModal,#reMainBody) .re-forkcard .ftxt{display:flex;flex-direction:column;gap:4px}
+         :is(#reModal,#reMainBody) .re-forkcard b{font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;letter-spacing:-.01em;line-height:1.25}
+         :is(#reModal,#reMainBody) .re-forkcard i{font-style:normal;font-size:11.5px;color:#9fb0c6;line-height:1.5}
+         :is(#reModal,#reMainBody) .re-swapstep{display:flex;flex-direction:column;gap:8px;padding:13px 14px;border-radius:14px;background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.09)}
+         :is(#reModal,#reMainBody) .re-swapstep>b{font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#8fb6ff;text-transform:uppercase}
+         :is(#reModal,#reMainBody) .re-swapnote{font-size:11.5px;color:#8ea6c8;line-height:1.55;margin:0}
+         :is(#reModal,#reMainBody) .re-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:7px}
+         :is(#reModal,#reMainBody) .re-strip button{position:relative;aspect-ratio:9/16;border-radius:9px;overflow:hidden;cursor:pointer;border:2px solid transparent;background:rgba(0,0,0,.32);padding:0}
+         :is(#reModal,#reMainBody) .re-strip button[aria-pressed="true"]{border-color:#5b9bff;box-shadow:0 0 0 3px rgba(37,99,255,.24)}
+         :is(#reModal,#reMainBody) .re-strip img{width:100%;height:100%;object-fit:cover;display:block}
+         :is(#reModal,#reMainBody) .re-strip span{position:absolute;left:0;right:0;bottom:0;padding:2px 0;text-align:center;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#dbe4ef;background:rgba(0,0,0,.62)}
+         :is(#reModal,#reMainBody) .re-chips{display:flex;gap:7px;flex-wrap:wrap}
+         :is(#reModal,#reMainBody) .re-chip{cursor:pointer;border-radius:999px;padding:7px 14px;font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cfd9e6;transition:all .15s}
+         :is(#reModal,#reMainBody) .re-chip[aria-pressed="true"]{background:rgba(37,99,255,.18);border-color:rgba(37,99,255,.6);color:#dce8ff}
+         /* .mdrop is a grid built for the card layout; inside a step it has to
+            read as one row so the icon sits beside its label. */
+         :is(#reModal,#reMainBody) .re-swapstep .mdrop{display:flex;align-items:center;gap:9px;justify-content:flex-start;text-align:left}
+         :is(#reModal,#reMainBody) .re-swapstep .mdrop svg{flex:none}
+         :is(#reModal,#reMainBody) .re-swapgo{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+         :is(#reModal,#reMainBody) .re-swapbar{height:5px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+         :is(#reModal,#reMainBody) .re-swapbar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#5b9bff,#7fe3f2);transition:width .5s ease}
+         :is(#reModal,#reMainBody) .re-swapphase{display:flex;justify-content:space-between;gap:12px;margin-top:7px;font:700 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.05em;color:#8ea6c8}
+         :is(#reModal,#reMainBody) .re-swapok{margin-top:10px;padding:10px 12px;border-radius:11px;font-size:12px;line-height:1.5;background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3);color:#b6f0d8}
+         :is(#reModal,#reMainBody) .re-swaperr{margin-top:10px;padding:10px 12px;border-radius:11px;font-size:12px;line-height:1.5;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.32);color:#ffc9c9}
          :is(#reModal,#reMainBody) .re-mcard{position:relative;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px 13px 14px;transition:transform .16s,border-color .16s,box-shadow .16s}
          :is(#reModal,#reMainBody) .re-mcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.45);box-shadow:0 14px 30px -14px rgba(37,99,255,.55)}
          :is(#reModal,#reMainBody) .re-mcard.rec{opacity:1;order:-1;border-color:rgba(37,99,255,.55);box-shadow:0 0 0 1px rgba(37,99,255,.35),0 16px 34px -16px rgba(37,99,255,.6);background:linear-gradient(180deg,rgba(37,99,255,.12),rgba(37,99,255,.03))}
@@ -17466,6 +17491,26 @@ function vsReverseEngineer(prefill, opts) {
        </div>
 
        <div id="reThRow" style="display:none;flex-direction:column;gap:12px">
+         <!-- After the link is read the user forks: rebuild the SAME video with
+              their own face and words, or take only the tone and write fresh.
+              Option two is the original Reverse Engineer flow, untouched. -->
+         <div id="reModeFork" class="re-fork">
+           <button type="button" class="re-forkcard" id="reForkSwap" aria-pressed="false">
+             <span class="fico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.4"/><path d="M15 9.5h3.5M15 13h2.5"/><path d="M4.5 18c1.2-2.2 2.7-3.3 4.5-3.3s3.3 1.1 4.5 3.3"/></svg></span>
+             <span class="ftxt">
+               <b>${fa ? "همین ویدیو، با چهره و حرفِ خودم" : "This exact video, with my face and my words"}</b>
+               <i>${fa ? "خودِ ویدیوی اصلی می‌ماند — پس‌زمینه، دوربین، تایمینگ، کات‌ها. فقط شخص عوض می‌شود." : "The original footage stays — background, camera, timing, cuts. Only the person changes."}</i>
+             </span>
+           </button>
+           <button type="button" class="re-forkcard" id="reForkTone" aria-pressed="false">
+             <span class="fico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h11M4 17h7"/><path d="M18 15l2.5 2.5L18 20"/></svg></span>
+             <span class="ftxt">
+               <b>${fa ? "فقط لحن و سبک را می‌خواهم" : "I only want the tone and style"}</b>
+               <i>${fa ? "ساختار و لحنِ مرجع را برمی‌داریم و با موضوعِ خودت از نو می‌سازیم." : "We take the reference's structure and tone, then build fresh around your own topic."}</i>
+             </span>
+           </button>
+         </div>
+         <div id="reToneBody" style="display:none;flex-direction:column;gap:12px">
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
@@ -17626,6 +17671,53 @@ function vsReverseEngineer(prefill, opts) {
              <div style="flex:1"></div>
              <span class="mcred">${fa ? "رایگان" : "FREE · 0"}</span>
              <button id="reBuild" type="button" class="mbtn">${fa ? "ساختِ اسلایدشو" : "Build slideshow"}</button>
+           </div>
+         </div>
+         </div>
+         <!-- SUBJECT REPLACEMENT — the original clip is the base footage and
+              only the chosen person is swapped. Separate from every builder
+              above: no scene generation, no script, no prompt. -->
+         <div id="reSwapBody" style="display:none;flex-direction:column;gap:12px">
+           <div class="re-render-h">${fa ? "جایگزینیِ شخص · همان ویدیو" : "SUBJECT REPLACEMENT · SAME VIDEO"}</div>
+           <p class="re-swapnote">${fa ? "عکسِ سر-و-شانه بده؛ چشم‌ها در ارتفاعِ طبیعی، رو به دوربین، حالتِ آرام. هرچه صورت بزرگ‌تر و واضح‌تر باشد نتیجه دقیق‌تر است." : "Give a head-and-shoulders photo: eyes level, facing the lens, relaxed. The larger and clearer the face, the better it maps."}</p>
+
+           <div class="re-swapstep">
+             <b>1 · ${fa ? "چه کسی عوض شود" : "Who gets replaced"}</b>
+             <div class="re-strip" id="reSwapStrip"></div>
+             <p class="re-swapnote" id="reSwapStripNote">${fa ? "در حال خواندنِ فریم‌ها…" : "Reading frames…"}</p>
+           </div>
+
+           <div class="re-swapstep">
+             <b>2 · ${fa ? "کاراکترِ تو" : "Your character"}</b>
+             <label id="reSwapImgLbl" class="mdrop" style="cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reSwapImgTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reSwapImg" type="file" accept="image/*" style="display:none"/></label>
+           </div>
+
+           <div class="re-swapstep">
+             <b>3 · ${fa ? "صدا" : "Voice"}</b>
+             <div class="re-chips" id="reSwapVoice">
+               <button type="button" class="re-chip" data-voice="auto" aria-pressed="true">${fa ? "خودکار" : "Auto"}</button>
+               <button type="button" class="re-chip" data-voice="keep" aria-pressed="false">${fa ? "صدای اصلی" : "Keep original"}</button>
+               <button type="button" class="re-chip" data-voice="female" aria-pressed="false">${fa ? "زن" : "Female"}</button>
+               <button type="button" class="re-chip" data-voice="male" aria-pressed="false">${fa ? "مرد" : "Male"}</button>
+             </div>
+             <p class="re-swapnote" id="reSwapVoiceNote">${fa ? "موسیقی، آمبیانس و صدای بقیه دست‌نخورده می‌ماند — فقط صدای همان شخص عوض می‌شود." : "Music, ambience and other speakers are untouched — only that person's voice changes."}</p>
+           </div>
+
+           <div class="re-swapgo">
+             <button type="button" id="reSwapRun" class="mbtn" disabled>${fa ? "ساخت" : "Generate"}</button>
+             <span class="mcred" id="reSwapCost">—</span>
+             <span class="re-swapnote" style="flex:1;min-width:180px;margin:0">${fa ? "یک بار ساخت به ازای هر کلیک. خودکار دوباره اجرا نمی‌شود." : "One paid render per click. Nothing retries on its own."}</span>
+           </div>
+           <div id="reSwapProg" class="re-swapprog" style="display:none">
+             <div class="re-swapbar"><i id="reSwapBar"></i></div>
+             <div class="re-swapphase"><span id="reSwapPhase">…</span><span id="reSwapPct">0%</span></div>
+           </div>
+           <div id="reSwapMsg"></div>
+           <div id="reSwapResult" style="display:none">
+             <video id="reSwapVideo" controls playsinline style="width:100%;max-width:320px;border-radius:14px;border:1px solid rgba(255,255,255,.12);display:block"></video>
+             <div style="display:flex;gap:10px;margin-top:11px;flex-wrap:wrap">
+               <a id="reSwapDl" class="mbtn" download="subject-replacement.mp4" style="text-decoration:none;display:inline-flex;align-items:center">${fa ? "دانلود" : "Download"}</a>
+             </div>
            </div>
          </div>
        </div>
@@ -17979,6 +18071,18 @@ function vsReverseEngineer(prefill, opts) {
       stopProg();
       $$("reOut").style.display = "flex";
       $$("reThRow").style.display = "flex";
+      // Present the fork fresh on every analyse. Swapping the person needs
+      // the real clip, so that option only appears when we actually pulled
+      // one; a photo post falls straight through to the tone flow.
+      {
+        const canSwap = !!(ref && ref.refVideo);
+        if ($$("reForkSwap")) $$("reForkSwap").style.display = canSwap ? "" : "none";
+        if ($$("reModeFork")) $$("reModeFork").style.display = canSwap ? "grid" : "none";
+        if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", "false");
+        if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", canSwap ? "false" : "true");
+        if ($$("reSwapBody")) $$("reSwapBody").style.display = "none";
+        if ($$("reToneBody")) $$("reToneBody").style.display = canSwap ? "none" : "flex";
+      }
       // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
       // The model decides which builder matches the reference: a person talking
       // → talking-head; image slides with text → carousel; footage/motion → video.
@@ -18255,6 +18359,182 @@ function vsReverseEngineer(prefill, opts) {
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
+  // ── MODE FORK ─────────────────────────────────────────────────────────
+  // Two honestly different products, chosen right after the link is read:
+  //   swap — the reference footage IS the output; only the person changes.
+  //   tone — the original Reverse Engineer flow, rebuilt around the user.
+  // Nothing below touches the tone path; that markup is unchanged, only
+  // wrapped so it can be hidden while the swap panel is open.
+  const SWAP_API = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const SWAP_FPS = 24;              // the provider normalises input to 24 fps
+  const SWAP_TILES = 8;
+  const swapState = { keyframeId: 1, photo: null, voice: "auto", busy: false, built: false };
+
+  function swapMsg(text, kind) {
+    const el = $$("reSwapMsg"); if (!el) return;
+    if (!text) { el.innerHTML = ""; return; }
+    el.innerHTML = '<div class="' + (kind === "ok" ? "re-swapok" : "re-swaperr") + '"></div>';
+    el.firstChild.textContent = text;
+  }
+  function swapSeconds() { return Math.max(1, Math.round((blueprint && blueprint.refDuration) || 0) || 8); }
+  function swapQuote() {
+    const secs = swapSeconds();
+    const render = secs > 5 ? 0.40 : 0.20;
+    const voice = (swapState.voice === "keep" || swapState.voice === "auto") ? 0 : (0.02 + 0.006 * secs);
+    return "$" + (render + voice).toFixed(2);
+  }
+  function swapRefresh() {
+    if ($$("reSwapCost")) $$("reSwapCost").textContent = swapQuote();
+    if ($$("reSwapRun")) $$("reSwapRun").disabled = swapState.busy || !swapState.photo || !(ref && ref.refVideo);
+  }
+
+  // The provider targets a person by keyframe, not by coordinates, so choosing
+  // "which person" genuinely means choosing the frame where that person is the
+  // subject. Frames are sampled locally for the picker only — nothing is
+  // uploaded until Generate is pressed.
+  async function swapBuildStrip() {
+    const strip = $$("reSwapStrip"); if (!strip) return;
+    const clip = ref && ref.refVideo;
+    strip.innerHTML = "";
+    if (!clip) { $$("reSwapStripNote").textContent = fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."; return; }
+    const secs = swapSeconds();
+    const fracs = [];
+    for (let i = 0; i < SWAP_TILES; i++) fracs.push((i + 0.5) / SWAP_TILES);
+    $$("reSwapStripNote").textContent = fa ? "در حال خواندنِ فریم‌ها…" : "Reading frames…";
+    let frames = [];
+    try { frames = await vsVideoFrames(clip, fracs); } catch (e) { frames = []; }
+    fracs.forEach((f, i) => {
+      const at = secs * f;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", (fa ? "هدف: شخصِ ثانیهٔ " : "Target the person at ") + at.toFixed(1) + (fa ? "" : "s"));
+      if (frames[i]) { const im = document.createElement("img"); im.src = frames[i]; im.alt = ""; b.appendChild(im); }
+      const tag = document.createElement("span"); tag.textContent = at.toFixed(1) + "s"; b.appendChild(tag);
+      b.onclick = () => {
+        Array.prototype.forEach.call(strip.children, (c) => c.setAttribute("aria-pressed", "false"));
+        b.setAttribute("aria-pressed", "true");
+        swapState.keyframeId = Math.max(1, Math.round(at * SWAP_FPS) + 1);
+        $$("reSwapStripNote").textContent = (fa ? "شخصِ ثانیهٔ " : "Targeting the person visible at ") + at.toFixed(1) + (fa ? " هدف است." : "s.");
+      };
+      strip.appendChild(b);
+    });
+    // Default to mid-clip so a single-subject reference needs no click at all.
+    const mid = Math.floor(SWAP_TILES / 2);
+    if (strip.children[mid]) strip.children[mid].click();
+    else $$("reSwapStripNote").textContent = fa ? "فریمی خوانده نشد؛ از ابتدای ویدیو استفاده می‌شود." : "No frames could be read; the start of the clip is used.";
+  }
+
+  function swapShow(which) {
+    const swapOn = which === "swap";
+    if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", String(swapOn));
+    if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", String(!swapOn));
+    if ($$("reSwapBody")) $$("reSwapBody").style.display = swapOn ? "flex" : "none";
+    if ($$("reToneBody")) $$("reToneBody").style.display = swapOn ? "none" : "flex";
+    if (swapOn && !swapState.built) { swapState.built = true; swapBuildStrip(); swapRefresh(); }
+  }
+  if ($$("reForkSwap")) $$("reForkSwap").onclick = () => swapShow("swap");
+  if ($$("reForkTone")) $$("reForkTone").onclick = () => swapShow("tone");
+
+  if ($$("reSwapImg")) $$("reSwapImg").onchange = (e) => {
+    swapState.photo = (e.target.files && e.target.files[0]) || null;
+    $$("reSwapImgTxt").textContent = swapState.photo
+      ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + swapState.photo.name.slice(0, 26)
+      : (fa ? "عکسِ خودت (لازم)" : "Your photo (required)");
+    swapRefresh();
+  };
+
+  const SWAP_VOICE_NOTE = {
+    auto: fa ? "خودکار: تا وقتی نشانهٔ روشنی نباشد، صدای اصلی می‌ماند." : "Auto keeps the original audio unless the character clearly suggests a voice.",
+    keep: fa ? "صدای اصلی عیناً عبور می‌کند." : "The original soundtrack passes through exactly as it is.",
+    female: fa ? "صدای آن شخص زنانه می‌شود؛ کلمات، مکث‌ها و ریتم همان اجرای اصلی می‌ماند." : "That person is re-voiced female. Words, pauses and pacing stay the original delivery.",
+    male: fa ? "صدای آن شخص مردانه می‌شود؛ کلمات، مکث‌ها و ریتم همان اجرای اصلی می‌ماند." : "That person is re-voiced male. Words, pauses and pacing stay the original delivery."
+  };
+  if ($$("reSwapVoice")) Array.prototype.forEach.call($$("reSwapVoice").children, (btn) => {
+    btn.onclick = () => {
+      Array.prototype.forEach.call($$("reSwapVoice").children, (o) => o.setAttribute("aria-pressed", "false"));
+      btn.setAttribute("aria-pressed", "true");
+      swapState.voice = btn.dataset.voice;
+      $$("reSwapVoiceNote").textContent = SWAP_VOICE_NOTE[swapState.voice] || "";
+      swapRefresh();
+    };
+  });
+
+  const SWAP_PHASE = {
+    QUEUED: fa ? "در صف" : "IN QUEUE",
+    PROCESSING: fa ? "جایگزینیِ شخص" : "REPLACING THE PERSON",
+    VOICING: fa ? "جایگزینیِ صدا" : "REPLACING THE VOICE",
+    COMPLETED: fa ? "تمام" : "DONE",
+    FAILED: fa ? "ناموفق" : "FAILED",
+    CANCELLED: fa ? "لغو شد" : "CANCELLED"
+  };
+  function swapPaint(job) {
+    if (!$$("reSwapProg")) return;
+    $$("reSwapProg").style.display = "block";
+    $$("reSwapBar").style.width = (job.progress || 0) + "%";
+    $$("reSwapPct").textContent = (job.progress || 0) + "%";
+    $$("reSwapPhase").textContent = SWAP_PHASE[job.state] || job.state || "";
+  }
+
+  async function swapUpload(file, contentType) {
+    const r = await fetch(SWAP_API + "/api/motion-transfer/upload", {
+      method: "POST",
+      headers: { "Content-Type": contentType || file.type || "application/octet-stream" },
+      body: file
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.assetUrl) throw new Error(j.detail || j.error || (fa ? "آپلود نشد." : "the upload failed"));
+    return j.assetUrl;
+  }
+
+  if ($$("reSwapRun")) $$("reSwapRun").onclick = async () => {
+    if (swapState.busy) return;
+    const clip = ref && ref.refVideo;
+    if (!clip) { swapMsg(fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."); return; }
+    if (!swapState.photo) { $$("reSwapImg").click(); return; }
+    swapState.busy = true; swapRefresh(); swapMsg("");
+    if ($$("reSwapResult")) $$("reSwapResult").style.display = "none";
+    try {
+      $$("reSwapProg").style.display = "block";
+      $$("reSwapPhase").textContent = fa ? "آپلود" : "UPLOADING";
+      const videoUrl = await swapUpload(clip, "video/mp4");
+      const imageUrl = await swapUpload(swapState.photo, swapState.photo.type || "image/jpeg");
+      const start = await fetch(SWAP_API + "/api/subject-replacement", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl, characterImageUrl: imageUrl,
+          keyframeId: swapState.keyframeId,
+          durationSeconds: swapSeconds(),
+          resolution: "720p", mode: "person", preserveAudio: true,
+          voiceMode: swapState.voice,
+          confirmGenerate: true      // the click IS the authorisation to bill
+        })
+      });
+      let job = await start.json().catch(() => ({}));
+      if (!start.ok) throw new Error(job.detail || job.error || (fa ? "شروع نشد." : "could not start"));
+      swapPaint(job);
+      while (job.state !== "COMPLETED" && job.state !== "FAILED" && job.state !== "CANCELLED") {
+        await new Promise((r) => setTimeout(r, 5000));
+        const pr = await fetch(SWAP_API + "/api/subject-replacement/" + job.id);
+        job = await pr.json().catch(() => job);
+        swapPaint(job);
+      }
+      if (job.state !== "COMPLETED" || !job.resultUrl) throw new Error(job.error || (fa ? "ساخت کامل نشد." : "the generation did not finish"));
+      $$("reSwapVideo").src = job.resultUrl;
+      $$("reSwapDl").href = job.resultUrl;
+      $$("reSwapResult").style.display = "block";
+      const voiced = job.voice && job.voice.changed;
+      swapMsg(voiced
+        ? (fa ? "تمام. شخص و صدایش هر دو عوض شدند؛ بقیهٔ ویدیو همان اصل است." : "Done. The person and their voice were replaced; everything else is the original footage.")
+        : (fa ? "تمام. شخص عوض شد و صدای اصلی حفظ شد." : "Done. The person was replaced and the original audio kept."), "ok");
+    } catch (e) {
+      swapMsg(String((e && e.message) || e));
+      if ($$("reSwapProg")) $$("reSwapProg").style.display = "none";
+    } finally {
+      swapState.busy = false; swapRefresh();
+    }
+  };
+
   // MOTION TRANSFER — the reference clip drives everything; only the person
   // becomes the user. Needs the actual reference video + the user's photo.
   let mtPhoto = null;
@@ -21158,12 +21438,18 @@ let _aiNewsRealAt = 0;  // when we last got real RSS news
 
 const AI_NEWS_FEEDS = [
   { src: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
-  { src: "VentureBeat", url: "https://venturebeat.com/category/ai/feed/" },
+  // VentureBeat rate-limits this feed to 429 from every client we tried;
+  // Ars answers reliably and covers the same beat.
+  { src: "Ars Technica", url: "https://arstechnica.com/ai/feed/" },
   { src: "The Verge", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" }
 ];
 
 async function aiFetchRssTitles(feed) {
+  // Our own relay first: the free public proxies both broke (allorigins blocks
+  // the origin, corsproxy answers 401), which left this feed silently empty.
+  // They stay on the end of the chain as a fallback, not the plan.
   const proxies = [
+    (u) => "https://airadar-ai.aliniashyn-9b4.workers.dev/rss?url=" + encodeURIComponent(u),
     (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
     (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u)
   ];
@@ -21656,7 +21942,7 @@ Templates available: Noir Luxe (deep black + gold serif), Ivory Minimal, Editori
 ───── TAB 2 · SLIDES (the core) ─────
 A video is made of one or more SCENES that play one after another. Each scene has its own media, text, duration and settings.
 • Filter / grade (applies to all slides): None, Cinematic, Warm, Cool, Black & white, Vivid.
-• Headline font (all slides): Prata (serif), Alice (elegant), Viaoda Libre (display), Bryn Vogue (fashion), Elegant (script), Things (editorial), Inter (modern sans), Georgia (classic).
+• Headline font (all slides): Prata (serif), Alice (elegant), Viaoda Libre (display), Archivo (MAISON), Space Grotesk, Inter (modern sans), Georgia (classic).
 • Add scenes: "+ Add scene (upload media)" (image or video), "+ Add intro scene", "+ Add outro scene".
 • ✦ AI Video Assistant: paste a topic OR a URL and AI builds the whole video automatically.
    - Tone: Broadcast news, Explainer/educational, Hype/launch, Cinematic documentary, Punchy social (TikTok/Reels).

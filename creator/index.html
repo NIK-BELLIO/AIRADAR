@@ -47,6 +47,28 @@
     .spk-guide .tips b { color: #eef2f0; }
     .spk-body { max-width: 1040px; margin: 0 auto; padding: 22px 22px 80px; }
     #creatorMount:empty::after { content: "Loading Spark…"; color: #7f8a86; font-size: 14px; }
+
+    /* ── APP SHELL — same construction as Reverse Engineer ─────────────── */
+    .spk-app{max-width:none;margin:0;padding:12px 14px;display:grid;grid-template-columns:340px 1fr;gap:14px;position:relative;z-index:1;align-items:stretch;min-height:calc(100vh - 74px)}
+    .spk-rail{border:1px solid rgba(16,185,129,.22);border-radius:16px;background:linear-gradient(180deg,rgba(14,22,20,.94),rgba(8,12,11,.94));padding:16px 15px;position:sticky;top:14px;align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+    .spk-railhead{margin-bottom:14px}
+    .spk-railtitle{font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:17px;color:#f2f6ff;letter-spacing:-.01em}
+    .spk-railsub{font-size:12px;color:#8ea6c8;margin-top:3px;line-height:1.45}
+    .spk-railsec{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#5fe0b0;margin:16px 0 8px}
+    .spk-railitem{display:block;padding:8px 10px;border-radius:10px;border:1px solid transparent}
+    .spk-railitem+.spk-railitem{margin-top:3px}
+    .spk-railitem b{display:block;font-size:12.5px;font-weight:700;color:#e6ecf5;letter-spacing:-.005em}
+    .spk-railitem span{display:block;font-size:11px;color:#8ea6c8;line-height:1.45;margin-top:2px}
+    .spk-railtip{font-size:11.5px;color:#8ea6c8;line-height:1.55;margin:7px 0 0;padding-inline-start:14px;position:relative}
+    .spk-railtip::before{content:"";position:absolute;inset-inline-start:0;top:7px;width:5px;height:5px;border-radius:50%;background:#5fe0b0}
+    .spk-main{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:linear-gradient(180deg,rgba(13,20,18,.94),rgba(7,11,10,.96));overflow:hidden;display:flex;flex-direction:column}
+    .spk-mbar{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+    .spk-dot{width:11px;height:11px;border-radius:50%}
+    .spk-tabs{margin-inline-start:14px;display:flex;gap:6px;flex-wrap:wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;color:#7f8a86}
+    .spk-tabs b{color:#a9ecd4;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:3px 9px;font-weight:700}
+    .spk-tabs span{padding:3px 8px}
+    .spk-mbody{flex:1;padding:22px;overflow:auto}
+    @media(max-width:920px){.spk-app{grid-template-columns:1fr;min-height:0}.spk-rail{position:static;max-height:none}.spk-mbody{padding:16px 13px}}
   </style>
 </head>
 <body>
@@ -277,51 +299,41 @@
 
 
 
-  <div class="spk-hero">
-    <span class="spk-eyebrow">◉ CREATOR&nbsp;OS</span>
-    <h1 class="motion-title">Make content that<br>stops the scroll.</h1>
-    <p>Nineteen tools for posts, carousels, thumbnails, logos, quotes, infographics, ad copy, bios and more. Pick one, ship in seconds.</p>
-  </div>
-
-  <div class="spk-guide">
-    <details>
-      <summary>📖 How to use Spark <span class="chev">▾</span></summary>
-      <div class="gbody">
-        <p style="color:#96a0ac;font-size:13px;margin:6px 0 4px;line-height:1.55">Pick a tool, set the <b>platform</b> and <b>language</b>, type your topic, and hit generate. Everything here is <b>free</b> — every tool renders crisp, ready-to-post output with legible text.</p>
-        <div class="steps">
-          <div class="g"><b>Hook Generator</b><span>6 two-line scroll-stopping hooks across 6 angles. Copy any one.</span></div>
-          <div class="g"><b>Post Writer</b><span>A ready post using a framework (PAS / AIDA / BAB / STAR / SLAY / Auto).</span></div>
-          <div class="g"><b>Content Matrix</b><span>32+ post ideas — your pillars × 8 formats. Copy the whole table.</span></div>
-          <div class="g"><b>Quote Post</b><span>9 viral quotes → click one to render a ready-to-post quote graphic.</span></div>
-          <div class="g"><b>Infographic</b><span>Paste content → a clean whiteboard-style infographic (1080×1350).</span></div>
-          <div class="g"><b>Post Scorer</b><span>Score a draft /50 across 5 criteria + 3 fixes + a stronger hook.</span></div>
-          <div class="g"><b>Profile Optimizer</b><span>New headline, about, experience, featured strategy + image prompts.</span></div>
-          <div class="g"><b>Carousel</b><span>A branded multi-slide carousel from a topic — use your own cover photo.</span></div>
-          <div class="g"><b>YouTube Thumbnail</b><span>A designed 1280×720 high-CTR thumbnail from a video title — or your own words.</span></div>
-          <div class="g"><b>Pinned Comment</b><span>A punchy 4-line first comment plus a matching image prompt.</span></div>
-          <div class="g"><b>Newsletter Writer</b><span>A ready-to-send newsletter issue: subject, sections and a CTA.</span></div>
-          <div class="g"><b>Voice Profile</b><span>Paste your writing samples → a reusable tone & style guide.</span></div>
-          <div class="g"><b>Post Graphic</b><span>A bold statement card from a topic — ready to post.</span></div>
-          <div class="g"><b>Social Post Maker</b><span>Canva-style posts in 8 sizes (IG, Story, X, LinkedIn, banners) — AI copy + your own photo.</span></div>
-          <div class="g"><b>Logo / Wordmark</b><span>A brand wordmark + initial mark in 5 styles — transparent PNG.</span></div>
-          <div class="g"><b>X Optimizer</b><span>Rewrites a tweet for max reach (3 versions) per X's open algorithm.</span></div>
-          <div class="g"><b>Meeting Insights</b><span>Paste a transcript → TL;DR, decisions, action items, risks.</span></div>
-          <div class="g"><b>Ad Copy</b><span>3 high-converting ad variations (headline + text + CTA) + A/B hooks.</span></div>
-          <div class="g"><b>Bio / Link-in-bio</b><span>3 optimised bios within each platform's limit + a link-in-bio layout.</span></div>
-        </div>
-        <ul class="tips">
-          <li><b>Tip:</b> start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.</li>
-          <li><b>Tip:</b> for a carousel post, use the <b>Reverse Engineer</b> tool in Video Studio.</li>
-          <li><b>Copy buttons</b> are everywhere — nothing needs to be re-typed.</li>
-          <li><b>Social Post Maker</b> exports at the exact size you pick; <b>Logo / Wordmark</b> exports a transparent PNG.</li>
-        </ul>
+  <div class="spk-app">
+    <aside class="spk-rail">
+      <div class="spk-railhead">
+        <span class="spk-eyebrow">◉ CREATOR&nbsp;OS</span>
+        <h1 class="spk-railtitle" style="margin-top:8px">Make content that stops the scroll.</h1>
+        <div class="spk-railsub">Nineteen tools for posts, carousels, thumbnails, logos, quotes and more. Pick one, ship in seconds — all free.</div>
       </div>
-    </details>
+      <div class="spk-railsec">What&rsquo;s inside</div>
+          <div class="spk-railitem"><b>Hook Generator</b><span>6 two-line scroll-stopping hooks across 6 angles.</span></div>
+          <div class="spk-railitem"><b>Post Writer</b><span>A ready post using PAS / AIDA / BAB / STAR / SLAY.</span></div>
+          <div class="spk-railitem"><b>Content Matrix</b><span>32+ ideas — your pillars × 8 formats.</span></div>
+          <div class="spk-railitem"><b>Quote Post</b><span>9 viral quotes → one click renders the graphic.</span></div>
+          <div class="spk-railitem"><b>Infographic</b><span>Paste content → a whiteboard infographic, 1080×1350.</span></div>
+          <div class="spk-railitem"><b>Post Scorer</b><span>Score a draft /50, plus 3 fixes and a stronger hook.</span></div>
+          <div class="spk-railitem"><b>Profile Optimizer</b><span>Headline, about, experience and image prompts.</span></div>
+          <div class="spk-railitem"><b>Carousel</b><span>A branded multi-slide carousel from a topic.</span></div>
+          <div class="spk-railitem"><b>YouTube Thumbnail</b><span>A designed 1280×720 high-CTR thumbnail.</span></div>
+          <div class="spk-railitem"><b>Social Post Maker</b><span>Eight sizes, AI copy and your own photo.</span></div>
+          <div class="spk-railitem"><b>Logo / Wordmark</b><span>Wordmark plus initial mark, transparent PNG.</span></div>
+          <div class="spk-railitem"><b>And eight more</b><span>Pinned comment, newsletter, voice profile, ads, bio…</span></div>
+      <div class="spk-railsec">Tips</div>
+      <p class="spk-railtip">Start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.</p>
+      <p class="spk-railtip">Copy buttons are everywhere — nothing needs re-typing.</p>
+      <p class="spk-railtip">For a carousel built from someone else&rsquo;s post, use <b>Reverse Engineer</b>.</p>
+    </aside>
+    <main class="spk-main">
+      <div class="spk-mbar">
+        <span class="spk-dot" style="background:#ff5f57"></span><span class="spk-dot" style="background:#febc2e"></span><span class="spk-dot" style="background:#28c840"></span>
+        <div class="spk-tabs"><b>SPARK</b><span>TOOL</span><span>INPUT</span><span>OUTPUT</span></div>
+      </div>
+      <div class="spk-mbody"><div id="creatorMount"></div></div>
+    </main>
   </div>
 
-  <div class="spk-body"><div id="creatorMount"></div></div>
-
-  <script src="/app.js?v=v552"></script>
+  <script src="/app.js?v=v555"></script>
   <script>
     (function () {
       var tries = 0;
