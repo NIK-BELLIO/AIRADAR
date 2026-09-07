@@ -173,7 +173,8 @@
 <script>
 (function(){
   "use strict";
-  var PROXY = "https://api.allorigins.win/raw?url=";
+  // Served by our own worker; the public CORS proxies this used are dead.
+  var PROXY = "https://airadar-ai.aliniashyn-9b4.workers.dev/rss?url=";
   var store = { quake:[], nat:[], crisis:[], news:[] }, seen = {}, firstRun = true, world;
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){

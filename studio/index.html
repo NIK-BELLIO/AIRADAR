@@ -2,28 +2,6 @@
 <html lang="en" dir="ltr">
   <head>
     <style id="ar-custom-fonts">
-      @font-face {
-        font-family: 'Bryn Vogue';
-        src: url('/fonts/Bryn_Vogue.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
-      }
-      @font-face {
-        font-family: 'Elegant';
-        src: url('/fonts/Elegant.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
-      }
-      @font-face {
-        font-family: 'Things';
-        src: url('/fonts/Things-Regular.woff') format('woff'),
-             url('/fonts/Things-Regular.ttf') format('truetype');
-        font-weight: normal; font-style: normal; font-display: swap;
-      }
-      @font-face {
-        font-family: 'Things';
-        src: url('/fonts/Things-Italic.woff') format('woff'),
-             url('/fonts/Things-Italic.ttf') format('truetype');
-        font-weight: normal; font-style: italic; font-display: swap;
-      }
     </style>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -814,7 +792,10 @@
               <span class="hero-x-badge-dot"></span>
               <span data-i18n="heroEyebrow">Live AI intelligence · updated in real time</span>
             </span>
-            <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
+            <!-- Demoted from h1 on this page: the whole home block below main#top is
+                 permanently hidden here, so its heading would otherwise be the first
+                 h1 in the document and stand in for Video Studio's own. -->
+            <p class="motion-title" data-i18n="heroTitle">AI that sees ahead.</p>
             <p class="hero-x-sub" data-i18n="heroText">Discover the AI tools that actually work, track what's gaining traction live, and create studio-grade images and video — one workspace, free in your browser.</p>
 
             <form class="hero-x-search" id="heroSearchForm" role="search">
@@ -1093,9 +1074,6 @@
                     <option value="'Space Grotesk', ui-sans-serif, sans-serif">Space Grotesk</option>
                     <option value="Alice, serif" selected>Alice (elegant)</option>
                     <option value="'Viaoda Libre', serif">Viaoda Libre (display)</option>
-                    <option value="'Bryn Vogue', serif">Bryn Vogue (fashion)</option>
-                    <option value="Elegant, serif">Elegant (script)</option>
-                    <option value="Things, serif">Things (editorial)</option>
                     <option value="Inter, sans-serif">Inter (modern sans)</option>
                     <option value="Georgia, serif">Georgia (classic)</option>
                   </select>
@@ -1963,9 +1941,6 @@
         '700 48px Space Grotesk', '400 48px Space Grotesk',
         '700 48px Alice', '400 48px Alice',
         '700 48px "Viaoda Libre"',
-        '700 48px "Bryn Vogue"', '400 48px "Bryn Vogue"',
-        '700 48px Elegant', '400 48px Elegant',
-        '700 48px Things', '400 48px Things', 'italic 400 48px Things',
         '900 48px Inter', '800 48px Inter', '700 48px Inter', '600 48px Inter', '500 48px Inter', '400 48px Inter',
         '700 48px Georgia'
       ];
@@ -2027,7 +2002,7 @@
             <span class="ld-tz" id="ldTz"></span>
           </div>
           <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
-          <a class="ld-monitor-btn" href="monitor.html" title="Open the live world monitor — earthquakes, crises & headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
+          <a class="ld-monitor-btn" href="/monitor.html" title="Open the live world monitor — earthquakes, crises & headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
           <button class="ld-close" id="ldClose" type="button" aria-label="Close"><i>✕</i><span id="ldCloseTxt">Exit</span></button>
         </div>
       </div>
@@ -2635,7 +2610,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v552"></script>
+    <script src="/app.js?v=v555"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
