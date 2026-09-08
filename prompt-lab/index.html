@@ -107,6 +107,7 @@
 </style>
 </head>
   <body>
+  <a class="ar-skip" href="#ar-main">Skip to content</a>
     <header class="arh">
       <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
       <nav class="arh-nav">
@@ -121,7 +122,7 @@
         <a class="arh-avatar" id="arhAvatar" href="/dashboard" hidden>?</a>
       </div>
     </header>
-    <main class="wrap">
+    <main id="ar-main" class="wrap">
 
       <section class="hero" id="overview">
         <div class="heroMain simple">
@@ -472,6 +473,14 @@
     ::view-transition-group(airadar-header){animation-duration:.28s}
     html{background:#0b1020}
     .arh-ic .lab-ic{width:1.12em;height:1.12em;vertical-align:-.18em;display:inline-block}
+    /* ACCESSIBILITY LAYER — this page does not pull in /styles.css, so it
+       carries its own copy of the focus, touch-target and motion rules. */
+    :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid #5b9bff;outline-offset:2px;border-radius:6px}
+    @media (pointer:coarse){.arh-link,.arh-signin,.arh-avatar,button,[role="button"],select,input:not([type=checkbox]):not([type=radio]){min-height:44px}select{padding-block:10px}.arh-nav{gap:8px}}
+    a,button,[role="button"],label,select,summary{touch-action:manipulation}
+    .ar-skip{position:absolute;left:12px;top:-60px;z-index:10000;padding:10px 16px;border-radius:0 0 10px 10px;background:#2563ff;color:#fff;font-weight:700;text-decoration:none;transition:top .18s ease}
+    .ar-skip:focus{top:0}
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
   </style>
   <script id="arh-js">
 (function(){

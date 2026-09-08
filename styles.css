@@ -4547,3 +4547,70 @@ summary.vstudio-label:hover {
 .ar-cred.free { color: #5fe0b0; }
 /* On a light/bright button the dark chip would fight the fill, so drop it. */
 .ar-cred.on-bright { background: transparent; color: inherit; padding: 0; }
+
+
+/* ══ ACCESSIBILITY LAYER ═══════════════════════════════════════════════════
+   Measured gaps, not guesses: the site had no :focus-visible rule at all,
+   four `outline: none` declarations with nothing put back, ten interactive
+   targets under 44px (selects were 20px), no tap-delay hint and no reduced
+   motion honoured outside three files. None of this changes how the site
+   looks to a mouse user — it only fills in what keyboard, touch and
+   motion-sensitive visitors were missing. */
+
+/* — Keyboard focus ————————————————————————————————————————————————
+   :focus-visible only, so a click never paints a ring but Tab always does. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #5b9bff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Bright controls need the ring to sit against the dark page, not the fill. */
+.btn:focus-visible, .arh-signin:focus-visible, .mbtn:focus-visible {
+  outline-color: #cfe0ff;
+  outline-offset: 3px;
+}
+
+/* — Touch targets ————————————————————————————————————————————————
+   Scoped to coarse pointers so the compact desktop header keeps its density
+   while a finger still gets the 44px the platform guidelines ask for. */
+@media (pointer: coarse) {
+  .arh-link, .arh-signin, .arh-avatar,
+  button, [role="button"], select, input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
+  select { padding-block: 10px; }
+  .arh-nav { gap: 8px; }
+
+  /* A labelled field row stacks its label above a deliberately short select,
+     so only 20px of the 44px row actually opens it. Growing the row keeps the
+     label and value from crowding; genuinely enlarging the control's hit area
+     needs the value moved out of the select, which is a markup change, not a
+     stylesheet one. Left as-is rather than shipped half-done. */
+  :is(#reModal, #reMainBody) .re-fieldrow { min-height: 44px; }
+}
+
+/* Removes the 300ms tap delay without disabling pinch-zoom. */
+a, button, [role="button"], label, select, summary { touch-action: manipulation; }
+
+/* — Skip link ————————————————————————————————————————————————————
+   First stop on Tab; visible only once focused. */
+.ar-skip {
+  position: absolute; left: 12px; top: -60px; z-index: 10000;
+  padding: 10px 16px; border-radius: 0 0 10px 10px;
+  background: #2563ff; color: #fff; font-weight: 700; text-decoration: none;
+  transition: top .18s ease;
+}
+.ar-skip:focus { top: 0; }
+
+/* — Motion ————————————————————————————————————————————————————————
+   Honour the OS setting everywhere rather than in the three files that
+   happened to remember to. Animation is cut to a single frame instead of
+   removed, so anything that relies on an animationend callback still fires. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -7,7 +7,7 @@
   <link rel="icon" href="/icon.svg?v=2" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=v522" />
+  <link rel="stylesheet" href="/styles.css?v=v525" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
     body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -50,6 +50,7 @@
   </style>
 </head>
 <body>
+  <a class="ar-skip" href="#ar-main">Skip to content</a>
   <!-- ── UNIFIED TOP HEADER (identical on every page) ──────────── -->
   <header class="arh">
     <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
@@ -306,7 +307,7 @@
     .re-railsub{font-size:12px;color:#8ea6c8;margin-top:3px;line-height:1.45}
   </style>
 
-  <div class="re-app">
+  <div class="re-app" id="ar-main">
     <aside class="re-rail"><div class="re-railhead"><h1 class="re-railtitle">Build from a reference</h1><div class="re-railsub">Paste a link, add your info, then pick how to render it.</div></div><div id="reMount"></div></aside>
     <main class="re-main">
       <div class="re-mbar">
