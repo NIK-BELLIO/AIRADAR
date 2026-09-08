@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v531" />
+    <link rel="stylesheet" href="styles.css?v=v534" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -634,10 +634,6 @@
         <section class="hero-x" id="heroX">
           <div class="hero-x-glow" aria-hidden="true"></div>
           <div class="hero-x-inner">
-            <span class="hero-x-badge">
-              <span class="hero-x-badge-dot"></span>
-              <span data-i18n="heroEyebrow">Live AI intelligence · updated in real time</span>
-            </span>
             <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
             <p class="hero-x-sub" data-i18n="heroText">Find the AI tools that actually work, watch what is gaining traction, and make studio-grade video in your browser.</p>
 
@@ -646,30 +642,20 @@
               <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools by name, use case, or price…" />
               <button type="submit" class="hero-x-search-btn">Search</button>
             </form>
+            <!-- One quiet line instead of a chip strip and a metrics card.
+                 The counts keep their ids so the live values still land, and
+                 Live Dashboard stays because this button is the only way to
+                 open it anywhere on the site. -->
+            <p class="hero-x-meta">
+              <span><strong id="metricTools">45+</strong> <span data-i18n="metricTools">AI tools</span></span>
+              <span><strong id="metricFree">100%</strong> <span data-i18n="metricFree">Free plans</span></span>
+              <span><strong id="metricJobs">Live</strong> <span data-i18n="metricJobs">GitHub data</span></span>
+              <button type="button" class="hero-x-dash" id="openDashboardBtn">Live Dashboard</button>
+            </p>
 
           </div>
         </section>
 
-      <!-- Lifted out of the hero: a chip strip and a metrics row are a
-           feature list, and the hero is one moment. Same links, same ids,
-           same labels, one section lower, so the search box stays the only
-           thing competing for the first screen. -->
-      <section class="hero-x-below" aria-label="Jump to a tool">
-        <div class="hero-x-quick">
-              <span class="hero-x-quick-label">Jump to</span>
-              <!-- AI Creator temporarily hidden -->
-              <a href="/studio" class="hero-x-chip">Video Studio</a>
-              <a href="#tools" class="hero-x-chip">Tool Finder</a>
-              <a href="#performance" class="hero-x-chip">Live Charts</a>
-              <a href="/prompt-lab/" class="hero-x-chip">Prompt Lab</a>
-              <button type="button" class="hero-x-chip hero-x-chip-live" id="openDashboardBtn"><span class="hero-x-live-dot"></span>Live Dashboard</button>
-            </div>
-        <div class="hero-x-metrics">
-              <div class="hero-x-metric"><strong id="metricTools">45+</strong><span data-i18n="metricTools">AI tools</span></div>
-              <div class="hero-x-metric"><strong id="metricFree">100%</strong><span data-i18n="metricFree">Free plans</span></div>
-              <div class="hero-x-metric"><strong id="metricJobs">Live</strong><span data-i18n="metricJobs">GitHub data</span></div>
-            </div>
-      </section>
 
 
 
@@ -1642,7 +1628,7 @@
       })();
     </script>
 
-    <script src="app.js?v=v561"></script>
+    <script src="app.js?v=v562"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
