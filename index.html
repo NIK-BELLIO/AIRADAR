@@ -5,6 +5,7 @@
     </style>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0f1e" />
     <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
     <meta property="og:title" content="AI Radar — Find, Compare &amp; Create" />
     <meta property="og:image" content="https://airadar.me/og.png" />
@@ -17,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v528" />
+    <link rel="stylesheet" href="styles.css?v=v529" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -53,7 +54,7 @@
       .gh-sum-sub { font-size: 11px; color: var(--text); margin-top: 3px; font-weight: 600; }
       .gh-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
       .gh-sort { display: flex; gap: 6px; }
-      .gh-sort-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+      .gh-sort-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .gh-sort-btn.active, .gh-sort-btn:hover { border-color: rgba(37,99,255,0.5); color: var(--gold-2); background: rgba(37,99,255,0.08); }
       .gh-search { flex: 1; min-width: 140px; max-width: 240px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 13px; }
       .gh-search:focus { outline: none; border-color: rgba(37,99,255,0.5); }
@@ -87,7 +88,7 @@
       .vs-logo-adv > label { padding: 0 12px; }
       .vs-logo-adv > label:last-child { padding-bottom: 10px; }
       .vs-logo-uprow { display: flex; align-items: stretch; gap: 8px; }
-      .vs-logo-remove { flex-shrink: 0; width: 40px; border-radius: 10px; border: 1px solid rgba(224,83,61,0.4); background: rgba(224,83,61,0.12); color: #e0533d; font-size: 15px; font-weight: 800; cursor: pointer; transition: all .15s; }
+      .vs-logo-remove { flex-shrink: 0; width: 40px; border-radius: 10px; border: 1px solid rgba(224,83,61,0.4); background: rgba(224,83,61,0.12); color: #e0533d; font-size: 15px; font-weight: 800; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .vs-logo-remove:hover { background: rgba(224,83,61,0.25); }
       .vs-autobrand-btn { width: 100%; margin: 4px 0 2px; padding: 11px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 800; color: #060606; background: linear-gradient(90deg, var(--gold), #7cc9f5); border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s, box-shadow .15s; }
       .vs-autobrand-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(37,99,255,0.3); }
@@ -142,8 +143,8 @@
       .ld-tz { font-size: 9px; color: #6a6a6a; text-transform: uppercase; letter-spacing: .12em; }
       .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#00FF88; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:7px 13px; border-radius:999px; }
       .ld-live-chip .dot { width:7px; height:7px; border-radius:50%; background:#00FF88; box-shadow:0 0 8px #00FF88; animation: aimonPulse 2s infinite; }
-      .ld-close { display:inline-flex; align-items:center; gap:7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #A0A0A0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: all .15s; }
-      .ld-monitor-btn { display:inline-flex; align-items:center; gap:7px; text-decoration:none; background: rgba(53,208,127,0.12); border: 1px solid rgba(53,208,127,0.4); color: #8ff0c0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: all .15s; }
+      .ld-close { display:inline-flex; align-items:center; gap:7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #A0A0A0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .ld-monitor-btn { display:inline-flex; align-items:center; gap:7px; text-decoration:none; background: rgba(53,208,127,0.12); border: 1px solid rgba(53,208,127,0.4); color: #8ff0c0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .ld-monitor-btn:hover { background: rgba(53,208,127,0.22); border-color: rgba(53,208,127,0.6); color:#b6ffd9; }
       .ld-close:hover { background: rgba(224,83,61,0.16); border-color: rgba(224,83,61,0.45); color: #ff7a64; }
 
@@ -337,7 +338,7 @@
       .aimap-hub-ring { fill: none; stroke: #00d4ff; opacity: 0.7; transform-origin: center; }
       .aimap-hub.active .aimap-hub-core { fill: #22d3ee; }
       .aimap-hub.active .aimap-hub-glow { fill: rgba(0,212,255,0.4); }
-      .aimap-info { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(8,8,10,0.82); backdrop-filter: blur(8px); border: 1px solid rgba(37,99,255,0.3); border-radius: 11px; padding: 11px 14px; pointer-events: none; opacity: 0; transform: translateY(8px); transition: all .2s; }
+      .aimap-info { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(8,8,10,0.82); backdrop-filter: blur(8px); border: 1px solid rgba(37,99,255,0.3); border-radius: 11px; padding: 11px 14px; pointer-events: none; opacity: 0; transform: translateY(8px); transition: background-color, border-color, color, box-shadow, transform, opacity, filter .2s; }
       .aimap-info.show { opacity: 1; transform: translateY(0); }
       .aimap-info-city { font-weight: 800; font-size: 14px; color: var(--gold-2); }
       .aimap-info-labs { font-size: 12px; color: var(--text); margin-top: 3px; }
@@ -358,7 +359,7 @@
       .ainews-skeleton { height: 38px; border-radius: 10px; background: linear-gradient(90deg, var(--surface-2) 0%, rgba(255,255,255,0.05) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: ainewsShimmer 1.4s infinite; }
       @keyframes ainewsShimmer { to { background-position: -200% 0; } }
       .aimon-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: var(--muted); }
-      .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+      .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .aimon-refresh:hover { border-color: rgba(37,99,255,0.5); background: rgba(37,99,255,0.08); }
       .aimon-spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
       .aimon-spark i { width: 3px; background: var(--gold); border-radius: 1px; opacity: .5; display: block; }
@@ -573,7 +574,7 @@
       }
       /* in list mode — inline */
       .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
-          .vs-auto-mode-btn{flex:1;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+          .vs-auto-mode-btn{flex:1;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.15s;}
       .vs-auto-mode-btn.active,.vs-auto-mode-btn:hover{border-color:rgba(37,99,255,0.5);color:var(--gold-2);background:rgba(37,99,255,0.1);}
       
     </style>
@@ -1634,7 +1635,7 @@
       })();
     </script>
 
-    <script src="app.js?v=v558"></script>
+    <script src="app.js?v=v559"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
@@ -1882,7 +1883,7 @@
       .free-popup-actions{display:flex;flex-direction:column;gap:10px;}
       .free-popup-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;
         display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);
-        border:1px solid rgba(255,255,255,.1);color:#9db0d0;cursor:pointer;transition:all .15s;}
+        border:1px solid rgba(255,255,255,.1);color:#9db0d0;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;}
       .free-popup-close:hover{background:rgba(255,255,255,.12);color:#fff;}
       [dir="rtl"] .free-popup-close{right:auto;left:14px;}
       [dir="rtl"] .free-popup-list{text-align:right;}

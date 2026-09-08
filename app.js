@@ -17386,7 +17386,7 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-strip img{width:100%;height:100%;object-fit:cover;display:block}
          :is(#reModal,#reMainBody) .re-strip span{position:absolute;left:0;right:0;bottom:0;padding:2px 0;text-align:center;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#dbe4ef;background:rgba(0,0,0,.62)}
          :is(#reModal,#reMainBody) .re-chips{display:flex;gap:7px;flex-wrap:wrap}
-         :is(#reModal,#reMainBody) .re-chip{cursor:pointer;border-radius:999px;padding:7px 14px;font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cfd9e6;transition:all .15s}
+         :is(#reModal,#reMainBody) .re-chip{cursor:pointer;border-radius:999px;padding:7px 14px;font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cfd9e6;transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s}
          :is(#reModal,#reMainBody) .re-chip[aria-pressed="true"]{background:rgba(37,99,255,.18);border-color:rgba(37,99,255,.6);color:#dce8ff}
          /* .mdrop is a grid built for the card layout; inside a step it has to
             read as one row so the icon sits beside its label. */

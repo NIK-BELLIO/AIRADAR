@@ -2219,7 +2219,7 @@ body[dir="rtl"] .chart-overlay {
   border-radius: 6px;
   color: var(--gold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.2s;
 }
 
 .output-box .copy-mini:hover {
@@ -2288,7 +2288,7 @@ body[dir="rtl"] .chart-overlay {
   border: 1px dashed rgba(37,99,255,0.3);
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.2s;
   background: rgba(37,99,255,0.03);
   text-align: center;
 }
@@ -2390,7 +2390,7 @@ h1[data-i18n="heroTitle"] {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.2s;
 }
 .chart-tab.active,
 .chart-tab:hover {
@@ -2902,7 +2902,7 @@ body.theme-light .theme-toggle-dot {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.18s;
+  transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.18s;
   letter-spacing: 0.02em;
 }
 .vtab:hover { color: var(--text); background: rgba(255,255,255,0.09); }
@@ -4211,7 +4211,7 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.10);
   color: #c7d4ee; font-size: 13px; font-weight: 600; font-family: inherit;
-  text-decoration: none; cursor: pointer; transition: all .15s;
+  text-decoration: none; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;
 }
 .hero-x-chip:hover {
   background: rgba(37, 99, 255, 0.15); border-color: rgba(37, 99, 255, 0.42);
@@ -4339,7 +4339,7 @@ summary.vstudio-label:hover {
   background: rgba(255,255,255,0.04) !important;
   color: #b8c6e6 !important;
   font-weight: 700 !important;
-  transition: all .15s ease !important;
+  transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s ease !important;
 }
 .gh-sort-btn:hover, .chart-tab:hover, .chart-refresh-btn:hover, .vs-auto-mode-btn:hover {
   border-color: rgba(91,141,255,0.45) !important;
@@ -4749,3 +4749,35 @@ body::after {
 }
 .re-mcard > *, .re-forkcard > * { position: relative; z-index: 1; }
 .re-mcard:hover, .re-forkcard:hover { box-shadow: var(--ar-lift-hi); }
+
+
+/* ══ WEB INTERFACE GUIDELINES ══════════════════════════════════════════════
+   Findings from an audit against vercel-labs/web-interface-guidelines that
+   were real here, kept small and behavioural rather than visual. */
+
+/* Digits that change in place must not resize the box around them: credit
+   counts, live metrics, timers and the mono chips all update live. */
+.ar-cred, .arh-avatar[data-credits]::after,
+.re-swapphase, .spk-tabs, .re-tabs,
+[class*="cred"], [class*="metric"], [class*="count"], time, output {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Headings should break on meaning, not on the last word falling alone. */
+h1, h2, h3, .motion-title, .re-railtitle, .spk-railtitle, .mname {
+  text-wrap: balance;
+}
+
+/* A scroll inside a modal should stop at its own edge instead of carrying on
+   into the page behind it. */
+.modal, [role="dialog"], #reModal, #ctModal, .re-swapprog,
+[class*="overlay"], [class*="sheet"] {
+  overscroll-behavior: contain;
+}
+
+/* Tap highlight is set deliberately rather than left to the platform's
+   translucent blue square, which reads as a bug on a dark surface. */
+a, button, [role="button"], label, summary {
+  -webkit-tap-highlight-color: rgba(91, 155, 255, .18);
+}
