@@ -18133,10 +18133,20 @@ function vsReverseEngineer(prefill, opts) {
       // that never had anyone speaking to camera at all.
       const personSignal = !blueprint._strongSlideshow &&
         (blueprint.formatType === "talking_head" || /podcast|talking|selfie|presenter|interview/.test(vf) || blueprint.mic);
+      // Whether we actually pulled a moving clip is ground truth, and it beats
+      // any read of the cover frame. Burned-in captions are on nearly every
+      // reel, so on their own they say nothing about slideshow-vs-video - they
+      // were forcing the carousel route ahead of the video branch and sending
+      // real footage to the slideshow builder. They only get a vote now when
+      // no clip came back. A caption-derived _strongSlideshow still wins
+      // outright, since that signal is read from the post's own words.
+      // haveClip is already computed above from the same source.
+      const captionsSayCarousel = blueprint.captions && !haveClip;
       if (personSignal) route = "talking_head";
-      else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || blueprint.captions) route = "carousel";
-      else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf)) route = "video";
-      else route = "carousel";   // default for slideshow-type posts = image slides
+      else if (blueprint._strongSlideshow) route = "carousel";
+      else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf) || haveClip) route = "video";
+      else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || captionsSayCarousel) route = "carousel";
+      else route = "carousel";   // no clip and nothing moving = image slides
       const seen = !!blueprint.visFormat;
       const extras = [];
       if (blueprint.mic) extras.push(fa ? "میکروفون" : "mic");
@@ -18439,7 +18449,15 @@ function vsReverseEngineer(prefill, opts) {
       b.type = "button";
       b.setAttribute("aria-pressed", "false");
       b.setAttribute("aria-label", (fa ? "هدف: شخصِ ثانیهٔ " : "Target the person at ") + at.toFixed(1) + (fa ? "" : "s"));
-      if (frames[i]) { const im = document.createElement("img"); im.src = frames[i]; im.alt = ""; b.appendChild(im); }
+      // vsVideoFrames hands back Blobs, not data URLs - assigning one straight
+      // to src stringifies it to "[object Blob]" and paints a broken image.
+      if (frames[i]) {
+        const im = document.createElement("img");
+        im.src = URL.createObjectURL(frames[i]);
+        im.alt = "";
+        im.onload = () => { try { URL.revokeObjectURL(im.src); } catch (e) {} };
+        b.appendChild(im);
+      }
       const tag = document.createElement("span"); tag.textContent = at.toFixed(1) + "s"; b.appendChild(tag);
       b.onclick = () => {
         Array.prototype.forEach.call(strip.children, (c) => c.setAttribute("aria-pressed", "false"));
