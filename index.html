@@ -6,8 +6,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0a0f1e" />
-    <title>AI Radar — Find, Compare &amp; Create with Real AI Tools</title>
-    <meta property="og:title" content="AI Radar — Find, Compare &amp; Create" />
+    <title>AI Radar - Find, Compare &amp; Create with Real AI Tools</title>
+    <meta property="og:title" content="AI Radar - Find, Compare &amp; Create" />
     <meta property="og:image" content="https://airadar.me/og.png" />
     <meta property="og:url" content="https://airadar.me/" />
     <meta property="og:type" content="website" />
@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v529" />
+    <link rel="stylesheet" href="styles.css?v=v531" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -639,15 +639,23 @@
               <span data-i18n="heroEyebrow">Live AI intelligence · updated in real time</span>
             </span>
             <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
-            <p class="hero-x-sub" data-i18n="heroText">Discover the AI tools that actually work, track what's gaining traction live, and create studio-grade images and video — one workspace, free in your browser.</p>
+            <p class="hero-x-sub" data-i18n="heroText">Find the AI tools that actually work, watch what is gaining traction, and make studio-grade video in your browser.</p>
 
             <form class="hero-x-search" id="heroSearchForm" role="search">
               <svg class="hero-x-search-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-              <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools — by name, use case, or price…" />
+              <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools by name, use case, or price…" />
               <button type="submit" class="hero-x-search-btn">Search</button>
             </form>
 
-            <div class="hero-x-quick">
+          </div>
+        </section>
+
+      <!-- Lifted out of the hero: a chip strip and a metrics row are a
+           feature list, and the hero is one moment. Same links, same ids,
+           same labels, one section lower, so the search box stays the only
+           thing competing for the first screen. -->
+      <section class="hero-x-below" aria-label="Jump to a tool">
+        <div class="hero-x-quick">
               <span class="hero-x-quick-label">Jump to</span>
               <!-- AI Creator temporarily hidden -->
               <a href="/studio" class="hero-x-chip">Video Studio</a>
@@ -656,14 +664,13 @@
               <a href="/prompt-lab/" class="hero-x-chip">Prompt Lab</a>
               <button type="button" class="hero-x-chip hero-x-chip-live" id="openDashboardBtn"><span class="hero-x-live-dot"></span>Live Dashboard</button>
             </div>
-
-            <div class="hero-x-metrics">
+        <div class="hero-x-metrics">
               <div class="hero-x-metric"><strong id="metricTools">45+</strong><span data-i18n="metricTools">AI tools</span></div>
               <div class="hero-x-metric"><strong id="metricFree">100%</strong><span data-i18n="metricFree">Free plans</span></div>
               <div class="hero-x-metric"><strong id="metricJobs">Live</strong><span data-i18n="metricJobs">GitHub data</span></div>
             </div>
-          </div>
-        </section>
+      </section>
+
 
 
         <!-- TOOLS -->
@@ -696,7 +703,7 @@
                   <span id="todBtnLabel">Visit tool</span> ↗
                 </a>
                 <span class="tod-next" id="todNext">
-                  Next tool in <span id="todCountdown">—</span>
+                  Next tool in <span id="todCountdown">…</span>
                 </span>
               </div>
             </div>
@@ -853,13 +860,13 @@
             <div class="gh-sort" id="ghSort">
               <button class="gh-sort-btn active" data-sort="value">Highest</button>
               <button class="gh-sort-btn" data-sort="growth">Most active</button>
-              <button class="gh-sort-btn" data-sort="name">A–Z</button>
+              <button class="gh-sort-btn" data-sort="name">A-Z</button>
             </div>
             <input id="ghSearch" class="gh-search" type="text" placeholder="Filter tools…" />
           </div>
 
           <div id="performanceChart" class="performance-chart"></div>
-          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> — <span id="lastRefreshed">Loading…</span></div>
+          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> · <span id="lastRefreshed">Loading…</span></div>
         </section>
           </div>
         </div>
@@ -883,7 +890,7 @@
 
             <!-- LEFT: mission + stats -->
             <div style="display:flex;flex-direction:column;gap:14px;">
-              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos — all in your browser.</p>
+              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos, all in your browser.</p>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
                 <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
@@ -891,7 +898,7 @@
                 <div style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
               </div>
               <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(37,99,255,0.05);border-radius:0 8px 8px 0;">
-                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
+                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise. A calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
               </div>
             </div>
 
@@ -905,7 +912,7 @@
                     <span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span>
                   </div>
                 </div>
-                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar — concept, interface, and the video studio.</p>
+                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar: concept, interface, and the video studio.</p>
               </div>
 
               <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
@@ -924,11 +931,11 @@
                   </li>
                   <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
                     <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.35</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Always-free AI assistant</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">The video assistant now runs on a free AI engine — no sign-in, no limits. Smarter intros &amp; outros with the source built in.</p></div>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Always-free AI assistant</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">The video assistant now runs on a free AI engine. No sign-in, no limits. Smarter intros &amp; outros with the source built in.</p></div>
                   </li>
                   <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
                     <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector now applies to all video styles — news, infographic, cinematic, neon, intro &amp; outro. Center snap guide added.</p></div>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector now applies to all video styles: news, infographic, cinematic, neon, intro and outro. Center snap guide added.</p></div>
                   </li>
                   <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
                     <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
@@ -936,7 +943,7 @@
                   </li>
                   <li style="display:flex;gap:10px;padding:10px 14px;">
                     <span style="flex-shrink:0;width:28px;height:28px;border-radius:5px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl20Title">Smarter article-to-video</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl20Text">Paste an article URL — AI reads the whole piece and builds a complete video using infographics where there are numbers.</p></div>
+                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl20Title">Smarter article-to-video</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl20Text">Paste an article URL. AI reads the whole piece and builds a complete video using infographics where there are numbers.</p></div>
                   </li>
                 </ul>
               </div>
@@ -1033,7 +1040,7 @@
               <circle class="ld-gauge-fg" id="ldGaugeArc" cx="60" cy="60" r="52"/>
             </svg>
             <div class="ld-gauge-inner">
-              <span class="ld-gauge-val" id="ldHealthVal">—</span>
+              <span class="ld-gauge-val" id="ldHealthVal">…</span>
               <span class="ld-gauge-lbl" id="ldHealthLbl">AI HEALTH</span>
             </div>
           </div>
@@ -1045,7 +1052,7 @@
             <span class="ld-tz" id="ldTz"></span>
           </div>
           <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
-          <a class="ld-monitor-btn" href="monitor.html" title="Open the live world monitor — earthquakes, crises & headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
+          <a class="ld-monitor-btn" href="monitor.html" title="Open the live world monitor: earthquakes, crises and headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
           <button class="ld-close" id="ldClose" type="button" aria-label="Close"><i>✕</i><span id="ldCloseTxt">Exit</span></button>
         </div>
       </div>
@@ -1062,7 +1069,7 @@
         <section class="ld-card ld-map-card">
           <div class="ld-card-head">
             <span class="ld-card-title" id="ldMapTitle">Global AI Hubs</span>
-            <span class="ld-summary"><span class="ld-summary-dot"></span><span id="ldMonSummaryTxt">—</span></span>
+            <span class="ld-summary"><span class="ld-summary-dot"></span><span id="ldMonSummaryTxt">…</span></span>
           </div>
           <div class="ld-map" id="ldWorldMap"></div>
           <div class="ld-map-legend" id="ldMapLegend"></div>
@@ -1635,7 +1642,7 @@
       })();
     </script>
 
-    <script src="app.js?v=v559"></script>
+    <script src="app.js?v=v561"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

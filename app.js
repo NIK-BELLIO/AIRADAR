@@ -190,9 +190,9 @@ const i18n = {
     navAbout: "About",
     aboutEyebrow: "About",
     aboutTitle: "Built for the AI-curious",
-    aboutText: "AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos — all running in your browser.",
+    aboutText: "AI Radar is a free workspace to discover real AI tools, track live popularity, generate content, and build videos, all running in your browser.",
     aboutRole: "Creator & Designer",
-    aboutCreditText: "Designed and built AI Radar — concept, interface, and the video studio.",
+    aboutCreditText: "Designed and built AI Radar: concept, interface, and the video studio.",
     aboutProjectRole: "Free static project",
     aboutProjectText: "Runs entirely client-side — three files, no server. Live data comes from the public GitHub API. No tracking, no accounts, no ads, ever.",
     changelogTitle: "Latest updates",
@@ -214,7 +214,7 @@ const i18n = {
     cl14Text: "Expanded to 45 curated AI tools, grouped into collapsible categories, with more live GitHub data coverage.",
     changelogNote: "AI Radar is actively maintained. This list shows the most recent notable changes.",
     aboutMissionTitle: "Why AI Radar exists",
-    aboutMissionText: "The AI space moves faster than anyone can follow. AI Radar cuts through the noise — a calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.",
+    aboutMissionText: "The AI space moves faster than anyone can follow. AI Radar cuts through the noise. A calm, honest place to find genuinely useful tools, see what is actually gaining traction from live data, and create real work without paywalls, sign-ups, or tracking.",
     aboutStatTools: "curated AI tools",
     aboutStatFree: "free, no account",
     aboutStatLive: "GitHub data",
@@ -231,10 +231,10 @@ const i18n = {
     aboutFeat4Text: "Generate captions and refined prompts locally — fast, private, and free to use.",
     navRegister: "Register",
     startButton: "Start",
-    heroEyebrow: "AI Radar — Live Intelligence",
+    heroEyebrow: "AI Radar · Live Intelligence",
     heroTitle: "AI that sees ahead.",
     heroText:
-      "Cut through the AI noise. Discover tools that actually work, track what's gaining traction in real time, and create studio-grade video and content — one calm workspace, free in your browser.",
+      "Find the AI tools that actually work, watch what is gaining traction, and build studio-grade video. Free, in your browser.",
     heroChip1: "Live GitHub data",
     heroChip2: "Claude-powered",
     heroChip3: "45+ AI tools",
@@ -513,9 +513,9 @@ const i18n = {
     navAbout: "درباره",
     aboutEyebrow: "درباره",
     aboutTitle: "ساخته‌شده برای علاقه‌مندان AI",
-    aboutText: "AI Radar یک فضای کاری رایگان برای کشف ابزارهای واقعی AI، دنبال‌کردن محبوبیت زنده، تولید محتوا و ساخت ویدیو — همه داخل مرورگر شما.",
+    aboutText: "AI Radar یک فضای کاری رایگان برای کشف ابزارهای واقعی AI، دنبال‌کردن محبوبیت زنده، تولید محتوا و ساخت ویدیو، همه داخل مرورگر شما.",
     aboutRole: "سازنده و طراح",
-    aboutCreditText: "طراحی و ساخت AI Radar — ایده، رابط کاربری و استودیوی ویدیو.",
+    aboutCreditText: "طراحی و ساخت AI Radar: ایده، رابط کاربری و استودیوی ویدیو.",
     aboutProjectRole: "پروژه استاتیک رایگان",
     aboutProjectText: "کاملاً سمت کلاینت اجرا می‌شود — سه فایل، بدون سرور. داده زنده از API عمومی گیت‌هاب. بدون ردیابی، بدون حساب، بدون تبلیغ.",
     changelogTitle: "آخرین به‌روزرسانی‌ها",
@@ -537,7 +537,7 @@ const i18n = {
     cl14Text: "گسترش به ۴۵ ابزار هوش مصنوعی منتخب، دسته‌بندی‌شده در گروه‌های تاشو، با پوشش بیشتر داده زنده گیت‌هاب.",
     changelogNote: "AI Radar فعالانه نگهداری می‌شود. این فهرست مهم‌ترین تغییرات اخیر را نشان می‌دهد.",
     aboutMissionTitle: "چرا AI Radar وجود دارد",
-    aboutMissionText: "دنیای هوش مصنوعی سریع‌تر از آنی پیش می‌رود که کسی بتواند دنبال کند. AI Radar از میان شلوغی عبور می‌کند — جایی آرام و صادقانه برای یافتن ابزارهای واقعاً مفید، دیدن آنچه با داده زنده در حال رشد است، و ساختن کار واقعی بدون دیوار پرداخت، ثبت‌نام یا ردیابی.",
+    aboutMissionText: "دنیای هوش مصنوعی سریع‌تر از آنی پیش می‌رود که کسی بتواند دنبال کند. AI Radar از میان شلوغی عبور می‌کند. جایی آرام و صادقانه برای یافتن ابزارهای واقعاً مفید، دیدن آنچه با داده زنده در حال رشد است، و ساختن کار واقعی بدون دیوار پرداخت، ثبت‌نام یا ردیابی.",
     aboutStatTools: "ابزار هوش مصنوعی منتخب",
     aboutStatFree: "رایگان، بدون حساب",
     aboutStatLive: "داده گیت‌هاب",
@@ -554,10 +554,10 @@ const i18n = {
     aboutFeat4Text: "کپشن و پرامپت دقیق را به‌صورت محلی بساز — سریع، خصوصی و رایگان.",
     navRegister: "رجیستر",
     startButton: "شروع",
-    heroEyebrow: "AI Radar — هوش زنده",
+    heroEyebrow: "AI Radar · هوش زنده",
     heroTitle: "هوشی که جلوتر را می‌بیند.",
     heroText:
-      "از میان شلوغی هوش مصنوعی، چیزِ مهم را پیدا کن: ابزارهایی که واقعاً کار می‌کنند، روند محبوبیت‌شان را زنده دنبال کن، و ویدئو و محتوای حرفه‌ای بساز — همه در یک فضای کاری آرام و رایگان، داخل مرورگرت.",
+      "ابزارهایی که واقعاً کار می‌کنند را پیدا کن، رشدشان را زنده ببین، و ویدئوی حرفه‌ای بساز. رایگان، داخل مرورگرت.",
     heroChip1: "دادهٔ زندهٔ گیت‌هاب",
     heroChip2: "با قدرت Claude",
     heroChip3: "+۴۵ ابزار هوش مصنوعی",
@@ -1044,7 +1044,7 @@ tools.push(
   {
     name: "Stability AI",
     category: { en: "Image", fa: "تصویر" },
-    useCase: { en: "Creators of Stable Diffusion — open models for image, video, and audio generation.", fa: "سازنده Stable Diffusion — مدل‌های متن‌باز برای تولید تصویر، ویدیو و صدا." },
+    useCase: { en: "Creators of Stable Diffusion. Open models for image, video, and audio generation.", fa: "سازنده Stable Diffusion. مدل‌های متن‌باز برای تولید تصویر، ویدیو و صدا." },
     price: 0,
     pricing: { en: "Free open models + paid membership", fa: "مدل‌های متن‌باز رایگان + اشتراک پولی" },
     plan: "freemium",
@@ -1658,7 +1658,7 @@ function renderControls() {
   if (jumpTo) {
     const sorted = [...tools].sort((a, b) => a.name.localeCompare(b.name));
     jumpTo.innerHTML =
-      `<option value="">${state.lang === "fa" ? "— انتخاب ابزار —" : "— Select a tool —"}</option>` +
+      `<option value="">${state.lang === "fa" ? "انتخاب ابزار…" : "Select a tool…"}</option>` +
       sorted.map((tool) => `<option value="${tool.name}">${tool.name}</option>`).join("");
   }
 }
@@ -3270,8 +3270,8 @@ async function fetchLiveChartData() {
   if (rateLimited) {
     setRefreshLabel(
       lastRefreshTime
-        ? `GitHub rate limit hit — showing cached data from ${lastRefreshTime.toLocaleTimeString()}`
-        : "GitHub rate limit hit — try again in a few minutes"
+        ? `GitHub rate limit hit. Showing cached data from ${lastRefreshTime.toLocaleTimeString()}`
+        : "GitHub rate limit hit. Try again in a few minutes."
     );
   } else if (okCount > 0) {
     setRefreshLabel(`Live · updated ${lastRefreshTime.toLocaleTimeString()} · ${okCount}/${withRepos.length} repos`);

@@ -4119,11 +4119,15 @@ textarea:focus {
    ══════════════════════════════════════════════════════════════ */
 .hero-x {
   position: relative;
-  min-height: 76vh;
+  /* Was 76vh with the content vertically centred, which floated the headline
+     roughly halfway down the first screen and read as a layout fault rather
+     than as deliberate space. The block now sits near the top of its own
+     section and the search box gains real headroom. */
+  min-height: 58vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 84px 0 64px;
+  padding: 52px 0 44px;
   overflow: hidden;
 }
 .hero-x-glow {
@@ -4780,4 +4784,15 @@ h1, h2, h3, .motion-title, .re-railtitle, .spk-railtitle, .mname {
    translucent blue square, which reads as a bug on a dark surface. */
 a, button, [role="button"], label, summary {
   -webkit-tap-highlight-color: rgba(91, 155, 255, .18);
+}
+
+/* The band the hero handed its chip strip and metrics to. It reads as the
+   first section of the page rather than as hero furniture, so the search box
+   stays the only thing competing for the first screen. */
+.hero-x-below{max-width:1180px;margin:0 auto;padding:6px 22px 40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:22px}
+.hero-x-below .hero-x-quick{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.hero-x-below .hero-x-metrics{margin:0;display:flex;gap:30px}
+@media (max-width:860px){
+  .hero-x-below{flex-direction:column;align-items:flex-start;padding:4px 16px 30px}
+  .hero-x-below .hero-x-metrics{gap:22px}
 }
