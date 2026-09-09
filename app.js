@@ -17347,7 +17347,7 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .btn:hover{filter:brightness(1.09)}
          :is(#reModal,#reMainBody) .btn[disabled]{opacity:.55;cursor:default}
          :is(#reModal,#reMainBody) .step{background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:17px 16px}
-         :is(#reModal,#reMainBody) .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);color:#fff;font-size:12px;font-weight:900;margin-inline-end:9px}
+         :is(#reModal,#reMainBody) .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);color:#fff;font-size:12px;font-weight:800;margin-inline-end:9px}
          :is(#reModal,#reMainBody) .row{display:flex;gap:10px;flex-wrap:wrap}
          :is(#reModal,#reMainBody) .row>div{flex:1;min-width:130px}
          :is(#reModal,#reMainBody) .dna{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px}
