@@ -6888,17 +6888,80 @@ function vsBasicCityData(name, excerpt, topic, source, count) {
   };
 }
 
+/**
+ * How much longer, from how long the finished ones took.
+ *
+ * Measured rather than guessed: each video is a different length of footage
+ * search and encode, so an average over what has actually completed is the only
+ * honest estimate. Nothing is claimed until the first one is done.
+ */
+function vsBatchEta(current, total) {
+  const fa = state.lang === "fa";
+  const now = Date.now();
+  let st = vstudio._batchEta;
+  // A new run, or one that went backwards: start the clock again.
+  if (!st || st.total !== total || current < st.current) {
+    vstudio._batchEta = { total, current, t0: now, done: 0, lastAt: now };
+    return "";
+  }
+  if (current > st.current) { st.done += current - st.current; st.current = current; st.lastAt = now; }
+  if (!st.done) return "";                       // nothing finished yet: say nothing
+
+  const per = (st.lastAt - st.t0) / st.done;
+  const left = Math.round(per * Math.max(0, total - st.done) / 1000);
+  if (left <= 0) return fa ? "تقریباً تمام" : "almost done";
+  if (left < 60) return fa ? "کمتر از یک دقیقه" : "under a minute left";
+  const m = Math.round(left / 60);
+  if (m < 60) return fa ? `حدود ${m} دقیقهٔ دیگر` : `about ${m} min left`;
+  const h = Math.floor(m / 60), r = m % 60;
+  return fa ? `حدود ${h} ساعت و ${r} دقیقهٔ دیگر` : `about ${h} h ${r} min left`;
+}
+
 // Small floating progress popup shown while a batch builds / exports.
-// Batch progress now uses the SAME modern popup (vsBuildOverlay) as everything
-// else — with a determinate progress bar and a Cancel button — instead of the
-// old bespoke bottom card.
 function vsBatchProgress(show, current, total, label) {
   const fa = state.lang === "fa";
-  if (!show) { vsBuildOverlay(false); return; }
-  vsBuildOverlay(true, label || "",
-    (fa ? "ساخت ویدئوها… " : "Building videos… ") + current + "/" + (total || "?"),
-    900000,
+  if (!show) {
+    if (vstudio._batchTick) { clearInterval(vstudio._batchTick); vstudio._batchTick = null; }
+    vstudio._batchEta = null;
+    vsBuildOverlay(false);
+    return;
+  }
+  // `current` is the index of the video being worked on, so the first one spent
+  // its whole turn showing 0 - and the first is the slowest, because it warms
+  // every cache. Count the one in hand instead: it moves to 1 immediately,
+  // while the bar still measures what is actually finished.
+  const n = total ? Math.min(current + 1, total) : 0;
+  const head = () => {
+    // Before anything has finished there is nothing to estimate from, so show
+    // the time spent instead - the first video is the slowest, and several
+    // minutes under a still heading is exactly what read as a hang.
+    const tailEta = vsBatchEta(current, total);
+    const st = vstudio._batchEta;   // read after: the first call is what creates it
+    let tail = tailEta;
+    if (!tail && st) {
+      const el = Math.max(0, Math.round((Date.now() - st.t0) / 1000));
+      const mm = String(Math.floor(el / 60)), ss = String(el % 60).padStart(2, "0");
+      tail = fa ? `${mm}:${ss} گذشته` : `${mm}:${ss} elapsed`;
+    }
+    return (fa ? `ویدئوی ${n} از ${total || "?"}` : `Video ${n} of ${total || "?"}`) +
+           (tail ? " · " + tail : "");
+  };
+
+  // The heading, not the message line: vsAutoStatus overwrites the message with
+  // each stage ("Finding footage for all scenes…"), which would wipe the count
+  // and the estimate seconds after they appeared.
+  vsBuildOverlay(true, label || "", head(), 900000,
     { progress: total ? current / total : 0, onCancel: () => { vstudio._batchCancel = true; } });
+
+  // vsBatchProgress is called once per video, so without this the heading would
+  // stand still for the whole of one - minutes, on the first.
+  if (vstudio._batchTick) clearInterval(vstudio._batchTick);
+  vstudio._batchTick = setInterval(() => {
+    const ov = document.getElementById("vsBuildOverlay");
+    if (!ov || ov.style.display === "none") { clearInterval(vstudio._batchTick); vstudio._batchTick = null; return; }
+    const ti = ov.querySelector(".vsbo-title");
+    if (ti) ti.textContent = head();
+  }, 1000);
 }
 
 // Popup: show the detected items with checkboxes so the user picks which ones
@@ -6981,6 +7044,14 @@ function vsPickCities(names, fa, topic) {
 async function vsBuildBatchFromArticle(text, tone, lenChoice) {
   const fa = state.lang === "fa";
   vstudio._batchCancel = false;
+  vstudio._batchEta = null;
+  // Up first, before the extraction below spends a minute inside the model.
+  // vsAutoStatus alone writes to a line behind the editor, so until now the
+  // whole of that minute looked like nothing had happened.
+  vsBuildOverlay(true,
+    fa ? "در حال خواندن مقاله…" : "Reading the article…",
+    fa ? "آماده‌سازی…" : "Getting started…",
+    900000, { onCancel: () => { vstudio._batchCancel = true; } });
   vsAutoStatus(fa ? "در حال استخراج موارد از مقاله…" : "Extracting the items from the article…");
 
   // 1) EXTRACT the list of items. Strategy: local "City, ST" scan → AI from
@@ -7127,6 +7198,7 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
 
   // Let the user choose which detected items to render (checkbox popup). This
   // also removes the "sometimes 1, sometimes 10" surprise — they see and decide.
+  vsBuildOverlay(false);          // the picker is a dialog: nothing may cover it
   const picked = await vsPickCities(names, fa, (ex && ex.topic) || "");
   if (!picked || !picked.length) {           // cancelled → stop cleanly
     vsBatchProgress(false);
