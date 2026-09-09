@@ -6899,8 +6899,10 @@ function vsBatchEta(current, total) {
   const fa = state.lang === "fa";
   const now = Date.now();
   let st = vstudio._batchEta;
-  // A new run, or one that went backwards: start the clock again.
-  if (!st || st.total !== total || current < st.current) {
+  // A new run, or one that went backwards: start the clock again. Back at the
+  // first item with things already finished is a new run too - otherwise the
+  // previous batch's start time survives and inflates the estimate.
+  if (!st || st.total !== total || current < st.current || (current === 0 && st.done > 0)) {
     vstudio._batchEta = { total, current, t0: now, done: 0, lastAt: now };
     return "";
   }
