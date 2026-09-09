@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0a0f1e" />
-  <title>Reverse Engineer — AI Radar</title>
+  <title>Spark — AI Radar</title>
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
@@ -48,6 +48,28 @@
     .spk-guide .tips b { color: #eef2f0; }
     .spk-body { max-width: 1040px; margin: 0 auto; padding: 22px 22px 80px; }
     #creatorMount:empty::after { content: "Loading Spark…"; color: #7f8a86; font-size: 14px; }
+
+    /* ── APP SHELL — same construction as Reverse Engineer ─────────────── */
+    .spk-app{max-width:none;margin:0;padding:12px 14px;display:grid;grid-template-columns:340px 1fr;gap:14px;position:relative;z-index:1;align-items:stretch;min-height:calc(100vh - 74px)}
+    .spk-rail{border:1px solid rgba(16,185,129,.22);border-radius:14px;background:linear-gradient(180deg,rgba(14,22,20,.94),rgba(8,12,11,.94));padding:16px 15px;position:sticky;top:14px;align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+    .spk-railhead{margin-bottom:14px}
+    .spk-railtitle{font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:17px;color:#f2f6ff;letter-spacing:-.01em}
+    .spk-railsub{font-size:12px;color:#8ea6c8;margin-top:3px;line-height:1.45}
+    .spk-railsec{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#5fe0b0;margin:16px 0 8px}
+    .spk-railitem{display:block;padding:8px 10px;border-radius:10px;border:1px solid transparent}
+    .spk-railitem+.spk-railitem{margin-top:3px}
+    .spk-railitem b{display:block;font-size:12.5px;font-weight:700;color:#e6ecf5;letter-spacing:-.005em}
+    .spk-railitem span{display:block;font-size:11px;color:#8ea6c8;line-height:1.45;margin-top:2px}
+    .spk-railtip{font-size:11.5px;color:#8ea6c8;line-height:1.55;margin:7px 0 0;padding-inline-start:14px;position:relative}
+    .spk-railtip::before{content:"";position:absolute;inset-inline-start:0;top:7px;width:5px;height:5px;border-radius:50%;background:#5fe0b0}
+    .spk-main{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,rgba(13,20,18,.94),rgba(7,11,10,.96));overflow:hidden;display:flex;flex-direction:column}
+    .spk-mbar{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+    .spk-dot{width:11px;height:11px;border-radius:50%}
+    .spk-tabs{margin-inline-start:14px;display:flex;gap:6px;flex-wrap:wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;color:#7f8a86}
+    .spk-tabs b{color:#a9ecd4;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:3px 9px;font-weight:700}
+    .spk-tabs span{padding:3px 8px}
+    .spk-mbody{flex:1;padding:22px;overflow:auto}
+    @media(max-width:920px){.spk-app{grid-template-columns:1fr;min-height:0}.spk-rail{position:static;max-height:none}.spk-mbody{padding:16px 13px}}
   </style>
 </head>
 <body>
@@ -58,8 +80,8 @@
     <nav class="arh-nav" aria-label="Primary navigation">
       <a href="/prompt-lab/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>Prompt Lab</a>
       <a href="/studio/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/video-icon.svg" alt="" /></span>Video Studio</a>
-      <a href="/spark/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark<span class="arh-new">NEW</span></a>
-      <a href="/reverse-engineer/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer<span class="arh-new">NEW</span></a>
+      <a href="/spark/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark<span class="arh-new">NEW</span></a>
+      <a href="/reverse-engineer/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer<span class="arh-new">NEW</span></a>
       <a href="/assistant" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/chat-icon.svg" alt="" /></span>Assistant</a>
     </nav>
     <div class="arh-right">
@@ -279,55 +301,37 @@
 
 
 
-<style>
-    .re-app{max-width:none;margin:0;padding:12px 14px;display:grid;grid-template-columns:380px 1fr;gap:14px;position:relative;z-index:1;align-items:stretch;height:calc(100vh - 74px)}
-    .re-rail{border:1px solid rgba(37,99,255,.2);border-radius:14px;background:linear-gradient(180deg,rgba(20,18,26,.94),rgba(10,8,14,.94));padding:16px 15px;position:sticky;top:14px}
-    .re-main{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,rgba(13,16,24,.94),rgba(7,9,14,.96));overflow:hidden;display:flex;flex-direction:column;height:100%}
-    .re-mbar{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
-    .re-dot{width:11px;height:11px;border-radius:50%}
-    .re-tabs{margin-inline-start:14px;display:flex;gap:6px;flex-wrap:wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;color:#7f8a86}
-    .re-tabs b{color:#bcd0f5;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.28);border-radius:6px;padding:3px 9px;font-weight:700}
-    .re-tabs span{padding:3px 8px}
-    .re-mbody{flex:1;padding:22px;overflow:auto}
-    .re-hero{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex:1;min-height:340px;border:none;background:transparent;padding:10px 0;overflow:hidden}
-    .re-herovid{width:100%;max-height:min(52vh,560px);object-fit:cover;border-radius:14px;background:#0a0d14;transition:opacity .16s linear;-webkit-mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 100%);mask-image:linear-gradient(180deg,#000 55%,rgba(0,0,0,0) 100%)}
-    .re-hero .badge{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:26px;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);margin-bottom:6px}
-    .re-hero h2{position:relative;z-index:1;font-family:"Archivo",system-ui,sans-serif;font-weight:900;font-size:clamp(28px,3.6vw,46px);letter-spacing:-.01em;color:#f2eefb;margin:-38px 0 10px;text-transform:uppercase;line-height:1.0;text-shadow:0 4px 30px rgba(0,0,0,.7)}
-    .re-hero p{color:#9aa4b0;font-size:14px;max-width:440px;line-height:1.6;margin:0}
-    .re-lockup{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:22px;opacity:.9}
-    .re-lockup-mark{width:34px;height:34px;display:block}
-    .re-lockup-x{font-family:"Archivo",system-ui,sans-serif;font-weight:700;font-size:17px;color:#5c6570}
-    .re-lockup-ig{width:32px;height:32px;color:#f2eefb}
-    #reMount #reModal{width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;gap:13px!important}
-    #reClose{display:none!important}
-    #reMainBody:empty{display:none}
-    @media(max-width:920px){.re-app{grid-template-columns:1fr}.re-rail{position:static}}
-    #reMount .re-panelhead,#reMount .re-paneldesc{display:none!important}
-    .re-railhead{margin-bottom:14px}
-    .re-railtitle{font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:17px;color:#f2f6ff;letter-spacing:-.01em}
-    .re-railsub{font-size:12px;color:#8ea6c8;margin-top:3px;line-height:1.45}
-  </style>
-
-  <div class="re-app" id="ar-main">
-    <aside class="re-rail"><div class="re-railhead"><h1 class="re-railtitle">Build from a reference</h1><div class="re-railsub">Paste a link, add your info, then pick how to render it.</div></div><div id="reMount"></div></aside>
-    <main class="re-main">
-      <div class="re-mbar">
-        <span class="re-dot" style="background:#ff5f57"></span><span class="re-dot" style="background:#febc2e"></span><span class="re-dot" style="background:#28c840"></span>
-        <div class="re-tabs"><b>REVERSE&nbsp;ENGINEER</b><span>SOURCE</span><span>STYLE&nbsp;DNA</span><span>SCRIPT</span><span>RENDER</span></div>
+  <div class="spk-app" id="ar-main">
+    <aside class="spk-rail">
+      <div class="spk-railhead">
+        <span class="spk-eyebrow">◉ CREATOR&nbsp;OS</span>
+        <h1 class="spk-railtitle" style="margin-top:8px">Make content that stops the scroll.</h1>
+        <div class="spk-railsub">Nineteen tools for posts, carousels, thumbnails, logos, quotes and more. Pick one, ship in seconds — all free.</div>
       </div>
-      <div class="re-mbody">
-        <div id="reHero" class="re-hero">
-          <video class="re-herovid" src="/rev.mp4" autoplay loop muted playsinline preload="auto"></video>
-          <h2>Turn any post into yours</h2>
-          <p>Paste a reference on the left, add your own info, and hit build — the style blueprint and your rendered outputs appear here.</p>
-          <div class="re-lockup" aria-hidden="true">
-            <img src="/logo-mark.svg" alt="" class="re-lockup-mark" />
-            <span class="re-lockup-x">×</span>
-            <svg class="re-lockup-ig" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.7"/><circle cx="17.35" cy="6.65" r="1.15" fill="currentColor"/></svg>
-          </div>
-        </div>
-        <div id="reMainBody"></div>
+      <div class="spk-railsec">What&rsquo;s inside</div>
+          <div class="spk-railitem"><b>Hook Generator</b><span>6 two-line scroll-stopping hooks across 6 angles.</span></div>
+          <div class="spk-railitem"><b>Post Writer</b><span>A ready post using PAS / AIDA / BAB / STAR / SLAY.</span></div>
+          <div class="spk-railitem"><b>Content Matrix</b><span>32+ ideas — your pillars × 8 formats.</span></div>
+          <div class="spk-railitem"><b>Quote Post</b><span>9 viral quotes → one click renders the graphic.</span></div>
+          <div class="spk-railitem"><b>Infographic</b><span>Paste content → a whiteboard infographic, 1080×1350.</span></div>
+          <div class="spk-railitem"><b>Post Scorer</b><span>Score a draft /50, plus 3 fixes and a stronger hook.</span></div>
+          <div class="spk-railitem"><b>Profile Optimizer</b><span>Headline, about, experience and image prompts.</span></div>
+          <div class="spk-railitem"><b>Carousel</b><span>A branded multi-slide carousel from a topic.</span></div>
+          <div class="spk-railitem"><b>YouTube Thumbnail</b><span>A designed 1280×720 high-CTR thumbnail.</span></div>
+          <div class="spk-railitem"><b>Social Post Maker</b><span>Eight sizes, AI copy and your own photo.</span></div>
+          <div class="spk-railitem"><b>Logo / Wordmark</b><span>Wordmark plus initial mark, transparent PNG.</span></div>
+          <div class="spk-railitem"><b>And eight more</b><span>Pinned comment, newsletter, voice profile, ads, bio…</span></div>
+      <div class="spk-railsec">Tips</div>
+      <p class="spk-railtip">Start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.</p>
+      <p class="spk-railtip">Copy buttons are everywhere — nothing needs re-typing.</p>
+      <p class="spk-railtip">For a carousel built from someone else&rsquo;s post, use <b>Reverse Engineer</b>.</p>
+    </aside>
+    <main class="spk-main">
+      <div class="spk-mbar">
+        <span class="spk-dot" style="background:#ff5f57"></span><span class="spk-dot" style="background:#febc2e"></span><span class="spk-dot" style="background:#28c840"></span>
+        <div class="spk-tabs"><b>SPARK</b><span>TOOL</span><span>INPUT</span><span>OUTPUT</span></div>
       </div>
+      <div class="spk-mbody"><div id="creatorMount"></div></div>
     </main>
   </div>
 
@@ -337,22 +341,8 @@
       var tries = 0;
       function boot() {
         tries++;
-        if (typeof vsReverseEngineer === "function") {
-          try {
-            window.VS_REVERSE_SOON = false;
-            vsReverseEngineer(null, { mount: document.getElementById("reMount"), home: "/" });
-            setTimeout(function () {
-              var main = document.getElementById("reMainBody");
-              // reProgress rides along so the "generating" steps appear in the
-              // canvas the user is already looking at, not down the side rail.
-              ["reProgress", "reOut", "reThRow"].forEach(function (id) { var el = document.getElementById(id); if (el && main) main.appendChild(el); });
-              var vid = document.querySelector(".re-herovid"); if (vid) { vid.addEventListener("timeupdate", function () { var d = vid.duration; if (!d || isNaN(d)) return; var f = 0.4, lo = 0.42, o = 1; if (vid.currentTime < f) o = lo + (1 - lo) * (vid.currentTime / f); else if (d - vid.currentTime < f) o = lo + (1 - lo) * ((d - vid.currentTime) / f); vid.style.opacity = o.toFixed(3); }); }
-              var hero = document.getElementById("reHero"), reOut = document.getElementById("reOut");
-              function sync() { if (!reOut || !hero) return; hero.style.display = (getComputedStyle(reOut).display !== "none") ? "none" : "flex"; }
-              if (reOut) { try { new MutationObserver(sync).observe(reOut, { attributes: true, attributeFilter: ["style"] }); } catch (e) {} sync(); }
-            }, 400);
-            return;
-          }
+        if (typeof vsCreatorTools === "function") {
+          try { vsCreatorTools({ mount: document.getElementById("creatorMount"), home: "../", page: true }); return; }
           catch (e) { /* retry */ }
         }
         if (tries < 40) setTimeout(boot, 150);

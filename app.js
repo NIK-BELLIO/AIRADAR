@@ -16663,10 +16663,38 @@ function vsCreatorTools(opts) {
        <button id="scGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#ef4444,#f5c451)">✨ ${fa ? "نمره بده" : "Score it"}</button>
        <div id="scOut" style="margin-top:14px"></div>`;
     $$("scGo").onclick = async () => {
-      const post = ($$("scPost").value || "").trim(); if (!post) { $$("scPost").focus(); return; }
+      let post = ($$("scPost").value || "").trim(); if (!post) { $$("scPost").focus(); return; }
       const plat = $$("scPlat").value, lang = $$("scLang").value;
       const g = $$("scGo"); g.disabled = true; g.style.opacity = ".6"; $$("scOut").innerHTML = spin(fa ? "در حال بررسی…" : "Analyzing…");
+      const fail = (m) => {
+        g.disabled = false; g.style.opacity = "1";
+        $$("scOut").innerHTML = `<div style="background:rgba(224,176,136,.08);border:1px solid rgba(224,176,136,.28);border-radius:12px;padding:13px;color:#e0b088;font-size:13px;line-height:1.6">${m}</div>`;
+      };
+
+      // A link on its own is not a post. Fetch the real thing, rather than hand
+      // the model a URL and let it invent what sits behind it.
+      let readNote = "";
+      if (/^https?:[^\s]+$/i.test(post)) {
+        $$("scOut").innerHTML = spin(fa ? "در حال خواندنِ پست…" : "Reading the post…");
+        let got = null;
+        try { got = await vsReverseFetchPost(post); } catch (e) { got = null; }
+        const cap = got && String(got.caption || "").trim();
+        // Better to say nothing than to score a post nobody read.
+        if (!cap || cap.length < 15) {
+          return fail(fa
+            ? "نتوانستم این پست را بخوانم — اینستاگرام بعضی پست‌ها را پشتِ ورود می‌گذارد. <b>متنِ خودِ پست را پیست کن</b> تا نمره‌اش را بدهم.<br><br>بدونِ متن، هر نمره‌ای ساختگی می‌بود."
+            : "I could not read that post — Instagram puts some behind a login. <b>Paste the caption itself</b> and I will score it.<br><br>Scoring a link would have meant inventing the numbers.");
+        }
+        post = cap;
+        readNote = (fa ? "خوانده شد از " : "Read from ") + (got.username ? "@" + got.username : plat);
+      } else if (post.length < 40) {
+        return fail(fa
+          ? "این برای نمره‌دادن خیلی کوتاه است. متنِ کاملِ پست را پیست کن."
+          : "That is too short to score. Paste the full post text.");
+      }
+
       const prompt = `Score this ${plat} post against best-practice principles. Be strict and specific.\nPOST:\n"""${post}"""\n` +
+        `You are given the post's TEXT ONLY. You cannot see its images or video. Judge the writing. Never describe or grade the visuals - if the text leans on an image you cannot see, say so in the VERDICT rather than guessing at it.` +
         `Score 5 criteria, each 1-10: Hook strength, Voice/tone, Value density, Structure & format, Publish readiness. Sum to a TOTAL /50.\n` +
         `Then give a one-sentence VERDICT, 3 concrete FIXES, and a rewritten stronger HOOK line.\n` +
         `${langLine(lang)}\nOutput EXACTLY this shape (plain text):\nPOST SCORE\n\nHook strength:        X/10\nVoice/tone:           X/10\nValue density:        X/10\nStructure & format:   X/10\nPublish readiness:    X/10\n----------------------------------\nTOTAL:                XX/50\n\nVERDICT: ...\n\nFIXES:\n1. ...\n2. ...\n3. ...\n\nSTRONGER HOOK: ...`;
@@ -16674,7 +16702,7 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("scOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span><span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span>${readNote ? `<span style="font-size:11px;color:#7f8a9e">${esc(readNote)}</span>` : ""}<span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(txt)}</pre></div>`;
       $$("scCopy").onclick = () => copy(txt, $$("scCopy"));
     };
   }
