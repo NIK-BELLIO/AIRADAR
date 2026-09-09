@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v534" />
+    <link rel="stylesheet" href="/styles.css?v=v538" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -97,7 +97,7 @@
       /* ══ AI COMMAND CENTER — premium fullscreen dashboard ══ */
       .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; position: relative; border-color: rgba(37,99,255,0.5) !important; }
       .dash-launch-btn:hover { background: rgba(37,99,255,0.12); box-shadow: 0 0 20px rgba(37,99,255,0.25); }
-      .dash-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00FF88; box-shadow: 0 0 8px rgba(0,255,136,0.8); animation: aimonPulse 2s infinite; }
+      .dash-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fe0b0; box-shadow: 0 0 8px rgba(0,255,136,0.8); animation: aimonPulse 2s infinite; }
       .dash-hint { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; color: var(--gold-2); font-size: 13px; font-weight: 600; opacity: .9; animation: dashHintFloat 2.4s ease-in-out infinite; }
       .dash-hint-arrow { width: 44px; height: 18px; color: var(--gold); transform: scaleX(-1); }
       @keyframes dashHintFloat { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
@@ -141,8 +141,8 @@
       .ld-clock-side { display:flex; flex-direction:column; gap:3px; }
       .ld-date { font-size: 11px; color: #A0A0A0; text-transform: uppercase; letter-spacing: .08em; }
       .ld-tz { font-size: 9px; color: #6a6a6a; text-transform: uppercase; letter-spacing: .12em; }
-      .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#00FF88; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:7px 13px; border-radius:999px; }
-      .ld-live-chip .dot { width:7px; height:7px; border-radius:50%; background:#00FF88; box-shadow:0 0 8px #00FF88; animation: aimonPulse 2s infinite; }
+      .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#5fe0b0; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:7px 13px; border-radius:999px; }
+      .ld-live-chip .dot { width:7px; height:7px; border-radius:50%; background:#5fe0b0; box-shadow:0 0 8px #5fe0b0; animation: aimonPulse 2s infinite; }
       .ld-close { display:inline-flex; align-items:center; gap:7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #A0A0A0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .ld-monitor-btn { display:inline-flex; align-items:center; gap:7px; text-decoration:none; background: rgba(53,208,127,0.12); border: 1px solid rgba(53,208,127,0.4); color: #8ff0c0; border-radius: 12px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
       .ld-monitor-btn:hover { background: rgba(53,208,127,0.22); border-color: rgba(53,208,127,0.6); color:#b6ffd9; }
@@ -166,7 +166,7 @@
       .ld-hero-stat { display:flex; flex-direction:column; gap:3px; }
       .ld-hero-stat b { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size:20px; color:#fff; line-height:1; }
       .ld-hero-stat span { font-size:10px; color:#A0A0A0; text-transform:uppercase; letter-spacing:.1em; }
-      .ld-hero-stat .up { color:#00FF88; }
+      .ld-hero-stat .up { color:#5fe0b0; }
 
       /* MAIN GRID */
       .ld-grid { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: 1.25fr 1fr; gap: 16px; padding: 2px 0 16px; min-height: 0; position: relative; z-index:1; }
@@ -243,7 +243,7 @@
       .ld-ticker::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: linear-gradient(270deg, rgba(8,8,8,0.95), rgba(8,8,8,0)); pointer-events: none; z-index: 2; }
       .ld-ticker-track { display: flex; gap: 44px; white-space: nowrap; animation: ldTicker 42s linear infinite; }
       .ld-ticker-track span { font-size: 14px; color: #cfcfcf; }
-      .ld-ticker-track b { color:#00FF88; font-weight:700; margin-right:6px; }
+      .ld-ticker-track b { color:#5fe0b0; font-weight:700; margin-right:6px; }
       @keyframes ldTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
       @media (max-width: 1000px) { .ld-grid { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; } .ld-nav { grid-template-columns: 1fr auto; } .ld-nav-center { display:none; } .ld-clock { font-size: 22px; } }
@@ -456,7 +456,7 @@
         border-radius: 99px;
         flex-shrink: 0;
       }
-      .tod-price.free  { background: rgba(95,189,116,0.12); color: #5fbd74; border: 1px solid rgba(95,189,116,0.3); }
+      .tod-price.free  { background: rgba(95,224,176,.12); color: #5fe0b0; border: 1px solid rgba(95,189,116,0.3); }
       .tod-price.paid  { background: rgba(37,99,255,0.12); color: var(--gold); border: 1px solid rgba(37,99,255,0.3); }
       .tod-desc {
         font-size: 14px;
@@ -542,23 +542,23 @@
         width: fit-content;
       }
       .badge-hot {
-        background: rgba(255,80,40,0.12);
-        border: 1px solid rgba(255,80,40,0.35);
-        color: #ff6040;
+        background: rgba(248,113,113,.12);
+        border: 1px solid rgba(248,113,113,.35);
+        color: #f87171;
       }
       .badge-growing {
-        background: rgba(95,189,116,0.12);
-        border: 1px solid rgba(95,189,116,0.35);
-        color: #5fbd74;
+        background: rgba(95,224,176,.12);
+        border: 1px solid rgba(95,224,176,.35);
+        color: #5fe0b0;
       }
       .badge-free-pick {
-        background: rgba(94,186,255,0.12);
-        border: 1px solid rgba(94,186,255,0.35);
-        color: #5eb4ff;
+        background: rgba(91,155,255,.12);
+        border: 1px solid rgba(91,155,255,.35);
+        color: #5b9bff;
       }
       .badge-new {
-        background: rgba(180,130,255,0.12);
-        border: 1px solid rgba(180,130,255,0.35);
+        background: rgba(91,155,255,.12);
+        border: 1px solid rgba(91,155,255,.35);
         color: #c084fc;
       }
       .badge-established {
@@ -674,19 +674,19 @@
     /* ── Slash-command autocomplete ─────────────────────────────── */
     .vs-slash-wrap{position:relative}
     .vs-slash-menu{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;
-      background:#0d1420;border:1px solid rgba(91,141,255,.45);border-radius:12px;
+      background:#0d1420;border:1px solid rgba(91,155,255,.45);border-radius:12px;
       box-shadow:0 22px 50px -18px rgba(0,0,0,.9);overflow:hidden;padding:4px}
     .vs-slash-item{display:flex;align-items:center;gap:10px;width:100%;
       padding:9px 10px;border-radius:9px;border:0;background:transparent;cursor:pointer;text-align:left}
-    .vs-slash-item:hover,.vs-slash-item.is-active{background:rgba(91,141,255,.16)}
+    .vs-slash-item:hover,.vs-slash-item.is-active{background:rgba(91,155,255,.16)}
     .vs-slash-ic{width:26px;height:26px;flex:0 0 26px;border-radius:7px;display:grid;place-items:center;
       background:linear-gradient(135deg,#22d3ee,#2563ff);color:#04121a;font-weight:900;font-size:13px}
     .vs-slash-cmd{font:600 12.5px ui-monospace,SFMono-Regular,Consolas,monospace;color:#cfe0ff}
     .vs-slash-desc{display:block;font:500 10.5px ui-sans-serif,system-ui;color:#8394b0;margin-top:1px}
     .vs-help-chip{margin-left:8px;padding:2px 8px;border-radius:999px;cursor:pointer;
       font:700 10px ui-sans-serif,system-ui;color:#8fbaff;
-      background:rgba(91,141,255,.14);border:1px solid rgba(91,141,255,.4)}
-    .vs-help-chip:hover{background:rgba(91,141,255,.26);color:#fff}
+      background:rgba(91,155,255,.14);border:1px solid rgba(91,155,255,.4)}
+    .vs-help-chip:hover{background:rgba(91,155,255,.26);color:#fff}
 
     /* ── 3-step illustrated guide ───────────────────────────────── */
     .mg-guide-backdrop{position:fixed;inset:0;z-index:10001;display:flex;align-items:center;
@@ -695,7 +695,7 @@
     .mg-guide{position:relative;width:min(760px,100%);max-height:90vh;overflow:auto;
       border-radius:22px;padding:26px 26px 20px;
       background:linear-gradient(165deg,rgba(37,99,255,.14),rgba(11,16,32,.98) 55%);
-      border:1px solid rgba(91,141,255,.34);
+      border:1px solid rgba(91,155,255,.34);
       box-shadow:0 30px 90px -24px rgba(0,0,0,.85)}
     .mg-guide-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:9px;
       border:0;cursor:pointer;background:rgba(255,255,255,.08);color:#c8d6f0;font-size:13px}
@@ -716,7 +716,7 @@
       background:linear-gradient(135deg,#22d3ee,#2563ff);box-shadow:0 4px 12px rgba(37,99,255,.5)}
     .mg-step h4{margin:0 0 5px;font-size:14px;font-weight:800;color:#fff}
     .mg-step h4 code{padding:1px 5px;border-radius:5px;font-size:12px;
-      background:rgba(91,141,255,.2);color:#bcd4ff}
+      background:rgba(91,155,255,.2);color:#bcd4ff}
     .mg-step p{margin:0;font-size:11.5px;line-height:1.55;color:#8fa0bd}
     .mg-guide-actions{display:flex;gap:10px;margin-top:18px}
     .mg-guide-actions .button{flex:1}
@@ -2074,7 +2074,7 @@
       /* headline — striking animated gold/cream shimmer */
       .luxury-hero .motion-title{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-weight:700;
         font-size:clamp(64px,6.4vw,108px) !important;line-height:0.96;letter-spacing:-.035em;margin:0 0 22px;
-        background:linear-gradient(100deg,#ffffff 0%,#cfe0ff 28%,#22d3ee 48%,#5b8dff 68%,#ffffff 100%);
+        background:linear-gradient(100deg,#ffffff 0%,#cfe0ff 28%,#22d3ee 48%,#5b9bff 68%,#ffffff 100%);
         background-size:240% 100%;
         -webkit-background-clip:text;background-clip:text;
         color:transparent;-webkit-text-fill-color:transparent;
@@ -2317,7 +2317,7 @@
       .button.ghost{
         background:linear-gradient(180deg,rgba(59,120,255,.16),rgba(37,99,255,.05)) !important;
         color:#e6eeff !important;
-        border-color:rgba(91,141,255,.34) !important;
+        border-color:rgba(91,155,255,.34) !important;
         box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 18px -10px rgba(0,0,0,.5) !important;
       }
       .button.ghost:hover{background:linear-gradient(180deg,rgba(59,120,255,.30),rgba(37,99,255,.13)) !important;transform:translateY(-2px);
@@ -2327,7 +2327,7 @@
       .button.ghost.gold{
         background:linear-gradient(180deg,rgba(59,120,255,.16),rgba(37,99,255,.05)) !important;
         color:#e6eeff !important;
-        border-color:rgba(91,141,255,.34) !important;
+        border-color:rgba(91,155,255,.34) !important;
       }
       .button.ghost.gold:hover{background:linear-gradient(180deg,rgba(59,120,255,.30),rgba(37,99,255,.13)) !important;transform:translateY(-2px);
         border-color:rgba(120,160,255,.6) !important;color:#ffffff !important;
@@ -2612,7 +2612,7 @@
       })();
     </script>
 
-    <script src="/app.js?v=v562"></script>
+    <script src="/app.js?v=v566"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
@@ -2871,7 +2871,7 @@
       .free-popup{position:relative;width:100%;max-width:420px;border-radius:22px;
         padding:32px 28px 26px;text-align:center;overflow:hidden;
         background:linear-gradient(165deg,rgba(37,99,255,.16),rgba(11,16,32,.98) 55%);
-        border:1px solid rgba(91,141,255,.34);
+        border:1px solid rgba(91,155,255,.34);
         box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 60px -20px rgba(37,99,255,.4);
         transform:scale(.94) translateY(10px);transition:transform .28s cubic-bezier(.2,.8,.3,1.1);}
       .free-popup-backdrop.show .free-popup{transform:scale(1) translateY(0);}
@@ -2886,7 +2886,7 @@
       .free-popup-list{display:flex;flex-direction:column;gap:9px;margin:0 0 24px;text-align:left;}
       .free-popup-list li{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#e6eeff;
         padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);}
-      .free-popup-list li svg{flex-shrink:0;color:#5b8dff;}
+      .free-popup-list li svg{flex-shrink:0;color:#5b9bff;}
       .free-popup-actions{display:flex;flex-direction:column;gap:10px;}
       .free-popup-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;
         display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);
@@ -2911,8 +2911,8 @@
               <svg viewBox="0 0 200 120" role="img" aria-label="Typing slash shows the command menu">
                 <rect x="10" y="16" width="180" height="42" rx="8" fill="#0d1420" stroke="#2c3a52"/>
                 <text x="22" y="42" font-family="ui-monospace,monospace" font-size="15" fill="#e8eefc">/</text>
-                <rect x="32" y="30" width="2" height="16" fill="#5b8dff"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>
-                <rect x="10" y="64" width="180" height="46" rx="8" fill="#111a2b" stroke="#5b8dff"/>
+                <rect x="32" y="30" width="2" height="16" fill="#5b9bff"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>
+                <rect x="10" y="64" width="180" height="46" rx="8" fill="#111a2b" stroke="#5b9bff"/>
                 <rect x="16" y="70" width="168" height="18" rx="4" fill="#1b2942"/>
                 <text x="22" y="83" font-family="ui-monospace,monospace" font-size="10" fill="#8fbaff">/motion_graphic</text>
                 <text x="22" y="102" font-family="ui-sans-serif,system-ui" font-size="8" fill="#7d8ba6">build an animated explainer</text>
@@ -2954,8 +2954,8 @@
                 <rect x="132" y="20" width="52" height="84" rx="6" fill="#0a1830"/>
                 <rect x="132" y="20" width="52" height="34" fill="#c99a46"/>
                 <rect x="140" y="34" width="34" height="4" rx="2" fill="#171310"/>
-                <rect x="140" y="78" width="7" height="18" fill="#5b8dff"/>
-                <rect x="151" y="70" width="7" height="26" fill="#5b8dff"/>
+                <rect x="140" y="78" width="7" height="18" fill="#5b9bff"/>
+                <rect x="151" y="70" width="7" height="26" fill="#5b9bff"/>
                 <rect x="162" y="62" width="7" height="34" fill="#7fd8c8"/>
                 <g fill="#c99a46"><rect x="8" y="12" width="52" height="2.5" rx="1"/><rect x="70" y="12" width="52" height="2.5" rx="1"/><rect x="132" y="12" width="52" height="2.5" rx="1"/></g>
               </svg>
