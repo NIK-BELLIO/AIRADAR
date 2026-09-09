@@ -5558,6 +5558,40 @@ async function vsAssembleFromSections(data, skipFootage) {
   }
 }
 
+// One search, one request. The rotation offsets in tryPexels() ask for the same
+// URL three times over and a video's two title scenes usually resolve to the
+// same "<city> skyline" query, so without this a seven-scene video spends 79
+// requests on 25 distinct searches - and the free tier gives 200 an hour, which
+// a batch of regional videos exhausts on its third city.
+//
+// Cached for the life of the page: stock libraries do not change mid-render,
+// and a null (no results, or a refusal) is worth remembering too, so a query
+// that found nothing is not retried five more times.
+const VS_PEXELS_CACHE = new Map();
+// Once the key is rate-limited every later call is dead on arrival, so stop
+// asking until the window it names has passed instead of burning the rest of
+// the batch on certain failures.
+let vsPexelsBlockedUntil = 0;
+
+async function vsPexelsSearch(url, key) {
+  if (VS_PEXELS_CACHE.has(url)) return VS_PEXELS_CACHE.get(url);
+  if (Date.now() < vsPexelsBlockedUntil) return null;
+  let json = null;
+  try {
+    const r = await fetch(url, { headers: { Authorization: key } });
+    if (r.status === 429) {
+      const ra = Number(r.headers.get("Retry-After"));
+      vsPexelsBlockedUntil = Date.now() + (ra > 0 ? ra * 1000 : 15 * 60 * 1000);
+      return null;   // not cached: the query itself may be fine once the window resets
+    }
+    if (r.ok) json = await r.json();
+  } catch (e) {
+    return null;     // a dropped connection says nothing about the query, so let it be asked again
+  }
+  VS_PEXELS_CACHE.set(url, json);
+  return json;
+}
+
 // Fetch a real stock video clip from Pexels. `variant` rotates the chosen
 // clip so different scenes in one video get DIFFERENT footage.
 async function vsFetchPexelsClip(query, key, aspect, variant) {
@@ -5565,12 +5599,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/videos/search?query=" + encodeURIComponent(query) +
               "&per_page=12&orientation=" + orient;
-  let json;
-  try {
-    const r = await fetch(url, { headers: { Authorization: key } });
-    if (!r.ok) return null;
-    json = await r.json();
-  } catch (e) { return null; }
+  const json = await vsPexelsSearch(url, key);
   const vids = (json && json.videos) || [];
   if (!vids.length) return null;
   // rotate the video order by `variant` so each scene starts at a different clip
@@ -5606,12 +5635,7 @@ async function vsFetchPexelsPhoto(query, key, aspect, variant) {
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) +
               "&per_page=12&orientation=" + orient;
-  let json;
-  try {
-    const r = await fetch(url, { headers: { Authorization: key } });
-    if (!r.ok) return null;
-    json = await r.json();
-  } catch (e) { return null; }
+  const json = await vsPexelsSearch(url, key);
   const photos = (json && json.photos) || [];
   if (!photos.length) return null;
   const order = [];
