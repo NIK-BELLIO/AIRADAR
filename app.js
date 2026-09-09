@@ -5574,21 +5574,35 @@ const VS_PEXELS_CACHE = new Map();
 let vsPexelsBlockedUntil = 0;
 
 async function vsPexelsSearch(url, key) {
-  if (VS_PEXELS_CACHE.has(url)) return VS_PEXELS_CACHE.get(url);
+  const pending = VS_PEXELS_CACHE.get(url);
+  // The map holds the request, not its answer. Scenes are generated in
+  // parallel, so the identical searches are all in flight before any of them
+  // has returned - caching only the result would never catch them in time.
+  if (pending) return pending;
   if (Date.now() < vsPexelsBlockedUntil) return null;
-  let json = null;
-  try {
-    const r = await fetch(url, { headers: { Authorization: key } });
-    if (r.status === 429) {
-      const ra = Number(r.headers.get("Retry-After"));
-      vsPexelsBlockedUntil = Date.now() + (ra > 0 ? ra * 1000 : 15 * 60 * 1000);
-      return null;   // not cached: the query itself may be fine once the window resets
+
+  const req = (async () => {
+    try {
+      const r = await fetch(url, { headers: { Authorization: key } });
+      if (r.status === 429) {
+        const ra = Number(r.headers.get("Retry-After"));
+        vsPexelsBlockedUntil = Date.now() + (ra > 0 ? ra * 1000 : 15 * 60 * 1000);
+        return undefined;
+      }
+      return r.ok ? await r.json() : null;
+    } catch (e) {
+      return undefined;
     }
-    if (r.ok) json = await r.json();
-  } catch (e) {
-    return null;     // a dropped connection says nothing about the query, so let it be asked again
-  }
-  VS_PEXELS_CACHE.set(url, json);
+  })();
+
+  VS_PEXELS_CACHE.set(url, req);
+  const json = await req;
+  // undefined means the search never really happened - rate-limited, or the
+  // connection dropped. That says nothing about the query, so forget it and
+  // let a later pass ask again; everyone already waiting shared this one
+  // request either way. null means it was asked and found nothing, which is
+  // worth remembering.
+  if (json === undefined) { VS_PEXELS_CACHE.delete(url); return null; }
   return json;
 }
 
