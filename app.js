@@ -7357,6 +7357,73 @@ async function vsExportOne(i) {
   vsBatchProgress(false);
 }
 
+// ── REGIONAL BATCH HANDOFF ──────────────────────────────────────────────────
+// The admin panel writes an approved batch here and opens the studio. Same
+// origin, so this is just localStorage; no upload, no endpoint, nothing to
+// authenticate twice.
+//
+// Each script becomes one video: the title opens it, then one scene per
+// sentence. `location` is what the studio already uses to look for footage, so
+// the hybrid background behaviour comes for free - a city with a clip in the
+// library gets it, a city without one falls through to the generated pool.
+const VS_REGION_KEY = "airadar.regionBatch";
+
+function vsAdoptRegionBatch() {
+  let raw = null;
+  try { raw = localStorage.getItem(VS_REGION_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+
+  let batch;
+  try { batch = JSON.parse(raw); } catch (e) { batch = null; }
+  // A malformed handoff should not sit there re-failing on every visit.
+  if (!batch || !Array.isArray(batch.items) || !batch.items.length) {
+    try { localStorage.removeItem(VS_REGION_KEY); } catch (e) {}
+    return false;
+  }
+
+  const fa = state.lang === "fa";
+  vstudio.batchVideos = batch.items.map((it) => {
+    const sentences = Array.isArray(it.sentences) ? it.sentences.filter(Boolean) : [];
+    return {
+      name: it.name,
+      location: it.location || it.name,
+      // The plain text-scene shape the assembler reads: a headline to show and
+      // narration to speak. No stats, because these scripts carry no numbers.
+      data: {
+        title: it.title,
+        sections: sentences.map((t) => ({ headline: t, narration: t })),
+        source: "",
+        palette: it.palette || "ocean",
+        _topic: it.topic || "",
+        _batchName: it.name,
+        _location: it.location || it.name,
+        _regionScriptId: it.scriptId || null
+      }
+    };
+  });
+  vstudio.batchCurrent = 0;
+
+  // Consume it, so a refresh does not silently reload a batch the operator has
+  // already sent to render.
+  try { localStorage.removeItem(VS_REGION_KEY); } catch (e) {}
+
+  try { vsRenderBatchList(); } catch (e) {}
+  try { vsLoadBatchVideo(0); } catch (e) {}
+  try {
+    vsAutoStatus(fa
+      ? `${vstudio.batchVideos.length} ویدیوی منطقه‌ای آماده شد. «دانلود همه» را بزن تا پشتِ‌سرِ‌هم رندر شوند.`
+      : `${vstudio.batchVideos.length} regional videos are queued. Press "Download all" to render them one after another.`);
+  } catch (e) {}
+  return true;
+}
+
+try {
+  document.addEventListener("DOMContentLoaded", function () {
+    // A beat after boot, so vstudio and the batch list exist to write into.
+    setTimeout(function () { try { vsAdoptRegionBatch(); } catch (e) {} }, 600);
+  }, { once: true });
+} catch (e) {}
+
 function vsRenderBatchList() {
   const box = document.querySelector("#vsBatchResults");
   if (!box) return;
