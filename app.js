@@ -7447,11 +7447,29 @@ function vsAdoptRegionBatch() {
 
   try { vsRenderBatchList(); } catch (e) {}
   try { vsLoadBatchVideo(0); } catch (e) {}
+  // ?autorender=1 - start without being asked. The export dialog only copies
+  // three select values into place before calling through, and those selects
+  // already hold their defaults, so there is nothing here a person must choose.
+  let auto = false;
+  try { auto = new URLSearchParams(location.search).get("autorender") === "1"; } catch (e) {}
+
   try {
     vsAutoStatus(fa
-      ? `${vstudio.batchVideos.length} ویدیوی منطقه‌ای آماده شد. «دانلود همه» را بزن تا پشتِ‌سرِ‌هم رندر شوند.`
-      : `${vstudio.batchVideos.length} regional videos are queued. Press "Download all" to render them one after another.`);
+      ? (auto
+        ? `${vstudio.batchVideos.length} ویدیوی منطقه‌ای در صف است. رندر خودکار شروع می‌شود؛ این تب را باز و جلوی چشم نگه دار.`
+        : `${vstudio.batchVideos.length} ویدیوی منطقه‌ای آماده شد. «دانلود همه» را بزن تا پشتِ‌سرِ‌هم رندر شوند.`)
+      : (auto
+        ? `${vstudio.batchVideos.length} regional videos queued. Rendering starts on its own - leave this tab open and in front.`
+        : `${vstudio.batchVideos.length} regional videos are queued. Press "Download all" to render them one after another.`));
   } catch (e) {}
+
+  if (auto) {
+    // Let the first video finish loading its footage before the encoder starts
+    // on it, otherwise scene one records against an empty background.
+    setTimeout(function () {
+      try { vsExportAllBatch(); } catch (e) {}
+    }, 8000);
+  }
   return true;
 }
 
