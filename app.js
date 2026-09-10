@@ -5093,6 +5093,38 @@ function vsReelParse(raw, place) {
 // The screen for it. Takes a list of towns, writes a reel for each, and leaves
 // them in the studio's own batch queue - the same one the regional handoff
 // fills, which already renders a list one after another and zips the results.
+// The towns as Regions holds them. Same origin, so the admin session travels
+// with the request; a signed-out visitor simply gets nothing and is told why.
+async function vsReelRegions() {
+  try {
+    const r = await fetch("/api/admin/regions", { credentials: "include" });
+    if (r.status === 401 || r.status === 403) return { forbidden: true, rows: [] };
+    if (!r.ok) return { rows: [] };
+    const j = await r.json();
+    return { rows: (j && j.regions ? j.regions : []).filter((x) => x && x.active !== 0) };
+  } catch (e) { return { rows: [] }; }
+}
+
+/**
+ * The brief for each chosen town, built server-side.
+ *
+ * This is the one source of the rules. It also picks the topic and the opening
+ * from what each town has already had, so a reel written here does not repeat
+ * what the monthly run gave that town last month.
+ */
+async function vsReelBriefs(regionIds, month) {
+  try {
+    const r = await fetch("/api/admin/regions/reel", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ regionIds: regionIds, month: month }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.ok ? j.reels : null;
+  } catch (e) { return null; }
+}
+
 function vsReelPopup() {
   const fa = state.lang === "fa";
   if (!document.getElementById("vsReelStyle")) {
@@ -5122,7 +5154,18 @@ function vsReelPopup() {
         box-shadow:0 8px 22px -8px rgba(37,99,255,.7)}
       .vs-reel .go:disabled{opacity:.5;cursor:default;box-shadow:none}
       .vs-reel .cx{background:transparent;border:1px solid rgba(255,255,255,.14);color:#c3cfe8}
-      .vs-reel .note{padding:0 20px;font-size:11.5px;color:#7f8a9e;line-height:1.6}`;
+      .vs-reel .note{padding:0 20px;font-size:11.5px;color:#7f8a9e;line-height:1.6}
+      .vs-reel .picker{max-height:280px;overflow:auto;border:1px solid rgba(255,255,255,.12);
+        border-radius:12px;background:rgba(0,0,0,.22);padding:6px}
+      .vs-reel .picker .loading,.vs-reel .picker .empty{margin:14px;color:#8d97ab;font-size:13px;line-height:1.6}
+      .vs-reel .picker label{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;
+        cursor:pointer;font-size:14px;color:#e7ecf6}
+      .vs-reel .picker label:hover{background:rgba(255,255,255,.05)}
+      .vs-reel .picker input{width:19px;height:19px;accent-color:#2563ff;flex:none}
+      .vs-reel .picker .where{color:#8d97ab;font-size:12px}
+      .vs-reel .pickbar{display:flex;gap:8px;align-items:center;padding:2px 2px 8px}
+      .vs-reel .pickbar button{padding:6px 12px;border-radius:8px;font:inherit;font-size:12.5px;
+        cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c9d3e6}`;
     document.head.appendChild(st);
   }
 
@@ -5131,10 +5174,10 @@ function vsReelPopup() {
   ov.innerHTML = `<div class="vs-reel">
     <h3>${fa ? "ریلِ ملکی" : "Realtor reels"}</h3>
     <p class="sub">${fa
-      ? "یک شهر در هر خط. برای هرکدام یک ریل نوشته می‌شود و همه با هم در صفِ رندر می‌نشینند."
-      : "One town per line. Each gets its own reel, and they land in the render queue together."}</p>
+      ? "شهرها از بخشِ Regions می‌آیند. هرکدام را می‌خواهی تیک بزن."
+      : "The places come from your Regions list. Tick the ones you want."}</p>
     <div class="bd">
-      <textarea id="vsReelList" spellcheck="false" placeholder="Kingston, ON&#10;Nelson, BC&#10;Syracuse, NY&#10;Fort Myers, FL"></textarea>
+      <div id="vsReelPicker" class="picker"><p class="loading">${fa ? "\u062f\u0631 \u062d\u0627\u0644 \u062e\u0648\u0627\u0646\u062f\u0646\u0650 \u0634\u0647\u0631\u0647\u0627\u2026" : "Loading your places\u2026"}</p></div>
       <div class="row">
         <span class="lbl">${fa ? "حداکثر" : "At most"}</span>
         <select id="vsReelMax">
@@ -5159,7 +5202,7 @@ function vsReelPopup() {
   </div>`;
   document.body.appendChild(ov);
 
-  const ta = ov.querySelector("#vsReelList");
+  const picker = ov.querySelector("#vsReelPicker");
   const maxSel = ov.querySelector("#vsReelMax");
   const monthSel = ov.querySelector("#vsReelMonth");
   const countEl = ov.querySelector("#vsReelCount");
@@ -5169,15 +5212,52 @@ function vsReelPopup() {
   monthSel.innerHTML = VS_REEL_MONTHS.map((m, i) =>
     `<option value="${i + 1}"${i + 1 === now ? " selected" : ""}>${m}</option>`).join("");
 
-  // One town per line, blank lines dropped, the same town twice ignored.
-  const towns = () => ta.value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
-    .filter((x, i, a) => a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
+  // Whatever is ticked, in the order Regions lists them.
+  const chosen = () => Array.from(picker.querySelectorAll("input:checked"))
+    .map((el) => ({ id: el.value, place: el.dataset.place, name: el.dataset.name }));
+  const towns = () => chosen().map((c) => c.place);
+
+  // Fill the picker from Regions.
+  (async () => {
+    const { rows, forbidden } = await vsReelRegions();
+    if (forbidden) {
+      picker.innerHTML = `<p class="empty">${fa
+        ? "\u0628\u0631\u0627\u06cc \u062f\u06cc\u062f\u0646\u0650 \u0634\u0647\u0631\u0647\u0627 \u0628\u0627\u06cc\u062f \u0628\u0627 \u062d\u0633\u0627\u0628\u0650 \u0645\u062f\u06cc\u0631\u06cc\u062a \u0648\u0627\u0631\u062f \u0634\u0648\u06cc."
+        : "Sign in with your admin account to see your places."}</p>`;
+      return;
+    }
+    if (!rows.length) {
+      picker.innerHTML = `<p class="empty">${fa
+        ? "\u0647\u0646\u0648\u0632 \u0634\u0647\u0631\u06cc \u062f\u0631 Regions \u0646\u06cc\u0633\u062a. \u0627\u0648\u0644 \u0622\u0646\u062c\u0627 \u0648\u0627\u0631\u062f\u0634\u0627\u0646 \u06a9\u0646."
+        : "No places in Regions yet. Add them there first."}</p>`;
+      return;
+    }
+    const esc = (x) => String(x == null ? "" : x).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    picker.innerHTML =
+      `<div class="pickbar">
+         <button type="button" id="vsReelAll">${fa ? "\u0647\u0645\u0647" : "All"}</button>
+         <button type="button" id="vsReelNone">${fa ? "\u0647\u06cc\u0686\u200c\u06a9\u062f\u0627\u0645" : "None"}</button>
+       </div>` +
+      rows.map((r) => {
+        const place = [r.name, r.region].filter(Boolean).join(", ");
+        return `<label><input type="checkbox" value="${esc(r.id)}" data-place="${esc(place)}" data-name="${esc(r.name)}"/>` +
+               `<span>${esc(r.name)}</span><span class="where">${esc(r.region || r.country || "")}</span></label>`;
+      }).join("");
+    picker.addEventListener("change", refresh);
+    picker.querySelector("#vsReelAll").onclick = () => {
+      picker.querySelectorAll("input").forEach((el) => { el.checked = true; }); refresh();
+    };
+    picker.querySelector("#vsReelNone").onclick = () => {
+      picker.querySelectorAll("input").forEach((el) => { el.checked = false; }); refresh();
+    };
+    refresh();
+  })();
   const refresh = () => {
     const n = towns().length, cap = Number(maxSel.value);
     countEl.textContent = n ? (fa ? `${Math.min(n, cap)} از ${n}` : `${Math.min(n, cap)} of ${n}`) : "";
     goBtn.disabled = !n;
   };
-  ta.addEventListener("input", refresh);
   maxSel.addEventListener("change", refresh);
   refresh();
   setTimeout(() => ta.focus(), 30);
@@ -5186,7 +5266,7 @@ function vsReelPopup() {
   ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
   ov.querySelector("#vsReelCancel").onclick = close;
   goBtn.onclick = async () => {
-    const list = towns().slice(0, Number(maxSel.value));
+    const list = chosen().slice(0, Number(maxSel.value));
     if (!list.length) return;
     close();
     await vsBuildRealtorBatch(list, Number(monthSel.value));
@@ -5253,10 +5333,29 @@ async function vsBuildRealtorBatch(towns, month) {
   vstudio._batchBusy = true;
   const skipped = [];
 
+  // The brief for every chosen place, built server-side from the one copy of
+  // the rules. It also picks each town's topic and opening from what that town
+  // has already had, so a reel written here does not repeat last month's.
+  let briefs = null;
+  const ids = towns.map((t) => t && t.id).filter(Boolean);
+  if (ids.length === towns.length) {
+    vsBatchProgress(true, 0, towns.length, fa ? "\u062f\u0631\u06cc\u0627\u0641\u062a\u0650 \u0642\u0648\u0627\u0639\u062f\u2026" : "Fetching the brief\u2026");
+    briefs = await vsReelBriefs(ids, month);
+  }
+  if (!briefs) {
+    // Say it plainly. Writing to a second, older copy of the rules is not the
+    // same job, and the operator should know which one produced these.
+    vsAutoStatus(fa
+      ? "\u0642\u0648\u0627\u0639\u062f \u0627\u0632 \u0633\u0631\u0648\u0631 \u0646\u06cc\u0627\u0645\u062f \u2014 \u0628\u0627 \u0646\u0633\u062e\u0647\u0654 \u0645\u062d\u0644\u06cc \u0646\u0648\u0634\u062a\u0647 \u0645\u06cc\u200c\u0634\u0648\u062f."
+      : "Could not fetch the brief from the server - writing from the local copy of the rules.");
+  }
+
   for (let i = 0; i < towns.length && !vstudio._batchCancel; i++) {
-    const place = towns[i];
+    const entry = towns[i];
+    const place = typeof entry === "string" ? entry : entry.place;
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
-    const reel = await vsWriteRealtorReel(place, month);
+    const brief = briefs && briefs.find((b) => b.regionId === (entry && entry.id));
+    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt);
     if (!reel) { skipped.push(place); continue; }
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
@@ -5298,12 +5397,16 @@ async function vsBuildRealtorBatch(towns, month) {
 }
 
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
-async function vsWriteRealtorReel(place, month) {
+async function vsWriteRealtorReel(place, month, serverPrompt) {
   let out = null;
   for (let attempt = 0; attempt < 4 && !out && !vstudio._batchCancel; attempt++) {
     const seed = Math.floor(Math.random() * 60) + attempt;
+    // The server's brief when there is one - it is the same set of rules the
+    // monthly run writes to, and it knows what this town has already had. The
+    // local copy is only for when the server cannot be reached.
+    const prompt = serverPrompt || vsReelPrompt(place, month, seed);
     let raw = "";
-    try { raw = await vsAutoAiChat(vsReelPrompt(place, month, seed), { json: false, temperature: 1.0 }); }
+    try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
     catch (e) { raw = ""; }
     out = vsReelParse(raw, place);
   }
