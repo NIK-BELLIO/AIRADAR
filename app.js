@@ -4937,6 +4937,142 @@ function vsIsGroundedScript(data, excerpt) {
   return true;
 }
 
+// ── THE REALTOR REEL WRITER (experimental) ─────────────────────────────────
+// A second way to write a video, sitting beside the analyst briefing rather
+// than replacing it: the short-form reel an agent posts about the place they
+// sell in. Title carries the hook, five sentences carry the story.
+//
+// The same brief drives the regional pipeline server-side. Keeping a copy here
+// is duplication with a real cost - change a rule and both need it - and it is
+// accepted only because this runs in a browser that cannot reach that module.
+const VS_REEL_TRIGGERS = [
+  ["local pride", "if you know, you know - written for someone who already loves the place"],
+  ["insider access", "the thing locals know and nobody tells a visitor"],
+  ["a direct question", "ask something they will answer in their head before they can scroll"],
+  ["a POV moment", "drop them into something happening right now, in the present tense"],
+  ["a specific number", "a small exact count - three streets, two things - never a statistic"],
+  ["a feeling", "the view or the season that makes people stop, warmly"]
+];
+
+const VS_REEL_TOPICS = [
+  "what a weekend here actually looks like: markets, walks, the ordinary pleasures of the season",
+  "the streets and pockets people drive past without noticing, and what makes them worth slowing for",
+  "where you can leave the car - errands, coffee, a park, dinner, all on foot",
+  "where you take someone visiting for the first time, and the order you take them in",
+  "how to spend an unhurried Sunday here, moving between a few unnamed local spots and open air",
+  "the parts of town people keep asking about, described by lifestyle and feel rather than by price",
+  "what to look at once you are inside a house, past the photographs: layout, light, storage",
+  "the small changes that make a home feel warmer at a viewing: lighting, textiles, a little softness",
+  "what lifts the front of a house without a project: planting, mulch, a door refresh, tidy edges",
+  "the quiet signs someone is ready for more room, framed as growth and never as a failing"
+];
+
+const VS_REEL_MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+
+function vsReelPrompt(place, month, seed) {
+  const [trigLabel, trigBrief] = VS_REEL_TRIGGERS[seed % VS_REEL_TRIGGERS.length];
+  const topic = VS_REEL_TOPICS[(seed * 3 + 1) % VS_REEL_TOPICS.length];
+  const monthName = VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))];
+  // Canadian spelling is decided on what the operator typed, since the studio
+  // has no country field to consult.
+  const ca = /\b(BC|AB|SK|MB|ON|QC|NS|NB|NL|PE|YT|NT|NU|Canada|Ontario|Alberta|Quebec|Manitoba|Saskatchewan)\b/i.test(place);
+  return [
+    `You write short-form Reel hooks and scripts for a real estate agent who lives in ${place} and is proud of it.`,
+    ``,
+    `PLACE: ${place}.`,
+    `MONTH: ${monthName}.`,
+    `TOPIC: ${topic}.`,
+    `TITLE TAKES HOLD BY: ${trigLabel} - ${trigBrief}.`,
+    ``,
+    `Return exactly this JSON and nothing else:`,
+    `{"title": "...", "sentences": ["...", "...", "...", "...", "..."]}`,
+    ``,
+    `THE TITLE`,
+    `- At most 10 words, and it must contain "${place.split(",")[0].trim()}" exactly as written.`,
+    `- The first three words decide whether anyone watches. Lead with the hook, never a warm-up.`,
+    `- It must speak to the viewer as "you" or "your", or come from a real "I" or "my". Required.`,
+    `- Be specific rather than vague. Do not start with "Why" or "Discover".`,
+    ``,
+    `THE FIVE SENTENCES - each stands alone on screen, each at most 20 words`,
+    `1. A vivid moment that names the place naturally and keeps the title's momentum.`,
+    `2. Why it matters now - a light seasonal reason, upbeat.`,
+    `3. One genuinely useful thing. General advice, no local figures.`,
+    `4. A sensory detail that belongs to this place and nowhere else.`,
+    `5. A warm close - a reflection or friendly question. Never "comment", "DM", "follow" or "swipe".`,
+    `Every sentence must be whole and end with a full stop or a question mark.`,
+    ``,
+    `TONE - not negotiable`,
+    `- Always warm or neutral. Never negative, alarming, shaming or fear-based.`,
+    `- No mistakes, no warnings, no backfires, nothing that makes buyers, sellers or the place look bad.`,
+    ``,
+    `WHAT YOU MAY NOT INVENT`,
+    `- No business names, brands or vendors, in the title or the script.`,
+    `- Where a cafe or shop comes up, turn to the view instead and say only "a local cafe".`,
+    `  Nothing about menus, orders, prices or service.`,
+    `- No exact prices, statistics, distances, dates, awards, named people or named events.`,
+    `- Geography and long-standing character are safe to name: a lake, a ridge, a main street.`,
+    `- If you do not truly know ${place}, write what its setting makes likely. Vague beats wrong.`,
+    ``,
+    ca ? `SPELLING: this is in Canada. Use Canadian spelling throughout - neighbourhood, colour, favourite, centre.`
+       : `SPELLING: use standard American spelling throughout.`,
+    ``,
+    `No em-dashes. No emoji. No hashtags. No exclamation marks. No markdown.`,
+    `BEFORE YOU ANSWER, count the words in the title (10 max) and in every sentence (20 max).`
+  ].join("\n");
+}
+
+// The same net the pipeline uses: a draft that is unfinished, over length, or
+// unkind about the place is asked for again rather than published.
+function vsReelParse(raw, place) {
+  const m = String(raw || "").match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  let j; try { j = JSON.parse(m[0]); } catch (e) { return null; }
+  const clean = (x) => String(x || "").replace(/[\u2014\u2013]/g, "-").replace(/\s+/g, " ").trim();
+  const title = clean(j.title);
+  const sentences = Array.isArray(j.sentences) ? j.sentences.map(clean).filter(Boolean) : [];
+  if (!title || sentences.length !== 5) return null;
+  const words = (x) => x.split(/\s+/).filter(Boolean).length;
+  if (words(title) > 10 || sentences.some((x) => words(x) > 20)) return null;
+  if (sentences.some((x) => !/[.?]$/.test(x))) return null;
+  if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return null;
+  if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return null;
+  if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return null;
+  const all = (title + " " + sentences.join(" ")).toLowerCase();
+  const NEG = ["trap", "avoid", "overrated", "boring", "dull", "worst", "mistake", "backfire",
+               "declining", "struggling", "nothing to do", "sadly", "unfortunately", "warning"];
+  if (NEG.some((w) => all.includes(" " + w))) return null;
+  return { title: title, sentences: sentences };
+}
+
+async function vsBuildRealtorReel(place) {
+  const fa = state.lang === "fa";
+  const month = new Date().getMonth() + 1;
+  vsAutoStatus(fa ? "در حال نوشتنِ ریل…" : "Writing the reel…");
+  let out = null;
+  for (let attempt = 0; attempt < 4 && !out; attempt++) {
+    const seed = Math.floor(Math.random() * 60) + attempt;
+    let raw = "";
+    try { raw = await vsAutoAiChat(vsReelPrompt(place, month, seed), { json: false, temperature: 1.0 }); }
+    catch (e) { raw = ""; }
+    out = vsReelParse(raw, place);
+  }
+  if (!out) {
+    vsAutoStatus(fa ? "نوشتنِ ریل نشد. دوباره امتحان کن." : "Could not write the reel. Try again.");
+    return false;
+  }
+  // Straight into the assembler the regional batch already uses: one scene per
+  // sentence, the place name driving the footage lookup.
+  vsAssembleFromSections({
+    title: out.title,
+    sections: out.sentences.map((t) => ({ headline: t, narration: t })),
+    source: "", palette: "ocean",
+    _location: place, _batchName: place, _topic: "realtor reel"
+  });
+  vsAutoStatus(fa ? "ریل آماده شد." : "Reel ready.");
+  return true;
+}
+
 async function buildAutoVideo(useAI) {
 
   const urlInp = document.querySelector("#vsAutoUrl");
@@ -4956,6 +5092,11 @@ async function buildAutoVideo(useAI) {
   if (vstudio._editorialMode) text = text.replace(edRe, "").trim();
   vstudio._motionGfxMode = !vstudio._editorialMode && cmdRe.test(text);
   if (vstudio._motionGfxMode) text = text.replace(cmdRe, "").trim();
+  // "/realtor <place>" - experimental. Takes the whole build, since the reel is
+  // written from the place rather than from an article.
+  const reelRe = /^\/?(?:realtor|reel)\b[:\s]*/i;
+  vstudio._realtorMode = !vstudio._editorialMode && !vstudio._motionGfxMode && reelRe.test(text);
+  if (vstudio._realtorMode) text = text.replace(reelRe, "").trim();
 
   // If the user pasted a URL anywhere in the topic box (Smart mode hides the URL
   // field), treat it as the article link to fetch rather than raw script text.
@@ -5007,6 +5148,14 @@ async function buildAutoVideo(useAI) {
   vstudio._batchCancel = false;   // fresh cancel state for this build
   vsBuildOverlay(true, state.lang === "fa" ? "شروع…" : "Starting…", null, 120000,
     { onCancel: () => { vstudio._batchCancel = true; } });
+
+  // The reel writes from a place, not from an article, so it takes the whole
+  // build and leaves the analyst path untouched.
+  if (vstudio._realtorMode) {
+    try { await vsBuildRealtorReel(text); }
+    finally { vsBuildOverlay(false); }
+    return;
+  }
 
   if (!useAI) {
     vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
