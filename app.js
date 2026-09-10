@@ -5204,6 +5204,9 @@ async function vsBuildRealtorBatch(towns, month) {
   const fa = state.lang === "fa";
   vstudio._batchCancel = false;
   vstudio.batchVideos = [];
+  // This run owns the popup from the first word to the last frame. Without it
+  // the footage step closes it between every reel and the screen blinks empty.
+  vstudio._batchBusy = true;
   const skipped = [];
 
   for (let i = 0; i < towns.length && !vstudio._batchCancel; i++) {
@@ -5223,6 +5226,9 @@ async function vsBuildRealtorBatch(towns, month) {
     });
     vsRenderBatchList();
   }
+  // The writing is done; the popup is no longer this run's to hold. The footage
+  // step that follows opens and closes its own.
+  vstudio._batchBusy = false;
   vsBatchProgress(false);
 
   if (!vstudio.batchVideos.length) {
@@ -6728,7 +6734,7 @@ async function vsEditorialBackgrounds(data) {
   await Promise.all(Array.from({ length: conc }, runOne));
   renderSlideList();
   drawStudioFrame(vstudio.position || 0);
-  vsBuildOverlay(false);
+  vsOverlayRelease();   // a batch keeps it up until the whole run ends
 }
 
 async function vsAutoGenerateBackgrounds(data) {
@@ -6985,7 +6991,7 @@ async function vsAutoGenerateBackgrounds(data) {
     renderTemplatePicker();
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
-    vsBuildOverlay(false);
+    vsOverlayRelease();   // a batch keeps it up until the whole run ends
     return;
   }
 
@@ -7116,8 +7122,12 @@ async function vsAutoGenerateBackgrounds(data) {
   // keeps the pipe busy without building that queue.
   await vsPexelsReachable();
   if (_vsPexelsDirectDead) {
+    // Three was the right number while abandoned loads still held connections
+    // open. Now that giving up actually cancels the download, three is just a
+    // brake: five keeps the pipe full without crowding out the searches, which
+    // share the same origin and the same six connections.
     const queue = slides.map((s, i) => () => genOne(s, i));
-    const runners = new Array(Math.min(3, queue.length)).fill(0).map(async () => {
+    const runners = new Array(Math.min(5, queue.length)).fill(0).map(async () => {
       while (queue.length && !vstudio._batchCancel) {
         const job = queue.shift();
         if (job) await job();
@@ -7131,7 +7141,7 @@ async function vsAutoGenerateBackgrounds(data) {
     ? (made ? `فوتیج ${made} صحنه آماده شد.` : "فوتیج در دسترس نبود.")
     : (made ? `Footage ready for ${made} scene${made > 1 ? "s" : ""}.` : "Footage unavailable."));
   if (!vstudio.looping) previewStudioVideo(false);
-  vsBuildOverlay(false);
+  vsOverlayRelease();   // a batch keeps it up until the whole run ends
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -7394,6 +7404,19 @@ function vsBatchEta(current, total) {
 }
 
 // Small floating progress popup shown while a batch builds / exports.
+/**
+ * Close the loading popup - unless a batch is running, in which case it belongs
+ * to the batch and stays up until the whole run is finished.
+ *
+ * Footage generation closes the popup at each of its exits, which is correct
+ * when it opened it. During a batch it is called once per video, and taking the
+ * batch's progress down with it made the screen blink empty between every reel.
+ */
+function vsOverlayRelease() {
+  if (vstudio._batchExporting || vstudio._batchBusy) return;
+  vsBuildOverlay(false);
+}
+
 function vsBatchProgress(show, current, total, label) {
   const fa = state.lang === "fa";
   if (!show) {
