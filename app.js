@@ -17317,7 +17317,14 @@ async function vsReverseFetchPost(url) {
     // worker /insta needs a long budget because the Apify scraper run takes
     // ~30-90s; the free readers stay short.
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
-    try { const r = await fetch(u, { signal: ctrl.signal }); if (!r.ok) return ""; return await r.text(); }
+    // Our own worker bills Apify per read and asks for the pass. The free
+    // readers in this chain are third parties and must not be sent one.
+    const headers = {};
+    if (u.indexOf("airadar-ai.") !== -1) {
+      const t = await vsFalTicketGet();
+      if (t) headers["x-fal-ticket"] = t;
+    }
+    try { const r = await fetch(u, { signal: ctrl.signal, headers }); if (!r.ok) return ""; return await r.text(); }
     catch (e) { return ""; } finally { clearTimeout(tm); }
   };
   // Instagram serves a LOGIN WALL to bots (and Jina renders it as markdown), so
@@ -19083,7 +19090,7 @@ function vsShotListToPrompt(shots, subjectPhrase, narration) {
 async function vsSampleVideoTitleCards(videoUrl) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   try {
-    const r = await fetch(WB + "/insta/video?url=" + encodeURIComponent(videoUrl));
+    const r = await vsFalFetch(WB + "/insta/video?url=" + encodeURIComponent(videoUrl));
     if (!r.ok) return [];
     const blob = await r.blob();
     if (!blob || blob.size < 1000) return [];
