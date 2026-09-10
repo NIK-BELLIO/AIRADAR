@@ -4959,26 +4959,65 @@ const VS_REEL_TRIGGERS = [
   ["a feeling", "the view or the season that makes people stop, warmly"]
 ];
 
+// `cold` marks the ideas that assume a real autumn or winter. Fort Myers and
+// Honolulu were both handed "make the house feel warmer" in September and wrote
+// about cold rooms in Florida and cosy evenings in Hawaii - the kind of wrong a
+// viewer who lives there spots in the first second. `months` is empty when the
+// idea works all year.
 const VS_REEL_TOPICS = [
-  "what a weekend here actually looks like: markets, walks, the ordinary pleasures of the season",
-  "the streets and pockets people drive past without noticing, and what makes them worth slowing for",
-  "where you can leave the car - errands, coffee, a park, dinner, all on foot",
-  "where you take someone visiting for the first time, and the order you take them in",
-  "how to spend an unhurried Sunday here, moving between a few unnamed local spots and open air",
-  "the parts of town people keep asking about, described by lifestyle and feel rather than by price",
-  "what to look at once you are inside a house, past the photographs: layout, light, storage",
-  "the small changes that make a home feel warmer at a viewing: lighting, textiles, a little softness",
-  "what lifts the front of a house without a project: planting, mulch, a door refresh, tidy edges",
-  "the quiet signs someone is ready for more room, framed as growth and never as a failing"
+  { t: "what a weekend here actually looks like: markets, walks, the ordinary pleasures of the season", months: [], cold: false },
+  { t: "the streets and pockets people drive past without noticing, and what makes them worth slowing for", months: [], cold: false },
+  { t: "where you can leave the car - errands, coffee, a park, dinner, all on foot", months: [], cold: false },
+  { t: "where you take someone visiting for the first time, and the order you take them in", months: [], cold: false },
+  { t: "how to spend an unhurried Sunday here, moving between a few unnamed local spots and open air", months: [], cold: false },
+  { t: "the parts of town people keep asking about, described by lifestyle and feel rather than by price", months: [], cold: false },
+  { t: "what to look at once you are inside a house, past the photographs: layout, light, storage", months: [], cold: false },
+  { t: "what lifts the front of a house without a project: planting, mulch, a door refresh, tidy edges", months: [], cold: false },
+  { t: "the quiet signs someone is ready for more room, framed as growth and never as a failing", months: [], cold: false },
+  { t: "the questions worth asking before an offer goes in", months: [], cold: false },
+  { t: "what to do the week before the listing photographs: light, the garden, the porch, the clutter", months: [], cold: false },
+  // seasonal, and only where the season exists
+  { t: "the small changes that make a home feel warmer at a viewing: lighting, textiles, a little softness", months: [9, 10, 11, 12, 1, 2], cold: true },
+  { t: "where the colour turns first and where to stand to see it", months: [9, 10, 11], cold: true },
+  { t: "the jobs worth finishing before the cold arrives: sealing gaps, clearing gutters, the heating", months: [9, 10, 11], cold: true },
+  { t: "the first warm week - windows open, gardens starting, everything reopening at once", months: [3, 4, 5], cold: true },
+  { t: "the long light after work, and where people go to sit in it", months: [5, 6, 7, 8], cold: false },
+  { t: "how people here get out of the heat - the water, the shade, the early hour", months: [6, 7, 8], cold: false },
+  { t: "the stretch of the year when being outside here is easiest, and what opens up because of it", months: [11, 12, 1, 2, 3], cold: false }
 ];
+
+// The unarguable warm cases only, matched on what the operator typed. Flagstaff
+// is in Arizona and has a real winter, so no blanket rule by state.
+function vsReelWarmPlace(place) {
+  return /(,|\s)(FL|HI)\b/i.test(place) ||
+         /\b(florida|hawaii|honolulu|dubai|abu dhabi|uae|emirates|puerto rico)\b/i.test(place);
+}
+
+function vsReelSeason(month, warm) {
+  if (warm) return month >= 5 && month <= 10 ? "the hot part of the year" : "the mild part of the year";
+  if (month === 12 || month <= 2) return "winter";
+  if (month <= 5) return "spring";
+  if (month <= 8) return "summer";
+  return "autumn";
+}
+
+/** The ideas that suit this month and this place. Never returns an empty list. */
+function vsReelTopicsFor(month, warm) {
+  const fit = VS_REEL_TOPICS.filter((x) =>
+    (!x.cold || !warm) && (!x.months.length || x.months.indexOf(month) !== -1));
+  return fit.length ? fit : VS_REEL_TOPICS.filter((x) => !x.cold && !x.months.length);
+}
 
 const VS_REEL_MONTHS = ["January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"];
 
 function vsReelPrompt(place, month, seed) {
   const [trigLabel, trigBrief] = VS_REEL_TRIGGERS[seed % VS_REEL_TRIGGERS.length];
-  const topic = VS_REEL_TOPICS[(seed * 3 + 1) % VS_REEL_TOPICS.length];
+  const warm = vsReelWarmPlace(place);
+  const pool = vsReelTopicsFor(month, warm);
+  const topic = pool[(seed * 3 + 1) % pool.length].t;
   const monthName = VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))];
+  const season = vsReelSeason(month, warm);
   // Canadian spelling is decided on what the operator typed, since the studio
   // has no country field to consult.
   const ca = /\b(BC|AB|SK|MB|ON|QC|NS|NB|NL|PE|YT|NT|NU|Canada|Ontario|Alberta|Quebec|Manitoba|Saskatchewan)\b/i.test(place);
@@ -4986,8 +5025,9 @@ function vsReelPrompt(place, month, seed) {
     `You write short-form Reel hooks and scripts for a real estate agent who lives in ${place} and is proud of it.`,
     ``,
     `PLACE: ${place}.`,
-    `MONTH: ${monthName}.`,
+    `MONTH: ${monthName} - ${season}.`,
     `TOPIC: ${topic}.`,
+    ...(warm ? [`CLIMATE: this place has no real autumn or winter. Never write about leaves turning, cold rooms, frost, snow or the heating.`] : []),
     `TITLE TAKES HOLD BY: ${trigLabel} - ${trigBrief}.`,
     ``,
     `Return exactly this JSON and nothing else:`,
