@@ -7274,7 +7274,7 @@ ${noExcerpt ? `No source excerpt is available for ${name} — rely on verified g
     let data = null;
     if (aiFailStreak < 2) {   // only call the AI while it's responding
       for (let attempt = 0; attempt < 2 && !data; attempt++) {
-        const retryPrompt = attempt ? sPrompt + `\nREVISION REQUIRED: The previous draft failed evidence checks. Remove invented numbers, ranks, list-meta commentary and generic filler. Return a grounded analyst briefing only.` : sPrompt;
+        const retryPrompt = attempt ? sPrompt + VS_TONE + `\nREVISION REQUIRED: The previous draft failed evidence checks. Remove invented numbers, ranks, list-meta commentary and generic filler. Return a grounded analyst briefing only.` : sPrompt + VS_TONE;
         try { data = vsParseAiJson(await vsAutoAiChat(retryPrompt)); } catch (e) { data = null; }
         if (data && !vsIsGroundedAnalystScript(data, excerpt)) data = null;
       }
@@ -16349,6 +16349,23 @@ function arCredit(amount, opts) {
 // about their own business. So no figure may be invented: a made-up "trusted
 // by 50+ buyers" is not a flourish, it is them saying something untrue in
 // public. Numbers they typed in themselves are theirs to use.
+// The two rules that hold wherever this site writes about somewhere real.
+//
+// These videos carry a town's name and go out under an agent's, so a clever
+// line at the town's expense costs them something, and a named business is
+// either free advertising or a complaint waiting to happen. Neither is worth
+// the sentence it buys.
+const VS_TONE =
+  "\n\nTONE AND TRUTH, both absolute:\n" +
+  "- Never speak badly of the place. Every line is neutral or warm. No warnings, " +
+  "no complaints, no drawbacks, no jokes at the town's expense, and no comparison " +
+  "that leaves it looking the lesser. Someone who lives there should feel proud " +
+  "watching this.\n" +
+  "- Never name a business, a brand or a vendor. Not a cafe, not a shop, not a " +
+  "restaurant, not an agency. Refer to them generically - 'a local cafe', 'a " +
+  "corner spot' - and say nothing about menus, orders, prices or service.\n" +
+  "- Never name a private person, and never invent an award, a ranking or an event.";
+
 const SPARK_TRUTH =
   `\nTRUTH: Invent no facts about this person or business. No statistics, no ` +
   `client counts, no years in business, no revenue, no ratings, no awards, no ` +
