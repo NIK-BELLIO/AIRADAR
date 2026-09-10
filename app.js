@@ -7072,7 +7072,24 @@ async function vsAutoGenerateBackgrounds(data) {
   };
 
   vsAutoStatus(state.lang === "fa" ? "در حال ساخت فوتیج همهٔ صحنه‌ها…" : "Finding footage for all scenes…");
-  await Promise.all(slides.map((s, i) => genOne(s, i)));   // PARALLEL — much faster
+  // All at once when the CDN is reachable: the requests go to several different
+  // hosts and nothing queues. When everything is relayed through our worker they
+  // all land on one origin, where a browser allows about six connections - so
+  // the searches, the files and the fallback images all wait behind each other
+  // and a lookup measured at eighty seconds instead of one. Three at a time
+  // keeps the pipe busy without building that queue.
+  if (_vsPexelsDirectDead) {
+    const queue = slides.map((s, i) => () => genOne(s, i));
+    const runners = new Array(Math.min(3, queue.length)).fill(0).map(async () => {
+      while (queue.length && !vstudio._batchCancel) {
+        const job = queue.shift();
+        if (job) await job();
+      }
+    });
+    await Promise.all(runners);
+  } else {
+    await Promise.all(slides.map((s, i) => genOne(s, i)));   // PARALLEL — much faster
+  }
   vsAutoStatus(state.lang === "fa"
     ? (made ? `فوتیج ${made} صحنه آماده شد.` : "فوتیج در دسترس نبود.")
     : (made ? `Footage ready for ${made} scene${made > 1 ? "s" : ""}.` : "Footage unavailable."));
