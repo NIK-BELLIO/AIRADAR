@@ -15660,11 +15660,17 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
     }
     // Leaving only on encErr assumed a wedged encoder always reports one. If it
     // does not, this spins in the middle of a render with nothing to stop it.
-    const qWait = Date.now() + 30000;
+    // Wedged means the queue stops moving, not that it moves slowly. The first
+    // version of this guard timed the wait and failed a render that was working
+    // its way through ninety frames on a software encoder - a slow encoder is
+    // still an encoder. Watch the depth instead, and only give up when it has
+    // not come down at all for a full minute.
+    let qLow = encoder.encodeQueueSize, qSince = Date.now();
     while (encoder.encodeQueueSize > 12) {
       await new Promise(r => setTimeout(r));
       if (encErr) break;
-      if (Date.now() > qWait) { encErr = new Error("encoder stopped draining"); break; }
+      if (encoder.encodeQueueSize < qLow) { qLow = encoder.encodeQueueSize; qSince = Date.now(); }
+      else if (Date.now() - qSince > 60000) { encErr = new Error("encoder stopped draining"); break; }
     }
     if (encErr) break;
   }
