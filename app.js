@@ -17049,8 +17049,8 @@ function vsCreatorTools(opts) {
         let out = null;
         for (let k = 0; k < 90; k++) {
           await new Promise(r => setTimeout(r, 4000));
-          let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
-          if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; }
+          let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+          if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; }
           if (st === "FAILED" || st === "ERROR") break;
         }
         if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
@@ -17572,9 +17572,11 @@ async function vsFalPost(base, path, body) {
 }
 
 // Charge credits for a Reverse Engineer action (enforced server-side). Returns
-// {jobId} when charged, {block:true} when the user must sign in / lacks credits
-// (caller aborts), or {skip:true} when the API is unreachable (local dev) so the
-// flow still works. Settle with vsSettle(jobId, "done"|"failed").
+// {jobId} when charged, or {block:true} when the caller must abort - not signed
+// in, not enough credits, or the ledger did not answer. It used to let an
+// unreachable ledger through so local development worked without the credits
+// API; on a live site that billed fal for work nobody paid for.
+// Settle with vsSettle(jobId, "done"|"failed").
 async function vsCharge(action, extra) {
   const fa = state.lang === "fa";
   try {
@@ -17583,8 +17585,17 @@ async function vsCharge(action, extra) {
     const j = await r.json().catch(() => ({}));
     if (r.status === 402) { vsStatus(fa ? `کردیتِ کافی نداری — ${j.cost} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${j.cost}, you have ${j.balance || 0}.`); return { block: true }; }
     if (j && j.ok && j.jobId) { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} return { jobId: j.jobId, balance: j.balance }; }
-    return { skip: true };
-  } catch (e) { return { skip: true }; }
+    // No job id means the ledger did not record this. Going ahead anyway would
+    // bill fal for work nobody paid for, and leave nothing to refund if it
+    // failed, so stop here instead.
+    vsStatus(fa ? "شمارشگرِ کردیت جواب نداد. دوباره امتحان کن."
+             : "The credit service did not answer, so nothing was started. Try again in a moment.");
+    return { block: true };
+  } catch (e) {
+    vsStatus(fa ? "شمارشگرِ کردیت در دسترس نیست. دوباره امتحان کن."
+           : "Could not reach the credit service, so nothing was started. Try again in a moment.");
+    return { block: true };
+  }
 }
 function vsSettle(jobId, status) { if (!jobId) return; try { fetch("/api/credits/settle", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }).then(() => { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} }); } catch (e) {} }
 
@@ -19607,8 +19618,8 @@ async function vsBuildTalkingHead(script, opts) {
   let videoUrl = null;
   for (let i = 0; i < 90 && !closed; i++) {
     await new Promise(r => setTimeout(r, 4000));
-    let st = "?"; try { const j = await (await fetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
-    if (st === "COMPLETED") { try { const j = await (await fetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
+    let st = "?"; try { const j = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
+    if (st === "COMPLETED") { try { const j = await (await vsFalFetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
     if (st === "FAILED" || st === "ERROR") break;
   }
   if (closed) { vsSettle(thJob, "failed"); return; }
@@ -19702,7 +19713,7 @@ async function vsBuildLipsync(opts) {
     if (!statusUrl) throw new Error("submit failed");
     const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
     let out = null;
-    for (let k = 0; k < 90; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
+    for (let k = 0; k < 90; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
     if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed"); done(ic);
     await settle("done");
     vsTrackGen("lipsync", "fal-ai/latentsync", "via:reverse cost:" + COST);
@@ -20005,9 +20016,9 @@ async function vsBuildVideoModel(cfg) {
       }
       await new Promise(r => setTimeout(r, 4000));
       if (cancelled) return;
-      let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
       lastStatus = st;
-      if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
       if (st === "FAILED" || st === "ERROR") break;
     }
     if (cancelled) return;
@@ -20130,8 +20141,8 @@ async function vsReverseMotionClip(opts) {
       let videoUrl = null;
       for (let i = 0; i < 90 && !closed; i++) {
         await new Promise(r => setTimeout(r, 4000));
-        let st = "?"; try { const j = await (await fetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
-        if (st === "COMPLETED") { try { const j = await (await fetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
+        let st = "?"; try { const j = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
+        if (st === "COMPLETED") { try { const j = await (await vsFalFetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
         if (st === "FAILED" || st === "ERROR") break;
       }
       if (!videoUrl) throw new Error(fa ? "ساختِ حرکت ناموفق بود" : "motion generation failed");
@@ -22985,9 +22996,9 @@ async function vsBuildMotionTransfer(cfg) {
       }
       await new Promise(r => setTimeout(r, 4000));
       if (cancelled) return;
-      let st = "?"; try { const jj = await (await fetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
       last = st;
-      if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(respUrl))).json(); outUrl = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); outUrl = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
       if (st === "FAILED" || st === "ERROR") break;
     }
     if (cancelled) return;
@@ -23021,8 +23032,8 @@ async function vsBuildMotionTransfer(cfg) {
           let synced = null;
           for (let k = 0; k < 90 && lsStatus && !cancelled; k++) {
             await new Promise(r => setTimeout(r, 4000));
-            let st = "?"; try { const jj = await (await fetch(pollUrl(lsStatus))).json(); st = jj.status || "?"; } catch (e) {}
-            if (st === "COMPLETED") { try { const jj = await (await fetch(pollUrl(lsResp))).json(); synced = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+            let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(lsStatus))).json(); st = jj.status || "?"; } catch (e) {}
+            if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(lsResp))).json(); synced = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
             if (st === "FAILED" || st === "ERROR") break;
           }
           if (cancelled) return;
