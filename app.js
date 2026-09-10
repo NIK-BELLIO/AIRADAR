@@ -17010,8 +17010,8 @@ function vsCreatorTools(opts) {
     $$("lsVid").onchange = (e) => { lsVid = (e.target.files && e.target.files[0]) || null; $$("lsVidTxt").textContent = lsVid ? "✓ " + lsVid.name.slice(0, 30) : (fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"); };
     $$("lsAud").onchange = (e) => { lsAud = (e.target.files && e.target.files[0]) || null; $$("lsAudTxt").textContent = lsAud ? "✓ " + lsAud.name.slice(0, 30) : (fa ? "فایلِ صدا را آپلود کن" : "Upload the audio file"); };
     $$("lsMode").onchange = () => { const t = $$("lsMode").value === "text"; $$("lsText").style.display = t ? "block" : "none"; $$("lsVoiceWrap").style.display = t ? "block" : "none"; $$("lsAudLbl").style.display = t ? "none" : "flex"; };
-    const post = async (path, bdy) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bdy) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
-    const upload = async (fileOrBlob, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || fileOrBlob.type || "application/octet-stream" }, body: fileOrBlob }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
+    const post = (path, bdy) => vsFalPost(WB, path, bdy);
+    const upload = async (fileOrBlob, type) => { const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || fileOrBlob.type || "application/octet-stream" }, body: fileOrBlob }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
     $$("lsGo").onclick = async () => {
       if (!lsVid) { $$("lsVid").click(); return; }
       const mode = $$("lsMode").value;
@@ -17521,6 +17521,54 @@ function vsReverseParseSections(raw, brief, refText) {
   // No markers at all → treat the whole reply as the script so Build still works.
   if (!script && !dnaBlock && !structure.length) script = s.trim();
   return { styleDNA: dna, structure, skill, script, caption, formatType, setting };
+}
+
+// ── THE PASS FOR PAID CALLS ─────────────────────────────────────────────────
+// /fal/* spends real money and lives on another origin, so the session cookie
+// never reaches it. The app signs a short-lived ticket instead, and every paid
+// call carries it.
+//
+// Cached until a minute before it expires: a ten-minute pass fetched afresh on
+// every poll would be a request per second during a video job.
+let _vsFalTicket = null, _vsFalTicketUntil = 0;
+
+async function vsFalTicketGet() {
+  if (_vsFalTicket && Date.now() < _vsFalTicketUntil) return _vsFalTicket;
+  try {
+    const r = await fetch("/api/fal/ticket", { credentials: "include" });
+    if (!r.ok) return null;                    // signed out: the call will be refused, which is the point
+    const j = await r.json();
+    if (!j || !j.ticket) return null;          // gate not armed yet
+    _vsFalTicket = j.ticket;
+    _vsFalTicketUntil = Date.now() + Math.max(30, (j.expiresIn || 600) - 60) * 1000;
+    return _vsFalTicket;
+  } catch (e) { return null; }
+}
+
+/** fetch() for the media worker's paid endpoints, with the pass attached. */
+async function vsFalFetch(url, init) {
+  init = init || {};
+  const headers = Object.assign({}, init.headers || {});
+  const t = await vsFalTicketGet();
+  if (t) headers["x-fal-ticket"] = t;
+  return fetch(url, Object.assign({}, init, { headers }));
+}
+
+/** POST to the media worker with the pass attached. Throws on a refusal. */
+async function vsFalPost(base, path, body) {
+  const headers = { "Content-Type": "application/json" };
+  const t = await vsFalTicketGet();
+  if (t) headers["x-fal-ticket"] = t;
+  const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) {
+    // The pass is the only thing between this endpoint and the whole balance,
+    // so a refusal is reported rather than retried around.
+    _vsFalTicket = null; _vsFalTicketUntil = 0;
+    throw new Error(state.lang === "fa" ? "برای این کار اول وارد شو." : "Please sign in to continue.");
+  }
+  if (!r.ok || j.error) throw new Error(j.error || ("HTTP " + r.status));
+  return j;
 }
 
 // Charge credits for a Reverse Engineer action (enforced server-side). Returns
@@ -18038,7 +18086,7 @@ function vsReverseEngineer(prefill, opts) {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const lbl = $$("reUploadTxt"); const old = lbl.textContent;
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-    const upload1 = async (blob) => { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
+    const upload1 = async (blob) => { const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
     try {
       let thumbUrl = "", vision = null, titleCards = [], shotList = [], refDuration = 0;
       if (/^video\//.test(file.type)) {
@@ -18553,8 +18601,8 @@ function vsReverseEngineer(prefill, opts) {
     let imageUrl = "";
     try {
       const gImg = thPhoto || anyImg;
-      if (gImg) { const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": gImg.type || "image/jpeg" }, body: gImg }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
-      if (!imageUrl) { const setting = ((blueprint && blueprint.setting) || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 80); const fim = await (await fetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt: "cinematic photograph, " + setting + ", a person, shallow depth of field, photorealistic, film still", image_size: "portrait_16_9", num_inference_steps: 28 } }) })).json().catch(() => ({})); imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url; }
+      if (gImg) { const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": gImg.type || "image/jpeg" }, body: gImg }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
+      if (!imageUrl) { const setting = ((blueprint && blueprint.setting) || "modern interior").replace(/[^\w ,'-]/g, " ").slice(0, 80); const fim = await (await vsFalFetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt: "cinematic photograph, " + setting + ", a person, shallow depth of field, photorealistic, film still", image_size: "portrait_16_9", num_inference_steps: 28 } }) })).json().catch(() => ({})); imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url; }
     } catch (e) {}
     if (!imageUrl) { vsStatus(fa ? "عکسِ اولیه ساخته نشد — عکسِ خودت رو آپلود کن." : "Couldn't get a frame — upload your own photo."); return; }
     try {
@@ -18976,7 +19024,7 @@ async function vsAnalyzeShotList(blob, fracs) {
     const frames = await vsVideoFrames(blob, at);
     for (let i = 0; i < frames.length; i++) {
       try {
-        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
+        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
         const sc = await vsVisionScene(uj.file_url); if (!sc) continue;
         out.shots.push({
@@ -19020,7 +19068,7 @@ async function vsSampleVideoTitleCards(videoUrl) {
     const cards = [];
     for (const fr of frames) {
       try {
-        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
+        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
         const vis = await vsVisionAnalyze(uj.file_url); if (!vis) continue;
         // The vision model doesn't always classify a bold on-screen phrase as
@@ -19115,7 +19163,7 @@ async function vsFalImage(prompt, w, h) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const size = (h >= w * 1.15) ? "portrait_4_3" : (w >= h * 1.15) ? "landscape_4_3" : "square_hd";
   try {
-    const r = await fetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt, image_size: size, num_inference_steps: 28 } }) });
+    const r = await vsFalFetch(WB + "/fal/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "fal-ai/flux/dev", input: { prompt, image_size: size, num_inference_steps: 28 } }) });
     const d = await r.json(); const u = d && d.images && d.images[0] && d.images[0].url;
     if (!u) return null;
     return await new Promise(res => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => { im._imgModel = "fal-flux-dev"; res(im); }; im.onerror = () => res(null); im.src = WB + "/fal/img?url=" + encodeURIComponent(u); });
@@ -19466,7 +19514,7 @@ async function vsBuildTalkingHead(script, opts) {
   let audioUrl;
   if (opts.audio) {
     try {
-      const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
+      const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
       const uaj = await ua.json().catch(() => ({}));
       audioUrl = uaj.file_url || "";
     } catch (e) {}
@@ -19500,7 +19548,7 @@ async function vsBuildTalkingHead(script, opts) {
       // image's dimensions, so without this a square photo ignored a "9:16"
       // selection and produced a square clip.
       const fitted = await vsFitImageToAspect(opts.photo, opts.aspect);
-      const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": fitted.type || "image/jpeg" }, body: fitted });
+      const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": fitted.type || "image/jpeg" }, body: fitted });
       const uj = await up.json().catch(() => ({}));
       if (!uj.file_url) throw new Error(uj.error || "upload failed");
       imageUrl = uj.file_url;
@@ -19622,7 +19670,7 @@ async function vsBuildLipsync(opts) {
   ov.querySelector("#lsxClose").onclick = () => { try { ov.remove(); } catch (e) {} };
   const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
   const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#5fe0b0"; } };
-  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  const post = (path, b) => vsFalPost(WB, path, b);
   // 1) reserve credits (enforced server-side)
   let jobId = null;
   try {
@@ -19638,7 +19686,7 @@ async function vsBuildLipsync(opts) {
     let ic = line(opts.audio ? (fa ? "آپلودِ صدای تو" : "Uploading your audio") : (fa ? "نوشتنِ صدا" : "Writing the voice"));
     let audioUrl;
     if (opts.audio) {
-      const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
+      const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
       const uaj = await ua.json().catch(() => ({})); audioUrl = uaj.file_url || ""; if (!audioUrl) throw new Error("audio upload failed");
     } else {
       const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
@@ -19646,7 +19694,7 @@ async function vsBuildLipsync(opts) {
     }
     done(ic);
     ic = line(fa ? "آپلودِ ویدیوی تو" : "Uploading your video");
-    const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.video.type || "video/mp4" }, body: opts.video });
+    const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.video.type || "video/mp4" }, body: opts.video });
     const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error("upload failed"); done(ic);
     ic = line(fa ? "لب‌همزمانی (~۱ دقیقه)" : "Lip-syncing (~1 min)");
     const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: uj.file_url, audio_url: audioUrl } });
@@ -19689,8 +19737,8 @@ async function vsBuildSceneVideo(cfg) {
   const perShot = Math.min(Math.max(Number(cfg.secondsPerShot) || suggested, 3), 10);
   const RATE = 9;                                  // per second of rendered video
 
-  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
-  const upload = async (file, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const jj = await r.json().catch(() => ({})); if (!jj.file_url) throw new Error(jj.error || "upload failed"); return jj.file_url; };
+  const post = (path, b) => vsFalPost(WB, path, b);
+  const upload = async (file, type) => { const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const jj = await r.json().catch(() => ({})); if (!jj.file_url) throw new Error(jj.error || "upload failed"); return jj.file_url; };
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.88);backdrop-filter:blur(6px);padding:18px";
@@ -19769,7 +19817,7 @@ async function vsBuildSceneVideo(cfg) {
       let ic = line(fa ? "نوشتنِ صدا" : "Writing the voice");
       let audioUrl = "";
       if (cfg.audio) {
-        const ua = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.audio.type || "audio/mpeg" }, body: cfg.audio });
+        const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.audio.type || "audio/mpeg" }, body: cfg.audio });
         audioUrl = (await ua.json().catch(() => ({}))).file_url || "";
       } else {
         const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: cfg.narration, voice: cfg.voice || "af_heart" } });
@@ -19783,7 +19831,7 @@ async function vsBuildSceneVideo(cfg) {
       let faceUrl = "";
       if (cfg.photo) {
         try {
-          const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.photo.type || "image/jpeg" }, body: cfg.photo });
+          const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.photo.type || "image/jpeg" }, body: cfg.photo });
           faceUrl = (await up.json().catch(() => ({}))).file_url || "";
         } catch (e) {}
       }
@@ -19846,8 +19894,8 @@ async function vsBuildSceneVideo(cfg) {
           let out = null;
           for (let k = 0; k < 90 && !cancelled; k++) {
             await new Promise(r => setTimeout(r, 4000));
-            let st = "?"; try { st = (await (await fetch(WB + "/fal/poll?url=" + encodeURIComponent(statusUrl))).json()).status || "?"; } catch (e) {}
-            if (st === "COMPLETED") { try { const jj = await (await fetch(WB + "/fal/poll?url=" + encodeURIComponent(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+            let st = "?"; try { st = (await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(statusUrl))).json()).status || "?"; } catch (e) {}
+            if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
             if (st === "FAILED" || st === "ERROR") break;
           }
           if (!out) throw new Error("shot render failed");
@@ -19888,7 +19936,7 @@ async function vsBuildSceneVideo(cfg) {
 async function vsBuildVideoModel(cfg) {
   const fa = state.lang === "fa";
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
+  const post = (path, b) => vsFalPost(WB, path, b);
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
@@ -20059,7 +20107,7 @@ async function vsReverseMotionClip(opts) {
       let ic = line(fa ? "آماده‌سازیِ فریمِ اول" : "Preparing the first frame");
       let imageUrl;
       if (mcPhoto) {
-        const up = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": mcPhoto.type || "image/jpeg" }, body: mcPhoto });
+        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": mcPhoto.type || "image/jpeg" }, body: mcPhoto });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error(uj.error || "photo upload failed");
         imageUrl = uj.file_url;
       } else {
@@ -22843,8 +22891,8 @@ async function vsBuildMotionTransfer(cfg) {
   cfg = cfg || {};
   const fa = state.lang === "fa";
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  const post = async (path, b) => { const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t; };
-  const upload = async (file, type) => { const r = await fetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
+  const post = (path, b) => vsFalPost(WB, path, b);
+  const upload = async (file, type) => { const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
 
   const secs = Math.min(Math.max(Math.round(Number(cfg.seconds) || 8), 3), 30);
   const ov = document.createElement("div");
