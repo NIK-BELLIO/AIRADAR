@@ -16338,6 +16338,18 @@ function arCredit(amount, opts) {
        + arCreditIcon + label + suffix + '</span>';
 }
 
+// Everything written for a user goes out under their own name, as their claim
+// about their own business. So no figure may be invented: a made-up "trusted
+// by 50+ buyers" is not a flourish, it is them saying something untrue in
+// public. Numbers they typed in themselves are theirs to use.
+const SPARK_TRUTH =
+  `\nTRUTH: Invent no facts about this person or business. No statistics, no ` +
+  `client counts, no years in business, no revenue, no ratings, no awards, no ` +
+  `named clients, no testimonials, no "trusted by", no "#1", no percentages. ` +
+  `Use only what is given above. If a line would be stronger with a number ` +
+  `and none was given, write the line without one. This is published under a ` +
+  `real person's name as their own claim.`;
+
 function vsCreatorTools(opts) {
   opts = opts || {};
   const page = !!opts.mount;   // page mode = render inline (its own page), not a modal
@@ -16493,18 +16505,6 @@ function vsCreatorTools(opts) {
     else if (id === "bio") toolText("bio");
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
-  // Everything Spark writes goes out under the user's own name, as their claim
-  // about their own business. So no figure may be invented: a made-up "trusted
-  // by 50+ buyers" is not a flourish, it is them saying something untrue in
-  // public. Numbers they typed in themselves are theirs to use.
-  const SPARK_TRUTH =
-    `\nTRUTH: Invent no facts about this person or business. No statistics, no ` +
-    `client counts, no years in business, no revenue, no ratings, no awards, no ` +
-    `named clients, no testimonials, no "trusted by", no "#1", no percentages. ` +
-    `Use only what is given above. If a line would be stronger with a number ` +
-    `and none was given, write the line without one. This is published under a ` +
-    `real person's name as their own claim.`;
-
   const showImg = (outEl, blob, name) => {
     const u = URL.createObjectURL(blob);
     outEl.innerHTML = `<img src="${u}" style="width:min(360px,100%);border-radius:14px;display:block;margin:0 auto;background:#000"/>
