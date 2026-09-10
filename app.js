@@ -4380,7 +4380,9 @@ function bindIntroEditor() {
       { cmd: "/editorial", icon: "▦", insert: "/editorial ",
         desc: "Editorial photo deck — a cinematic AI image per scene + elegant serif text" },
       { cmd: "/mg", icon: "⚡", insert: "/mg ",
-        desc: "Short alias for /motion_graphic" }
+        desc: "Short alias for /motion_graphic" },
+      { cmd: "/realtor", icon: "⌂", insert: "/realtor ",
+        desc: "Realtor reel - a hook and five lines about one town" }
     ];
     const menu = $("#vsSlashMenu");
     let activeIdx = 0, matches = [];
@@ -4460,6 +4462,9 @@ function bindIntroEditor() {
       if (remember) { try { localStorage.setItem("vsMgGuideSeen", "1"); } catch (e) {} }
     };
     document.addEventListener("click", (e) => {
+      // The reel screen opens from its own chip beside the guide.
+      const reelBtn = e.target.closest ? e.target.closest("#vsReelBtn") : null;
+      if (reelBtn) { e.preventDefault(); return vsReelPopup(); }
       const t = e.target.closest
         ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsMgGuideTry,#vsMgGuideTryEd")
         : null;
@@ -5045,18 +5050,174 @@ function vsReelParse(raw, place) {
   return { title: title, sentences: sentences };
 }
 
-async function vsBuildRealtorReel(place) {
+// The screen for it. Takes a list of towns, writes a reel for each, and leaves
+// them in the studio's own batch queue - the same one the regional handoff
+// fills, which already renders a list one after another and zips the results.
+function vsReelPopup() {
   const fa = state.lang === "fa";
-  const month = new Date().getMonth() + 1;
-  vsAutoStatus(fa ? "در حال نوشتنِ ریل…" : "Writing the reel…");
+  if (!document.getElementById("vsReelStyle")) {
+    const st = document.createElement("style");
+    st.id = "vsReelStyle";
+    st.textContent = `
+      .vs-reel-ov{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+        background:rgba(4,4,6,.72);backdrop-filter:blur(6px);padding:18px;font-family:Inter,system-ui,sans-serif}
+      .vs-reel{width:min(540px,96vw);max-height:90vh;display:flex;flex-direction:column;
+        background:#121016;border:1px solid rgba(37,99,255,.3);border-radius:14px;overflow:hidden;
+        box-shadow:0 30px 80px rgba(0,0,0,.6)}
+      .vs-reel h3{margin:0;padding:18px 20px 4px;font-family:'Prata',Georgia,serif;font-weight:400;font-size:19px;color:#efe9dc}
+      .vs-reel .sub{padding:0 20px 14px;font-size:12.5px;line-height:1.6;color:#9a9488}
+      .vs-reel .bd{padding:0 20px 4px;overflow:auto}
+      .vs-reel textarea{width:100%;box-sizing:border-box;min-height:132px;resize:vertical;padding:11px 12px;
+        border-radius:10px;border:1px solid rgba(255,255,255,.14);background:#0c0a10;color:#efe9dc;
+        font:inherit;font-size:13.5px;line-height:1.7}
+      .vs-reel textarea:focus{outline:none;border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.2)}
+      .vs-reel .row{display:flex;align-items:center;gap:10px;margin:13px 0 4px;flex-wrap:wrap}
+      .vs-reel .lbl{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8c8578}
+      .vs-reel select{padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
+        background:#0c0a10;color:#efe9dc;font:inherit;font-size:13px}
+      .vs-reel .count{margin-left:auto;font-size:12px;color:#8c8578;font-variant-numeric:tabular-nums}
+      .vs-reel .act{display:flex;gap:10px;padding:16px 20px 18px}
+      .vs-reel .act button{flex:1;padding:11px;border-radius:10px;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+      .vs-reel .go{border:0;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);
+        box-shadow:0 8px 22px -8px rgba(37,99,255,.7)}
+      .vs-reel .go:disabled{opacity:.5;cursor:default;box-shadow:none}
+      .vs-reel .cx{background:transparent;border:1px solid rgba(255,255,255,.14);color:#c3cfe8}
+      .vs-reel .note{padding:0 20px;font-size:11.5px;color:#7f8a9e;line-height:1.6}`;
+    document.head.appendChild(st);
+  }
+
+  const ov = document.createElement("div");
+  ov.className = "vs-reel-ov";
+  ov.innerHTML = `<div class="vs-reel">
+    <h3>${fa ? "ریلِ ملکی" : "Realtor reels"}</h3>
+    <p class="sub">${fa
+      ? "یک شهر در هر خط. برای هرکدام یک ریل نوشته می‌شود و همه با هم در صفِ رندر می‌نشینند."
+      : "One town per line. Each gets its own reel, and they land in the render queue together."}</p>
+    <div class="bd">
+      <textarea id="vsReelList" spellcheck="false" placeholder="Kingston, ON&#10;Nelson, BC&#10;Syracuse, NY&#10;Fort Myers, FL"></textarea>
+      <div class="row">
+        <span class="lbl">${fa ? "حداکثر" : "At most"}</span>
+        <select id="vsReelMax">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="25">25</option>
+        </select>
+        <span class="lbl">${fa ? "ماه" : "Month"}</span>
+        <select id="vsReelMonth"></select>
+        <span class="count" id="vsReelCount"></span>
+      </div>
+    </div>
+    <p class="note">${fa
+      ? "رایگان است؛ متن‌ها را مدلِ خودمان می‌نویسد، نه fal. رندر بعد از این، در فهرستِ دسته‌ای."
+      : "Free - our own model writes these, not fal. Rendering happens after, in the batch list."}</p>
+    <div class="act">
+      <button type="button" class="cx" id="vsReelCancel">${fa ? "انصراف" : "Cancel"}</button>
+      <button type="button" class="go" id="vsReelGo">${fa ? "بنویس" : "Write the reels"}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+
+  const ta = ov.querySelector("#vsReelList");
+  const maxSel = ov.querySelector("#vsReelMax");
+  const monthSel = ov.querySelector("#vsReelMonth");
+  const countEl = ov.querySelector("#vsReelCount");
+  const goBtn = ov.querySelector("#vsReelGo");
+
+  const now = new Date().getMonth() + 1;
+  monthSel.innerHTML = VS_REEL_MONTHS.map((m, i) =>
+    `<option value="${i + 1}"${i + 1 === now ? " selected" : ""}>${m}</option>`).join("");
+
+  // One town per line, blank lines dropped, the same town twice ignored.
+  const towns = () => ta.value.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+    .filter((x, i, a) => a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
+  const refresh = () => {
+    const n = towns().length, cap = Number(maxSel.value);
+    countEl.textContent = n ? (fa ? `${Math.min(n, cap)} از ${n}` : `${Math.min(n, cap)} of ${n}`) : "";
+    goBtn.disabled = !n;
+  };
+  ta.addEventListener("input", refresh);
+  maxSel.addEventListener("change", refresh);
+  refresh();
+  setTimeout(() => ta.focus(), 30);
+
+  const close = () => { try { ov.remove(); } catch (e) {} };
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector("#vsReelCancel").onclick = close;
+  goBtn.onclick = async () => {
+    const list = towns().slice(0, Number(maxSel.value));
+    if (!list.length) return;
+    close();
+    await vsBuildRealtorBatch(list, Number(monthSel.value));
+  };
+}
+
+/**
+ * Write a reel per town and leave them in the batch queue.
+ *
+ * A town the model cannot write is skipped rather than allowed to end the run -
+ * fourteen good reels and one gap is a better morning than nothing at all - and
+ * what was skipped is named at the end rather than quietly dropped.
+ */
+async function vsBuildRealtorBatch(towns, month) {
+  const fa = state.lang === "fa";
+  vstudio._batchCancel = false;
+  vstudio.batchVideos = [];
+  const skipped = [];
+
+  for (let i = 0; i < towns.length && !vstudio._batchCancel; i++) {
+    const place = towns[i];
+    vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
+    const reel = await vsWriteRealtorReel(place, month);
+    if (!reel) { skipped.push(place); continue; }
+    vstudio.batchVideos.push({
+      name: place.split(",")[0].trim(),
+      location: place,
+      data: {
+        title: reel.title,
+        sections: reel.sentences.map((t) => ({ headline: t, narration: t })),
+        source: "", palette: "ocean",
+        _location: place, _batchName: place, _topic: "realtor reel"
+      }
+    });
+    vsRenderBatchList();
+  }
+  vsBatchProgress(false);
+
+  if (!vstudio.batchVideos.length) {
+    vsAutoStatus(fa ? "هیچ ریلی نوشته نشد. دوباره امتحان کن."
+                    : "No reels were written. Try again in a moment.");
+    return false;
+  }
+  vstudio.batchCurrent = 0;
+  vsRenderBatchList();
+  await vsLoadBatchVideo(0);
+  const n = vstudio.batchVideos.length;
+  vsAutoStatus((fa ? `${n} ریل آماده شد.` : `${n} reels ready.`) +
+    (skipped.length ? (fa ? ` رد شد: ${skipped.join("، ")}` : ` Skipped: ${skipped.join(", ")}`) : "") +
+    (fa ? " «دانلود همه» را بزن." : ' Press "Download all" to render them.'));
+  return true;
+}
+
+/** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
+async function vsWriteRealtorReel(place, month) {
   let out = null;
-  for (let attempt = 0; attempt < 4 && !out; attempt++) {
+  for (let attempt = 0; attempt < 4 && !out && !vstudio._batchCancel; attempt++) {
     const seed = Math.floor(Math.random() * 60) + attempt;
     let raw = "";
     try { raw = await vsAutoAiChat(vsReelPrompt(place, month, seed), { json: false, temperature: 1.0 }); }
     catch (e) { raw = ""; }
     out = vsReelParse(raw, place);
   }
+  return out;
+}
+
+async function vsBuildRealtorReel(place) {
+  const fa = state.lang === "fa";
+  const month = new Date().getMonth() + 1;
+  vsAutoStatus(fa ? "در حال نوشتنِ ریل…" : "Writing the reel…");
+  const out = await vsWriteRealtorReel(place, month);
   if (!out) {
     vsAutoStatus(fa ? "نوشتنِ ریل نشد. دوباره امتحان کن." : "Could not write the reel. Try again.");
     return false;
