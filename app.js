@@ -15348,7 +15348,14 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
       }
       await new Promise(r => setTimeout(r));
     }
-    while (encoder.encodeQueueSize > 12) { await new Promise(r => setTimeout(r)); if (encErr) break; }
+    // Leaving only on encErr assumed a wedged encoder always reports one. If it
+    // does not, this spins in the middle of a render with nothing to stop it.
+    const qWait = Date.now() + 30000;
+    while (encoder.encodeQueueSize > 12) {
+      await new Promise(r => setTimeout(r));
+      if (encErr) break;
+      if (Date.now() > qWait) { encErr = new Error("encoder stopped draining"); break; }
+    }
     if (encErr) break;
   }
   if (encErr) { try { encoder.close(); } catch (e) {} throw encErr; }
@@ -17576,7 +17583,12 @@ async function vsFalFetch(url, init) {
   const headers = Object.assign({}, init.headers || {});
   const t = await vsFalTicketGet();
   if (t) headers["x-fal-ticket"] = t;
-  return fetch(url, Object.assign({}, init, { headers }));
+  // fetch waits as long as the other end likes, and these sit inside poll loops
+  // and render flows where that reads as a freeze.
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), init.timeoutMs || 60000);
+  try { return await fetch(url, Object.assign({}, init, { headers, signal: init.signal || ctrl.signal })); }
+  finally { clearTimeout(tm); }
 }
 
 /** POST to the media worker with the pass attached. Throws on a refusal. */
@@ -17584,7 +17596,11 @@ async function vsFalPost(base, path, body) {
   const headers = { "Content-Type": "application/json" };
   const t = await vsFalTicketGet();
   if (t) headers["x-fal-ticket"] = t;
-  const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body) });
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), 90000);   // a submit is not a render: it should answer quickly
+  let r;
+  try { r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body), signal: ctrl.signal }); }
+  finally { clearTimeout(tm); }
   const j = await r.json().catch(() => ({}));
   if (r.status === 401) {
     // The pass is the only thing between this endpoint and the whole balance,
@@ -18870,10 +18886,30 @@ function vsReverseEngineer(prefill, opts) {
       let job = await start.json().catch(() => ({}));
       if (!start.ok) throw new Error(job.detail || job.error || (fa ? "شروع نشد." : "could not start"));
       swapPaint(job);
+      // Bounded on both sides. A poll that fails used to fall back to the job
+      // object we already had, which left the state unchanged and turned this
+      // into a loop with no way out: one 500 from the backend and the screen
+      // said "processing" for as long as the tab stayed open, after the user
+      // had paid. Now a run of failures gives up, and so does the clock.
+      const SWAP_DEADLINE = Date.now() + 20 * 60 * 1000;
+      let pollFails = 0;
       while (job.state !== "COMPLETED" && job.state !== "FAILED" && job.state !== "CANCELLED") {
+        if (Date.now() > SWAP_DEADLINE) throw new Error(fa
+          ? "\u067e\u0627\u0633\u062e\u06cc \u0646\u06cc\u0627\u0645\u062f \u0648 \u0645\u062a\u0648\u0642\u0641 \u0634\u062f. \u062f\u0648\u0628\u0627\u0631\u0647 \u0627\u0645\u062a\u062d\u0627\u0646 \u06a9\u0646."
+          : "No answer came back in time, so this stopped waiting. Try again.");
         await new Promise((r) => setTimeout(r, 5000));
-        const pr = await fetch(SWAP_API + "/api/subject-replacement/" + job.id);
-        job = await pr.json().catch(() => job);
+        let fresh = null;
+        try {
+          const ctrl = new AbortController();
+          const tm = setTimeout(() => ctrl.abort(), 20000);
+          const pr = await fetch(SWAP_API + "/api/subject-replacement/" + job.id, { signal: ctrl.signal });
+          clearTimeout(tm);
+          if (pr.ok) fresh = await pr.json().catch(() => null);
+        } catch (e) { fresh = null; }
+        if (fresh && fresh.state) { job = fresh; pollFails = 0; }
+        else if (++pollFails >= 6) throw new Error(fa
+          ? "\u0627\u0631\u062a\u0628\u0627\u0637 \u0628\u0627 \u06a9\u0627\u0631 \u0642\u0637\u0639 \u0634\u062f. \u062f\u0648\u0628\u0627\u0631\u0647 \u0627\u0645\u062a\u062d\u0627\u0646 \u06a9\u0646."
+          : "Lost contact with the job, so this stopped waiting. Try again.");
         swapPaint(job);
       }
       if (job.state !== "COMPLETED" || !job.resultUrl) throw new Error(job.error || (fa ? "ساخت کامل نشد." : "the generation did not finish"));
