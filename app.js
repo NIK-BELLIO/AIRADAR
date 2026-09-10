@@ -6031,7 +6031,10 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
       el.crossOrigin = "anonymous";
       el.muted = true; el.loop = true; el.playsInline = true; el.preload = "auto";
       let done = false;
-      const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 7000);
+      const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } },
+        // Relayed through the worker a clip takes about six seconds, so the
+        // original seven abandoned most of them just as they arrived.
+        _vsPexelsDirectDead ? 16000 : 7000);
       el.onloadeddata = () => {
         if (done) return; done = true; clearTimeout(timer);
         try { el.play().catch(() => {}); } catch (e) {}
@@ -6063,7 +6066,10 @@ async function vsFetchPexelsPhoto(query, key, aspect, variant) {
       const el = new Image();
       el.crossOrigin = "anonymous";
       let done = false;
-      const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 7000);
+      const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } },
+        // Relayed through the worker a clip takes about six seconds, so the
+        // original seven abandoned most of them just as they arrived.
+        _vsPexelsDirectDead ? 16000 : 7000);
       el.onload = () => { if (!done) { done = true; clearTimeout(timer); resolve(el.naturalWidth ? el : null); } };
       el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
       el.src = link;
