@@ -5922,6 +5922,9 @@ const VS_PEXELS_CACHE = new Map();
 // asking until the window it names has passed instead of burning the rest of
 // the batch on certain failures.
 let vsPexelsBlockedUntil = 0;
+// Set the first time a direct search cannot leave the browser at all. From then
+// on every search goes straight to the worker instead of waiting to fail again.
+let _vsPexelsDirectDead = false;
 
 // Plenty of browsers never reach api.pexels.com at all - a content blocker is
 // enough, and the fetch throws rather than failing politely. Measured in a real
@@ -5961,8 +5964,18 @@ async function vsPexelsSearch(url, key) {
   if (Date.now() < vsPexelsBlockedUntil) return null;
 
   const req = (async () => {
+    // Once the direct route has failed, stop trying it. A blocked fetch does not
+    // fail fast - measured at thirty seconds before it gave up - so paying that
+    // on every search would be worse than the problem it was meant to fix.
+    if (_vsPexelsDirectDead) {
+      const relayed = await vsStockViaWorker(url);
+      return relayed || undefined;
+    }
     try {
-      const r = await fetch(url, { headers: { Authorization: key } });
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(url, { headers: { Authorization: key }, signal: ctrl.signal })
+        .finally(() => clearTimeout(tm));
       if (r.status === 429) {
         const ra = Number(r.headers.get("Retry-After"));
         vsPexelsBlockedUntil = Date.now() + (ra > 0 ? ra * 1000 : 15 * 60 * 1000);
@@ -5972,6 +5985,7 @@ async function vsPexelsSearch(url, key) {
     } catch (e) {
       // The request never left - blocked, or offline. Our worker can still go
       // and look, and a real answer beats generating an image for every scene.
+      _vsPexelsDirectDead = true;
       const relayed = await vsStockViaWorker(url);
       return relayed || undefined;
     }
