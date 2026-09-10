@@ -6976,9 +6976,21 @@ async function vsAutoGenerateBackgrounds(data) {
 
   const tryPexels = async (q, i) => {
     const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
+    // Clip first when the CDN is reachable - real motion beats a still. When it
+    // is not, every byte comes through our worker, and a clip is several
+    // megabytes against a couple of hundred kilobytes for a photograph:
+    // measured at eighteen seconds each, against well under one. The still gets
+    // its movement from the camera move on top of it, so the scene still lives.
+    const relayed = _vsPexelsDirectDead;
     for (const offset of [0, 4, 8]) {
-      let m = await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset);
-      if (!m) m = await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset);
+      let m = relayed
+        ? await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset)
+        : await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset);
+      if (!m) {
+        m = relayed
+          ? await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset)
+          : await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset);
+      }
       const src = m && (m.currentSrc || m.src);
       if (m && src && !used.has(src)) {
         used.add(src);
