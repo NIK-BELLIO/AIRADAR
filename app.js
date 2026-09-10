@@ -5200,6 +5200,50 @@ function vsReelPopup() {
  * fourteen good reels and one gap is a better morning than nothing at all - and
  * what was skipped is named at the end rather than quietly dropped.
  */
+// ── A LOOK OF ITS OWN, PER REEL ────────────────────────────────────────────
+// Everything below already exists in the studio. The reels were just never
+// asking for any of it: every one was built with palette "ocean" and no
+// template or music spec, so fifteen towns came out looking and sounding like
+// one video fifteen times.
+//
+// Seeded from the town and the month together. Two towns in a batch differ;
+// the same town differs from itself next month; and the same town in the same
+// month reproduces exactly, so a re-run is a re-run and not a reshuffle.
+const VS_REEL_TEMPLATES = ["maison", "noir", "ivory", "editorial", "warm", "ocean",
+  "sunset", "mono", "forest", "platinum", "champagne", "obsidian", "porcelain"];
+const VS_REEL_PALETTES = ["ocean", "gold", "forest", "fire", "mono", "neon"];
+// Mood drives the generated track, so a different mood is a different piece of
+// music rather than the same one re-rendered.
+const VS_REEL_MOODS = [
+  { mood: "hopeful",   energy: "gentle", bpm: 82 },
+  { mood: "warm",      energy: "soft",   bpm: 90 },
+  { mood: "inspiring", energy: "medium", bpm: 96 },
+  { mood: "calm",      energy: "low",    bpm: 76 },
+  { mood: "uplifting", energy: "medium", bpm: 104 },
+  { mood: "reflective",energy: "gentle", bpm: 70 }
+];
+
+function vsReelSeed(place, month) {
+  const str = String(place || "").toLowerCase().replace(/[^a-z]/g, "") + ":" + month;
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h);
+}
+
+/** The visual and musical identity of one reel. */
+function vsReelLook(place, month, index) {
+  const seed = vsReelSeed(place, month);
+  // Different strides so the three do not move together and produce only a
+  // handful of real combinations.
+  const t = VS_REEL_TEMPLATES[(seed + index) % VS_REEL_TEMPLATES.length];
+  const p = VS_REEL_PALETTES[(seed * 3 + index * 2) % VS_REEL_PALETTES.length];
+  const m = VS_REEL_MOODS[(seed * 7 + index * 5) % VS_REEL_MOODS.length];
+  return { template: t, palette: p, music: { mood: m.mood, energy: m.energy, bpm: m.bpm },
+           // Offsets the per-scene rotations the assembler already does, so two
+           // reels do not open on the same entrance and the same camera move.
+           motionOffset: seed % 8, textOffset: (seed >> 3) % 8, overlayOffset: (seed >> 6) % 5 };
+}
+
 async function vsBuildRealtorBatch(towns, month) {
   const fa = state.lang === "fa";
   vstudio._batchCancel = false;
@@ -5214,13 +5258,20 @@ async function vsBuildRealtorBatch(towns, month) {
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
     const reel = await vsWriteRealtorReel(place, month);
     if (!reel) { skipped.push(place); continue; }
+    // Its own look and its own music, rather than the one default the whole
+    // batch used to share.
+    const look = vsReelLook(place, month, i);
     vstudio.batchVideos.push({
       name: place.split(",")[0].trim(),
       location: place,
+      template: look.template,
       data: {
         title: reel.title,
         sections: reel.sentences.map((t) => ({ headline: t, narration: t })),
-        source: "", palette: "ocean",
+        source: "",
+        palette: look.palette,
+        music: look.music,
+        _look: look,
         _location: place, _batchName: place, _topic: "realtor reel"
       }
     });
@@ -7854,6 +7905,13 @@ async function vsLoadBatchVideo(i) {
   }
   vstudio.batchCurrent = i;
   const fa = state.lang === "fa";
+  // Each reel carries its own template. Applied before the slides are built, so
+  // the assembler picks its colours and type from the right one - otherwise the
+  // whole batch inherits whichever template happened to be selected.
+  if (v.template && !vstudio._userPickedTemplate) {
+    vstudio.templateId = v.template;
+    try { renderTemplatePicker(); } catch (e) {}
+  }
   vsAssembleFromSections(v.data, true);          // rebuilds slides (no media yet)
   if (v._slideSettings) {
     v._slideSettings.forEach((settings, idx) => {
