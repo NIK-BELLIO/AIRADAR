@@ -5925,6 +5925,28 @@ let vsPexelsBlockedUntil = 0;
 // Set the first time a direct search cannot leave the browser at all. From then
 // on every search goes straight to the worker instead of waiting to fail again.
 let _vsPexelsDirectDead = false;
+
+// Learning this from the first failure was too late: every scene starts at once,
+// so they had all committed to the direct route before the first one came back.
+// Ask once, quietly, before any of that - a single HEAD at a tiny image, three
+// seconds at most, and every decision after it is made knowing the answer.
+let _vsPexelsProbe = null;
+function vsPexelsReachable() {
+  if (_vsPexelsProbe) return _vsPexelsProbe;
+  _vsPexelsProbe = (async () => {
+    try {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 3000);
+      await fetch("https://images.pexels.com/lib/api/pexels.png", { mode: "no-cors", signal: ctrl.signal })
+        .finally(() => clearTimeout(tm));
+      return true;
+    } catch (e) {
+      _vsPexelsDirectDead = true;   // blocked or offline: relay from the very first scene
+      return false;
+    }
+  })();
+  return _vsPexelsProbe;
+}
 // The media worker's origin, named once.
 const VS_STOCK_BASE = VS_AI_IMAGE.replace(/\/image$/, "");
 
@@ -6988,6 +7010,8 @@ async function vsAutoGenerateBackgrounds(data) {
 
   const tryPexels = async (q, i) => {
     const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
+    // Settle the question before choosing, rather than after failing.
+    await vsPexelsReachable();
     // Clip first when the CDN is reachable - real motion beats a still. When it
     // is not, every byte comes through our worker, and a clip is several
     // megabytes against a couple of hundred kilobytes for a photograph:
@@ -7090,6 +7114,7 @@ async function vsAutoGenerateBackgrounds(data) {
   // the searches, the files and the fallback images all wait behind each other
   // and a lookup measured at eighty seconds instead of one. Three at a time
   // keeps the pipe busy without building that queue.
+  await vsPexelsReachable();
   if (_vsPexelsDirectDead) {
     const queue = slides.map((s, i) => () => genOne(s, i));
     const runners = new Array(Math.min(3, queue.length)).fill(0).map(async () => {
