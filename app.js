@@ -5925,6 +5925,8 @@ let vsPexelsBlockedUntil = 0;
 // Set the first time a direct search cannot leave the browser at all. From then
 // on every search goes straight to the worker instead of waiting to fail again.
 let _vsPexelsDirectDead = false;
+// The media worker's origin, named once.
+const VS_STOCK_BASE = VS_AI_IMAGE.replace(/\/image$/, "");
 
 // Plenty of browsers never reach api.pexels.com at all - a content blocker is
 // enough, and the fetch throws rather than failing politely. Measured in a real
@@ -5942,16 +5944,20 @@ async function vsStockViaWorker(url) {
   const kind = u.pathname.indexOf("/videos/") !== -1 ? "video" : "photo";
   if (!q) return null;
   try {
-    const r = await fetch(VS_AI_IMAGE.replace(/\/image$/, "") + "/stock?kind=" + kind +
+    const r = await fetch(VS_STOCK_BASE + "/stock?kind=" + kind +
       "&orientation=" + encodeURIComponent(orientation) + "&q=" + encodeURIComponent(q));
     if (!r.ok) return null;
     const j = await r.json();
     const rows = (j && j.results) || [];
     if (!rows.length) return null;
+    // A browser that cannot reach the API cannot reach the CDN either - the
+    // blocker takes the whole domain, and a <video> pointed at it just hangs.
+    // So hand back urls that go through the worker as well.
+    const via = (u) => VS_STOCK_BASE + "/stock/media?url=" + encodeURIComponent(u);
     return kind === "video"
       ? { videos: rows.map((x) => ({ id: x.id, duration: x.seconds,
-          video_files: [{ file_type: "video/mp4", link: x.url, width: x.w, height: x.h }] })) }
-      : { photos: rows.map((x) => ({ id: x.id, src: { large2x: x.url, large: x.url, original: x.url } })) };
+          video_files: [{ file_type: "video/mp4", link: via(x.url), width: x.w, height: x.h }] })) }
+      : { photos: rows.map((x) => ({ id: x.id, src: { large2x: via(x.url), large: via(x.url), original: via(x.url) } })) };
   } catch (e) { return null; }
 }
 
