@@ -5923,6 +5923,35 @@ const VS_PEXELS_CACHE = new Map();
 // the batch on certain failures.
 let vsPexelsBlockedUntil = 0;
 
+// Plenty of browsers never reach api.pexels.com at all - a content blocker is
+// enough, and the fetch throws rather than failing politely. Measured in a real
+// Chrome: every search threw, every scene fell through to generating an image,
+// and a fifteen-video batch went from minutes to three quarters of an hour.
+//
+// Our own worker has clean egress and already searches Pexels for the
+// server-side render, so ask it. It answers with just what a composer needs, so
+// the shape is put back the way the callers here expect it.
+async function vsStockViaWorker(url) {
+  let u;
+  try { u = new URL(url); } catch (e) { return null; }
+  const q = u.searchParams.get("query") || "";
+  const orientation = u.searchParams.get("orientation") || "portrait";
+  const kind = u.pathname.indexOf("/videos/") !== -1 ? "video" : "photo";
+  if (!q) return null;
+  try {
+    const r = await fetch(VS_AI_IMAGE.replace(/\/image$/, "") + "/stock?kind=" + kind +
+      "&orientation=" + encodeURIComponent(orientation) + "&q=" + encodeURIComponent(q));
+    if (!r.ok) return null;
+    const j = await r.json();
+    const rows = (j && j.results) || [];
+    if (!rows.length) return null;
+    return kind === "video"
+      ? { videos: rows.map((x) => ({ id: x.id, duration: x.seconds,
+          video_files: [{ file_type: "video/mp4", link: x.url, width: x.w, height: x.h }] })) }
+      : { photos: rows.map((x) => ({ id: x.id, src: { large2x: x.url, large: x.url, original: x.url } })) };
+  } catch (e) { return null; }
+}
+
 async function vsPexelsSearch(url, key) {
   const pending = VS_PEXELS_CACHE.get(url);
   // The map holds the request, not its answer. Scenes are generated in
@@ -5941,7 +5970,10 @@ async function vsPexelsSearch(url, key) {
       }
       return r.ok ? await r.json() : null;
     } catch (e) {
-      return undefined;
+      // The request never left - blocked, or offline. Our worker can still go
+      // and look, and a real answer beats generating an image for every scene.
+      const relayed = await vsStockViaWorker(url);
+      return relayed || undefined;
     }
   })();
 
