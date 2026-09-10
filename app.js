@@ -16493,6 +16493,18 @@ function vsCreatorTools(opts) {
     else if (id === "bio") toolText("bio");
     setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
   }
+  // Everything Spark writes goes out under the user's own name, as their claim
+  // about their own business. So no figure may be invented: a made-up "trusted
+  // by 50+ buyers" is not a flourish, it is them saying something untrue in
+  // public. Numbers they typed in themselves are theirs to use.
+  const SPARK_TRUTH =
+    `\nTRUTH: Invent no facts about this person or business. No statistics, no ` +
+    `client counts, no years in business, no revenue, no ratings, no awards, no ` +
+    `named clients, no testimonials, no "trusted by", no "#1", no percentages. ` +
+    `Use only what is given above. If a line would be stronger with a number ` +
+    `and none was given, write the line without one. This is published under a ` +
+    `real person's name as their own claim.`;
+
   const showImg = (outEl, blob, name) => {
     const u = URL.createObjectURL(blob);
     outEl.innerHTML = `<img src="${u}" style="width:min(360px,100%);border-radius:14px;display:block;margin:0 auto;background:#000"/>
@@ -16515,7 +16527,7 @@ function vsCreatorTools(opts) {
         `Include a digit/metric where possible; build tension + a curiosity gap; use an "I" or "How I" statement across the two lines. No em dashes, no filler, prefer digits over spelled numbers.\n` +
         `Use these 6 angles IN ORDER: 1) Number-led 2) Contrarian 3) Personal transformation 4) Authority steal (a name/tool/brand) 5) Admission (a mistake/loss) 6) Future shock (a prediction).\n` +
         `${langLine(lang)}\nOutput EXACTLY this shape and nothing else:\n1. Number-led\n<line1>\n<line2>\n\n2. Contrarian\n<line1>\n<line2>\n\n3. Personal transformation\n<line1>\n<line2>\n\n4. Authority steal\n<line1>\n<line2>\n\n5. Admission\n<line1>\n<line2>\n\n6. Future shock\n<line1>\n<line2>`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("hkOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const blocks = raw.trim().split(/\n\s*\n/).filter(b => b.trim());
@@ -16549,7 +16561,7 @@ function vsCreatorTools(opts) {
         `STRUCTURE: Line 1 = bold hook (<=50 chars). Line 2 = twist/contrast (<=50 chars). Core = the framework across 3-5 lines per stage (any in-stage list has EXACTLY 3 items: 1. 2. 3.). Final 2-3 lines = wrap + CTA ending with "Repost if" or "If this helped, repost" followed by the recycle symbol.\n` +
         `Framework maps: PAS=Problem->Agitation->Solution; AIDA=Attention->Interest->Desire->Action; BAB=Before->After->Bridge; STAR=Situation->Task->Action->Result; SLAY=Story->Lesson->Actionable advice->You.\n` +
         `${langLine(lang)} Output ONLY the finished post, nothing else.`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.8 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.8 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("psOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const post = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
@@ -16579,7 +16591,7 @@ function vsCreatorTools(opts) {
         `For EACH pillar x format cell, write ONE specific, concrete post HEADLINE (not a theme, a real headline) tuned to that pillar AND that format. Never reuse an idea across pillars.\n` +
         `Format defs: Actionable=ultra-specific how-to; Motivational=inspiring story of someone extraordinary; Analytical=why something works; Contrarian=go against common advice; Observation=a hidden/underdiscussed trend; X vs Y=compare two things; Present vs Future=current state vs a specific prediction; Listicle=a list of tips/mistakes/steps.\n` +
         `${langLine(lang)}\nReturn ONLY a JSON object: {"pillars":["..."],"rows":[["c1","c2","c3","c4","c5","c6","c7","c8"], ...]} where rows[i] holds the 8 headline strings for pillars[i] in the format order above. No prose, no code fence.`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.85, timeout: 60000 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       const data = vsParseAiJson(raw || "");
       if (!data || !Array.isArray(data.rows) || !data.rows.length) { $$("mxOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن یا توضیحِ بیشتری بده." : "Failed — try again or add more detail."}</div>`; return; }
@@ -16618,7 +16630,7 @@ function vsCreatorTools(opts) {
         `Group them into 3 categories of 3: 1) Growth and transformation, 2) Resilience and grit, 3) Contrarian / bold.\n` +
         `Each quote: under 15 words, human and authentic (not corporate), no jargon, works standalone, punches hard in the first 3 words. No em dashes. Never fabricate attribution.\n` +
         `${langLine(lang)}\nReturn ONLY JSON: {"groups":[{"name":"Growth and transformation","quotes":["","",""]},{"name":"Resilience and grit","quotes":["","",""]},{"name":"Contrarian / bold","quotes":["","",""]}]}`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       const data = vsParseAiJson(raw || "");
       if (!data || !Array.isArray(data.groups)) { $$("qtList").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
@@ -16645,7 +16657,7 @@ function vsCreatorTools(opts) {
       const prompt = `Turn this content into a punchy infographic brief:\n"""${src.slice(0, 2000)}"""\n` +
         `Give: a punchy TITLE (6 words or fewer), an optional one-line SUBTITLE, and 3 to 7 KEY POINTS (each 10 words or fewer, specific and concrete).\n` +
         `${langLine(lang)}\nReturn ONLY JSON: {"title":"","subtitle":"","points":["","",""]}`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.7 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.7 }); } catch (e) {}
       const data = vsParseAiJson(raw || "");
       g.disabled = false; g.style.opacity = "1";
       if (!data || !data.title) { $$("igOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
@@ -16698,7 +16710,7 @@ function vsCreatorTools(opts) {
         `Score 5 criteria, each 1-10: Hook strength, Voice/tone, Value density, Structure & format, Publish readiness. Sum to a TOTAL /50.\n` +
         `Then give a one-sentence VERDICT, 3 concrete FIXES, and a rewritten stronger HOOK line.\n` +
         `${langLine(lang)}\nOutput EXACTLY this shape (plain text):\nPOST SCORE\n\nHook strength:        X/10\nVoice/tone:           X/10\nValue density:        X/10\nStructure & format:   X/10\nPublish readiness:    X/10\n----------------------------------\nTOTAL:                XX/50\n\nVERDICT: ...\n\nFIXES:\n1. ...\n2. ...\n3. ...\n\nSTRONGER HOOK: ...`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.5 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.5 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("scOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
@@ -16722,7 +16734,7 @@ function vsCreatorTools(opts) {
       const prompt = `Rebuild a ${plat} profile for maximum conversions.\nPerson: ${who}\nPrimary goal: ${goal}\n` + (proof ? `Offer & proof: ${proof}\n` : "") +
         `Produce, clearly labelled: (1) 3 HEADLINE options (each <=220 chars, conversion-focused). (2) An ABOUT section (short, punchy, first-person, ends with a CTA toward the goal). (3) 3-5 EXPERIENCE bullet lines. (4) FEATURED strategy (what 3 things to pin). (5) 4 IMAGE PROMPTS: banner, profile picture, and 2 featured tiles.\n` +
         `No em dashes. ${langLine(lang)}\nOutput plain text with clear section headings.`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.7, timeout: 60000 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.7, timeout: 60000 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("pfOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
@@ -16796,7 +16808,7 @@ function vsCreatorTools(opts) {
       $$("caOut").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
       const shape = `Output EXACTLY this shape, nothing else:\nCOVER: <2-5 word hook>\nSUB: <one-line subtitle>\n1. HEADLINE: <slide 1 heading>\nNARRATION: <slide 1 body, 1-2 sentences>\n2. HEADLINE: <...>\nNARRATION: <...>\n3. HEADLINE: <...>\nNARRATION: <...>\n4. HEADLINE: <...>\nNARRATION: <...>\nCTA: <a short call to action>`;
       const prompt = `Write a ${plat} carousel about "${topic}". A punchy hook cover, then 4 content slides, then a CTA.\n${langLine(lang)}\n${shape}`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.85 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1"; $$("caOut").innerHTML = "";
       if (!raw) { $$("caOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const cover = (raw.match(/^\s*COVER\s*[:：]\s*(.+)$/im) || [])[1] || topic;
@@ -16818,7 +16830,7 @@ function vsCreatorTools(opts) {
       const topic = ($$("grTopic").value || "").trim(); if (!topic) { $$("grTopic").focus(); return; }
       const g = $$("grGo"); g.disabled = true; g.style.opacity = ".6"; $$("grOut").innerHTML = spin(fa ? "در حال ساخت…" : "Making…");
       const prompt = `Write ONE bold, punchy statement for a social graphic about "${topic}". Under 14 words, no hashtags, no quotes. ${langLine($$("grLang").value)} Output only the statement.`;
-      let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       const line = (raw || topic).replace(/^["'“”]+|["'“”]+$/g, "").split(/\n/)[0].trim();
       try { const blob = await vsRenderQuoteCard(line, { handle: ($$("grHandle").value || "").trim() }); showImg($$("grOut"), blob, "graphic.jpg"); vsTrackGen("graphic", "local", "canvas"); }
@@ -16852,7 +16864,7 @@ function vsCreatorTools(opts) {
     $$(kind + "Go").onclick = async () => {
       const v = ($$(kind + "In").value || "").trim(); if (!v) { $$(kind + "In").focus(); return; }
       const g = $$(kind + "Go"); g.disabled = true; g.style.opacity = ".6"; $$(kind + "Out").innerHTML = spin(fa ? "در حال نوشتن…" : "Writing…");
-      let raw = ""; try { raw = await vsAutoAiChat(M.prompt(v, $$(kind + "Plat").value, langLine($$(kind + "Lang").value)), { json: false, temperature: 0.75, timeout: 60000 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(M.prompt(v, $$(kind + "Plat").value, langLine($$(kind + "Lang").value)) + SPARK_TRUTH, { json: false, temperature: 0.75, timeout: 60000 }); } catch (e) {}
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$(kind + "Out").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
@@ -16892,7 +16904,7 @@ function vsCreatorTools(opts) {
       let hook = customHook.slice(0, 40), imgPrompt = "";
       if (!customHook || !ytPhoto) {
         const prompt = `For a YouTube video titled "${title}", return ONLY JSON: {"hook":"<a 3-5 word ALL-CAPS punchy hook phrase, NOT a sentence>","imagePrompt":"<a real person with an exaggerated ${faceDesc} expression looking straight at the camera, upper body, in a scene tied to the video topic, NO text, NO words>"}. The hook must stop the scroll. ${langLine(lang)}`;
-        let raw = ""; try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.9 }); } catch (e) {}
+        let raw = ""; try { raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
         const data = vsParseAiJson(raw || "") || {};
         if (!customHook) hook = (data.hook || title).toString().slice(0, 40);
         imgPrompt = (data.imagePrompt || ("a person reacting to " + title)).toString().slice(0, 180);
@@ -16959,7 +16971,7 @@ function vsCreatorTools(opts) {
       const topic = ($$("soTopic").value || "").trim(); if (!topic) { $$("soTopic").focus(); return; }
       const b = $$("soAI"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
       const p = `For a social media post about "${topic}", return ONLY JSON: {"eyebrow":"<1-3 word ALL-CAPS kicker>","headline":"<a punchy line, max 8 words>","subtext":"<one supporting line, max 14 words>"}. ${langLine($$("soLang").value)}`;
-      let raw = ""; try { raw = await vsAutoAiChat(p, { json: false, temperature: 0.9 }); } catch (e) {}
+      let raw = ""; try { raw = await vsAutoAiChat(p + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
       const d = vsParseAiJson(raw || "") || {};
       if (d.eyebrow) $$("soEye").value = String(d.eyebrow).slice(0, 34);
       if (d.headline) $$("soHead").value = String(d.headline).slice(0, 90);
@@ -17479,7 +17491,7 @@ async function vsReverseAnalyze(refText, brief) {
     "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then 4-6 hook-first scenes. For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
     "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
     skillHint + " A talking-head / advice / vlog / story reel → editorial; only a pure stat/data/number post → motion_graphic. Match the reference's vibe precisely; never reuse its literal topic — only its style.";
-  const raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.85, timeout: 60000 });
+  const raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.85, timeout: 60000 });
   return vsReverseParseSections(raw, brief, refText);
 }
 
