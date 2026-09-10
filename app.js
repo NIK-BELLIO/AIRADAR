@@ -17549,19 +17549,25 @@ function vsReverseParseSections(raw, brief, refText) {
 //
 // Cached until a minute before it expires: a ten-minute pass fetched afresh on
 // every poll would be a request per second during a video job.
-let _vsFalTicket = null, _vsFalTicketUntil = 0;
+let _vsFalTicket = null, _vsFalTicketUntil = 0, _vsFalNoTicketUntil = 0;
 
 async function vsFalTicketGet() {
   if (_vsFalTicket && Date.now() < _vsFalTicketUntil) return _vsFalTicket;
+  // A refusal is worth remembering too. Without this a signed-out visitor asked
+  // again on every paid call - and a poll loop makes a hundred and fifty of
+  // them. Twenty seconds: short enough that signing in works without a reload.
+  if (Date.now() < _vsFalNoTicketUntil) return null;
+  const noTicket = () => { _vsFalNoTicketUntil = Date.now() + 20000; return null; };
   try {
     const r = await fetch("/api/fal/ticket", { credentials: "include" });
-    if (!r.ok) return null;                    // signed out: the call will be refused, which is the point
+    if (!r.ok) return noTicket();              // signed out: the call will be refused, which is the point
     const j = await r.json();
-    if (!j || !j.ticket) return null;          // gate not armed yet
+    if (!j || !j.ticket) return noTicket();    // gate not armed yet
     _vsFalTicket = j.ticket;
     _vsFalTicketUntil = Date.now() + Math.max(30, (j.expiresIn || 600) - 60) * 1000;
+    _vsFalNoTicketUntil = 0;
     return _vsFalTicket;
-  } catch (e) { return null; }
+  } catch (e) { return noTicket(); }
 }
 
 /** fetch() for the media worker's paid endpoints, with the pass attached. */
@@ -17583,7 +17589,7 @@ async function vsFalPost(base, path, body) {
   if (r.status === 401) {
     // The pass is the only thing between this endpoint and the whole balance,
     // so a refusal is reported rather than retried around.
-    _vsFalTicket = null; _vsFalTicketUntil = 0;
+    _vsFalTicket = null; _vsFalTicketUntil = 0; _vsFalNoTicketUntil = 0;
     throw new Error(state.lang === "fa" ? "برای این کار اول وارد شو." : "Please sign in to continue.");
   }
   if (!r.ok || j.error) throw new Error(j.error || ("HTTP " + r.status));
