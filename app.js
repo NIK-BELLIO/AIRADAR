@@ -9376,6 +9376,30 @@ function vsAnalyzeLogo(img) {
   } catch (e) { /* canvas tainted or too big — cascade silently unavailable */ }
 }
 
+/**
+ * Turn the chosen "p" number into the long edge vsCanvasSize wants.
+ *
+ * 1080p means the short edge is 1080: 1920x1080 landscape, 1080x1920 portrait.
+ * That is what the download dialog's labels promise and what the file-size
+ * estimate beside them already assumed.
+ */
+function vsExportLongEdge() {
+  const shortEdge = Math.max(240, Math.min(4320, Number(vsVal("#vsExportSize", 1080)) || 1080));
+  const aspect = vsVal("#vsAspect", "9:16");
+  const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
+  let ratio;
+  if (aspect === "original") {
+    const m = vstudio.mediaEl;
+    const mw = (m && (m.videoWidth || m.naturalWidth)) || 16;
+    const mh = (m && (m.videoHeight || m.naturalHeight)) || 9;
+    ratio = Math.max(mw, mh) / Math.min(mw, mh);
+  } else {
+    const [aw, ah] = map[aspect] || [16, 9];
+    ratio = Math.max(aw, ah) / Math.min(aw, ah);
+  }
+  return Math.round(shortEdge * ratio);
+}
+
 function buildPreviewCanvas(exportLongEdge) {
   const stage = $("#vsPreview");
   if (!stage) return;
@@ -21457,7 +21481,7 @@ async function exportStudioVideo() {
   vstudio.rendering = true;
   vstudio._logoVidVisible = false;   // animated logo restarts cleanly in the export
 
-  buildPreviewCanvas(Number(vsVal("#vsExportSize", 1080)));
+  buildPreviewCanvas(vsExportLongEdge());
   canvas = $("#vsCanvas");   // fresh canvas at export resolution
   const _exTitle = state.lang === "fa" ? "در حال ساخت ویدئو…" : "Generating your video…";
   const _rendMsg = state.lang === "fa"
