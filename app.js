@@ -6039,13 +6039,21 @@ async function vsAssembleFromSections(data, skipFootage) {
       // Text / narrative slide — keep the headline tight, then pick a style that
       // FITS its length so the whole line is always visible (and vary it).
       let hl = String(sec.headline || sec.title || "").replace(/\s+/g, " ").trim();
-      // cap to ~16 words / 120 chars on a clean boundary so slides never get dense
-      const words = hl.split(" ");
-      if (words.length > 16) hl = words.slice(0, 16).join(" ");
-      if (hl.length > 120) {
-        const cut = hl.slice(0, 120);
-        const b = Math.max(cut.lastIndexOf(" "), cut.lastIndexOf("—"), cut.lastIndexOf(","));
-        hl = (b > 70 ? cut.slice(0, b) : cut).replace(/[\s,—\-]+$/, "");
+      // A headline lifted from an article is a summary, and shortening a summary
+      // costs nothing - hence the cap. A reel's five sentences are the script
+      // itself, and cutting one leaves it hanging: "crisp falling leaves along
+      // the sidewalk." came out as "along the" and simply stopped. Those are
+      // already held to twenty words by the brief and refused by the parser if
+      // they run over, so the length is guaranteed before it ever gets here.
+      const keepWhole = !!(data && data._look);
+      if (!keepWhole) {
+        const words = hl.split(" ");
+        if (words.length > 16) hl = words.slice(0, 16).join(" ");
+        if (hl.length > 120) {
+          const cut = hl.slice(0, 120);
+          const b = Math.max(cut.lastIndexOf(" "), cut.lastIndexOf("—"), cut.lastIndexOf(","));
+          hl = (b > 70 ? cut.slice(0, b) : cut).replace(/[\s,—\-]+$/, "");
+        }
       }
       const len = hl.length;
       // richer style variety (excludes broadcast, neon-title, minimal-line),
@@ -6068,7 +6076,7 @@ async function vsAssembleFromSections(data, skipFootage) {
       set["#vsNewsStyle"] = style;
       set["#vsNewsMotion"] = motion;
       set["#vsNewsKicker"] = kicker;
-      set["#vsNewsHeadline"] = hl.slice(0, 160);
+      set["#vsNewsHeadline"] = keepWhole ? hl : hl.slice(0, 160);
       set["#vsNewsSource"] = "";    // source shows ONLY on the intro slide
       // Store emphasis words for richer rendering
       if (sec.emphasis) set["#vsNewsEmphasis"] = sec.emphasis;
