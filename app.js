@@ -18616,10 +18616,29 @@ async function vsReverseFetchPost(url) {
 // "See" the post's cover frame with a vision model → { format, mic, captions,
 // setting, subject }. This is how we know it's a podcast / has burned captions /
 // what the environment is — things the caption text alone can't tell us.
-async function vsVisionAnalyze(imgUrl) {
-  if (!imgUrl) return null;
+/**
+ * Read a frame: what kind of post it is, what is on screen, where it was shot.
+ *
+ * Takes either a hosted url (a reference pulled from a link) or the image
+ * itself. The second path exists because analysing an uploaded video used to go
+ * frame -> fal storage -> public url -> worker fetches it back -> Gemini, and
+ * only the last step did any work. The detour meant a free, read-only analysis
+ * failed outright whenever the fal account was unavailable, and it put a user's
+ * own frames into third-party storage to answer a question that never needed
+ * them stored at all.
+ */
+async function vsVisionAnalyze(src, opts) {
+  if (!src) return null;
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const scene = opts && opts.scene ? "&scene=1" : "";
   try {
-    const r = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/vision?fal=1&img=" + encodeURIComponent(imgUrl));
+    const r = (typeof src === "string")
+      ? await fetch(WB + "/vision?fal=1" + scene + "&img=" + encodeURIComponent(src))
+      : await fetch(WB + "/vision?fal=1" + scene, {
+          method: "POST",
+          headers: { "Content-Type": src.type || "image/jpeg" },
+          body: src,
+        });
     const d = await r.json();
     return (d && d.ok) ? d : null;
   } catch (e) { return null; }
@@ -19294,8 +19313,9 @@ function vsReverseEngineer(prefill, opts) {
   $$("reUpload").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const lbl = $$("reUploadTxt"); const old = lbl.textContent;
-    const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-    const upload1 = async (blob) => { const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": blob.type || "image/jpeg" }, body: blob }); const uj = await up.json().catch(() => ({})); return uj.file_url || ""; };
+    // Kept only so the card has something to show. The analysis reads the frame
+    // directly, so nothing is uploaded anywhere to answer it.
+    const localPreview = (blob) => { try { return URL.createObjectURL(blob); } catch (e) { return ""; } };
     try {
       let thumbUrl = "", vision = null, titleCards = [], shotList = [], refDuration = 0;
       if (/^video\//.test(file.type)) {
@@ -19312,23 +19332,25 @@ function vsReverseEngineer(prefill, opts) {
         const fracs = [0.06, 0.3, 0.55, 0.8];
         for (let i = 0; i < frames.length; i++) {
           lbl.textContent = (fa ? `⏳ تحلیلِ فریمِ ${i + 1}/${frames.length}` : `⏳ Analyzing frame ${i + 1}/${frames.length}`);
-          const url = await upload1(frames[i]); if (!url) continue;
-          if (!thumbUrl) thumbUrl = url;
-          const vis = await vsVisionAnalyze(url); if (!vis) continue;
+          if (!thumbUrl) thumbUrl = localPreview(frames[i]);
+          const vis = await vsVisionAnalyze(frames[i]); if (!vis) continue;
           if (!vision || (vis.onscreen_text && !vision.onscreen_text)) vision = vis;   // keep the richest read for format/setting/mic
           const t = vsCleanCardText(vis.title_text || vis.onscreen_text || "", vis);
           if (t && titleCards[titleCards.length - 1] !== t) titleCards.push(t);
           // Same frame, second read: the SHOT (framing/camera/angle/blocking),
           // so an uploaded reference gets the same scene-by-scene understanding
           // as one pulled from a link.
-          const sc = await vsVisionScene(url);
+          const sc = await vsVisionScene(frames[i]);
           if (sc) shotList.push({ at: fracs[i], shot: sc.shot || "", camera: sc.camera || "", angle: sc.angle || "", subject_pos: sc.subject_pos || "", subject: sc.subject || "", action: sc.action || "", setting: sc.setting || "", lighting: sc.lighting || "" });
         }
-        if (!thumbUrl) throw new Error(fa ? "آپلودِ فریم‌ها ناموفق بود" : "frame upload failed");
+        // Every frame failing to describe is the real failure now - there is no
+        // upload left to blame.
+        if (!vision && !shotList.length) throw new Error(fa ? "تحلیلِ فریم‌ها ناموفق بود" : "could not read any frame");
       } else {
         lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
-        thumbUrl = await upload1(file); if (!thumbUrl) throw new Error(fa ? "آپلود ناموفق بود" : "upload failed");
-        vision = await vsVisionAnalyze(thumbUrl);
+        thumbUrl = localPreview(file);
+        vision = await vsVisionAnalyze(file);
+        if (!vision) throw new Error(fa ? "تحلیلِ عکس ناموفق بود" : "could not read that image");
         const t = vision && String(vision.title_text || "").trim(); if (t) titleCards = [t.slice(0, 40)];
       }
       const parts = [];
@@ -20218,13 +20240,9 @@ async function vsVideoFirstFrame(file) { const fr = await vsVideoFrames(file, [0
 // Scene-level read of ONE frame (framing, camera move, angle, subject, action,
 // lighting) — the raw material for rebuilding the reference's actual
 // filmmaking instead of only its topic.
-async function vsVisionScene(imgUrl) {
-  if (!imgUrl) return null;
-  try {
-    const r = await fetch("https://airadar-ai.aliniashyn-9b4.workers.dev/vision?fal=1&scene=1&img=" + encodeURIComponent(imgUrl));
-    const d = await r.json();
-    return (d && d.ok) ? d : null;
-  } catch (e) { return null; }
+/** The same read, asking about the SHOT rather than the post. */
+async function vsVisionScene(src) {
+  return vsVisionAnalyze(src, { scene: true });
 }
 
 // Walk a video and build an ordered SHOT LIST: what the camera does at each
