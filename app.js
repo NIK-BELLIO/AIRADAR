@@ -5357,7 +5357,11 @@ function vsReelLook(place, month, index) {
   const t = VS_REEL_TEMPLATES[(seed + index) % VS_REEL_TEMPLATES.length];
   const p = VS_REEL_PALETTES[(seed * 3 + index * 2) % VS_REEL_PALETTES.length];
   const m = VS_REEL_MOODS[(seed * 7 + index * 5) % VS_REEL_MOODS.length];
-  return { template: t, palette: p, music: { mood: m.mood, energy: m.energy, bpm: m.bpm },
+  // A grade of its own as well. Never mono: a pale template under a grey photo
+  // is the lifeless look, and the reels are meant to sell a place.
+  const grades = ["cinematic", "warm", "vivid", "cool", "none"];
+  const grade = grades[(seed * 11 + index * 3) % grades.length];
+  return { template: t, palette: p, grade: grade, music: { mood: m.mood, energy: m.energy, bpm: m.bpm },
            // Offsets the per-scene rotations the assembler already does, so two
            // reels do not open on the same entrance and the same camera move.
            motionOffset: seed % 8, textOffset: (seed >> 3) % 8, overlayOffset: (seed >> 6) % 5 };
@@ -5370,6 +5374,9 @@ async function vsBuildRealtorBatch(towns, month) {
   // This run owns the popup from the first word to the last frame. Without it
   // the footage step closes it between every reel and the screen blinks empty.
   vstudio._batchBusy = true;
+  // Everything this run saves belongs together in the library.
+  vstudio._saveFolder = "Realtor reels · " +
+    VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))] + " " + new Date().getFullYear();
   const skipped = [];
 
   // The brief for every chosen place, built server-side from the one copy of
@@ -8053,6 +8060,11 @@ async function vsLoadBatchVideo(i) {
   if (v.template && !vstudio._userPickedTemplate) {
     vstudio.templateId = v.template;
     try { renderTemplatePicker(); } catch (e) {}
+  }
+  // Its own colour grade, applied to the live control the renderer reads.
+  if (v.data && v.data._look && v.data._look.grade) {
+    const fEl = document.querySelector("#vsFilter");
+    if (fEl && !vstudio._userPickedFilter) fEl.value = v.data._look.grade;
   }
   vsAssembleFromSections(v.data, true);          // rebuilds slides (no media yet)
   if (v._slideSettings) {
@@ -12775,11 +12787,38 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
 
   // ── measure the HEADLINE deck (wrapped) ──
   const headline = String(_liveHead || "");
-  const hlPx = Math.round(W * 0.035);
-  ctx.save(); ctx.font = `600 ${hlPx}px ${sans}`;
-  const maxW = W * 0.8, words = headline.split(/\s+/), lines = []; let ln = "";
-  for (const w of words) { const t = ln ? ln + " " + w : w; if (ctx.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
-  if (ln) lines.push(ln);
+  const maxW = W * 0.8;
+  // The block is laid out upward from a fixed baseline, so a long line count
+  // runs off the top of the frame. At a fixed size a twenty-word sentence did
+  // exactly that and the opening words were simply lost. Shrink until it fits
+  // the room it has: smaller and whole beats larger and cut in half.
+  const hlBudget = H * 0.42;
+  const wrapAt = (px) => {
+    ctx.font = `600 ${px}px ${sans}`;
+    const out = []; let l = "";
+    for (const w of headline.split(/\s+/).filter(Boolean)) {
+      const t = l ? l + " " + w : w;
+      if (ctx.measureText(t).width > maxW && l) { out.push(l); l = w; } else l = t;
+    }
+    if (l) out.push(l);
+    return out;
+  };
+  ctx.save();
+  let hlPx = Math.round(W * 0.035);
+  let lines = wrapAt(hlPx);
+  const minHl = Math.round(W * 0.019);
+  while (hlPx > minHl && lines.length * hlPx * 1.3 > hlBudget) {
+    hlPx -= Math.max(1, Math.round(hlPx * 0.06));
+    lines = wrapAt(hlPx);
+  }
+  // A single word longer than the box would still spill, so keep going past the
+  // floor until the widest line actually fits.
+  let guard = 0;
+  while (hlPx > 9 && guard++ < 200 &&
+         lines.reduce((m, l) => Math.max(m, (ctx.font = `600 ${hlPx}px ${sans}`, ctx.measureText(l).width)), 0) > maxW) {
+    hlPx -= 1;
+    lines = wrapAt(hlPx);
+  }
   ctx.restore();
   const lh = hlPx * 1.3, nLines = lines.length;
 
@@ -16227,6 +16266,9 @@ async function vsSaveToDashboard(blob, ext, name) {
     fd.append("video", blob, (name || "ai-radar-video") + "." + (ext || "mp4"));
     fd.append("title", title);
     if (source) fd.append("source", source);
+    // Set by whatever started this run - a reel batch names its month - so the
+    // library can group it rather than showing one long wall of squares.
+    if (vstudio._saveFolder) fd.append("folder", String(vstudio._saveFolder).slice(0, 80));
     if (thumb) fd.append("thumbnail", thumb, "thumb.jpg");
     // credentials:"include" guarantees the session cookie is sent even if the
     // Studio page and the /api route are resolved through slightly different
@@ -21670,6 +21712,7 @@ function bindEvents() {
       renderSlideList(); }
   });
   on("#vsFilter", "change", () => {
+    vstudio._userPickedFilter = true;   // a chosen grade is not overwritten by the next reel
     if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
   });
   // Camera motion: save to the active slide AND auto-play a short preview so
