@@ -9829,7 +9829,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
 
   } else if (style === "lowerthird" || style === "boxed" || style === "minimal") {
     // lower third — kicker tab + headline plate
-    const x = W * 0.06, plateW = W * 0.78, padX = W * 0.03, textW = plateW - padX*2;
+    // Width alone gives a 1498px line at 16:9. Capping against the height holds
+    // the measure near what an eye can track: 9:16 and 1:1 are untouched, the
+    // wide frame narrows.
+    const x = W * 0.06, plateW = Math.min(W * 0.78, H * 0.95), padX = W * 0.03, textW = plateW - padX*2;
     // Auto-fit: show the WHOLE headline. Shrink the font until every line fits
     // and the plate stays within a sensible height (was hard-capped at 4 lines).
     // No line cap: a sentence is never cut, it is set smaller. The block has to
@@ -12902,7 +12905,9 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
 
   // ── measure the HEADLINE deck (wrapped) ──
   const headline = String(_liveHead || "");
-  const maxW = W * 0.8;
+  // Same reason as the plate: a column set purely on width runs far too long
+  // once the frame is wide.
+  const maxW = Math.min(W * 0.8, H * 0.95);
   // The block is laid out upward from a fixed baseline, so a long line count
   // runs off the top of the frame. At a fixed size a twenty-word sentence did
   // exactly that and the opening words were simply lost. Shrink until it fits
