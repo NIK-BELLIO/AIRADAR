@@ -7081,6 +7081,24 @@ async function vsEditorialBackgrounds(data) {
   vsOverlayRelease();   // a batch keeps it up until the whole run ends
 }
 
+/**
+ * Meaningful single-word tokens for node, step and timeline labels.
+ *
+ * Filler is dropped so a label reads "2020 - boom - 2026 - squeeze" rather than
+ * "the - from". Top level because two places need it: the footage generator that
+ * builds a graphic automatically, and the control that lets a slide be switched
+ * to one by hand. The second used to guard with `typeof keyTokens === "function"`
+ * against this local, which is always "undefined" from another scope - so that
+ * branch quietly handed back an empty list every time.
+ */
+const VS_GRAPHIC_STOP = /^(the|and|for|are|but|not|you|with|from|that|this|have|has|had|was|were|will|into|over|than|then|they|them|its|our|your|out|off|per|via|a|an|of|to|in|on|at|by|as|is|it|be|or|so|no|up|become|becomes|becoming|meet|meets|run|runs|now|just|more|most|make|makes|made|get|gets|got|use|uses|used|need|needs|want|wants|keep|keeps|come|comes|goes|going|put|puts|set|sets|let|lets|say|says|see|sees|know|knows|turn|turns|help|helps|show|shows|give|gives|take|takes|entire|full|very|much|many|also|even|still|only|back|next|first|last|well|way|ways|thing|things|new|real|about|across|when|where|what|how|why|who|while|these|those|there|here)$/i;
+
+function keyTokens(str) {
+  return String(str || "").split(/\s+/)
+    .map((w) => w.replace(/[^\w%/+.-]/g, ""))
+    .filter((w) => w.length > 2 && !VS_GRAPHIC_STOP.test(w));
+}
+
 async function vsAutoGenerateBackgrounds(data) {
   // Held for the whole run, past every early exit, so the popup cannot close
   // while scenes are still being filled in. Lowered in the finally below.
@@ -7178,10 +7196,6 @@ async function vsAutoGenerateBackgrounds(data) {
     const shortLabel = (str) => String(str || "").replace(/[^\w\s%/+.-]/g, "").split(/\s+/).slice(0, 2).join(" ");
     // Meaningful single-word tokens for node/step/timeline labels — drop filler
     // words so labels read as "2020 · boom · 2026 · squeeze", not "the · from".
-    const STOP = /^(the|and|for|are|but|not|you|with|from|that|this|have|has|had|was|were|will|into|over|than|then|they|them|its|our|your|out|off|per|via|a|an|of|to|in|on|at|by|as|is|it|be|or|so|no|up|become|becomes|becoming|meet|meets|run|runs|now|just|more|most|make|makes|made|get|gets|got|use|uses|used|need|needs|want|wants|keep|keeps|come|comes|goes|going|put|puts|set|sets|let|lets|say|says|see|sees|know|knows|turn|turns|help|helps|show|shows|give|gives|take|takes|entire|full|very|much|many|also|even|still|only|back|next|first|last|well|way|ways|thing|things|new|real|about|across|when|where|what|how|why|who|while|these|those|there|here)$/i;
-    const keyTokens = (str) => String(str || "").split(/\s+/)
-      .map((w) => w.replace(/[^\w%/+.-]/g, ""))
-      .filter((w) => w.length > 2 && !STOP.test(w));
     let prevKind = null;   // so no two adjacent scenes build the same graphic
     let usedMap = false;   // only one USA map per video
 
@@ -20915,6 +20929,13 @@ async function vsBuildSceneVideo(cfg) {
     </div>`;
   document.body.appendChild(ov);
   const $s = (id) => ov.querySelector("#" + id);
+  // The shot list interpolates model-written text into innerHTML, so it has to
+  // be escaped. This was calling `esc` without ever declaring it: the dialog was
+  // appended, the very next statement threw, and the handlers for Go, Cancel and
+  // Close below it never got wired - leaving a dialog on screen that could not
+  // be dismissed. (It threw before any paid call, so it never cost anything.)
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const steps = $s("scSteps"), result = $s("scResult");
   let running = false, cancelled = false;
   $s("scShots").innerHTML = shots.map((sh, i) => {
@@ -22083,7 +22104,7 @@ function bindEvents() {
   on("#vsSlideGraphic", "change", () => {
     const s = vstudio.slides[vstudio.activeSlide]; const sel = $("#vsSlideGraphic");
     if (!s || !sel) return;
-    if (!s.sceneGraphic) s.sceneGraphic = { kind: "network", items: (typeof keyTokens === "function" ? keyTokens(s.headline || "") : []).slice(0, 5) };
+    if (!s.sceneGraphic) s.sceneGraphic = { kind: "network", items: keyTokens(s.headline || "").slice(0, 5) };
     const v = sel.value;
     if (v === "auto") {
       s._graphicManual = false;
