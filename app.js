@@ -5374,6 +5374,7 @@ async function vsBuildRealtorBatch(towns, month) {
   // This run owns the popup from the first word to the last frame. Without it
   // the footage step closes it between every reel and the screen blinks empty.
   vstudio._batchBusy = true;
+  vstudio._clipMisses = 0;   // each run judges the route for itself
   // Everything this run saves belongs together in the library.
   vstudio._saveFolder = "Realtor reels · " +
     VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))] + " " + new Date().getFullYear();
@@ -7261,12 +7262,17 @@ async function vsAutoGenerateBackgrounds(data) {
     const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
     // Settle the question before choosing, rather than after failing.
     await vsPexelsReachable();
-    // Clip first when the CDN is reachable - real motion beats a still. When it
-    // is not, every byte comes through our worker, and a clip is several
-    // megabytes against a couple of hundred kilobytes for a photograph:
-    // measured at eighteen seconds each, against well under one. The still gets
-    // its movement from the camera move on top of it, so the scene still lives.
-    const relayed = _vsPexelsDirectDead;
+    // Clip first, always - real motion beats a still, and a still only gets its
+    // movement from the camera move laid on top.
+    //
+    // This used to prefer a photograph whenever the CDN was relayed, on a
+    // measurement of eighteen seconds a clip. That number is no longer what
+    // happens: 2.5 seconds cold, 4.3 under load, now that the downloads are
+    // gated to two at a time rather than five competing. Rather than trade one
+    // fixed assumption for another, the run watches itself - if clips really
+    // are missing their deadline it stops asking for them, and only for the
+    // rest of that run.
+    const relayed = vstudio._clipMisses >= 3;
     for (const offset of [0, 4, 8]) {
       let m = relayed
         ? await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset)
@@ -7275,6 +7281,12 @@ async function vsAutoGenerateBackgrounds(data) {
         m = relayed
           ? await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset)
           : await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset);
+      }
+      // Count the clips that did not arrive, so a genuinely slow route is
+      // noticed rather than assumed.
+      if (!relayed) {
+        if (m && m.tagName === "VIDEO") vstudio._clipMisses = 0;
+        else vstudio._clipMisses = (vstudio._clipMisses || 0) + 1;
       }
       const src = m && (m.currentSrc || m.src);
       if (m && src && !used.has(src)) {
