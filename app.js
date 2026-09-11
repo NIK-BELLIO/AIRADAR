@@ -16275,7 +16275,17 @@ async function _vsSeekActiveFootage(t) {
   const vid = slide.mediaEl;
   const vdur = (vid.duration && isFinite(vid.duration)) ? vid.duration : at.dur;
   if (!vdur) return;
-  let target = (at.dur > 0 ? (at.local / at.dur) : 0) * vdur;
+  // Real time from the clip's start, the same rule the draw path uses: stretch
+  // only when the clip is SHORTER than the scene it has to fill.
+  //
+  // Mapping the scene across the clip's whole length instead meant an 89-second
+  // clip was raced through in a five-second scene - eighteen times speed, and
+  // nothing like the preview, which plays it normally. It also made the export
+  // seek the entire file when only the opening seconds are buffered, so every
+  // frame waited on the network and hit the 180ms seek timeout: about 1080
+  // frames of that is the two and a half minutes an export was taking.
+  const span = at.dur > 0 ? at.dur : vdur;
+  let target = span > vdur ? (Math.min(at.local, span) / span) * vdur : at.local;
   target = Math.max(0, Math.min(vdur - 0.05, target));
   if (Math.abs((vid.currentTime || 0) - target) < 0.008) return;
   await _vsSeekVideo(vid, target);
