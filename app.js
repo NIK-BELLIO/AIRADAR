@@ -5122,6 +5122,10 @@ function vsReelParse(raw, place) {
   if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return null;
   if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return null;
   if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return null;
+  // The brief bans these two openers and the prompt asks for it, but asking was
+  // not enough: a live run produced "Why Kingston autumn makes you notice your
+  // growing space." Both are the warm-up the first three words cannot afford.
+  if (/^\s*(why|discover)\b/i.test(title)) return null;
   if (vsReadsNegative(title + " " + sentences.join(" "))) return null;
   return { title: title, sentences: sentences };
 }
