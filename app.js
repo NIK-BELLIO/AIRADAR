@@ -5108,7 +5108,28 @@ function vsReadsNegative(text) {
   return null;
 }
 
-function vsReelParse(raw, place) {
+/**
+ * Every money amount written in a script.
+ *
+ * A bare number is only money when it is large enough not to be a street number,
+ * a count of streets or a temperature - otherwise "Walk down 12th Street" would
+ * read as a price.
+ */
+function vsMoneyIn(text) {
+  const out = [];
+  const re = /(?:AED\s*)?\$?\s?\d[\d,]*(?:\.\d+)?\s*(?:k|m|thousand|million)?/gi;
+  const found = String(text || "").match(re) || [];
+  for (const raw of found) {
+    const t = raw.trim();
+    const digits = Number(t.replace(/[^\d.]/g, ""));
+    if (/[$]|AED/i.test(t) || /k|m|thousand|million/i.test(t) || digits >= 1000) {
+      out.push(t.replace(/\s+/g, " ").replace(/^\$\s/, "$"));
+    }
+  }
+  return out;
+}
+
+function vsReelParse(raw, place, figure) {
   const m = String(raw || "").match(/\{[\s\S]*\}/);
   if (!m) return null;
   let j; try { j = JSON.parse(m[0]); } catch (e) { return null; }
@@ -5127,6 +5148,23 @@ function vsReelParse(raw, place) {
   // growing space." Both are the warm-up the first three words cannot afford.
   if (/^\s*(why|discover)\b/i.test(title)) return null;
   if (vsReadsNegative(title + " " + sentences.join(" "))) return null;
+
+  // The figure the brief asked for: present, in sentence 3, and the only one.
+  // Checked rather than trusted - a draft that drops it is just missing the
+  // thing the reel was for, and one carrying a SECOND amount invented it.
+  const norm = (x) => String(x).toLowerCase().replace(/\s+/g, " ").trim();
+  if (figure) {
+    const target = norm(String(figure).replace(/\s*a month$/i, ""));
+    if (!norm(sentences[2]).includes(target)) return null;
+    if (norm(title).includes(target)) return null;
+    const extra = vsMoneyIn(sentences.join(" ")).map(norm)
+      .filter((a) => !target.includes(a) && !a.includes(target));
+    if (extra.length) return null;
+    if (vsMoneyIn(title).length) return null;
+  } else if (vsMoneyIn(title + " " + sentences.join(" ")).some((a) => /[$]|AED/i.test(a))) {
+    // Nothing was supplied for this place, so any amount here was invented.
+    return null;
+  }
   return { title: title, sentences: sentences };
 }
 
@@ -5459,7 +5497,7 @@ async function vsBuildRealtorBatch(towns, month) {
     const place = typeof entry === "string" ? entry : entry.place;
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
     const brief = briefs && briefs.find((b) => b.regionId === (entry && entry.id));
-    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt);
+    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt, brief && brief.figure);
     if (!reel) { skipped.push(place); continue; }
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
@@ -5506,7 +5544,7 @@ async function vsBuildRealtorBatch(towns, month) {
 }
 
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
-async function vsWriteRealtorReel(place, month, serverPrompt) {
+async function vsWriteRealtorReel(place, month, serverPrompt, figure) {
   let out = null;
   for (let attempt = 0; attempt < 4 && !out && !vstudio._batchCancel; attempt++) {
     const seed = Math.floor(Math.random() * 60) + attempt;
@@ -5517,7 +5555,7 @@ async function vsWriteRealtorReel(place, month, serverPrompt) {
     let raw = "";
     try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
     catch (e) { raw = ""; }
-    out = vsReelParse(raw, place);
+    out = vsReelParse(raw, place, figure);
   }
   return out;
 }
