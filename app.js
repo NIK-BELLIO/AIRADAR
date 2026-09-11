@@ -5073,6 +5073,41 @@ function vsReelPrompt(place, month, seed) {
 
 // The same net the pipeline uses: a draft that is unfinished, over length, or
 // unkind about the place is asked for again rather than published.
+/**
+ * Does this read as a knock at the place?
+ *
+ * The same net the monthly run uses, kept word for word, because the hook a
+ * town gets should not depend on which of the two wrote it. The rule is that a
+ * hook is warm or it is neutral; it is never a dig.
+ *
+ * Two things the old check here got wrong, both found by feeding it drafts:
+ *  - it matched on " " + word against a string that STARTED with the title, so
+ *    a negative first word was invisible. "Avoid these three streets in Barrie"
+ *    and "Worst street in Barrie" both passed, and the title is the hook.
+ *  - it carried fourteen words where the monthly run has forty.
+ * Padding both ends and flattening punctuation to spaces fixes the first; the
+ * shared list fixes the second.
+ */
+var VS_NEGATIVE_WORDS = [
+  "trap", "avoid", "overrated", "overhyped", "boring", "dull", "bleak", "grim",
+  "run down", "rundown", "decaying", "declining", "dying", "struggling", "stuck",
+  "nothing to do", "no reason to", "not worth", "worst", "ugly", "sketchy",
+  "dangerous", "crime", "asylum", "abandoned", "depressing", "sleepy backwater",
+  "middle of nowhere", "nowhere", "forgotten", "neglected", "downside", "beware",
+  "warning", "problem with", "sadly", "unfortunately", "too far", "nightmare",
+  "mistake", "mistakes", "backfire", "backfires", "overpricing", "shame",
+];
+
+function vsReadsNegative(text) {
+  // Padded both ends so the first and last words are inside a boundary, and
+  // punctuation flattened so "Avoid, these" still reads as the word "avoid".
+  const t = " " + String(text || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim() + " ";
+  for (const w of VS_NEGATIVE_WORDS) {
+    if (t.indexOf(" " + w + " ") !== -1) return w;
+  }
+  return null;
+}
+
 function vsReelParse(raw, place) {
   const m = String(raw || "").match(/\{[\s\S]*\}/);
   if (!m) return null;
@@ -5087,10 +5122,7 @@ function vsReelParse(raw, place) {
   if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return null;
   if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return null;
   if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return null;
-  const all = (title + " " + sentences.join(" ")).toLowerCase();
-  const NEG = ["trap", "avoid", "overrated", "boring", "dull", "worst", "mistake", "backfire",
-               "declining", "struggling", "nothing to do", "sadly", "unfortunately", "warning"];
-  if (NEG.some((w) => all.includes(" " + w))) return null;
+  if (vsReadsNegative(title + " " + sentences.join(" "))) return null;
   return { title: title, sentences: sentences };
 }
 
@@ -5308,7 +5340,11 @@ function vsReelPopup() {
   findEl.addEventListener("input", applyFind);
   maxSel.addEventListener("change", refresh);
   refresh();
-  setTimeout(() => ta.focus(), 30);
+  // The search box, which is what there is to type into now. This used to focus
+  // `ta`, the textarea the picker replaced, and had been throwing a
+  // ReferenceError thirty milliseconds after every open ever since - harmless
+  // to the popup, but it meant nothing was focused at all.
+  setTimeout(() => { try { findEl.focus(); } catch (e) {} }, 30);
 
   const close = () => { try { ov.remove(); } catch (e) {} };
   ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
