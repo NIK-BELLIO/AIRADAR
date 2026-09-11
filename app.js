@@ -4554,6 +4554,10 @@ function addIntroSlide() {
 // banner), then an outro — assembled in order, ready to preview/export.
 
 function vsAutoStatus(msg) {
+  // An export owns the message line. Reopening each video regenerates any
+  // footage that was not cached and that step narrates itself, so without this
+  // "Finding footage for all scenes..." writes over "Exporting 3 of 15".
+  if (vstudio._batchExporting && !vstudio._exportSpeaking) return;
   const el = document.querySelector("#vsAutoStatus");
   if (el) el.textContent = msg || "";
   // mirror the stage text into the loading popup while a build is running
@@ -8433,8 +8437,10 @@ async function vsExportAllBatch() {
   for (let i = 0; i < vids.length; i++) {
     if (vstudio._batchCancel) break;
     vsBatchProgress(true, i, vids.length, (fa ? "خروجی: " : "Exporting: ") + vids[i].name);
+    vstudio._exportSpeaking = true;
     vsAutoStatus(fa ? `خروجی ${i + 1} از ${vids.length}: ${vids[i].name}…`
                     : `Exporting ${i + 1} of ${vids.length}: ${vids[i].name}…`);
+    vstudio._exportSpeaking = false;
     try {
       await vsLoadBatchVideo(i);
       vstudio._exportName = vids[i].name + " - AI Radar";
@@ -8448,7 +8454,7 @@ async function vsExportAllBatch() {
           zip.file(`${base}.${res.ext || "mp4"}`, res.blob);
           // Optional: an AI cover per video, bundled alongside it in the ZIP.
           if (wantCovers) {
-            vsAutoStatus(fa ? `ساخت کاور ${i + 1} از ${vids.length}…` : `Cover ${i + 1} of ${vids.length}…`);
+            vstudio._exportSpeaking = true; vsAutoStatus(fa ? `ساخت کاور ${i + 1} از ${vids.length}…` : `Cover ${i + 1} of ${vids.length}…`); vstudio._exportSpeaking = false;
             try {
               const src = (vids[i].data && vids[i].data.source) || "";
               const cov = await vsComposeCover(vids[i].name, src, vsVal("#vsAspect", "9:16"));
@@ -8467,7 +8473,7 @@ async function vsExportAllBatch() {
   // build + download the single zip
   if (zip && !vstudio._batchCancel) {
     vsBatchProgress(true, vids.length, vids.length, fa ? "در حال فشرده‌سازی ZIP…" : "Packaging .zip…");
-    vsAutoStatus(fa ? "در حال ساخت فایل ZIP…" : "Building the .zip…");
+    vstudio._exportSpeaking = true; vsAutoStatus(fa ? "در حال ساخت فایل ZIP…" : "Building the .zip…"); vstudio._exportSpeaking = false;
     try {
       const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
       const url = URL.createObjectURL(content);
@@ -8483,12 +8489,12 @@ async function vsExportAllBatch() {
   vstudio._batchCancel = false;
   vsBatchProgress(false);
   if (btn) { btn.disabled = false; btn.textContent = fa ? "⬇ دانلود همه (ZIP)" : "⬇ Download all (zip)"; }
-  vsAutoStatus(wasCancelled
+  vstudio._exportSpeaking = true; vsAutoStatus(wasCancelled
     ? (fa ? "خروجی لغو شد." : "Export cancelled.")
     : zip
       ? (fa ? `فایل ZIP شامل ${vids.length} ویدئو دانلود شد.` : `Downloaded a .zip with all ${vids.length} videos.`)
       : (fa ? `${vids.length} ویدئو جداگانه دانلود شد (ZIP در دسترس نبود).`
-            : `Downloaded ${vids.length} videos separately (zip unavailable).`));
+            : `Downloaded ${vids.length} videos separately (zip unavailable).`)); vstudio._exportSpeaking = false;
 }
 
 function addOutroSlide() {
