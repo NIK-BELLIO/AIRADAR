@@ -6322,9 +6322,11 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
         try { el.removeAttribute("src"); el.load(); } catch (e) {}
         resolve(null);
       },
-        // Relayed through the worker a clip takes about six seconds, so the
-        // original seven abandoned most of them just as they arrived.
-        _vsPexelsDirectDead ? 16000 : 7000);
+        // Relayed, a clip that arrives does so in under seven seconds; the ones
+        // that miss used to hold the gate for sixteen, two at a time, which is
+        // where a batch lost its minutes. Eight is past the arrivals and well
+        // short of the stragglers.
+        _vsPexelsDirectDead ? 8000 : 7000);
       el.onloadeddata = () => {
         if (done) return; done = true; clearTimeout(timer);
         try { el.play().catch(() => {}); } catch (e) {}
@@ -7300,10 +7302,11 @@ async function vsAutoGenerateBackgrounds(data) {
       }
       // Count the clips that did not arrive, so a genuinely slow route is
       // noticed rather than assumed.
-      if (!relayed) {
-        if (m && m.tagName === "VIDEO") vstudio._clipMisses = 0;
-        else vstudio._clipMisses = (vstudio._clipMisses || 0) + 1;
-      }
+      // Counted whichever way round the preference is, so a run that is simply
+      // not getting clips stops asking rather than paying the deadline on every
+      // remaining scene.
+      if (m && m.tagName === "VIDEO") vstudio._clipMisses = 0;
+      else if (!m || m.tagName === "IMG") vstudio._clipMisses = (vstudio._clipMisses || 0) + 1;
       const src = m && (m.currentSrc || m.src);
       if (m && src && !used.has(src)) {
         used.add(src);
