@@ -5165,7 +5165,23 @@ function vsReelPopup() {
       .vs-reel .picker .where{color:#8d97ab;font-size:12px}
       .vs-reel .pickbar{display:flex;gap:8px;align-items:center;padding:2px 2px 8px}
       .vs-reel .pickbar button{padding:6px 12px;border-radius:8px;font:inherit;font-size:12.5px;
-        cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c9d3e6}`;
+        cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c9d3e6}
+      .vs-reel .pickbar button:hover{border-color:rgba(37,99,255,.45);color:#dce6f7}
+      /* Decisions about the whole batch first, then the list they apply to. */
+      .vs-reel .fieldrow{display:flex;gap:10px;margin-bottom:16px}
+      .vs-reel .fld{flex:1;display:flex;flex-direction:column;gap:6px}
+      .vs-reel .fld>span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8c8578}
+      .vs-reel .fld select{width:100%}
+      .vs-reel .pickhead{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+      .vs-reel .pickttl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8c8578}
+      .vs-reel .pickhead .count{margin-left:auto}
+      .vs-reel .find{width:100%;padding:9px 12px;margin-bottom:8px;border-radius:10px;font:inherit;font-size:13px;
+        border:1px solid rgba(255,255,255,.14);background:#0c0a10;color:#efe9dc}
+      .vs-reel .find:focus{outline:none;border-color:rgba(37,99,255,.55)}
+      .vs-reel .find::placeholder{color:#6f6a60}
+      /* A ticked row reads as ticked at a glance, not only by its checkbox. */
+      .vs-reel .picker label.on{background:rgba(37,99,255,.13)}
+      .vs-reel .picker label.hide{display:none}`;
     document.head.appendChild(st);
   }
 
@@ -5177,24 +5193,27 @@ function vsReelPopup() {
       ? "شهرها از بخشِ Regions می‌آیند. هرکدام را می‌خواهی تیک بزن."
       : "The places come from your Regions list. Tick the ones you want."}</p>
     <div class="bd">
-      <div id="vsReelPicker" class="picker"><p class="loading">${fa ? "\u062f\u0631 \u062d\u0627\u0644 \u062e\u0648\u0627\u0646\u062f\u0646\u0650 \u0634\u0647\u0631\u0647\u0627\u2026" : "Loading your places\u2026"}</p></div>
-      <div class="row">
-        <span class="lbl">${fa ? "حداکثر" : "At most"}</span>
-        <select id="vsReelMax">
-          <option value="3">3</option>
-          <option value="5" selected>5</option>
-          <option value="10">10</option>
-          <option value="15">15</option>
-          <option value="25">25</option>
-        </select>
-        <span class="lbl">${fa ? "ماه" : "Month"}</span>
-        <select id="vsReelMonth"></select>
+      <div class="fieldrow">
+        <label class="fld"><span>${fa ? "ماه" : "Month"}</span>
+          <select id="vsReelMonth"></select></label>
+        <label class="fld"><span>${fa ? "حداکثر" : "At most"}</span>
+          <select id="vsReelMax">
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="25">25</option>
+            <option value="999">${fa ? "همه" : "All"}</option>
+          </select></label>
+      </div>
+      <div class="pickhead">
+        <span class="pickttl">${fa ? "شهرها" : "Your places"}</span>
         <span class="count" id="vsReelCount"></span>
       </div>
+      <input id="vsReelFind" type="search" class="find" autocomplete="off" spellcheck="false"
+             placeholder="${fa ? "جست‌وجوی شهر…" : "Search a place…"}"/>
+      <div id="vsReelPicker" class="picker"><p class="loading">${fa ? "\u062f\u0631 \u062d\u0627\u0644 \u062e\u0648\u0627\u0646\u062f\u0646\u0650 \u0634\u0647\u0631\u0647\u0627\u2026" : "Loading your places\u2026"}</p></div>
     </div>
-    <p class="note">${fa
-      ? "رایگان است؛ متن‌ها را مدلِ خودمان می‌نویسد، نه fal. رندر بعد از این، در فهرستِ دسته‌ای."
-      : "Free - our own model writes these, not fal. Rendering happens after, in the batch list."}</p>
     <div class="act">
       <button type="button" class="cx" id="vsReelCancel">${fa ? "انصراف" : "Cancel"}</button>
       <button type="button" class="go" id="vsReelGo">${fa ? "بنویس" : "Write the reels"}</button>
@@ -5203,6 +5222,7 @@ function vsReelPopup() {
   document.body.appendChild(ov);
 
   const picker = ov.querySelector("#vsReelPicker");
+  const findEl = ov.querySelector("#vsReelFind");
   const maxSel = ov.querySelector("#vsReelMax");
   const monthSel = ov.querySelector("#vsReelMonth");
   const countEl = ov.querySelector("#vsReelCount");
@@ -5245,19 +5265,38 @@ function vsReelPopup() {
                `<span>${esc(r.name)}</span><span class="where">${esc(r.region || r.country || "")}</span></label>`;
       }).join("");
     picker.addEventListener("change", refresh);
-    picker.querySelector("#vsReelAll").onclick = () => {
-      picker.querySelectorAll("input").forEach((el) => { el.checked = true; }); refresh();
-    };
-    picker.querySelector("#vsReelNone").onclick = () => {
-      picker.querySelectorAll("input").forEach((el) => { el.checked = false; }); refresh();
-    };
+    // Only what is on screen: "All" while a search is narrowing the list must
+    // not quietly tick sixty-nine towns the operator cannot see.
+    const visible = () => Array.from(picker.querySelectorAll("label"))
+      .filter((l) => !l.classList.contains("hide")).map((l) => l.querySelector("input")).filter(Boolean);
+    picker.querySelector("#vsReelAll").onclick = () => { visible().forEach((el) => { el.checked = true; }); refresh(); };
+    picker.querySelector("#vsReelNone").onclick = () => { visible().forEach((el) => { el.checked = false; }); refresh(); };
     refresh();
   })();
   const refresh = () => {
     const n = towns().length, cap = Number(maxSel.value);
-    countEl.textContent = n ? (fa ? `${Math.min(n, cap)} از ${n}` : `${Math.min(n, cap)} of ${n}`) : "";
+    const total = picker.querySelectorAll("input[type=checkbox]").length;
+    // What is ticked, and - only when the cap actually bites - how many of them
+    // this run will take.
+    countEl.textContent = !total ? ""
+      : n > cap ? (fa ? `${cap} از ${n} انتخاب‌شده` : `${cap} of ${n} selected`)
+      : (fa ? `${n} از ${total}` : `${n} of ${total}`);
+    picker.querySelectorAll("label").forEach((l) => {
+      const b = l.querySelector("input");
+      if (b) l.classList.toggle("on", b.checked);
+    });
     goBtn.disabled = !n;
   };
+
+  // Sixty-nine rows is too many to scroll through for one town. Hides rather
+  // than removes, so a ticked row stays ticked while it is filtered out of view.
+  const applyFind = () => {
+    const q = (findEl.value || "").trim().toLowerCase();
+    picker.querySelectorAll("label").forEach((l) => {
+      l.classList.toggle("hide", !!q && l.textContent.toLowerCase().indexOf(q) === -1);
+    });
+  };
+  findEl.addEventListener("input", applyFind);
   maxSel.addEventListener("change", refresh);
   refresh();
   setTimeout(() => ta.focus(), 30);
