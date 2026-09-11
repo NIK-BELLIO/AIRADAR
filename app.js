@@ -6099,6 +6099,10 @@ async function vsAssembleFromSections(data, skipFootage) {
     _timelineLabel: outroMain
   });
 
+  // A composition per scene, before anything is drawn. Only for videos that
+  // carry a look - the analyst briefings keep what they were built with.
+  if (data && data._look) vsVaryScenes(vstudio.slides, data._look);
+
   renderSlideList();
   if (!$("#vsCanvas")) buildPreviewCanvas();
   selectSlide(0);
@@ -8035,6 +8039,42 @@ ${noExcerpt ? `No source excerpt is available for ${name} — rely on verified g
         : `${total} videos ready with footage. Click any to open, or ⬇ to download.`));
   await vsLoadBatchVideo(0);
   return true;
+}
+
+/**
+ * Give each scene a composition of its own.
+ *
+ * Measured before it was written: every slide of a reel had textPos "center",
+ * motion "kenburns-in", entrance "fade-up" and no overlay - seven scenes, one
+ * picture. The rotations that already existed sit inside footage generation and
+ * only move the camera, which a still frame cannot show.
+ *
+ * Offsets come from the video's own look, so two towns in a batch do not deal
+ * the same sequence, and the same town in the same month reproduces exactly.
+ */
+function vsVaryScenes(slides, look) {
+  if (!slides || !slides.length) return;
+  const off = (look && Number(look.motionOffset)) || 0;
+  const tOff = (look && Number(look.textOffset)) || 0;
+  const oOff = (look && Number(look.overlayOffset)) || 0;
+
+  // Where the words sit: the strongest lever of the four, because it changes
+  // the shape of the frame rather than the way it arrives.
+  const POS = ["bottom", "center", "top", "bottom", "center"];
+  const MOTION = ["kenburns-in", "pan-right", "drift-up", "kenburns-out", "pan-left", "zoom-pan", "pan-up", "handheld"];
+  const ANIM = ["rise", "slide-up", "pop", "fade-up", "spring", "zoom-in", "punch", "vox"];
+  // "none" stays in the pool: an overlay on every scene is its own sameness,
+  // and the quiet frames let a good photograph carry itself.
+  const OVERLAY = ["none", "shimmer", "none", "bokeh", "glow", "none", "particles", "dust"];
+
+  slides.forEach((sl, i) => {
+    sl.settings = sl.settings || {};
+    const isEnd = i === 0 || i === slides.length - 1;   // title and outro keep the centre
+    sl.settings["#vsTextPos"] = isEnd ? "center" : POS[(i + tOff) % POS.length];
+    sl.settings["#vsMotion"] = MOTION[(i + off) % MOTION.length];
+    sl.settings["#vsTextAnim"] = ANIM[(i * 3 + tOff) % ANIM.length];
+    sl.settings["#vsOverlay"] = OVERLAY[(i * 2 + oOff) % OVERLAY.length];
+  });
 }
 
 async function vsLoadBatchVideo(i) {
