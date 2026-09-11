@@ -5437,6 +5437,155 @@ function vsReelSeed(place, month) {
 }
 
 /** The visual and musical identity of one reel. */
+/**
+ * The shapes a short vertical video actually comes in.
+ *
+ * Measured from a reference set rather than guessed: scene detection over each
+ * clip gave the cut counts and shot lengths below, and sampled frames gave the
+ * caption and framing notes. That matters because "fast cuts" is an opinion
+ * while "a new shot every 2.2 seconds" is something a renderer can be held to.
+ *
+ * Two ways in, and they are deliberately different jobs:
+ *
+ *   "rebuild"  the user supplies their own face, voice or footage and wants
+ *              THIS shape around it. The format drives timing and treatment;
+ *              the content is theirs.
+ *   "borrow"   the user wants the idea and the tone and nothing else - a fresh
+ *              script and fresh footage, written to the same rhythm. Nothing of
+ *              the reference is reproduced.
+ *
+ * "borrow" is the default. Reproducing a particular creator's video is both a
+ * problem and a bad video; the pacing and the posture are what transfer.
+ */
+const VS_FORMATS = [
+  {
+    id: "single_take",
+    label: "Single-take talking head",
+    brief: "one unbroken take to camera; the captions are the only thing that moves",
+    // refs: 32.8s/0 cuts, 13.0s/0, 21.3s/0, 51.4s/1
+    seconds: [13, 52], shotSeconds: [13, 52], cuts: [0, 1],
+    caption: { style: "phrase", words: [2, 4], pos: "lower_third", font: "sans", every: [1.2, 2.0] },
+    needsFace: true, broll: "none", hook: "say the claim in the first sentence, no wind-up",
+    music: { energy: "gentle", underVoice: true },
+    note: "cheapest to shoot, hardest to hold - it lives or dies on the first line",
+  },
+  {
+    id: "branded_interview",
+    label: "Branded interview clip",
+    brief: "two speakers stacked or cut between, inside a fixed brand frame, ending on a watch-more card",
+    // ref: 41.6s, 9 cuts, 4.2s average shot
+    seconds: [30, 60], shotSeconds: [3, 6], cuts: [6, 12],
+    caption: { style: "phrase", words: [2, 4], pos: "split_lower", font: "sans", every: [1.2, 1.8] },
+    needsFace: true, broll: "none", hook: "a topic card naming the subject, held over the first shot",
+    music: { energy: "gentle", underVoice: true },
+    chrome: { logo: "top_left", mark: "top_right", topicCard: true, endCard: "watch_more" },
+    note: "the frame does the branding so the speaker never has to say the brand name",
+  },
+  {
+    id: "broll_presenter",
+    label: "B-roll and presenter",
+    brief: "property or place footage intercut with someone explaining it, emphasis words burned in",
+    // refs: 44.9s/6 cuts/6.4s, 71.4s/32/2.2, 56.1s/18/3.0
+    seconds: [35, 75], shotSeconds: [2, 6], cuts: [6, 32],
+    caption: { style: "emphasis", words: [1, 3], pos: "center", font: "sans", every: [0.5, 1.2] },
+    needsFace: false, broll: "heavy", hook: "open on the widest, most establishing shot you have",
+    music: { energy: "medium", underVoice: true },
+    note: "the workhorse for anything with a location - the presenter is optional",
+  },
+  {
+    id: "fast_montage",
+    label: "Fast montage",
+    brief: "no one explains anything; short shots carried by music, landing on one call to action",
+    // refs: 17.9s/11 cuts/1.5s, 29.3s/14/2.0, 22.8s/11/1.9
+    seconds: [15, 30], shotSeconds: [1.2, 2.2], cuts: [10, 15],
+    caption: { style: "none", words: [0, 0], pos: "center", font: "sans", every: [0, 0] },
+    needsFace: false, broll: "heavy", hook: "the most striking frame first - there is no sentence to save it",
+    music: { energy: "driving", underVoice: false },
+    cta: "one card at the end, two words",
+    note: "the only format here that works with no script at all",
+  },
+  {
+    id: "skit",
+    label: "Narrative skit",
+    brief: "a staged bit with a premise card, played out in beats, turning to camera for the point",
+    // refs: 64.9s/26 cuts/2.4s, and a 21.3s one-take variant
+    seconds: [20, 65], shotSeconds: [2, 3], cuts: [0, 26],
+    caption: { style: "phrase", words: [2, 5], pos: "lower_third", font: "sans", every: [1.0, 1.6] },
+    needsFace: true, broll: "light", hook: "a premise card in the corner: POV, or a flat statement of the setup",
+    music: { energy: "medium", underVoice: true },
+    note: "the premise card is the hook; the first shot only has to be odd enough to hold",
+  },
+  {
+    id: "kinetic_type",
+    label: "Kinetic typography",
+    brief: "words sized and coloured per phrase, set behind the speaker, with proof cards cut in",
+    // ref: 65.6s, 12 cuts, 5.0s average shot
+    seconds: [45, 70], shotSeconds: [4, 6], cuts: [10, 14],
+    caption: { style: "kinetic", words: [1, 3], pos: "behind_subject", font: "sans", every: [0.6, 1.2] },
+    needsFace: true, broll: "light", hook: "the first word lands big and coloured before the sentence finishes",
+    music: { energy: "medium", underVoice: true },
+    chrome: { insetCards: true },
+    note: "the most expensive to get right - text behind the subject needs a clean matte",
+  },
+];
+
+/** A format by id, or the workhorse when the id means nothing. */
+function vsFormat(id) {
+  return VS_FORMATS.find((f) => f.id === id) || VS_FORMATS[2];
+}
+
+/**
+ * Which of the six a reference is, judged on what was measured.
+ *
+ * Deliberately blunt. Shot length separates most of them on its own, and the
+ * rest comes down to whether anyone is talking and whether words are burned in -
+ * both of which the vision read already gives us. A confident wrong answer is
+ * worse than a hedged right one, so the runner-up and the margin come back too.
+ */
+function vsFormatMatch(opts) {
+  opts = opts || {};
+  const dur = Number(opts.duration) || 0;
+  const cuts = Number(opts.cuts) || 0;
+  const shot = dur > 0 ? dur / Math.max(1, cuts + 1) : 0;
+  const v = opts.vision || {};
+  const talking = /talking_head|selfie|podcast/.test(String(v.format || ""));
+  const captions = !!v.captions;
+  // A premise card announces a skit in one of a few set phrases.
+  const onscreen = String(v.title_text || v.onscreen_text || "").trim();
+  const premise = /^\s*(pov\b|p\.o\.v|when you\b|me when\b|nobody\s*:|how it (started|feels)|things? (nobody|no one))/i.test(onscreen);
+  // Kinetic type means words that change colour. White, black and empty are
+  // what every ordinary caption reports, so they do not count.
+  const colour = String(v.title_color || "").trim().toLowerCase();
+  const coloured = !!colour && !/^(white|black|none|grey|gray)$/.test(colour);
+
+  const ranked = VS_FORMATS.map((f) => {
+    let n = 0;
+    // Shot length is the strongest single signal, so it carries the most weight.
+    if (shot >= f.shotSeconds[0] && shot <= f.shotSeconds[1]) n += 5;
+    else n -= Math.min(4, Math.abs(shot - (f.shotSeconds[0] + f.shotSeconds[1]) / 2) / 2);
+    if (dur >= f.seconds[0] && dur <= f.seconds[1]) n += 2;
+    if (cuts >= f.cuts[0] && cuts <= f.cuts[1]) n += 2;
+    if (f.needsFace === talking) n += 2;
+    if ((f.caption.style === "none") === !captions) n += 1;
+
+    // Two things shot length cannot see.
+    //
+    // A skit and a b-roll piece cut at the same speed; what separates them is
+    // the premise card, and those are written in a handful of ways that are
+    // worth matching outright.
+    if (f.id === "skit" && premise) n += 6;
+    // Kinetic type is defined by words that change colour, not by pace. Without
+    // that, a talking head with a slow cut rate lands here purely on rhythm -
+    // which is how a plain interview got called kinetic.
+    if (f.id === "kinetic_type") n += coloured ? 4 : -4;
+    return { id: f.id, label: f.label, score: +n.toFixed(2) };
+  }).sort((a, b) => b.score - a.score);
+
+  return { best: ranked[0].id, label: ranked[0].label, runnerUp: ranked[1].id,
+           confident: ranked[0].score - ranked[1].score >= 2,
+           shotSeconds: +shot.toFixed(1), ranked: ranked };
+}
+
 function vsReelLook(place, month, index) {
   const seed = vsReelSeed(place, month);
   // Different strides so the three do not move together and produce only a
@@ -19318,6 +19467,7 @@ function vsReverseEngineer(prefill, opts) {
     const localPreview = (blob) => { try { return URL.createObjectURL(blob); } catch (e) { return ""; } };
     try {
       let thumbUrl = "", vision = null, titleCards = [], shotList = [], refDuration = 0;
+      let format = null, cutInfo = null;
       if (/^video\//.test(file.type)) {
         // A single first-frame grab only ever sees whatever is on screen at
         // t=0 — a progressive caption reveal ("MY" → "I'M" → "HOW TO…") or a
@@ -19346,6 +19496,14 @@ function vsReverseEngineer(prefill, opts) {
         // Every frame failing to describe is the real failure now - there is no
         // upload left to blame.
         if (!vision && !shotList.length) throw new Error(fa ? "تحلیلِ فریم‌ها ناموفق بود" : "could not read any frame");
+        // How fast it cuts, measured rather than guessed. This is what decides
+        // which of the six shapes it is.
+        lbl.textContent = (fa ? "⏳ اندازه‌گیریِ ریتم…" : "⏳ Measuring the pacing…");
+        try {
+          const rate = await vsVideoCutRate(file);
+          cutInfo = rate;
+          format = vsFormatMatch({ duration: rate.duration || refDuration, cuts: rate.cuts, vision: vision || {} });
+        } catch (e) { /* the shape is a nicety; the rest of the read still stands */ }
       } else {
         lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
         thumbUrl = localPreview(file);
@@ -19356,13 +19514,18 @@ function vsReverseEngineer(prefill, opts) {
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
       if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, refVideo: file, uploaded: true, isProfile: false };
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, refVideo: file, uploaded: true, isProfile: false , format, cutInfo };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
+      // What shape it is, and how sure. Said plainly - a guess presented as a
+      // fact is worse than no guess, and the runner-up is often the right call.
+      const fmtTxt = format ? `<div style="font-size:11.5px;color:#7fd4a0;margin-top:3px">${fa ? "قالب: " : "Format: "}${esc(vsFormat(format.best).label)}` +
+        `<span style="color:#8ea6c8"> · ${(cutInfo && cutInfo.cuts) || 0} ${fa ? "برش" : "cuts"} · ${format.shotSeconds}s/${fa ? "نما" : "shot"}` +
+        (format.confident ? "" : ` · ${fa ? "یا " : "or "}${esc(vsFormat(format.runnerUp).label)}`) + `</span></div>` : "";
       const cardsTxt = titleCards.length ? `<div style="font-size:11.5px;color:#f5c451;margin-top:3px">${fa ? "کپشن‌های دیده‌شده: " : "Captions seen: "}“${esc(titleCards.join('” → “'))}”</div>` : "";
       card.innerHTML = `<img src="${esc(thumbUrl)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:10px;background:#000;flex:none"/>
         <div style="flex:1;min-width:0"><div style="font-weight:800;color:#efe9dc;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
-        <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div>${cardsTxt}</div>`;
+        <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div>${fmtTxt}${cardsTxt}</div>`;
     } catch (err) { $$("reRefCard").style.display = "flex"; $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
     lbl.textContent = old; e.target.value = "";
   };
@@ -20201,6 +20364,69 @@ function vsExtractNarration(script) {
 // is exactly the kind of thing the style-match is supposed to copy. `fracs`
 // are relative positions (0..1) into the duration; returns an array of JPEG
 // blobs in the same order (skipping any frame that fails to seek/draw).
+/**
+ * How often this video cuts.
+ *
+ * Shot length is the strongest signal for telling one format from another - a
+ * montage cuts every 1.5 seconds and a single take never cuts - so the matcher
+ * needs a real number rather than an impression. This samples a few frames a
+ * second at thumbnail size and counts the jumps: decode is the only cost, and
+ * nothing leaves the browser.
+ *
+ * Deliberately coarse. Sampling at 3fps cannot see a cut that lasts less than a
+ * third of a second, and a hard whip-pan reads as a cut when it is not. Both
+ * are fine here: the question is "roughly how fast does this move", and the
+ * answer only has to be good enough to separate 1.5 seconds from 30.
+ */
+async function vsVideoCutRate(file, opts) {
+  const fps = (opts && opts.fps) || 3;
+  const W = 48, H = 85;                     // enough to see a scene change, cheap to diff
+  return new Promise((resolve) => {
+    const done = (cuts, dur) => resolve({ cuts: cuts, duration: dur, shotSeconds: dur > 0 ? dur / Math.max(1, cuts + 1) : 0 });
+    try {
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "metadata";
+      const url = URL.createObjectURL(file);
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      let times = [], i = 0, prev = null, cuts = 0, dur = 0;
+      const finish = () => { try { URL.revokeObjectURL(url); } catch (e) {} done(cuts, dur); };
+      const next = () => {
+        if (i >= times.length) return finish();
+        try { v.currentTime = times[i]; } catch (e) { i++; next(); }
+      };
+      v.onloadedmetadata = () => {
+        dur = v.duration || 0;
+        if (!isFinite(dur) || dur <= 0) return finish();
+        const step = 1 / fps;
+        for (let t = 0.05; t < dur - 0.05; t += step) times.push(t);
+        // A very long reference would spend more time being measured than it is
+        // worth; past this the rate is already obvious.
+        if (times.length > 400) times = times.filter((_, n) => n % Math.ceil(times.length / 400) === 0);
+        next();
+      };
+      v.onseeked = () => {
+        try {
+          ctx.drawImage(v, 0, 0, W, H);
+          const d = ctx.getImageData(0, 0, W, H).data;
+          if (prev) {
+            let sum = 0;
+            for (let p = 0; p < d.length; p += 4) sum += Math.abs(d[p] - prev[p]) + Math.abs(d[p + 1] - prev[p + 1]) + Math.abs(d[p + 2] - prev[p + 2]);
+            // Mean channel difference per pixel. 0 is an identical frame; a real
+            // cut typically lands well above 30 even between similar scenes.
+            const mean = sum / ((d.length / 4) * 3);
+            if (mean > 30) cuts++;
+          }
+          prev = new Uint8ClampedArray(d);
+        } catch (e) {}
+        i++; next();
+      };
+      v.onerror = () => finish();
+      v.src = url;
+    } catch (e) { done(0, 0); }
+  });
+}
+
 async function vsVideoFrames(file, fracs) {
   fracs = (fracs && fracs.length) ? fracs : [0.3];
   return new Promise((resolve) => {
