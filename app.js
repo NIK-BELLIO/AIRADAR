@@ -20253,7 +20253,7 @@ function vsReverseEngineer(prefill, opts) {
     $$("reFormatWhy").textContent = why + " " + f.brief + ".";
     $$("reFormatSpec").textContent = (fa
       ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style} · ${plan.took}`
-      : `${plan.scenes} shots × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style} · ${plan.took}`);
+      : `${plan.scenes} shot${plan.scenes === 1 ? "" : "s"} × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style} · ${plan.took}`);
   }
 
   function swapShow(which) {
