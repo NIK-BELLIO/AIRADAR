@@ -1455,19 +1455,6 @@
                       <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">📄 From text</button>
                     </div>
 
-                    <!-- Realtor reels. A row of its own rather than a chip beside the
-                         label: it writes a whole batch from the Regions list and has
-                         nothing to do with the box below it, so it was invisible
-                         sitting among the little help links. -->
-                    <button type="button" id="vsReelBtn" class="vs-reel-cta"
-                            title="Write a reel for each town in your Regions list">
-                      <span class="vs-reel-cta-ic">⌂</span>
-                      <span class="vs-reel-cta-tx">
-                        <strong>Realtor reels</strong>
-                        <small>One per town, straight from your Regions list</small>
-                      </span>
-                      <span class="vs-reel-cta-go">→</span>
-                    </button>
 
                     <label id="vsAutoUrlWrap" style="display:none;"><span>Article / news URL</span>
                       <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
@@ -1554,6 +1541,20 @@
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
                       <button id="vsExportBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;margin-top:10px;display:none;" data-i18n="vExportBtn">⬇ <span id="vsExportBtnTxt">Export video</span></button>
                       <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;">🖼 <span id="vsCoverBtnTxt">Thumbnail Studio</span></button>
+
+                      <!-- Realtor reels. Here with the other buttons that open a
+                           tool, rather than up among the mode chips: it starts a
+                           whole batch from the Regions list and has nothing to do
+                           with the topic box it was sitting above. -->
+                      <button type="button" id="vsReelBtn" class="vs-reel-cta"
+                              title="Write a reel for each town in your Regions list">
+                        <span class="vs-reel-cta-ic">⌂</span>
+                        <span class="vs-reel-cta-tx">
+                          <strong>Realtor reels</strong>
+                          <small>One per town, straight from your Regions list</small>
+                        </span>
+                        <span class="vs-reel-cta-go">→</span>
+                      </button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
                     <div id="vsBuildBadge" style="text-align:center;font-size:10px;letter-spacing:.08em;color:#7a7468;margin-top:4px;opacity:.8">build · loading…</div>
