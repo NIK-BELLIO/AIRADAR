@@ -9916,10 +9916,22 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const maxLines = 9, maxBlockH = H * 0.6;
     let qPx = Math.round(U * 0.058);
     const minPx = Math.round(U * 0.026);
+    // The ceiling is a design limit, not a fitting one: past this the type
+    // stops reading as a line and starts reading as a poster.
+    const maxPx = Math.round(U * 0.105);
+    const fits = (p) => {
+      const ls = linesAt(p);
+      return ls.length <= maxLines && ls.length * p * 1.32 <= maxBlockH;
+    };
     let lines = linesAt(qPx);
-    while (qPx > minPx && (lines.length > maxLines || lines.length * qPx * 1.32 > maxBlockH)) {
-      qPx -= 1; lines = linesAt(qPx);
+    if (fits(qPx)) {
+      // Grow. A short sentence used to be set at the same size as a long one
+      // and left two thirds of the frame empty.
+      while (qPx < maxPx && fits(qPx + 1)) qPx += 1;
+    } else {
+      while (qPx > minPx && !fits(qPx)) qPx -= 1;
     }
+    lines = linesAt(qPx);
     const lH = qPx * 1.32, blockH = lines.length * lH, qTop = H / 2 - blockH / 2;
     // backdrop sized to the quote block (with room for the marks + source)
     const padV = U * 0.09;
