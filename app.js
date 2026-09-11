@@ -5238,7 +5238,8 @@ function vsReelPopup() {
 
   // Whatever is ticked, in the order Regions lists them.
   const chosen = () => Array.from(picker.querySelectorAll("input:checked"))
-    .map((el) => ({ id: el.value, place: el.dataset.place, name: el.dataset.name }));
+    .map((el) => ({ id: el.value, place: el.dataset.place, name: el.dataset.name,
+                    clip: el.dataset.clip || "" }));
   const towns = () => chosen().map((c) => c.place);
 
   // Fill the picker from Regions.
@@ -5265,7 +5266,11 @@ function vsReelPopup() {
        </div>` +
       rows.map((r) => {
         const place = [r.name, r.region].filter(Boolean).join(", ");
-        return `<label><input type="checkbox" value="${esc(r.id)}" data-place="${esc(place)}" data-name="${esc(r.name)}"/>` +
+        // The clip this town was given last time, if it has one. Fetching the
+        // same URL again costs 21ms against 1057ms for a fresh one.
+        const clip = r.media_kind === "video" && r.media_url ? r.media_url : "";
+        return `<label><input type="checkbox" value="${esc(r.id)}" data-place="${esc(place)}" data-name="${esc(r.name)}"` +
+               `${clip ? ` data-clip="${esc(clip)}"` : ""}/>` +
                `<span>${esc(r.name)}</span><span class="where">${esc(r.region || r.country || "")}</span></label>`;
       }).join("");
     picker.addEventListener("change", refresh);
@@ -5383,6 +5388,9 @@ async function vsBuildRealtorBatch(towns, month) {
   vstudio._saveFolder = "Realtor reels · " +
     VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))] + " " + new Date().getFullYear();
   const skipped = [];
+  // The writing pass is minutes long and barely touches the media origin, so
+  // the clips these towns already own are pulled in underneath it.
+  vsWarmTownClips(towns);
 
   // The brief for every chosen place, built server-side from the one copy of
   // the rules. It also picks each town's topic and opening from what that town
@@ -5415,7 +5423,10 @@ async function vsBuildRealtorBatch(towns, month) {
       name: place.split(",")[0].trim(),
       location: place,
       template: look.template,
+      regionId: entry && entry.id,
       data: {
+        _regionId: entry && entry.id,
+        _knownClip: (entry && entry.clip) || "",
         title: reel.title,
         sections: reel.sentences.map((t) => ({ headline: t, narration: t })),
         source: "",
@@ -6280,6 +6291,35 @@ function vsClipGate() {
       }
     };
     tryRun();
+  });
+}
+
+/**
+ * Load a clip we already have the url for.
+ *
+ * The search half of a footage lookup is the part that has to be skipped for a
+ * remembered clip to be worth anything: the url is already known, so this goes
+ * straight to the file, which the edge is holding from last time.
+ */
+function vsLoadClipUrl(url, ms) {
+  return new Promise((resolve) => {
+    const el = document.createElement("video");
+    el.crossOrigin = "anonymous";
+    el.muted = true; el.loop = true; el.playsInline = true; el.preload = "auto";
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      try { el.removeAttribute("src"); el.load(); } catch (e) {}
+      resolve(null);   // a remembered clip that has gone is just a normal search
+    }, ms || 6000);
+    el.onloadeddata = () => {
+      if (done) return; done = true; clearTimeout(timer);
+      try { el.play().catch(() => {}); } catch (e) {}
+      resolve(el.videoWidth ? el : null);
+    };
+    el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
+    el.src = url;
   });
 }
 
@@ -7360,6 +7400,25 @@ async function vsAutoGenerateBackgrounds(data) {
     // scene using the same fade-up.
     const txAnim = ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"][i % 8];
 
+    // 0) the clip this town was given last time, on its opening scene.
+    // Already known and already at the edge: 21ms against 1057ms for a search
+    // and a cold download. It also means a town looks like itself month after
+    // month rather than like a different place each time.
+    const known = i === 0 && data && data._knownClip;
+    if (known && !vstudio._batchCancel) {
+      const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
+      if (!used.has(known)) {
+        const m = await vsLoadClipUrl(known);
+        if (m && !vstudio._batchCancel) {
+          used.add(known);
+          s.mediaEl = m; s.isVideo = true; s.ready = true; s.url = known;
+          s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
+          made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+          return;
+        }
+      }
+    }
+
     // 1) real Pexels footage — primary query, then a reliable fallback query
     if (pexelsOn && pexelsKey) {
       try {
@@ -7370,6 +7429,11 @@ async function vsAutoGenerateBackgrounds(data) {
         if (media && !vstudio._batchCancel) {
           s.mediaEl = media; s.isVideo = (media.tagName === "VIDEO");
           s.ready = true; s.url = media.currentSrc || media.src;
+          // The opening clip is the town's, so keep it. Only a clip: a still is
+          // cheap to find again and not worth pinning a town to.
+          if (i === 0 && s.isVideo && data && data._regionId) {
+            void vsRememberTownClip(data._regionId, s.url);
+          }
           s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
           made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
           return;
@@ -8132,6 +8196,48 @@ ${noExcerpt ? `No source excerpt is available for ${name} — rely on verified g
  * Offsets come from the video's own look, so two towns in a batch do not deal
  * the same sequence, and the same town in the same month reproduces exactly.
  */
+/**
+ * Pull the towns' remembered clips into the edge cache, quietly.
+ *
+ * Nothing waits on this and nothing breaks if it fails: a clip that does not
+ * arrive is simply fetched again later at full price. Two at a time, so it
+ * leaves room for the writing calls it runs alongside.
+ */
+function vsWarmTownClips(towns) {
+  const urls = (towns || []).map((t) => t && t.clip).filter(Boolean)
+    .filter((u, i, a) => a.indexOf(u) === i);
+  if (!urls.length) return;
+  let at = 0;
+  const one = async () => {
+    while (at < urls.length && !vstudio._batchCancel) {
+      const u = urls[at++];
+      try { await fetch(u, { mode: "cors", cache: "force-cache" }); } catch (e) {}
+    }
+  };
+  // Deliberately not awaited - this is spare capacity, not a step of the run.
+  void Promise.all([one(), one()]);
+}
+
+/**
+ * Remember the clip a town was given, and reuse it next month.
+ *
+ * The same clip through the proxy is 1057ms cold and 21ms once the edge holds
+ * it. Picking fresh footage every run means paying the cold price every run,
+ * for sixty-nine towns; remembering one clip each makes every month after the
+ * first nearly free. It also gives a town a face that stays the same, which is
+ * worth having quite apart from the speed.
+ */
+async function vsRememberTownClip(regionId, url) {
+  if (!regionId || !url) return;
+  try {
+    await fetch("/api/admin/regions", {
+      method: "PATCH", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: regionId, mediaUrl: String(url).slice(0, 500), mediaKind: "video" }),
+    });
+  } catch (e) { /* a lost note is next month paying the cold price, nothing worse */ }
+}
+
 function vsVaryScenes(slides, look) {
   if (!slides || !slides.length) return;
   const off = (look && Number(look.motionOffset)) || 0;
