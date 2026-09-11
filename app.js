@@ -6279,7 +6279,7 @@ function vsClipGate() {
   });
 }
 
-async function vsFetchPexelsClip(query, key, aspect, variant) {
+async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/videos/search?query=" + encodeURIComponent(query) +
@@ -6295,6 +6295,9 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
     files.sort((a, b) => Math.abs((a.height || 0) - 720) - Math.abs((b.height || 0) - 720));
     const file = files[0];
     if (!file) continue;
+    // Decide from the url, not from the bytes: this used to download a clip and
+    // only then ask whether another scene had already taken it.
+    if (taken && taken.has(file.link)) continue;
     // Wait for a slot before pulling several megabytes down.
     const release = await vsClipGate();
     const vid = await new Promise((resolve) => {
@@ -6330,7 +6333,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
 }
 
 // Fallback: a real Pexels PHOTO (loads faster & more reliably than video).
-async function vsFetchPexelsPhoto(query, key, aspect, variant) {
+async function vsFetchPexelsPhoto(query, key, aspect, variant, taken) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) +
@@ -6343,6 +6346,7 @@ async function vsFetchPexelsPhoto(query, key, aspect, variant) {
   for (const p of order.slice(0, 4)) {
     const link = p.src && (p.src.large2x || p.src.large || p.src.original);
     if (!link) continue;
+    if (taken && taken.has(link)) continue;   // already on another scene
     const img = await new Promise((resolve) => {
       const el = new Image();
       el.crossOrigin = "anonymous";
@@ -7273,14 +7277,17 @@ async function vsAutoGenerateBackgrounds(data) {
     // are missing their deadline it stops asking for them, and only for the
     // rest of that run.
     const relayed = vstudio._clipMisses >= 3;
-    for (const offset of [0, 4, 8]) {
+    // One pass. The three offsets existed to find something not already taken,
+    // and that is now settled from the url before anything is downloaded.
+    {
+      const offset = 0;
       let m = relayed
-        ? await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset)
-        : await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset);
+        ? await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset, used)
+        : await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset, used);
       if (!m) {
         m = relayed
-          ? await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset)
-          : await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset);
+          ? await vsFetchPexelsClip(q, pexelsKey, aspect, i + offset, used)
+          : await vsFetchPexelsPhoto(q, pexelsKey, aspect, i + offset, used);
       }
       // Count the clips that did not arrive, so a genuinely slow route is
       // noticed rather than assumed.
