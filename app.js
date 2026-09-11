@@ -6315,7 +6315,7 @@ function vsLoadClipUrl(url, ms) {
     }, ms || 6000);
     el.onloadeddata = () => {
       if (done) return; done = true; clearTimeout(timer);
-      try { el.play().catch(() => {}); } catch (e) {}
+      try { el.pause(); } catch (e) {}   // see the note in vsFetchPexelsClip
       resolve(el.videoWidth ? el : null);
     };
     el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
@@ -6369,7 +6369,12 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
         _vsPexelsDirectDead ? 8000 : 7000);
       el.onloadeddata = () => {
         if (done) return; done = true; clearTimeout(timer);
-        try { el.play().catch(() => {}); } catch (e) {}
+        // Deliberately NOT played here. A playing, looping element downloads the
+        // whole file, and seven of them at once is what saturates the relay:
+        // seven searches that take 0.6s alone took 11.8s during a run, and one
+        // issued from the console while a pass was going timed out entirely.
+        // The draw path starts it when its slide is actually shown.
+        try { el.pause(); } catch (e) {}
         resolve(el.videoWidth ? el : null);
       };
       el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
