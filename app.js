@@ -6250,6 +6250,34 @@ async function vsPexelsSearch(url, key) {
 
 // Fetch a real stock video clip from Pexels. `variant` rotates the chosen
 // clip so different scenes in one video get DIFFERENT footage.
+// Heavy clip downloads, held to a few at a time.
+//
+// Measured: one clip through the worker relay arrives in about four seconds,
+// five at once and only one of them makes the deadline - several megabytes each
+// competing through a single worker. Every one that misses falls back to a
+// still, which is how a video ends up looking like a slideshow.
+//
+// The searches are cheap and stay wide. Only the downloads queue.
+const VS_CLIP_GATE = { limit: 2, active: 0, waiting: [] };
+
+function vsClipGate() {
+  return new Promise((go) => {
+    const tryRun = () => {
+      if (VS_CLIP_GATE.active < VS_CLIP_GATE.limit) {
+        VS_CLIP_GATE.active++;
+        go(() => {
+          VS_CLIP_GATE.active--;
+          const next = VS_CLIP_GATE.waiting.shift();
+          if (next) next();
+        });
+      } else {
+        VS_CLIP_GATE.waiting.push(tryRun);
+      }
+    };
+    tryRun();
+  });
+}
+
 async function vsFetchPexelsClip(query, key, aspect, variant) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
@@ -6266,6 +6294,8 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
     files.sort((a, b) => Math.abs((a.height || 0) - 720) - Math.abs((b.height || 0) - 720));
     const file = files[0];
     if (!file) continue;
+    // Wait for a slot before pulling several megabytes down.
+    const release = await vsClipGate();
     const vid = await new Promise((resolve) => {
       const el = document.createElement("video");
       el.crossOrigin = "anonymous";
@@ -6292,6 +6322,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant) {
       el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
       el.src = file.link;
     });
+    release();
     if (vid) return vid;
   }
   return null;
