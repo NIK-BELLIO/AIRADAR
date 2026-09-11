@@ -5422,6 +5422,10 @@ async function vsBuildRealtorBatch(towns, month) {
   vstudio.batchVideos = [];
   // This run owns the popup from the first word to the last frame. Without it
   // the footage step closes it between every reel and the screen blinks empty.
+  //
+  // Held in a try/finally below: vsOverlayRelease refuses to close while this is
+  // set, so a throw anywhere in the writing loop used to leave the popup up with
+  // no way to dismiss it for the rest of the session.
   vstudio._batchBusy = true;
   vstudio._clipMisses = 0;   // each run judges the route for itself
   // Everything this run saves belongs together in the library.
@@ -5449,6 +5453,7 @@ async function vsBuildRealtorBatch(towns, month) {
       : "Could not fetch the brief from the server - writing from the local copy of the rules.");
   }
 
+  try {
   for (let i = 0; i < towns.length && !vstudio._batchCancel; i++) {
     const entry = towns[i];
     const place = typeof entry === "string" ? entry : entry.place;
@@ -5478,10 +5483,12 @@ async function vsBuildRealtorBatch(towns, month) {
     });
     vsRenderBatchList();
   }
-  // The writing is done; the popup is no longer this run's to hold. The footage
-  // step that follows opens and closes its own.
-  vstudio._batchBusy = false;
-  vsBatchProgress(false);
+  } finally {
+    // The writing is done - or it threw. Either way the popup is no longer this
+    // run's to hold; the footage step that follows opens and closes its own.
+    vstudio._batchBusy = false;
+    vsBatchProgress(false);
+  }
 
   if (!vstudio.batchVideos.length) {
     vsAutoStatus(fa ? "هیچ ریلی نوشته نشد. دوباره امتحان کن."
