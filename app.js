@@ -9789,8 +9789,11 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const x = W * 0.06, plateW = W * 0.78, padX = W * 0.03, textW = plateW - padX*2;
     // Auto-fit: show the WHOLE headline. Shrink the font until every line fits
     // and the plate stays within a sensible height (was hard-capped at 4 lines).
-    const maxLines = 8, maxTextH = H * 0.5;
-    let hlSize = Math.round(H * 0.038), minHl = Math.round(H * 0.016);
+    // No line cap: a sentence is never cut, it is set smaller. The block has to
+    // fit its plate and the plate has to fit the frame, so both are checked.
+    const maxTextH = H * 0.5;
+    let hlSize = Math.round(H * 0.038);
+    const minHl = 10;   // an absolute floor, not a design one - see the loop below
     const countLines = (px2) => {
       ctx.font = `700 ${px2}px ${vsGetFont("Prata, serif")}`;
       const words2 = headline.split(/\s+/);
@@ -9801,10 +9804,16 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
       }
       if (line2) n++; return Math.max(1, n);
     };
-    while (hlSize > minHl && (countLines(hlSize) > maxLines || countLines(hlSize) * hlSize * 1.25 > maxTextH)) hlSize--;
+    // 1) the words inside the plate
+    while (hlSize > minHl && countLines(hlSize) * hlSize * 1.25 > maxTextH) hlSize--;
+    // 2) the plate inside the frame. Laid out upward from H*0.86, so a tall
+    //    plate runs off the top - which is how text ended up outside its box.
+    const srcH0 = source ? H * 0.04 : 0;
+    const plateTop = (px) => H * 0.86 - (countLines(px) * px * 1.25 + H * 0.05 + srcH0);
+    while (hlSize > minHl && plateTop(hlSize) < H * 0.06) hlSize--;
     const lineH = hlSize * 1.25, lineCount = countLines(hlSize);
-    const srcH = source ? H*0.04 : 0, plateH = lineH*lineCount + H*0.05 + srcH;
-    const plateY = H*0.86 - plateH;
+    const srcH = srcH0, plateH = lineH*lineCount + H*0.05 + srcH;
+    const plateY = Math.max(H * 0.04, H*0.86 - plateH);
     const slideX = -W*0.66*(1-slideEase);
     ctx.save(); ctx.translate(slideX, 0);
     if (kicker) {
@@ -9820,7 +9829,10 @@ function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     ctx.fillStyle = "rgba(10,10,12,0.92)"; ctx.fillRect(x, plateY, plateW, plateH);
     ctx.fillStyle = ac.bar; ctx.fillRect(x, plateY, H*0.008, plateH);
     ctx.fillStyle = "#fff"; ctx.font = `700 ${hlSize}px ${vsGetFont("Prata, serif")}`; ctx.textAlign = "left";
-    const linesDrawn = wrapNewsText(ctx, headline, x+padX, plateY+H*0.03+hlSize*0.8, textW, lineH, lineCount);
+    // 999, not lineCount: the measure and the draw use the same font and width,
+    // so they agree - but if they ever drift, drawing every line is the safe
+    // side of that disagreement and cutting the sentence is not.
+    const linesDrawn = wrapNewsText(ctx, headline, x+padX, plateY+H*0.03+hlSize*0.8, textW, lineH, 999);
     if (source) {
       ctx.fillStyle = "rgba(210,210,215,0.85)";
       ctx.font = `400 ${Math.round(H*0.022)}px Inter, sans-serif`;
