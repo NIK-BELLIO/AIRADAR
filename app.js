@@ -6294,7 +6294,10 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
   // rotate the video order by `variant` so each scene starts at a different clip
   const order = [];
   for (let k = 0; k < vids.length; k++) order.push(vids[(variant + k) % vids.length]);
-  for (const v of order.slice(0, 4)) {
+  // Every candidate, not the first four: skipping a taken url is a string
+  // comparison, and with a shared set the later scenes found their four already
+  // gone and came away with nothing.
+  for (const v of order) {
     const files = (v.video_files || []).filter(f => /mp4/i.test(f.file_type || "") && f.link);
     files.sort((a, b) => Math.abs((a.height || 0) - 720) - Math.abs((b.height || 0) - 720));
     const file = files[0];
@@ -6332,6 +6335,8 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
     });
     release();
     if (vid) return vid;
+    // A candidate that failed to load is not worth a second deadline; move on
+    // to the next url rather than retrying this one.
   }
   return null;
 }
@@ -6347,7 +6352,7 @@ async function vsFetchPexelsPhoto(query, key, aspect, variant, taken) {
   if (!photos.length) return null;
   const order = [];
   for (let k = 0; k < photos.length; k++) order.push(photos[(variant + k) % photos.length]);
-  for (const p of order.slice(0, 4)) {
+  for (const p of order) {   // every candidate - see the note in the clip fetch
     const link = p.src && (p.src.large2x || p.src.large || p.src.original);
     if (!link) continue;
     if (taken && taken.has(link)) continue;   // already on another scene
