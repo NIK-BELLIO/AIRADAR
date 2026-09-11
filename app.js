@@ -6997,6 +6997,10 @@ async function vsEditorialBackgrounds(data) {
 }
 
 async function vsAutoGenerateBackgrounds(data) {
+  // Held for the whole run, past every early exit, so the popup cannot close
+  // while scenes are still being filled in. Lowered in the finally below.
+  vstudio._footageBusy = true;
+  try {
   const slides = vstudio.slides;
 
   // ── Editorial mode (the /editorial skill) ──
@@ -7415,7 +7419,10 @@ async function vsAutoGenerateBackgrounds(data) {
     ? (made ? `فوتیج ${made} صحنه آماده شد.` : "فوتیج در دسترس نبود.")
     : (made ? `Footage ready for ${made} scene${made > 1 ? "s" : ""}.` : "Footage unavailable."));
   if (!vstudio.looping) previewStudioVideo(false);
-  vsOverlayRelease();   // a batch keeps it up until the whole run ends
+  } finally {
+    vstudio._footageBusy = false;
+  }
+  vsOverlayRelease();   // every scene is in; whoever owns the popup may close it
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -7687,7 +7694,10 @@ function vsBatchEta(current, total) {
  * batch's progress down with it made the screen blink empty between every reel.
  */
 function vsOverlayRelease() {
-  if (vstudio._batchExporting || vstudio._batchBusy) return;
+  // Footage generation has several exits that do not agree about who closes
+  // this, so a video could look finished while scenes were still filling in
+  // behind the operator. While the flag is up, nobody closes it.
+  if (vstudio._batchExporting || vstudio._batchBusy || vstudio._footageBusy) return;
   vsBuildOverlay(false);
 }
 
