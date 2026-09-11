@@ -19257,6 +19257,16 @@ function vsReverseEngineer(prefill, opts) {
            </button>
          </div>
          <div id="reToneBody" style="display:none;flex-direction:column;gap:12px">
+         <!-- What shape the reference is, and what we will build from it. Shown
+              because "take the tone" is vague until it is a number of scenes. -->
+         <div id="reFormatPlan" style="display:none;flex-direction:column;gap:8px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.24);border-radius:12px;padding:11px 12px">
+           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+             <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالبِ مرجع" : "Reference format"}</span>
+             <select id="reFormatPick" style="flex:1;min-width:170px"></select>
+           </div>
+           <div id="reFormatWhy" style="font-size:11.5px;color:#aeb9c9;line-height:1.5"></div>
+           <div id="reFormatSpec" style="font:700 11.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff"></div>
+         </div>
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
@@ -19845,6 +19855,8 @@ function vsReverseEngineer(prefill, opts) {
         if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", canSwap ? "false" : "true");
         if ($$("reSwapBody")) $$("reSwapBody").style.display = "none";
         if ($$("reToneBody")) $$("reToneBody").style.display = canSwap ? "none" : "flex";
+        // The reference has just been read, so the plan has real numbers now.
+        if (!canSwap) { try { reRenderFormatPlan(); } catch (e) {} }
       }
       // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
       // The model decides which builder matches the reference: a person talking
@@ -20208,8 +20220,45 @@ function vsReverseEngineer(prefill, opts) {
     else $$("reSwapStripNote").textContent = fa ? "فریمی خوانده نشد؛ از ابتدای ویدیو استفاده می‌شود." : "No frames could be read; the start of the clip is used.";
   }
 
+  /**
+   * Show what taking the tone actually means, in scenes and seconds.
+   *
+   * "We take the reference's structure and tone" is a promise nobody can check.
+   * A plan - nine shots, four seconds each, emphasis captions - is one they can,
+   * and it is the thing the renderer will be held to. The picker is there
+   * because the match is measured, not certain, and a wrong guess should cost a
+   * click rather than a render.
+   */
+  function reRenderFormatPlan() {
+    const box = $$("reFormatPlan"); if (!box || typeof VS_FORMATS === "undefined") return;
+    const det = ref && ref.format;
+    const pick = $$("reFormatPick");
+    if (!pick.options.length) {
+      pick.innerHTML = VS_FORMATS.map((f) => `<option value="${f.id}">${esc(f.label)}</option>`).join("");
+      pick.onchange = reRenderFormatPlan;
+      if (det) pick.value = det.best;
+    }
+    box.style.display = "flex";
+    const f = vsFormat(pick.value);
+    // The reference's own script length if we have one, else a five-line default
+    // so the numbers are never blank.
+    const lines = (ref && ref.titleCards && ref.titleCards.length >= 3) ? ref.titleCards : ["", "", "", "", ""];
+    const plan = vsFormatPlan(f.id, lines, { mode: "borrow" });
+
+    const why = det && det.best === f.id
+      ? (fa ? `از روی اندازه‌گیری: ${(ref.cutInfo && ref.cutInfo.cuts) || 0} برش، ${det.shotSeconds} ثانیه هر نما.`
+            : `Measured from the reference: ${(ref.cutInfo && ref.cutInfo.cuts) || 0} cuts, ${det.shotSeconds}s per shot.`) +
+        (det.confident ? "" : (fa ? ` نزدیک به «${vsFormat(det.runnerUp).label}» هم بود.` : ` It was close to "${vsFormat(det.runnerUp).label}" too.`))
+      : (fa ? "انتخابِ دستی." : "Chosen by hand.");
+    $$("reFormatWhy").textContent = why + " " + f.brief + ".";
+    $$("reFormatSpec").textContent = (fa
+      ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style} · ${plan.took}`
+      : `${plan.scenes} shots × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style} · ${plan.took}`);
+  }
+
   function swapShow(which) {
     const swapOn = which === "swap";
+    if (!swapOn) { try { reRenderFormatPlan(); } catch (e) {} }
     if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", String(swapOn));
     if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", String(!swapOn));
     if ($$("reSwapBody")) $$("reSwapBody").style.display = swapOn ? "flex" : "none";
