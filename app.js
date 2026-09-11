@@ -5535,6 +5535,74 @@ function vsFormat(id) {
 }
 
 /**
+ * Shape a deck to a format.
+ *
+ * The library is only data until something spends it, and what a format really
+ * decides is timing: how many scenes a script gets cut into, how long each one
+ * holds, and how the words are treated. A montage gives a line 1.5 seconds and
+ * no caption; a single take gives the whole script one shot and leans entirely
+ * on the captions. Same script, two different videos.
+ *
+ * `mode` is the difference the reference makes:
+ *
+ *   "borrow"   (default) only the rhythm and the caption treatment are taken.
+ *              Nothing of the reference's content survives. This is what should
+ *              happen almost always.
+ *   "rebuild"  the same, plus the user's own face or footage is expected to
+ *              carry it - so the shot plan leaves room for a person and the
+ *              b-roll budget drops.
+ *
+ * Returns a plan rather than mutating anything, so it can be shown to someone
+ * before it is spent.
+ */
+function vsFormatPlan(formatId, sentences, opts) {
+  const f = vsFormat(formatId);
+  const mode = (opts && opts.mode) === "rebuild" ? "rebuild" : "borrow";
+  const lines = (sentences || []).filter((x) => String(x || "").trim());
+  const [loShot, hiShot] = f.shotSeconds;
+  const [loLen, hiLen] = f.seconds;
+
+  // A single take is one shot whatever the script length; everything else gets
+  // at least a scene per line.
+  const oneShot = f.cuts[1] <= 1;
+  let scenes = oneShot ? 1 : Math.max(1, lines.length);
+
+  // Aim for the middle of the format's own shot length, then pull the whole
+  // thing inside its duration range rather than letting a long script run past
+  // what the shape can carry.
+  let per = (loShot + hiShot) / 2;
+  if (!oneShot) {
+    // A scene per line is wrong for the cut-heavy shapes. Five lines at two
+    // seconds is an eleven second montage, and the references that inspired the
+    // format run fifteen to thirty - one of them cut thirty-two times over
+    // maybe eight lines. So a line gets MORE than one shot here: extra frames of
+    // the same idea, which is exactly what b-roll is for. Shots are added rather
+    // than held longer, because stretching past the format's own shot length is
+    // the one thing that would stop it reading as that format at all.
+    if (per * scenes < loLen) scenes = Math.min(40, Math.ceil(loLen / per));
+    const total = per * scenes;
+    if (total > hiLen) per = hiLen / scenes;
+  } else {
+    per = Math.max(loLen, Math.min(hiLen, lines.join(" ").split(/\s+/).length / 2.6));
+  }
+  per = Math.round(per * 10) / 10;
+
+  return {
+    format: f.id, label: f.label, mode,
+    scenes, secondsPerScene: per, duration: Math.round(per * scenes * 10) / 10,
+    caption: f.caption,
+    // In rebuild the person is the picture, so b-roll steps back one level.
+    broll: mode === "rebuild" && f.broll === "heavy" ? "light" : f.broll,
+    needsFace: mode === "rebuild" ? true : f.needsFace,
+    hook: f.hook, music: f.music, chrome: f.chrome || null,
+    // Said out loud so the operator knows what was taken and what was not.
+    took: mode === "rebuild"
+      ? "pacing, caption treatment and shot plan; your own face and footage"
+      : "pacing and caption treatment only - fresh script, fresh footage",
+  };
+}
+
+/**
  * Which of the six a reference is, judged on what was measured.
  *
  * Deliberately blunt. Shot length separates most of them on its own, and the
