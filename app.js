@@ -21814,6 +21814,67 @@ function vsShowCoverPreview(blob, coverTitle, opts) {
   };
 }
 
+// Where a server render is asked for, if one is configured at all. Empty means
+// there is no service and everything renders in this tab, which is the state
+// this ships in.
+const VS_RENDER_SERVICE = "";
+const VS_RENDER_SERVICE_TIMEOUT_MS = 15000;   // just the handshake, not the render
+
+/**
+ * Render a deck, on a server when there is one and in this tab when there is not.
+ *
+ * The fallback is the point, not a nicety. A render service is a machine that
+ * can be down, out of quota, mid-deploy or simply not built yet, and none of
+ * those should mean the operator cannot make a video. So the browser path stays
+ * the one that is always there, and the server is an optimisation layered on
+ * top - never a dependency.
+ *
+ * Which is also why the handshake has its own short timeout. Waiting sixty
+ * seconds to discover a service is unreachable is worse than never having asked:
+ * by then the person could have had the video.
+ */
+async function vsRenderDeck(deck, opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  const local = async (why) => {
+    if (why) { try { console.log("[render] local:", why); } catch (e) {} }
+    return { via: "browser", note: why || "", ...(await vsHeadlessRender(deck, opts)) };
+  };
+
+  if (!VS_RENDER_SERVICE || opts.local) return local(VS_RENDER_SERVICE ? "asked for" : "no service configured");
+
+  // Ask whether it can take the job before handing it one.
+  let ready = false;
+  try {
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), VS_RENDER_SERVICE_TIMEOUT_MS);
+    const r = await fetch(VS_RENDER_SERVICE + "/health", { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+    ready = r.ok;
+  } catch (e) { ready = false; }
+  if (!ready) {
+    vsAutoStatus(fa ? "سرورِ رندر در دسترس نیست — همین‌جا ساخته می‌شود."
+                    : "Render server unavailable - building it here instead.");
+    return local("health check failed");
+  }
+
+  try {
+    const r = await fetch(VS_RENDER_SERVICE + "/render", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deck: deck, opts: opts }),
+    });
+    if (!r.ok) throw new Error("render " + r.status);
+    const j = await r.json();
+    if (!j || !j.ok || !j.base64) throw new Error((j && j.error) || "no video returned");
+    return { via: "server", ok: true, ext: j.ext || "mp4", bytes: j.bytes, ms: j.ms, base64: j.base64 };
+  } catch (e) {
+    // A server that accepted the job and then failed is still a server that did
+    // not produce a video, so it falls back the same as one that never answered.
+    vsAutoStatus(fa ? "رندرِ سروری نشد — همین‌جا ساخته می‌شود."
+                    : "Server render failed - building it here instead.");
+    return local(String((e && e.message) || e));
+  }
+}
+
 /**
  * Render one deck to an MP4 with nobody watching.
  *
