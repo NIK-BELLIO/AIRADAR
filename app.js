@@ -21814,6 +21814,76 @@ function vsShowCoverPreview(blob, coverTitle, opts) {
   };
 }
 
+/**
+ * Render one deck to an MP4 with nobody watching.
+ *
+ * This is the same renderer the studio uses - the same templates, the same
+ * canvas, the same WebCodecs encoder. It exists so a headless Chrome on a server
+ * can drive it, which is what lets a monthly batch run with the operator's tab
+ * closed and their laptop shut.
+ *
+ * Returns base64 rather than a Blob because the caller is a browser automation
+ * script reading a value out of the page, and a Blob does not survive that
+ * boundary.
+ *
+ * Deliberately does not touch the batch flags: this renders one deck and stops.
+ * Anything that needs a queue belongs to whatever is driving it.
+ */
+async function vsHeadlessRender(deck, opts) {
+  opts = opts || {};
+  const t0 = Date.now();
+  const log = [];
+  const say = (m) => { log.push(Math.round((Date.now() - t0) / 100) / 10 + "s " + m); };
+
+  if (!deck || !deck.sections || !deck.sections.length) throw new Error("no deck");
+
+  // The controls the renderer reads are page state, so set them the way a
+  // person would before pressing export.
+  const set = (sel, val) => { const el = document.querySelector(sel); if (el && val != null) { el.value = String(val); try { el.dispatchEvent(new Event("change")); } catch (e) {} } };
+  set("#vsAspect", opts.aspect || "9:16");
+  set("#vsExportSize", opts.size || 1080);
+  set("#vsExportQuality", opts.quality || "high");
+  if (deck._look && deck._look.grade) set("#vsFilter", deck._look.grade);
+  if (deck.template || (deck._look && deck._look.template)) {
+    vstudio.templateId = deck.template || deck._look.template;
+    try { renderTemplatePicker(); } catch (e) {}
+  }
+
+  say("assembling");
+  vsAssembleFromSections(deck, true);
+  if (!vstudio.slides.length) throw new Error("deck assembled to zero scenes");
+
+  if (opts.footage !== false) {
+    say("footage for " + vstudio.slides.length + " scenes");
+    try { await vsAutoGenerateBackgrounds(deck); }
+    catch (e) { say("footage failed: " + (e && e.message)); }
+  }
+  say("footage done, " + vstudio.slides.filter((s) => s.mediaEl).length + "/" + vstudio.slides.length + " filled");
+
+  // Music, the same way a batch video gets it.
+  if (opts.music !== false && !vstudio._userMusic) {
+    try {
+      const dm = await vsEnsureDefaultMusic(deck);
+      if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+        vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm); }
+    } catch (e) { say("music failed"); }
+  }
+
+  say("encoding");
+  vstudio._returnBlob = true;
+  vstudio._exportName = deck._batchName || deck.title || "render";
+  let res = null;
+  try { res = await exportStudioVideo(); }
+  finally { vstudio._returnBlob = false; vstudio._exportName = null; }
+  if (!res || !res.blob || !res.blob.size) throw new Error("export produced nothing");
+  say("encoded " + Math.round(res.blob.size / 1048576 * 10) / 10 + "MB");
+
+  const buf = new Uint8Array(await res.blob.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+  return { ok: true, ext: res.ext || "mp4", bytes: buf.length, ms: Date.now() - t0, log: log, base64: btoa(bin) };
+}
+
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
