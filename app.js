@@ -1999,6 +1999,13 @@ function renderStudio(message = "") {
   hydrateSlideSources();
   const preview = $("#videoPreview");
   const timeline = $("#timeline");
+  // This is the ORIGINAL studio, which drew into #videoPreview / #timeline and
+  // kept its scenes in state.slides. Video Studio replaced it entirely and keeps
+  // its own in vstudio.slides; no page ships those elements any more, so nothing
+  // reaches this. It is left in place rather than torn out - a hundred and fifty
+  // lines of surgery for no visible gain - but it must not throw if something
+  // ever does call it, because every line below assumes a DOM that is gone.
+  if (!preview || !timeline) return;
   if (!state.slides.length) {
     preview.innerHTML = `<div class="preview-placeholder">${message || t("previewPlaceholder")}</div>`;
     timeline.innerHTML = "";
@@ -5580,8 +5587,16 @@ function vsFormatPlan(formatId, sentences, opts) {
     // than held longer, because stretching past the format's own shot length is
     // the one thing that would stop it reading as that format at all.
     if (per * scenes < loLen) scenes = Math.min(40, Math.ceil(loLen / per));
+    // A long script cannot be squeezed into a short format by shortening the
+    // shots. Two hundred lines of montage used to come out as 0.2s per shot -
+    // five frames, unrenderable, and below the format's own 1.2s floor - while
+    // still running 40s against a 30s ceiling. So the shot length holds at the
+    // format's minimum and the SCENE COUNT gives way instead; whatever does not
+    // fit is reported rather than silently crushed.
+    const maxScenes = Math.max(1, Math.floor(hiLen / loShot));
+    if (scenes > maxScenes) scenes = maxScenes;
     const total = per * scenes;
-    if (total > hiLen) per = hiLen / scenes;
+    if (total > hiLen) per = Math.max(loShot, hiLen / scenes);
   } else {
     per = Math.max(loLen, Math.min(hiLen, lines.join(" ").split(/\s+/).length / 2.6));
   }
@@ -5590,6 +5605,11 @@ function vsFormatPlan(formatId, sentences, opts) {
   return {
     format: f.id, label: f.label, mode,
     scenes, secondsPerScene: per, duration: Math.round(per * scenes * 10) / 10,
+    // Said plainly, because a script that does not fit its format is a decision
+    // for whoever wrote it - cut the script or pick a longer shape - and not
+    // something to discover from a video that ends mid-thought.
+    linesShown: oneShot ? lines.length : Math.min(lines.length, scenes),
+    linesDropped: oneShot ? 0 : Math.max(0, lines.length - scenes),
     caption: f.caption,
     // In rebuild the person is the picture, so b-roll steps back one level.
     broll: mode === "rebuild" && f.broll === "heavy" ? "light" : f.broll,
@@ -5612,9 +5632,20 @@ function vsFormatPlan(formatId, sentences, opts) {
  */
 function vsFormatMatch(opts) {
   opts = opts || {};
-  const dur = Number(opts.duration) || 0;
-  const cuts = Number(opts.cuts) || 0;
+  const dur = Math.max(0, Number(opts.duration) || 0);
+  const cuts = Math.max(0, Math.floor(Number(opts.cuts) || 0));
   const shot = dur > 0 ? dur / Math.max(1, cuts + 1) : 0;
+  // No measurement is not the same as a measurement of zero. Without a duration
+  // every format scores off a shot length of 0, which sits nearest the montage -
+  // so an unmeasured reference came back as a *confident* "Fast montage". It
+  // still returns the workhorse so callers have something to show, but it says
+  // the guess is unmeasured and never claims confidence in it.
+  if (dur <= 0) {
+    const fallback = vsFormat(null);
+    return { best: fallback.id, label: fallback.label, runnerUp: fallback.id,
+             confident: false, measured: false, shotSeconds: 0,
+             ranked: VS_FORMATS.map((f) => ({ id: f.id, label: f.label, score: 0 })) };
+  }
   const v = opts.vision || {};
   const talking = /talking_head|selfie|podcast/.test(String(v.format || ""));
   const captions = !!v.captions;
@@ -5650,7 +5681,7 @@ function vsFormatMatch(opts) {
   }).sort((a, b) => b.score - a.score);
 
   return { best: ranked[0].id, label: ranked[0].label, runnerUp: ranked[1].id,
-           confident: ranked[0].score - ranked[1].score >= 2,
+           confident: ranked[0].score - ranked[1].score >= 2, measured: true,
            shotSeconds: +shot.toFixed(1), ranked: ranked };
 }
 
@@ -20245,15 +20276,27 @@ function vsReverseEngineer(prefill, opts) {
     const lines = (ref && ref.titleCards && ref.titleCards.length >= 3) ? ref.titleCards : ["", "", "", "", ""];
     const plan = vsFormatPlan(f.id, lines, { mode: "borrow" });
 
-    const why = det && det.best === f.id
-      ? (fa ? `از روی اندازه‌گیری: ${(ref.cutInfo && ref.cutInfo.cuts) || 0} برش، ${det.shotSeconds} ثانیه هر نما.`
+    // Only claim a measurement when there was one. An unmeasured reference
+    // returns a default so there is something to show, and saying "measured"
+    // over that would be inventing evidence for a guess.
+    const why = !(det && det.best === f.id)
+      ? (fa ? "انتخابِ دستی." : "Chosen by hand.")
+      : !det.measured
+      ? (fa ? "ریتمِ مرجع اندازه‌گیری نشد — پیش‌فرض، قابل تغییر."
+            : "Could not measure the reference's pacing - this is a default, change it if it is wrong.")
+      : (fa ? `از روی اندازه‌گیری: ${(ref.cutInfo && ref.cutInfo.cuts) || 0} برش، ${det.shotSeconds} ثانیه هر نما.`
             : `Measured from the reference: ${(ref.cutInfo && ref.cutInfo.cuts) || 0} cuts, ${det.shotSeconds}s per shot.`) +
-        (det.confident ? "" : (fa ? ` نزدیک به «${vsFormat(det.runnerUp).label}» هم بود.` : ` It was close to "${vsFormat(det.runnerUp).label}" too.`))
-      : (fa ? "انتخابِ دستی." : "Chosen by hand.");
+        (det.confident ? "" : (fa ? ` نزدیک به «${vsFormat(det.runnerUp).label}» هم بود.` : ` It was close to "${vsFormat(det.runnerUp).label}" too.`));
     $$("reFormatWhy").textContent = why + " " + f.brief + ".";
+    // A script that does not fit its shape is the operator's call to make, so it
+    // is said here rather than discovered from a video that ends mid-thought.
+    const over = plan.linesDropped
+      ? (fa ? ` · ${plan.linesDropped} خط جا نمی‌شود`
+            : ` · ${plan.linesDropped} line${plan.linesDropped === 1 ? "" : "s"} will not fit`)
+      : "";
     $$("reFormatSpec").textContent = (fa
-      ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style} · ${plan.took}`
-      : `${plan.scenes} shot${plan.scenes === 1 ? "" : "s"} × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style} · ${plan.took}`);
+      ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style}${over} · ${plan.took}`
+      : `${plan.scenes} shot${plan.scenes === 1 ? "" : "s"} × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style}${over} · ${plan.took}`);
   }
 
   function swapShow(which) {
