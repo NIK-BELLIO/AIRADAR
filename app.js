@@ -9496,7 +9496,7 @@ function renderSlideList() {
       icon = s._standaloneInfo ? "📊"
         : s._standaloneNews ? "📰"
         : s.isIntro ? "✨"
-        : s.isVideo ? "🎬" : "🖼";
+        : s.isVideo ? "" : "🖼";
       const num = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
       // pull a short hint from whatever text the slide carries
       let hint = s.introMain
@@ -16047,7 +16047,7 @@ function heraRenderTimeline() {
     else if (scene._standaloneNews) badge = "📰";
     else if (i === 0 && scene.isIntro) badge = "✨";
     else if (scene.isOutro) badge = "🏁";
-    else if (scene.isVideo) badge = "🎬";
+    else if (scene.isVideo) badge = "";
     else if (scene.mediaEl) badge = "🖼";
 
     const label = heraSlideLabel(scene, i, n);
@@ -18535,7 +18535,7 @@ function vsCreatorTools(opts) {
     $$("soPhoto").onchange = (e) => { soPhoto = (e.target.files && e.target.files[0]) || null; $$("soPhotoTxt").textContent = soPhoto ? (fa ? "✓ عکس: " : "✓ Photo: ") + soPhoto.name.slice(0, 26) : (fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"); };
     $$("soAI").onclick = async () => {
       const topic = ($$("soTopic").value || "").trim(); if (!topic) { $$("soTopic").focus(); return; }
-      const b = $$("soAI"); b.disabled = true; const old = b.textContent; b.textContent = "⏳";
+      const b = $$("soAI"); b.disabled = true; const old = b.textContent; b.textContent = "···";
       const p = `For a social media post about "${topic}", return ONLY JSON: {"eyebrow":"<1-3 word ALL-CAPS kicker>","headline":"<a punchy line, max 8 words>","subtext":"<one supporting line, max 14 words>"}. ${langLine($$("soLang").value)}`;
       let raw = ""; try { raw = await vsAutoAiChat(p + SPARK_TRUTH, { json: false, temperature: 0.9 }); } catch (e) {}
       const d = vsParseAiJson(raw || "") || {};
@@ -18572,7 +18572,7 @@ function vsCreatorTools(opts) {
     body.innerHTML = backBar("👄 " + (fa ? "لیپ‌سینکِ AI" : "AI Lip-Sync")) +
       `<div style="font-size:12.5px;color:#f5c451;background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.3);border-radius:10px;padding:9px 12px;margin-bottom:12px">💳 ${fa ? `هر ساخت <b>${COST} کردیت</b> · نیاز به ورود · ویدیوی صورت تا ۴۰ ثانیه` : `<b>${COST} credits</b> per run · sign-in required · face video up to 40s`}</div>
        <label id="lsVidLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;cursor:pointer">
-         <span style="font-size:16px">🎬</span><span id="lsVidTxt">${fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"}</span>
+         <span style="font-size:16px"></span><span id="lsVidTxt">${fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"}</span>
          <input id="lsVid" type="file" accept="video/*" style="display:none"/></label>
        <div class="row" style="margin-bottom:10px">
          <div><div class="lbl">${fa ? "صدا" : "Audio"}</div><select id="lsMode"><option value="file">${fa ? "آپلودِ فایلِ صدا" : "Upload audio file"}</option><option value="text">${fa ? "متن → گفتار" : "Text → speech"}</option></select></div>
@@ -18598,7 +18598,7 @@ function vsCreatorTools(opts) {
       const g = $$("lsGo"); g.disabled = true; g.style.opacity = ".6";
       const steps = [];
       const setOut = () => { $$("lsOut").innerHTML = `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;font-size:13px;color:#cfc8ba;line-height:1.9">${steps.join("<br>")}</div>`; };
-      const step = (t) => { steps.push("⏳ " + t); setOut(); return steps.length - 1; };
+      const step = (t) => { steps.push("" + t); setOut(); return steps.length - 1; };
       const done = (i) => { steps[i] = steps[i].replace("⏳", "✓"); setOut(); };
       // 1) Reserve credits (enforced, server-side)
       let jobId = null;
@@ -18788,7 +18788,7 @@ function vsThumbStudio(prefillTopic) {
     const template = (ov.querySelector(".tstpl:checked") || {}).value || "bold";
     const exactTitle = !($$("tsAuto") && $$("tsAuto").checked);   // default: use MY text
     const gen = $$("tsGen"); gen.disabled = true; gen.style.opacity = ".6";
-    gen.textContent = "⏳ " + (fa ? "در حال ساخت…" : "Generating…");
+    gen.textContent = "" + (fa ? "در حال ساخت…" : "Generating…");
     const zipBtn = $$("tsZip"); if (zipBtn) zipBtn.style.display = "none";
     results.length = 0;
     const grid = $$("tsGrid"); grid.innerHTML = "";
@@ -18837,7 +18837,7 @@ function vsThumbStudio(prefillTopic) {
   $$("tsZip").onclick = async () => {
     if (!results.length) return;
     const zb = $$("tsZip"); const old = zb.textContent;
-    zb.disabled = true; zb.textContent = "⏳ " + (fa ? "در حال بسته‌بندی…" : "Zipping…");
+    zb.disabled = true; zb.textContent = "" + (fa ? "در حال بسته‌بندی…" : "Zipping…");
     try {
       const JSZip = await vsLoadJSZip();
       const zip = new JSZip();
@@ -19224,6 +19224,33 @@ async function vsCharge(action, extra) {
 }
 function vsSettle(jobId, status) { if (!jobId) return; try { fetch("/api/credits/settle", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }).then(() => { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} }); } catch (e) {} }
 
+/**
+ * The panel's icons, drawn rather than typed.
+ *
+ * Emoji render differently on every platform, carry a colour nobody chose, and
+ * sit at whatever size and baseline the font decides - which is why a panel full
+ * of them never looks like one product. These inherit currentColor and the line
+ * weight of everything around them.
+ */
+function reIco(name, size) {
+  const d = {
+    dna:      '<path d="M7 3c0 5 10 6 10 9s-10 4-10 9"/><path d="M17 3c0 5-10 6-10 9s10 4 10 9"/><path d="M8.5 6.5h7M7.5 12h9M8.5 17.5h7"/>',
+    scenes:   '<rect x="3" y="5" width="8" height="6" rx="1.4"/><rect x="13" y="5" width="8" height="6" rx="1.4"/><rect x="3" y="13" width="8" height="6" rx="1.4"/><rect x="13" y="13" width="8" height="6" rx="1.4"/>',
+    camera:   '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.5l5-2.5v8l-5-2.5"/>',
+    script:   '<path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8.5 12h7M8.5 16h5"/>',
+    caption:  '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7.5 10.5h4M7.5 14h9M14.5 10.5h2"/>',
+    speaker:  '<path d="M12 3a3.5 3.5 0 0 1 3.5 3.5v4a3.5 3.5 0 0 1-7 0v-4A3.5 3.5 0 0 1 12 3z"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/>',
+    slides:   '<rect x="3" y="4" width="18" height="13" rx="2"/><circle cx="8.5" cy="9" r="1.4"/><path d="M21 14l-5-4.5-7 6"/><path d="M8 21h8"/>',
+    eye:      '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+    hand:     '<path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M12 11V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M15 11V6.5a1.5 1.5 0 0 1 3 0V13c0 4-2.5 7-6.5 7S5 17.5 5 13v-1.5a1.5 1.5 0 0 1 3 0"/>',
+    lock:     '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+    clock:    '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    film:     '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7.5 4v16M16.5 4v16M3 12h18M3 8h4.5M3 16h4.5M16.5 8H21M16.5 16H21"/>',
+  }[name] || '';
+  const px = size || 14;
+  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex:none">${d}</svg>`;
+}
+
 function vsReverseEngineer(prefill, opts) {
   opts = opts || {};
   // One panel, ever. A second call would otherwise put two #reModal - and two
@@ -19435,24 +19462,24 @@ function vsReverseEngineer(prefill, opts) {
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
          <div id="reFmt" style="font-size:12.5px;font-weight:700;border-radius:10px;padding:10px 12px;line-height:1.5"></div>
          <div class="step">
-           <div class="lbl">🧬 ${fa ? "دی‌ان‌ای سبک" : "Style DNA"}</div>
+           <div class="lbl">${reIco("dna")} ${fa ? "دی‌ان‌ای سبک" : "Style DNA"}</div>
            <div id="reDna" class="dna"></div>
            <div id="reTags" style="margin-top:9px"></div>
          </div>
          <div class="step">
-           <div class="lbl">🎬 ${fa ? "ساختار صحنه‌ها" : "Scene structure"}</div>
+           <div class="lbl">${reIco("scenes")} ${fa ? "ساختار صحنه‌ها" : "Scene structure"}</div>
            <div id="reBeats"></div>
          </div>
          <div class="step" id="reShotStep" style="display:none">
-           <div class="lbl">🎥 ${fa ? "شات‌لیستِ ویدیوی مرجع (همین بازسازی می‌شود)" : "Reference shot list (this is what gets rebuilt)"}</div>
+           <div class="lbl">${reIco("camera")} ${fa ? "شات‌لیستِ ویدیوی مرجع (همین بازسازی می‌شود)" : "Reference shot list (this is what gets rebuilt)"}</div>
            <div id="reShots" class="dna"></div>
          </div>
          <div class="step">
-           <div class="lbl">📝 ${fa ? "اسکریپت (قابل ویرایش — همین ساخته می‌شود)" : "Script (editable — this is what gets built)"}</div>
+           <div class="lbl">${reIco("script")} ${fa ? "اسکریپت (قابل ویرایش — همین ساخته می‌شود)" : "Script (editable — this is what gets built)"}</div>
            <textarea id="reScript" rows="8"></textarea>
          </div>
          <div class="step">
-           <div class="lbl">✍️ ${fa ? "کپشن پیشنهادی" : "Suggested caption"} <button id="reCopyCap" type="button" class="btn" style="float:${fa ? 'left' : 'right'};padding:4px 10px;font-size:11px;background:rgba(255,255,255,.08);color:#cfc8ba">${fa ? "کپی" : "Copy"}</button></div>
+           <div class="lbl">${reIco("caption")} ${fa ? "کپشن پیشنهادی" : "Suggested caption"} <button id="reCopyCap" type="button" class="btn" style="float:${fa ? 'left' : 'right'};padding:4px 10px;font-size:11px;background:rgba(255,255,255,.08);color:#cfc8ba">${fa ? "کپی" : "Copy"}</button></div>
            <div id="reCaption" style="font-size:13px;color:#d8d2c6;white-space:pre-wrap;line-height:1.55"></div>
          </div>
        </div>
@@ -19494,8 +19521,8 @@ function vsReverseEngineer(prefill, opts) {
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
-           <button type="button" id="reFmtTalk" class="re-fmtseg" data-fmt="talking_head">🗣 ${fa ? "آدمِ سخنگو" : "Talking-head"}</button>
-           <button type="button" id="reFmtSlide" class="re-fmtseg" data-fmt="carousel">🖼 ${fa ? "اسلایدشو/کاروسل" : "Slideshow/carousel"}</button>
+           <button type="button" id="reFmtTalk" class="re-fmtseg" data-fmt="talking_head">${reIco("speaker", 12)} ${fa ? "آدمِ سخنگو" : "Talking-head"}</button>
+           <button type="button" id="reFmtSlide" class="re-fmtseg" data-fmt="carousel">${reIco("slides", 12)} ${fa ? "اسلایدشو/کاروسل" : "Slideshow/carousel"}</button>
          </div>
          <!-- Shared media: add your OWN image / voice to ANY build ─────── -->
          <div class="re-anymedia">
@@ -19722,7 +19749,7 @@ function vsReverseEngineer(prefill, opts) {
     const url = ($$("reUrl").value || "").trim();
     if (!url) { $$("reUrl").focus(); return; }
     const charge = await vsCharge("analyze"); if (charge.block) return;   // 1 credit (Apify read)
-    const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "⏳";
+    const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "···";
     try {
       ref = await vsReverseFetchPost(url);
       // Keep the address it came from. An Instagram /reel/ or /tv/ link IS a
@@ -19750,8 +19777,8 @@ function vsReverseEngineer(prefill, opts) {
         const isProf = ref && ref.isProfile;
         card.innerHTML = `<div style="font-size:12.5px;color:#e0b088;line-height:1.6">${
           isProf
-            ? (fa ? "🔒 اینستاگرام محتوای این <b>صفحه</b> را برای ربات‌ها می‌بندد (صفحهٔ ورود برمی‌گردد). چند تا از کپشن‌های این صفحه را در کادرِ پایین پیست کن — سبکِ مشترکِ همه را درمی‌آورم." : "🔒 Instagram blocks bot reads of this <b>page</b> (it returns a login wall). Paste a few of the page's captions into the box below — I'll extract their shared style.")
-            : (fa ? "🔒 اینستاگرام خواندنِ این پست را بست. کپشنِ پست را در کادرِ پایین پیست کن (می‌توانی چند پست را با هم بگذاری)." : "🔒 Instagram blocked reading this post. Paste the post's caption into the box below (you can paste several posts together).")
+            ? (fa ? "اینستاگرام محتوای این <b>صفحه</b> را برای ربات‌ها می‌بندد (صفحهٔ ورود برمی‌گردد). چند تا از کپشن‌های این صفحه را در کادرِ پایین پیست کن — سبکِ مشترکِ همه را درمی‌آورم." : "Instagram blocks bot reads of this <b>page</b> (it returns a login wall). Paste a few of the page's captions into the box below — I'll extract their shared style.")
+            : (fa ? "اینستاگرام خواندنِ این پست را بست. کپشنِ پست را در کادرِ پایین پیست کن (می‌توانی چند پست را با هم بگذاری)." : "Instagram blocked reading this post. Paste the post's caption into the box below (you can paste several posts together).")
         }</div>`;
         setTimeout(() => { try { $$("rePaste").focus(); } catch (e) {} }, 30);
       }
@@ -19784,13 +19811,13 @@ function vsReverseEngineer(prefill, opts) {
         // across the clip and vision-analyze each, so the burned-in title
         // cards (and the format/setting guess) reflect the WHOLE video, not
         // one frozen instant.
-        lbl.textContent = (fa ? "⏳ در حال نمونه‌برداری از ویدیو…" : "⏳ Sampling the video…");
+        lbl.textContent = (fa ? "در حال نمونه‌برداری از ویدیو…" : "Sampling the video…");
         const frames = await vsVideoFrames(file, [0.06, 0.3, 0.55, 0.8]);
         if (!frames.length) throw new Error(fa ? "فریمی از ویدیو گرفته نشد" : "couldn't read any video frame");
         refDuration = await vsVideoDuration(file);
         const fracs = [0.06, 0.3, 0.55, 0.8];
         for (let i = 0; i < frames.length; i++) {
-          lbl.textContent = (fa ? `⏳ تحلیلِ فریمِ ${i + 1}/${frames.length}` : `⏳ Analyzing frame ${i + 1}/${frames.length}`);
+          lbl.textContent = (fa ? `تحلیلِ فریمِ ${i + 1}/${frames.length}` : `Analyzing frame ${i + 1}/${frames.length}`);
           if (!thumbUrl) thumbUrl = localPreview(frames[i]);
           const vis = await vsVisionAnalyze(frames[i]); if (!vis) continue;
           if (!vision || (vis.onscreen_text && !vision.onscreen_text)) vision = vis;   // keep the richest read for format/setting/mic
@@ -19807,14 +19834,14 @@ function vsReverseEngineer(prefill, opts) {
         if (!vision && !shotList.length) throw new Error(fa ? "تحلیلِ فریم‌ها ناموفق بود" : "could not read any frame");
         // How fast it cuts, measured rather than guessed. This is what decides
         // which of the six shapes it is.
-        lbl.textContent = (fa ? "⏳ اندازه‌گیریِ ریتم…" : "⏳ Measuring the pacing…");
+        lbl.textContent = (fa ? "اندازه‌گیریِ ریتم…" : "Measuring the pacing…");
         try {
           const rate = await vsVideoCutRate(file);
           cutInfo = rate;
           format = vsFormatMatch({ duration: rate.duration || refDuration, cuts: rate.cuts, vision: vision || {} });
         } catch (e) { /* the shape is a nicety; the rest of the read still stands */ }
       } else {
-        lbl.textContent = (fa ? "⏳ در حال تحلیلِ " : "⏳ Analyzing ") + file.name.slice(0, 22);
+        lbl.textContent = (fa ? "در حال تحلیلِ " : "Analyzing ") + file.name.slice(0, 22);
         thumbUrl = localPreview(file);
         vision = await vsVisionAnalyze(file);
         if (!vision) throw new Error(fa ? "تحلیلِ عکس ناموفق بود" : "could not read that image");
@@ -19847,7 +19874,7 @@ function vsReverseEngineer(prefill, opts) {
     if (!prompt) { vsStatus(fa ? "اول موضوع/پرامپت را بنویس." : "Enter your topic / prompt first."); $$("rePrompt").focus(); return; }
     const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
     const go = $$("reGo"); go.disabled = true; const old = go.innerHTML;
-    go.textContent = "⏳ " + (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
+    go.textContent = (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
     // Visible staged progress — a button that just says "working" leaves the
     // user staring at a blank canvas with no idea which step is running or
     // whether it's stuck.
@@ -19901,7 +19928,7 @@ function vsReverseEngineer(prefill, opts) {
       // ── REAL-VIDEO ANALYSIS: "watch" the cover frame and let it OVERRIDE the
       // text-only guess (podcast? mic? burned captions? environment?). ──────────
       if (ref && ref.thumb) {
-        go.textContent = "👁️ " + (fa ? "در حال دیدنِ پست…" : "Watching the post…");
+        go.textContent = (fa ? "در حال دیدنِ پست…" : "Watching the post…");
         const vis = ref.vision || await vsVisionAnalyze(ref.thumb);   // reuse upload's analysis
         // A pasted Instagram link only ever gives us ONE static cover image from
         // Apify — that misses a progressive on-screen caption reveal ("MY" →
@@ -19912,7 +19939,7 @@ function vsReverseEngineer(prefill, opts) {
         let linkTitleCards = [];
         if (ref.videoUrl && !ref.uploaded) {
           try {
-            go.textContent = "👁️ " + (fa ? "در حال دیدنِ کلیپ…" : "Watching the full clip…");
+            go.textContent = (fa ? "در حال دیدنِ کلیپ…" : "Watching the full clip…");
             // Pull the real clip once, then read every sampled frame at SHOT
             // level: framing, camera move, angle, blocking, lighting. That shot
             // list is what lets the rebuild follow the reference's filmmaking —
@@ -20162,7 +20189,7 @@ function vsReverseEngineer(prefill, opts) {
       if (blueprint.captions) extras.push(fa ? "متنِ درشت" : "big text");
       if (blueprint.titleCard) extras.push((fa ? "کارتِ عنوان: " : "title card: ") + "“" + blueprint.titleCard + "”");
       const extraTxt = extras.length ? (fa ? " (با " : " (with ") + extras.join(fa ? " و " : " + ") + ")" : "";
-      const seenTag = seen ? (fa ? "👁️ از روی پست دیده شد" : "👁️ Saw the post") : (fa ? "فرمت" : "Format");
+      const seenTag = seen ? (reIco("eye", 12) + " " + (fa ? "از روی پست دیده شد" : "Saw the post")) : (fa ? "فرمت" : "Format");
       // Apply a route to the UI: badge text/color + which cards get "MATCHES
       // ORIGINAL". Pulled into a function so BOTH the auto-detect result AND a
       // manual correction (the "Wrong guess?" toggle below — auto-detection on
@@ -20174,8 +20201,8 @@ function vsReverseEngineer(prefill, opts) {
         const col = rt === "talking_head" ? ["rgba(245,196,81,.10)", "rgba(245,196,81,.32)", "#f5c451"] : rt === "carousel" ? ["rgba(37,99,255,.10)", "rgba(91,155,255,.32)", "#a9c2ff"] : ["rgba(34,211,238,.10)", "rgba(34,211,238,.32)", "#9fe6f0"];
         fmt.style.background = col[0]; fmt.style.border = "1px solid " + col[1]; fmt.style.color = col[2];
         const titleNote = blueprint.titleCard && rt === "talking_head" ? (fa ? ` — عنوانِ «${blueprint.titleCard}» رویِ ویدیوی نهایی هم سوار می‌شود` : ` — the “${blueprint.titleCard}” title card will be burned onto the final video too`) : "";
-        const leadTag = manual ? (fa ? "✋ اصلاحِ دستی" : "✋ Manually corrected") : seenTag;
-        fmt.innerHTML = `${leadTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم 👇" : "I've pulled the “matches original” cards up front 👇"}${titleNote}`;
+        const leadTag = manual ? (reIco("hand", 12) + " " + (fa ? "اصلاحِ دستی" : "Manually corrected")) : seenTag;
+        fmt.innerHTML = `${leadTag}: <b>${esc(routeName)}</b>${extraTxt} — ${fa ? "کارت‌های «مثلِ اصل» را برایت جلو آوردم " : "I've pulled the “matches original” cards up front "}${titleNote}`;
         // Highlight the matching builder cards (badge + pull to front); the rest
         // stay available but muted. A slideshow/photo post recommends BOTH the
         // carousel and the free slideshow-video builders, so it's built LIKE the
@@ -20232,7 +20259,7 @@ function vsReverseEngineer(prefill, opts) {
     if (!topic || typeof buildAutoVideo !== "function") {
       try {
         localStorage.setItem("vsReHandoff", JSON.stringify({ topic: topicVal, len: lenVal, aspect: aspVal, ts: Date.now() }));
-        vsStatus(fa ? "🎬 استودیو در تبِ جدید باز شد — این صفحه دست‌نخورده می‌ماند." : "🎬 Opened Video Studio in a new tab — this page stays as it is.");
+        vsStatus(fa ? "استودیو در تبِ جدید باز شد — این صفحه دست‌نخورده می‌ماند." : "Opened Video Studio in a new tab — this page stays as it is.");
         // A same-tab navigation threw away the whole analysis (blueprint,
         // script, uploaded photo, shot list) the moment the user hit build.
         window.open("/studio/?reHandoff=1", "_blank", "noopener");
@@ -20248,7 +20275,7 @@ function vsReverseEngineer(prefill, opts) {
     if (asp) { asp.value = aspVal; try { asp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e) {} }
     const batch = document.querySelector("#vsAutoBatch"); if (batch && batch.checked) { try { batch.click(); } catch (e) {} }
     close();
-    vsStatus(fa ? "🎬 در حال ساخت ویدیو با سبکِ مهندسی‌معکوس‌شده…" : "🎬 Building your video in the reverse-engineered style…");
+    vsStatus(fa ? "در حال ساخت ویدیو با سبکِ مهندسی‌معکوس‌شده…" : "Building your video in the reverse-engineered style…");
     try { buildAutoVideo(true); } catch (e) {}
   };
 
@@ -20370,7 +20397,7 @@ function vsReverseEngineer(prefill, opts) {
   $$("reBuildCar").onclick = async () => {
     const script = ($$("reScript").value || "").trim();
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
-    const b = $$("reBuildCar"); b.disabled = true; const old = b.textContent; b.textContent = "⏳ …";
+    const b = $$("reBuildCar"); b.disabled = true; const old = b.textContent; b.textContent = "…";
     const szMap = { "4:5": [1080, 1350], "1:1": [1080, 1080], "9:16": [1080, 1920] };
     const sz = szMap[($$("reCarSize") && $$("reCarSize").value) || "4:5"] || szMap["4:5"];
     try {
@@ -21442,7 +21469,7 @@ async function vsBuildCarousel(script, opts) {
   if (results.length) {
     zip.style.display = "";
     zip.onclick = async () => {
-      const old = zip.textContent; zip.disabled = true; zip.textContent = "⏳ …";
+      const old = zip.textContent; zip.disabled = true; zip.textContent = "…";
       try {
         const JSZip = await vsLoadJSZip(); const z = new JSZip();
         results.forEach(r => z.file(r.name, r.blob));
@@ -22051,7 +22078,7 @@ async function vsReverseMotionClip(opts) {
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
   ov.innerHTML =
     `<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.32);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
-       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px">🎬</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#eaf1ff">${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</span></div>
+       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px"></span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#eaf1ff">${fa ? "نمای سینمایی (حرکتِ دوربین)" : "Cinematic motion (camera move)"}</span></div>
        <p style="font-size:12.5px;color:#9fb0c8;line-height:1.55;margin:0 0 14px">${fa ? "یک عکس را به یک کلیپِ کوتاهِ متحرک با حرکتِ دوربین/تغییرِ زاویه تبدیل می‌کند — همون حسِ ویدیوی مرجع. لب‌همزمانی ندارد." : "Turns one still into a short moving clip with camera movement / angle change — the feel of the reference video. No lip-sync."}</p>
        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
          <select id="mcRes"><option value="768P">768p</option><option value="480P">480p</option></select>
@@ -24870,7 +24897,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
             var ln = $id("vsAutoLen"); if (ln) ln.value = wantShort ? "short" : (d.length && d.length !== "short" ? d.length : "medium");
             // Everything stays IN THE CHAT: suppress the studio's full-screen build
             // popup and show progress here instead.
-            var prog = add("assistant", fa() ? "🎬 در حال ساخت ویدیو… (حدود ۳۰–۶۰ ثانیه)" : "🎬 Building your video… (about 30-60s)");
+            var prog = add("assistant", fa() ? "در حال ساخت ویدیو… (حدود ۳۰–۶۰ ثانیه)" : "Building your video… (about 30-60s)");
             var _bo = window.vsBuildOverlay;
             try { window.vsBuildOverlay = function () {}; } catch (e) {}
             // Use the AI builder (true), not the local text-splitter (false): a bare
@@ -24935,7 +24962,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
       var ln = $id("vsAutoLen"); if (ln && !ln.value) ln.value = "medium";
       var prog = add("assistant", doBatch
         ? (fa() ? "🗂️ در حال ساخت یک ویدیو برای هر مورد… (ممکن است ۱–۲ دقیقه طول بکشد)" : "🗂️ Building a video for each item… (may take 1-2 min)")
-        : (fa() ? "🎬 در حال ساخت ویدیو…" : "🎬 Building your video…"));
+        : (fa() ? "در حال ساخت ویدیو…" : "Building your video…"));
       // For a SINGLE video, keep progress in the chat; for BATCH, let the studio's
       // own per-item progress panel show (it tracks each item separately).
       var suppress = !doBatch, _bo;
