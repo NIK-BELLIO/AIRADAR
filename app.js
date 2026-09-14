@@ -5695,12 +5695,12 @@ function vsFormatMatch(opts) {
  * template and discovering its price afterwards.
  */
 const VS_FORMAT_BUILD = {
-  single_take:       { method: "Talking-head",     note: "a face speaks your script",            perSec: 5 },
-  branded_interview: { method: "Slideshow video",  note: "on-device canvas, your own frame",     perSec: 0 },
-  broll_presenter:   { method: "Slideshow video",  note: "on-device canvas + stock footage",     perSec: 0 },
-  fast_montage:      { method: "Slideshow video",  note: "on-device canvas, music-led",          perSec: 0 },
-  skit:              { method: "Scene-by-scene",   note: "each beat generated separately",       perSec: 9 },
-  kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0 },
+  single_take:       { method: "Talking-head",     note: "a face speaks your script",            perSec: 5, route: "talking_head" },
+  branded_interview: { method: "Slideshow video",  note: "on-device canvas, your own frame",     perSec: 0, route: "video" },
+  broll_presenter:   { method: "Slideshow video",  note: "on-device canvas + stock footage",     perSec: 0, route: "video" },
+  fast_montage:      { method: "Slideshow video",  note: "on-device canvas, music-led",          perSec: 0, route: "video" },
+  skit:              { method: "Scene-by-scene",   note: "each beat generated separately",       perSec: 9, route: "scene" },
+  kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0, route: "video" },
 };
 
 /**
@@ -5742,7 +5742,7 @@ function vsFormatBuild(id) {
   const b = VS_FORMAT_BUILD[f.id] || VS_FORMAT_BUILD.broll_presenter;
   const plan = vsFormatPlan(f.id, ["", "", "", "", ""], { mode: "borrow" });
   const render = b.perSec ? Math.ceil(plan.duration * b.perSec) : 0;
-  return { format: f, plan, method: b.method, note: b.note, perSec: b.perSec,
+  return { format: f, plan, method: b.method, note: b.note, perSec: b.perSec, route: b.route || "video",
            render, script: VS_SCRIPT_CREDITS, credits: VS_SCRIPT_CREDITS + render };
 }
 
@@ -20230,6 +20230,21 @@ function vsReverseEngineer(prefill, opts) {
         // With the real clip in hand, motion transfer reproduces the original's
         // OWN motion — the closest match to any reference — so it leads.
         if (ref && ref.refVideo) recRoutes.unshift("motion");
+
+        // What the operator actually asked for wins over what the reference
+        // happened to be. Without this, picking "Fast montage" - built by the
+        // on-device slideshow - still put Talking-head on top, because the
+        // template was never consulted.
+        if (!manual) {
+          if (reWantMode === "character") {
+            // Being in it means a face route; motion transfer keeps the original
+            // footage and is the closest of them when we hold the clip.
+            recRoutes = (ref && ref.refVideo) ? ["motion", "talking_head", "lipsync"] : ["talking_head", "lipsync"];
+          } else if (reWantSource === "template" && rePickedTemplate) {
+            const want = vsFormatBuild(rePickedTemplate).route;
+            recRoutes = [want].concat(recRoutes.filter((r) => r !== want));
+          }
+        }
         const root = page ? document : ov;
         root.querySelectorAll(".re-mcard").forEach((c) => {
           c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
