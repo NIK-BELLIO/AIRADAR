@@ -19211,6 +19211,19 @@ function vsReverseEngineer(prefill, opts) {
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
        </div>
 
+       <!-- A reference is one way in, not the only one. These are the six shapes
+            measured off a reference set, ready to use on their own: someone who
+            already knows they want a fast montage should not have to find a reel
+            that happens to be one and pay a credit to have it recognised. -->
+       <div class="step" id="reTplStep">
+         <div class="lbl"><span class="num">✦</span>${fa ? "یا از یک قالبِ آماده شروع کن" : "Or start from a ready template"}</div>
+         <div class="re-paneldesc" style="font-size:12px;color:#96a0ac;margin:-6px 0 10px">${fa
+            ? "بدون مرجع و بدون هزینه — ریتم و نوعِ کپشن از همین قالب می‌آید."
+            : "No reference, no credit — the pacing and caption style come from the template itself."}</div>
+         <div id="reTplList" style="display:flex;flex-direction:column;gap:7px"></div>
+         <button type="button" id="reTplClear" style="display:none;margin-top:9px;width:100%;padding:8px;border-radius:9px;cursor:pointer;font:inherit;font-size:12px;background:transparent;color:#8ea6c8;border:1px solid rgba(255,255,255,.14)">${fa ? "برداشتنِ قالب" : "Clear template"}</button>
+       </div>
+
        <div class="step">
          <div class="lbl"><span class="num">2</span>${fa ? "اطلاعاتِ تو" : "Your info"}</div>
          <div style="margin-bottom:10px"><input id="rePrompt" type="text" value="${esc(prompt0)}" placeholder="${fa ? "موضوع — ویدیو دربارهٔ چه چیزی باشد؟" : "Topic — what should the video be about?"}"/></div>
@@ -20293,15 +20306,71 @@ function vsReverseEngineer(prefill, opts) {
    * because the match is measured, not certain, and a wrong guess should cost a
    * click rather than a render.
    */
+  /**
+   * The six shapes, offered directly.
+   *
+   * Chosen here they need no reference and cost nothing: the pacing and the
+   * caption treatment are properties of the shape itself, which is the whole
+   * reason it was worth measuring them off a reference set in the first place.
+   * A template picked here outranks a detected one, because it is the only one
+   * of the two the operator actually asked for.
+   */
+  // A shape the operator picked outright, with or without a reference.
+  let rePickedTemplate = null;
+
+  function reBuildTemplateList() {
+    const wrap = $$("reTplList");
+    if (!wrap || typeof VS_FORMATS === "undefined") return;
+    wrap.innerHTML = VS_FORMATS.map((f) => {
+      const p = vsFormatPlan(f.id, ["", "", "", "", ""], { mode: "borrow" });
+      const shots = p.scenes === 1 ? "1 shot" : p.scenes + " shots";
+      return `<button type="button" class="re-tpl" data-tpl="${f.id}" style="text-align:start;padding:9px 11px;border-radius:11px;cursor:pointer;font:inherit;
+          background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);color:#dbe6ff;transition:.14s">
+        <div style="font-weight:800;font-size:12.5px">${esc(f.label)}</div>
+        <div style="font-size:11px;color:#93a3bb;margin-top:2px;line-height:1.45">${esc(f.brief)}</div>
+        <div style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:4px">${shots} × ${p.secondsPerScene}s · ${p.duration}s · ${esc(p.caption.style)}</div>
+      </button>`;
+    }).join("");
+    wrap.querySelectorAll(".re-tpl").forEach((b) => {
+      b.onclick = () => reSelectTemplate(b.dataset.tpl);
+    });
+    rePaintTemplateList();
+  }
+
+  function rePaintTemplateList() {
+    const wrap = $$("reTplList"); if (!wrap) return;
+    wrap.querySelectorAll(".re-tpl").forEach((b) => {
+      const on = b.dataset.tpl === rePickedTemplate;
+      b.style.borderColor = on ? "rgba(52,211,153,.55)" : "rgba(255,255,255,.10)";
+      b.style.background = on ? "rgba(52,211,153,.12)" : "rgba(255,255,255,.035)";
+    });
+    const clear = $$("reTplClear");
+    if (clear) clear.style.display = rePickedTemplate ? "" : "none";
+  }
+
+  function reSelectTemplate(id) {
+    rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
+    rePaintTemplateList();
+    // The panel is the one place the chosen shape is explained, so show it even
+    // when nothing has been analysed.
+    try { reRenderFormatPlan(); } catch (e) {}
+  }
+
   function reRenderFormatPlan() {
     const box = $$("reFormatPlan"); if (!box || typeof VS_FORMATS === "undefined") return;
     const det = ref && ref.format;
     const pick = $$("reFormatPick");
     if (!pick.options.length) {
       pick.innerHTML = VS_FORMATS.map((f) => `<option value="${f.id}">${esc(f.label)}</option>`).join("");
-      pick.onchange = reRenderFormatPlan;
+      pick.onchange = () => { rePickedTemplate = pick.value; rePaintTemplateList(); reRenderFormatPlan(); };
       if (det) pick.value = det.best;
     }
+    // A template chosen by hand outranks a detected one - it is the only one of
+    // the two the operator actually asked for.
+    if (rePickedTemplate && pick.value !== rePickedTemplate) pick.value = rePickedTemplate;
+    // Shown when there is something to say: a reference was read, or a template
+    // was chosen. Otherwise it is an empty green box explaining nothing.
+    if (!det && !rePickedTemplate) { box.style.display = "none"; return; }
     box.style.display = "flex";
     const f = vsFormat(pick.value);
     // The reference's own script length if we have one, else a five-line default
@@ -20317,7 +20386,10 @@ function vsReverseEngineer(prefill, opts) {
     // Only claim a measurement when there was one. An unmeasured reference
     // returns a default so there is something to show, and saying "measured"
     // over that would be inventing evidence for a guess.
-    const why = !(det && det.best === f.id)
+    const why = (rePickedTemplate === f.id && !(det && det.best === f.id))
+      ? (fa ? "قالبِ آماده — بدونِ مرجع."
+            : "A ready template - no reference needed.")
+      : !(det && det.best === f.id)
       ? (fa ? "انتخابِ دستی." : "Chosen by hand.")
       : !det.measured
       ? (fa ? "ریتمِ مرجع اندازه‌گیری نشد — پیش‌فرض، قابل تغییر."
@@ -20348,6 +20420,8 @@ function vsReverseEngineer(prefill, opts) {
     if ($$("reToneBody")) $$("reToneBody").style.display = swapOn ? "none" : "flex";
     if (swapOn && !swapState.built) { swapState.built = true; swapBuildStrip(); swapRefresh(); }
   }
+  try { reBuildTemplateList(); } catch (e) {}
+  if ($$("reTplClear")) $$("reTplClear").onclick = () => reSelectTemplate(rePickedTemplate);
   if ($$("reForkSwap")) $$("reForkSwap").onclick = () => swapShow("swap");
   if ($$("reForkTone")) $$("reForkTone").onclick = () => swapShow("tone");
 
