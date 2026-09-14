@@ -19703,6 +19703,9 @@ function vsReverseEngineer(prefill, opts) {
       try { $$("rePasteWrap").open = true; } catch (e2) {}
       $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${fa ? "خطا در خواندن لینک — کپشن را در کادرِ پایین پیست کن." : "Error reading the link — paste the caption into the box below."}</div>`;
     }
+    // The reference has been read: show the shapes now, while there is still a
+    // choice to make. Rendering them from the build step was a step too late.
+    try { reRenderTemplateGallery(); } catch (e2) {}
     b.disabled = false; b.innerHTML = old;
   };
 
@@ -19775,6 +19778,7 @@ function vsReverseEngineer(prefill, opts) {
         <div style="flex:1;min-width:0"><div style="font-weight:800;color:#efe9dc;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
         <div style="font-size:12px;color:#b8b1a4;margin-top:3px">${esc(seenTxt)}</div>${fmtTxt}${cardsTxt}</div>`;
     } catch (err) { $$("reRefCard").style.display = "flex"; $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#e0b088">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
+    try { reRenderTemplateGallery(); } catch (e2) {}
     lbl.textContent = old; e.target.value = "";
   };
 
