@@ -19532,6 +19532,10 @@ function vsReverseEngineer(prefill, opts) {
     const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "⏳";
     try {
       ref = await vsReverseFetchPost(url);
+      // Keep the address it came from. An Instagram /reel/ or /tv/ link IS a
+      // video by definition, and that is the one thing about this reference
+      // that cannot be wrong - unlike a guess read off a single cover frame.
+      if (ref) ref.srcUrl = url;
       // Only a real caption counts — refund the credit if IG couldn't be read.
       vsSettle(charge.jobId, (ref && ref.ok) ? "done" : "failed");
       const card = $$("reRefCard");
@@ -19723,6 +19727,19 @@ function vsReverseEngineer(prefill, opts) {
               blueprint.refDuration = await vsVideoDuration(vblob);
               ref.refVideo = vblob;   // motion transfer drives off the real clip
               linkTitleCards = sl.cards;
+              // We are holding the actual clip, so the pacing can be measured
+              // rather than guessed - the same read an uploaded file gets. This
+              // was only wired to the upload path, which is why a reel pulled
+              // from a link always showed its format as "chosen by hand".
+              try {
+                const rate = await vsVideoCutRate(vblob);
+                ref.cutInfo = rate;
+                ref.format = vsFormatMatch({
+                  duration: rate.duration || blueprint.refDuration,
+                  cuts: rate.cuts,
+                  vision: ref.vision || {},
+                });
+              } catch (e) { /* the shape is a nicety; the rebuild still works */ }
             }
           } catch (e) {}
         }
@@ -19835,7 +19852,16 @@ function vsReverseEngineer(prefill, opts) {
       if ($$("reSceneCard")) $$("reSceneCard").style.display = multiShot ? "" : "none";
       // Motion transfer needs the ACTUAL reference clip in hand — only offer it
       // when we have one (a reel link we could fetch, or an uploaded video).
+      // Is the reference a moving video? Three ways to know, in order of how
+      // much they can be trusted:
+      //   - we are holding the clip (uploaded, or pulled from the link)
+      //   - the scrape handed back a video url, even if we could not fetch it
+      //   - the address says /reel/ or /tv/, which Instagram only uses for video
+      // Only the first can drive motion transfer, which needs the actual file;
+      // the other two are still proof that it is not a slideshow.
       const haveClip = !!(ref && ref.refVideo);
+      const urlSaysVideo = !!(ref && /instagram\.com\/(reel|reels|tv)\//i.test(String(ref.srcUrl || "")));
+      const isMovingRef = haveClip || !!(ref && ref.videoUrl) || urlSaysVideo;
       if ($$("reMtCard")) $$("reMtCard").style.display = haveClip ? "" : "none";
       if (haveClip && $$("reCredMt")) {
         const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
@@ -19919,10 +19945,14 @@ function vsReverseEngineer(prefill, opts) {
       // no clip came back. A caption-derived _strongSlideshow still wins
       // outright, since that signal is read from the post's own words.
       // haveClip is already computed above from the same source.
-      const captionsSayCarousel = blueprint.captions && !haveClip;
+      const captionsSayCarousel = blueprint.captions && !isMovingRef;
       if (personSignal) route = "talking_head";
-      else if (blueprint._strongSlideshow) route = "carousel";
-      else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf) || haveClip) route = "video";
+      // A reel is a video even when we could not download it. This used to fall
+      // all the way through to the carousel default whenever Instagram refused
+      // the clip - so a /reel/ link, which cannot be anything but video, came
+      // back recommending a slideshow build.
+      else if (blueprint._strongSlideshow && !urlSaysVideo) route = "carousel";
+      else if (/broll|b-roll|footage|montage|\bvideo\b|motion/.test(vf) || isMovingRef) route = "video";
       else if (/carousel|slide|graphic|infographic|text|quote|photo/.test(vf) || captionsSayCarousel) route = "carousel";
       else route = "carousel";   // no clip and nothing moving = image slides
       const seen = !!blueprint.visFormat;
