@@ -5703,6 +5703,27 @@ const VS_FORMAT_BUILD = {
   kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0 },
 };
 
+/**
+ * Which reference clip demonstrates which shape.
+ *
+ * All fifteen, not a chosen six. Where a template has several examples the card
+ * plays them in turn - a "fast montage" covers a moody cut-up and a bright UGC
+ * ad, and one clip alone would misrepresent the range.
+ */
+const VS_FORMAT_CLIPS = {
+  single_take:       ["3", "6", "14", "16"],
+  branded_interview: ["2", "11"],
+  broll_presenter:   ["4", "10", "12", "13"],
+  fast_montage:      ["5", "7", "9"],
+  skit:              ["8"],
+  kinetic_type:      ["15"],
+};
+
+/** The preview files for a format, in order. */
+function vsFormatClips(id) {
+  return (VS_FORMAT_CLIPS[id] || []).map((n) => `/tpl/${id}__${n}.mp4`);
+}
+
 // Writing the script is charged once, whatever is built from it, and it happens
 // before any renderer is chosen. Anything quoting the price of a template has to
 // include it or it is quoting half the bill.
@@ -20509,8 +20530,9 @@ function vsReverseEngineer(prefill, opts) {
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
         <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
-          <video data-tplvid="${f.id}" src="/tpl/${f.id}.mp4" muted loop playsinline preload="metadata"
+          <video data-tplvid="${f.id}" src="${vsFormatClips(f.id)[0] || ""}" muted playsinline preload="metadata"
                  style="width:100%;height:100%;object-fit:cover;display:block"></video>
+          ${vsFormatClips(f.id).length > 1 ? `<span style="position:absolute;top:7px;inset-inline-end:7px;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:20px">${vsFormatClips(f.id).length} ${fa ? "نمونه" : "examples"}</span>` : ""}
           ${isMatch ? `<span style="position:absolute;top:7px;inset-inline-start:7px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
           <span style="position:absolute;bottom:7px;inset-inline-end:7px">${cost}</span>
         </span>
@@ -20552,6 +20574,16 @@ function vsReverseEngineer(prefill, opts) {
       });
     }, { threshold: 0.25 }) : null;
     box.querySelectorAll("video[data-tplvid]").forEach((v) => {
+      const clips = vsFormatClips(v.dataset.tplvid);
+      let at = 0;
+      // Move to the next example rather than looping one of them forever, so a
+      // shape with four references actually shows its range.
+      v.addEventListener("ended", () => {
+        if (clips.length < 2) { v.currentTime = 0; v.play().catch(() => {}); return; }
+        at = (at + 1) % clips.length;
+        v.src = clips[at];
+        v.play().catch(() => {});
+      });
       v.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
       if (seen) seen.observe(v); else v.play().catch(() => {});
     });
