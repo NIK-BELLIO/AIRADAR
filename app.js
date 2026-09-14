@@ -5720,6 +5720,43 @@ const VS_FORMAT_CLIPS = {
 };
 
 /** The preview files for a format, in order. */
+/**
+ * The reference set, one entry per clip.
+ *
+ * Named for what each actually is, because "Single-take talking head 3 of 4" is
+ * not a name anyone can choose between. `shape` points at the format that
+ * decides its timing, captions and cost; the clip is the proof.
+ */
+const VS_TEMPLATES = [
+  { id: "podcast_take",    clip: "single_take__3",        shape: "single_take",       label: "Podcast single take",   note: "one unbroken take into a mic" },
+  { id: "walk_talk",       clip: "single_take__6",        shape: "single_take",       label: "Walk-and-talk selfie",  note: "handheld, outdoors, straight to camera" },
+  { id: "skit_to_camera",  clip: "single_take__14",       shape: "single_take",       label: "Skit into camera",      note: "a staged beat, then the point" },
+  { id: "desk_take",       clip: "single_take__16",       shape: "single_take",       label: "Desk talking head",     note: "seated, steady, caption-led" },
+  { id: "branded_frame",   clip: "branded_interview__2",  shape: "branded_interview", label: "Branded interview frame", note: "logo, topic card, watch-more end" },
+  { id: "two_seat",        clip: "branded_interview__11", shape: "branded_interview", label: "Two-seat interview",    note: "cut between two speakers" },
+  { id: "drone_lots",      clip: "broll_presenter__4",    shape: "broll_presenter",   label: "Drone lots + presenter", note: "aerials cut with a person explaining" },
+  { id: "house_tour",      clip: "broll_presenter__10",   shape: "broll_presenter",   label: "Full house tour",       note: "room after room, word-by-word captions" },
+  { id: "listing_tour",    clip: "broll_presenter__12",   shape: "broll_presenter",   label: "Cinematic listing tour", note: "match cuts, landmark opening" },
+  { id: "whip_pan",        clip: "broll_presenter__13",   shape: "broll_presenter",   label: "Whip-pan announcement", note: "a fast pan into one static shot" },
+  { id: "moody_montage",   clip: "fast_montage__5",       shape: "fast_montage",      label: "Moody montage",         note: "high contrast, no talking" },
+  { id: "lifestyle_ugc",   clip: "fast_montage__7",       shape: "fast_montage",      label: "Lifestyle UGC",         note: "a day out, ending on one call" },
+  { id: "wide_studio",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work" },
+  { id: "pov_skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out" },
+  { id: "kinetic",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker" },
+];
+
+/** A template by id, or the first one when the id means nothing. */
+function vsTemplate(id) {
+  return VS_TEMPLATES.find((t) => t.id === id) || VS_TEMPLATES[0];
+}
+
+/** Everything a card needs: the shape's plan and price, plus this clip. */
+function vsTemplateCard(id) {
+  const t = vsTemplate(id);
+  const b = vsFormatBuild(t.shape);
+  return { tpl: t, build: b, clip: "/tpl/" + t.clip + ".mp4", poster: "/tpl/" + t.clip + ".jpg" };
+}
+
 function vsFormatClips(id) {
   return (VS_FORMAT_CLIPS[id] || []).map((n) => `/tpl/${id}__${n}.mp4`);
 }
@@ -19058,6 +19095,48 @@ async function vsReverseAnalyze(refText, brief) {
     : brief.skill === "motion_graphic"
       ? "Force skill to \"motion_graphic\"."
       : "Choose skill: \"motion_graphic\" if the reference is stat/number/data-driven, otherwise \"editorial\".";
+  // A picked template is a MEASURED shape - a scene count, a shot length, a
+  // caption style, a way of opening - read off real reference videos. Without
+  // it in the prompt the model wrote the same four-to-six-beat script whichever
+  // card was chosen, so "Kinetic typography" and "Full house tour" came back
+  // identical and picking one bought nothing.
+  const tpl = brief.template ? vsTemplate(brief.template) : null;
+  const tf = tpl ? vsFormat(tpl.shape) : null;
+  const tplan = tpl ? vsFormatBuild(tpl.shape).plan : null;
+  const capWord = tf && ({
+    none:     "NO burned-in captions at all - the shots and the music carry it, so write narration that still reads with the sound off",
+    emphasis: "one to three EMPHASIS words on screen at a time, centred - so land a hard noun or number in every line",
+    kinetic:  "the words themselves are the visual: sized and coloured per phrase, one to three at a time",
+    phrase:   "short phrases of two to four words in the lower third",
+  }[tf.caption.style] || "short phrases of two to four words");
+  const tplWords = tplan ? Math.max(4, Math.round(tplan.secondsPerScene * 2.6)) : 0;
+  const tplBlock = tpl
+    ? "\n\nTHE SHAPE TO WRITE INTO - the operator picked the \"" + tpl.label + "\" template. This shape is NOT negotiable and it OVERRIDES the reference's own structure:\n" +
+      "- " + tf.brief + "\n" +
+      "- Write EXACTLY " + tplan.scenes + " scenes. Not four, not six - " + tplan.scenes + ".\n" +
+      "- Each scene is on screen for about " + tplan.secondsPerScene + " seconds, so its narration is about " + tplWords + " words. Stay under that; a line that overruns gets cut off mid-word in the render.\n" +
+      "- Total runtime is about " + tplan.duration + " seconds.\n" +
+      "- Open it like this: " + tf.hook + "\n" +
+      "- On-screen text: " + capWord + "\n" +
+      "- B-roll: " + ({ none: "none - the frame stays on one subject", light: "occasional, supporting", heavy: "heavy - nearly every beat is footage of the place or the thing" }[tf.broll] || tf.broll) + "\n" +
+      "- What this format lives on: " + tpl.note + "\n" +
+      "So ===STRUCTURE=== has exactly " + tplan.scenes + " numbered beats and ===SCRIPT=== exactly " + tplan.scenes + " scenes.\n"
+    : "";
+  // The other path — "rebuild THIS video" — has its own shape, and it is a
+  // measurement rather than a preset: the clip's real length, its real cut
+  // count, its real seconds per shot. Feeding that in is what makes the two
+  // answers actually differ; without it both roads produced the same
+  // four-to-six-beat script and choosing between them bought nothing.
+  const meas = brief.measured && brief.measured.duration > 0 ? brief.measured : null;
+  const measScenes = meas ? Math.max(2, Math.min(12, Math.round(meas.duration / Math.max(1, meas.shotSeconds || 4)))) : 0;
+  const measBlock = meas
+    ? "\n\nMEASURED OFF THE REFERENCE CLIP ITSELF - reproduce this pacing, do not invent your own:\n" +
+      "- It runs " + meas.duration + " seconds with " + meas.cuts + " cuts, about " + (meas.shotSeconds || 4) + " seconds a shot.\n" +
+      "- So write EXACTLY " + measScenes + " scenes, each about " + Math.max(4, Math.round((meas.shotSeconds || 4) * 2.6)) + " words of narration.\n" +
+      "- Follow its order of beats: " + (meas.shape ? vsFormat(meas.shape).brief : "as the reference has them") + "\n"
+    : "";
+  // Whichever side asked for a shape, this is how many scenes it wants.
+  const sceneN = tplan ? tplan.scenes : measScenes;
   // A DELIMITED-SECTION contract (not JSON): the free fallback models routinely
   // break strict JSON by putting raw newlines inside the long "script" string,
   // which makes JSON.parse fail. Marker-delimited sections parse reliably no
@@ -19073,7 +19152,7 @@ async function vsReverseAnalyze(refText, brief) {
       ? "Then write a COMPLETELY FRESH video about the BRIEF's topic that merely SOUNDS like the reference. Take ONLY the tone, the voice and the pacing. Do NOT follow its structure beat-for-beat, do NOT reuse its hook pattern, and do NOT mirror its sequence of beats — invent your own, suited to the user's topic. Someone who knows the reference should recognise the VOICE and nothing else.\n\n"
       : "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n") +
     "REFERENCE POST(S) (caption / on-screen text / hashtags — may be several, one per line):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 3000) + "\n\"\"\"\n\n" +
-    "BRIEF:\n- Topic: " + (brief.prompt || "") + "\n- User's own info & details to feature (numbers, names, facts, offer): " + (brief.region || "(use the topic)") + "\n- " + (langMap[brief.lang] || langMap.en) + "\n\n" +
+    "BRIEF:\n- Topic: " + (brief.prompt || "") + "\n- User's own info & details to feature (numbers, names, facts, offer): " + (brief.region || "(use the topic)") + "\n- " + (langMap[brief.lang] || langMap.en) + "\n" + tplBlock + measBlock + "\n" +
     "GENERATOR CAPABILITIES — CRITICAL: this tool does NOT film or generate a person talking to camera. It renders ON-SCREEN TEXT + AI-generated images/B-roll + info cards, with narration as voiceover/captions. " +
     "So even if the reference is a talking-head / selfie / vlog reel, DO NOT write visuals like 'host smiling', 'person on camera', 'talking head'. Convert EVERY visual beat into: a punchy on-screen headline + an AI-image description of a RELEVANT scene, object or place (e.g. a row of houses, a sold sign, city skyline, keys on a table). Keep the spoken lines as the narration. " +
     "Never output bracket placeholders like [Your Brand Name], [City] or [Your Company] — use the user's own info from the BRIEF, and if a detail is missing write natural copy that reads fine without it.\n\n" +
@@ -19084,9 +19163,9 @@ async function vsReverseAnalyze(refText, brief) {
     "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
     "===FORMATTYPE===\nslideshow   (or: talking_head)\n" +
     "===SETTING===\n<one short phrase describing the reference's on-screen environment/backdrop, e.g. 'modern kitchen', 'outdoors in front of houses', 'plain studio', 'city street' — used to place a presenter in the same vibe>\n" +
-    "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n(up to 6 beats)\n" +
+    "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n" + (sceneN ? "(exactly " + sceneN + " beats)\n" : "(up to 6 beats)\n") +
     "===SKILL===\neditorial   (or: motion_graphic)\n" +
-    "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then 4-6 hook-first scenes. For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
+    "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then " + (sceneN ? sceneN + " hook-first scenes" : "4-6 hook-first scenes") + ". For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
     "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
     skillHint + " A talking-head / advice / vlog / story reel → editorial; only a pure stat/data/number post → motion_graphic. Match the reference's vibe precisely; never reuse its literal topic — only its style.";
   const raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.85, timeout: 60000 });
@@ -19560,12 +19639,16 @@ function vsReverseEngineer(prefill, opts) {
          <div style="margin-bottom:11px">
            <textarea id="reExtraPrompt" rows="2" placeholder="${fa ? "جزئیاتِ خودت — قیمت، تعداد خواب/حمام، متراژ، آدرس، نکتهٔ فروش… (روی متن و ویدیو اعمال می‌شود)" : "Your own details — price, beds/baths, size, address, selling point… (used in the script and the render)"}" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;color:#eef4ff;font:inherit;font-size:12.5px;resize:vertical"></textarea>
          </div>
+         <div id="reRouteLock" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:11px 13px;background:rgba(37,99,255,.09);border:1px solid rgba(37,99,255,.3);border-radius:12px">
+           <span id="reRouteLockTxt" style="flex:1;min-width:190px;font-size:12.5px;color:#dbe6ff;line-height:1.5"></span>
+           <button type="button" id="reRouteLockMore" style="flex:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:7px 11px;color:#bcd0f5;font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;cursor:pointer">${fa ? "روش‌های دیگر" : "Other methods"}</button>
+         </div>
          <div class="re-cards">
            <!-- MOTION TRANSFER — the most faithful rebuild there is: the
                 reference clip itself drives the motion (camera move, gestures,
                 timing) and only the PERSON becomes the user. Needs the actual
                 video, so it only appears when we have one. -->
-           <div class="re-mcard" id="reMtCard" data-route="motion" style="display:none">
+           <div class="re-mcard" id="reMtCard" data-route="motion" data-build="motion" style="display:none">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10v12H4z"/><path d="M18 9v6"/><path d="M14 12h4"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c.8-2 2-3 3.5-3s2.7 1 3.5 3"/></svg></span>
@@ -19580,7 +19663,7 @@ function vsReverseEngineer(prefill, opts) {
            </div>
            <!-- Scene-by-scene rebuild — the only builder that reproduces a
                 multi-shot reference; shown only when a shot list was read. -->
-           <div class="re-mcard" id="reSceneCard" data-route="scene" style="display:none">
+           <div class="re-mcard" id="reSceneCard" data-route="scene" data-build="scene" style="display:none">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="9" height="12" rx="2"/><rect x="13" y="6" width="9" height="12" rx="2"/><path d="M11 12h2"/></svg></span>
@@ -19592,7 +19675,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildScene" type="button" class="mbtn">${fa ? "ساختِ نما‌به‌نما" : "Rebuild scene by scene"}</button>
            </div>
            <!-- Talking-head (Fabric) -->
-           <div class="re-mcard" data-route="talking_head">
+           <div class="re-mcard" data-route="talking_head" data-build="fabric">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
@@ -19616,7 +19699,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
            </div>
            <!-- Lip-sync (LatentSync) -->
-           <div class="re-mcard" data-route="talking_head">
+           <div class="re-mcard" data-route="talking_head" data-build="lipsync">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg></span>
@@ -19629,7 +19712,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildLipsync" type="button" class="mbtn">${fa ? "لیپ‌سینک" : "Lip-sync"}</button>
            </div>
            <!-- AI presenter (Happy Horse) -->
-           <div class="re-mcard" data-route="talking_head">
+           <div class="re-mcard" data-route="talking_head" data-build="presenter">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
@@ -19642,7 +19725,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildHappy" type="button" class="mbtn">${fa ? "ساختِ پرزنتر" : "Build presenter"}</button>
            </div>
            <!-- Cinematic motion (H3 Max) -->
-           <div class="re-mcard" data-route="video">
+           <div class="re-mcard" data-route="video" data-build="minimax">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg></span>
@@ -19655,7 +19738,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildMotion" type="button" class="mbtn">${fa ? "نمای سینمایی" : "Cinematic shot"}</button>
            </div>
            <!-- Cinematic + audio (Grok) -->
-           <div class="re-mcard" data-route="video">
+           <div class="re-mcard" data-route="video" data-build="grok">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/><path d="M8 20h8"/></svg></span>
@@ -19668,7 +19751,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
            </div>
            <!-- Carousel (image + text slides) — FREE -->
-           <div class="re-mcard free" data-route="carousel">
+           <div class="re-mcard free" data-route="carousel" data-build="carousel">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 8v8M20 8v8"/></svg></span>
@@ -19682,7 +19765,7 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildCar" type="button" class="mbtn">${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
            </div>
            <!-- Slideshow video — FREE -->
-           <div class="re-mcard free" data-route="video">
+           <div class="re-mcard free" data-route="video" data-build="slideshow">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></span>
@@ -19909,6 +19992,9 @@ function vsReverseEngineer(prefill, opts) {
       return;
     }
 
+    // Every Generate is a fresh decision: whatever menu was opened against the
+    // last script does not carry over to this one.
+    reRouteUnlocked = false;
     const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
     const go = $$("reGo"); go.disabled = true; const old = go.innerHTML;
     go.textContent = (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
@@ -19960,6 +20046,17 @@ function vsReverseEngineer(prefill, opts) {
         // build from THIS video. A template is a shape, not a script to copy.
         followReference: reWantSource === "video",
         mode: reWantMode,
+        // The template the operator picked, so the script is written to ITS
+        // scene count and shot length instead of a generic four-to-six beats.
+        template: reWantSource === "template" && rePickedTemplate ? rePickedTemplate : null,
+        // An uploaded clip is measured during analysis, so on the "this exact
+        // video" road the script can be written to the clip's own pacing.
+        measured: reWantSource === "video" && ref && ref.format ? {
+          shape: ref.format.best,
+          shotSeconds: ref.format.shotSeconds,
+          cuts: (ref.cutInfo && ref.cutInfo.cuts) || 0,
+          duration: Math.round((ref.cutInfo && ref.cutInfo.duration) || ref.refDuration || 0),
+        } : null,
       });
       // A transient empty AI response yields no usable script — surface a retry
       // rather than an empty blueprint with a dead Build button.
@@ -20263,19 +20360,67 @@ function vsReverseEngineer(prefill, opts) {
             // footage and is the closest of them when we hold the clip.
             recRoutes = (ref && ref.refVideo) ? ["motion", "talking_head", "lipsync"] : ["talking_head", "lipsync"];
           } else if (reWantSource === "template" && rePickedTemplate) {
-            const want = vsFormatBuild(rePickedTemplate).route;
+            const want = vsFormatBuild(vsTemplate(rePickedTemplate).shape).route;
             recRoutes = [want].concat(recRoutes.filter((r) => r !== want));
           }
         }
         const root = page ? document : ov;
+        // One decision, not two. The method was chosen before the charge — by a
+        // template, or by "with me in it" — so after Generate that method is
+        // what is on screen, and the rest are behind "Other methods". A manual
+        // "wrong guess?" correction is itself a request to choose, so it opens
+        // the menu rather than locking a different single card.
+        // A route is a FAMILY of builders — three cards are "talking_head" and
+        // three are "video" — so committing to a route still left a menu on
+        // screen. Commit to the one builder the template card quoted its credits
+        // for: the free on-device slideshow, not MiniMax; Fabric, not Happy Horse.
+        const BUILD_OF = { talking_head: "fabric", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion", lipsync: "lipsync" };
+        const chosen = BUILD_OF[recRoutes[0]] || recRoutes[0];
+        let lockedBy = manual || reRouteUnlocked ? null
+          : reWantMode === "character" ? "character"
+            : (reWantSource === "template" && rePickedTemplate) ? "template" : null;
         root.querySelectorAll(".re-mcard").forEach((c) => {
-          c.classList.toggle("rec", recRoutes.indexOf(c.getAttribute("data-route")) !== -1);
+          const r = c.getAttribute("data-route");
+          const b = c.getAttribute("data-build");
+          c.classList.toggle("rec", recRoutes.indexOf(r) !== -1);
+          // These two are offered only when the analysis actually unlocked them
+          // (a clip in hand / a genuinely multi-shot reference), so they may be
+          // hidden here but never revealed.
+          const gated = c.id === "reMtCard" ? !haveClip : c.id === "reSceneCard" ? !multiShot : false;
+          c.style.display = gated || (lockedBy && b !== chosen) ? "none" : "";
         });
+        // Nothing on screen is worse than a menu: if the committed builder is
+        // itself gated off, drop the lock rather than render an empty grid.
+        if (lockedBy && !root.querySelector('.re-mcard[data-build="' + chosen + '"]:not([style*="display: none"])')) {
+          root.querySelectorAll(".re-mcard").forEach((c) => {
+            const gated = c.id === "reMtCard" ? !haveClip : c.id === "reSceneCard" ? !multiShot : false;
+            c.style.display = gated ? "none" : "";
+          });
+          lockedBy = null;
+        }
+        const lockBox = $$("reRouteLock");
+        if (lockBox) {
+          lockBox.style.display = lockedBy ? "flex" : "none";
+          if (lockedBy) {
+            const how = { fabric: fa ? "آدمِ سخنگو" : "Talking-head", slideshow: fa ? "ویدیوی اسلایدشو" : "Slideshow video", carousel: fa ? "کاروسل" : "Carousel", scene: fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild", motion: fa ? "انتقالِ حرکت" : "Motion transfer", lipsync: fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video", presenter: fa ? "پرزنترِ AI" : "AI presenter", minimax: fa ? "نمای سینمایی" : "Cinematic motion", grok: fa ? "سینمایی + صدا" : "Cinematic + audio" }[chosen] || chosen;
+            const why = lockedBy === "template"
+              ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
+              : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
+            $$("reRouteLockTxt").innerHTML = fa
+              ? "اسکریپت برای " + why + " نوشته شد، پس با <b>" + esc(how) + "</b> ساخته می‌شود."
+              : "The script was written for " + why + ", so it builds as <b>" + esc(how) + "</b>.";
+          }
+        }
         if ($$("reFmtTalk")) $$("reFmtTalk").classList.toggle("active", rt === "talking_head");
         if ($$("reFmtSlide")) $$("reFmtSlide").classList.toggle("active", rt !== "talking_head");
       };
+      // "Wrong guess?" contradicts a committed method, so it is only on offer
+      // once the operator has opened the menu themselves.
+      const fmtOv = $$("reFmtOverride");
+      const paintOv = () => { if (fmtOv) fmtOv.style.display = (!reRouteUnlocked && (reWantMode === "character" || (reWantSource === "template" && rePickedTemplate))) ? "none" : "flex"; };
       applyRoute(route, false);
-      const fmtOv = $$("reFmtOverride"); if (fmtOv) fmtOv.style.display = "flex";
+      paintOv();
+      if ($$("reRouteLockMore")) $$("reRouteLockMore").onclick = () => { reRouteUnlocked = true; applyRoute(route, false); paintOv(); };
       if ($$("reFmtTalk")) $$("reFmtTalk").onclick = () => applyRoute("talking_head", true);
       if ($$("reFmtSlide")) $$("reFmtSlide").onclick = () => applyRoute("carousel", true);
       $$("reRenderH").textContent = fa ? "رندر · مدلِ پیشنهادی بالاست" : "RENDER · RECOMMENDED IS ON TOP";
@@ -20313,10 +20458,35 @@ function vsReverseEngineer(prefill, opts) {
     if (!topic || typeof buildAutoVideo !== "function") {
       try {
         localStorage.setItem("vsReHandoff", JSON.stringify({ topic: topicVal, len: lenVal, aspect: aspVal, ts: Date.now() }));
-        vsStatus(fa ? "استودیو در تبِ جدید باز شد — این صفحه دست‌نخورده می‌ماند." : "Opened Video Studio in a new tab — this page stays as it is.");
         // A same-tab navigation threw away the whole analysis (blueprint,
         // script, uploaded photo, shot list) the moment the user hit build.
-        window.open("/studio/?reHandoff=1", "_blank", "noopener");
+        const tab = window.open("/studio/?reHandoff=1", "_blank", "noopener");
+        // window.open returns null when the popup blocker stops it, which is the
+        // normal outcome for anything but a direct click. Saying "opened in a new
+        // tab" regardless left the operator waiting for a tab that never came,
+        // with the script already written and paid for.
+        if (tab) {
+          vsStatus(fa ? "استودیو در تبِ جدید باز شد — این صفحه دست‌نخورده می‌ماند." : "Opened Video Studio in a new tab — this page stays as it is.");
+        } else {
+          // The work is safe in localStorage either way, so offer the door
+          // rather than repeating a click the browser has already refused.
+          vsStatus(fa
+            ? "مرورگر تبِ جدید را بست — اسکریپت ذخیره شده، از دکمهٔ پایین بازش کن."
+            : "Your browser blocked the new tab — the script is saved; use the link below to open Studio.");
+          try {
+            const host = $$("reBuild").parentElement;
+            let a = document.getElementById("reOpenStudio");
+            if (!a) {
+              a = document.createElement("a");
+              a.id = "reOpenStudio";
+              a.target = "_blank"; a.rel = "noopener";
+              a.style.cssText = "display:block;margin-top:8px;text-align:center;padding:9px;border-radius:10px;font:800 12px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#34d399,#059669);text-decoration:none";
+              host.appendChild(a);
+            }
+            a.href = "/studio/?reHandoff=1";
+            a.textContent = fa ? "باز کردنِ استودیو" : "Open Video Studio";
+          } catch (e) {}
+        }
       } catch (e) { vsStatus(fa ? "استودیوی ویدیو در دسترس نیست." : "Video Studio not available here."); }
       return;
     }
@@ -20575,6 +20745,12 @@ function vsReverseEngineer(prefill, opts) {
   // "template" = build one of the six shapes; "video" = follow the analysed
   // reference. The second needs a reference, the first does not.
   let reWantSource = "template";
+  // The build method is decided ONCE, before Generate — by the template that
+  // was picked, or by "with me in it". Showing the whole menu again after the
+  // script has been written asks the same question twice, and lets the operator
+  // walk away from the shape the script was actually written for. The menu is
+  // still reachable, but it has to be asked for.
+  let reRouteUnlocked = false;
 
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
@@ -20614,29 +20790,28 @@ function vsReverseEngineer(prefill, opts) {
     }
 
     const det = ref && ref.format;
-    const cards = VS_FORMATS.map((f) => {
-      const b = vsFormatBuild(f.id);
-      const isMatch = det && det.best === f.id && det.measured;
-      const picked = rePickedTemplate === f.id;
-      const clipCount = vsFormatClips(f.id).length;
+    const cards = VS_TEMPLATES.map((t) => {
+      const c = vsTemplateCard(t.id);
+      const b = c.build;
+      const isMatch = det && det.best === t.shape && det.measured;
+      const picked = rePickedTemplate === t.id;
       const row = (k, v) => `<span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
           <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${k}</span>
           <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff">${v}</span></span>`;
-      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
+      return `<button type="button" class="re-tplcard" data-tpl="${t.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
         <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
-          <video data-tplvid="${f.id}" src="${vsFormatClips(f.id)[0] || ""}" poster="${(vsFormatClips(f.id)[0] || "").replace(/\.mp4$/, ".jpg")}" muted playsinline preload="metadata"
+          <video data-tplvid="${t.id}" src="${c.clip}" poster="${c.poster}" muted loop playsinline preload="metadata"
                  style="width:100%;height:100%;object-fit:cover;display:block"></video>
           ${isMatch ? `<span style="position:absolute;top:8px;inset-inline-start:8px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
-          ${clipCount > 1 ? `<span style="position:absolute;top:8px;inset-inline-end:8px;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff;background:rgba(0,0,0,.6);padding:3px 7px;border-radius:20px">${clipCount} ${fa ? "نمونه" : "examples"}</span>` : ""}
         </span>
 
         <span style="display:flex;flex-direction:column;gap:10px;padding:12px 13px 13px">
           <span style="display:flex;flex-direction:column;gap:3px">
-            <b style="font:800 14px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.2">${esc(f.label)}</b>
+            <b style="font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.2">${esc(t.label)}</b>
             <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff;text-transform:uppercase;letter-spacing:.05em">${esc(b.method)}</span>
-            <span style="font-size:11px;color:#93a3bb;line-height:1.45">${esc(b.note)}</span>
+            <span style="font-size:11px;color:#93a3bb;line-height:1.45">${esc(t.note)}</span>
           </span>
 
           <span style="display:flex;flex-direction:column;gap:5px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
@@ -20662,12 +20837,8 @@ function vsReverseEngineer(prefill, opts) {
       `<div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
          <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالب‌ها" : "Templates"}</span>
          <span style="font-size:11.5px;color:#8ea6c8">${fa
-            ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
-            : "Pick one — the pacing and caption style come from it. Each preview is a real clip in that shape."}</span>
-
-         ${det && det.measured ? "" : `<span style="font-size:11px;color:#7c8698">${fa
-            ? "هنوز هیچ‌کدام علامت نخورده — ریتمِ مرجع موقعِ ساخت اندازه‌گیری می‌شود."
-            : "None marked yet — the reference's pacing is measured when the clip is pulled during the build."}</span>`}
+            ? `${VS_TEMPLATES.length} قالب — ریتم و کپشن از همین می‌آید؛ هر پیش‌نمایش یک کلیپِ واقعی است.`
+            : `${VS_TEMPLATES.length} shapes — the pacing and caption style come from the one you pick. Every preview is a real clip.`}</span>
        </div>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:14px">${cards}</div>`;
     box.style.display = "flex";
@@ -20714,12 +20885,20 @@ function vsReverseEngineer(prefill, opts) {
     const pick = $$("reFormatPick");
     if (!pick.options.length) {
       pick.innerHTML = VS_FORMATS.map((f) => `<option value="${f.id}">${esc(f.label)}</option>`).join("");
-      pick.onchange = () => { rePickedTemplate = pick.value; reRenderFormatPlan(); };
+      // The dropdown lists shapes; picking one there means "any template of this
+      // shape", so it selects the first template that has it.
+      pick.onchange = () => {
+        const first = VS_TEMPLATES.find((t) => t.shape === pick.value);
+        rePickedTemplate = first ? first.id : null;
+        try { reRenderTemplateGallery(); } catch (e) {}
+        reRenderFormatPlan();
+      };
       if (det) pick.value = det.best;
     }
     // A template chosen by hand outranks a detected one - it is the only one of
     // the two the operator actually asked for.
-    if (rePickedTemplate && pick.value !== rePickedTemplate) pick.value = rePickedTemplate;
+    const pickedShape = rePickedTemplate ? vsTemplate(rePickedTemplate).shape : null;
+    if (pickedShape && pick.value !== pickedShape) pick.value = pickedShape;
     // Shown when there is something to say: a reference was read, or a template
     // was chosen. Otherwise it is an empty green box explaining nothing.
     if (!det && !rePickedTemplate) { box.style.display = "none"; return; }
@@ -20738,7 +20917,7 @@ function vsReverseEngineer(prefill, opts) {
     // Only claim a measurement when there was one. An unmeasured reference
     // returns a default so there is something to show, and saying "measured"
     // over that would be inventing evidence for a guess.
-    const why = (rePickedTemplate === f.id && !(det && det.best === f.id))
+    const why = (pickedShape === f.id && !(det && det.best === f.id))
       ? (fa ? "قالبِ آماده — بدونِ مرجع."
             : "A ready template - no reference needed.")
       : !(det && det.best === f.id)
