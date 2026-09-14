@@ -20241,6 +20241,15 @@ function vsReverseEngineer(prefill, opts) {
       blueprint._multiShot = multiShot;
       // Show the reference's real length and how many shots on the card, so the
       // scale of the job is clear before the pricing dialog opens.
+      // The scene card can now be on screen for a template as well as for a
+      // multi-shot reference, and a card showing a bare per-second rate next to
+      // a template that quoted a total is the same figure told two ways.
+      if (!multiShot && reWantSource === "template" && rePickedTemplate && $$("reCredScene")) {
+        const tb = vsFormatBuild(vsTemplate(rePickedTemplate).shape);
+        if (tb.route === "scene") {
+          $$("reCredScene").outerHTML = arCredit(tb.render, { id: "reCredScene", suffix: fa ? `· ${tb.plan.scenes} نما` : `· ${tb.plan.scenes} shots` });
+        }
+      }
       if (multiShot && $$("reCredScene")) {
         const rd = Math.round(blueprint.refDuration || 0);
         const est = rd ? Math.min(Math.max(Math.round(rd / shots.length), 3), 10) * shots.length : 0;
@@ -20386,7 +20395,12 @@ function vsReverseEngineer(prefill, opts) {
           // These two are offered only when the analysis actually unlocked them
           // (a clip in hand / a genuinely multi-shot reference), so they may be
           // hidden here but never revealed.
-          const gated = c.id === "reMtCard" ? !haveClip : c.id === "reSceneCard" ? !multiShot : false;
+          // Motion transfer needs the actual clip in hand, so that gate stands.
+          // The scene builder is gated on the REFERENCE being multi-shot — but a
+          // skit template is multi-shot by definition, it brings its own beats,
+          // so a template that routes there unlocks it on its own authority.
+          const gated = c.id === "reMtCard" ? !haveClip
+            : c.id === "reSceneCard" ? !(multiShot || chosen === "scene") : false;
           c.style.display = gated || (lockedBy && b !== chosen) ? "none" : "";
         });
         // Nothing on screen is worse than a menu: if the committed builder is
