@@ -19271,6 +19271,19 @@ function vsReverseEngineer(prefill, opts) {
          <!-- After the link is read the user forks: rebuild the SAME video with
               their own face and words, or take only the tone and write fresh.
               Option two is the original Reverse Engineer flow, untouched. -->
+         <!-- What shape the reference is, and what we will build from it.
+              Above the fork because it describes the REFERENCE, not the route
+              picked afterwards - it was inside the tone body, so anyone who
+              chose "with my own face" never saw which format had been detected
+              at all. -->
+         <div id="reFormatPlan" style="display:none;flex-direction:column;gap:8px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.24);border-radius:12px;padding:11px 12px">
+           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+             <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالبِ مرجع" : "Reference format"}</span>
+             <select id="reFormatPick" style="flex:1;min-width:170px"></select>
+           </div>
+           <div id="reFormatWhy" style="font-size:11.5px;color:#aeb9c9;line-height:1.5"></div>
+           <div id="reFormatSpec" style="font:700 11.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff"></div>
+         </div>
          <div id="reModeFork" class="re-fork">
            <button type="button" class="re-forkcard" id="reForkSwap" aria-pressed="false">
              <span class="fico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.4"/><path d="M15 9.5h3.5M15 13h2.5"/><path d="M4.5 18c1.2-2.2 2.7-3.3 4.5-3.3s3.3 1.1 4.5 3.3"/></svg></span>
@@ -19288,16 +19301,6 @@ function vsReverseEngineer(prefill, opts) {
            </button>
          </div>
          <div id="reToneBody" style="display:none;flex-direction:column;gap:12px">
-         <!-- What shape the reference is, and what we will build from it. Shown
-              because "take the tone" is vague until it is a number of scenes. -->
-         <div id="reFormatPlan" style="display:none;flex-direction:column;gap:8px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.24);border-radius:12px;padding:11px 12px">
-           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-             <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالبِ مرجع" : "Reference format"}</span>
-             <select id="reFormatPick" style="flex:1;min-width:170px"></select>
-           </div>
-           <div id="reFormatWhy" style="font-size:11.5px;color:#aeb9c9;line-height:1.5"></div>
-           <div id="reFormatSpec" style="font:700 11.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff"></div>
-         </div>
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
@@ -20304,7 +20307,12 @@ function vsReverseEngineer(prefill, opts) {
     // The reference's own script length if we have one, else a five-line default
     // so the numbers are never blank.
     const lines = (ref && ref.titleCards && ref.titleCards.length >= 3) ? ref.titleCards : ["", "", "", "", ""];
-    const plan = vsFormatPlan(f.id, lines, { mode: "borrow" });
+    // Which of the two the operator is on. "With my face and my words" keeps
+    // the reference's shot plan around their own footage; "only the tone" takes
+    // the rhythm and writes fresh. The panel used to describe the second no
+    // matter which was selected.
+    const rebuilding = !!($$("reForkSwap") && $$("reForkSwap").getAttribute("aria-pressed") === "true");
+    const plan = vsFormatPlan(f.id, lines, { mode: rebuilding ? "rebuild" : "borrow" });
 
     // Only claim a measurement when there was one. An unmeasured reference
     // returns a default so there is something to show, and saying "measured"
@@ -20331,7 +20339,9 @@ function vsReverseEngineer(prefill, opts) {
 
   function swapShow(which) {
     const swapOn = which === "swap";
-    if (!swapOn) { try { reRenderFormatPlan(); } catch (e) {} }
+    // Redrawn on BOTH paths now: the panel sits above the fork and says which of
+    // the two it is describing, so switching has to update it.
+    setTimeout(() => { try { reRenderFormatPlan(); } catch (e) {} }, 0);
     if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", String(swapOn));
     if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", String(!swapOn));
     if ($$("reSwapBody")) $$("reSwapBody").style.display = swapOn ? "flex" : "none";
