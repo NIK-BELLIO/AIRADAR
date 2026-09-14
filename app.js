@@ -5685,6 +5685,113 @@ function vsFormatMatch(opts) {
            shotSeconds: +shot.toFixed(1), ranked: ranked };
 }
 
+/**
+ * How each shape actually gets built, and what that costs.
+ *
+ * The formats describe a rhythm; this says which renderer produces it and what
+ * the operator will be charged. Most are free because the on-device canvas can
+ * draw them - only the ones that need a real face or a generated shot reach for
+ * a paid model, and saying so up front is the difference between choosing a
+ * template and discovering its price afterwards.
+ */
+const VS_FORMAT_BUILD = {
+  single_take:       { method: "Talking-head",     note: "a face speaks your script",            perSec: 5 },
+  branded_interview: { method: "Slideshow video",  note: "on-device canvas, your own frame",     perSec: 0 },
+  broll_presenter:   { method: "Slideshow video",  note: "on-device canvas + stock footage",     perSec: 0 },
+  fast_montage:      { method: "Slideshow video",  note: "on-device canvas, music-led",          perSec: 0 },
+  skit:              { method: "Scene-by-scene",   note: "each beat generated separately",       perSec: 9 },
+  kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0 },
+};
+
+/** The build recipe for a format, with the credits worked out for its length. */
+function vsFormatBuild(id) {
+  const f = vsFormat(id);
+  const b = VS_FORMAT_BUILD[f.id] || VS_FORMAT_BUILD.broll_presenter;
+  const plan = vsFormatPlan(f.id, ["", "", "", "", ""], { mode: "borrow" });
+  const credits = b.perSec ? Math.ceil(plan.duration * b.perSec) : 0;
+  return { format: f, plan, method: b.method, note: b.note, perSec: b.perSec, credits };
+}
+
+// One clock for every preview on screen. Six separate rAF loops is six times the
+// work to draw the same thing, and they drift apart.
+let _vsTplClock = null;
+
+/**
+ * A moving preview of what a template does.
+ *
+ * The defining property of these shapes is pacing, and pacing cannot be shown in
+ * a still. Each preview cuts at the template's real cadence and draws its real
+ * caption treatment, generated from the format data - so it is always honest,
+ * costs nothing, and needs nothing hosted.
+ */
+function vsTplPreview(canvas, id) {
+  const { format: f, plan } = vsFormatBuild(id);
+  canvas._tpl = { f, plan };
+  if (!_vsTplClock) {
+    _vsTplClock = () => {
+      const t = performance.now() / 1000;
+      document.querySelectorAll("canvas[data-tplpreview]").forEach((c) => {
+        if (!c._tpl || !c.isConnected) return;
+        try { vsTplDraw(c, t); } catch (e) {}
+      });
+      requestAnimationFrame(_vsTplClock);
+    };
+    requestAnimationFrame(_vsTplClock);
+  }
+}
+
+function vsTplDraw(canvas, t) {
+  const { f, plan } = canvas._tpl;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const per = plan.secondsPerScene;
+  const shot = Math.floor((t % (per * plan.scenes)) / per);
+  // A palette per shot so a cut is unmistakable, and a slow shape genuinely
+  // looks slower than a fast one rather than just saying so.
+  const hues = [212, 258, 168, 32, 292, 190, 145, 8, 232];
+  const hue = hues[shot % hues.length];
+  const into = (t % per) / per;                       // 0..1 through this shot
+
+  ctx.clearRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `hsl(${hue} 55% 26%)`);
+  g.addColorStop(1, `hsl(${hue} 60% 13%)`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // A slow push, so even a single-take preview is alive.
+  const z = 1 + into * 0.05;
+  ctx.save();
+  ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  ctx.fillStyle = `hsl(${hue} 40% 46% / .5)`;
+  ctx.beginPath(); ctx.arc(W * 0.5, H * 0.44, Math.min(W, H) * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // The caption treatment, drawn the way that format actually does it.
+  const cap = f.caption.style;
+  if (cap !== "none") {
+    const y = cap === "center" || cap === "kinetic" ? H * 0.5 : H * 0.76;
+    const words = cap === "emphasis" || cap === "kinetic" ? 1 : 3;
+    const wide = words === 1 ? W * 0.42 : W * 0.66;
+    if (cap === "kinetic") {
+      ctx.fillStyle = `hsl(${(hue + 140) % 360} 85% 62%)`;
+      ctx.fillRect(W / 2 - wide / 2, y - 7, wide * (0.5 + into * 0.5), 14);
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,.42)";
+      ctx.fillRect(W / 2 - wide / 2 - 5, y - 9, wide + 10, 18);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(W / 2 - wide / 2, y - 3, wide, 6);
+    }
+  }
+
+  // Shot ticks: how many cuts this shape makes, and where we are.
+  const n = Math.min(plan.scenes, 14);
+  const tw = W / n;
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = i === (shot % n) ? "#fff" : "rgba(255,255,255,.24)";
+    ctx.fillRect(i * tw + 1.5, H - 4, tw - 3, 2.5);
+  }
+}
+
 function vsReelLook(place, month, index) {
   const seed = vsReelSeed(place, month);
   // Different strides so the three do not move together and produce only a
@@ -19942,6 +20049,9 @@ function vsReverseEngineer(prefill, opts) {
         if ($$("reToneBody")) $$("reToneBody").style.display = canSwap ? "none" : "flex";
         // The reference has just been read, so the plan has real numbers now.
         if (!canSwap) { try { reRenderFormatPlan(); } catch (e) {} }
+        // And the templates belong in the canvas from this moment - this is
+        // where the operator chooses what to build.
+        try { reRenderTemplateGallery(); } catch (e) {}
       }
       // ── AUTO-ROUTE BY DETECTED FORMAT (3-way) ────────────────────────────
       // The model decides which builder matches the reference: a person talking
@@ -20363,9 +20473,72 @@ function vsReverseEngineer(prefill, opts) {
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
     rePaintTemplateList();
+    try { if (document.getElementById("reTplGallery")) reRenderTemplateGallery(); } catch (e) {}
     // The panel is the one place the chosen shape is explained, so show it even
     // when nothing has been analysed.
     try { reRenderFormatPlan(); } catch (e) {}
+  }
+
+  /**
+   * The six shapes, in the canvas, once a reference has been read.
+   *
+   * The side-rail list was a list of text; choosing between six rhythms from
+   * prose is not really choosing. Each card here moves at its own cadence, names
+   * the renderer that will build it and what that costs, and marks the one that
+   * matches the reference just analysed.
+   */
+  function reRenderTemplateGallery() {
+    const host = document.getElementById("reMainBody") || $$("reOut");
+    if (!host || typeof VS_FORMATS === "undefined") return;
+
+    let box = document.getElementById("reTplGallery");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "reTplGallery";
+      box.style.cssText = "display:none;flex-direction:column;gap:12px;margin-bottom:16px";
+      host.insertBefore(box, host.firstChild);
+    }
+
+    const det = ref && ref.format;
+    const cards = VS_FORMATS.map((f) => {
+      const b = vsFormatBuild(f.id);
+      const isMatch = det && det.best === f.id && det.measured;
+      const picked = rePickedTemplate === f.id;
+      const cost = b.credits
+        ? `<span class="ar-cred">${arCreditIcon}${b.credits}</span>`
+        : `<span style="font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0">${fa ? "رایگان" : "FREE"}</span>`;
+      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;gap:12px;text-align:start;padding:11px;border-radius:13px;cursor:pointer;font:inherit;
+          background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
+          border:1px solid ${picked ? "rgba(52,211,153,.55)" : isMatch ? "rgba(37,99,255,.45)" : "rgba(255,255,255,.10)"};transition:.14s">
+        <canvas data-tplpreview="${f.id}" width="104" height="150" style="flex:none;width:70px;height:101px;border-radius:8px;background:#0b0d12"></canvas>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <b style="font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff">${esc(f.label)}</b>
+            ${isMatch ? `<span style="font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:2px 7px;border-radius:20px">${fa ? "مانندِ مرجع" : "MATCHES YOUR LINK"}</span>` : ""}
+          </span>
+          <span style="font-size:11.5px;color:#aeb9c9;line-height:1.45">${esc(f.brief)}</span>
+          <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff">${fa ? "روش: " : "Method: "}${esc(b.method)} · <span style="color:#8ea6c8;font-weight:400">${esc(b.note)}</span></span>
+          <span style="display:flex;align-items:center;gap:9px;margin-top:2px">
+            <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s · ${b.plan.duration}s · ${esc(b.plan.caption.style)}</span>
+            ${cost}
+          </span>
+        </span>
+      </button>`;
+    }).join("");
+
+    box.innerHTML =
+      `<div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
+         <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالب‌ها" : "Templates"}</span>
+         <span style="font-size:11.5px;color:#8ea6c8">${fa
+            ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
+            : "Pick one — the pacing and caption style come from it. Previews run at the real cadence."}</span>
+       </div>` + cards;
+    box.style.display = "flex";
+
+    box.querySelectorAll(".re-tplcard").forEach((b) => {
+      b.onclick = () => { reSelectTemplate(b.dataset.tpl); reRenderTemplateGallery(); };
+    });
+    box.querySelectorAll("canvas[data-tplpreview]").forEach((c) => vsTplPreview(c, c.dataset.tplpreview));
   }
 
   function reRenderFormatPlan() {
