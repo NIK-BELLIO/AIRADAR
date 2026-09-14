@@ -20640,6 +20640,13 @@ function vsReverseEngineer(prefill, opts) {
         v.src = clips[at];
         v.play().catch(() => {});
       });
+      // Paint a frame straight away. preload="metadata" fetches the header and
+      // no pixels, so a card stayed a dark rectangle until something started its
+      // clip - and the observer only starts the ones already on screen, so the
+      // rest never showed a picture at all. Nudging currentTime forces the first
+      // frame to decode.
+      const paint = () => { try { if (v.readyState >= 1 && !v.currentTime) v.currentTime = 0.05; } catch (e) {} };
+      if (v.readyState >= 1) paint(); else v.addEventListener("loadedmetadata", paint, { once: true });
       v.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
       if (seen) seen.observe(v); else v.play().catch(() => {});
     });
