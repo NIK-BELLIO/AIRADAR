@@ -19066,6 +19066,18 @@ function vsSettle(jobId, status) { if (!jobId) return; try { fetch("/api/credits
 
 function vsReverseEngineer(prefill, opts) {
   opts = opts || {};
+  // One panel, ever. A second call would otherwise put two #reModal - and two
+  // of every control inside it - into the document, after which querySelector
+  // answers with the first and every update lands on the copy nobody is
+  // looking at. Bring the existing one forward instead.
+  const already = document.getElementById("reModal");
+  if (already) {
+    const host = already.closest(".vs-reel-ov") || already.parentElement;
+    if (host && host.style && host.style.position === "fixed") host.style.display = "flex";
+    try { already.scrollIntoView({ block: "nearest" }); } catch (e) {}
+    try { const u = document.getElementById("reUrl"); if (u && prefill) u.value = String(prefill); } catch (e) {}
+    return;
+  }
   const fa = state.lang === "fa";
   const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const sd = vstudio.storyData || {};
