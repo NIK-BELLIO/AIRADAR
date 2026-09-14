@@ -5704,23 +5704,6 @@ const VS_FORMAT_BUILD = {
 };
 
 /**
- * Which reference clip demonstrates which shape.
- *
- * All fifteen, not a chosen six. Where a template has several examples the card
- * plays them in turn - a "fast montage" covers a moody cut-up and a bright UGC
- * ad, and one clip alone would misrepresent the range.
- */
-const VS_FORMAT_CLIPS = {
-  single_take:       ["3", "6", "14", "16"],
-  branded_interview: ["2", "11"],
-  broll_presenter:   ["4", "10", "12", "13"],
-  fast_montage:      ["5", "7", "9"],
-  skit:              ["8"],
-  kinetic_type:      ["15"],
-};
-
-/** The preview files for a format, in order. */
-/**
  * The reference set, one entry per clip.
  *
  * Named for what each actually is, because "Single-take talking head 3 of 4" is
@@ -5757,9 +5740,6 @@ function vsTemplateCard(id) {
   return { tpl: t, build: b, clip: "/tpl/" + t.clip + ".mp4", poster: "/tpl/" + t.clip + ".jpg" };
 }
 
-function vsFormatClips(id) {
-  return (VS_FORMAT_CLIPS[id] || []).map((n) => `/tpl/${id}__${n}.mp4`);
-}
 
 // Writing the script is charged once, whatever is built from it, and it happens
 // before any renderer is chosen. Anything quoting the price of a template has to
@@ -20766,9 +20746,30 @@ function vsReverseEngineer(prefill, opts) {
   // still reachable, but it has to be asked for.
   let reRouteUnlocked = false;
 
+  /**
+   * Repaint which card is chosen, without rebuilding the gallery.
+   *
+   * Rebuilding threw away fifteen <video> elements and made fifteen fresh ones,
+   * so every pick refetched every clip, restarted every preview from black, and
+   * stranded another IntersectionObserver on the dead nodes. Choosing is a
+   * change of two colours.
+   */
+  function rePaintTemplatePicks() {
+    const box = document.getElementById("reTplGallery");
+    if (!box) return;
+    const det = ref && ref.format;
+    box.querySelectorAll(".re-tplcard").forEach((c) => {
+      const picked = rePickedTemplate === c.dataset.tpl;
+      const isMatch = det && det.measured && det.best === vsTemplate(c.dataset.tpl).shape;
+      c.style.background = picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)";
+      c.style.borderColor = picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)";
+      c.setAttribute("aria-pressed", String(picked));
+    });
+  }
+
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
-    try { if (document.getElementById("reTplGallery")) reRenderTemplateGallery(); } catch (e) {}
+    try { rePaintTemplatePicks(); } catch (e) {}
     // The panel is the one place the chosen shape is explained, so show it even
     // when nothing has been analysed.
     try { reRenderFormatPlan(); } catch (e) {}
@@ -20812,7 +20813,7 @@ function vsReverseEngineer(prefill, opts) {
       const row = (k, v) => `<span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
           <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${k}</span>
           <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff">${v}</span></span>`;
-      return `<button type="button" class="re-tplcard" data-tpl="${t.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
+      return `<button type="button" class="re-tplcard" data-tpl="${t.id}" aria-pressed="${picked}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
         <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
@@ -20858,11 +20859,14 @@ function vsReverseEngineer(prefill, opts) {
     box.style.display = "flex";
 
     box.querySelectorAll(".re-tplcard").forEach((b) => {
-      b.onclick = () => { reSelectTemplate(b.dataset.tpl); reRenderTemplateGallery(); };
+      b.onclick = () => reSelectTemplate(b.dataset.tpl);
     });
     // Six autoplaying clips at once is a lot of decode for something the eye is
     // only ever on one of. They play when they scroll into view and pause when
     // they leave, and a hover always starts the one being considered.
+    // A rebuild strands the previous observer on detached nodes; it keeps its
+    // references and never fires again.
+    try { if (box._tplSeen) box._tplSeen.disconnect(); } catch (e) {}
     const seen = ("IntersectionObserver" in window) ? new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         const v = e.target;
@@ -20870,17 +20874,11 @@ function vsReverseEngineer(prefill, opts) {
       });
     }, { threshold: 0.25 }) : null;
     box.querySelectorAll("video[data-tplvid]").forEach((v) => {
-      const clips = vsFormatClips(v.dataset.tplvid);
-      let at = 0;
-      // Move to the next example rather than looping one of them forever, so a
-      // shape with four references actually shows its range.
-      v.addEventListener("ended", () => {
-        if (clips.length < 2) { v.currentTime = 0; v.play().catch(() => {}); return; }
-        at = (at + 1) % clips.length;
-        v.poster = clips[at].replace(/\.mp4$/, ".jpg");
-        v.src = clips[at];
-        v.play().catch(() => {});
-      });
+      // Each card owns ONE clip — its own, the one its name and its timings were
+      // read off. The cycling that used to live here was addressed by SHAPE, so
+      // the moment each card became its own template it was one rename away from
+      // playing another template's footage under this template's name. The
+      // shape-to-clips table it read is gone with it.
       // Paint a frame straight away. preload="metadata" fetches the header and
       // no pixels, so a card stayed a dark rectangle until something started its
       // clip - and the observer only starts the ones already on screen, so the
@@ -20891,6 +20889,7 @@ function vsReverseEngineer(prefill, opts) {
       v.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
       if (seen) seen.observe(v); else v.play().catch(() => {});
     });
+    box._tplSeen = seen;
   }
 
   function reRenderFormatPlan() {
