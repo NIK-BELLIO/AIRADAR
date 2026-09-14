@@ -19887,6 +19887,28 @@ function vsReverseEngineer(prefill, opts) {
     const prompt = ($$("rePrompt").value || "").trim();
     const refText = ($$("rePaste").value || "").trim() || (ref && ref.caption) || "";
     if (!prompt) { vsStatus(fa ? "اول موضوع/پرامپت را بنویس." : "Enter your topic / prompt first."); $$("rePrompt").focus(); return; }
+
+    // Everything the chosen answers require, checked BEFORE the charge.
+    //
+    // "This exact video" with nothing analysed has no video to follow, so the
+    // credits would buy a generic style nobody asked for. "With me in it" needs
+    // a face, and finding that out after the script has been written and paid
+    // for is finding out too late.
+    if (reWantSource === "video" && !refText && !(ref && ref.refVideo)) {
+      vsStatus(fa
+        ? "«همین ویدیو» را انتخاب کردی — اول یک لینک را تحلیل کن یا قالبی بردار."
+        : "You chose “this exact video” — analyse a link first, or pick a ready template instead.");
+      const u = $$("reUrl"); if (u) u.focus();
+      return;
+    }
+    if (reWantMode === "character" && !thPhoto) {
+      vsStatus(fa
+        ? "«با خودم در ویدیو» را انتخاب کردی — عکسِ چهره‌ات را اضافه کن."
+        : "You chose “with me in it” — add your face photo first.");
+      const l = $$("reCharPhotoLbl"); if (l) l.scrollIntoView({ block: "center" });
+      return;
+    }
+
     const charge = await vsCharge("blueprint"); if (charge.block) return;   // 2 credits (vision + blueprint)
     const go = $$("reGo"); go.disabled = true; const old = go.innerHTML;
     go.textContent = (fa ? "در حال مهندسی معکوس…" : "Reverse-engineering…");
