@@ -20722,6 +20722,11 @@ function vsReverseEngineer(prefill, opts) {
       try { reRenderFormatPlan(); } catch (e) {}
     };
   });
+  // Draw the answer the page opens with. Everything below reacts to a click,
+  // and the default was never clicked.
+  try { reRenderTemplateGallery(); } catch (e) {}
+  try { reRenderFormatPlan(); } catch (e) {}
+
   // One photo, not two that can disagree: this feeds the same variable the
   // talking-head build already reads.
   if ($$("reCharPhoto")) $$("reCharPhoto").onchange = (e) => {
