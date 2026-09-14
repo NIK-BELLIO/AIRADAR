@@ -5727,6 +5727,10 @@ let _vsTplClock = null;
 function vsTplPreview(canvas, id) {
   const { format: f, plan } = vsFormatBuild(id);
   canvas._tpl = { f, plan };
+  // Drawn immediately, not on the next animation frame. rAF does not run at all
+  // in a background tab and is a beat away even in a live one, so without this
+  // the gallery's first impression is six blank rectangles.
+  try { vsTplDraw(canvas, performance.now() / 1000); } catch (e) {}
   if (!_vsTplClock) {
     _vsTplClock = () => {
       const t = performance.now() / 1000;
@@ -5737,6 +5741,15 @@ function vsTplPreview(canvas, id) {
       requestAnimationFrame(_vsTplClock);
     };
     requestAnimationFrame(_vsTplClock);
+    // Coming back to the tab should show a live preview at once. rAF resumes on
+    // its own, but the frame it resumes with is the one after this.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      const t = performance.now() / 1000;
+      document.querySelectorAll("canvas[data-tplpreview]").forEach((c) => {
+        if (c._tpl && c.isConnected) { try { vsTplDraw(c, t); } catch (e) {} }
+      });
+    });
   }
 }
 
@@ -20536,6 +20549,9 @@ function vsReverseEngineer(prefill, opts) {
          <span style="font-size:11.5px;color:#8ea6c8">${fa
             ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
             : "Pick one — the pacing and caption style come from it. Previews run at the real cadence."}</span>
+         ${det && det.measured ? "" : `<span style="font-size:11px;color:#7c8698">${fa
+            ? "هنوز هیچ‌کدام علامت نخورده — ریتمِ مرجع موقعِ ساخت اندازه‌گیری می‌شود."
+            : "None marked yet — the reference's pacing is measured when the clip is pulled during the build."}</span>`}
        </div>` + cards;
     box.style.display = "flex";
 
