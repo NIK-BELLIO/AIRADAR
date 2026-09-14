@@ -20596,7 +20596,11 @@ function vsReverseEngineer(prefill, opts) {
       const b = vsFormatBuild(f.id);
       const isMatch = det && det.best === f.id && det.measured;
       const picked = rePickedTemplate === f.id;
-      const cost = `<span class="ar-cred">${arCreditIcon}${b.credits}</span>`;
+      // Only the render, because the script costs the same 2 whichever of these
+      // is picked and repeating it six times says nothing.
+      const cost = b.render
+        ? `<span class="ar-cred">${arCreditIcon}${b.render}</span>`
+        : `<span style="font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:6px">${fa ? "رندر رایگان" : "RENDER FREE"}</span>`;
       return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:13px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
@@ -20613,8 +20617,8 @@ function vsReverseEngineer(prefill, opts) {
           <span style="font-size:10.5px;color:#8ea6c8;line-height:1.4">${esc(b.note)}</span>
           <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:2px">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s · ${b.plan.duration}s</span>
           <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#7c8698">${fa
-            ? `متن ${b.script}${b.render ? ` + رندر ${b.render}` : " + رندرِ روی دستگاه"}`
-            : `script ${b.script}${b.render ? ` + render ${b.render}` : " + on-device render"}`}</span>
+            ? `${b.plan.duration}s · 1080×1920`
+            : `${b.plan.duration}s · 1080×1920`}</span>
         </span>
       </button>`;
     }).join("");
@@ -20625,6 +20629,9 @@ function vsReverseEngineer(prefill, opts) {
          <span style="font-size:11.5px;color:#8ea6c8">${fa
             ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
             : "Pick one — the pacing and caption style come from it. Each preview is a real clip in that shape."}</span>
+         <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#8c8578">${fa
+            ? `هر ساخت ${VS_SCRIPT_CREDITS} اعتبار برای متن هم دارد`
+            : `every build also costs ${VS_SCRIPT_CREDITS} for the script`}</span>
          ${det && det.measured ? "" : `<span style="font-size:11px;color:#7c8698">${fa
             ? "هنوز هیچ‌کدام علامت نخورده — ریتمِ مرجع موقعِ ساخت اندازه‌گیری می‌شود."
             : "None marked yet — the reference's pacing is measured when the clip is pulled during the build."}</span>`}
