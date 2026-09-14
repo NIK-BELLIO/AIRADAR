@@ -20523,22 +20523,21 @@ function vsReverseEngineer(prefill, opts) {
       const picked = rePickedTemplate === f.id;
       const cost = b.credits
         ? `<span class="ar-cred">${arCreditIcon}${b.credits}</span>`
-        : `<span style="font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0">${fa ? "رایگان" : "FREE"}</span>`;
-      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;gap:12px;text-align:start;padding:11px;border-radius:13px;cursor:pointer;font:inherit;
+        : `<span style="font:800 10px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;background:rgba(0,0,0,.5);padding:3px 7px;border-radius:6px">${fa ? "رایگان" : "FREE"}</span>`;
+      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:13px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
-          border:1px solid ${picked ? "rgba(52,211,153,.55)" : isMatch ? "rgba(37,99,255,.45)" : "rgba(255,255,255,.10)"};transition:.14s">
-        <canvas data-tplpreview="${f.id}" width="104" height="150" style="flex:none;width:70px;height:101px;border-radius:8px;background:#0b0d12"></canvas>
-        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
-          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-            <b style="font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff">${esc(f.label)}</b>
-            ${isMatch ? `<span style="font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:2px 7px;border-radius:20px">${fa ? "مانندِ مرجع" : "MATCHES YOUR LINK"}</span>` : ""}
-          </span>
-          <span style="font-size:11.5px;color:#aeb9c9;line-height:1.45">${esc(f.brief)}</span>
-          <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff">${fa ? "روش: " : "Method: "}${esc(b.method)} · <span style="color:#8ea6c8;font-weight:400">${esc(b.note)}</span></span>
-          <span style="display:flex;align-items:center;gap:9px;margin-top:2px">
-            <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s · ${b.plan.duration}s · ${esc(b.plan.caption.style)}</span>
-            ${cost}
-          </span>
+          border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
+        <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
+          <video data-tplvid="${f.id}" src="/tpl/${f.id}.mp4" muted loop playsinline preload="metadata"
+                 style="width:100%;height:100%;object-fit:cover;display:block"></video>
+          ${isMatch ? `<span style="position:absolute;top:7px;inset-inline-start:7px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
+          <span style="position:absolute;bottom:7px;inset-inline-end:7px">${cost}</span>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:3px;padding:9px 10px 11px">
+          <b style="font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.25">${esc(f.label)}</b>
+          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff;text-transform:uppercase;letter-spacing:.04em">${fa ? "روش: " : "Method: "}${esc(b.method)}</span>
+          <span style="font-size:10.5px;color:#8ea6c8;line-height:1.4">${esc(b.note)}</span>
+          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:2px">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s · ${b.plan.duration}s</span>
         </span>
       </button>`;
     }).join("");
@@ -20548,17 +20547,30 @@ function vsReverseEngineer(prefill, opts) {
          <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالب‌ها" : "Templates"}</span>
          <span style="font-size:11.5px;color:#8ea6c8">${fa
             ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
-            : "Pick one — the pacing and caption style come from it. Previews run at the real cadence."}</span>
+            : "Pick one — the pacing and caption style come from it. Each preview is a real clip in that shape."}</span>
          ${det && det.measured ? "" : `<span style="font-size:11px;color:#7c8698">${fa
             ? "هنوز هیچ‌کدام علامت نخورده — ریتمِ مرجع موقعِ ساخت اندازه‌گیری می‌شود."
             : "None marked yet — the reference's pacing is measured when the clip is pulled during the build."}</span>`}
-       </div>` + cards;
+       </div>
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px">${cards}</div>`;
     box.style.display = "flex";
 
     box.querySelectorAll(".re-tplcard").forEach((b) => {
       b.onclick = () => { reSelectTemplate(b.dataset.tpl); reRenderTemplateGallery(); };
     });
-    box.querySelectorAll("canvas[data-tplpreview]").forEach((c) => vsTplPreview(c, c.dataset.tplpreview));
+    // Six autoplaying clips at once is a lot of decode for something the eye is
+    // only ever on one of. They play when they scroll into view and pause when
+    // they leave, and a hover always starts the one being considered.
+    const seen = ("IntersectionObserver" in window) ? new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        const v = e.target;
+        if (e.isIntersecting) { v.play().catch(() => {}); } else { try { v.pause(); } catch (err) {} }
+      });
+    }, { threshold: 0.25 }) : null;
+    box.querySelectorAll("video[data-tplvid]").forEach((v) => {
+      v.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
+      if (seen) seen.observe(v); else v.play().catch(() => {});
+    });
   }
 
   function reRenderFormatPlan() {
