@@ -19069,7 +19069,7 @@ async function vsReverseAnalyze(refText, brief) {
     // this prompt used to describe only the first of them whichever was chosen -
     // the fork was not even shown until after generate had run and been charged,
     // so the answer could not reach the thing it was an answer about.
-    (brief.mode === "tone"
+    (brief.followReference !== true
       ? "Then write a COMPLETELY FRESH video about the BRIEF's topic that merely SOUNDS like the reference. Take ONLY the tone, the voice and the pacing. Do NOT follow its structure beat-for-beat, do NOT reuse its hook pattern, and do NOT mirror its sequence of beats — invent your own, suited to the user's topic. Someone who knows the reference should recognise the VOICE and nothing else.\n\n"
       : "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n") +
     "REFERENCE POST(S) (caption / on-screen text / hashtags — may be several, one per line):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 3000) + "\n\"\"\"\n\n" +
@@ -19320,6 +19320,7 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-fork{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px;margin-bottom:16px}
          :is(#reModal,#reMainBody) .re-forkcard{display:flex;gap:12px;align-items:flex-start;text-align:left;cursor:pointer;padding:15px 15px 16px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.11);transition:border-color .16s,transform .14s,box-shadow .16s;color:inherit;font:inherit}
          :is(#reModal,#reMainBody) .re-forkcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.5);box-shadow:0 14px 30px -16px rgba(37,99,255,.6)}
+         :is(#reModal,#reMainBody) .re-qlbl{font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8c8578;text-transform:uppercase}
          :is(#reModal,#reMainBody) .re-want{display:flex;flex-direction:column;gap:2px;text-align:start;padding:9px 11px;border-radius:11px;cursor:pointer;font:inherit;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);transition:.14s}
          :is(#reModal,#reMainBody) .re-want b{font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#eef4ff}
          :is(#reModal,#reMainBody) .re-want i{font-style:normal;font-size:11px;color:#93a3bb;line-height:1.4}
@@ -19445,16 +19446,46 @@ function vsReverseEngineer(prefill, opts) {
        <!-- Asked BEFORE the charge, because it decides what gets written and the
             writing is what is being paid for. This used to be offered after
             generate had already run, where it could not affect anything. -->
-       <div id="reWant" style="display:flex;flex-direction:column;gap:7px;margin:2px 0 12px">
-         <div style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8c8578;text-transform:uppercase">${fa ? "چه چیزی از مرجع می‌خواهی؟" : "What do you want from the reference?"}</div>
-         <button type="button" class="re-want" data-want="exact" aria-pressed="true">
-           <b>${fa ? "دقیقاً همین سبک" : "Exactly this style"}</b>
-           <i>${fa ? "همان ساختار، همان قلاب، همان ریتم — فقط با اطلاعاتِ خودت." : "Same structure, same hook, same pacing — with your information instead."}</i>
-         </button>
-         <button type="button" class="re-want" data-want="tone" aria-pressed="false">
-           <b>${fa ? "فقط لحنش" : "Only its tone"}</b>
-           <i>${fa ? "چیزی تازه دربارهٔ موضوعِ خودت که فقط مثلِ او به گوش می‌آید." : "Something new about your topic that merely sounds like it."}</i>
-         </button>
+       <!-- The whole decision, in one place, before anything is charged. It used
+            to be split across this block, a second identical fork below the
+            Generate button, and nine render cards after that - so picking a
+            template still led to picking a method. -->
+       <div id="reSetup" style="display:flex;flex-direction:column;gap:13px;margin:2px 0 13px">
+         <div style="display:flex;flex-direction:column;gap:7px">
+           <div class="re-qlbl">${fa ? "شکلِ ویدئو از کجا بیاید؟" : "Where should the shape come from?"}</div>
+           <button type="button" class="re-want" data-src="template" aria-pressed="true">
+             <b>${fa ? "یک قالبِ آماده" : "A ready template"}</b>
+             <i>${fa ? "شش شکلِ اندازه‌گیری‌شده — مرجع لازم نیست." : "One of the six measured shapes — no reference needed."}</i>
+           </button>
+           <button type="button" class="re-want" data-src="video" aria-pressed="false">
+             <b>${fa ? "همین ویدئو" : "This exact video"}</b>
+             <i>${fa ? "ساختار، قلاب و ریتمِ مرجعی که تحلیل کردی." : "The structure, hook and pacing of the reference you analysed."}</i>
+           </button>
+         </div>
+
+         <div style="display:flex;flex-direction:column;gap:7px">
+           <div class="re-qlbl">${fa ? "چقدر ازش را برمی‌داری؟" : "How much of it do you take?"}</div>
+           <button type="button" class="re-want" data-want="tone" aria-pressed="true">
+             <b>${fa ? "فقط لحنش" : "Only the tone"}</b>
+             <i>${fa ? "متن و فوتیجِ تازه، فقط همان صدا و ریتم." : "Fresh script and footage — only the voice and rhythm carry over."}</i>
+           </button>
+           <button type="button" class="re-want" data-want="character" aria-pressed="false">
+             <b>${fa ? "خودم در ویدئو باشم" : "With me in it"}</b>
+             <i>${fa ? "با چهره‌ای که می‌دهی — عکس و تنظیماتِ خودت." : "Presented by the face you give it — your photo, your settings."}</i>
+           </button>
+           <!-- Revealed only by the option that needs them, so the panel is not a
+                wall of inputs for someone who will never use them. -->
+           <div id="reCharBox" style="display:none;flex-direction:column;gap:7px;padding:9px 11px;border-radius:11px;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22)">
+             <label id="reCharPhotoLbl" class="mdrop" style="cursor:pointer">${reIco("eye", 14)}<span id="reCharPhotoTxt">${fa ? "عکسِ چهرهٔ تو (لازم)" : "Your face photo (required)"}</span><input id="reCharPhoto" type="file" accept="image/*" style="display:none"/></label>
+             <div style="display:flex;gap:7px;flex-wrap:wrap">
+               <select id="reCharVoice" style="flex:1;min-width:120px">
+                 <option value="female">${fa ? "صدا: زنانه" : "Voice: Female"}</option>
+                 <option value="male">${fa ? "صدا: مردانه" : "Voice: Male"}</option>
+               </select>
+               <select id="reCharAsp" style="flex:1;min-width:120px">${optAsp("9:16")}</select>
+             </div>
+           </div>
+         </div>
        </div>
        <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}${arCredit(2)}</button>
 
@@ -19501,23 +19532,7 @@ function vsReverseEngineer(prefill, opts) {
            <div id="reFormatWhy" style="font-size:11.5px;color:#aeb9c9;line-height:1.5"></div>
            <div id="reFormatSpec" style="font:700 11.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff"></div>
          </div>
-         <div id="reModeFork" class="re-fork">
-           <button type="button" class="re-forkcard" id="reForkSwap" aria-pressed="false">
-             <span class="fico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.4"/><path d="M15 9.5h3.5M15 13h2.5"/><path d="M4.5 18c1.2-2.2 2.7-3.3 4.5-3.3s3.3 1.1 4.5 3.3"/></svg></span>
-             <span class="ftxt">
-               <b>${fa ? "همین ویدیو، با چهره و حرفِ خودم" : "This exact video, with my face and my words"}</b>
-               <i>${fa ? "خودِ ویدیوی اصلی می‌ماند — پس‌زمینه، دوربین، تایمینگ، کات‌ها. فقط شخص عوض می‌شود." : "The original footage stays — background, camera, timing, cuts. Only the person changes."}</i>
-             </span>
-           </button>
-           <button type="button" class="re-forkcard" id="reForkTone" aria-pressed="false">
-             <span class="fico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h11M4 17h7"/><path d="M18 15l2.5 2.5L18 20"/></svg></span>
-             <span class="ftxt">
-               <b>${fa ? "فقط لحن و سبک را می‌خواهم" : "I only want the tone and style"}</b>
-               <i>${fa ? "ساختار و لحنِ مرجع را برمی‌داریم و با موضوعِ خودت از نو می‌سازیم." : "We take the reference's structure and tone, then build fresh around your own topic."}</i>
-             </span>
-           </button>
-         </div>
-         <div id="reToneBody" style="display:none;flex-direction:column;gap:12px">
+         <div id="reToneBody" style="display:flex;flex-direction:column;gap:12px">
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8ea6c8">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
@@ -19919,6 +19934,9 @@ function vsReverseEngineer(prefill, opts) {
       blueprint = await vsReverseAnalyze(refText, {
         prompt, region: ($$("reRegion").value || "").trim(),
         lang: $$("reLang").value, skill: $$("reSkill").value,
+        // Follow the reference beat for beat only when the operator asked to
+        // build from THIS video. A template is a shape, not a script to copy.
+        followReference: reWantSource === "video",
         mode: reWantMode,
       });
       // A transient empty AI response yields no usable script — surface a retry
@@ -20131,10 +20149,9 @@ function vsReverseEngineer(prefill, opts) {
       // one; a photo post falls straight through to the tone flow.
       {
         const canSwap = !!(ref && ref.refVideo);
-        if ($$("reForkSwap")) $$("reForkSwap").style.display = canSwap ? "" : "none";
-        if ($$("reModeFork")) $$("reModeFork").style.display = canSwap ? "grid" : "none";
-        if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", "false");
-        if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", canSwap ? "false" : "true");
+        // The choice was made before Generate ran; nothing is asked again here.
+        // What canSwap still decides is whether putting the operator INTO the
+        // original footage is even possible - that needs the clip in hand.
         if ($$("reSwapBody")) $$("reSwapBody").style.display = "none";
         if ($$("reToneBody")) $$("reToneBody").style.display = canSwap ? "none" : "flex";
         // The reference has just been read, so the plan has real numbers now.
@@ -20517,7 +20534,10 @@ function vsReverseEngineer(prefill, opts) {
   // "tone"  = only sound like it; write something new for my topic.
   // Asked BEFORE the charge, because it changes what gets written and the
   // writing is the thing being paid for.
-  let reWantMode = "exact";
+  let reWantMode = "tone";
+  // "template" = build one of the six shapes; "video" = follow the analysed
+  // reference. The second needs a reference, the first does not.
+  let reWantSource = "template";
 
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
@@ -20674,24 +20694,42 @@ function vsReverseEngineer(prefill, opts) {
     // Redrawn on BOTH paths now: the panel sits above the fork and says which of
     // the two it is describing, so switching has to update it.
     setTimeout(() => { try { reRenderFormatPlan(); } catch (e) {} }, 0);
-    if ($$("reForkSwap")) $$("reForkSwap").setAttribute("aria-pressed", String(swapOn));
-    if ($$("reForkTone")) $$("reForkTone").setAttribute("aria-pressed", String(!swapOn));
     if ($$("reSwapBody")) $$("reSwapBody").style.display = swapOn ? "flex" : "none";
     if ($$("reToneBody")) $$("reToneBody").style.display = swapOn ? "none" : "flex";
     if (swapOn && !swapState.built) { swapState.built = true; swapBuildStrip(); swapRefresh(); }
   }
-  // The answer is read straight off the control when generate runs, so there is
-  // no second copy of this state to fall out of step.
-  document.querySelectorAll(".re-want").forEach((btn) => {
+  // Two questions, each its own group, both read straight off the DOM when
+  // Generate runs so there is no second copy of the answer to drift.
+  document.querySelectorAll(".re-want[data-src]").forEach((btn) => {
     btn.onclick = () => {
-      reWantMode = btn.dataset.want === "tone" ? "tone" : "exact";
-      document.querySelectorAll(".re-want").forEach((b2) =>
-        b2.setAttribute("aria-pressed", String(b2.dataset.want === reWantMode)));
+      reWantSource = btn.dataset.src === "video" ? "video" : "template";
+      document.querySelectorAll(".re-want[data-src]").forEach((b2) =>
+        b2.setAttribute("aria-pressed", String(b2.dataset.src === reWantSource)));
+      try { reRenderTemplateGallery(); } catch (e) {}
       try { reRenderFormatPlan(); } catch (e) {}
     };
   });
-  if ($$("reForkSwap")) $$("reForkSwap").onclick = () => swapShow("swap");
-  if ($$("reForkTone")) $$("reForkTone").onclick = () => swapShow("tone");
+  document.querySelectorAll(".re-want[data-want]").forEach((btn) => {
+    btn.onclick = () => {
+      reWantMode = btn.dataset.want === "character" ? "character" : "tone";
+      document.querySelectorAll(".re-want[data-want]").forEach((b2) =>
+        b2.setAttribute("aria-pressed", String(b2.dataset.want === reWantMode)));
+      const box = $$("reCharBox");
+      if (box) box.style.display = reWantMode === "character" ? "flex" : "none";
+      // Being in the video means putting a face into the original footage, which
+      // is only possible while we are holding that footage.
+      try { swapShow(reWantMode === "character" && !!(ref && ref.refVideo) ? "swap" : "tone"); } catch (e) {}
+      try { reRenderFormatPlan(); } catch (e) {}
+    };
+  });
+  // One photo, not two that can disagree: this feeds the same variable the
+  // talking-head build already reads.
+  if ($$("reCharPhoto")) $$("reCharPhoto").onchange = (e) => {
+    thPhoto = (e.target.files && e.target.files[0]) || null;
+    $$("reCharPhotoTxt").textContent = thPhoto
+      ? (fa ? "عکسِ تو: " : "Your photo: ") + thPhoto.name.slice(0, 26)
+      : (fa ? "عکسِ چهرهٔ تو (لازم)" : "Your face photo (required)");
+  };
 
   if ($$("reSwapImg")) $$("reSwapImg").onchange = (e) => {
     swapState.photo = (e.target.files && e.target.files[0]) || null;
