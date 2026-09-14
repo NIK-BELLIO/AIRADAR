@@ -20618,29 +20618,42 @@ function vsReverseEngineer(prefill, opts) {
       const b = vsFormatBuild(f.id);
       const isMatch = det && det.best === f.id && det.measured;
       const picked = rePickedTemplate === f.id;
-      // Only the render, because the script costs the same 2 whichever of these
-      // is picked and repeating it six times says nothing.
-      const cost = b.render
-        ? `<span class="ar-cred">${arCreditIcon}${b.render}</span>`
-        : `<span style="font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:6px">${fa ? "رندر رایگان" : "RENDER FREE"}</span>`;
-      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:13px;cursor:pointer;font:inherit;overflow:hidden;
+      const clipCount = vsFormatClips(f.id).length;
+      const row = (k, v) => `<span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+          <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${k}</span>
+          <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff">${v}</span></span>`;
+      return `<button type="button" class="re-tplcard" data-tpl="${f.id}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
         <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
           <video data-tplvid="${f.id}" src="${vsFormatClips(f.id)[0] || ""}" poster="${(vsFormatClips(f.id)[0] || "").replace(/\.mp4$/, ".jpg")}" muted playsinline preload="metadata"
                  style="width:100%;height:100%;object-fit:cover;display:block"></video>
-          ${vsFormatClips(f.id).length > 1 ? `<span style="position:absolute;top:7px;inset-inline-end:7px;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:20px">${vsFormatClips(f.id).length} ${fa ? "نمونه" : "examples"}</span>` : ""}
-          ${isMatch ? `<span style="position:absolute;top:7px;inset-inline-start:7px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
-          <span style="position:absolute;bottom:7px;inset-inline-end:7px">${cost}</span>
+          ${isMatch ? `<span style="position:absolute;top:8px;inset-inline-start:8px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
+          ${clipCount > 1 ? `<span style="position:absolute;top:8px;inset-inline-end:8px;font:700 8.5px 'JetBrains Mono',ui-monospace,monospace;color:#cfe0ff;background:rgba(0,0,0,.6);padding:3px 7px;border-radius:20px">${clipCount} ${fa ? "نمونه" : "examples"}</span>` : ""}
         </span>
-        <span style="display:flex;flex-direction:column;gap:3px;padding:9px 10px 11px">
-          <b style="font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.25">${esc(f.label)}</b>
-          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff;text-transform:uppercase;letter-spacing:.04em">${fa ? "روش: " : "Method: "}${esc(b.method)}</span>
-          <span style="font-size:10.5px;color:#8ea6c8;line-height:1.4">${esc(b.note)}</span>
-          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:2px">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s</span>
-          <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#7c8698">${fa
-            ? `${b.plan.duration}s · 1080×1920`
-            : `${b.plan.duration}s · 1080×1920`}</span>
+
+        <span style="display:flex;flex-direction:column;gap:10px;padding:12px 13px 13px">
+          <span style="display:flex;flex-direction:column;gap:3px">
+            <b style="font:800 14px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.2">${esc(f.label)}</b>
+            <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff;text-transform:uppercase;letter-spacing:.05em">${esc(b.method)}</span>
+            <span style="font-size:11px;color:#93a3bb;line-height:1.45">${esc(b.note)}</span>
+          </span>
+
+          <span style="display:flex;flex-direction:column;gap:5px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
+            ${row(fa ? "زمان" : "Length", b.plan.duration + "s")}
+            ${row(fa ? "اندازه" : "Size", "1080×1920")}
+            ${row(fa ? "نماها" : "Shots", (b.plan.scenes === 1 ? "1" : b.plan.scenes) + " × " + b.plan.secondsPerScene + "s")}
+          </span>
+
+          <span style="display:flex;flex-direction:column;gap:3px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
+            <span style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${fa ? "تا ویدئوی آماده" : "Finished video"}</span>
+              <span class="ar-cred">${arCreditIcon}${b.credits}</span>
+            </span>
+            <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#6f7a8c">${fa
+              ? `متن ${b.script} + ${b.render ? `رندر ${b.render}` : "رندرِ رایگان"}`
+              : `script ${b.script} + ${b.render ? `render ${b.render}` : "render free"}`}</span>
+          </span>
         </span>
       </button>`;
     }).join("");
@@ -20651,14 +20664,12 @@ function vsReverseEngineer(prefill, opts) {
          <span style="font-size:11.5px;color:#8ea6c8">${fa
             ? "یکی را بردار — ریتم و کپشن از همین می‌آید."
             : "Pick one — the pacing and caption style come from it. Each preview is a real clip in that shape."}</span>
-         <span style="font:700 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#8c8578">${fa
-            ? `هر ساخت ${VS_SCRIPT_CREDITS} اعتبار برای متن هم دارد`
-            : `every build also costs ${VS_SCRIPT_CREDITS} for the script`}</span>
+
          ${det && det.measured ? "" : `<span style="font-size:11px;color:#7c8698">${fa
             ? "هنوز هیچ‌کدام علامت نخورده — ریتمِ مرجع موقعِ ساخت اندازه‌گیری می‌شود."
             : "None marked yet — the reference's pacing is measured when the clip is pulled during the build."}</span>`}
        </div>
-       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px">${cards}</div>`;
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:14px">${cards}</div>`;
     box.style.display = "flex";
 
     box.querySelectorAll(".re-tplcard").forEach((b) => {
