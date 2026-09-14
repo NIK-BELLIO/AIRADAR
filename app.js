@@ -20567,6 +20567,15 @@ function vsReverseEngineer(prefill, opts) {
       host.insertBefore(box, host.firstChild);
     }
 
+    // These are the answer to "where does the shape come from", so they belong
+    // on screen only while that answer is "a ready template". Leaving them up
+    // under "this exact video" put both answers to one question side by side.
+    if (reWantSource !== "template") {
+      box.style.display = "none";
+      box.querySelectorAll("video[data-tplvid]").forEach((v) => { try { v.pause(); } catch (e) {} });
+      return;
+    }
+
     const det = ref && ref.format;
     const cards = VS_FORMATS.map((f) => {
       const b = vsFormatBuild(f.id);
