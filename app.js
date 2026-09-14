@@ -20443,7 +20443,13 @@ function vsReverseEngineer(prefill, opts) {
     const clean = script.replace(/https?:\/\/\S+/gi, "").trim();
     const info = ($$("reRegion").value || "").trim();
     const topicVal = "/" + skill + " " + clean + (info ? ("\n\nUse THIS info / details: " + info) : "");
-    const lenVal = $$("reLen").value || "medium";
+    // The slideshow builder counts scenes off this Length (short 4-5, medium
+    // 6-7, long 8-10). When a template decided the shape, the shape knows how
+    // many scenes it wants - taking the generic selector instead rendered a
+    // seven-beat video from a script written for one beat, or for nine.
+    const tplPlan = reWantSource === "template" && rePickedTemplate ? vsFormatBuild(vsTemplate(rePickedTemplate).shape).plan : null;
+    const lenVal = tplPlan ? (tplPlan.scenes <= 5 ? "short" : tplPlan.scenes <= 7 ? "medium" : "long")
+      : ($("reLen").value || "medium");
     const aspVal = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
     const topic = document.querySelector("#vsAutoTopic");
     // The standalone /reverse-engineer/ page doesn't have the Studio canvas
