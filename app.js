@@ -5523,6 +5523,22 @@ const VS_FORMATS = [
     note: "the premise card is the hook; the first shot only has to be odd enough to hold",
   },
   {
+    // The one reference that is not a video. A still gets no cut rate and no
+    // duration, so the pipeline that measured the other fifteen dropped it
+    // without saying so - which is how a reference the operator supplied went
+    // missing from the set they were handed back.
+    id: "quote_card",
+    label: "Branded quote card",
+    brief: "one still: a cut-out portrait over a location photo, the brand lockup, and the line set in two weights",
+    still: true, size: "1080×1350",
+    seconds: [0, 0], shotSeconds: [0, 0], cuts: [0, 0],
+    caption: { style: "quote", words: [6, 14], pos: "lower_third", font: "condensed", every: [0, 0] },
+    needsFace: true, broll: "none", hook: "the line IS the post - it has to land read, not heard",
+    music: { energy: "none", underVoice: false },
+    chrome: { logo: "top_left", inset: "portrait" },
+    note: "the only one that works with the sound off and the thumb still",
+  },
+  {
     id: "kinetic_type",
     label: "Kinetic typography",
     brief: "words sized and coloured per phrase, set behind the speaker, with proof cards cut in",
@@ -5657,7 +5673,10 @@ function vsFormatMatch(opts) {
   const colour = String(v.title_color || "").trim().toLowerCase();
   const coloured = !!colour && !/^(white|black|none|grey|gray)$/.test(colour);
 
-  const ranked = VS_FORMATS.map((f) => {
+  // A still is a shape you can CHOOSE but never a shape a moving reference can
+  // BE, and it scores on the same face/caption signals as the video formats —
+  // so left in the ranking it could come back as the match for a real clip.
+  const ranked = VS_FORMATS.filter((f) => !f.still).map((f) => {
     let n = 0;
     // Shot length is the strongest single signal, so it carries the most weight.
     if (shot >= f.shotSeconds[0] && shot <= f.shotSeconds[1]) n += 5;
@@ -5701,6 +5720,7 @@ const VS_FORMAT_BUILD = {
   fast_montage:      { method: "Slideshow video",  note: "on-device canvas, music-led",          perSec: 0, route: "video" },
   skit:              { method: "Scene-by-scene",   note: "each beat generated separately",       perSec: 9, route: "scene" },
   kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0, route: "video" },
+  quote_card:        { method: "Image card",       note: "on-device canvas, one still",         perSec: 0, route: "carousel" },
 };
 
 /**
@@ -5726,6 +5746,7 @@ const VS_TEMPLATES = [
   { id: "wide_studio",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work" },
   { id: "pov_skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out" },
   { id: "kinetic",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker" },
+  { id: "quote_card",      clip: "quote_card__1",         shape: "quote_card",        label: "Branded quote card",    note: "one still: your photo, the line in two weights", still: true, aspect: "4/5" },
 ];
 
 /** A template by id, or the first one when the id means nothing. */
@@ -5737,7 +5758,8 @@ function vsTemplate(id) {
 function vsTemplateCard(id) {
   const t = vsTemplate(id);
   const b = vsFormatBuild(t.shape);
-  return { tpl: t, build: b, clip: "/tpl/" + t.clip + ".mp4", poster: "/tpl/" + t.clip + ".jpg" };
+  return { tpl: t, build: b, still: !!t.still, aspect: t.aspect || "9/16",
+           clip: t.still ? "" : "/tpl/" + t.clip + ".mp4", poster: "/tpl/" + t.clip + ".jpg" };
 }
 
 
@@ -5757,6 +5779,13 @@ const VS_SCRIPT_CREDITS = 2;
 function vsFormatBuild(id) {
   const f = vsFormat(id);
   const b = VS_FORMAT_BUILD[f.id] || VS_FORMAT_BUILD.broll_presenter;
+  // A still has no duration and no shots, so there is nothing for the planner
+  // to divide - and asking it anyway returns a shape that reads like a video.
+  if (f.still) {
+    return { format: f, plan: { scenes: 1, secondsPerScene: 0, duration: 0, still: true, linesShown: 1, linesDropped: 0, mode: "still" },
+             method: b.method, note: b.note, perSec: 0, route: b.route || "carousel",
+             render: 0, script: VS_SCRIPT_CREDITS, credits: VS_SCRIPT_CREDITS };
+  }
   const plan = vsFormatPlan(f.id, ["", "", "", "", ""], { mode: "borrow" });
   const render = b.perSec ? Math.ceil(plan.duration * b.perSec) : 0;
   return { format: f, plan, method: b.method, note: b.note, perSec: b.perSec, route: b.route || "video",
@@ -19090,7 +19119,15 @@ async function vsReverseAnalyze(refText, brief) {
     phrase:   "short phrases of two to four words in the lower third",
   }[tf.caption.style] || "short phrases of two to four words");
   const tplWords = tplan ? Math.max(4, Math.round(tplan.secondsPerScene * 2.6)) : 0;
-  const tplBlock = tpl
+  const tplBlock = tpl && tf.still
+    ? "\n\nTHE SHAPE TO WRITE INTO - the operator picked the \"" + tpl.label + "\" template. It is a STILL IMAGE, not a video, and that changes everything:\n" +
+      "- " + tf.brief + "\n" +
+      "- There is no narration, no voiceover and no pacing. Nobody hears this. Write ONE line of copy, " + tf.caption.words[0] + "-" + tf.caption.words[1] + " words, that lands read in under two seconds.\n" +
+      "- Set it in two parts the way the reference does: a setup that trails off, then the payoff on its own line.\n" +
+      "- " + tf.hook + "\n" +
+      "- " + tpl.note + "\n" +
+      "===STRUCTURE=== has exactly 1 beat and ===SCRIPT=== is that single card: the line, and a one-line description of the photograph behind it. No scene list, no narration, no runtime.\n"
+    : tpl
     ? "\n\nTHE SHAPE TO WRITE INTO - the operator picked the \"" + tpl.label + "\" template. This shape is NOT negotiable and it OVERRIDES the reference's own structure:\n" +
       "- " + tf.brief + "\n" +
       "- Write EXACTLY " + tplan.scenes + " scenes. Not four, not six - " + tplan.scenes + ".\n" +
@@ -19117,6 +19154,7 @@ async function vsReverseAnalyze(refText, brief) {
     : "";
   // Whichever side asked for a shape, this is how many scenes it wants.
   const sceneN = tplan ? tplan.scenes : measScenes;
+  const stillPick = !!(tf && tf.still);
   // A DELIMITED-SECTION contract (not JSON): the free fallback models routinely
   // break strict JSON by putting raw newlines inside the long "script" string,
   // which makes JSON.parse fail. Marker-delimited sections parse reliably no
@@ -19143,9 +19181,9 @@ async function vsReverseAnalyze(refText, brief) {
     "===DNA===\nTone: <...>\nVoice: <...>\nHook: <...>\nPacing: <...>\nFormat: <...>\nEmoji: <...>\nHashtags: <...>\nAudience: <...>\n" +
     "===FORMATTYPE===\nslideshow   (or: talking_head)\n" +
     "===SETTING===\n<one short phrase describing the reference's on-screen environment/backdrop, e.g. 'modern kitchen', 'outdoors in front of houses', 'plain studio', 'city street' — used to place a presenter in the same vibe>\n" +
-    "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n" + (sceneN ? "(exactly " + sceneN + " beats)\n" : "(up to 6 beats)\n") +
+    "===STRUCTURE===\n1. <scene beat>\n2. <scene beat>\n" + (stillPick ? "(exactly 1 beat - this is a still)\n" : sceneN ? "(exactly " + sceneN + " beats)\n" : "(up to 6 beats)\n") +
     "===SKILL===\neditorial   (or: motion_graphic)\n" +
-    "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then " + (sceneN ? sceneN + " hook-first scenes" : "4-6 hook-first scenes") + ". For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
+    "===SCRIPT===\n<a detailed director's brief for THIS generator (on-screen text + AI images, NO on-camera person): restate the tone/pacing, then " + (stillPick ? "ONE card - the line and the photograph behind it, nothing else" : sceneN ? sceneN + " hook-first scenes" : "4-6 hook-first scenes") + ". For each scene give: the on-screen HEADLINE, a one-line AI-IMAGE description of a relevant scene/object (no people-to-camera), and the NARRATION line — all about the BRIEF, matching the reference's rhythm. plain text, NO urls, NO bracket placeholders>\n" +
     "===CAPTION===\n<a ready-to-post caption for this new video in the reference's exact style, with matching emoji and hashtags>\n\n" +
     skillHint + " A talking-head / advice / vlog / story reel → editorial; only a pure stat/data/number post → motion_graphic. Match the reference's vibe precisely; never reuse its literal topic — only its style.";
   const raw = await vsAutoAiChat(prompt + SPARK_TRUTH, { json: false, temperature: 0.85, timeout: 60000 });
@@ -20761,6 +20799,7 @@ function vsReverseEngineer(prefill, opts) {
    * change of two colours.
    */
   function rePaintTemplatePicks() {
+    // (a still has no pacing to describe; reRenderFormatPlan reads plan.still)
     const box = document.getElementById("reTplGallery");
     if (!box) return;
     const det = ref && ref.format;
@@ -20822,9 +20861,11 @@ function vsReverseEngineer(prefill, opts) {
       return `<button type="button" class="re-tplcard" data-tpl="${t.id}" aria-pressed="${picked}" style="display:flex;flex-direction:column;text-align:start;padding:0;border-radius:14px;cursor:pointer;font:inherit;overflow:hidden;
           background:${picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)"};
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
-        <span style="position:relative;display:block;width:100%;aspect-ratio:9/16;background:#0b0d12">
-          <video data-tplvid="${t.id}" src="${c.clip}" poster="${c.poster}" muted loop playsinline preload="metadata"
-                 style="width:100%;height:100%;object-fit:cover;display:block"></video>
+        <span style="position:relative;display:block;width:100%;aspect-ratio:${c.aspect};background:#0b0d12">
+          ${c.still
+            ? `<img src="${c.poster}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"/>`
+            : `<video data-tplvid="${t.id}" src="${c.clip}" poster="${c.poster}" muted loop playsinline preload="metadata"
+                 style="width:100%;height:100%;object-fit:cover;display:block"></video>`}
           ${isMatch ? `<span style="position:absolute;top:8px;inset-inline-start:8px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
         </span>
 
@@ -20836,14 +20877,15 @@ function vsReverseEngineer(prefill, opts) {
           </span>
 
           <span style="display:flex;flex-direction:column;gap:5px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
-            ${row(fa ? "زمان" : "Length", b.plan.duration + "s")}
-            ${row(fa ? "اندازه" : "Size", "1080×1920")}
-            ${row(fa ? "نماها" : "Shots", (b.plan.scenes === 1 ? "1" : b.plan.scenes) + " × " + b.plan.secondsPerScene + "s")}
+            ${row(fa ? "زمان" : "Length", b.plan.still ? (fa ? "عکسِ ثابت" : "Still image") : b.plan.duration + "s")}
+            ${row(fa ? "اندازه" : "Size", b.format.size || "1080×1920")}
+            ${row(fa ? "نماها" : "Shots", b.plan.still ? (fa ? "۱ اسلاید" : "1 slide")
+              : (b.plan.scenes === 1 ? "1" : b.plan.scenes) + " × " + b.plan.secondsPerScene + "s")}
           </span>
 
           <span style="display:flex;flex-direction:column;gap:3px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
             <span style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-              <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${fa ? "تا ویدئوی آماده" : "Finished video"}</span>
+              <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${b.plan.still ? (fa ? "تا عکسِ آماده" : "Finished image") : (fa ? "تا ویدئوی آماده" : "Finished video")}</span>
               <span class="ar-cred">${arCreditIcon}${b.credits}</span>
             </span>
             <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#6f7a8c">${fa
@@ -20858,8 +20900,8 @@ function vsReverseEngineer(prefill, opts) {
       `<div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
          <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالب‌ها" : "Templates"}</span>
          <span style="font-size:11.5px;color:#8ea6c8">${fa
-            ? `${VS_TEMPLATES.length} قالب — ریتم و کپشن از همین می‌آید؛ هر پیش‌نمایش یک کلیپِ واقعی است.`
-            : `${VS_TEMPLATES.length} shapes — the pacing and caption style come from the one you pick. Every preview is a real clip.`}</span>
+            ? `${VS_TEMPLATES.length} قالب (${VS_TEMPLATES.filter((x) => !x.still).length} ویدیو + ${VS_TEMPLATES.filter((x) => x.still).length} عکس) — ریتم و کپشن از همین می‌آید؛ هر پیش‌نمایش خودِ مرجع است.`
+            : `${VS_TEMPLATES.length} shapes — ${VS_TEMPLATES.filter((x) => !x.still).length} video, ${VS_TEMPLATES.filter((x) => x.still).length} still. The pacing and caption style come from the one you pick, and every preview is the reference itself.`}</span>
        </div>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:14px">${cards}</div>`;
     box.style.display = "flex";
@@ -20930,8 +20972,13 @@ function vsReverseEngineer(prefill, opts) {
     // the reference's shot plan around their own footage; "only the tone" takes
     // the rhythm and writes fresh. The panel used to describe the second no
     // matter which was selected.
-    const rebuilding = reWantMode === "exact";
-    const plan = vsFormatPlan(f.id, lines, { mode: rebuilding ? "rebuild" : "borrow" });
+    // "With me in it" is the rebuild: their own face and words inside the
+    // reference's shot plan. This compared against "exact", which reWantMode has
+    // never been set to, so the panel described the borrow on both roads.
+    const rebuilding = reWantMode === "character";
+    const plan = vsFormatBuild(f.id).plan.still
+      ? vsFormatBuild(f.id).plan
+      : vsFormatPlan(f.id, lines, { mode: rebuilding ? "rebuild" : "borrow" });
 
     // Only claim a measurement when there was one. An unmeasured reference
     // returns a default so there is something to show, and saying "measured"
@@ -20954,7 +21001,10 @@ function vsReverseEngineer(prefill, opts) {
       ? (fa ? ` · ${plan.linesDropped} خط جا نمی‌شود`
             : ` · ${plan.linesDropped} line${plan.linesDropped === 1 ? "" : "s"} will not fit`)
       : "";
-    $$("reFormatSpec").textContent = (fa
+    $$("reFormatSpec").textContent = plan.still
+      ? (fa ? `یک عکسِ ثابت · ${f.size || "1080×1350"} · نقلِ قول: ${f.caption.words[0]}–${f.caption.words[1]} کلمه`
+            : `One still · ${f.size || "1080×1350"} · the line runs ${f.caption.words[0]}-${f.caption.words[1]} words`)
+      : (fa
       ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style}${over} · ${plan.took}`
       : `${plan.scenes} shot${plan.scenes === 1 ? "" : "s"} × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style}${over} · ${plan.took}`);
   }
