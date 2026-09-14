@@ -19044,7 +19044,13 @@ async function vsReverseAnalyze(refText, brief) {
   const prompt =
     "You are a world-class short-video REVERSE-ENGINEER. You are given one or MORE reference social-media posts (from a single post or a whole page/profile) and a target BRIEF. " +
     "First infer the shared STYLE DNA across the reference(s) (tone/lahn, voice, hook, pacing, format, emoji & hashtag habits, audience). " +
-    "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n" +
+    // What the operator actually asked for. These are two different jobs, and
+    // this prompt used to describe only the first of them whichever was chosen -
+    // the fork was not even shown until after generate had run and been charged,
+    // so the answer could not reach the thing it was an answer about.
+    (brief.mode === "tone"
+      ? "Then write a COMPLETELY FRESH video about the BRIEF's topic that merely SOUNDS like the reference. Take ONLY the tone, the voice and the pacing. Do NOT follow its structure beat-for-beat, do NOT reuse its hook pattern, and do NOT mirror its sequence of beats — invent your own, suited to the user's topic. Someone who knows the reference should recognise the VOICE and nothing else.\n\n"
+      : "Then REPRODUCE THE SAME VIDEO as closely as possible — same structure beat-for-beat, same hook pattern, same pacing and format — but swap ALL the content for the USER'S OWN INFORMATION in the BRIEF. Copy the STYLE exactly; never reuse the reference's literal topic or facts.\n\n") +
     "REFERENCE POST(S) (caption / on-screen text / hashtags — may be several, one per line):\n\"\"\"\n" + String(refText || "(none provided — infer a strong generic viral style)").slice(0, 3000) + "\n\"\"\"\n\n" +
     "BRIEF:\n- Topic: " + (brief.prompt || "") + "\n- User's own info & details to feature (numbers, names, facts, offer): " + (brief.region || "(use the topic)") + "\n- " + (langMap[brief.lang] || langMap.en) + "\n\n" +
     "GENERATOR CAPABILITIES — CRITICAL: this tool does NOT film or generate a person talking to camera. It renders ON-SCREEN TEXT + AI-generated images/B-roll + info cards, with narration as voiceover/captions. " +
@@ -19266,6 +19272,10 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-fork{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px;margin-bottom:16px}
          :is(#reModal,#reMainBody) .re-forkcard{display:flex;gap:12px;align-items:flex-start;text-align:left;cursor:pointer;padding:15px 15px 16px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.11);transition:border-color .16s,transform .14s,box-shadow .16s;color:inherit;font:inherit}
          :is(#reModal,#reMainBody) .re-forkcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.5);box-shadow:0 14px 30px -16px rgba(37,99,255,.6)}
+         :is(#reModal,#reMainBody) .re-want{display:flex;flex-direction:column;gap:2px;text-align:start;padding:9px 11px;border-radius:11px;cursor:pointer;font:inherit;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);transition:.14s}
+         :is(#reModal,#reMainBody) .re-want b{font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#eef4ff}
+         :is(#reModal,#reMainBody) .re-want i{font-style:normal;font-size:11px;color:#93a3bb;line-height:1.4}
+         :is(#reModal,#reMainBody) .re-want[aria-pressed="true"]{border-color:rgba(37,99,255,.7);background:linear-gradient(180deg,rgba(37,99,255,.14),rgba(37,99,255,.03))}
          :is(#reModal,#reMainBody) .re-forkcard[aria-pressed="true"]{border-color:rgba(37,99,255,.7);background:linear-gradient(180deg,rgba(37,99,255,.14),rgba(37,99,255,.03));box-shadow:0 0 0 1px rgba(37,99,255,.35)}
          :is(#reModal,#reMainBody) .re-forkcard .fico{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(37,99,255,.14);border:1px solid rgba(37,99,255,.3);color:#8fb6ff}
          :is(#reModal,#reMainBody) .re-forkcard .ftxt{display:flex;flex-direction:column;gap:4px}
@@ -19384,6 +19394,20 @@ function vsReverseEngineer(prefill, opts) {
          </div>
        </div>
 
+       <!-- Asked BEFORE the charge, because it decides what gets written and the
+            writing is what is being paid for. This used to be offered after
+            generate had already run, where it could not affect anything. -->
+       <div id="reWant" style="display:flex;flex-direction:column;gap:7px;margin:2px 0 12px">
+         <div style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8c8578;text-transform:uppercase">${fa ? "چه چیزی از مرجع می‌خواهی؟" : "What do you want from the reference?"}</div>
+         <button type="button" class="re-want" data-want="exact" aria-pressed="true">
+           <b>${fa ? "دقیقاً همین سبک" : "Exactly this style"}</b>
+           <i>${fa ? "همان ساختار، همان قلاب، همان ریتم — فقط با اطلاعاتِ خودت." : "Same structure, same hook, same pacing — with your information instead."}</i>
+         </button>
+         <button type="button" class="re-want" data-want="tone" aria-pressed="false">
+           <b>${fa ? "فقط لحنش" : "Only its tone"}</b>
+           <i>${fa ? "چیزی تازه دربارهٔ موضوعِ خودت که فقط مثلِ او به گوش می‌آید." : "Something new about your topic that merely sounds like it."}</i>
+         </button>
+       </div>
        <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}${arCredit(2)}</button>
 
        <div id="reProgress" style="display:none;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22);border-radius:14px;padding:14px 16px"></div>
@@ -19846,7 +19870,8 @@ function vsReverseEngineer(prefill, opts) {
     try {
       blueprint = await vsReverseAnalyze(refText, {
         prompt, region: ($$("reRegion").value || "").trim(),
-        lang: $$("reLang").value, skill: $$("reSkill").value
+        lang: $$("reLang").value, skill: $$("reSkill").value,
+        mode: reWantMode,
       });
       // A transient empty AI response yields no usable script — surface a retry
       // rather than an empty blueprint with a dead Build button.
@@ -20437,6 +20462,15 @@ function vsReverseEngineer(prefill, opts) {
   }
 
 
+  // A shape the operator picked outright, with or without a reference.
+  let rePickedTemplate = null;
+
+  // "exact" = rebuild this reference beat for beat with my own information.
+  // "tone"  = only sound like it; write something new for my topic.
+  // Asked BEFORE the charge, because it changes what gets written and the
+  // writing is the thing being paid for.
+  let reWantMode = "exact";
+
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
     try { if (document.getElementById("reTplGallery")) reRenderTemplateGallery(); } catch (e) {}
@@ -20547,7 +20581,7 @@ function vsReverseEngineer(prefill, opts) {
     // the reference's shot plan around their own footage; "only the tone" takes
     // the rhythm and writes fresh. The panel used to describe the second no
     // matter which was selected.
-    const rebuilding = !!($$("reForkSwap") && $$("reForkSwap").getAttribute("aria-pressed") === "true");
+    const rebuilding = reWantMode === "exact";
     const plan = vsFormatPlan(f.id, lines, { mode: rebuilding ? "rebuild" : "borrow" });
 
     // Only claim a measurement when there was one. An unmeasured reference
@@ -20587,6 +20621,16 @@ function vsReverseEngineer(prefill, opts) {
     if ($$("reToneBody")) $$("reToneBody").style.display = swapOn ? "none" : "flex";
     if (swapOn && !swapState.built) { swapState.built = true; swapBuildStrip(); swapRefresh(); }
   }
+  // The answer is read straight off the control when generate runs, so there is
+  // no second copy of this state to fall out of step.
+  document.querySelectorAll(".re-want").forEach((btn) => {
+    btn.onclick = () => {
+      reWantMode = btn.dataset.want === "tone" ? "tone" : "exact";
+      document.querySelectorAll(".re-want").forEach((b2) =>
+        b2.setAttribute("aria-pressed", String(b2.dataset.want === reWantMode)));
+      try { reRenderFormatPlan(); } catch (e) {}
+    };
+  });
   if ($$("reForkSwap")) $$("reForkSwap").onclick = () => swapShow("swap");
   if ($$("reForkTone")) $$("reForkTone").onclick = () => swapShow("tone");
 
