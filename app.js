@@ -20615,7 +20615,7 @@ function vsReverseEngineer(prefill, opts) {
           <b style="font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f2f6ff;line-height:1.25">${esc(f.label)}</b>
           <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#8fb6ff;text-transform:uppercase;letter-spacing:.04em">${fa ? "روش: " : "Method: "}${esc(b.method)}</span>
           <span style="font-size:10.5px;color:#8ea6c8;line-height:1.4">${esc(b.note)}</span>
-          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:2px">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s · ${b.plan.duration}s</span>
+          <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5fe0b0;margin-top:2px">${b.plan.scenes === 1 ? "1 shot" : b.plan.scenes + " shots"} × ${b.plan.secondsPerScene}s</span>
           <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#7c8698">${fa
             ? `${b.plan.duration}s · 1080×1920`
             : `${b.plan.duration}s · 1080×1920`}</span>
