@@ -20863,7 +20863,7 @@ function vsReverseEngineer(prefill, opts) {
           border:1px solid ${picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)"};transition:.14s">
         <span style="position:relative;display:block;width:100%;aspect-ratio:${c.aspect};background:#0b0d12">
           ${c.still
-            ? `<img src="${c.poster}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"/>`
+            ? `<img src="${c.poster}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>`
             : `<video data-tplvid="${t.id}" src="${c.clip}" poster="${c.poster}" muted loop playsinline preload="metadata"
                  style="width:100%;height:100%;object-fit:cover;display:block"></video>`}
           ${isMatch ? `<span style="position:absolute;top:8px;inset-inline-start:8px;font:800 8px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 7px;border-radius:20px">${fa ? "مانندِ لینکِ تو" : "MATCHES YOUR LINK"}</span>` : ""}
