@@ -5173,6 +5173,12 @@ function vsMoneyIn(text) {
 let _vsReelReject = "";
 function vsReelWhy() { return _vsReelReject; }
 
+/** Matches "around $412,000", "~$412,000" and friends - a hedged figure. */
+function VS_HEDGE_RE(target) {
+  const lit = String(target).replace(/[.*+?^${}()|[\]\\]/g, (c) => "\\" + c);
+  return new RegExp("(?:around|about|roughly|just over|just under|nearly|approximately|~)\\s*" + lit, "i");
+}
+
 function vsReelParse(raw, place, figure) {
   const bad = (why) => { _vsReelReject = why; return null; };
   _vsReelReject = "";
@@ -5205,6 +5211,18 @@ function vsReelParse(raw, place, figure) {
     const target = norm(String(figure).replace(/\s*a month$/i, ""));
     if (!norm(sentences[2]).includes(target)) return bad("the figure is missing from sentence 3");
     if (norm(title).includes(target)) return bad("the figure is in the title");
+    // A listing line with a clause bolted onto it is still a listing line, and
+    // that is exactly what asking nicely produced - five runs, five of these:
+    //   "A home in Acworth typically costs $412,000, and your cleaned-up
+    //    spaces help that money feel livable."
+    // The opening is the tell, so the opening is what gets checked. What comes
+    // after the comma cannot rescue it.
+    if (/^\s*(?:in\s+\S|most\s+\w+\s|(?:an?|the)?\s*(?:typical|average|median)?\s*(?:homes?|houses?|properties|property)\b)/i.test(sentences[2]))
+      return bad("sentence 3 opens like a listing line");
+    // And the figure must be stated, not approximated: the whole point of
+    // holding a real number is that it is the real one.
+    if (VS_HEDGE_RE(target).test(norm(sentences[2])))
+      return bad("the figure is hedged instead of stated");
     const extra = vsMoneyIn(sentences.join(" ")).map(norm)
       .filter((a) => !target.includes(a) && !a.includes(target));
     if (extra.length) return bad("it invented a second amount: " + extra.join(", "));
