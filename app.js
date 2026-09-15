@@ -19504,12 +19504,14 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-cta2:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.26)}
          :is(#reModal,#reMainBody) .re-cta2 .price{display:inline-flex;align-items:center;gap:3px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#d6f43c;background:rgba(0,0,0,.3);border-radius:6px;padding:2px 6px 2px 5px}
          :is(#reModal,#reMainBody) .re-cta2 .price svg{width:9px;height:9px;fill:currentColor}
-         /* Category chips over the template grid. */
-         :is(#reModal,#reMainBody) .re-chip{padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;
+         /* Category chips over the template grid. Its own class: .re-chip was
+            already the voice picker, and that rule is declared later, so these
+            would have quietly inherited a look meant for something else. */
+         :is(#reModal,#reMainBody) .re-tcat{padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;
            font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#9fb0c9;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);transition:.14s}
-         :is(#reModal,#reMainBody) .re-chip:hover{color:#e8eefc;border-color:rgba(255,255,255,.22)}
-         :is(#reModal,#reMainBody) .re-chip[aria-pressed="true"]{color:#0d1200;background:#d6f43c;border-color:#d6f43c}
-         :is(#reModal,#reMainBody) .re-chip .n{opacity:.55;margin-inline-start:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
+         :is(#reModal,#reMainBody) .re-tcat:hover{color:#e8eefc;border-color:rgba(255,255,255,.22)}
+         :is(#reModal,#reMainBody) .re-tcat[aria-pressed="true"]{color:#0d1200;background:#d6f43c;border-color:#d6f43c}
+         :is(#reModal,#reMainBody) .re-tcat .n{opacity:.55;margin-inline-start:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
          /* The bill on a template card. */
          :is(#reModal,#reMainBody) .re-bill{display:flex;flex-direction:column;gap:6px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
          :is(#reModal,#reMainBody) .re-bill .tot{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -20957,8 +20959,8 @@ function vsReverseEngineer(prefill, opts) {
     const basis = !c.perSec
       ? (fa ? "رندر روی دستگاهِ خودت — بدونِ هزینه" : "renders on your own device — no charge")
       : c.measured
-        ? (fa ? `${c.seconds} ثانیهٔ اندازه‌گیری‌شده × ${c.perSec}` : `${c.seconds}s measured × ${c.perSec}/sec`)
-        : (fa ? `${c.seconds} ثانیهٔ این قالب × ${c.perSec} — بعد از تحلیل دقیق می‌شود` : `${c.seconds}s for this shape × ${c.perSec}/sec — exact after Analyze`);
+        ? (fa ? `${c.seconds} ثانیهٔ اندازه‌گیری‌شده × ${c.perSec}${c.cap ? ` (سقف ${c.cap}s)` : ""}` : `${c.seconds}s measured × ${c.perSec}/sec${c.cap ? ` (capped at ${c.cap}s)` : ""}`)
+        : (fa ? `حداکثر ${c.seconds} ثانیه × ${c.perSec} — متنِ کوتاه‌تر کمتر می‌شود، بیشتر نه` : `${c.seconds}s max × ${c.perSec}/sec — less if the script runs short, never more`);
     return `<span class="re-bill">
         <span class="tot">
           <b>${c.still ? (fa ? "جمعِ پرداختی" : "You pay") : (fa ? "جمعِ پرداختی" : "You pay")}</b>
@@ -21108,7 +21110,7 @@ function vsReverseEngineer(prefill, opts) {
     const chips = VS_TPL_CATS
       .map((c) => ({ c, n: c.id === "all" ? VS_TEMPLATES.length : VS_TEMPLATES.filter((t) => t.cat === c.id).length }))
       .filter((x) => x.n > 0)
-      .map(({ c, n }) => `<button type="button" class="re-chip" data-cat="${c.id}" aria-pressed="${reTplCat === c.id}">${esc(fa ? c.fa : c.en)}<span class="n">${n}</span></button>`)
+      .map(({ c, n }) => `<button type="button" class="re-tcat" data-cat="${c.id}" aria-pressed="${reTplCat === c.id}">${esc(fa ? c.fa : c.en)}<span class="n">${n}</span></button>`)
       .join("");
     box.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
@@ -21132,7 +21134,7 @@ function vsReverseEngineer(prefill, opts) {
     box.querySelectorAll(".re-tplcard").forEach((b) => {
       b.onclick = () => reSelectTemplate(b.dataset.tpl);
     });
-    box.querySelectorAll(".re-chip").forEach((c) => {
+    box.querySelectorAll(".re-tcat").forEach((c) => {
       // Switching category starts that category at the top of its first page;
       // carrying "show all" across makes the button lie about what is hidden.
       c.onclick = () => { reTplCat = c.dataset.cat; reTplShowAll = false; reRenderTemplateGallery(); };
