@@ -19539,8 +19539,9 @@ function vsReverseEngineer(prefill, opts) {
             that does not say what pressing it costs is the reason anyone has to
             go looking for the number somewhere else on the page. */
          :is(#reModal,#reMainBody) .re-cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;padding:13px 16px;border:0;border-radius:13px;cursor:pointer;
-           font:800 15px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#0d1200;background:#d6f43c;
-           box-shadow:0 10px 28px -10px rgba(214,244,60,.55),0 1px 0 rgba(255,255,255,.4) inset;transition:filter .14s,transform .14s}
+           font:800 15px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff;
+           background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);
+           box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset;transition:filter .14s,transform .14s}
          :is(#reModal,#reMainBody) .re-cta:hover{filter:brightness(1.06)}
          :is(#reModal,#reMainBody) .re-cta:active{transform:translateY(1px)}
          :is(#reModal,#reMainBody) .re-cta:disabled{filter:grayscale(.6) brightness(.7);cursor:default;transform:none}
@@ -19549,7 +19550,7 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-cta2{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 15px;border-radius:12px;cursor:pointer;white-space:nowrap;
            font:800 13px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#e8eefc;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);transition:.14s}
          :is(#reModal,#reMainBody) .re-cta2:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.26)}
-         :is(#reModal,#reMainBody) .re-cta2 .price{display:inline-flex;align-items:center;gap:3px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#d6f43c;background:rgba(0,0,0,.3);border-radius:6px;padding:2px 6px 2px 5px}
+         :is(#reModal,#reMainBody) .re-cta2 .price{display:inline-flex;align-items:center;gap:3px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#a9c2ff;background:rgba(0,0,0,.3);border-radius:6px;padding:2px 6px 2px 5px}
          :is(#reModal,#reMainBody) .re-cta2 .price svg{width:9px;height:9px;fill:currentColor}
          /* Category chips over the template grid. Its own class: .re-chip was
             already the voice picker, and that rule is declared later, so these
@@ -19557,13 +19558,13 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-tcat{padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;
            font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#9fb0c9;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);transition:.14s}
          :is(#reModal,#reMainBody) .re-tcat:hover{color:#e8eefc;border-color:rgba(255,255,255,.22)}
-         :is(#reModal,#reMainBody) .re-tcat[aria-pressed="true"]{color:#0d1200;background:#d6f43c;border-color:#d6f43c}
+         :is(#reModal,#reMainBody) .re-tcat[aria-pressed="true"]{color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);border-color:rgba(37,99,255,.75);box-shadow:0 6px 16px -8px rgba(37,99,255,.7)}
          :is(#reModal,#reMainBody) .re-tcat .n{opacity:.55;margin-inline-start:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
          /* The bill on a template card. */
          :is(#reModal,#reMainBody) .re-bill{display:flex;flex-direction:column;gap:6px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
          :is(#reModal,#reMainBody) .re-bill .tot{display:flex;justify-content:space-between;align-items:center;gap:8px}
          :is(#reModal,#reMainBody) .re-bill .tot b{font:800 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase}
-         :is(#reModal,#reMainBody) .re-bill .tot i{font-style:normal;display:inline-flex;align-items:center;gap:5px;font:800 13px 'JetBrains Mono',ui-monospace,monospace;color:#0d1200;background:#d6f43c;border-radius:8px;padding:3px 9px 3px 7px}
+         :is(#reModal,#reMainBody) .re-bill .tot i{font-style:normal;display:inline-flex;align-items:center;gap:5px;font:800 13px 'JetBrains Mono',ui-monospace,monospace;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);border-radius:8px;padding:3px 9px 3px 7px}
          :is(#reModal,#reMainBody) .re-bill .tot i svg{width:11px;height:11px;fill:currentColor}
          :is(#reModal,#reMainBody) .re-bill .ln{display:flex;justify-content:space-between;gap:8px;font:600 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#7d8798}
          :is(#reModal,#reMainBody) .re-bill .ln.paid{color:#5fe0b0}
@@ -19617,8 +19618,8 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;border-radius:11px;cursor:pointer;
            font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#e8eefc;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);transition:.14s}
          :is(#reModal,#reMainBody) .re-mcard .mbtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.26)}
-         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn{color:#0d1200;background:#d6f43c;border-color:#d6f43c;box-shadow:0 8px 22px -10px rgba(214,244,60,.6),0 1px 0 rgba(255,255,255,.4) inset}
-         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn:hover{filter:brightness(1.06);background:#d6f43c}
+         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn{color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);border-color:transparent;box-shadow:0 8px 20px -8px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.26) inset}
+         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn:hover{filter:brightness(1.08)}
          :is(#reModal,#reMainBody) .re-mcard .mdrop{display:flex;align-items:center;gap:7px;font-size:11px;color:#bcd0f5;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:7px 9px;cursor:pointer}
          :is(#reModal,#reMainBody) .re-mcard .mdrop:hover{border-color:rgba(37,99,255,.4)}
          :is(#reModal,#reMainBody) .re-mcard select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:10px!important;padding:6px 9px!important;min-height:0!important;height:32px!important;color:#eef4ff;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:none!important}
