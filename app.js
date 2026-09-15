@@ -22891,7 +22891,11 @@ function vsShowCoverPreview(blob, coverTitle, opts) {
 // Where a server render is asked for, if one is configured at all. Empty means
 // there is no service and everything renders in this tab, which is the state
 // this ships in.
-const VS_RENDER_SERVICE = "";
+// The render service is reached THROUGH the worker, never directly: it wants a
+// bearer token and this file is public. The worker holds the token and forwards
+// (see /render there). An unconfigured worker answers 503 {off:true}, which is
+// the same as having no service at all - so this can stay switched on.
+const VS_RENDER_SERVICE = "https://airadar-ai.aliniashyn-9b4.workers.dev/render";
 const VS_RENDER_SERVICE_TIMEOUT_MS = 15000;   // just the handshake, not the render
 
 /**
@@ -22917,12 +22921,14 @@ async function vsRenderDeck(deck, opts) {
 
   if (!VS_RENDER_SERVICE || opts.local) return local(VS_RENDER_SERVICE ? "asked for" : "no service configured");
 
-  // Ask whether it can take the job before handing it one.
+  // Ask whether it can take the job before handing it one. A worker with no
+  // service behind it answers 503 {off:true} - not an outage, just switched off.
   let ready = false;
   try {
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), VS_RENDER_SERVICE_TIMEOUT_MS);
     const r = await fetch(VS_RENDER_SERVICE + "/health", { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+    if (r.status === 503) return local("no service configured");
     ready = r.ok;
   } catch (e) { ready = false; }
   if (!ready) {
@@ -22932,14 +22938,47 @@ async function vsRenderDeck(deck, opts) {
   }
 
   try {
-    const r = await fetch(VS_RENDER_SERVICE + "/render", {
+    // The service takes a job and answers 202 immediately; the video is
+    // collected afterwards. This used to read j.base64 straight off that 202 -
+    // the shape of an older, synchronous endpoint - so it threw "no video
+    // returned" on every single call and fell back to the browser. The service
+    // would have rendered the video perfectly and nobody would ever have
+    // collected it.
+    const r = await fetch(VS_RENDER_SERVICE, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deck: deck, opts: opts }),
     });
     if (!r.ok) throw new Error("render " + r.status);
-    const j = await r.json();
+    const sub = await r.json();
+    if (!sub || !sub.ok || !sub.id) throw new Error((sub && sub.error) || "job not accepted");
+    if (sub.ahead) {
+      vsAutoStatus(fa ? `در صفِ رندر — ${sub.ahead} تا جلوتر.` : `Queued on the render server - ${sub.ahead} ahead.`);
+    }
+    // Poll until it is done. The budget is generous because a long deck really
+    // does take minutes, but it is finite: a job that never finishes has to hand
+    // back to the browser rather than hang the batch forever.
+    const started = Date.now();
+    const BUDGET_MS = 15 * 60 * 1000;
+    let state = "queued";
+    for (;;) {
+      if (Date.now() - started > BUDGET_MS) throw new Error("render timed out after 15 min");
+      await new Promise((r2) => setTimeout(r2, 3000));
+      let st;
+      try { st = await (await fetch(VS_RENDER_SERVICE + "/job/" + sub.id)).json(); }
+      catch (e) { continue; }                       // a dropped poll is not a failed render
+      if (!st || !st.ok) throw new Error((st && st.error) || "job lost");
+      state = st.state;
+      if (state === "done") break;
+      if (state === "error" || state === "failed") throw new Error(st.error || "render failed");
+      const secs = Math.round((Date.now() - started) / 1000);
+      vsAutoStatus(fa ? `رندر روی سرور — ${secs} ثانیه` : `Rendering on the server - ${secs}s`);
+    }
+    // The payload comes on a separate request and only once: the service frees
+    // the job the moment it hands it over.
+    const vr = await fetch(VS_RENDER_SERVICE + "/job/" + sub.id + "?video=1");
+    const j = await vr.json();
     if (!j || !j.ok || !j.base64) throw new Error((j && j.error) || "no video returned");
-    return { via: "server", ok: true, ext: j.ext || "mp4", bytes: j.bytes, ms: j.ms, base64: j.base64 };
+    return { via: "server", ok: true, ext: j.ext || "mp4", bytes: j.bytes, ms: j.renderMs, base64: j.base64 };
   } catch (e) {
     // A server that accepted the job and then failed is still a server that did
     // not produce a video, so it falls back the same as one that never answered.
