@@ -18786,6 +18786,9 @@ function vsCreatorTools(opts) {
         const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: videoUrl, audio_url: audioUrl } });
         const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
         if (!statusUrl) throw new Error("submit failed");
+        // Written down BEFORE the first poll: fal has already been paid by now,
+        // and until this line the only handle on the result was a local variable.
+        try { vsFalJobRemember({ statusUrl, respUrl, action: "lipsync", name: "lip-sync" }); } catch (e) {}
         const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
         let out = null;
         for (let k = 0; k < 90; k++) {
@@ -18795,6 +18798,7 @@ function vsCreatorTools(opts) {
           if (st === "FAILED" || st === "ERROR") break;
         }
         if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
+        try { vsFalJobForget(statusUrl); } catch (e) {}   // collected
         done(li);
         await settle("done");
         vsTrackGen("lipsync", "fal-ai/latentsync", "cost:" + COST);
@@ -19374,6 +19378,143 @@ async function vsFalTicketGet() {
     return _vsFalTicket;
   } catch (e) { return noTicket(); }
 }
+
+/**
+ * Every fal job we have paid for and not yet collected.
+ *
+ * fal charges the moment it accepts a job. Our own credit ledger refunds on
+ * failure, so the operator's credits were always safe - but the REAL money was
+ * already spent, and the only handle on the finished video was a local variable
+ * inside a poll loop. Three ordinary things threw it away:
+ *
+ *   - the status said COMPLETED and the follow-up fetch for the payload threw
+ *   - the poll ran out its ten minutes on a model that took eleven
+ *   - the tab was closed, or cancel was pressed after the render had finished
+ *
+ * In each case fal had the video and we had nothing. This writes the handle
+ * down before the first poll and rubs it out only once the bytes are in hand,
+ * so a lost collection is a job you can pick up later rather than money gone.
+ */
+const VS_FAL_JOBS_KEY = "vsFalJobs";
+
+function vsFalJobsRead() {
+  try { const a = JSON.parse(localStorage.getItem(VS_FAL_JOBS_KEY) || "[]"); return Array.isArray(a) ? a : []; }
+  catch (e) { return []; }
+}
+function vsFalJobsWrite(a) {
+  // Twenty is plenty of history and keeps this well clear of the storage cap.
+  try { localStorage.setItem(VS_FAL_JOBS_KEY, JSON.stringify(a.slice(-20))); } catch (e) {}
+}
+/** Called BEFORE the first poll, so nothing can be lost between the two. */
+function vsFalJobRemember(o) {
+  if (!o || !o.statusUrl) return;
+  const a = vsFalJobsRead().filter((x) => x.statusUrl !== o.statusUrl);
+  a.push({ statusUrl: o.statusUrl, respUrl: o.respUrl || "", model: o.model || "",
+           action: o.action || "", name: o.name || "video", credits: o.credits || 0,
+           jobId: o.jobId || "", at: Date.now() });
+  vsFalJobsWrite(a);
+}
+/** Called only once the video has actually been delivered. */
+function vsFalJobForget(statusUrl) {
+  if (!statusUrl) return;
+  vsFalJobsWrite(vsFalJobsRead().filter((x) => x.statusUrl !== statusUrl));
+}
+
+/**
+ * Go back for anything that was paid for and never collected.
+ *
+ * Asks fal what became of each remembered job. A finished one is downloaded and
+ * saved to the dashboard; one that fal itself failed is dropped; one still
+ * running is left alone to be picked up next time.
+ */
+async function vsFalRecover(opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const jobs = vsFalJobsRead();
+  const report = { checked: jobs.length, recovered: [], stillRunning: [], failed: [], unreachable: [] };
+  for (const j of jobs) {
+    let st = "?";
+    try { st = (await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.statusUrl))).json()).status || "?"; }
+    catch (e) { report.unreachable.push(j.name); continue; }
+    if (st === "IN_QUEUE" || st === "IN_PROGRESS") { report.stillRunning.push(j.name); continue; }
+    if (st === "FAILED" || st === "ERROR") { vsFalJobForget(j.statusUrl); report.failed.push(j.name); continue; }
+    if (st !== "COMPLETED") { report.unreachable.push(j.name + " (" + st + ")"); continue; }
+    try {
+      const rr = await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.respUrl || j.statusUrl.replace(/\/status$/, "")))).json();
+      const url = rr && (rr.video && rr.video.url || rr.url);
+      if (!url) { report.unreachable.push(j.name + " (no url)"); continue; }
+      const blob = await (await fetch(url)).blob();
+      if (!blob || blob.size < 1000) { report.unreachable.push(j.name + " (empty)"); continue; }
+      try { if (typeof vsSaveToDashboard === "function") await vsSaveToDashboard(blob, "mp4", j.name); } catch (e) {}
+      vsFalJobForget(j.statusUrl);
+      report.recovered.push({ name: j.name, bytes: blob.size, url: URL.createObjectURL(blob) });
+    } catch (e) { report.unreachable.push(j.name + ": " + (e && e.message || e)); }
+  }
+  if (!opts.quiet) {
+    const r = report.recovered.length, q = report.stillRunning.length;
+    if (r) vsStatus(fa ? `${r} ویدیوی پرداخت‌شده برگردانده شد و در داشبورد ذخیره شد.` : `Recovered ${r} paid video${r === 1 ? "" : "s"} — saved to your Dashboard.`);
+    else if (q) vsStatus(fa ? `${q} کار هنوز در حالِ ساخت است.` : `${q} job${q === 1 ? " is" : "s are"} still rendering.`);
+    else if (jobs.length) vsStatus(fa ? "چیزی برای برگرداندن نبود." : "Nothing left to collect.");
+  }
+  return report;
+}
+
+/**
+ * Tell the operator about anything paid for and not collected.
+ *
+ * A ledger nobody reads is no better than no ledger, so this runs on load: if
+ * something is owed it says so, and offers to go and get it. Anything younger
+ * than a minute is still in flight in some tab and is left alone.
+ */
+function vsFalPendingNotice() {
+  try {
+    const fa = state.lang === "fa";
+    const jobs = vsFalJobsRead().filter((j) => Date.now() - (j.at || 0) > 60000);
+    const old = document.getElementById("vsFalPending");
+    if (old) old.remove();
+    if (!jobs.length) return;
+    const box = document.createElement("div");
+    box.id = "vsFalPending";
+    box.style.cssText = "position:fixed;z-index:100002;inset-inline-end:16px;bottom:16px;max-width:340px;display:flex;flex-direction:column;gap:9px;" +
+      "background:#101724;border:1px solid rgba(37,99,255,.45);border-radius:13px;padding:13px 14px;box-shadow:0 20px 50px rgba(0,0,0,.55);" +
+      "font:inherit;color:#e8eefc";
+    const names = jobs.map((j) => j.name).join(", ").slice(0, 80);
+    box.innerHTML =
+      '<div style="font:800 12.5px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif">' +
+        (fa ? jobs.length + " کارِ پرداخت‌شده جمع نشده" : jobs.length + " paid job" + (jobs.length === 1 ? "" : "s") + " not collected") +
+      "</div>" +
+      '<div style="font-size:11.5px;color:#9fb0c9;line-height:1.5">' +
+        (fa ? "برایشان پول داده شده ولی ویدیویشان گرفته نشد: " : "These were paid for but never picked up: ") + esc2(names) +
+      "</div>" +
+      '<div style="display:flex;gap:7px">' +
+        '<button type="button" id="vsFalGet" style="flex:1;padding:9px;border:0;border-radius:9px;cursor:pointer;font:800 12px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">' +
+          (fa ? "برو بگیرشان" : "Collect them") + "</button>" +
+        '<button type="button" id="vsFalDismiss" style="padding:9px 11px;border:1px solid rgba(255,255,255,.18);border-radius:9px;cursor:pointer;font:700 12px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;color:#9fb0c9;background:rgba(255,255,255,.05)">' +
+          (fa ? "بعداً" : "Later") + "</button>" +
+      "</div>";
+    document.body.appendChild(box);
+    document.getElementById("vsFalDismiss").onclick = () => box.remove();
+    document.getElementById("vsFalGet").onclick = async () => {
+      const b = document.getElementById("vsFalGet");
+      b.disabled = true; b.textContent = fa ? "در حالِ گرفتن…" : "Collecting…";
+      const r = await vsFalRecover();
+      box.innerHTML = '<div style="font-size:12px;line-height:1.6;color:#cfe0ff">' +
+        (r.recovered.length ? "\u2713 " + r.recovered.length + (fa ? " ویدیو برگشت و در داشبورد ذخیره شد." : " recovered, saved to your Dashboard.") + "<br>" : "") +
+        (r.stillRunning.length ? r.stillRunning.length + (fa ? " هنوز در حالِ ساخت." : " still rendering.") + "<br>" : "") +
+        (r.failed.length ? r.failed.length + (fa ? " از سمتِ fal شکست خورده بود." : " had failed at fal.") + "<br>" : "") +
+        (r.unreachable.length ? r.unreachable.length + (fa ? " در دسترس نبود." : " could not be reached.") : "") +
+        "</div>";
+      setTimeout(() => { try { box.remove(); } catch (e) {} }, 9000);
+    };
+  } catch (e) {}
+}
+// Checked on every load, in every tab: an unclaimed paid job should never be
+// something the operator has to remember to go looking for.
+try { document.addEventListener("DOMContentLoaded", function () { setTimeout(vsFalPendingNotice, 1500); }, { once: true }); } catch (e) {}
+
+// A tiny escape, because this box prints names that came back from a job.
+function esc2(x) { return String(x == null ? "" : x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 /** fetch() for the media worker's paid endpoints, with the pass attached. */
 async function vsFalFetch(url, init) {
@@ -22268,6 +22409,9 @@ async function vsBuildTalkingHead(script, opts) {
   const sub = await post("/fal/submit", { model: "veed/fabric-1.0", input: { image_url: imageUrl, audio_url: audioUrl, resolution: "480p" } });
   const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
   if (!statusUrl) { setStep("sync", "err"); throw new Error("submit failed"); }
+  // Written down BEFORE the first poll: fal has already been paid by now,
+  // and until this line the only handle on the result was a local variable.
+  try { vsFalJobRemember({ statusUrl, respUrl, action: "talkinghead", name: "talking-head" }); } catch (e) {}
   const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
   let videoUrl = null;
   for (let i = 0; i < 90 && !closed; i++) {
@@ -22300,6 +22444,7 @@ async function vsBuildTalkingHead(script, opts) {
   vsTrackGen("talkinghead", "veed/fabric-1.0+kokoro", "dur:" + Math.round(dur) + "s voice:" + (opts.voice || "af_heart"));
   try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "talking-head"); } catch (e) {}
   vsSettle(thJob, "done");
+  try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
   vsStatus(fa ? "✅ ویدیوی آدمِ سخنگو آماده شد." : "✅ Talking-head video ready.");
   } catch (thErr) { vsSettle(thJob, "failed"); throw thErr; }
 }
@@ -22365,10 +22510,14 @@ async function vsBuildLipsync(opts) {
     const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: uj.file_url, audio_url: audioUrl } });
     const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error("submit failed");
+    // Written down BEFORE the first poll: fal has already been paid by now,
+    // and until this line the only handle on the result was a local variable.
+    try { vsFalJobRemember({ statusUrl, respUrl, action: "lipsync", name: "lip-sync" }); } catch (e) {}
     const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
     let out = null;
     for (let k = 0; k < 90; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
-    if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed"); done(ic);
+    if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
+    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected done(ic);
     await settle("done");
     vsTrackGen("lipsync", "fal-ai/latentsync", "via:reverse cost:" + COST);
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
@@ -22563,6 +22712,9 @@ async function vsBuildSceneVideo(cfg) {
           if (/h3-max/.test(vmodel)) vin.prompt_expansion_mode = "quality";
           const sub = await post("/fal/submit", { model: vmodel, input: vin });
           const statusUrl = sub.status_url, respUrl = sub.response_url || (statusUrl || "").replace(/\/status$/, "");
+          // Written down BEFORE the first poll: fal has already been paid by now,
+          // and until this line the only handle on the result was a local variable.
+          try { vsFalJobRemember({ statusUrl, respUrl, action: "scene", name: "scene" }); } catch (e) {}
           let out = null;
           for (let k = 0; k < 90 && !cancelled; k++) {
             await new Promise(r => setTimeout(r, 4000));
@@ -22571,6 +22723,7 @@ async function vsBuildSceneVideo(cfg) {
             if (st === "FAILED" || st === "ERROR") break;
           }
           if (!out) throw new Error("shot render failed");
+          try { vsFalJobForget(statusUrl); } catch (e) {}   // this shot is collected
           clips.push(out); done(sic);
         } catch (e) { fail(sic); }
       }
@@ -22658,6 +22811,9 @@ async function vsBuildVideoModel(cfg) {
     if (cancelled) return;
     const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error("submit failed");
+    // Written down BEFORE the first poll: fal has already been paid by now,
+    // and until this line the only handle on the result was a local variable.
+    try { vsFalJobRemember({ statusUrl, respUrl, action: "video", name: "video" }); } catch (e) {}
     done(ic);
     const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
     const renderIc = line(fa ? "در حالِ رندر" : "Rendering");
@@ -22687,6 +22843,7 @@ async function vsBuildVideoModel(cfg) {
     done(renderIc);
     stageEl.textContent = "";
     vsSettle(charge.jobId, "done");
+    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
     vsTrackGen(cfg.action, cfg.model, "sec:" + cfg.seconds);
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
     // Burn the reference's detected title-card text onto the video (e.g. a
@@ -22798,6 +22955,9 @@ async function vsReverseMotionClip(opts) {
       const sub = await post("/fal/submit", { model: "minimax/h3-max/image-to-video", input: { prompt, image_url: imageUrl, duration: dur, resolution: res, prompt_expansion_mode: "quality" } });
       const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
       if (!statusUrl) throw new Error("submit failed");
+      // Written down BEFORE the first poll: fal has already been paid by now,
+      // and until this line the only handle on the result was a local variable.
+      try { vsFalJobRemember({ statusUrl, respUrl, action: "cinematic", name: "cinematic" }); } catch (e) {}
       const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
       let videoUrl = null;
       for (let i = 0; i < 90 && !closed; i++) {
@@ -22817,6 +22977,7 @@ async function vsReverseMotionClip(opts) {
       vsTrackGen("cinematicmotion", "minimax/h3-max", "res:" + res + " dur:" + dur + "s");
       try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "cinematic-motion"); } catch (e) {}
       vsSettle(charge.jobId, "done");
+      try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
       $("mcCancel").disabled = false; $("mcCancel").textContent = fa ? "بستن" : "Close";
     } catch (e) {
       vsSettle(charge.jobId, "failed");   // refund on failure
@@ -25813,6 +25974,9 @@ async function vsBuildMotionTransfer(cfg) {
     });
     const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error("submit failed");
+    // Written down BEFORE the first poll: fal has already been paid by now,
+    // and until this line the only handle on the result was a local variable.
+    try { vsFalJobRemember({ statusUrl, respUrl, action: "motiontransfer", name: "motion-transfer" }); } catch (e) {}
     const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
     const startedAt = Date.now();
     let outUrl = null, last = "";
@@ -25883,6 +26047,7 @@ async function vsBuildMotionTransfer(cfg) {
     }
 
     vsSettle(charge.jobId, "done");
+    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
     vsTrackGen(cfg.speak ? "motiontransferspeak" : "motiontransfer", "pika-swaps", "sec:" + secs);
     const blob = joined;          // already in hand — no refetch needed
     const u = out;
