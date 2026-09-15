@@ -5161,25 +5161,41 @@ function vsMoneyIn(text) {
   return out;
 }
 
+/**
+ * Why the last draft was thrown away.
+ *
+ * vsReelParse has fourteen ways to reject a script and every one of them was a
+ * bare `return null`, so vsWriteRealtorReel retried up to four times while the
+ * screen said "Writing:" and nothing else. Whoever was watching could not tell
+ * a slow model from a script that kept putting the price in the title - and
+ * neither could I, which is how a rule that rejects everything would go unseen.
+ */
+let _vsReelReject = "";
+function vsReelWhy() { return _vsReelReject; }
+
 function vsReelParse(raw, place, figure) {
+  const bad = (why) => { _vsReelReject = why; return null; };
+  _vsReelReject = "";
   const m = String(raw || "").match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  let j; try { j = JSON.parse(m[0]); } catch (e) { return null; }
+  if (!m) return bad("no JSON in the reply");
+  let j; try { j = JSON.parse(m[0]); } catch (e) { return bad("the JSON would not parse"); }
   const clean = (x) => String(x || "").replace(/[\u2014\u2013]/g, "-").replace(/\s+/g, " ").trim();
   const title = clean(j.title);
   const sentences = Array.isArray(j.sentences) ? j.sentences.map(clean).filter(Boolean) : [];
-  if (!title || sentences.length !== 5) return null;
+  if (!title) return bad("no title");
+  if (sentences.length !== 5) return bad("wanted 5 sentences, got " + sentences.length);
   const words = (x) => x.split(/\s+/).filter(Boolean).length;
-  if (words(title) > 10 || sentences.some((x) => words(x) > 20)) return null;
-  if (sentences.some((x) => !/[.?]$/.test(x))) return null;
-  if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return null;
-  if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return null;
-  if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return null;
+  if (words(title) > 10) return bad("title ran to " + words(title) + " words, limit 10");
+  if (sentences.some((x) => words(x) > 20)) return bad("a sentence ran over 20 words");
+  if (sentences.some((x) => !/[.?]$/.test(x))) return bad("a sentence did not end in . or ?");
+  if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return bad("markdown characters in the copy");
+  if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return bad("the title never names the place");
+  if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return bad("the title speaks to nobody");
   // The brief bans these two openers and the prompt asks for it, but asking was
   // not enough: a live run produced "Why Kingston autumn makes you notice your
   // growing space." Both are the warm-up the first three words cannot afford.
-  if (/^\s*(why|discover)\b/i.test(title)) return null;
-  if (vsReadsNegative(title + " " + sentences.join(" "))) return null;
+  if (/^\s*(why|discover)\b/i.test(title)) return bad("opened on a banned word (why / discover)");
+  if (vsReadsNegative(title + " " + sentences.join(" "))) return bad("it reads negative about the place");
 
   // The figure the brief asked for: present, in sentence 3, and the only one.
   // Checked rather than trusted - a draft that drops it is just missing the
@@ -5187,15 +5203,15 @@ function vsReelParse(raw, place, figure) {
   const norm = (x) => String(x).toLowerCase().replace(/\s+/g, " ").trim();
   if (figure) {
     const target = norm(String(figure).replace(/\s*a month$/i, ""));
-    if (!norm(sentences[2]).includes(target)) return null;
-    if (norm(title).includes(target)) return null;
+    if (!norm(sentences[2]).includes(target)) return bad("the figure is missing from sentence 3");
+    if (norm(title).includes(target)) return bad("the figure is in the title");
     const extra = vsMoneyIn(sentences.join(" ")).map(norm)
       .filter((a) => !target.includes(a) && !a.includes(target));
-    if (extra.length) return null;
-    if (vsMoneyIn(title).length) return null;
+    if (extra.length) return bad("it invented a second amount: " + extra.join(", "));
+    if (vsMoneyIn(title).length) return bad("an amount in the title");
   } else if (vsMoneyIn(title + " " + sentences.join(" ")).some((a) => /[$]|AED/i.test(a))) {
     // Nothing was supplied for this place, so any amount here was invented.
-    return null;
+    return bad("quoted an amount we never gave it");
   }
   return { title: title, sentences: sentences };
 }
@@ -6040,7 +6056,10 @@ async function vsBuildRealtorBatch(towns, month) {
     const place = typeof entry === "string" ? entry : entry.place;
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
     const brief = briefs && briefs.find((b) => b.regionId === (entry && entry.id));
-    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt, brief && brief.figure);
+    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt, brief && brief.figure,
+      (att, of, why) => vsBatchProgress(true, i, towns.length,
+        (fa ? "متن: " : "Writing: ") + place + (fa ? ` — تلاشِ ${att} از ${of}` : ` — attempt ${att} of ${of}`) +
+        (why ? (fa ? ` (${why})` : ` (${why})`) : "")));
     if (!reel) { skipped.push(place); continue; }
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
@@ -6087,9 +6106,12 @@ async function vsBuildRealtorBatch(towns, month) {
 }
 
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
-async function vsWriteRealtorReel(place, month, serverPrompt, figure) {
+async function vsWriteRealtorReel(place, month, serverPrompt, figure, say) {
   let out = null;
-  for (let attempt = 0; attempt < 4 && !out && !vstudio._batchCancel; attempt++) {
+  const ATTEMPTS = 4;
+  for (let attempt = 0; attempt < ATTEMPTS && !out && !vstudio._batchCancel; attempt++) {
+    // A retry is not a stall, but it looks exactly like one from outside.
+    if (attempt && typeof say === "function") say(attempt + 1, ATTEMPTS, vsReelWhy());
     const seed = Math.floor(Math.random() * 60) + attempt;
     // The server's brief when there is one - it is the same set of rules the
     // monthly run writes to, and it knows what this town has already had. The
