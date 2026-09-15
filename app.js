@@ -5718,7 +5718,14 @@ const VS_FORMAT_BUILD = {
   branded_interview: { method: "Slideshow video",  note: "on-device canvas, your own frame",     perSec: 0, route: "video" },
   broll_presenter:   { method: "Slideshow video",  note: "on-device canvas + stock footage",     perSec: 0, route: "video" },
   fast_montage:      { method: "Slideshow video",  note: "on-device canvas, music-led",          perSec: 0, route: "video" },
-  skit:              { method: "Scene-by-scene",   note: "each beat generated separately",       perSec: 9, route: "scene" },
+  // The scene builder rebuilds a REFERENCE shot by shot - it reads its shots
+  // off blueprint.shotList and refuses outright without one, and it renders at
+  // most four of them. As a template route it therefore quoted 182 credits for
+  // a button that answers "no shot list from the reference" and does nothing.
+  // A skit built from a template is the on-device slideshow like its
+  // neighbours; the scene rebuild is still offered, off the reference, where it
+  // has the shots it needs.
+  skit:              { method: "Slideshow video",  note: "on-device canvas, beat by beat",       perSec: 0, route: "video" },
   kinetic_type:      { method: "Slideshow video",  note: "on-device canvas, animated type",      perSec: 0, route: "video" },
   quote_card:        { method: "Image card",       note: "on-device canvas, one still",         perSec: 0, route: "carousel" },
 };
@@ -5731,23 +5738,86 @@ const VS_FORMAT_BUILD = {
  * decides its timing, captions and cost; the clip is the proof.
  */
 const VS_TEMPLATES = [
-  { id: "podcast_take",    clip: "single_take__3",        shape: "single_take",       label: "Podcast single take",   note: "one unbroken take into a mic" },
-  { id: "walk_talk",       clip: "single_take__6",        shape: "single_take",       label: "Walk-and-talk selfie",  note: "handheld, outdoors, straight to camera" },
-  { id: "skit_to_camera",  clip: "single_take__14",       shape: "single_take",       label: "Skit into camera",      note: "a staged beat, then the point" },
-  { id: "desk_take",       clip: "single_take__16",       shape: "single_take",       label: "Desk talking head",     note: "seated, steady, caption-led" },
-  { id: "branded_frame",   clip: "branded_interview__2",  shape: "branded_interview", label: "Branded interview frame", note: "logo, topic card, watch-more end" },
-  { id: "two_seat",        clip: "branded_interview__11", shape: "branded_interview", label: "Two-seat interview",    note: "cut between two speakers" },
-  { id: "drone_lots",      clip: "broll_presenter__4",    shape: "broll_presenter",   label: "Drone lots + presenter", note: "aerials cut with a person explaining" },
-  { id: "house_tour",      clip: "broll_presenter__10",   shape: "broll_presenter",   label: "Full house tour",       note: "room after room, word-by-word captions" },
-  { id: "listing_tour",    clip: "broll_presenter__12",   shape: "broll_presenter",   label: "Cinematic listing tour", note: "match cuts, landmark opening" },
-  { id: "whip_pan",        clip: "broll_presenter__13",   shape: "broll_presenter",   label: "Whip-pan announcement", note: "a fast pan into one static shot" },
-  { id: "moody_montage",   clip: "fast_montage__5",       shape: "fast_montage",      label: "Moody montage",         note: "high contrast, no talking" },
-  { id: "lifestyle_ugc",   clip: "fast_montage__7",       shape: "fast_montage",      label: "Lifestyle UGC",         note: "a day out, ending on one call" },
-  { id: "wide_studio",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work" },
-  { id: "pov_skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out" },
-  { id: "kinetic",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker" },
-  { id: "quote_card",      clip: "quote_card__1",         shape: "quote_card",        label: "Branded quote card",    note: "one still: your photo, the line in two weights", still: true, aspect: "4/5" },
+  { id: "podcast_take", cat: "talk",    clip: "single_take__3",        shape: "single_take",       label: "Podcast single take",   note: "one unbroken take into a mic" },
+  { id: "walk_talk", cat: "talk",       clip: "single_take__6",        shape: "single_take",       label: "Walk-and-talk selfie",  note: "handheld, outdoors, straight to camera" },
+  { id: "skit_to_camera", cat: "talk",  clip: "single_take__14",       shape: "single_take",       label: "Skit into camera",      note: "a staged beat, then the point" },
+  { id: "desk_take", cat: "talk",       clip: "single_take__16",       shape: "single_take",       label: "Desk talking head",     note: "seated, steady, caption-led" },
+  { id: "branded_frame", cat: "interview",   clip: "branded_interview__2",  shape: "branded_interview", label: "Branded interview frame", note: "logo, topic card, watch-more end" },
+  { id: "two_seat", cat: "interview",        clip: "branded_interview__11", shape: "branded_interview", label: "Two-seat interview",    note: "cut between two speakers" },
+  { id: "drone_lots", cat: "property",      clip: "broll_presenter__4",    shape: "broll_presenter",   label: "Drone lots + presenter", note: "aerials cut with a person explaining" },
+  { id: "house_tour", cat: "property",      clip: "broll_presenter__10",   shape: "broll_presenter",   label: "Full house tour",       note: "room after room, word-by-word captions" },
+  { id: "listing_tour", cat: "property",    clip: "broll_presenter__12",   shape: "broll_presenter",   label: "Cinematic listing tour", note: "match cuts, landmark opening" },
+  { id: "whip_pan", cat: "property",        clip: "broll_presenter__13",   shape: "broll_presenter",   label: "Whip-pan announcement", note: "a fast pan into one static shot" },
+  { id: "moody_montage", cat: "marketing",   clip: "fast_montage__5",       shape: "fast_montage",      label: "Moody montage",         note: "high contrast, no talking" },
+  { id: "lifestyle_ugc", cat: "marketing",   clip: "fast_montage__7",       shape: "fast_montage",      label: "Lifestyle UGC",         note: "a day out, ending on one call" },
+  { id: "wide_studio", cat: "marketing",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work" },
+  { id: "pov_skit", cat: "skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out" },
+  { id: "kinetic", cat: "explainer",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker" },
+  { id: "quote_card", cat: "graphic",      clip: "quote_card__1",         shape: "quote_card",        label: "Branded quote card",    note: "one still: your photo, the line in two weights", still: true, aspect: "4/5" },
 ];
+
+/** What Analyze costs, so the total can include it instead of ignoring it. */
+const VS_ANALYZE_CREDITS = 1;
+
+/**
+ * Everything the operator will have paid to hold the finished thing.
+ *
+ * Every figure on a card used to price ONE step. Analyze is a credit of its
+ * own, the script is two more, and a per-second renderer is priced off a
+ * duration that is only KNOWN once the reference has been measured and the
+ * script written - so a fixed number printed on a card before any of that is a
+ * guess presented as a price. This takes the context (what has been analysed,
+ * what has been written, how long it actually runs) and returns the real bill,
+ * marking what is already spent so the remaining figure is honest too.
+ */
+function reCost(templateId, ctx) {
+  ctx = ctx || {};
+  const b = vsFormatBuild(vsTemplate(templateId).shape);
+  const parts = [];
+  // Analyze is spent the moment a reference is read, and these cards are shown
+  // after that - leaving it out understates the bill by a credit.
+  if (ctx.analyzed) parts.push({ key: "analyze", credits: VS_ANALYZE_CREDITS, spent: true });
+  parts.push({ key: "script", credits: VS_SCRIPT_CREDITS, spent: !!ctx.scripted });
+  // A template's length is a CAP, not an estimate. The renderer bills per
+  // second of what it actually produces, so a card that quoted 13s and then
+  // charged for a script that ran to 41 would be a quote that grows after the
+  // operator committed to it. The builders clamp the render to this same
+  // figure, so a shorter script costs less and a longer one costs no more —
+  // which is the only way the number on the card is a price rather than a
+  // hope. Off the template road there is no cap, and the reference's own
+  // measured length is the shape.
+  const capped = b.plan.duration > 0;
+  const m = Number(ctx.seconds) > 0 ? Number(ctx.seconds) : 0;
+  const secs = capped ? (m > 0 ? Math.min(m, b.plan.duration) : b.plan.duration) : (m || b.plan.duration);
+  const measured = m > 0;
+  const render = b.perSec ? Math.ceil(secs * b.perSec) : 0;
+  parts.push({ key: "render", credits: render, spent: false, perSec: b.perSec, seconds: Math.round(secs) });
+  const total = parts.reduce((a, p) => a + p.credits, 0);
+  const left = parts.reduce((a, p) => a + (p.spent ? 0 : p.credits), 0);
+  return { parts, total, left, render, seconds: Math.round(secs), measured, perSec: b.perSec,
+           cap: capped ? Math.round(b.plan.duration) : 0,
+           still: !!b.plan.still, method: b.method, route: b.route };
+}
+
+/**
+ * The categories, in the order they are offered.
+ *
+ * Sixteen cards is more than anyone reads, so the grid opens on one filled row
+ * and the rest are a click away. Filtering is what makes that honest: without
+ * it "show more" is just hiding things from someone who cannot search.
+ */
+const VS_TPL_CATS = [
+  { id: "all",       en: "All",           fa: "همه" },
+  { id: "marketing", en: "Marketing",     fa: "بازاریابی" },
+  { id: "property",  en: "Property",      fa: "ملک" },
+  { id: "talk",      en: "Talking head",  fa: "آدمِ سخنگو" },
+  { id: "interview", en: "Interview",     fa: "مصاحبه" },
+  { id: "skit",      en: "Skit",          fa: "نمایش" },
+  { id: "explainer", en: "Explainer",     fa: "توضیحی" },
+  { id: "graphic",   en: "Graphic",       fa: "گرافیک" },
+];
+/** How many fill the grid before "show more" takes over. */
+const VS_TPL_PAGE = 6;
 
 /** A template by id, or the first one when the id means nothing. */
 function vsTemplate(id) {
@@ -19418,6 +19488,37 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-forkcard{display:flex;gap:12px;align-items:flex-start;text-align:left;cursor:pointer;padding:15px 15px 16px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.11);transition:border-color .16s,transform .14s,box-shadow .16s;color:inherit;font:inherit}
          :is(#reModal,#reMainBody) .re-forkcard:hover{transform:translateY(-2px);border-color:rgba(37,99,255,.5);box-shadow:0 14px 30px -16px rgba(37,99,255,.6)}
          :is(#reModal,#reMainBody) .re-qlbl{font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.06em;color:#8c8578;text-transform:uppercase}
+         /* One primary action per view, and it carries its own price. A button
+            that does not say what pressing it costs is the reason anyone has to
+            go looking for the number somewhere else on the page. */
+         :is(#reModal,#reMainBody) .re-cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;padding:13px 16px;border:0;border-radius:13px;cursor:pointer;
+           font:800 15px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#0d1200;background:#d6f43c;
+           box-shadow:0 10px 28px -10px rgba(214,244,60,.55),0 1px 0 rgba(255,255,255,.4) inset;transition:filter .14s,transform .14s}
+         :is(#reModal,#reMainBody) .re-cta:hover{filter:brightness(1.06)}
+         :is(#reModal,#reMainBody) .re-cta:active{transform:translateY(1px)}
+         :is(#reModal,#reMainBody) .re-cta:disabled{filter:grayscale(.6) brightness(.7);cursor:default;transform:none}
+         :is(#reModal,#reMainBody) .re-cta .price{display:inline-flex;align-items:center;gap:4px;font:800 13px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.16);border-radius:8px;padding:3px 9px 3px 7px}
+         :is(#reModal,#reMainBody) .re-cta .price svg{width:12px;height:12px}
+         :is(#reModal,#reMainBody) .re-cta2{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 15px;border-radius:12px;cursor:pointer;white-space:nowrap;
+           font:800 13px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#e8eefc;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);transition:.14s}
+         :is(#reModal,#reMainBody) .re-cta2:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.26)}
+         :is(#reModal,#reMainBody) .re-cta2 .price{display:inline-flex;align-items:center;gap:3px;font:800 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#d6f43c;background:rgba(0,0,0,.3);border-radius:6px;padding:2px 6px 2px 5px}
+         :is(#reModal,#reMainBody) .re-cta2 .price svg{width:9px;height:9px;fill:currentColor}
+         /* Category chips over the template grid. */
+         :is(#reModal,#reMainBody) .re-chip{padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;
+           font:700 11.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#9fb0c9;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);transition:.14s}
+         :is(#reModal,#reMainBody) .re-chip:hover{color:#e8eefc;border-color:rgba(255,255,255,.22)}
+         :is(#reModal,#reMainBody) .re-chip[aria-pressed="true"]{color:#0d1200;background:#d6f43c;border-color:#d6f43c}
+         :is(#reModal,#reMainBody) .re-chip .n{opacity:.55;margin-inline-start:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
+         /* The bill on a template card. */
+         :is(#reModal,#reMainBody) .re-bill{display:flex;flex-direction:column;gap:6px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)}
+         :is(#reModal,#reMainBody) .re-bill .tot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+         :is(#reModal,#reMainBody) .re-bill .tot b{font:800 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase}
+         :is(#reModal,#reMainBody) .re-bill .tot i{font-style:normal;display:inline-flex;align-items:center;gap:5px;font:800 13px 'JetBrains Mono',ui-monospace,monospace;color:#0d1200;background:#d6f43c;border-radius:8px;padding:3px 9px 3px 7px}
+         :is(#reModal,#reMainBody) .re-bill .tot i svg{width:11px;height:11px;fill:currentColor}
+         :is(#reModal,#reMainBody) .re-bill .ln{display:flex;justify-content:space-between;gap:8px;font:600 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#7d8798}
+         :is(#reModal,#reMainBody) .re-bill .ln.paid{color:#5fe0b0}
+         :is(#reModal,#reMainBody) .re-bill .est{font:400 9px 'JetBrains Mono',ui-monospace,monospace;color:#6f7a8c;line-height:1.4}
          :is(#reModal,#reMainBody) .re-want{display:flex;flex-direction:column;gap:2px;text-align:start;padding:9px 11px;border-radius:11px;cursor:pointer;font:inherit;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);transition:.14s}
          :is(#reModal,#reMainBody) .re-want b{font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#eef4ff}
          :is(#reModal,#reMainBody) .re-want i{font-style:normal;font-size:11px;color:#93a3bb;line-height:1.4}
@@ -19461,9 +19562,14 @@ function vsReverseEngineer(prefill, opts) {
          :is(#reModal,#reMainBody) .re-mcard.free .mcred{color:#5fe0b0}
          :is(#reModal,#reMainBody) .re-mcard .mribbon{position:absolute;top:-9px;right:11px;font:800 8.5px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);padding:3px 8px;border-radius:20px;box-shadow:0 4px 12px -3px rgba(37,99,255,.7);display:none}
          :is(#reModal,#reMainBody) .re-mcard.rec .mribbon{display:block}
-         :is(#reModal,#reMainBody) .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border:0;border-radius:10px;cursor:pointer;font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 8px 20px -8px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.26) inset;transition:filter .14s}
-         :is(#reModal,#reMainBody) .re-mcard .mbtn:hover{filter:brightness(1.08)}
-         :is(#reModal,#reMainBody) .re-mcard.free .mbtn{background:linear-gradient(135deg,#34d399,#059669);box-shadow:0 8px 20px -8px rgba(16,185,129,.55),0 1px 0 rgba(255,255,255,.26) inset}
+         /* The build button on a card is the same action as Generate, one step
+            later, so it is the same button - the committed one goes lime and the
+            rest stay quiet. */
+         :is(#reModal,#reMainBody) .re-mcard .mbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;border-radius:11px;cursor:pointer;
+           font:800 12.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#e8eefc;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);transition:.14s}
+         :is(#reModal,#reMainBody) .re-mcard .mbtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.26)}
+         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn{color:#0d1200;background:#d6f43c;border-color:#d6f43c;box-shadow:0 8px 22px -10px rgba(214,244,60,.6),0 1px 0 rgba(255,255,255,.4) inset}
+         :is(#reModal,#reMainBody) .re-mcard.rec .mbtn:hover{filter:brightness(1.06);background:#d6f43c}
          :is(#reModal,#reMainBody) .re-mcard .mdrop{display:flex;align-items:center;gap:7px;font-size:11px;color:#bcd0f5;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:7px 9px;cursor:pointer}
          :is(#reModal,#reMainBody) .re-mcard .mdrop:hover{border-color:rgba(37,99,255,.4)}
          :is(#reModal,#reMainBody) .re-mcard select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:10px!important;padding:6px 9px!important;min-height:0!important;height:32px!important;color:#eef4ff;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:none!important}
@@ -19498,7 +19604,7 @@ function vsReverseEngineer(prefill, opts) {
          <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
          <div class="re-analyzerow" style="display:flex;gap:9px">
            <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="btn" style="display:flex;align-items:center;gap:7px;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 0 0 1px rgba(255,255,255,.1) inset,0 1px 0 rgba(255,255,255,.28) inset">${fa ? "تحلیل" : "Analyze"}<span style="display:inline-flex;align-items:center;gap:3px;font:800 10px 'JetBrains Mono',ui-monospace,monospace;background:rgba(0,0,0,.28);color:#f5c451;padding:2px 6px 2px 5px;border-radius:6px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>1</span></button>
+           <button id="reFetch" type="button" class="re-cta2">${fa ? "تحلیل" : "Analyze"}<span class="price">${arCreditIcon}${VS_ANALYZE_CREDITS}</span></button>
          </div>
          <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#cfe0ff;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
            <span style="flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#5b9bff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
@@ -19584,7 +19690,8 @@ function vsReverseEngineer(prefill, opts) {
            </div>
          </div>
        </div>
-       <button id="reGo" type="button" class="btn" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;font-size:15px;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%);box-shadow:0 10px 28px -4px rgba(37,99,255,.6),0 1px 0 rgba(255,255,255,.28) inset"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg>${fa ? "ساخت" : "Generate"}${arCredit(2)}</button>
+       <button id="reGo" type="button" class="re-cta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg><span id="reGoTxt">${fa ? "ساخت" : "Generate"}</span><span class="price" id="reGoPrice">${arCreditIcon}${VS_SCRIPT_CREDITS}</span></button>
+       <div id="reGoNote" style="margin-top:7px;text-align:center;font:600 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#7d8798"></div>
 
        <div id="reProgress" style="display:none;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22);border-radius:14px;padding:14px 16px"></div>
        <div id="reOut" style="display:none;flex-direction:column;gap:14px">
@@ -20459,6 +20566,10 @@ function vsReverseEngineer(prefill, opts) {
       // remember the reference gender guess to pick a matching face by default
       try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + route + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
+      // The script exists now, so the render length is measured rather than
+      // assumed. Every price on screen was an estimate until this moment.
+      try { reRenderTemplateGallery(); } catch (e) {}
+      try { rePaintGoPrice(); } catch (e) {}
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
       vsSettle(charge.jobId, "done");
     } catch (e) {
@@ -20789,6 +20900,10 @@ function vsReverseEngineer(prefill, opts) {
   // walk away from the shape the script was actually written for. The menu is
   // still reachable, but it has to be asked for.
   let reRouteUnlocked = false;
+  // Which category the grid is filtered to, and whether it has been opened up
+  // past the first page.
+  let reTplCat = "all";
+  let reTplShowAll = false;
 
   /**
    * Repaint which card is chosen, without rebuilding the gallery.
@@ -20798,6 +20913,100 @@ function vsReverseEngineer(prefill, opts) {
    * stranded another IntersectionObserver on the dead nodes. Choosing is a
    * change of two colours.
    */
+  /**
+   * How long the finished thing will actually run.
+   *
+   * A per-second renderer cannot be priced off a template's nominal length once
+   * there is a real script - that script is what gets spoken, and it is what
+   * the renderer will be billed for. Order matters: the written script beats a
+   * measured reference, which beats the template's own figure.
+   */
+  function reMeasuredSeconds() {
+    try {
+      if (blueprint && blueprint.script) return vsEstSeconds(blueprint.script);
+      if (reWantSource === "video" && ref) {
+        const d = (ref.cutInfo && ref.cutInfo.duration) || ref.refDuration || 0;
+        if (d > 0) return d;
+      }
+    } catch (e) {}
+    return 0;   // nothing measured yet - reCost falls back to the template
+  }
+
+  /** What has been paid for already, and what the renderer will be billed for. */
+  function reCostCtx() {
+    return {
+      // Analyze has been spent if a reference was read, whether from a link or
+      // an upload. Both set `ref`.
+      analyzed: !!(ref && (ref.caption || ref.thumb || ref.refVideo)),
+      scripted: !!(blueprint && blueprint.script),
+      seconds: reMeasuredSeconds(),
+    };
+  }
+
+  /** The bill, as it goes on a template card. */
+  function reBillHtml(templateId, ctx) {
+    const c = reCost(templateId, ctx);
+    const name = { analyze: fa ? "تحلیل" : "analyze", script: fa ? "متن" : "script", render: fa ? "رندر" : "render" };
+    const lines = c.parts.map((p) => {
+      const amt = p.credits === 0 ? (fa ? "رایگان" : "free") : String(p.credits);
+      const tick = p.spent ? " ✓" : "";
+      return `<span class="ln${p.spent ? " paid" : ""}"><span>${name[p.key]}${tick}</span><span>${amt}</span></span>`;
+    }).join("");
+    // Where the render figure came from, said plainly - a per-second price off a
+    // guessed length is the one number on this card that can still move.
+    const basis = !c.perSec
+      ? (fa ? "رندر روی دستگاهِ خودت — بدونِ هزینه" : "renders on your own device — no charge")
+      : c.measured
+        ? (fa ? `${c.seconds} ثانیهٔ اندازه‌گیری‌شده × ${c.perSec}` : `${c.seconds}s measured × ${c.perSec}/sec`)
+        : (fa ? `${c.seconds} ثانیهٔ این قالب × ${c.perSec} — بعد از تحلیل دقیق می‌شود` : `${c.seconds}s for this shape × ${c.perSec}/sec — exact after Analyze`);
+    return `<span class="re-bill">
+        <span class="tot">
+          <b>${c.still ? (fa ? "جمعِ پرداختی" : "You pay") : (fa ? "جمعِ پرداختی" : "You pay")}</b>
+          <i>${arCreditIcon}${c.total}</i>
+        </span>
+        ${lines}
+        <span class="est">${esc(basis)}</span>
+      </span>`;
+  }
+
+  /**
+   * Put the real number on the Generate button.
+   *
+   * The button said 2 forever, because 2 is what Generate itself charges. But
+   * Generate is not the end of the journey - it is the middle of it, and the
+   * operator is deciding whether to start a journey that ends at 67 or at 182.
+   * So the button carries what is still to pay from here, and the line under it
+   * accounts for the whole thing including what Analyze already took.
+   */
+  function rePaintGoPrice() {
+    const price = $$("reGoPrice"), note = $$("reGoNote");
+    if (!price) return;
+    const ctx = reCostCtx();
+    const id = (reWantSource === "template" && rePickedTemplate) ? rePickedTemplate : null;
+    if (!id) {
+      // Nothing decides the renderer yet, so the only honest figure is the
+      // script's own price. Quoting a render on top of that would be inventing
+      // a route the operator has not chosen.
+      price.innerHTML = arCreditIcon + VS_SCRIPT_CREDITS;
+      if (note) note.textContent = fa
+        ? `نوشتنِ متن ${VS_SCRIPT_CREDITS} کردیت. هزینهٔ رندر بعد از انتخابِ روش مشخص می‌شود.`
+        : `Writing the script costs ${VS_SCRIPT_CREDITS}. The render is priced once a shape is picked.`;
+      return;
+    }
+    const c = reCost(id, ctx);
+    price.innerHTML = arCreditIcon + c.left;
+    if (!note) return;
+    const spent = c.parts.filter((p) => p.spent).reduce((a, p) => a + p.credits, 0);
+    const how = c.render
+      ? (fa ? `متن ${VS_SCRIPT_CREDITS} + رندر ${c.render} (${c.seconds} ثانیه × ${c.perSec})`
+            : `script ${VS_SCRIPT_CREDITS} + render ${c.render} (${c.seconds}s × ${c.perSec}/sec)`)
+      : (fa ? `متن ${VS_SCRIPT_CREDITS} + رندرِ رایگان روی دستگاهِ خودت`
+            : `script ${VS_SCRIPT_CREDITS} + render free on your own device`);
+    note.textContent = how + (spent
+      ? (fa ? ` · ${spent} برای تحلیل پرداخت شده — جمعِ کل ${c.total}` : ` · ${spent} already spent on Analyze — ${c.total} in total`)
+      : (fa ? ` · جمعِ کل ${c.total}` : ` · ${c.total} in total`));
+  }
+
   function rePaintTemplatePicks() {
     // (a still has no pacing to describe; reRenderFormatPlan reads plan.still)
     const box = document.getElementById("reTplGallery");
@@ -20815,6 +21024,7 @@ function vsReverseEngineer(prefill, opts) {
   function reSelectTemplate(id) {
     rePickedTemplate = (rePickedTemplate === id) ? null : id;   // clicking it again lets go
     try { rePaintTemplatePicks(); } catch (e) {}
+    try { rePaintGoPrice(); } catch (e) {}
     // The panel is the one place the chosen shape is explained, so show it even
     // when nothing has been analysed.
     try { reRenderFormatPlan(); } catch (e) {}
@@ -20850,7 +21060,13 @@ function vsReverseEngineer(prefill, opts) {
     }
 
     const det = ref && ref.format;
-    const cards = VS_TEMPLATES.map((t) => {
+    // What has actually happened, so every price on screen is this operator's
+    // price rather than a brochure figure.
+    const ctx = reCostCtx();
+    const inCat = (t) => reTplCat === "all" || t.cat === reTplCat;
+    const pool = VS_TEMPLATES.filter(inCat);
+    const shown = reTplShowAll ? pool : pool.slice(0, VS_TPL_PAGE);
+    const cards = shown.map((t) => {
       const c = vsTemplateCard(t.id);
       const b = c.build;
       const isMatch = det && det.best === t.shape && det.measured;
@@ -20883,32 +21099,46 @@ function vsReverseEngineer(prefill, opts) {
               : (b.plan.scenes === 1 ? "1" : b.plan.scenes) + " × " + b.plan.secondsPerScene + "s")}
           </span>
 
-          <span style="display:flex;flex-direction:column;gap:3px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
-            <span style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-              <span style="font:700 9px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#6f7a8c;text-transform:uppercase">${b.plan.still ? (fa ? "تا عکسِ آماده" : "Finished image") : (fa ? "تا ویدئوی آماده" : "Finished video")}</span>
-              <span class="ar-cred">${arCreditIcon}${b.credits}</span>
-            </span>
-            <span style="font:400 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#6f7a8c">${fa
-              ? `متن ${b.script} + ${b.render ? `رندر ${b.render}` : "رندرِ رایگان"}`
-              : `script ${b.script} + ${b.render ? `render ${b.render}` : "render free"}`}</span>
-          </span>
+          ${reBillHtml(t.id, ctx)}
         </span>
       </button>`;
     }).join("");
 
+    const rest = pool.length - shown.length;
+    const chips = VS_TPL_CATS
+      .map((c) => ({ c, n: c.id === "all" ? VS_TEMPLATES.length : VS_TEMPLATES.filter((t) => t.cat === c.id).length }))
+      .filter((x) => x.n > 0)
+      .map(({ c, n }) => `<button type="button" class="re-chip" data-cat="${c.id}" aria-pressed="${reTplCat === c.id}">${esc(fa ? c.fa : c.en)}<span class="n">${n}</span></button>`)
+      .join("");
     box.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
          <span style="font:800 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.07em;color:#5fe0b0;text-transform:uppercase">${fa ? "قالب‌ها" : "Templates"}</span>
          <span style="font-size:11.5px;color:#8ea6c8">${fa
-            ? `${VS_TEMPLATES.length} قالب (${VS_TEMPLATES.filter((x) => !x.still).length} ویدیو + ${VS_TEMPLATES.filter((x) => x.still).length} عکس) — ریتم و کپشن از همین می‌آید؛ هر پیش‌نمایش خودِ مرجع است.`
-            : `${VS_TEMPLATES.length} shapes — ${VS_TEMPLATES.filter((x) => !x.still).length} video, ${VS_TEMPLATES.filter((x) => x.still).length} still. The pacing and caption style come from the one you pick, and every preview is the reference itself.`}</span>
+            ? `${VS_TEMPLATES.length} قالب (${VS_TEMPLATES.filter((x) => !x.still).length} ویدیو + ${VS_TEMPLATES.filter((x) => x.still).length} عکس) — ریتم و کپشن از همین می‌آید؛ قیمتِ روی هر کارت کلِ چیزی است که می‌پردازی.`
+            : `${VS_TEMPLATES.length} shapes — ${VS_TEMPLATES.filter((x) => !x.still).length} video, ${VS_TEMPLATES.filter((x) => x.still).length} still. The pacing and captions come from the one you pick, and the price on each card is the whole bill.`}</span>
        </div>
-       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:14px">${cards}</div>`;
+       <div style="display:flex;gap:7px;flex-wrap:wrap">${chips}</div>
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:14px">${cards}</div>
+       ${rest > 0
+         ? `<button type="button" id="reTplMore" class="re-cta2" style="align-self:center;margin-top:2px">${fa ? `${rest} قالبِ دیگر` : `Show ${rest} more`}</button>`
+         : (reTplShowAll && pool.length > VS_TPL_PAGE
+            ? `<button type="button" id="reTplLess" class="re-cta2" style="align-self:center;margin-top:2px">${fa ? "کمتر" : "Show less"}</button>`
+            : "")}`;
     box.style.display = "flex";
+    // A rebuilt gallery means the context moved - a reference was read, or the
+    // road changed - and the button's total moves with it.
+    try { rePaintGoPrice(); } catch (e) {}
 
     box.querySelectorAll(".re-tplcard").forEach((b) => {
       b.onclick = () => reSelectTemplate(b.dataset.tpl);
     });
+    box.querySelectorAll(".re-chip").forEach((c) => {
+      // Switching category starts that category at the top of its first page;
+      // carrying "show all" across makes the button lie about what is hidden.
+      c.onclick = () => { reTplCat = c.dataset.cat; reTplShowAll = false; reRenderTemplateGallery(); };
+    });
+    if ($$("reTplMore")) $$("reTplMore").onclick = () => { reTplShowAll = true; reRenderTemplateGallery(); };
+    if ($$("reTplLess")) $$("reTplLess").onclick = () => { reTplShowAll = false; reRenderTemplateGallery(); };
     // Six autoplaying clips at once is a lot of decode for something the eye is
     // only ever on one of. They play when they scroll into view and pause when
     // they leave, and a hover always starts the one being considered.
@@ -21023,6 +21253,7 @@ function vsReverseEngineer(prefill, opts) {
   document.querySelectorAll(".re-want[data-src]").forEach((btn) => {
     btn.onclick = () => {
       reWantSource = btn.dataset.src === "video" ? "video" : "template";
+      setTimeout(() => { try { rePaintGoPrice(); } catch (e) {} }, 0);
       document.querySelectorAll(".re-want[data-src]").forEach((b2) =>
         b2.setAttribute("aria-pressed", String(b2.dataset.src === reWantSource)));
       try { reRenderTemplateGallery(); } catch (e) {}
@@ -21217,7 +21448,13 @@ function vsReverseEngineer(prefill, opts) {
     // "Auto" = as long as the narration actually takes; a fixed pick caps it so
     // the credits charged match exactly the seconds shown on the card.
     const thDurSel = ($$("reThDur") && $$("reThDur").value) || "auto";
-    const maxSecTH = thDurSel === "auto" ? 0 : Math.min(Math.max(Number(thDurSel) || 0, 3), 120);
+    // "Auto" used to mean uncapped, so a script that overran turned the 67 on
+    // the card into whatever the audio happened to measure. A committed template
+    // is a length the operator was quoted, so it becomes the cap unless they
+    // picked a Time themselves.
+    const tplCapTH = (reWantSource === "template" && rePickedTemplate)
+      ? Math.round(vsFormatBuild(vsTemplate(rePickedTemplate).shape).plan.duration) || 0 : 0;
+    const maxSecTH = thDurSel === "auto" ? tplCapTH : Math.min(Math.max(Number(thDurSel) || 0, 3), 120);
     try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, maxSeconds: maxSecTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "") }); }
     catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
