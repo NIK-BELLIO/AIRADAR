@@ -4900,22 +4900,47 @@ async function vsAutoAiChat(prompt, opts) {
   // quality, then fall back to the always-free default. `opts.fast` (used by the
   // chat assistant) prefers the quickest models and does a single pass.
   const models = ["openai"];
-  // Cloudflare-AI worker FIRST (free, working), then the Pollinations worker
-  // as a secondary in case its balance is topped up later.
-  const endpoints = [VS_AI_FALLBACK, VS_WORKER_BASE + "/chat"];
+  // Ordered by MEASURED latency, not by which was written first.
+  //
+  // The same prompt, the same afternoon, twice each:
+  //
+  //     airadar-ai  (was first)   16.6s   16.6s
+  //     airadar-api (was second)   6.5s    0.9s
+  //
+  // The slow one was being asked first on every call, and vsWriteRealtorReel
+  // retries up to four times when the parser rejects a script - so one town
+  // could sit at "Writing:" for a minute of pure queueing before anything had
+  // gone wrong. Fast first.
+  const endpoints = [VS_WORKER_BASE + "/chat", VS_AI_FALLBACK];
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  // If the quick one is having a bad day, bring the other in alongside it
+  // rather than waiting out its whole timeout first. Only after this long:
+  // racing both on every call would double the spend to win nothing in the
+  // common case, where the first answers in about a second.
+  const HEDGE_MS = 7000;
+  async function hedged(model, useJson) {
+    const first = postChat(endpoints[0], model, useJson, false);
+    first.catch(() => {});                 // a loser must not surface as unhandled
+    const early = await Promise.race([
+      first.then((t) => ({ t }), (e) => ({ e })),
+      sleep(HEDGE_MS).then(() => null),
+    ]);
+    if (early && early.t) return early.t;                 // answered in time
+    const second = postChat(endpoints[1], model, useJson, false);
+    second.catch(() => {});
+    if (early && early.e) return await second;            // failed outright
+    return await Promise.any([first, second]);            // still thinking: take either
+  }
   const passes = opts.fast ? 1 : 3;
   // Try every model/endpoint combo. The whole sweep is retried a couple of
   // times with a short backoff so a transient outage doesn't kill the build.
   for (let pass = 0; pass < passes; pass++) {
     if (vstudio._batchCancel) return null;        // bail fast on cancel
     for (const model of models) {
-      for (const ep of endpoints) {
-        for (const useJson of (wantJson ? [true, false] : [false])) {
-          if (vstudio._batchCancel) return null;  // bail between every attempt
-          try { return await postChat(ep, model, useJson, false); }
-          catch (e) { /* next combo */ }
-        }
+      for (const useJson of (wantJson ? [true, false] : [false])) {
+        if (vstudio._batchCancel) return null;    // bail between every attempt
+        try { return await hedged(model, useJson); }
+        catch (e) { /* next combo */ }
       }
     }
     // proxied last resort within each pass (skip in fast mode)
