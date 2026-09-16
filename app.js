@@ -5192,7 +5192,7 @@ function vsReelParse(raw, place, figure) {
   if (sentences.length !== 5) return bad("wanted 5 sentences, got " + sentences.length);
   const words = (x) => x.split(/\s+/).filter(Boolean).length;
   if (words(title) > 10) return bad("title ran to " + words(title) + " words, limit 10");
-  if (sentences.some((x) => words(x) > 20)) return bad("a sentence ran over 20 words");
+  if (sentences.some((x) => words(x) > 26)) return bad("a sentence ran over 26 words");
   if (sentences.some((x) => !/[.?]$/.test(x))) return bad("a sentence did not end in . or ?");
   if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return bad("markdown characters in the copy");
   if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return bad("the title never names the place");
@@ -6574,7 +6574,22 @@ async function vsAssembleFromSections(data, skipFootage) {
   vstudio.storyData = data;
   // Fixed scene lengths: intro/outro always 3s, every content scene always 6s
   // — a consistent rhythm instead of stretching/shrinking with narration length.
-  const narrationDuration = (text, fallback) => fallback;
+  /**
+   * How long a scene holds, from the words that are on it.
+   *
+   * This took the text and threw it away, returning a flat six seconds for
+   * every content scene - which is why every reel came out at exactly 36s
+   * whatever it said. Six seconds is a race for a twenty-word sentence and a
+   * wait for a six-word one.
+   *
+   * On-screen text is READ, not heard. About 2.2 words a second is comfortable,
+   * plus a beat to land on and a beat to leave on.
+   */
+  const narrationDuration = (text, fallback) => {
+    const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+    if (!words) return fallback;
+    return Math.min(Math.max(words / 2.2 + 1.4, 3.5), 11);
+  };
 
   // Palette → background pool mapping for cinematic variety
   const palettes = {
