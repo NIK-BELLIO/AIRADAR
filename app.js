@@ -5231,7 +5231,15 @@ function vsReelParse(raw, place, figure) {
     // Nothing was supplied for this place, so any amount here was invented.
     return bad("quoted an amount we never gave it");
   }
-  return { title: title, sentences: sentences };
+  // What to FILM for each sentence. Without these the footage search falls
+  // back to the first four long words of the line - "That these weeks matter
+  // Nelson" - which is a grammar fragment, not a search, and returns whatever
+  // Pexels has lying around. A short or missing list is not worth failing a
+  // good script over; any scene without one keeps the old keyword guess.
+  const visuals = Array.isArray(j.visuals)
+    ? j.visuals.filter((v) => typeof v === "string").map((v) => clean(v).replace(/[.]$/, ""))
+    : [];
+  return { title: title, sentences: sentences, visuals: visuals };
 }
 
 // The screen for it. Takes a list of towns, writes a reel for each, and leaves
@@ -6091,7 +6099,7 @@ async function vsBuildRealtorBatch(towns, month) {
         _regionId: entry && entry.id,
         _knownClip: (entry && entry.clip) || "",
         title: reel.title,
-        sections: reel.sentences.map((t) => ({ headline: t, narration: t })),
+        sections: reel.sentences.map((t, i) => ({ headline: t, narration: t, visual: (reel.visuals || [])[i] || "" })),
         source: "",
         palette: look.palette,
         music: look.music,
@@ -6156,7 +6164,7 @@ async function vsBuildRealtorReel(place) {
   // sentence, the place name driving the footage lookup.
   vsAssembleFromSections({
     title: out.title,
-    sections: out.sentences.map((t) => ({ headline: t, narration: t })),
+    sections: out.sentences.map((t, i) => ({ headline: t, narration: t, visual: (out.visuals || [])[i] || "" })),
     source: "", palette: "ocean",
     _location: place, _batchName: place, _topic: "realtor reel"
   });
