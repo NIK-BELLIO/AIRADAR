@@ -5054,6 +5054,10 @@ function vsReelPrompt(place, month, seed) {
   const topic = pool[(seed * 3 + 1) % pool.length].t;
   const monthName = VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))];
   const season = vsReelSeason(month, warm);
+  const town = place.split(",")[0].trim();
+  // Where this town looks for its detail. Seeded on the town and the month, so
+  // a rerun is stable and two towns in one batch are pointed different ways.
+  const places = vsDetailPlaces(town, month);
   // Canadian spelling is decided on what the operator typed, since the studio
   // has no country field to consult.
   const ca = /\b(BC|AB|SK|MB|ON|QC|NS|NB|NL|PE|YT|NT|NU|Canada|Ontario|Alberta|Quebec|Manitoba|Saskatchewan)\b/i.test(place);
@@ -5063,29 +5067,135 @@ function vsReelPrompt(place, month, seed) {
     `PLACE: ${place}.`,
     `MONTH: ${monthName} - ${season}.`,
     `TOPIC: ${topic}.`,
+    `WATCHING: someone local who is scrolling and has thirty seconds.`,
+    `Write to that one person and nobody else. Name the thing they are`,
+    `actually dealing with - the bedroom two kids share, the desk in the`,
+    `corner of the kitchen, the coats piled on the stairs. A line that would`,
+    `land the same for anybody has landed for nobody.`,
     ...(warm ? [`CLIMATE: this place has no real autumn or winter. Never write about leaves turning, cold rooms, frost, snow or the heating.`] : []),
     `TITLE TAKES HOLD BY: ${trigLabel} - ${trigBrief}.`,
     ``,
     `Return exactly this JSON and nothing else:`,
-    `{"title": "...", "sentences": ["...", "...", "...", "...", "..."]}`,
+    `{"title": "...", "sentences": ["...", "...", "...", "...", "..."],`,
+    ` "visuals": ["...", "...", "...", "...", "..."]}`,
+    ``,
+    `PLAIN ENGLISH - this outranks every other instruction below it.`,
+    `- Each line gets about one second on screen while someone's thumb is`,
+    `  moving. If it needs a second read it has failed, however well written`,
+    `  it is. Write for speed, not for the page.`,
+    `- Talk the way a person talks. No metaphor, no personification, no`,
+    `  literary phrasing. Walls do not ask for anything. Light does not make`,
+    `  anything clear. A season does not shut anything down. Say the real`,
+    `  thing instead: not "your walls are asking for more space" but "there`,
+    `  is nowhere left to put anything".`,
+    `- Name what actually happens inside a house, not how it feels. Concrete`,
+    `  beats poetic every time - and the concrete thing has to be yours, not`,
+    `  one you were handed. Three places to look, different for every town:`,
+    ...places.map((p) => `    - ${p}`),
+    `  Pick ONE of those three, work out what is actually true of it in`,
+    `  ${town} in ${monthName}, and build the reel on that. Do not write about`,
+    `  all three, and do not mention the list.`,
+    `- One idea per sentence. If it is carrying two, cut one.`,
+    `- Any example sentence written out anywhere in this brief is EXAMPLES OF`,
+    `  A KIND, not lines to use, and comes back rejected. So does a reworded`,
+    `  one. Write the detail that belongs to THIS town, this month, this topic.`,
+    `- Full sentences. None of the first four may be under fourteen words: a`,
+    `  six-word line reads as a caption, and five captions are not a reel.`,
+    `  Fourteen is the floor, not the target - aim at eighteen.`,
+    `- The headings in this brief are labels for you, not words for the`,
+    `  script. A draft came back with "THIS PLACE, not a postcard" inside a`,
+    `  sentence, and another wrote "This is RENT $1,810 a month, rent". Never`,
+    `  put a heading, a label or an instruction into the copy, and never write`,
+    `  a word in capitals - anything shouted is rejected.`,
+    `- Do not repeat yourself. If five words in a row turn up in two of your`,
+    `  sentences, the reel has got stuck on one image: find the next thing to`,
+    `  say instead of saying that one again.`,
+    `- Never open a sentence with an -ing word. "Trading cramped corners for`,
+    `  an expansive layout..." and "Stepping onto the deck reveals..." are`,
+    `  stage directions, not speech. Both are rejected automatically.`,
+    `- These are rejected on sight, anywhere in the title or the script:`,
+    `  ${VS_VOICE_BANNED.join(", ")}.`,
     ``,
     `THE TITLE`,
-    `- At most 10 words, and it must contain "${place.split(",")[0].trim()}" exactly as written.`,
+    `- At most 10 words, and it must contain "${town}" exactly as written.`,
     `- The first three words decide whether anyone watches. Lead with the hook, never a warm-up.`,
     `- It must speak to the viewer as "you" or "your", or come from a real "I" or "my". Required.`,
+    `- Plain words only. It has to be understood at a glance, at speed, with`,
+    `  the sound off. No metaphor and no drama. "You leave ${town} before`,
+    `  autumn shuts down" is exactly the failure: nobody says it, and it reads`,
+    `  as though something bad is coming for the town.`,
+    `- Never imply a deadline, a loss or a threat. No "before it is too late",`,
+    `  no "last chance", no "running out", no "will not last".`,
+    `- The title and the first two sentences must be about the SAME thing. If`,
+    `  the title is about moving, one of the first two sentences says so too.`,
+    `  A title about leaving followed by two lines about a hallway is two`,
+    `  different reels, and it is checked.`,
     `- Be specific rather than vague. Do not start with "Why" or "Discover".`,
     ``,
-    `THE FIVE SENTENCES - each stands alone on screen, each at most 20 words`,
-    `1. A vivid moment that names the place naturally and keeps the title's momentum.`,
-    `2. Why it matters now - a light seasonal reason, upbeat.`,
+    `THE FIVE SENTENCES - one per card on screen, but ONE story between them.`,
+    `Aim for 16 to 20 words each - full, unhurried sentences with room for a`,
+    `detail, not clipped notes. 26 is the hard limit and a sentence over it is`,
+    `rejected, so aim near twenty rather than at the ceiling.`,
+    ``,
+    `THE THREAD - this is the difference between a reel and five captions:`,
+    `- The title names ONE idea. All five sentences are about that idea and`,
+    `  nothing else. A line that would sit just as happily in another town's`,
+    `  reel, or another month's, is the wrong line.`,
+    `- Each sentence follows from the one before it. Carry something forward -`,
+    `  the thought, the image, the moment - so the viewer is taken somewhere`,
+    `  rather than handed five separate observations.`,
+    `- Check before you answer: shuffle your five sentences into a different`,
+    `  order. If it reads just as well shuffled, you have written captions and`,
+    `  not a reel. Rewrite them so the order matters.`,
+    ``,
+    `Their jobs, all of them in service of that one thread. The shape is`,
+    `problem, then the penny dropping, then the thing that helps, then this`,
+    `place, then the question:`,
+    `1. THE PROBLEM they would recognise without being told. The moment the`,
+    `   title was pointing at, said in the words they would use themselves,`,
+    `   with ${town} in it naturally. Not a scene being described to them - a`,
+    `   thing that happens to them. Do not slow down here.`,
+    `2. THE PENNY DROPS. What that moment has started to mean. ${monthName} is`,
+    `   the reason it is surfacing NOW. Tie the season to the DECISION, not to`,
+    `   the scenery - what ${monthName} changes about how this house is lived`,
+    `   in, not how it photographs. If the line would work as a caption on a`,
+    `   pretty photograph, it is scenery and it is the wrong line.`,
     `3. One genuinely useful thing. General advice, no local figures.`,
-    `4. A sensory detail that belongs to this place and nowhere else.`,
-    `5. A warm close - a reflection or friendly question. Never "comment", "DM", "follow" or "swipe".`,
+    `4. THIS PLACE, not a postcard. One real thing about ${place} - the lake,`,
+    `   the ridge, the way the main street runs, the walk to the school - and`,
+    `   it has to be part of the DECISION the other four sentences are about.`,
+    `   Autumn leaves turning are a picture, not a reason. A reason is`,
+    `   something about where this town is or how it is laid out that changes`,
+    `   what the day is like. If the detail could be lifted out and nobody`,
+    `   would notice, it is the wrong detail.`,
+    `5. THE QUESTION. Short - under sixteen words, and shorter is better. It`,
+    `   has to be something this person genuinely asks themselves, in their`,
+    `   own words, about the thing the other four sentences just raised. Not`,
+    `   an abstraction about routines or readiness - "Does your daily routine`,
+    `   feel ready for the wide open spaces waiting on the other side of`,
+    `   town?" is the exact failure, and nobody has ever thought it. Ask the`,
+    `   plain version of the question this reel has been circling, and stop.`,
+    `   Never "comment", "DM", "follow", "swipe" or any other instruction;`,
+    `   the feeling does the work.`,
+    ``,
+    `THE VISUALS - one per sentence, in the same order.`,
+    `Each is a STOCK FOOTAGE SEARCH, not a description of the sentence. Two to`,
+    `four plain words naming something a camera can point at: "autumn porch`,
+    `steps", "empty living room", "boxes in hallway", "kitchen morning light".`,
+    `- Name an object, a place or an action. Never an idea, a feeling or a`,
+    `  metaphor - "a new chapter" and "surfaces telling a story" cannot be`,
+    `  filmed and will return nonsense.`,
+    `- Do not copy words out of the sentence. Ask what the viewer should be`,
+    `  LOOKING AT while that sentence is on screen, and name that.`,
+    `- No people's faces, no signs, no text in frame.`,
+    `- Keep it ordinary enough that stock footage of it exists.`,
+    ``,
     `Every sentence must be whole and end with a full stop or a question mark.`,
     ``,
     `TONE - not negotiable`,
     `- Always warm or neutral. Never negative, alarming, shaming or fear-based.`,
     `- No mistakes, no warnings, no backfires, nothing that makes buyers, sellers or the place look bad.`,
+    `- Write like a likeable local who knows the place, not like an agency.`,
     ``,
     `WHAT YOU MAY NOT INVENT`,
     `- No business names, brands or vendors, in the title or the script.`,
@@ -5099,7 +5209,13 @@ function vsReelPrompt(place, month, seed) {
        : `SPELLING: use standard American spelling throughout.`,
     ``,
     `No em-dashes. No emoji. No hashtags. No exclamation marks. No markdown.`,
-    `BEFORE YOU ANSWER, count the words in the title (10 max) and in every sentence (20 max).`
+    `Do not name the month or the season in the title.`,
+    ``,
+    `BEFORE YOU ANSWER, COUNT`,
+    `- Count the words in your title. More than 10 and it is rejected outright.`,
+    `- Count the words in each sentence. More than 26 and that sentence is`,
+    `  rejected. Sentence five must be under sixteen.`,
+    `- Check the title contains "${town}", and that the script names it too.`,
   ].join("\n");
 }
 
@@ -5173,13 +5289,190 @@ function vsMoneyIn(text) {
 let _vsReelReject = "";
 function vsReelWhy() { return _vsReelReject; }
 
+/**
+ * The words that make a line read as written by a machine.
+ *
+ * Every one came out of a draft we looked at and did not want. A Camillus reel
+ * used "simply" in two of its five sentences while the brief was asking for
+ * plain speech, which is the short version of why this is a check and not a
+ * request. Kept identical to VOICE_BANNED in regions.ts - checks/parity.js
+ * fails the deploy if the two ever differ.
+ */
+var VS_VOICE_BANNED = [
+  "simply", "truly", "deeply", "embrace", "journey", "tapestry", "symphony",
+  "testament", "nestled", "boasts", "whisper", "whispers", "beckons",
+  "unlock", "elevate", "seamless", "vibrant", "bustling", "hidden gem",
+  "new chapter", "blank canvas", "asking for", "speaks to", "invites you",
+  "calls to you", "waiting on the other side", "makes it clear",
+  "make it clear", "look no further", "dive into", "a world of",
+];
+
+/** The first of them this text leans on, or "" if it is clean. */
+function vsVoiceTell(text) {
+  const t = " " + String(text || "").toLowerCase().replace(/[^a-z0-9$,. ]/g, " ").replace(/\s+/g, " ") + " ";
+  for (const w of VS_VOICE_BANNED) {
+    if (t.includes(" " + w + " ") || t.includes(" " + w + ", ") || t.includes(" " + w + ". ")) return w;
+  }
+  return "";
+}
+
+/**
+ * A sentence that opens on an -ing word is a stage direction, not speech.
+ *
+ * "Trading cramped corners for an expansive layout..." and "Stepping onto the
+ * back deck reveals..." were both in one five-line draft. Nobody talks like
+ * that, and two in a row is the clearest tell a reel can carry. The handful
+ * below open sentences people really say, so they go through.
+ */
+var VS_ING_OK = ["nothing", "anything", "everything", "something", "during",
+  "spring", "morning", "evening", "bring", "thing", "things", "string"];
+
+function vsStageDirection(sentence) {
+  const first = String(sentence || "").trim().split(/\s+/)[0] || "";
+  const w = first.toLowerCase().replace(/[^a-z]/g, "");
+  if (w.length > 4 && /ing$/.test(w) && VS_ING_OK.indexOf(w) < 0) return first;
+  return "";
+}
+
+/**
+ * Where to look for the detail, instead of being told one.
+ *
+ * The brief used to name concrete things - coats on the stairs, a desk in the
+ * kitchen corner - because naming them is what stopped the writing being
+ * abstract. It worked, and then it worked too well: three of five towns in one
+ * live run wrote about the coats or the desk, having been shown them. A
+ * paraphrase is not catchable by a word list, so the brief stops naming
+ * details and names places to look instead. Each town gets three, chosen from
+ * its own name and the month, so two towns in a batch are not pointed at the
+ * same corner of the same house.
+ *
+ * Kept identical to DETAIL_PLACES in regions.ts - checks/parity.js fails the
+ * deploy otherwise.
+ */
+var VS_DETAIL_PLACES = [
+  "the doorway, and whatever has collected there",
+  "where people actually eat, as opposed to where they are supposed to",
+  "what the first hour of the day is like in this house",
+  "where things get put when there is nowhere to put them",
+  "where somebody works, if they work from home",
+  "the room nobody has a use for",
+  "what the walk from the car is like with your hands full",
+  "where the children end up, whatever the plan was",
+  "what you can hear from the back of the house",
+  "where people sit when they visit, and whether there is room",
+  "what the back door looks out on",
+  "where the seasonal things live for the other nine months",
+  "the first room a visitor sees, and what it is currently doing",
+  "the place in this house where there is never quite enough room",
+  "what gets moved every time somebody needs the table",
+  "the cupboard that has to be opened carefully",
+];
+
+/** Three of them, the same three every time for this town and month. */
+function vsDetailPlaces(seedText, month) {
+  let h = 0;
+  for (let i = 0; i < String(seedText).length; i++) h = (h * 31 + String(seedText).charCodeAt(i)) >>> 0;
+  h = (h + month * 7919) >>> 0;
+  const out = [];
+  const step = 5;   // coprime with 16, so three picks never collide
+  for (let i = 0; i < 3; i++) out.push(VS_DETAIL_PLACES[(h + i * step) % VS_DETAIL_PLACES.length]);
+  return out;
+}
+
+/**
+ * The brief's own examples, handed straight back.
+ *
+ * The brief names concrete things on purpose - the coats on the stairs, the
+ * desk in the kitchen corner - because that is what stopped the writing being
+ * abstract. The cost is that a model shown one good line will reuse it: every
+ * draft in the first live run of the new brief contained "the coats piled on
+ * the stairs" AND "Could this be the year you finally move for more space?",
+ * across two different towns and two different topics. Sixty-nine towns
+ * sharing one sentence is worse than sixty-nine abstract ones.
+ *
+ * So the examples are listed, and using one is a rejection. Kept identical to
+ * EXAMPLE_LINES in regions.ts - checks/parity.js fails the deploy otherwise.
+ */
+var VS_EXAMPLE_LINES = [
+  // Only lines the brief still writes out. Anything else here is not
+  // stopping an echo, it is rejecting an ordinary sentence: pointing a town
+  // at "the doorway, and whatever has collected there" and then refusing
+  // "coats" cost two towns all four of their attempts.
+  "your walls are asking for more space",
+  "there is nowhere left to put anything",
+  "does your daily routine feel ready",
+  "trading cramped corners for an expansive layout",
+  "stepping onto the deck reveals",
+  // And the headings. A run came back with "THIS PLACE, not a postcard, sits
+  // on a Camillus street near the school" - the label for the job, read as
+  // part of the job.
+  "this place, not a postcard",
+  "this place is",
+  "the penny drops",
+  "the problem they would recognise",
+  "the question. short",
+  "plain english",
+  "one idea per sentence",
+];
+
+/**
+ * Words a person would really write in capitals. Everything else shouted in a
+ * reel is the brief's own heading, copied. Kept identical to SHOUT_OK in
+ * regions.ts - checks/parity.js fails the deploy otherwise.
+ */
+var VS_SHOUT_OK = ["POV", "DIY", "HVAC", "MLS", "HOA", "SUV", "TV", "AC"];
+
+/** The first shouted word that is not one of those, or "". */
+function vsShouted(text) {
+  const found = String(text || "").match(/\b[A-Z]{3,}\b/g) || [];
+  for (const w of found) if (VS_SHOUT_OK.indexOf(w) < 0) return w;
+  return "";
+}
+
+/**
+ * A run of five words that turns up in two different sentences.
+ *
+ * Milton wrote "the desk in the corner of the kitchen" into sentences one, two
+ * and three. Every sentence was inside every limit by itself; the reel was
+ * still a draft that had got stuck on one image.
+ */
+function vsRepeatedRun(sentences) {
+  const seen = new Map();
+  for (let i = 0; i < sentences.length; i++) {
+    const w = String(sentences[i] || "").toLowerCase()
+      .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+    const here = new Set();
+    for (let k = 0; k + 5 <= w.length; k++) here.add(w.slice(k, k + 5).join(" "));
+    for (const run of here) {
+      if (seen.has(run) && seen.get(run) !== i) return run;
+      seen.set(run, i);
+    }
+  }
+  return "";
+}
+
+/** The first example this script hands back, or "". */
+function vsExampleLeak(text) {
+  // Both sides through the same normaliser. Stripping the punctuation out of
+  // the script but not out of the list meant "this place, not a postcard"
+  // could never match a script whose comma had already been removed - and a
+  // live draft carrying exactly that walked straight through.
+  const flat = (x) => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const t = flat(text || "");
+  for (const line of VS_EXAMPLE_LINES) {
+    const needle = flat(line);
+    if (needle && t.includes(needle)) return line;
+  }
+  return "";
+}
+
 /** Matches "around $412,000", "~$412,000" and friends - a hedged figure. */
 function VS_HEDGE_RE(target) {
   const lit = String(target).replace(/[.*+?^${}()|[\]\\]/g, (c) => "\\" + c);
   return new RegExp("(?:around|about|roughly|just over|just under|nearly|approximately|~)\\s*" + lit, "i");
 }
 
-function vsReelParse(raw, place, figure) {
+function vsReelParse(raw, place, figure, figureKind) {
   const bad = (why) => { _vsReelReject = why; return null; };
   _vsReelReject = "";
   const m = String(raw || "").match(/\{[\s\S]*\}/);
@@ -5192,16 +5485,66 @@ function vsReelParse(raw, place, figure) {
   if (sentences.length !== 5) return bad("wanted 5 sentences, got " + sentences.length);
   const words = (x) => x.split(/\s+/).filter(Boolean).length;
   if (words(title) > 10) return bad("title ran to " + words(title) + " words, limit 10");
-  if (sentences.some((x) => words(x) > 26)) return bad("a sentence ran over 26 words");
+  const long = sentences.findIndex((x) => words(x) > 26);
+  if (long >= 0) return bad("sentence " + (long + 1) + " ran over 26 words");
   if (sentences.some((x) => !/[.?]$/.test(x))) return bad("a sentence did not end in . or ?");
   if (/[`*_#]/.test(title) || sentences.some((x) => /[`*_#]/.test(x))) return bad("markdown characters in the copy");
-  if (!title.toLowerCase().includes(String(place).split(",")[0].trim().toLowerCase())) return bad("the title never names the place");
+  const placeLc = String(place).split(",")[0].trim().toLowerCase();
+  if (!title.toLowerCase().includes(placeLc)) return bad("the title never names the place");
+  // And so does the body. A script that names the town once, in the title, is
+  // a generic script with a town written on it - which is the one thing these
+  // are supposed not to be.
+  if (!sentences.join(" ").toLowerCase().includes(placeLc))
+    return bad("the place is never named in the script itself");
   if (!/\b(you|your|yours|you're|you've|i|i'm|i've|my|me)\b/i.test(title)) return bad("the title speaks to nobody");
   // The brief bans these two openers and the prompt asks for it, but asking was
   // not enough: a live run produced "Why Kingston autumn makes you notice your
   // growing space." Both are the warm-up the first three words cannot afford.
   if (/^\s*(why|discover)\b/i.test(title)) return bad("opened on a banned word (why / discover)");
   if (vsReadsNegative(title + " " + sentences.join(" "))) return bad("it reads negative about the place");
+
+  // Drama in the title. "You leave Camillus before autumn shuts down" broke no
+  // rule that existed: it was inside every limit and still read as though
+  // something bad were coming for the town.
+  if (/\b(shuts? down|shutting down|too late|last chance|running out|won'?t last|will not last|before it'?s gone|before it is gone|don'?t miss|hurry)\b/i.test(title))
+    return bad("the title threatens a deadline");
+
+  // The brief's examples, handed straight back.
+  const echo = vsExampleLeak(title + " " + sentences.join(" "));
+  if (echo) return bad("it reused an example from the brief (" + echo + ")");
+
+  // An instruction, shouted, copied into the copy.
+  const shout = vsShouted(title + " " + sentences.join(" "));
+  if (shout) return bad("an instruction was copied into the script (" + shout + ")");
+
+  // The same five words twice.
+  const stuck = vsRepeatedRun(sentences);
+  if (stuck) return bad("two sentences share the same run of words (" + stuck + ")");
+
+  // Stage directions instead of speech.
+  for (let i = 0; i < sentences.length; i++) {
+    const g = vsStageDirection(sentences[i]);
+    if (g) return bad("sentence " + (i + 1) + " opens as a stage direction (" + g + ")");
+  }
+
+  // The words that give the machine away.
+  const tell = vsVoiceTell(title + " " + sentences.join(" "));
+  if (tell) return bad("it leans on \"" + tell + "\"");
+
+  // And a floor under the first four. Capping the close and asking for one
+  // idea a sentence both pull the same way, and with nothing pulling back a
+  // live run came in at 15.0 words a sentence with an eight-word line in it -
+  // against the 17.8 of the reel this is chasing. Five short lines are five
+  // captions.
+  const short = sentences.slice(0, 4).findIndex((x) => words(x) < 14);
+  if (short >= 0)
+    return bad("sentence " + (short + 1) + " is only " + words(sentences[short]) + " words - under the floor of 14");
+
+  // The close is a question a person would really ask, and a long one is not.
+  // "Does your daily routine feel ready for the wide open spaces waiting on
+  // the other side of town?" is eighteen words and nobody has ever thought it.
+  if (words(sentences[4]) > 16)
+    return bad("the closing question ran to " + words(sentences[4]) + " words, limit 16");
 
   // The figure the brief asked for: present, in sentence 3, and the only one.
   // Checked rather than trusted - a draft that drops it is just missing the
@@ -5223,6 +5566,16 @@ function vsReelParse(raw, place, figure) {
     // holding a real number is that it is the real one.
     if (VS_HEDGE_RE(target).test(norm(sentences[2])))
       return bad("the figure is hedged instead of stated");
+    // Say WHICH number it is. A monthly rent read out as what "a typical home
+    // costs" is the one error in these scripts that misinforms rather than
+    // bores: the viewer leaves holding a price that is not a price.
+    if (figureKind === "rent") {
+      if (!/\brent(s|ing|al|als)?\b/i.test(sentences[2]))
+        return bad("the figure is a rent and sentence 3 never says so");
+    } else if (figureKind === "price") {
+      if (/\b(a|per|each)\s+month\b|\bmonthly\b/i.test(sentences[2]))
+        return bad("a sale price was written as a monthly cost");
+    }
     const extra = vsMoneyIn(sentences.join(" ")).map(norm)
       .filter((a) => !target.includes(a) && !a.includes(target));
     if (extra.length) return bad("it invented a second amount: " + extra.join(", "));
@@ -6055,6 +6408,10 @@ async function vsBuildRealtorBatch(towns, month) {
   vstudio._saveFolder = "Realtor reels · " +
     VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))] + " " + new Date().getFullYear();
   const skipped = [];
+  // How many towns came from the panel rather than from a model. Worth saying
+  // out loud at the end: it is the difference between a batch somebody read
+  // and a batch nobody has.
+  let fromPanel = 0;
   // The writing pass is minutes long and barely touches the media origin, so
   // the clips these towns already own are pulled in underneath it.
   vsWarmTownClips(towns);
@@ -6082,10 +6439,28 @@ async function vsBuildRealtorBatch(towns, month) {
     const place = typeof entry === "string" ? entry : entry.place;
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
     const brief = briefs && briefs.find((b) => b.regionId === (entry && entry.id));
-    const reel = await vsWriteRealtorReel(place, month, brief && brief.prompt, brief && brief.figure,
-      (att, of, why) => vsBatchProgress(true, i, towns.length,
-        (fa ? "متن: " : "Writing: ") + place + (fa ? ` — تلاشِ ${att} از ${of}` : ` — attempt ${att} of ${of}`) +
-        (why ? (fa ? ` (${why})` : ` (${why})`) : "")));
+
+    // Somebody has already read this one in the Regions panel and approved it.
+    //
+    // This is the whole point of that panel, and until now it did nothing: the
+    // studio asked the server for a brief, got one, and wrote five new
+    // sentences over the top of the five a person had just signed off. An
+    // approved script is used exactly as written, and no model is asked about
+    // this town at all.
+    const ready = brief && brief.approved;
+    const usable = ready && Array.isArray(ready.sentences) && ready.sentences.length === 5 && ready.title;
+    let reel;
+    if (usable) {
+      vsBatchProgress(true, i, towns.length, (fa ? "متنِ تأییدشده: " : "Approved: ") + place);
+      reel = { title: ready.title, sentences: ready.sentences, visuals: ready.visuals || [] };
+      fromPanel++;
+    } else {
+      reel = await vsWriteRealtorReel(place, month, brief && brief.prompt, brief && brief.figure,
+        brief && brief.figureKind,
+        (att, of, why) => vsBatchProgress(true, i, towns.length,
+          (fa ? "متن: " : "Writing: ") + place + (fa ? ` — تلاشِ ${att} از ${of}` : ` — attempt ${att} of ${of}`) +
+          (why ? (fa ? ` (${why})` : ` (${why})`) : "")));
+    }
     if (!reel) { skipped.push(place); continue; }
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
@@ -6100,7 +6475,10 @@ async function vsBuildRealtorBatch(towns, month) {
         _knownClip: (entry && entry.clip) || "",
         title: reel.title,
         sections: reel.sentences.map((t, i) => ({ headline: t, narration: t, visual: (reel.visuals || [])[i] || "" })),
-        source: "",
+        // Where the figure in sentence three came from. It is credited on
+        // screen, because a number nobody can trace should not go out under
+        // an agent's name.
+        source: (ready && ready.figureSource) || (brief && brief.figureSource) || "",
         palette: look.palette,
         music: look.music,
         _look: look,
@@ -6126,13 +6504,15 @@ async function vsBuildRealtorBatch(towns, month) {
   await vsLoadBatchVideo(0);
   const n = vstudio.batchVideos.length;
   vsAutoStatus((fa ? `${n} ریل آماده شد.` : `${n} reels ready.`) +
+    (fromPanel ? (fa ? ` ${fromPanel} تا از متن‌های تأییدشده‌ی پنل.`
+                     : ` ${fromPanel} of them from approved panel scripts.`) : "") +
     (skipped.length ? (fa ? ` رد شد: ${skipped.join("، ")}` : ` Skipped: ${skipped.join(", ")}`) : "") +
     (fa ? " «دانلود همه» را بزن." : ' Press "Download all" to render them.'));
   return true;
 }
 
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
-async function vsWriteRealtorReel(place, month, serverPrompt, figure, say) {
+async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind, say) {
   let out = null;
   const ATTEMPTS = 4;
   for (let attempt = 0; attempt < ATTEMPTS && !out && !vstudio._batchCancel; attempt++) {
@@ -6146,7 +6526,7 @@ async function vsWriteRealtorReel(place, month, serverPrompt, figure, say) {
     let raw = "";
     try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
     catch (e) { raw = ""; }
-    out = vsReelParse(raw, place, figure);
+    out = vsReelParse(raw, place, figure, figureKind);
   }
   return out;
 }
@@ -9139,21 +9519,41 @@ function vsAdoptRegionBatch() {
   }
 
   const fa = state.lang === "fa";
-  vstudio.batchVideos = batch.items.map((it) => {
+  // The month the batch was written for, so the look is the same one the
+  // studio would have chosen for this town in this month.
+  const nowMonth = new Date().getMonth() + 1;
+  vstudio.batchVideos = batch.items.map((it, i) => {
     const sentences = Array.isArray(it.sentences) ? it.sentences.filter(Boolean) : [];
+    const visuals = Array.isArray(it.visuals) ? it.visuals : [];
+    const place = it.location || it.name;
+    // Its own template, palette, grade, music and rotation offsets - chosen
+    // from the town and the month exactly as vsBuildRealtorBatch chooses
+    // them, so an approved script does not render plainer than a written one.
+    const look = vsReelLook(place, Number(it.month) || nowMonth, i);
     return {
       name: it.name,
-      location: it.location || it.name,
+      location: place,
+      template: look.template,
+      regionId: it.regionId || null,
       // The plain text-scene shape the assembler reads: a headline to show and
       // narration to speak. No stats, because these scripts carry no numbers.
       data: {
+        _regionId: it.regionId || null,
+        // A clip this town already owns beats anything a stock search returns.
+        _knownClip: it.clip || "",
         title: it.title,
-        sections: sentences.map((t) => ({ headline: t, narration: t })),
-        source: "",
-        palette: it.palette || "ocean",
+        // What to film per scene. Without it the footage search falls back to
+        // the first few long words of the line being shown, which is a grammar
+        // fragment rather than a search.
+        sections: sentences.map((t, k) => ({ headline: t, narration: t, visual: visuals[k] || "" })),
+        // Where the figure came from, credited on screen.
+        source: it.figureSource || "",
+        palette: look.palette,
+        music: look.music,
+        _look: look,
         _topic: it.topic || "",
         _batchName: it.name,
-        _location: it.location || it.name,
+        _location: place,
         _regionScriptId: it.scriptId || null
       }
     };
