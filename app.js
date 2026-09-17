@@ -5099,9 +5099,10 @@ function vsReelPrompt(place, month, seed) {
     `- Any example sentence written out anywhere in this brief is EXAMPLES OF`,
     `  A KIND, not lines to use, and comes back rejected. So does a reworded`,
     `  one. Write the detail that belongs to THIS town, this month, this topic.`,
-    `- Full sentences. None of the first four may be under fourteen words: a`,
-    `  six-word line reads as a caption, and five captions are not a reel.`,
-    `  Fourteen is the floor, not the target - aim at eighteen.`,
+    `- The hook can be short, from about ten words. Slides two, three and four`,
+    `  carry the story and none of them may be under fourteen: a six-word line`,
+    `  reads as a caption, and five captions are not a reel. Fourteen is the`,
+    `  floor, not the target - aim at eighteen.`,
     `- The headings in this brief are labels for you, not words for the`,
     `  script. A draft came back with "THIS PLACE, not a postcard" inside a`,
     `  sentence, and another wrote "This is RENT $1,810 a month, rent". Never`,
@@ -5138,37 +5139,53 @@ function vsReelPrompt(place, month, seed) {
     `rejected, so aim near twenty rather than at the ceiling.`,
     ``,
     `THE THREAD - this is the difference between a reel and five captions:`,
-    `- The title names ONE idea. All five sentences are about that idea and`,
+    `- These are five slides of ONE script, not five statements. The viewer is`,
+    `  following a single idea from beginning to end, and each slide leads`,
+    `  into the next one.`,
+    `- Slide two answers, expands or continues slide one. Slide three builds`,
+    `  on two. Four pays off what three set up. Five closes it. The connection`,
+    `  between them is conversational and logical, the way a person telling`,
+    `  you something gets from one sentence to the next.`,
+    `- Do NOT introduce a new topic, fact, feature, number or angle unless it`,
+    `  directly advances the story the slide before it established. A true`,
+    `  thing that belongs to a different story is still the wrong line.`,
+    `- Do not reach for a local fact because you have one. A landmark, a`,
+    `  street, a statistic, the weather, a neighbourhood - each of these earns`,
+    `  its place only by making THIS story land harder. If the reel would read`,
+    `  the same without it, leave it out.`,
+    `- The title names ONE idea. All five slides are about that idea and`,
     `  nothing else. A line that would sit just as happily in another town's`,
     `  reel, or another month's, is the wrong line.`,
-    `- Each sentence follows from the one before it. Carry something forward -`,
-    `  the thought, the image, the moment - so the viewer is taken somewhere`,
-    `  rather than handed five separate observations.`,
     `- Check before you answer: shuffle your five sentences into a different`,
     `  order. If it reads just as well shuffled, you have written captions and`,
     `  not a reel. Rewrite them so the order matters.`,
     ``,
-    `Their jobs, all of them in service of that one thread. The shape is`,
-    `problem, then the penny dropping, then the thing that helps, then this`,
-    `place, then the question:`,
-    `1. THE PROBLEM they would recognise without being told. The moment the`,
-    `   title was pointing at, said in the words they would use themselves,`,
-    `   with ${town} in it naturally. Not a scene being described to them - a`,
-    `   thing that happens to them. Do not slow down here.`,
-    `2. THE PENNY DROPS. What that moment has started to mean. ${monthName} is`,
-    `   the reason it is surfacing NOW. Tie the season to the DECISION, not to`,
-    `   the scenery - what ${monthName} changes about how this house is lived`,
-    `   in, not how it photographs. If the line would work as a caption on a`,
-    `   pretty photograph, it is scenery and it is the wrong line.`,
-    `3. One genuinely useful thing. General advice, no local figures.`,
-    `4. THIS PLACE, not a postcard. One real thing about ${place} - the lake,`,
-    `   the ridge, the way the main street runs, the walk to the school - and`,
-    `   it has to be part of the DECISION the other four sentences are about.`,
-    `   Autumn leaves turning are a picture, not a reason. A reason is`,
-    `   something about where this town is or how it is laid out that changes`,
-    `   what the day is like. If the detail could be lifted out and nobody`,
-    `   would notice, it is the wrong detail.`,
-    `5. THE QUESTION. Short - under sixteen words, and shorter is better. It`,
+    `Their jobs. The shape is hook, setup, development, payoff, close, and`,
+    `each one only exists to get the viewer to the next:`,
+    `1. THE HOOK. The moment the title was pointing at, in the words they`,
+    `   would use themselves, with ${town} in it naturally. Not a scene being`,
+    `   described to them - a thing that happens to them. Do not slow down`,
+    `   here.`,
+    `2. THE SETUP. Answer or expand slide one: what that moment has started to`,
+    `   mean. ${monthName} is the reason it is surfacing NOW, so tie the season`,
+    `   to the DECISION and not to the scenery. If the line would work as a`,
+    `   caption on a pretty photograph, it is scenery and it is wrong.`,
+    `3. THE DEVELOPMENT. Build on slide two. Take the thing it just named and`,
+    `   push it one step further - what it costs them, what it stops them`,
+    `   doing, what they have started thinking about because of it. No new`,
+    `   subject, and no local fact dropped in.`,
+    `4. THE PAYOFF. The one genuinely useful thing this reel exists to say,`,
+    `   and it has to be the answer to what slide three just set up. General`,
+    `   advice, no local figures.`,
+    `   There is no slide whose job is to be about ${place}. If somewhere in`,
+    `   these five a real thing about the town makes the story land harder -`,
+    `   the lake, the ridge, the way the main street runs, the walk to the`,
+    `   school - then use it, wherever it belongs. If it would only be there`,
+    `   because you know it, leave it out. Autumn leaves turning are a`,
+    `   picture, not a reason.`,
+    `5. THE CLOSE. Short - eighteen words at the very most, and ten is`,
+    `   better. Do not open it with "So," or "Well," - that is throat-clearing`,
+    `   and it costs you the only words you have left. It`,
     `   has to be something this person genuinely asks themselves, in their`,
     `   own words, about the thing the other four sentences just raised. Not`,
     `   an abstraction about routines or readiness - "Does your daily routine`,
@@ -5407,7 +5424,6 @@ var VS_EXAMPLE_LINES = [
   // on a Camillus street near the school" - the label for the job, read as
   // part of the job.
   "this place, not a postcard",
-  "this place is",
   "the penny drops",
   "the problem they would recognise",
   "the question. short",
@@ -5449,6 +5465,88 @@ function vsRepeatedRun(sentences) {
     }
   }
   return "";
+}
+
+/**
+ * The words that make this reel this reel, rather than any reel.
+ *
+ * Everything a batch of autumn property reels is entitled to have in common -
+ * buyers, houses, the month, the season - is thrown away, because counting
+ * those would flag every town against every other and nothing would be written
+ * at all. What is left is the picture: the doorway, the coats, the stairs.
+ *
+ * Kept identical to COMMON_TO_EVERY_REEL in regions.ts - checks/parity.js
+ * fails the deploy otherwise.
+ */
+var VS_COMMON_TO_EVERY_REEL = [
+  "buyer", "buyers", "seller", "sellers", "home", "homes", "house", "houses",
+  "room", "rooms", "space", "spaces", "place", "places", "listing", "listings",
+  "photo", "photos", "picture", "pictures", "morning", "mornings", "evening",
+  "evenings", "night", "nights", "light", "week", "weeks", "month", "months",
+  "year", "years", "season", "day", "days", "time", "times", "family",
+  "families", "price", "prices", "rent", "market", "move", "moving",
+  "clutter", "clean", "cleaner", "tidy", "open", "bigger", "smaller",
+  "january", "february", "march", "april", "may", "june", "july", "august",
+  "september", "october", "november", "december",
+  "spring", "summer", "autumn", "fall", "winter",
+  "your", "yours", "with", "that", "this", "they", "them", "then", "than",
+  "from", "into", "over", "under", "when", "what", "where", "which", "while",
+  "you", "here", "there", "have", "will", "would", "could", "should", "about",
+  "every", "just", "like", "make", "makes", "take", "takes", "feel", "feels",
+  "look", "looks", "want", "wants", "need", "needs", "show", "shows", "see",
+  "sees", "gives", "give", "still", "more", "most", "less", "much", "some",
+  "before", "after", "their", "theirs", "does", "doing", "been", "being",
+  // Grammar, not pictures. The batch check flagged two towns on "because".
+  "because", "since", "though", "although", "unless", "until", "whether", "either", "neither", "both", "each", "once", "twice", "also", "even", "only", "almost", "nearly", "rather", "instead", "perhaps", "maybe", "actually", "finally", "suddenly", "simply", "quietly", "slowly", "easily",
+  // Added after a second measurement: the batch check was rejecting towns
+  // over "cost", "school" and "storage", which is not a shared picture either.
+  "cost", "costs", "school", "schools", "storage", "store", "stores", "small", "large", "big", "runs", "run", "running", "become", "becomes", "walk", "walks", "walking", "bedroom", "bedrooms", "kitchen", "hall", "living", "door", "doors", "floor", "floors", "wall", "walls", "window", "windows", "corner", "corners", "entry", "entrance", "afternoon", "weekend", "weekends", "buy", "buying", "sell", "selling", "sold", "photograph", "photographs", "shot", "shots", "view", "views",
+  // Added after measuring: these flagged Camillus against Acworth on
+  // "sits, beyond, view, ready", which is not a shared picture, it is English.
+  "sits", "sit", "beyond", "ready", "close", "closer", "buys", "away", "main", "street", "local", "cafe", "town", "notice", "same", "hard", "right", "early", "those", "extra", "start", "starts", "started", "keep", "keeps", "wait", "back", "front", "around", "through", "across", "between", "another", "other", "others", "something", "anything", "everything", "nothing", "without", "within", "again", "already", "always", "never", "often", "really", "quite", "very", "well", "good", "better", "best", "little", "long", "short", "next", "last", "first", "second",
+];
+
+function vsDetailWords(sentences, placeName) {
+  const place = String(placeName || "").toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const out = new Set();
+  for (const w of sentences.join(" ").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").split(" ")) {
+    if (w.length < 4) continue;
+    if (VS_COMMON_TO_EVERY_REEL.indexOf(w) >= 0 || place.indexOf(w) >= 0) continue;
+    // Crude singular, so "coats" and "coat" are the same picture.
+    out.add(w.length > 4 && /s$/.test(w) ? w.slice(0, -1) : w);
+  }
+  return out;
+}
+
+/**
+ * How many towns back the picture check looks.
+ *
+ * Not the whole batch: each reel leaves twenty to thirty distinctive words
+ * behind, so by the fortieth town of sixty-nine any draft shares two with what
+ * came before and every town burns its spare attempts for nothing. Eight is
+ * the scope the rule is actually about - somebody scrolling sees reels next to
+ * each other, and nobody compares the third with the sixtieth.
+ */
+var VS_PICTURE_WINDOW = 8;
+
+/** The union of the last VS_PICTURE_WINDOW towns' pictures. */
+function vsRecentPictures(perTown) {
+  const out = new Set();
+  for (const s of perTown.slice(-VS_PICTURE_WINDOW)) s.forEach((w) => out.add(w));
+  return out;
+}
+
+/**
+ * Has another town in this batch already used this picture?
+ *
+ * Two shared words, not one: one is coincidence among reels that are all about
+ * houses in the same month, two is the same image. Returns them, or null.
+ */
+function vsSharesPicture(sentences, placeName, takenByOthers) {
+  const mine = vsDetailWords(sentences, placeName);
+  const shared = [];
+  mine.forEach((w) => { if (takenByOthers.has(w)) shared.push(w); });
+  return shared.length >= 2 ? shared.slice(0, 4) : null;
 }
 
 /** The first example this script hands back, or "". */
@@ -5536,15 +5634,20 @@ function vsReelParse(raw, place, figure, figureKind) {
   // live run came in at 15.0 words a sentence with an eight-word line in it -
   // against the 17.8 of the reel this is chasing. Five short lines are five
   // captions.
-  const short = sentences.slice(0, 4).findIndex((x) => words(x) < 14);
+  // The hook is meant to be short; the three that carry the story are not.
+  // A flat floor of fourteen threw away three good opening lines of eleven and
+  // thirteen words in one run.
+  if (words(sentences[0]) < 10)
+    return bad("the hook is only " + words(sentences[0]) + " words - under the floor of 10");
+  const short = sentences.slice(1, 4).findIndex((x) => words(x) < 14);
   if (short >= 0)
-    return bad("sentence " + (short + 1) + " is only " + words(sentences[short]) + " words - under the floor of 14");
+    return bad("sentence " + (short + 2) + " is only " + words(sentences[short + 1]) + " words - under the floor of 14");
 
   // The close is a question a person would really ask, and a long one is not.
   // "Does your daily routine feel ready for the wide open spaces waiting on
   // the other side of town?" is eighteen words and nobody has ever thought it.
-  if (words(sentences[4]) > 16)
-    return bad("the closing question ran to " + words(sentences[4]) + " words, limit 16");
+  if (words(sentences[4]) > 18)
+    return bad("the closing question ran to " + words(sentences[4]) + " words, limit 18");
 
   // The figure the brief asked for: present, in sentence 3, and the only one.
   // Checked rather than trusted - a draft that drops it is just missing the
@@ -5552,7 +5655,7 @@ function vsReelParse(raw, place, figure, figureKind) {
   const norm = (x) => String(x).toLowerCase().replace(/\s+/g, " ").trim();
   if (figure) {
     const target = norm(String(figure).replace(/\s*a month$/i, ""));
-    if (!norm(sentences[2]).includes(target)) return bad("the figure is missing from sentence 3");
+    if (!norm(sentences[3]).includes(target)) return bad("the figure is missing from sentence 4");
     if (norm(title).includes(target)) return bad("the figure is in the title");
     // A listing line with a clause bolted onto it is still a listing line, and
     // that is exactly what asking nicely produced - five runs, five of these:
@@ -5560,20 +5663,20 @@ function vsReelParse(raw, place, figure, figureKind) {
     //    spaces help that money feel livable."
     // The opening is the tell, so the opening is what gets checked. What comes
     // after the comma cannot rescue it.
-    if (/^\s*(?:in\s+\S|most\s+\w+\s|(?:an?|the)?\s*(?:typical|average|median)?\s*(?:homes?|houses?|properties|property)\b)/i.test(sentences[2]))
-      return bad("sentence 3 opens like a listing line");
+    if (/^\s*(?:in\s+\S|most\s+\w+\s|(?:an?|the)?\s*(?:typical|average|median)?\s*(?:homes?|houses?|properties|property)\b)/i.test(sentences[3]))
+      return bad("sentence 4 opens like a listing line");
     // And the figure must be stated, not approximated: the whole point of
     // holding a real number is that it is the real one.
-    if (VS_HEDGE_RE(target).test(norm(sentences[2])))
+    if (VS_HEDGE_RE(target).test(norm(sentences[3])))
       return bad("the figure is hedged instead of stated");
     // Say WHICH number it is. A monthly rent read out as what "a typical home
     // costs" is the one error in these scripts that misinforms rather than
     // bores: the viewer leaves holding a price that is not a price.
     if (figureKind === "rent") {
-      if (!/\brent(s|ing|al|als)?\b/i.test(sentences[2]))
-        return bad("the figure is a rent and sentence 3 never says so");
+      if (!/\brent(s|ing|al|als)?\b/i.test(sentences[3]))
+        return bad("the figure is a rent and sentence 4 never says so");
     } else if (figureKind === "price") {
-      if (/\b(a|per|each)\s+month\b|\bmonthly\b/i.test(sentences[2]))
+      if (/\b(a|per|each)\s+month\b|\bmonthly\b/i.test(sentences[3]))
         return bad("a sale price was written as a monthly cost");
     }
     const extra = vsMoneyIn(sentences.join(" ")).map(norm)
@@ -6412,6 +6515,9 @@ async function vsBuildRealtorBatch(towns, month) {
   // out loud at the end: it is the difference between a batch somebody read
   // and a batch nobody has.
   let fromPanel = 0;
+  // One set of pictures per town, so the check below can look at the last few
+  // rather than at everything written so far.
+  const townPictures = [];
   // The writing pass is minutes long and barely touches the media origin, so
   // the clips these towns already own are pulled in underneath it.
   vsWarmTownClips(towns);
@@ -6459,9 +6565,13 @@ async function vsBuildRealtorBatch(towns, month) {
         brief && brief.figureKind,
         (att, of, why) => vsBatchProgress(true, i, towns.length,
           (fa ? "متن: " : "Writing: ") + place + (fa ? ` — تلاشِ ${att} از ${of}` : ` — attempt ${att} of ${of}`) +
-          (why ? (fa ? ` (${why})` : ` (${why})`) : "")));
+          (why ? (fa ? ` (${why})` : ` (${why})`) : "")),
+        vsRecentPictures(townPictures));
     }
     if (!reel) { skipped.push(place); continue; }
+    // An approved script is used as written, so it is not held to this - but
+    // what it used still counts against the towns written after it.
+    townPictures.push(vsDetailWords(reel.sentences, place));
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
     const look = vsReelLook(place, month, i);
@@ -6512,7 +6622,7 @@ async function vsBuildRealtorBatch(towns, month) {
 }
 
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
-async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind, say) {
+async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind, say, avoid) {
   let out = null;
   const ATTEMPTS = 4;
   for (let attempt = 0; attempt < ATTEMPTS && !out && !vstudio._batchCancel; attempt++) {
@@ -6527,6 +6637,21 @@ async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind
     try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
     catch (e) { raw = ""; }
     out = vsReelParse(raw, place, figure, figureKind);
+
+    // Has another town in this run already written this picture?
+    //
+    // Nothing inside one reel can see this: for that town on its own, coats on
+    // the stairs is a perfectly good sentence. It is only wrong because the
+    // town before it said the same thing. Not on the last attempt, though - a
+    // town losing its month because a neighbour got there first is a worse
+    // outcome than two reels that rhyme.
+    if (out && avoid && avoid.size && attempt < ATTEMPTS - 1) {
+      const shared = vsSharesPicture(out.sentences, place, avoid);
+      if (shared) {
+        _vsReelReject = "another town in this batch already used " + shared.join(", ");
+        out = null;
+      }
+    }
   }
   return out;
 }
