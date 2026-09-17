@@ -5057,7 +5057,9 @@ function vsReelPrompt(place, month, seed) {
   const town = place.split(",")[0].trim();
   // Where this town looks for its detail. Seeded on the town and the month, so
   // a rerun is stable and two towns in one batch are pointed different ways.
-  const places = vsDetailPlaces(town, month);
+  // Seeded on the topic as well, so two towns that draw the same subject
+  // from the town name alone still diverge.
+  const lookHere = vsDetailPlace(town + "|" + topic, month);
   // Canadian spelling is decided on what the operator typed, since the studio
   // has no country field to consult.
   const ca = /\b(BC|AB|SK|MB|ON|QC|NS|NB|NL|PE|YT|NT|NU|Canada|Ontario|Alberta|Quebec|Manitoba|Saskatchewan)\b/i.test(place);
@@ -5090,11 +5092,16 @@ function vsReelPrompt(place, month, seed) {
     `  is nowhere left to put anything".`,
     `- Name what actually happens inside a house, not how it feels. Concrete`,
     `  beats poetic every time - and the concrete thing has to be yours, not`,
-    `  one you were handed. Three places to look, different for every town:`,
-    ...places.map((p) => `    - ${p}`),
-    `  Pick ONE of those three, work out what is actually true of it in`,
-    `  ${town} in ${monthName}, and build the reel on that. Do not write about`,
-    `  all three, and do not mention the list.`,
+    `  one you were handed. Here is where to look, and it is different for`,
+    `  every town:`,
+    `    ${lookHere}`,
+    `  Work out what is actually true of THAT in ${town} in ${monthName}, and`,
+    `  build all five slides on it. Do not mention the instruction itself.`,
+    `- ONE subject for the whole reel. Slide one and slide two must be about`,
+    `  the same thing: if somebody read only those two they should never think`,
+    `  they came from different videos. A reel that opens on the sound of a`,
+    `  creek and then spends four slides on a kitchen desk is two videos`,
+    `  spliced together, however good each half is.`,
     `- One idea per sentence. If it is carrying two, cut one.`,
     `- Any example sentence written out anywhere in this brief is EXAMPLES OF`,
     `  A KIND, not lines to use, and comes back rejected. So does a reworded`,
@@ -5385,15 +5392,29 @@ var VS_DETAIL_PLACES = [
   "the cupboard that has to be opened carefully",
 ];
 
-/** Three of them, the same three every time for this town and month. */
-function vsDetailPlaces(seedText, month) {
-  let h = 0;
-  for (let i = 0; i < String(seedText).length; i++) h = (h * 31 + String(seedText).charCodeAt(i)) >>> 0;
-  h = (h + month * 7919) >>> 0;
-  const out = [];
-  const step = 5;   // coprime with 16, so three picks never collide
-  for (let i = 0; i < 3; i++) out.push(VS_DETAIL_PLACES[(h + i * step) % VS_DETAIL_PLACES.length]);
-  return out;
+/**
+ * ONE of them, the same one every time for this town and month.
+ *
+ * It used to hand over three and ask for one to be chosen. A Nelson reel
+ * chose two: it opened on "you hear the creek, a neighbour's laughter and the
+ * wind along the ridge" and then spent four slides on a desk in the kitchen
+ * corner. Two different videos, spliced, and every rule in the brief was
+ * satisfied by both halves. A model given a spare subject will use it.
+ */
+function vsDetailPlace(seedText, month) {
+  const t = String(seedText);
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < t.length; i++) {
+    h ^= t.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  h = (h ^ Math.imul(month, 2654435761)) >>> 0;
+  // Avalanche. Without this the low four bits barely move between towns whose
+  // names and ids look alike, which is all of them.
+  h ^= h >>> 16; h = Math.imul(h, 2246822507) >>> 0;
+  h ^= h >>> 13; h = Math.imul(h, 3266489909) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return VS_DETAIL_PLACES[h % VS_DETAIL_PLACES.length];
 }
 
 /**
