@@ -19345,91 +19345,6 @@ function vsCreatorTools(opts) {
     };
   }
 
-  // ---- AI Lip-Sync (LatentSync via fal — PAID, 12 credits) ----
-  function toolLipsync() {
-    const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev", COST = 12;
-    body.innerHTML = backBar("👄 " + (fa ? "لیپ‌سینکِ AI" : "AI Lip-Sync")) +
-      `<div style="font-size:12.5px;color:#f5c451;background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.3);border-radius:10px;padding:9px 12px;margin-bottom:12px">💳 ${fa ? `هر ساخت <b>${COST} کردیت</b> · نیاز به ورود · ویدیوی صورت تا ۴۰ ثانیه` : `<b>${COST} credits</b> per run · sign-in required · face video up to 40s`}</div>
-       <label id="lsVidLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;cursor:pointer">
-         <span style="font-size:16px"></span><span id="lsVidTxt">${fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"}</span>
-         <input id="lsVid" type="file" accept="video/*" style="display:none"/></label>
-       <div class="row" style="margin-bottom:10px">
-         <div><div class="lbl">${fa ? "صدا" : "Audio"}</div><select id="lsMode"><option value="file">${fa ? "آپلودِ فایلِ صدا" : "Upload audio file"}</option><option value="text">${fa ? "متن → گفتار" : "Text → speech"}</option></select></div>
-         <div id="lsVoiceWrap" style="display:none"><div class="lbl">${fa ? "صدا" : "Voice"}</div><select id="lsVoice"><option value="af_heart">${fa ? "زن — گرم" : "Female — warm"}</option><option value="af_bella">${fa ? "زن — روشن" : "Female — bright"}</option><option value="am_michael">${fa ? "مرد — پخته" : "Male — mature"}</option><option value="am_adam">${fa ? "مرد — رسا" : "Male — clear"}</option></select></div>
-       </div>
-       <label id="lsAudLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#cfc8ba;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:10px 12px;cursor:pointer">
-         <span style="font-size:16px">🎵</span><span id="lsAudTxt">${fa ? "فایلِ صدا را آپلود کن" : "Upload the audio file"}</span>
-         <input id="lsAud" type="file" accept="audio/*" style="display:none"/></label>
-       <textarea id="lsText" rows="3" placeholder="${fa ? "متنی که گفته بشه…" : "The words to be spoken…"}" style="display:none;margin-bottom:10px"></textarea>
-       <button id="lsGo" type="button" class="btn" style="width:100%;color:#0b0f18;background:linear-gradient(135deg,#f5c451,#f5c451);font-weight:800">💳 ${fa ? `ساخت (${COST} کردیت)` : `Generate (${COST} credits)`}</button>
-       <div id="lsOut" style="margin-top:14px"></div>`;
-    let lsVid = null, lsAud = null;
-    $$("lsVid").onchange = (e) => { lsVid = (e.target.files && e.target.files[0]) || null; $$("lsVidTxt").textContent = lsVid ? "✓ " + lsVid.name.slice(0, 30) : (fa ? "ویدیوی صورت را آپلود کن (الزامی)" : "Upload the face video (required)"); };
-    $$("lsAud").onchange = (e) => { lsAud = (e.target.files && e.target.files[0]) || null; $$("lsAudTxt").textContent = lsAud ? "✓ " + lsAud.name.slice(0, 30) : (fa ? "فایلِ صدا را آپلود کن" : "Upload the audio file"); };
-    $$("lsMode").onchange = () => { const t = $$("lsMode").value === "text"; $$("lsText").style.display = t ? "block" : "none"; $$("lsVoiceWrap").style.display = t ? "block" : "none"; $$("lsAudLbl").style.display = t ? "none" : "flex"; };
-    const post = (path, bdy) => vsFalPost(WB, path, bdy);
-    const upload = async (fileOrBlob, type) => { const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || fileOrBlob.type || "application/octet-stream" }, body: fileOrBlob }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
-    $$("lsGo").onclick = async () => {
-      if (!lsVid) { $$("lsVid").click(); return; }
-      const mode = $$("lsMode").value;
-      if (mode === "file" && !lsAud) { $$("lsAud").click(); return; }
-      if (mode === "text" && !($$("lsText").value || "").trim()) { $$("lsText").focus(); return; }
-      const g = $$("lsGo"); g.disabled = true; g.style.opacity = ".6";
-      const steps = [];
-      const setOut = () => { $$("lsOut").innerHTML = `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;font-size:13px;color:#cfc8ba;line-height:1.9">${steps.join("<br>")}</div>`; };
-      const step = (t) => { steps.push("" + t); setOut(); return steps.length - 1; };
-      const done = (i) => { steps[i] = steps[i].replace("⏳", "✓"); setOut(); };
-      // 1) Reserve credits (enforced, server-side)
-      let jobId = null;
-      try {
-        const r = await fetch("/api/generate/lipsync", { method: "POST", credentials: "include" });
-        const j = await r.json().catch(() => ({}));
-        if (r.status === 401) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "اول وارد شو." : "Please sign in first."}</div>`; try { document.getElementById("authSignInBtn") && document.getElementById("authSignInBtn").click(); } catch (e) {} return; }
-        if (r.status === 402) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? `کردیتِ کافی نداری — ${COST} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${COST}, you have ${j.balance || 0}.`}</div>`; return; }
-        if (!j.ok || !j.jobId) throw new Error(j.error || "reserve failed");
-        jobId = j.jobId;
-      } catch (e) { g.disabled = false; g.style.opacity = "1"; $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رزرو کردیت." : "Could not reserve credits."}</div>`; return; }
-      const settle = async (status) => { try { await fetch("/api/generate/lipsync/finish", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} };
-      try {
-        const si = step(fa ? "آپلودِ ویدیو" : "Uploading video");
-        const videoUrl = await upload(lsVid, lsVid.type); done(si);
-        const ai = step(fa ? "آماده‌سازیِ صدا" : "Preparing audio");
-        let audioUrl;
-        if (mode === "text") { const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: ($$("lsText").value || "").trim(), voice: $$("lsVoice").value } }); audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed"); }
-        else { audioUrl = await upload(lsAud, lsAud.type); }
-        done(ai);
-        const li = step(fa ? "لب‌همزمانی (~۱ دقیقه)" : "Lip-syncing (~1 min)");
-        const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: videoUrl, audio_url: audioUrl } });
-        const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-        if (!statusUrl) throw new Error("submit failed");
-        // Written down BEFORE the first poll: fal has already been paid by now,
-        // and until this line the only handle on the result was a local variable.
-        try { vsFalJobRemember({ statusUrl, respUrl, action: "lipsync", name: "lip-sync" }); } catch (e) {}
-        const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
-        let out = null;
-        for (let k = 0; k < 90; k++) {
-          await new Promise(r => setTimeout(r, 4000));
-          let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
-          if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; }
-          if (st === "FAILED" || st === "ERROR") break;
-        }
-        if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
-        try { vsFalJobForget(statusUrl); } catch (e) {}   // collected
-        done(li);
-        await settle("done");
-        vsTrackGen("lipsync", "fal-ai/latentsync", "cost:" + COST);
-        let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
-        const u = blob ? URL.createObjectURL(blob) : out;
-        $$("lsOut").innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>
-          <a href="${u}" download="lipsync.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#f5c451,#f5c451)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
-        try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "lipsync"); } catch (e) {}
-      } catch (e) {
-        await settle("failed");
-        $$("lsOut").innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
-      }
-      g.disabled = false; g.style.opacity = "1";
-    };
-  }
 
   // ---- Logo / Wordmark maker (transparent PNG) ----
   function toolLogo() {
@@ -20610,7 +20525,7 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">GENJUTSU · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
              </div>
              <div class="mdesc">${fa ? "کلِ ویدیوی مرجع با طولِ کامل: همان حرکتِ دوربین، همان پس‌زمینه، همان تایمینگ — فقط شخص، تو می‌شوی." : "The whole reference clip at full length: same camera move, same background, same timing — only the person becomes you."}</div>
-             <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
+             <label class="mdrop" style="cursor:pointer"><span style="flex:1">${fa ? "کیفیت" : "Quality"}</span><select id="reMtRes" style="width:auto;min-height:0;background:transparent;border:0;color:inherit;font:inherit"><option value="480p">480p</option><option value="720p">720p</option></select></label>
              <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div style="flex:1"></div>
              <span class="ar-cred" id="reCredMt">${gemSvg}18 ${fa ? "/ ثانیه" : "/ sec"}</span>
@@ -20628,43 +20543,6 @@ function vsReverseEngineer(prefill, opts) {
              <div style="flex:1"></div>
              <span class="ar-cred" id="reCredScene">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildScene" type="button" class="mbtn">${fa ? "ساختِ نما‌به‌نما" : "Rebuild scene by scene"}</button>
-           </div>
-           <!-- Talking-head (Fabric) -->
-           <div class="re-mcard" data-route="talking_head" data-build="fabric">
-             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
-             <div class="mtop">
-               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
-               <div><div class="mname">${fa ? "آدمِ سخنگو" : "Talking-head"}</div><div class="meng">VEED Fabric 1.0 · ${fa ? "عکس→ویدیو" : "image→video"}</div></div>
-             </div>
-             <div class="mdesc">${fa ? "یک چهره مستقیم به دوربین اسکریپت را می‌گوید. عکسِ خودت را بده تا همون شخص حرف بزند." : "A face speaks your script to camera. Add your photo and that person presents it."}</div>
-             <select id="reThVoice">
-               <option value="af_heart">${fa ? "صدا: زن — گرم" : "Voice: Female — warm"}</option>
-               <option value="af_bella">${fa ? "صدا: زن — روشن" : "Voice: Female — bright"}</option>
-               <option value="am_michael">${fa ? "صدا: مرد — پخته" : "Voice: Male — mature"}</option>
-               <option value="am_adam">${fa ? "صدا: مرد — رسا" : "Voice: Male — clear"}</option>
-             </select>
-             <select id="reThGender">
-               <option value="female">${fa ? "چهرهٔ زن (خودکار)" : "Female face (auto)"}</option>
-               <option value="male">${fa ? "چهرهٔ مرد (خودکار)" : "Male face (auto)"}</option>
-             </select>
-             <label id="reThPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reThPhotoTxt">${fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)"}</span><input id="reThPhoto" type="file" accept="image/*" style="display:none"/></label>
-             <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reThDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reThAsp">${optAsp("9:16")}</select></div></div>
-             <div style="flex:1"></div>
-             <span class="ar-cred" id="reCredTH">${gemSvg}5 ${fa ? "/ ثانیه" : "/ sec"}</span>
-             <button id="reBuildTH" type="button" class="mbtn">${fa ? "ساختِ آدمِ سخنگو" : "Build talking-head"}</button>
-           </div>
-           <!-- Lip-sync (LatentSync) -->
-           <div class="re-mcard" data-route="talking_head" data-build="lipsync">
-             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
-             <div class="mtop">
-               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-3.4 13-3.4 16 0-3 3.4-13 3.4-16 0z"/><path d="M8.5 12h7"/></svg></span>
-               <div><div class="mname">${fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video"}</div><div class="meng">LatentSync · ${fa ? "ویدیو→ویدیو" : "video→video"}</div></div>
-             </div>
-             <div class="mdesc">${fa ? "ویدیوی صورتِ خودت را بده؛ لب‌ها را با اسکریپتِ جدید هماهنگ می‌کنیم." : "Upload your own face video; we re-sync the lips to the new script."}</div>
-             <label id="reLsVidLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/></svg><span id="reLsVidTxt">${fa ? "ویدیوی صورتِ خودت (لازم)" : "Your face video (required)"}</span><input id="reLsVid" type="file" accept="video/*" style="display:none"/></label>
-             <div style="flex:1"></div>
-             ${arCredit(12)}
-             <button id="reBuildLipsync" type="button" class="mbtn">${fa ? "لیپ‌سینک" : "Lip-sync"}</button>
            </div>
            <!-- AI presenter (Happy Horse) -->
            <div class="re-mcard" data-route="talking_head" data-build="presenter">
@@ -21204,7 +21082,11 @@ function vsReverseEngineer(prefill, opts) {
       }
       if (haveClip && $$("reCredMt")) {
         const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
-        const mtRate = () => ($$("reMtSpeak") && $$("reMtSpeak").checked) ? 18 : 14;
+        // Genjutsu's real rate - the same numbers the catalogue and the
+        // server use: $0.318/s at 480p and $0.681/s at 720p, at $0.02 a
+        // credit with the house 20% margin. The old 14-and-18 belonged to
+        // pika and would have sold every job below cost once this switched.
+        const mtRate = () => VS_GENJUTSU_PERSEC[($$("reMtRes") && $$("reMtRes").value) || "480p"] || 20;
         // Always repaint, with or without a known duration — otherwise the card
         // keeps advertising the no-speech rate while the speech box sits ticked.
         const paintMt = () => {
@@ -21213,7 +21095,7 @@ function vsReverseEngineer(prefill, opts) {
             : arCredit(mtRate(), { id: "reCredMt", suffix: fa ? "/ ثانیه" : "/ sec" });
         };
         paintMt();
-        if ($$("reMtSpeak")) $$("reMtSpeak").onchange = paintMt;
+        if ($$("reMtRes")) $$("reMtRes").onchange = paintMt;
       }
       blueprint._multiShot = multiShot;
       // Show the reference's real length and how many shots on the card, so the
@@ -21344,7 +21226,11 @@ function vsReverseEngineer(prefill, opts) {
           if (reWantMode === "character") {
             // Being in it means a face route; motion transfer keeps the original
             // footage and is the closest of them when we hold the clip.
-            recRoutes = (ref && ref.refVideo) ? ["motion", "talking_head", "lipsync"] : ["talking_head", "lipsync"];
+            // talking_head and lipsync are gone with the fal audio models,
+            // so a reference that reads as a talking clip is best served by
+            // Genjutsu when we have the video and by the scene rebuild when
+            // we do not.
+            recRoutes = (ref && ref.refVideo) ? ["genjutsu", "motion"] : ["scene"];
           } else if (reWantSource === "template" && rePickedTemplate) {
             const want = vsFormatBuild(vsTemplate(rePickedTemplate).shape).route;
             recRoutes = [want].concat(recRoutes.filter((r) => r !== want));
@@ -21360,7 +21246,7 @@ function vsReverseEngineer(prefill, opts) {
         // three are "video" — so committing to a route still left a menu on
         // screen. Commit to the one builder the template card quoted its credits
         // for: the free on-device slideshow, not MiniMax; Fabric, not Happy Horse.
-        const BUILD_OF = { talking_head: "fabric", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion", lipsync: "lipsync" };
+        const BUILD_OF = { genjutsu: "genjutsu", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion" };
         const chosen = BUILD_OF[recRoutes[0]] || recRoutes[0];
         let lockedBy = manual || reRouteUnlocked ? null
           : reWantMode === "character" ? "character"
@@ -21393,7 +21279,7 @@ function vsReverseEngineer(prefill, opts) {
         if (lockBox) {
           lockBox.style.display = lockedBy ? "flex" : "none";
           if (lockedBy) {
-            const how = { fabric: fa ? "آدمِ سخنگو" : "Talking-head", slideshow: fa ? "ویدیوی اسلایدشو" : "Slideshow video", carousel: fa ? "کاروسل" : "Carousel", scene: fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild", motion: fa ? "انتقالِ حرکت" : "Motion transfer", lipsync: fa ? "لیپ‌سینکِ ویدیوی من" : "Lip-sync my video", presenter: fa ? "پرزنترِ AI" : "AI presenter", minimax: fa ? "نمای سینمایی" : "Cinematic motion", grok: fa ? "سینمایی + صدا" : "Cinematic + audio" }[chosen] || chosen;
+            const how = { genjutsu: fa ? "جایگزینیِ شخصیت" : "Character swap", slideshow: fa ? "ویدیوی اسلایدشو" : "Slideshow video", carousel: fa ? "کاروسل" : "Carousel", scene: fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild", motion: fa ? "انتقالِ حرکت" : "Motion transfer", presenter: fa ? "پرزنترِ AI" : "AI presenter", minimax: fa ? "نمای سینمایی" : "Cinematic motion", grok: fa ? "سینمایی + صدا" : "Cinematic + audio" }[chosen] || chosen;
             const why = lockedBy === "template"
               ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
               : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
@@ -21552,14 +21438,6 @@ function vsReverseEngineer(prefill, opts) {
       : (fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)");
   };
   // Lip-sync (LatentSync, video→video) — the user's OWN face video, 12 credits.
-  let lsVid = null;
-  if ($$("reLsVid")) $$("reLsVid").onchange = (e) => { lsVid = (e.target.files && e.target.files[0]) || null; $$("reLsVidTxt").textContent = lsVid ? "✓ " + lsVid.name.slice(0, 30) : (fa ? "ویدیوی صورتِ خودت را بده (برای لیپ‌سینک)" : "Your own face video (for lip-sync)"); };
-  if ($$("reBuildLipsync")) $$("reBuildLipsync").onclick = () => {
-    const script = ($$("reScript").value || "").trim();
-    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
-    if (!lsVid) { $$("reLsVid").click(); return; }
-    try { vsBuildLipsync({ script, video: lsVid, voice: $$("reThVoice").value, audio: anyAud }); } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
-  };
   // Happy Horse — text→talking-head with native lip-sync (works for ANY post:
   // product intro, tips, story…). Uses the reverse-engineered script directly.
   if ($$("reBuildHappy")) $$("reBuildHappy").onclick = () => {
@@ -22314,45 +22192,18 @@ function vsReverseEngineer(prefill, opts) {
     const clip = ref && ref.refVideo;
     if (!clip) { vsStatus(fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."); return; }
     try {
-      const shot0 = ((blueprint && blueprint.shotList) || [])[0] || {};
-      const script = ($$("reScript").value || "").trim();
-      vsBuildMotionTransfer({
-        clip, photo,
+      vsBuildGenjutsu({
+        mode: "motion",
+        clip,
+        images: [photo],
+        resolution: ($$("reMtRes") && $$("reMtRes").value) || "480p",
         seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
-        aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
-        // what the reference shot actually IS — read off its own frames
-        shot: shot0.shot, camera: shot0.camera, action: shot0.action,
-        lighting: shot0.lighting,
-        setting: (blueprint && blueprint.setting) || shot0.setting || "",
-        // and what it should now be ABOUT — the user's own subject
-        topic: [($$("rePrompt").value || "").trim(), ($$("reRegion").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
-        speak: !!($$("reMtSpeak") && $$("reMtSpeak").checked),
-        narration: vsExtractNarration(script) || script,
-        voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
-        audio: anyAud
+        // What the reference should now be ABOUT. The camera, the timing, the
+        // lighting and the audio all come out of the clip itself, so this is
+        // an instruction rather than a description of the shot.
+        prompt: [($$("rePrompt").value || "").trim(), ($$("reRegion").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
-  };
-  // Build a real TALKING-HEAD clip via fal: TTS → presenter image → lip-sync.
-  $$("reBuildTH").onclick = async () => {
-    const script = ($$("reScript").value || "").trim();
-    if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
-    const voice = $$("reThVoice").value, gender = $$("reThGender").value;
-    const b = $$("reBuildTH"); b.disabled = true; const old = b.textContent;
-    const aspTH = ($$("reThAsp") && $$("reThAsp").value) || "9:16";
-    // "Auto" = as long as the narration actually takes; a fixed pick caps it so
-    // the credits charged match exactly the seconds shown on the card.
-    const thDurSel = ($$("reThDur") && $$("reThDur").value) || "auto";
-    // "Auto" used to mean uncapped, so a script that overran turned the 67 on
-    // the card into whatever the audio happened to measure. A committed template
-    // is a length the operator was quoted, so it becomes the cap unless they
-    // picked a Time themselves.
-    const tplCapTH = (reWantSource === "template" && rePickedTemplate)
-      ? Math.round(vsFormatBuild(vsTemplate(rePickedTemplate).shape).plan.duration) || 0 : 0;
-    const maxSecTH = thDurSel === "auto" ? tplCapTH : Math.min(Math.max(Number(thDurSel) || 0, 3), 120);
-    try { await vsBuildTalkingHead(script, { voice, gender, lang: $$("reLang").value, photo: thPhoto || anyImg, audio: anyAud, aspect: aspTH, maxSeconds: maxSecTH, setting: (blueprint && blueprint.setting) || "", mic: !!(blueprint && blueprint.mic), captions: !!(blueprint && blueprint.captions), titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "") }); }
-    catch (e) { vsStatus((fa ? "ساخت آدمِ سخنگو ناموفق بود: " : "Talking-head failed: ") + (e && e.message ? e.message : e)); }
-    b.disabled = false; b.textContent = old;
   };
   // Cinematic motion clip (H3 Max) — the "copy the camera / angle change" part.
   // It opens its OWN confirm dialog and never spends without an explicit click.
@@ -22978,180 +22829,6 @@ async function vsBuildCarousel(script, opts) {
 }
 
 // Orchestrate the fal talking-head pipeline with a live progress overlay.
-async function vsBuildTalkingHead(script, opts) {
-  opts = opts || {};
-  const fa = state.lang === "fa";
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  const narration = vsExtractNarration(script);
-  if (!narration || narration.length < 6) throw new Error(fa ? "متنِ گفتاری پیدا نشد" : "no narration found");
-
-  const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
-  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
-  ov.innerHTML =
-    `<div style="width:min(540px,96vw);background:#121016;border:1px solid rgba(245,196,81,.28);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
-       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:20px">🎤</span><span style="font-family:'Prata',Georgia,serif;font-size:18px;color:#efe9dc">${fa ? "ساختِ آدمِ سخنگو" : "Building talking-head"}</span></div>
-       <div id="thSteps" style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#cfc8ba"></div>
-       <div id="thResult" style="margin-top:14px"></div>
-       <button id="thClose" type="button" style="margin-top:16px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-     </div>`;
-  document.body.appendChild(ov);
-  const steps = ov.querySelector("#thSteps"), result = ov.querySelector("#thResult");
-  let closed = false;
-  ov.querySelector("#thClose").onclick = () => { closed = true; try { ov.remove(); } catch (e) {} };
-  const stepEls = {};
-  const S = (fa
-    ? { voice: "۱) نوشتنِ صدا (گفتار)", face: "۲) ساختِ چهرهٔ پرزنتر", sync: "۳) هماهنگیِ لب و صدا (~۱ دقیقه)" }
-    : { voice: "1) Writing the voice", face: "2) Creating the presenter", sync: "3) Lip-syncing (~1 min)" });
-  Object.keys(S).forEach(k => {
-    const row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:10px";
-    row.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center">◦</span><span>${S[k]}</span>`;
-    steps.appendChild(row); stepEls[k] = row.querySelector(".ic");
-  });
-  const setStep = (k, st) => {
-    const el = stepEls[k]; if (!el) return;
-    if (st === "run") el.innerHTML = `<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>`;
-    else if (st === "done") { el.textContent = "✓"; el.style.color = "#5fe0b0"; }
-    else if (st === "err") { el.textContent = "✕"; el.style.color = "#f87171"; }
-  };
-  const post = async (path, body) => {
-    const r = await fetch(WB + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const t = await r.json().catch(() => ({})); if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status)); return t;
-  };
-
-  // 1) Voice — use the user's OWN uploaded audio if they attached one, else TTS.
-  setStep("voice", "run");
-  let audioUrl;
-  if (opts.audio) {
-    try {
-      const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
-      const uaj = await ua.json().catch(() => ({}));
-      audioUrl = uaj.file_url || "";
-    } catch (e) {}
-    if (!audioUrl) { setStep("voice", "err"); throw new Error(fa ? "آپلودِ صدا ناموفق بود" : "audio upload failed"); }
-  } else {
-    const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
-    audioUrl = tts && tts.audio && tts.audio.url;
-    if (!audioUrl) { setStep("voice", "err"); throw new Error("TTS failed"); }
-  }
-  setStep("voice", "done");
-  // audio duration → cost estimate
-  let dur = 0; try { dur = await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res(a.duration || 0); a.onerror = () => res(0); a.src = audioUrl; }); } catch (e) {}
-  // A fixed "Time" pick on the card is a hard cap, so the credits charged are
-  // exactly the seconds the user chose and saw priced — never more.
-  const billSec = opts.maxSeconds ? Math.min(Math.round(dur) || opts.maxSeconds, opts.maxSeconds) : (Math.round(dur) || 10);
-  if (dur) { const cr = Math.ceil(billSec * 5); const note = document.createElement("div"); note.style.cssText = "font-size:11.5px;color:#f5c451;margin-top:2px;font-family:'JetBrains Mono',ui-monospace,monospace"; note.textContent = (fa ? `${billSec}s · ${cr} کردیت` : `${billSec}s · ${cr} credits`); steps.appendChild(note); }
-  // Charge per-second NOW that the audio length is known (before the costly
-  // Fabric render). Enforced server-side; refunded on failure/cancel.
-  const _thc = await vsCharge("talkinghead", { seconds: billSec });
-  if (_thc.block) { try { ov.remove(); } catch (e) {} return; }
-  const thJob = _thc.jobId;
-  try {
-
-  // 2) Presenter face — the user's OWN photo (uploaded to fal storage) if given,
-  //    otherwise an AI presenter placed in the SAME setting as the reference.
-  setStep("face", "run");
-  let imageUrl;
-  if (opts.photo) {
-    try {
-      // Crop to the chosen aspect first — the video model inherits the input
-      // image's dimensions, so without this a square photo ignored a "9:16"
-      // selection and produced a square clip.
-      const fitted = await vsFitImageToAspect(opts.photo, opts.aspect);
-      const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": fitted.type || "image/jpeg" }, body: fitted });
-      const uj = await up.json().catch(() => ({}));
-      if (!uj.file_url) throw new Error(uj.error || "upload failed");
-      imageUrl = uj.file_url;
-      // Re-shoot the user in the REFERENCE's environment. Keeping their own
-      // backdrop (a garden, an office they happened to be in) means the
-      // rebuild never looks like the post it's copying — the setting is a big
-      // part of the style. Their face/identity is preserved; only the scene
-      // around them is restyled. Skipped silently if the model call fails.
-      if (opts.setting) {
-        try {
-          const sceneRow = document.createElement("div"); sceneRow.style.cssText = "display:flex;align-items:center;gap:10px";
-          sceneRow.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${fa ? "قراردادنت در فضای مرجع" : "Placing you in the reference's setting"}</span>`;
-          steps.appendChild(sceneRow);
-          const scIc = sceneRow.querySelector(".ic");
-          const scene = String(opts.setting).replace(/[^\w ,'-]/g, " ").slice(0, 90);
-          const i2i = await post("/fal/run", {
-            model: "fal-ai/flux/dev/image-to-image",
-            input: {
-              image_url: imageUrl,
-              prompt: "same person, same face and clothing, photorealistic, relocated to " + scene + ", natural lighting that matches that environment, shot on smartphone",
-              strength: 0.55, num_inference_steps: 28, image_size: vsAspToSize(opts.aspect)
-            }
-          });
-          const nu = i2i && i2i.images && i2i.images[0] && i2i.images[0].url;
-          if (nu) { imageUrl = nu; scIc.textContent = "✓"; scIc.style.color = "#5fe0b0"; }
-          else { scIc.textContent = "–"; scIc.style.color = "#8ea6c8"; }
-        } catch (e) { /* keep the original photo — never block the build */ }
-      }
-    } catch (e) { setStep("face", "err"); throw new Error((fa ? "آپلودِ عکس ناموفق: " : "photo upload failed: ") + (e.message || e)); }
-  } else {
-    // Realistic presenter via fal FLUX-dev (the CF fast model looked too "AI"),
-    // candid/natural, placed in the reference's setting, NO microphone/studio gear.
-    const setting = (opts.setting || "cozy home interior").replace(/[^\w ,'-]/g, " ").replace(/\bstudio\b/gi, "room").slice(0, 90);
-    // Match the reference: a podcast reel → the presenter sits at a big mic.
-    const micPart = opts.mic
-      ? ", sitting at a desk speaking into a large professional podcast microphone, gesturing naturally"
-      : ", no microphone, no studio equipment, no headset";
-    const facePrompt = "candid realistic photograph of a real " + (opts.gender === "male" ? "man" : "woman")
-      + ", natural skin texture, casual everyday clothes, warm genuine smile, " + setting
-      + micPart + ", facing camera, shot on smartphone, natural lighting, photorealistic, ultra realistic";
-    try {
-      const fim = await post("/fal/run", { model: "fal-ai/flux/dev", input: { prompt: facePrompt, image_size: vsAspToSize(opts.aspect), num_inference_steps: 28 } });
-      imageUrl = fim && fim.images && fim.images[0] && fim.images[0].url;
-    } catch (e) {}
-    // Fallback to our own image endpoint if fal image failed.
-    if (!imageUrl) imageUrl = WB + "/image?flux=1&w=576&h=576&p=" + encodeURIComponent(facePrompt);
-  }
-  setStep("face", "done");
-
-  // 3) Lip-sync via fal queue
-  setStep("sync", "run");
-  const sub = await post("/fal/submit", { model: "veed/fabric-1.0", input: { image_url: imageUrl, audio_url: audioUrl, resolution: "480p" } });
-  const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-  if (!statusUrl) { setStep("sync", "err"); throw new Error("submit failed"); }
-  // Written down BEFORE the first poll: fal has already been paid by now,
-  // and until this line the only handle on the result was a local variable.
-  try { vsFalJobRemember({ statusUrl, respUrl, action: "talkinghead", name: "talking-head" }); } catch (e) {}
-  const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
-  let videoUrl = null;
-  for (let i = 0; i < 90 && !closed; i++) {
-    await new Promise(r => setTimeout(r, 4000));
-    let st = "?"; try { const j = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = j.status || "?"; } catch (e) {}
-    if (st === "COMPLETED") { try { const j = await (await vsFalFetch(pollUrl(respUrl))).json(); videoUrl = j && j.video && j.video.url; } catch (e) {} break; }
-    if (st === "FAILED" || st === "ERROR") break;
-  }
-  if (closed) { vsSettle(thJob, "failed"); return; }
-  if (!videoUrl) { setStep("sync", "err"); throw new Error(fa ? "هماهنگی ناموفق بود" : "lip-sync failed"); }
-  setStep("sync", "done");
-
-  // Deliver: preview + download + save to dashboard
-  let blob = null; try { blob = await (await fetch(videoUrl)).blob(); } catch (e) {}
-  // Burn the reference's detected title-card text onto the video (e.g. a bold
-  // name-card intro) so the rebuild actually LOOKS like the reference, not
-  // just shares its topic. Never blocks delivery if it fails.
-  if ((opts.titleCard || (opts.titleCards && opts.titleCards.length)) && blob) {
-    const tcRow = document.createElement("div"); tcRow.style.cssText = "display:flex;align-items:center;gap:10px";
-    tcRow.innerHTML = `<span class="ic" style="width:18px;height:18px;flex:none;display:inline-flex;align-items:center;justify-content:center"><span style="width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#facc15;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${fa ? "۴) سوارکردنِ عنوان روی ویدیو" : "4) Adding the title card"}</span>`;
-    steps.appendChild(tcRow);
-    const tcIc = tcRow.querySelector(".ic");
-    try { blob = await vsBurnTitleCard(blob, { text: opts.titleCard, cards: opts.titleCards, color: opts.titleColor, font: opts.titleFont }); tcIc.textContent = "✓"; tcIc.style.color = "#5fe0b0"; }
-    catch (e) { tcIc.textContent = "✕"; tcIc.style.color = "#f87171"; }
-  }
-  const dlUrl = blob ? URL.createObjectURL(blob) : videoUrl;
-  result.innerHTML =
-    `<video src="${dlUrl}" controls autoplay muted playsinline style="width:100%;border-radius:10px;background:#000"></video>
-     <a href="${dlUrl}" download="talking-head.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#facc15,#f5c451)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
-  vsTrackGen("talkinghead", "veed/fabric-1.0+kokoro", "dur:" + Math.round(dur) + "s voice:" + (opts.voice || "af_heart"));
-  try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "talking-head"); } catch (e) {}
-  vsSettle(thJob, "done");
-  try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
-  vsStatus(fa ? "✅ ویدیوی آدمِ سخنگو آماده شد." : "✅ Talking-head video ready.");
-  } catch (thErr) { vsSettle(thJob, "failed"); throw thErr; }
-}
 
 // ── Cinematic motion clip (MiniMax H3 Max image-to-video) ──────────────────
 // Turns ONE still (the user's own photo, or an AI frame of the reference's
@@ -23163,73 +22840,6 @@ async function vsBuildTalkingHead(script, opts) {
 // their OWN face video; we speak the reverse-engineered narration (Kokoro TTS)
 // and sync it onto their video. PAID via the credit system (12 credits, enforced
 // server-side, refunded on failure). The cheapest video route (vs Fabric).
-async function vsBuildLipsync(opts) {
-  opts = opts || {};
-  const fa = state.lang === "fa";
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev", COST = 12;
-  const narration = vsExtractNarration(opts.script || "") || (opts.script || "").trim();
-  if (!opts.video) { vsStatus(fa ? "اول ویدیوی صورتت را آپلود کن." : "Upload your face video first."); return; }
-  if (!narration || narration.length < 4) { vsStatus(fa ? "متنِ گفتاری پیدا نشد." : "No narration found."); return; }
-  const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
-  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
-  ov.innerHTML = `<div style="width:min(540px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
-       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#eaf1ff">${fa ? "لیپ‌سینکِ ویدیوی تو" : "Lip-sync your video"}</span><span style="font:600 10px 'JetBrains Mono',monospace;color:#f5c451">LatentSync · ${COST} ${fa ? "کردیت" : "credits"}</span></div>
-       <div id="lsxSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>
-       <div id="lsxResult" style="margin-top:12px"></div>
-       <button id="lsxClose" type="button" style="margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-     </div>`;
-  document.body.appendChild(ov);
-  const steps = ov.querySelector("#lsxSteps"), result = ov.querySelector("#lsxResult");
-  ov.querySelector("#lsxClose").onclick = () => { try { ov.remove(); } catch (e) {} };
-  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
-  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#5fe0b0"; } };
-  const post = (path, b) => vsFalPost(WB, path, b);
-  // 1) reserve credits (enforced server-side)
-  let jobId = null;
-  try {
-    const r = await fetch("/api/generate/lipsync", { method: "POST", credentials: "include" });
-    const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "اول وارد شو." : "Please sign in first."}</div>`; try { document.getElementById("authSignInBtn") && document.getElementById("authSignInBtn").click(); } catch (e) {} return; }
-    if (r.status === 402) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? `کردیتِ کافی نداری — ${COST} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${COST}, you have ${j.balance || 0}.`}</div>`; return; }
-    if (!j.ok || !j.jobId) throw new Error(j.error || "reserve failed");
-    jobId = j.jobId;
-  } catch (e) { result.innerHTML = `<div style="color:#e0b088;font-size:13px">${fa ? "خطا در رزرو کردیت." : "Could not reserve credits."}</div>`; return; }
-  const settle = async (status) => { try { await fetch("/api/generate/lipsync/finish", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }); } catch (e) {} };
-  try {
-    let ic = line(opts.audio ? (fa ? "آپلودِ صدای تو" : "Uploading your audio") : (fa ? "نوشتنِ صدا" : "Writing the voice"));
-    let audioUrl;
-    if (opts.audio) {
-      const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.audio.type || "audio/mpeg" }, body: opts.audio });
-      const uaj = await ua.json().catch(() => ({})); audioUrl = uaj.file_url || ""; if (!audioUrl) throw new Error("audio upload failed");
-    } else {
-      const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: narration, voice: opts.voice || "af_heart" } });
-      audioUrl = tts && tts.audio && tts.audio.url; if (!audioUrl) throw new Error("TTS failed");
-    }
-    done(ic);
-    ic = line(fa ? "آپلودِ ویدیوی تو" : "Uploading your video");
-    const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": opts.video.type || "video/mp4" }, body: opts.video });
-    const uj = await up.json().catch(() => ({})); if (!uj.file_url) throw new Error("upload failed"); done(ic);
-    ic = line(fa ? "لب‌همزمانی (~۱ دقیقه)" : "Lip-syncing (~1 min)");
-    const sub = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: uj.file_url, audio_url: audioUrl } });
-    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-    if (!statusUrl) throw new Error("submit failed");
-    // Written down BEFORE the first poll: fal has already been paid by now,
-    // and until this line the only handle on the result was a local variable.
-    try { vsFalJobRemember({ statusUrl, respUrl, action: "lipsync", name: "lip-sync" }); } catch (e) {}
-    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
-    let out = null;
-    for (let k = 0; k < 90; k++) { await new Promise(r => setTimeout(r, 4000)); let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {} if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && jj.video && jj.video.url; } catch (e) {} break; } if (st === "FAILED" || st === "ERROR") break; }
-    if (!out) throw new Error(fa ? "لب‌همزمانی ناموفق بود" : "lip-sync failed");
-    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected done(ic);
-    await settle("done");
-    vsTrackGen("lipsync", "fal-ai/latentsync", "via:reverse cost:" + COST);
-    let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
-    const u = blob ? URL.createObjectURL(blob) : out;
-    result.innerHTML = `<video src="${u}" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video><a href="${u}" download="lipsync.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#0b0f18;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
-    try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "lipsync"); } catch (e) {}
-  } catch (e) { await settle("failed"); result.innerHTML = `<div style="color:#e0b088;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`; }
-}
 
 // Generic paid VIDEO build for Reverse Engineer (Happy Horse text→video, Grok
 // image→video+audio). Charges credits per second up front, drives fal via the
@@ -23338,17 +22948,21 @@ async function vsBuildSceneVideo(cfg) {
     if (charge.block) return;
     running = true; $s("scBtns").style.display = "none"; $s("scPer").disabled = true;
     try {
-      // 1) One voiceover for the whole piece — the user's own words.
-      let ic = line(fa ? "نوشتنِ صدا" : "Writing the voice");
+      // 1) The voiceover, which now has to be the user's own recording.
+      //    This used to fall back to text-to-speech; there is no
+      //    text-to-speech model on Higgsfield, so the choice was to drop the
+      //    card or to ask for the voice, and this card is worth keeping.
+      let ic = line(fa ? "آپلودِ صدای تو" : "Uploading your voice");
       let audioUrl = "";
-      if (cfg.audio) {
-        const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.audio.type || "audio/mpeg" }, body: cfg.audio });
-        audioUrl = (await ua.json().catch(() => ({}))).file_url || "";
-      } else {
-        const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: cfg.narration, voice: cfg.voice || "af_heart" } });
-        audioUrl = tts && tts.audio && tts.audio.url;
+      if (!cfg.audio) {
+        fail(ic);
+        throw new Error(fa
+          ? "برای این ساخت یک فایل صوتی لازم است — صدای خودت را آپلود کن."
+          : "This build needs an audio file — record your voiceover and upload it.");
       }
-      if (!audioUrl) { fail(ic); throw new Error("voice failed"); }
+      const ua = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.audio.type || "audio/mpeg" }, body: cfg.audio });
+      audioUrl = (await ua.json().catch(() => ({}))).file_url || "";
+      if (!audioUrl) { fail(ic); throw new Error(fa ? "آپلودِ صدا نشد." : "The audio upload failed."); }
       done(ic);
 
       // 2) The user's face, uploaded once and reused to seed every shot so the
@@ -26814,181 +26428,6 @@ async function vsHfCancel(cancelUrl) {
   try { await vsFalPost(WB, "/hf/cancel?url=" + encodeURIComponent(cancelUrl), {}); } catch (e) {}
 }
 
-async function vsBuildMotionTransfer(cfg) {
-  cfg = cfg || {};
-  const fa = state.lang === "fa";
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  const post = (path, b) => vsFalPost(WB, path, b);
-  const upload = async (file, type) => { const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file }); const j = await r.json().catch(() => ({})); if (!j.file_url) throw new Error(j.error || "upload failed"); return j.file_url; };
-
-  const secs = Math.min(Math.max(Math.round(Number(cfg.seconds) || 8), 3), 30);
-  const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
-  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
-  ov.innerHTML = '<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">' +
-    '<div style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:18px;color:#eaf1ff;margin-bottom:4px">' + (fa ? "انتقالِ حرکت" : "Motion transfer") + '</div>' +
-    '<div id="mtStage" style="font-size:12px;color:#5b9bff;font-weight:700;margin-bottom:12px;min-height:16px"></div>' +
-    '<div id="mtSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>' +
-    '<div id="mtNote" style="display:none;margin-top:10px;font-size:11.5px;color:#8ea6c8;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 11px;line-height:1.5"></div>' +
-    '<div id="mtResult" style="margin-top:12px"></div>' +
-    '<div id="mtBtns" style="display:flex;gap:9px;margin-top:14px">' +
-      '<button id="mtCancel" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#e0a0a0;border:1px solid rgba(240,120,120,.35)">' + (fa ? "لغو (کردیت برمی‌گردد)" : "Cancel (refunds credits)") + '</button>' +
-      '<button id="mtBg" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "در پس‌زمینه ادامه بده" : "Continue in background") + '</button>' +
-    '</div>' +
-    '<button id="mtClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "بستن" : "Close") + '</button></div>';
-  document.body.appendChild(ov);
-  const $m = (id) => ov.querySelector("#" + id);
-  const steps = $m("mtSteps"), result = $m("mtResult"), stage = $m("mtStage"), note = $m("mtNote"), btns = $m("mtBtns"), closeBtn = $m("mtClose");
-  let cancelled = false;
-  const finish = () => { btns.style.display = "none"; closeBtn.style.display = ""; stage.textContent = ""; };
-  closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
-  // Going to the background hands the job to the tray, which keeps showing its
-  // stage and finally the video itself — no Dashboard refresh hunting.
-  let tray = null;
-  $m("mtBg").onclick = () => {
-    try { ov.remove(); } catch (e) {}
-    if (!tray) tray = vsJobCard(fa ? "انتقالِ حرکت" : "Motion transfer");
-  };
-  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = '<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>' + t + '</span>'; steps.appendChild(d); return d.querySelector(".ic"); };
-  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#5fe0b0"; } };
-  const fail = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
-
-  const charge = await vsCharge(cfg.speak ? "motiontransferspeak" : "motiontransfer", { seconds: secs });
-  if (charge.block) { try { ov.remove(); } catch (e) {} return; }
-  $m("mtCancel").onclick = () => {
-    cancelled = true; vsSettle(charge.jobId, "failed");
-    steps.innerHTML = ""; note.style.display = "none"; stage.textContent = "";
-    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded.") + '</div>';
-    finish();
-  };
-
-  try {
-    let ic = line(fa ? "آپلودِ عکسِ تو" : "Uploading your photo");
-    const imageUrl = await upload(cfg.photo, cfg.photo.type || "image/jpeg");
-    if (cancelled) return;
-    done(ic);
-
-    const clipUrl = await upload(cfg.clip, cfg.clip.type || "video/mp4");
-    if (cancelled) return;
-
-    const renderIc = line(fa ? "انتقالِ حرکت" : "Transferring the motion");
-    // Pika Swaps EDITS the clip rather than regenerating it: no frame cap, so
-    // the full original length comes through in one pass, and everything the
-    // swap doesn't touch (background, camera move, timing) stays pixel-exact.
-    // The generative alternatives all cap out well short — VACE at 241 frames
-    // (~10s), wan v2v at 161 — which is why a 21s reference came back as a
-    // 10s stub before.
-    const clean = (v, n) => String(v || "").replace(/[^\w ,'\-]/g, " ").replace(/\s+/g, " ").trim().slice(0, n || 70);
-    const promptText = [
-      "replace the person with the person from the reference image, same face and identity",
-      clean(cfg.topic, 80) && "context: " + clean(cfg.topic, 80),
-      "photorealistic, natural, consistent identity"
-    ].filter(Boolean).join(", ");
-
-    const sub = await post("/fal/submit", {
-      model: "fal-ai/pika/v2/pikaswaps",
-      input: {
-        video_url: clipUrl,
-        image_url: imageUrl,
-        modify_region: "the person",
-        prompt: promptText,
-        negative_prompt: "distorted face, extra limbs, text, watermark, blurry"
-      }
-    });
-    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-    if (!statusUrl) throw new Error("submit failed");
-    // Written down BEFORE the first poll: fal has already been paid by now,
-    // and until this line the only handle on the result was a local variable.
-    try { vsFalJobRemember({ statusUrl, respUrl, action: "motiontransfer", name: "motion-transfer" }); } catch (e) {}
-    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
-    const startedAt = Date.now();
-    let outUrl = null, last = "";
-    const WORD = fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش", COMPLETED: "تمام شد" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing", COMPLETED: "done" };
-    for (let k = 0; k < 240 && !cancelled; k++) {
-      const el = Math.round((Date.now() - startedAt) / 1000);
-      const stageTxt = (WORD[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
-      stage.textContent = stageTxt;
-      if (tray) tray.stage(stageTxt);
-      if (el > 120 && !note.dataset.shown) {
-        note.dataset.shown = "1"; note.style.display = "block";
-        note.textContent = fa ? "انتقالِ حرکت از ساختِ معمولی سنگین‌تر است و چند دقیقه طول می‌کشد — می‌توانی ببندی، در پس‌زمینه ادامه می‌دهد." : "Motion transfer is heavier than a normal render and takes a few minutes — you can close this, it keeps going in the background.";
-      }
-      await new Promise(r => setTimeout(r, 4000));
-      if (cancelled) return;
-      let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
-      last = st;
-      if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); outUrl = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
-      if (st === "FAILED" || st === "ERROR") break;
-    }
-    if (cancelled) return;
-    if (!outUrl) { fail(renderIc); throw new Error(fa ? "انتقالِ حرکت ناموفق بود یا زمان تمام شد" : "motion transfer failed or timed out"); }
-    done(renderIc); stage.textContent = "";
-    let joined = null; try { joined = await (await fetch(outUrl)).blob(); } catch (e) {}   // reassigned after lip-sync
-    let out = joined ? URL.createObjectURL(joined) : outUrl;
-
-    // The motion came from the reference; the WORDS must be the user's. Speak
-    // their script and re-sync the transferred person's lips onto it, so the
-    // clip is the reference's performance saying the user's own message.
-    if (cfg.speak && (cfg.narration || cfg.audio)) {
-      const voiceIc = line(cfg.audio ? (fa ? "آپلودِ صدای تو" : "Uploading your audio") : (fa ? "نوشتنِ صدا با متنِ تو" : "Speaking your script"));
-      let audioUrl = "";
-      try {
-        if (cfg.audio) audioUrl = await upload(cfg.audio, cfg.audio.type || "audio/mpeg");
-        else {
-          const tts = await post("/fal/run", { model: "fal-ai/kokoro", input: { prompt: String(cfg.narration).slice(0, 1200), voice: cfg.voice || "af_heart" } });
-          audioUrl = tts && tts.audio && tts.audio.url;
-        }
-      } catch (e) {}
-      if (!audioUrl) { fail(voiceIc); }
-      else {
-        done(voiceIc);
-        const syncIc = line(fa ? "هماهنگیِ لب با حرفِ تو" : "Syncing the lips to your words");
-        try {
-          // MUST be the fal-hosted URL, not the local blob: URL — fal's servers
-          // fetch this themselves and cannot read a browser blob handle.
-          const ls = await post("/fal/submit", { model: "fal-ai/latentsync", input: { video_url: outUrl, audio_url: audioUrl } });
-          const lsStatus = ls.status_url, lsResp = (ls.response_url || (lsStatus || "").replace(/\/status$/, ""));
-          let synced = null;
-          for (let k = 0; k < 90 && lsStatus && !cancelled; k++) {
-            await new Promise(r => setTimeout(r, 4000));
-            let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(lsStatus))).json(); st = jj.status || "?"; } catch (e) {}
-            if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(lsResp))).json(); synced = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
-            if (st === "FAILED" || st === "ERROR") break;
-          }
-          if (cancelled) return;
-          if (synced) {
-            // Re-download so the player AND the Dashboard both get the SPOKEN
-            // cut; keeping the pre-sync blob here shipped a silent video to the
-            // dashboard while the preview played the synced one.
-            outUrl = synced;
-            try { const b2 = await (await fetch(synced)).blob(); if (b2 && b2.size) { joined = b2; out = URL.createObjectURL(b2); } else out = synced; }
-            catch (e) { out = synced; }
-            done(syncIc);
-          } else fail(syncIc);
-        } catch (e) { fail(syncIc); }
-      }
-    }
-
-    vsSettle(charge.jobId, "done");
-    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
-    vsTrackGen(cfg.speak ? "motiontransferspeak" : "motiontransfer", "pika-swaps", "sec:" + secs);
-    const blob = joined;          // already in hand — no refetch needed
-    const u = out;
-    result.innerHTML = '<video src="' + u + '" controls autoplay playsinline style="width:100%;border-radius:10px;background:#000"></video>' +
-      '<a href="' + u + '" download="motion-transfer.mp4" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ' + (fa ? "دانلود" : "Download") + '</a>' +
-      '<div style="text-align:center;margin-top:8px;font-size:11.5px;color:#7fd8a8">✓ ' + (fa ? "در داشبوردت هم ذخیره شد" : "Also saved to your Dashboard") + '</div>';
-    try { if (blob && typeof vsSaveToDashboard === "function") vsSaveToDashboard(blob, "mp4", "motion-transfer"); } catch (e) {}
-    if (tray) tray.done(u, "motion-transfer");
-    finish();
-  } catch (e) {
-    if (cancelled) return;
-    vsSettle(charge.jobId, "failed"); stage.textContent = "";
-    const msg = (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e);
-    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + msg + '</div>';
-    if (tray) tray.fail(msg);
-    finish();
-  }
-}
 
 
 // ── BACKGROUND JOB TRAY ───────────────────────────────────────────────────
