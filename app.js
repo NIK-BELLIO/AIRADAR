@@ -20607,7 +20607,7 @@ function vsReverseEngineer(prefill, opts) {
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10v12H4z"/><path d="M18 9v6"/><path d="M14 12h4"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c.8-2 2-3 3.5-3s2.7 1 3.5 3"/></svg></span>
-               <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">PIKA SWAPS · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
+               <div><div class="mname">${fa ? "انتقالِ حرکت" : "Motion transfer"}</div><div class="meng">GENJUTSU · ${fa ? "ویدیوی مرجع → تو" : "reference clip → you"}</div></div>
              </div>
              <div class="mdesc">${fa ? "کلِ ویدیوی مرجع با طولِ کامل: همان حرکتِ دوربین، همان پس‌زمینه، همان تایمینگ — فقط شخص، تو می‌شوی." : "The whole reference clip at full length: same camera move, same background, same timing — only the person becomes you."}</div>
              <label class="mdrop" style="cursor:pointer"><input type="checkbox" id="reMtSpeak" checked style="width:auto;min-height:0;height:auto;margin:0"/><span>${fa ? "با حرفِ من (لیپ‌سینک روی اسکریپت)" : "Say my script (lip-sync)"}</span></label>
@@ -20671,7 +20671,7 @@ function vsReverseEngineer(prefill, opts) {
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg></span>
-               <div><div class="mname">${fa ? "پرزنترِ AI" : "AI presenter"}</div><div class="meng">Happy Horse · ${fa ? "متن→ویدیو" : "text→video"}</div></div>
+               <div><div class="mname">${fa ? "پرزنترِ AI" : "AI presenter"}</div><div class="meng">SEEDANCE 2.0 · ${fa ? "متن→ویدیو" : "text→video"}</div></div>
              </div>
              <div class="mdesc">${fa ? "پرزنترِ کاملاً AI که اسکریپت را چندزبانه با لیپ‌سینکِ طبیعی می‌گوید." : "A fully-AI presenter delivers the script with natural multilingual lip-sync."}</div>
              <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reHapDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reHapAsp">${optAsp("9:16")}</select></div></div>
@@ -20697,7 +20697,7 @@ function vsReverseEngineer(prefill, opts) {
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
                <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-2.5v9L16 14z"/><path d="M8 20h8"/></svg></span>
-               <div><div class="mname">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</div><div class="meng">Grok Imagine · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"}</div></div>
+               <div><div class="mname">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</div><div class="meng">CINEMA STUDIO 4.0 · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"}</div></div>
              </div>
              <div class="mdesc">${fa ? "نمای متحرک با صدای همزمان از عکسِ تو یا کاورِ ساخته‌شده." : "A moving shot with synced audio from your photo or the generated cover."}</div>
              <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reGrokDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reGrokRes">${optRes("720p")}</select></div></div>
@@ -21570,10 +21570,14 @@ function vsReverseEngineer(prefill, opts) {
     const setting = ((blueprint && blueprint.setting) || "clean studio").replace(/[^\w ,'-]/g, " ").slice(0, 80);
     try {
       vsBuildVideoModel({
-        title: fa ? "آدمِ سخنگو (Happy Horse)" : "Talking-head (Happy Horse)",
-        action: "happyhorse", seconds: sec, model: "alibaba/happy-horse/v1.1/text-to-video",
-        input: { prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], (fa ? "" : "") + "a person speaking to camera", nar.slice(0, 700))
-          || `A person speaking directly to the camera in ${setting}, natural expressions and gestures, clear lip-sync, saying: "${nar.slice(0, 900)}"`), aspect_ratio: asp, resolution: "720p", duration: sec },
+        title: fa ? "متن → ویدیو (Seedance)" : "Text to video (Seedance)",
+        action: "seedance_480", seconds: sec, provider: "hf",
+        model: "bytedance/seedance-2.0/text-to-video",
+        // Seedance's own schema: 4-15 seconds, and 480p by default because
+        // 720p is 2.25x the price for the same clip.
+        input: { prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "a person speaking to camera", nar.slice(0, 700))
+          || `A person speaking directly to the camera in ${setting}, natural expressions and gestures, saying: "${nar.slice(0, 900)}"`),
+          aspect_ratio: asp, resolution: "480p", duration: Math.min(Math.max(sec, 4), 15), generate_audio: true },
         name: "talking-head",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -21595,10 +21599,16 @@ function vsReverseEngineer(prefill, opts) {
     if (!imageUrl) { vsStatus(fa ? "عکسِ اولیه ساخته نشد — عکسِ خودت رو آپلود کن." : "Couldn't get a frame — upload your own photo."); return; }
     try {
       vsBuildVideoModel({
-        title: fa ? "سینمایی + صدا (Grok)" : "Cinematic + audio (Grok)",
-        action: "grok", seconds: sec, model: "xai/grok-imagine-video/v1.5/image-to-video",
-        input: { image_url: imageUrl, prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "", nar.slice(0, 200))
-          || ("cinematic camera movement, natural motion, " + nar.slice(0, 140))), resolution: res, duration: sec },
+        title: fa ? "سینمایی + صدا (Cinema Studio)" : "Cinematic + audio (Cinema Studio)",
+        action: "cinema_480", seconds: sec, provider: "hf",
+        model: "higgsfield/cinema-studio/4.0",
+        // Cinema Studio takes the reference image as one of up to thirty, and
+        // makes its own audio. 4-30 seconds, 480p to keep the token meter
+        // honest - 720p is 2.25x for the same clip.
+        input: { image_urls: [imageUrl],
+          prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "", nar.slice(0, 200))
+          || ("cinematic camera movement, natural motion, " + nar.slice(0, 140))),
+          resolution: "480p", duration: Math.min(Math.max(sec, 4), 30), generate_audio: true },
         name: "cinematic",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -23501,15 +23511,26 @@ async function vsBuildVideoModel(cfg) {
   };
   try {
     let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
-    const sub = await post("/fal/submit", { model: cfg.model, input: cfg.input });
+    // Which platform runs this. Higgsfield for everything it covers; fal only
+    // where nothing on Higgsfield does the job, which is now just the two
+    // audio-driven builders (text-to-speech and strict lip-sync).
+    const isHf = cfg.provider === "hf";
+    const sub = await post(isHf ? "/hf/submit" : "/fal/submit", { model: cfg.model, input: cfg.input });
     if (cancelled) return;
-    const statusUrl = sub.status_url, respUrl = (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
-    if (!statusUrl) throw new Error("submit failed");
+    // Higgsfield hands back a status_url and the docs say to follow it rather
+    // than build one; fal needs the response url derived from the status url.
+    const statusUrl = sub.status_url, respUrl = isHf ? "" : (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
+    if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
     // Written down BEFORE the first poll: fal has already been paid by now,
     // and until this line the only handle on the result was a local variable.
     try { vsFalJobRemember({ statusUrl, respUrl, action: "video", name: "video" }); } catch (e) {}
     done(ic);
-    const pollUrl = (u) => WB + "/fal/poll?url=" + encodeURIComponent(u);
+    const pollUrl = (u) => WB + (isHf ? "/hf/poll?url=" : "/fal/poll?url=") + encodeURIComponent(u);
+    // Higgsfield's vocabulary, translated into the one this loop already
+    // speaks. nsfw and canceled become FAILED because that is what they are
+    // from here: no video, and the credits go back.
+    const HF_TO_FAL = { queued: "IN_QUEUE", in_progress: "IN_PROGRESS", completed: "COMPLETED",
+                        failed: "FAILED", nsfw: "FAILED", canceled: "FAILED" };
     const renderIc = line(fa ? "در حالِ رندر" : "Rendering");
     const startedAt = Date.now();
     let out = null, lastStatus = "";
@@ -23527,9 +23548,18 @@ async function vsBuildVideoModel(cfg) {
       }
       await new Promise(r => setTimeout(r, 4000));
       if (cancelled) return;
-      let st = "?"; try { const jj = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = jj.status || "?"; } catch (e) {}
+      // Higgsfield returns the finished output in the SAME body as the final
+      // status, so the poll result is kept - fal needs a second call to a
+      // separate response url and has nothing useful in the status body.
+      let st = "?", body = null;
+      try { body = await (await vsFalFetch(pollUrl(statusUrl))).json(); st = (body && body.status) || "?"; } catch (e) {}
+      if (isHf) st = HF_TO_FAL[st] || "?";
       lastStatus = st;
-      if (st === "COMPLETED") { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} break; }
+      if (st === "COMPLETED") {
+        if (isHf) { out = body && body.video && body.video.url; }
+        else { try { const jj = await (await vsFalFetch(pollUrl(respUrl))).json(); out = jj && (jj.video && jj.video.url || jj.url); } catch (e) {} }
+        break;
+      }
       if (st === "FAILED" || st === "ERROR") break;
     }
     if (cancelled) return;
