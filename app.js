@@ -20580,6 +20580,29 @@ function vsReverseEngineer(prefill, opts) {
                 reference clip itself drives the motion (camera move, gestures,
                 timing) and only the PERSON becomes the user. Needs the actual
                 video, so it only appears when we have one. -->
+           <!-- Genjutsu: swaps the person or the object and leaves everything
+                else alone - camera, timing, lighting, and the original audio
+                and mouth movement, because it transfers the performance
+                rather than synthesising one. Needs the real clip, so it only
+                appears once we have one.
+
+                Priced on the REFERENCE clip, not the result, which is why the
+                card shows the total and not just a per-second rate: ten
+                seconds at 720p is 410 credits and nobody should learn that
+                after pressing the button. -->
+           <div class="re-mcard" id="reGjCard" data-route="genjutsu" data-build="genjutsu" style="display:none">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v10H4z"/><path d="M9 7V5h6v2"/><circle cx="12" cy="12" r="2.5"/><path d="M4 17l4-4 3 3"/></svg></span>
+               <div><div class="mname">${fa ? "جایگزینیِ شخصیت یا شیء" : "Swap a character or object"}</div><div class="meng">GENJUTSU · ${fa ? "همه‌چیز می‌ماند، فقط او عوض می‌شود" : "everything stays, only they change"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "شخص، لباس یا محصولِ داخلِ ویدیو عوض می‌شود و بقیه دست‌نخورده می‌ماند — همان دوربین، همان نور، همان تایمینگ، و صدا و حرکتِ لبِ اصلی، چون اجرای اصلی منتقل می‌شود نه ساخته." : "Changes the person, the outfit or the product inside the clip and leaves the rest as filmed — same camera, same light, same timing, and the original audio and lip movement, because it transfers the performance rather than synthesising one."}</div>
+             <label id="reGjImgLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reGjImgTxt">${fa ? "عکسِ شخصیت یا محصول (تا ۸ تا)" : "Character or product photos (up to 8)"}</span><input id="reGjImgs" type="file" accept="image/*" multiple style="display:none"/></label>
+             <label class="mdrop" style="cursor:pointer"><span style="flex:1">${fa ? "کیفیت" : "Quality"}</span><select id="reGjRes" style="width:auto;min-height:0;background:transparent;border:0;color:inherit;font:inherit"><option value="480p">480p</option><option value="720p">720p</option></select></label>
+             <div style="flex:1"></div>
+             <span class="ar-cred" id="reCredGj">${gemSvg}20 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <button id="reBuildGj" type="button" class="mbtn">${fa ? "شخصیت را عوض کن" : "Swap the character"}</button>
+           </div>
            <div class="re-mcard" id="reMtCard" data-route="motion" data-build="motion" style="display:none">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
@@ -21157,6 +21180,28 @@ function vsReverseEngineer(prefill, opts) {
       const urlSaysVideo = !!(ref && /instagram\.com\/(reel|reels|tv)\//i.test(String(ref.srcUrl || "")));
       const isMovingRef = haveClip || !!(ref && ref.videoUrl) || urlSaysVideo;
       if ($$("reMtCard")) $$("reMtCard").style.display = haveClip ? "" : "none";
+      // Genjutsu needs the same thing Motion transfer needs - the actual
+      // clip - so it appears on the same condition, and quotes the same way:
+      // the whole job, because it bills the reference and the reference is
+      // already measured.
+      if (haveClip && $$("reGjCard")) {
+        $$("reGjCard").style.display = "";
+        // Read off the blueprint rather than off mtSec, which is declared
+        // below this block - reaching forward for it was a ReferenceError
+        // that fired exactly when a clip was present, which is the only time
+        // this card is shown.
+        const gjRaw = Math.round((blueprint && blueprint.refDuration) || 0);
+        const gjSec = Math.min(Math.max(Math.ceil(gjRaw) || 0, 1), 30);
+        const paintGj = () => {
+          const res = ($$("reGjRes") && $$("reGjRes").value) || "480p";
+          const rate = VS_GENJUTSU_PERSEC[res] || VS_GENJUTSU_PERSEC["480p"];
+          $$("reCredGj").outerHTML = gjRaw
+            ? arCredit(gjSec * rate, { id: "reCredGj", suffix: "· " + gjSec + "s " + res })
+            : arCredit(rate, { id: "reCredGj", suffix: (fa ? "/ ثانیه " : "/ sec ") + res });
+        };
+        paintGj();
+        if ($$("reGjRes")) $$("reGjRes").onchange = paintGj;
+      }
       if (haveClip && $$("reCredMt")) {
         const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
         const mtRate = () => ($$("reMtSpeak") && $$("reMtSpeak").checked) ? 18 : 14;
@@ -22220,6 +22265,39 @@ function vsReverseEngineer(prefill, opts) {
     mtPhoto = (e.target.files && e.target.files[0]) || null;
     $$("reMtPhotoTxt").textContent = mtPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + mtPhoto.name.slice(0, 26) : (fa ? "عکسِ خودت (لازم)" : "Your photo (required)");
   };
+  // The photos the user picked for the swap. Held here rather than read off
+  // the input at click time, because the label is replaced when the grid
+  // repaints and the FileList goes with it.
+  let gjImgs = [];
+  if ($$("reGjImgs")) $$("reGjImgs").onchange = (e) => {
+    gjImgs = Array.from((e.target && e.target.files) || []).slice(0, 8);
+    const t = $$("reGjImgTxt");
+    if (t) t.textContent = gjImgs.length
+      ? (fa ? gjImgs.length + " عکس انتخاب شد" : gjImgs.length + " photo" + (gjImgs.length > 1 ? "s" : "") + " selected")
+      : (fa ? "عکسِ شخصیت یا محصول (تا ۸ تا)" : "Character or product photos (up to 8)");
+  };
+
+  if ($$("reBuildGj")) $$("reBuildGj").onclick = () => {
+    const clip = ref && ref.refVideo;
+    if (!clip) { vsStatus(fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."); return; }
+    // One photo is the minimum the model's schema accepts, and asking for it
+    // here is better than paying for a rejection.
+    const imgs = gjImgs.length ? gjImgs : [mtPhoto || thPhoto || anyImg].filter(Boolean);
+    if (!imgs.length) { vsStatus(fa ? "اول عکسِ شخصیت یا محصول را بده." : "Add the character or product photo first."); $$("reGjImgs").click(); return; }
+    try {
+      vsBuildGenjutsu({
+        mode: "swap",
+        clip: clip,
+        images: imgs,
+        resolution: ($$("reGjRes") && $$("reGjRes").value) || "480p",
+        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        // What to change. The reference already carries everything else, so
+        // this is an instruction, not a description of the whole shot.
+        prompt: [($$("rePrompt").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
+  };
+
   if ($$("reBuildMt")) $$("reBuildMt").onclick = () => {
     const photo = mtPhoto || thPhoto || anyImg;
     if (!photo) { vsStatus(fa ? "اول عکسِ خودت را بده." : "Add your photo first."); $$("reMtPhoto").click(); return; }
@@ -26507,6 +26585,205 @@ A video is made of one or more SCENES that play one after another. Each scene ha
 // motion — camera move, gestures, timing all come from the original — and the
 // user's photo supplies who is in it. Every other builder here generates NEW
 // motion from a still; this one transfers the real thing.
+/**
+ * What a second of Genjutsu costs, in credits.
+ *
+ * The same arithmetic the server does, so the card can quote before the
+ * charge. It is duplicated on purpose - a browser cannot import the
+ * catalogue - and checks/higgsfield.js fails the deploy if the two disagree,
+ * because a card that under-quotes is a card that lies about the price.
+ *
+ *   480p  $0.318/s -> ceil(0.318 / 0.02 * 1.2) = 20
+ *   720p  $0.681/s -> ceil(0.681 / 0.02 * 1.2) = 41
+ */
+var VS_GENJUTSU_PERSEC = { "480p": 20, "720p": 41 };
+
+/**
+ * Submit to Higgsfield and wait for a terminal state.
+ *
+ * The platform hands back a status_url with the submit and the docs say to
+ * follow that rather than build one, so both travel through the worker, which
+ * holds the key and checks they point at the API.
+ *
+ * The backoff is the documented one: start at two seconds, multiply by 1.5,
+ * stop at ten, jitter up to half a second so a batch does not poll in step.
+ */
+async function vsHfRun(model, input, opts) {
+  opts = opts || {};
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const sub = await vsFalPost(WB, "/hf/submit", { model: model, input: input });
+  if (!sub || !sub.request_id || !sub.status_url) {
+    throw new Error((sub && (sub.error || sub.detail)) || "the model did not accept the request");
+  }
+  // Written down BEFORE the first poll. A tab closed between submitting and
+  // finishing is the one way a paid job disappears with nothing to refund and
+  // no way to collect it, and this is the ledger that survives a reload.
+  try {
+    vsFalJobRemember({ statusUrl: sub.status_url, model: model, action: opts.action || "",
+                       name: opts.name || "video", credits: opts.credits || 0, jobId: opts.jobId || "" });
+  } catch (e) {}
+
+  const TERMINAL = ["completed", "failed", "nsfw", "canceled"];
+  let wait = 0;
+  const deadline = Date.now() + (opts.budgetMs || 15 * 60 * 1000);
+  for (;;) {
+    if (opts.cancelled && opts.cancelled()) return { status: "canceled", cancel_url: sub.cancel_url };
+    if (Date.now() > deadline) throw new Error("the job did not finish in time");
+    wait = wait ? Math.min(wait * 1.5, 10000) : 2000;
+    await new Promise((r) => setTimeout(r, Math.round(wait + Math.random() * 500)));
+    let st;
+    try { st = await (await vsFalFetch(WB + "/hf/poll?url=" + encodeURIComponent(sub.status_url))).json(); }
+    catch (e) { continue; }                       // a dropped poll is not a failed job
+    if (!st || !st.status) continue;
+    if (opts.onStatus) { try { opts.onStatus(st.status); } catch (e) {} }
+    if (TERMINAL.indexOf(st.status) >= 0) { st.cancel_url = sub.cancel_url; st.status_url = sub.status_url; return st; }
+  }
+}
+
+/**
+ * Swap a character or an object out of a finished clip.
+ *
+ * The reference video and the reference images both have to be URLs the model
+ * can fetch, so they go through the existing /fal/upload - used here purely
+ * as a file host, which is all it ever was. Generation is Higgsfield's.
+ *
+ * Priced on the INPUT clip, rounded up to the second, which is the part worth
+ * saying out loud on screen before anyone presses the button: ten seconds at
+ * 720p is 410 credits. The card quotes it, the server re-computes it from the
+ * catalogue, and the two are checked against each other at deploy time.
+ */
+async function vsBuildGenjutsu(cfg) {
+  cfg = cfg || {};
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const mode = cfg.mode === "motion" ? "motion" : "swap";
+  const res = cfg.resolution === "720p" ? "720p" : "480p";
+  const model = mode === "motion"
+    ? "higgsfiled/genjutsu/motion-transfer/v1.0"
+    : "higgsfiled/genjutsu/object-swap/v1.0";
+  // The model's own schema stops at thirty seconds, and the charge is per
+  // second of THIS number, so it is clamped before anything is billed.
+  const secs = Math.min(Math.max(Math.ceil(Number(cfg.seconds) || 0), 1), 30);
+  const title = mode === "motion"
+    ? (fa ? "انتقالِ حرکت (Genjutsu)" : "Genjutsu motion transfer")
+    : (fa ? "جایگزینیِ شخصیت (Genjutsu)" : "Genjutsu character swap");
+
+  const upload = async (file, type) => {
+    const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", timeoutMs: 180000,
+      headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file });
+    const j = await r.json().catch(() => ({}));
+    if (!j.file_url) throw new Error(j.error || "upload failed");
+    return j.file_url;
+  };
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = '<div style="width:min(560px,96vw);background:#0e1420;border:1px solid rgba(37,99,255,.3);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">' +
+    '<div style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:18px;color:#eaf1ff;margin-bottom:4px">' + title + '</div>' +
+    '<div id="gjStage" style="font-size:12px;color:#5b9bff;font-weight:700;margin-bottom:12px;min-height:16px"></div>' +
+    '<div id="gjSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#cfc8ba"></div>' +
+    '<div id="gjResult" style="margin-top:12px"></div>' +
+    '<div id="gjBtns" style="display:flex;gap:9px;margin-top:14px">' +
+      '<button id="gjCancel" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#e0a0a0;border:1px solid rgba(240,120,120,.35)">' + (fa ? "لغو (کردیت برمی‌گردد)" : "Cancel (refunds credits)") + '</button>' +
+      '<button id="gjBg" type="button" style="flex:1;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "در پس‌زمینه ادامه بده" : "Continue in background") + '</button>' +
+    '</div>' +
+    '<button id="gjClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#cfc8ba;border:1px solid rgba(255,255,255,.18)">' + (fa ? "بستن" : "Close") + '</button></div>';
+  document.body.appendChild(ov);
+  const $g = (id) => ov.querySelector("#" + id);
+  const steps = $g("gjSteps"), result = $g("gjResult"), stage = $g("gjStage"), btns = $g("gjBtns"), closeBtn = $g("gjClose");
+  const finish = () => { btns.style.display = "none"; closeBtn.style.display = ""; stage.textContent = ""; };
+  closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = '<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>' + t + '</span>'; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "\u2713"; ic.style.color = "#5fe0b0"; } };
+  const bad = (ic) => { if (ic) { ic.textContent = "\u2715"; ic.style.color = "#f87171"; } };
+
+  let cancelled = false, cancelUrl = "";
+  let tray = null;
+  $g("gjBg").onclick = () => { try { ov.remove(); } catch (e) {} if (!tray) tray = vsJobCard(title); };
+
+  // Charged first, and on the server, from the catalogue. The client's own
+  // quote is only for the label on the card.
+  const action = "genjutsu_" + (mode === "motion" ? "motion_" : "swap_") + (res === "720p" ? "720" : "480");
+  const charge = await vsCharge(action, { seconds: secs });
+  if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+
+  $g("gjCancel").onclick = () => {
+    cancelled = true;
+    vsHfCancel(cancelUrl);
+    vsSettle(charge.jobId, "failed");
+    steps.innerHTML = "";
+    result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded.") + '</div>';
+    finish();
+  };
+
+  try {
+    stage.textContent = fa ? "آماده‌سازی" : "Preparing";
+    const up = line(fa ? "فرستادنِ ویدیو و عکس‌ها" : "Uploading the clip and your images");
+    const videoUrl = typeof cfg.clip === "string" ? cfg.clip : await upload(cfg.clip, "video/mp4");
+    const imageUrls = [];
+    for (const img of (cfg.images || []).slice(0, 8)) {
+      imageUrls.push(typeof img === "string" ? img : await upload(img));
+    }
+    if (!videoUrl) throw new Error(fa ? "ویدیوی مرجع نیست" : "no reference clip");
+    if (!imageUrls.length) throw new Error(fa ? "حداقل یک عکس لازم است" : "at least one reference image is required");
+    done(up);
+
+    stage.textContent = fa ? "در صف" : "Queued";
+    const gen = line(fa ? "ساختِ ویدیو" : "Generating");
+    const out = await vsHfRun(model, {
+      prompt: String(cfg.prompt || "").slice(0, 10000),
+      video_url: videoUrl,
+      image_urls: imageUrls,
+      resolution: res,
+    }, {
+      action: action, name: title, credits: 0, jobId: charge.jobId,
+      cancelled: () => cancelled,
+      onStatus: (st) => {
+        stage.textContent = st === "in_progress" ? (fa ? "در حالِ ساخت" : "Rendering") : (fa ? "در صف" : "Queued");
+        if (tray && tray.stage) { try { tray.stage(stage.textContent); } catch (e) {} }
+      },
+    });
+    cancelUrl = out.cancel_url || "";
+
+    if (cancelled || out.status === "canceled") { bad(gen); return; }
+    if (out.status === "nsfw") {
+      bad(gen); vsSettle(charge.jobId, "failed");
+      result.innerHTML = '<div style="color:#e0b088;font-size:13px">' + (fa ? "محتوا رد شد — کردیتت برگشت." : "The content was rejected by moderation — your credits were refunded.") + '</div>';
+      finish(); return;
+    }
+    if (out.status !== "completed") {
+      bad(gen); vsSettle(charge.jobId, "failed");
+      result.innerHTML = '<div style="color:#f0a0a0;font-size:13px">' + (fa ? "ساخته نشد — کردیتت برگشت. " : "It did not finish — your credits were refunded. ") + (out.error ? String(out.error).slice(0, 160) : "") + '</div>';
+      finish(); return;
+    }
+    const url = out.video && out.video.url;
+    if (!url) throw new Error(fa ? "خروجی برنگشت" : "no output url");
+    done(gen);
+
+    // Delivered, so the ledger can let go of it.
+    try { vsFalJobForget(out.status_url); } catch (e) {}
+    vsSettle(charge.jobId, "done");
+    stage.textContent = "";
+    result.innerHTML = '<video src="' + url + '" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>' +
+      '<div style="margin-top:9px;font-size:11.5px;color:#8ea6c8">' +
+      (fa ? "لینک تا هفت روز زنده است — دانلودش کن." : "This link lives for about seven days — download it.") + '</div>';
+    if (tray && tray.done) { try { tray.done(url); } catch (e) {} }
+    finish();
+  } catch (e) {
+    vsSettle(charge.jobId, "failed");
+    result.innerHTML = '<div style="color:#f0a0a0;font-size:13px">' + (fa ? "خطا — کردیتت برگشت. " : "Error — your credits were refunded. ") + String((e && e.message) || e).slice(0, 180) + '</div>';
+    finish();
+  }
+}
+
+/** A queued Genjutsu job is cancelable, and thirty seconds at 720p is $20. */
+async function vsHfCancel(cancelUrl) {
+  if (!cancelUrl) return;
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  try { await vsFalPost(WB, "/hf/cancel?url=" + encodeURIComponent(cancelUrl), {}); } catch (e) {}
+}
+
 async function vsBuildMotionTransfer(cfg) {
   cfg = cfg || {};
   const fa = state.lang === "fa";
