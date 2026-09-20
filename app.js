@@ -5118,6 +5118,11 @@ function vsReelPrompt(place, month, seed) {
     `- Do not repeat yourself. If five words in a row turn up in two of your`,
     `  sentences, the reel has got stuck on one image: find the next thing to`,
     `  say instead of saying that one again.`,
+    `- One subject does not mean one sentence written five ways. By slide three`,
+    `  you should have stopped needing the noun you opened on: the reel has`,
+    `  moved past it to what it means and what to do. If the word you started`,
+    `  with is still in four of your five slides, you have circled, not`,
+    `  developed, and it is rejected.`,
     `- Never open a sentence with an -ing word. "Trading cramped corners for`,
     `  an expansive layout..." and "Stepping onto the deck reveals..." are`,
     `  stage directions, not speech. Both are rejected automatically.`,
@@ -5558,6 +5563,26 @@ function vsRecentPictures(perTown) {
 }
 
 /**
+ * Is the reel circling one word instead of going anywhere?
+ *
+ * Measured: a Camillus reel that said the same thing five times had "coats" in
+ * four of its five slides, while three reels that actually developed topped
+ * out at two. Three is the limit, which leaves a slide of margin either side.
+ *
+ * This is the shuffle test made checkable. It cannot see that slide three
+ * repeats slide two in different words - nothing lexical can - but a reel that
+ * genuinely moves stops needing its opening noun by the third slide.
+ */
+function vsCirclesOnOneWord(sentences, placeName) {
+  const count = new Map();
+  for (const s of sentences) {
+    vsDetailWords([s], placeName).forEach((w) => count.set(w, (count.get(w) || 0) + 1));
+  }
+  for (const [w, n] of count) if (n > 3) return w;
+  return "";
+}
+
+/**
  * Has another town in this batch already used this picture?
  *
  * Two shared words, not one: one is coincidence among reels that are all about
@@ -5639,6 +5664,10 @@ function vsReelParse(raw, place, figure, figureKind) {
   // The same five words twice.
   const stuck = vsRepeatedRun(sentences);
   if (stuck) return bad("two sentences share the same run of words (" + stuck + ")");
+
+  // The same idea five times, in different words each time.
+  const circling = vsCirclesOnOneWord(sentences, placeLc);
+  if (circling) return bad("the reel circles on " + circling + " instead of developing");
 
   // Stage directions instead of speech.
   for (let i = 0; i < sentences.length; i++) {
