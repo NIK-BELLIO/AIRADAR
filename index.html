@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v690" />
+    <link rel="stylesheet" href="styles.css?v=v691" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -584,7 +584,7 @@
       .badge-today {
         background: rgba(245,196,81,.12);
         border: 1px solid rgba(245,196,81,.38);
-        color: #f5c451;
+        color: #f4f5f7;
       }
       /* in list mode — inline */
       .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
@@ -1207,7 +1207,7 @@
         box-shadow:0 18px 50px rgba(0,0,0,.6);opacity:0;visibility:hidden;
         -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:opacity .25s ease,transform .25s ease,visibility .25s}
       #vsBatchProg.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
-      #vsBatchProg .vsbp-title{font-weight:800;font-size:13px;color:#f5c451;margin-bottom:9px}
+      #vsBatchProg .vsbp-title{font-weight:800;font-size:13px;color:#f4f5f7;margin-bottom:9px}
       #vsBatchProg .vsbp-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}
       #vsBatchProg .vsbp-bar > span{display:block;height:100%;width:0;border-radius:999px;
         background:linear-gradient(90deg,#2563ff,#5fe0b0);transition:width .35s ease}
@@ -1236,7 +1236,7 @@
         box-shadow:inset 0 1px 0 rgba(255,236,176,.2)}
       .vs-batch-open{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
         text-align:start;cursor:pointer;padding:10px 13px;background:transparent;border:0;color:#f4f5f7}
-      .vs-batch-open .vs-batch-name{font-weight:700;font-size:13.5px;color:#f5c451}
+      .vs-batch-open .vs-batch-name{font-weight:700;font-size:13.5px;color:#f4f5f7}
       .vs-batch-open .vs-batch-meta{font-size:11px;color:#8a919c}
       .vs-batch-dl{flex-shrink:0;width:42px;cursor:pointer;border:0;border-inline-start:1px solid rgba(255,255,255,.08);
         background:transparent;color:#2563ff;font-size:16px;border-radius:0 14px 14px 0;transition:background .16s,color .16s}
@@ -1257,7 +1257,7 @@
       /* ── Assistant launcher — bright, animated, attention-grabbing ── */
       #raAsstBtn{position:fixed;right:22px;bottom:22px;z-index:9998;width:66px;height:66px;border-radius:50%;
         border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
-        background:radial-gradient(130% 130% at 30% 22%,#f5c451 0%,#5b9bff 38%,#2563ff 100%);
+        background:radial-gradient(130% 130% at 30% 22%,#5b9bff 0%,#5b9bff 38%,#2563ff 100%);
         color:#0e1014;font-size:30px;
         box-shadow:0 12px 30px rgba(0,0,0,.5),0 6px 22px rgba(37,99,255,.45);
         animation:raFloat 3s ease-in-out infinite, raPulse 2.4s ease-out infinite;
@@ -1288,14 +1288,14 @@
       @keyframes raPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
       .ra-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(37,99,255,.18);background:rgba(37,99,255,.05)}
       .ra-head .ra-av{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-        background:linear-gradient(135deg,#2563ff,#f5c451);color:#0e1014;font-weight:800}
+        background:linear-gradient(135deg,#2563ff,#5b9bff);color:#0e1014;font-weight:800}
       .ra-head h4{margin:0;font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-size:15px;color:#5b9bff;line-height:1.1}
       .ra-head p{margin:1px 0 0;font-size:10.5px;color:#8a919c;letter-spacing:.02em}
       .ra-head .ra-x{margin-inline-start:auto;background:transparent;border:0;color:#8a919c;font-size:20px;cursor:pointer;line-height:1;padding:4px}
       .ra-head .ra-x:hover{color:#fff}
       #raAsstMsgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
       .ra-msg{max-width:86%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
-      .ra-msg.ra-bot{align-self:flex-start;background:#14171d;color:#f5c451;border:1px solid rgba(37,99,255,.14);border-bottom-left-radius:6px}
+      .ra-msg.ra-bot{align-self:flex-start;background:#14171d;color:#f4f5f7;border:1px solid rgba(37,99,255,.14);border-bottom-left-radius:6px}
       .ra-msg.ra-user{align-self:flex-end;background:linear-gradient(135deg,#2563ff,#2563ff);color:#0e1014;border-bottom-right-radius:6px;font-weight:500}
       .ra-msg.ra-bot b,.ra-msg.ra-bot strong{color:#5b9bff}
       .ra-typing{align-self:flex-start;display:flex;gap:4px;padding:11px 13px;background:#14171d;border-radius:14px;border:1px solid rgba(37,99,255,.14)}
@@ -1303,12 +1303,12 @@
       .ra-typing span:nth-child(2){animation-delay:.2s}.ra-typing span:nth-child(3){animation-delay:.4s}
       @keyframes raBlink{0%,60%,100%{opacity:.3}30%{opacity:1}}
       .ra-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
-      .ra-chip{font-size:11px;padding:6px 10px;border-radius:20px;cursor:pointer;color:#f5c451;
+      .ra-chip{font-size:11px;padding:6px 10px;border-radius:20px;cursor:pointer;color:#f4f5f7;
         background:rgba(37,99,255,.08);border:1px solid rgba(37,99,255,.22)}
       .ra-chip:hover{background:rgba(37,99,255,.18);color:#fff}
       .ra-input{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(37,99,255,.18);background:rgba(0,0,0,.25)}
       .ra-input textarea{flex:1;resize:none;height:40px;max-height:110px;border-radius:10px;border:1px solid rgba(37,99,255,.25);
-        background:#08090c;color:#f5c451;padding:10px 12px;font-size:13px;font-family:inherit;outline:none}
+        background:#08090c;color:#f4f5f7;padding:10px 12px;font-size:13px;font-family:inherit;outline:none}
       .ra-input textarea:focus{border-color:rgba(37,99,255,.55)}
       .ra-input button{flex-shrink:0;width:42px;border-radius:10px;border:0;cursor:pointer;font-size:18px;
         background:linear-gradient(135deg,#2563ff,#2563ff);color:#0e1014}
@@ -1345,7 +1345,7 @@
         -webkit-backdrop-filter:blur(16px) saturate(1.6);
         backdrop-filter:blur(16px) saturate(1.6);
         background:rgba(255,255,255,.06) !important;   /* solid translucent — NO gradients */
-        color:#f5c451 !important;
+        color:#f4f5f7 !important;
         box-shadow:
           inset 0 1px 0 rgba(255,255,255,.22),
           inset 0 -1px 0 rgba(0,0,0,.18),
@@ -1667,7 +1667,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v690"></script>
+    <script src="app.js?v=v691"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

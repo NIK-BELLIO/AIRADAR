@@ -98,15 +98,28 @@ html { background: #08090c; }
   --money: #f5c451;
   --error: #f87171;
 
-  /* Aliases kept so four thousand lines of existing rules keep working. */
-  --gold: var(--money);
+  /* Aliases, so four thousand lines of existing rules keep working.
+
+     --gold and --amber pointed at --money in the first pass of the retheme,
+     and that was my mistake. They are not money variables. They are what a
+     much older gold theme called its highlight, and a hundred and twenty-four
+     rules still use them: eyebrows, counters, score rings, tool names,
+     section labels, the live-dashboard link. Pointing them at the money token
+     painted most of the home page gold, and left the one colour that should
+     mean "this costs something" meaning nothing in particular.
+
+     They point at the accent ramp again, which is where they pointed before
+     the retheme. Money is now spent deliberately, by writing --money, and it
+     appears on the things that are money: the credit pill, the pricing table,
+     the tool-of-the-day badge. */
+  --gold: var(--accent-lo);
   --gold-2: var(--accent-lo);
   --bronze: var(--accent-deep);
   --ivory: #ffffff;
   --blue: var(--accent);
   --cyan: var(--accent-lo);
   --green: var(--success);
-  --amber: var(--money);
+  --amber: var(--accent-lo);
   --rose: var(--error);
 
   /* Flat by default. Depth comes from a hairline and a dark well, not from a
@@ -2179,7 +2192,7 @@ body[dir="rtl"] .chart-overlay {
 .ai-btn {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #2563ff 0%, #f5c451 50%, #2563ff 100%);
+  background: linear-gradient(135deg, #2563ff 0%, #5b9bff 50%, #2563ff 100%);
   background-size: 200% 200%;
   animation: goldShimmer 3s ease infinite;
   color: #08090c;
@@ -2232,7 +2245,7 @@ body[dir="rtl"] .chart-overlay {
   padding: 18px;
   font-size: 13px;
   line-height: 1.75;
-  color: #f5c451;
+  color: #f4f5f7;
   white-space: pre-wrap;
   word-break: break-word;
   min-height: 60px;
@@ -3695,7 +3708,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   place-items: center;
   border: 1px solid rgba(37,99,255,0.5);
   border-radius: 50%;
-  background: linear-gradient(150deg, #f5c451, #2563ff 55%, #2563ff);
+  background: linear-gradient(150deg, #5b9bff, #2563ff 55%, #2563ff);
   color: #0e1014;
   cursor: pointer;
   box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 0 22px rgba(37,99,255,0.25);
@@ -3833,7 +3846,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
   font-weight: 800;
   letter-spacing: 0.03em;
   color: #0e1014;
-  background: linear-gradient(150deg, #f5c451, #2563ff);
+  background: linear-gradient(150deg, #5b9bff, #2563ff);
   border-radius: 999px;
   padding: 4px 12px;
 }
@@ -3922,7 +3935,7 @@ details.vs-slide-section > *:last-child { margin-bottom: 14px; }
 }
 .seg-btn:hover { color: var(--text); }
 .seg-btn.active {
-  background: linear-gradient(150deg, #f5c451, #2563ff);
+  background: linear-gradient(150deg, #5b9bff, #2563ff);
   color: #0e1014;
   box-shadow: 0 2px 8px rgba(37,99,255,0.25);
 }
@@ -4617,7 +4630,7 @@ summary.vstudio-label:hover {
 .ar-cred { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
   font: 800 11px "JetBrains Mono", ui-monospace, monospace; letter-spacing: .01em;
   border-radius: 6px; padding: 3px 8px 3px 6px;
-  background: rgba(0, 0, 0, .28); color: #f5c451; }
+  background: rgba(0, 0, 0, .28); color: #f4f5f7; }
 .ar-cred svg { width: 11px; height: 11px; flex: none; }
 .ar-cred.free { color: #5fe0b0; }
 /* On a light/bright button the dark chip would fight the fill, so drop it. */
