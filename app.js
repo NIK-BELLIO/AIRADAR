@@ -20528,7 +20528,7 @@ function vsReverseEngineer(prefill, opts) {
              <label class="mdrop" style="cursor:pointer"><span style="flex:1">${fa ? "کیفیت" : "Quality"}</span><select id="reMtRes" style="width:auto;min-height:0;background:transparent;border:0;color:inherit;font:inherit"><option value="480p">480p</option><option value="720p">720p</option></select></label>
              <label id="reMtPhotoLbl" class="mdrop"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l4.5-4.5 3 3L17 12l3 3"/></svg><span id="reMtPhotoTxt">${fa ? "عکسِ خودت (لازم)" : "Your photo (required)"}</span><input id="reMtPhoto" type="file" accept="image/*" style="display:none"/></label>
              <div style="flex:1"></div>
-             <span class="ar-cred" id="reCredMt">${gemSvg}18 ${fa ? "/ ثانیه" : "/ sec"}</span>
+             <span class="ar-cred" id="reCredMt">${gemSvg}20 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildMt" type="button" class="mbtn">${fa ? "انتقالِ حرکت به من" : "Transfer motion to me"}</button>
            </div>
            <!-- Scene-by-scene rebuild — the only builder that reproduces a
@@ -21081,7 +21081,12 @@ function vsReverseEngineer(prefill, opts) {
         if ($$("reGjRes")) $$("reGjRes").onchange = paintGj;
       }
       if (haveClip && $$("reCredMt")) {
-        const mtSec = Math.round((blueprint && blueprint.refDuration) || 0);
+        // Clamped exactly the way the charge route clamps it (1..30), which the
+        // swap card above already does. Without it a 40-second reference made
+        // this card quote 800 credits for a job the server prices at 600 - not
+        // a loss, but a number the customer was told and never charged.
+        const mtRaw = Math.round((blueprint && blueprint.refDuration) || 0);
+        const mtSec = mtRaw ? Math.min(Math.max(Math.ceil(mtRaw), 1), 30) : 0;
         // Genjutsu's real rate - the same numbers the catalogue and the
         // server use: $0.318/s at 480p and $0.681/s at 720p, at $0.02 a
         // credit with the house 20% margin. The old 14-and-18 belonged to
