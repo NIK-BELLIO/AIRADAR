@@ -21217,6 +21217,18 @@ function vsReverseEngineer(prefill, opts) {
         // With the real clip in hand, motion transfer reproduces the original's
         // OWN motion — the closest match to any reference — so it leads.
         if (ref && ref.refVideo) recRoutes.unshift("motion");
+        // And the reference's own KIND decides the order of what follows. A
+        // still was being offered a video-to-video builder first, which is a
+        // first suggestion that cannot work on what the user actually gave us.
+        {
+          const VIDEO_FIRST = ["genjutsu", "motion", "scene", "video"];
+          const IMAGE_FIRST = ["carousel", "video", "scene"];
+          const order = (ref && ref.refVideo) ? VIDEO_FIRST : IMAGE_FIRST;
+          recRoutes.sort((a, b) => {
+            const ia = order.indexOf(a), ib = order.indexOf(b);
+            return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+          });
+        }
 
         // What the operator actually asked for wins over what the reference
         // happened to be. Without this, picking "Fast montage" - built by the
@@ -21248,7 +21260,13 @@ function vsReverseEngineer(prefill, opts) {
         // for: the free on-device slideshow, not MiniMax; Fabric, not Happy Horse.
         const BUILD_OF = { genjutsu: "genjutsu", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion" };
         const chosen = BUILD_OF[recRoutes[0]] || recRoutes[0];
-        let lockedBy = manual || reRouteUnlocked ? null
+        // Putting YOURSELF into an existing clip is Genjutsu's whole job, and
+        // no other builder here can do it - the rest generate something new.
+        // So this pairing is not a recommendation that can be overridden, it
+        // is the only correct answer, and the unlock below is withheld.
+        const onlyGenjutsu = reWantMode === "character" && haveClip;
+        let lockedBy = onlyGenjutsu ? "character"
+          : manual || reRouteUnlocked ? null
           : reWantMode === "character" ? "character"
             : (reWantSource === "template" && rePickedTemplate) ? "template" : null;
         root.querySelectorAll(".re-mcard").forEach((c) => {
@@ -21276,11 +21294,17 @@ function vsReverseEngineer(prefill, opts) {
           lockedBy = null;
         }
         const lockBox = $$("reRouteLock");
+        // "Other methods" is only honest when other methods would work. With a
+        // clip in hand and "with me in it" chosen, they would not.
+        const moreBtn = $$("reRouteLockMore");
+        if (moreBtn) moreBtn.style.display = onlyGenjutsu ? "none" : "";
         if (lockBox) {
           lockBox.style.display = lockedBy ? "flex" : "none";
           if (lockedBy) {
             const how = { genjutsu: fa ? "جایگزینیِ شخصیت" : "Character swap", slideshow: fa ? "ویدیوی اسلایدشو" : "Slideshow video", carousel: fa ? "کاروسل" : "Carousel", scene: fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild", motion: fa ? "انتقالِ حرکت" : "Motion transfer", presenter: fa ? "پرزنترِ AI" : "AI presenter", minimax: fa ? "نمای سینمایی" : "Cinematic motion", grok: fa ? "سینمایی + صدا" : "Cinematic + audio" }[chosen] || chosen;
-            const why = lockedBy === "template"
+            const why = onlyGenjutsu
+              ? (fa ? "«با خودم در ویدیو» روی یک ویدیوی واقعی" : "“with me in it” on a real clip")
+              : lockedBy === "template"
               ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
               : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
             $$("reRouteLockTxt").innerHTML = fa
