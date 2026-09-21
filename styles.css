@@ -10,78 +10,114 @@
    clean swap with no white flash. (An animated cross-page fade would need the
    View Transitions API, which the browser is currently skipping, or an opacity
    fade that risks getting stuck invisible when throttled — so we keep neither.) */
-html { background: #0b1020; }
+html { background: #08090c; }
 
 /* ── Unified top header (.arh) — identical on every page ───────── */
-.arh{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:22px;padding:13px clamp(18px,4vw,60px);background:rgba(9,13,27,.82);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.07)}
-.arh-logo{flex:0 0 auto;display:block}
-.arh-logo img{width:38px;height:38px;display:block}
-.arh-nav{flex:1 1 auto;display:flex;justify-content:center;align-items:center;gap:2px;flex-wrap:wrap}
-.arh-link{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;color:#b8c6e6;text-decoration:none;white-space:nowrap;transition:background .16s,color .16s}
-.arh-link:hover{background:rgba(59,120,255,.12);color:#fff}
-.arh-link.arh-active,.arh-link[aria-current="page"]{background:linear-gradient(135deg,#2563ff,#2563ff);color:#fff}
-.arh-ic{font-size:12px;opacity:.9;display:inline-flex;align-items:center}
-.arh-new{padding:2px 6px;border-radius:999px;font-size:8.5px;font-weight:600;letter-spacing:.06em;color:#fff;background:linear-gradient(135deg,#5b9bff 0%,#2563ff 55%,#1b46c9 100%)}
+.arh{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,3vw,32px);height:56px;background:rgba(8,9,12,.86);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.arh-logo{flex:0 0 auto;display:flex;align-items:center}
+.arh-logo img{width:28px;height:28px;display:block}
+.arh-nav{flex:1 1 auto;display:flex;justify-content:flex-start;align-items:center;gap:1px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.arh-nav::-webkit-scrollbar{display:none}
+/* Text first, icon second. The icons are the house set and worth keeping, but
+   at 14px beside 13px text they were competing with the words they label. */
+.arh-link{position:relative;display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:8px;font-size:13px;font-weight:500;letter-spacing:-.005em;color:var(--muted);text-decoration:none;white-space:nowrap;flex:0 0 auto;transition:color .14s,background .14s}
+.arh-link:hover{background:rgba(255,255,255,.05);color:var(--text)}
+/* Active is a state, not a decoration: the word turns white and the brand
+   sits under it as a two-pixel rule. No gradient pill - a filled blue pill on
+   a blue page was the loudest thing on screen and it was only saying "here". */
+.arh-link.arh-active,.arh-link[aria-current="page"]{background:transparent;color:#fff;font-weight:600}
+.arh-link.arh-active::after,.arh-link[aria-current="page"]::after{content:"";position:absolute;left:11px;right:11px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.arh-ic{display:inline-flex;align-items:center;opacity:.6;transition:opacity .14s}
+.arh-link:hover .arh-ic,.arh-link.arh-active .arh-ic,.arh-link[aria-current="page"] .arh-ic{opacity:1}
+/* A badge that shouts on eight items at once says nothing. Outline, not fill. */
+.arh-new{padding:1px 5px;border-radius:4px;font:600 8.5px/1.6 var(--font-mono);letter-spacing:.08em;color:var(--accent-lo);background:rgba(18,214,245,.1);border:1px solid rgba(18,214,245,.22)}
 .arh-right{flex:0 0 auto;display:flex;align-items:center;gap:10px}
-.arh-signin{padding:9px 18px;border-radius:999px;cursor:pointer;font-weight:700;font-size:14px;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#2563ff,#2563ff);border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 22px -8px rgba(37,99,255,.6);text-decoration:none}
-.arh-avatar{position:relative;width:38px;height:38px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;text-decoration:none;background:linear-gradient(135deg,#2563ff,#2563ff);border:1px solid rgba(255,255,255,.18);cursor:pointer}
-/* Credit ring: when signed in we stamp data-credits on the avatar → a branded
-   blue ring + a gold credit pill, so the balance reads right off the profile. */
-.arh-avatar[data-credits]{box-shadow:0 0 0 2px #0a0f1e,0 0 0 4px rgba(37,99,255,.95),0 0 12px 1px rgba(37,99,255,.5)}
-.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:800 9.5px 'JetBrains Mono',ui-monospace,monospace;line-height:1;color:#241a06;background:#f5c451 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23241a06'%3E%3Cpath d='M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z'/%3E%3C/svg%3E") 5px center/8px 8px no-repeat;padding:3px 7px 3px 16px;border-radius:999px;border:1.5px solid #0a0f1e;white-space:nowrap;box-shadow:0 3px 9px -2px rgba(0,0,0,.55);pointer-events:none}
-/* language toggle sitting in the header */
-.arh .seg-toggle{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
-.arh .seg-btn{padding:5px 10px;border-radius:999px;border:0;background:transparent;color:#b8c6e6;font-size:12px;font-weight:700;cursor:pointer;min-height:0;height:auto}
-.arh .seg-btn.active{background:linear-gradient(135deg,#2563ff,#2563ff);color:#fff}
-/* account dropdown anchored under the avatar */
+.arh-signin{padding:7px 15px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;color:#fff;white-space:nowrap;background:var(--accent);border:0;text-decoration:none;transition:filter .14s}
+.arh-signin:hover{filter:brightness(1.12)}
+.arh-avatar{position:relative;width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font:600 13px var(--font-body);color:var(--text);text-decoration:none;background:var(--surface-2);border:1px solid var(--line-strong);cursor:pointer;transition:border-color .14s}
+.arh-avatar:hover{border-color:rgba(255,255,255,.3)}
+/* The credit count is money, so it keeps its colour. It moves off the bottom
+   edge and onto the corner, where it does not need the header to be tall
+   enough to hold it. */
+.arh-avatar[data-credits]{box-shadow:none}
+.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;top:-6px;right:-8px;font:600 9px/1 var(--font-mono);color:#241a06;background:var(--money);padding:3px 5px;border-radius:5px;border:1.5px solid var(--bg);white-space:nowrap;pointer-events:none}
+.arh .seg-toggle{display:inline-flex;gap:1px;padding:2px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
+.arh .seg-btn{padding:4px 9px;border-radius:6px;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;min-height:0;height:auto}
+.arh .seg-btn.active{background:var(--surface-3);color:#fff}
 .arh .auth-account{position:relative}
 .arh .auth-menu{position:absolute;top:calc(100% + 10px);right:0;z-index:1001}
-/* the old mobile sidebar trigger is unused now */
 .sidebar-open{display:none!important}
-@media(max-width:640px){.arh{gap:10px;padding:10px 14px}.arh-nav{gap:4px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.arh-nav::-webkit-scrollbar{display:none}.arh-link{padding:7px 9px;font-size:12px;flex:0 0 auto}.arh-new{display:none}.arh .seg-toggle{display:none}}
+@media(max-width:640px){.arh{gap:10px;padding:0 12px;height:52px}.arh-nav{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}.arh-link{padding:6px 8px;font-size:12.5px}.arh-new{display:none}.arh .seg-toggle{display:none}}
 
-/* Current-page nav item lights up blue */
+/* Current-page item in the grouped nav grid — same rule as the header: a
+   quiet surface and white text, with the brand as an edge rather than a fill. */
 .nav-group-grid a[aria-current="page"] {
-  background: linear-gradient(135deg, rgba(59,120,255,0.22), rgba(37,99,255,0.14)) !important;
-  border-color: rgba(59,120,255,0.5) !important;
+  background: var(--surface-2) !important;
+  border-color: var(--line-strong) !important;
   color: #fff !important;
-  box-shadow: inset 0 0 0 1px rgba(59,120,255,0.25);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
-.nav-group-grid a[aria-current="page"] .nav-ic { color: #8fbaff; }
+.nav-group-grid a[aria-current="page"] .nav-ic { color: var(--accent-lo); }
 /* Prompt Lab flask icon fits the nav glyph slot */
 .nav-ic .lab-ic, .arh-ic .lab-ic { width: 1.12em; height: 1.12em; vertical-align: -0.18em; display: inline-block; }
 
 :root {
   color-scheme: dark;
-  /* AI Radar brand — Midnight Navy base, Electric Blue + Cyan Glow accents */
-  --bg: #0b1020;
-  --surface: rgba(17, 24, 48, 0.9);
-  --surface-2: rgba(26, 35, 64, 0.9);
-  --line: rgba(255, 255, 255, 0.12);
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  /* One accent, locked. These names used to lie: --gold held a blue, --green
-     held a blue, --amber held a blue, --rose held a purple, all left over from
-     a re-theme that renamed nothing. They stay as aliases so existing rules
-     keep working, but each now points at the single accent ramp. Only success,
-     money and error remain separate, because they carry meaning the accent
-     cannot express. */
+  /* ── Instrument panel ────────────────────────────────────────────────
+     The base was Midnight Navy: #0b1020, a blue. Every surface sat on it,
+     every accent was also blue, and the result was a screen where nothing
+     could stand out because everything was already the accent colour. That
+     is the look the brief calls slop, and it is a colour problem before it
+     is a layout one.
+
+     So the canvas goes neutral - a true near-black with a trace of warmth -
+     and the blue becomes scarce. Colour now means something: accent is the
+     one action worth taking on a screen, cyan is live data, gold is money,
+     green is success, red is a failure. Anything decorative is greyscale.
+
+     The brand ramp itself is unchanged. It is the logo's blue and the logo's
+     cyan, which is the point - they finally read as the brand instead of as
+     the background. */
+  --bg: #08090c;
+  --bg-lift: #0b0d11;
+  --surface: #0e1014;
+  --surface-2: #14171d;
+  --surface-3: #1a1e26;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --text: #f4f5f7;
+  --muted: #8a919c;
+  --muted-2: #5e646e;
+
   --accent: #2563ff;
-  --accent-lo: #5b9bff;
+  --accent-lo: #12d6f5;
   --accent-deep: #1b46c9;
+  --accent-wash: rgba(37, 99, 255, 0.12);
+
   --success: #5fe0b0;
   --money: #f5c451;
   --error: #f87171;
-  --gold: var(--accent-lo);
+
+  /* Aliases kept so four thousand lines of existing rules keep working. */
+  --gold: var(--money);
   --gold-2: var(--accent-lo);
   --bronze: var(--accent-deep);
   --ivory: #ffffff;
   --blue: var(--accent);
   --cyan: var(--accent-lo);
-  --green: var(--accent-lo);
-  --amber: var(--accent-lo);
-  --rose: var(--accent-lo);
-  --shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+  --green: var(--success);
+  --amber: var(--money);
+  --rose: var(--error);
+
+  /* Flat by default. Depth comes from a hairline and a dark well, not from a
+     glow - a glow on every card is how a screen stops having a foreground. */
+  --shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.85);
+  --radius: 14px;
+  --radius-sm: 9px;
+
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 * {
