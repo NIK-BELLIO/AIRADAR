@@ -947,23 +947,25 @@ body[dir="rtl"] .panel-chip {
   gap: 18px;
 }
 
-/* The title text becomes a window onto a flowing motion gradient */
+
+/* The headline face.
+
+   It was clipped to a seven-stop blue-white-blue gradient with a nine-second
+   loop running across it forever. Three problems, not one: the animation
+   never stops, so the eye keeps going back to it for no reason; gradient text
+   fails contrast at its darker stops, where #1e40af on near-black is about
+   2:1; and a headline that is already the largest thing on the page does not
+   need a second device to be noticed.
+
+   Solid white, and the colour it was spending goes to the one button under
+   it instead. */
 .motion-title {
-  background: linear-gradient(
-    100deg,
-    #2563ff 0%, #5b9bff 22%, #ffffff 38%,
-    #2563ff 55%, #1e40af 72%, #5b9bff 88%, #2563ff 100%);
-  background-size: 280% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: motionTitleFlow 9s linear infinite;
+  color: #fff;
+  background: none;
+  -webkit-text-fill-color: #fff;
+  animation: none;
 }
-@keyframes motionTitleFlow {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 280% 50%; }
-}
+
 
 /* Motion-graphic panel */
 .hero-motion {
