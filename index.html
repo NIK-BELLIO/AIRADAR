@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v708" />
+    <link rel="stylesheet" href="styles.css?v=v709" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -608,7 +608,7 @@
         <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free">FREE</span></a>
         <a href="/spark/" class="arh-link">Spark</a>
         <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models" class="arh-link">Models<span class="arh-new">NEW</span></a>
+      <a href="/models/video" class="arh-link">Models<span class="arh-new">NEW</span></a>
       <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new">NEW</span></a>
       <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new">NEW</span></a>
       <a href="/assistant" class="arh-link">Assistant</a>
@@ -1041,80 +1041,54 @@
           <div class="models-ticker" id="modelsTicker"></div>
         </div>
 
-        <section id="about" class="panel">
-          <div class="section-head" style="margin-bottom:20px;">
-            <div>
-              
-              <span class="sec-eyebrow">About</span>
-              
-              <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
+        <footer class="ar-foot">
+          <div class="ar-foot-in">
+            <div class="ft-brand">
+              <span>Make it in</span>
+              <span>your browser.</span>
+            </div>
+            <div class="ft-col">
+              <h3>Studios</h3>
+              <a href="/studio/">Video Studio</a>
+              <a href="/spark/">Spark</a>
+              <a href="/reverse-engineer/">Reverse Engineer</a>
+              <a href="/workflows/cinema-studio">Cinema Studio</a>
+              <a href="/marketing-studio">Marketing Studio</a>
+            </div>
+            <div class="ft-col">
+              <h3>Models</h3>
+              <a href="/models/video">Video models</a>
+              <a href="/models/image">Image models</a>
+              <a href="/prompt-lab/">Prompt Lab</a>
+              <a href="/assistant">Assistant</a>
+            </div>
+            <div class="ft-col">
+              <h3>Radar</h3>
+              <a href="/radar/#tools">The finder</a>
+              <a href="/radar/#performance">Live trend</a>
+              <a href="/radar/#aiMonitor">Global AI map</a>
+              <a href="/radar/#toolOfDay">Tool of the day</a>
+            </div>
+            <div class="ft-col">
+              <h3>Account</h3>
+              <a href="/dashboard">Your library</a>
+              <a href="/pricing">Credits</a>
+              <a href="/login">Sign in</a>
             </div>
           </div>
-          <div class="about-compact-grid">
-
-            <!-- LEFT: mission + stats -->
-            <div style="display:flex;flex-direction:column;gap:14px;">
-              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos, all in your browser.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
-              </div>
-              <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(37,99,255,0.05);border-radius:0 10px 10px 0;">
-                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise. A calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
-              </div>
-            </div>
-
-            <!-- RIGHT: creator + changelog -->
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <div style="padding:16px;border:1px solid rgba(37,99,255,0.3);border-radius:10px;background:rgba(37,99,255,0.05);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                  <div style="width:40px;height:40px;border-radius:50%;background:rgba(37,99,255,0.2);border:1px solid rgba(37,99,255,0.4);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--gold-2);flex-shrink:0;">SA</div>
-                  <div>
-                    <strong style="display:block;font-size:15px;">Shayan Alinia</strong>
-                    <span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span>
-                  </div>
-                </div>
-                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar: concept, interface, and the video studio.</p>
-              </div>
-
-              <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
-                  <span style="font-size:12px;font-weight:800;" data-i18n="changelogTitle">Latest updates</span>
-                  <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(37,99,255,0.15);border:1px solid rgba(37,99,255,0.3);color:var(--gold);">v2.5</span>
-                </div>
-                <ul style="list-style:none;margin:0;padding:0;">
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.5</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Real AI news, cinematic map &amp; tool dashboards</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Live headlines from TechCrunch, VentureBeat &amp; The Verge, a dotted cinematic world map with live data packets, per-tool featured dashboards, live metric chips with sparklines, and similar-tool discovery cards.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.4</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Global AI map, news &amp; live dashboard</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">New world map of AI hubs, an AI news pulse, a fullscreen live dashboard for second monitors, and an advanced GitHub dashboard with sort, search &amp; multi-metric view.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.35</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Always-free AI assistant</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">The video assistant now runs on a free AI engine. No sign-in, no limits. Smarter intros &amp; outros with the source built in.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector now applies to all video styles: news, infographic, cinematic, neon, intro and outro. Center snap guide added.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl21Title">Cinematic design upgrade</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl21Text">Premium animated backgrounds, new infographic styles, Vox-style motion across the studio.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl20Title">Smarter article-to-video</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl20Text">Paste an article URL. AI reads the whole piece and builds a complete video using infographics where there are numbers.</p></div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
+          <div class="ar-foot-note">
+            <p>Every tool draws on one balance. No per-tool subscription, no tracking, no ads.</p>
+            <p class="ft-by">Built by Shayan Alinia</p>
           </div>
-        </section>
+        </footer>
+        <div class="ar-foot-bar">
+          <span>&copy; 2026 AI Radar</span>
+          <span class="ar-foot-links">
+            <a href="/radar/">Radar</a>
+            <a href="/pricing">Credits</a>
+            <a href="/assistant">Assistant</a>
+          </span>
+        </div>
 
       </main>
       <button id="scrollTopBtn" class="scroll-top" type="button"
@@ -1822,7 +1796,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v708"></script>
+    <script src="app.js?v=v709"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────

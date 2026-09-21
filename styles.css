@@ -5294,3 +5294,89 @@ b, strong { font-weight: 600; }
   text-decoration: underline; text-underline-offset: 2px;
 }
 .re-lockswap:hover { color: #fff; }
+
+
+/* ══ Footer ══════════════════════════════════════════════════════════════
+   Full-bleed, and the only place on the site where a colour covers the whole
+   width. That works at the end of a page and nowhere else - there is nothing
+   left below it for the colour to shout over.
+
+   Cyan rather than blue because it is the one brand colour bright enough to
+   carry near-black text: #12d6f5 on #08090c measures about eleven to one,
+   where the accent blue would be three. */
+.ar-foot {
+  width: 100vw;
+  margin: 64px 0 0 calc(50% - 50vw);
+  padding: 54px clamp(20px, 6vw, 90px) 34px;
+  background: var(--accent-lo);
+  background: #12d6f5;
+  color: #08090c;
+}
+.ar-foot-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) repeat(4, minmax(0, 1fr));
+  gap: 30px;
+  align-items: start;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+.ft-brand {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 2.9vw, 40px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  text-transform: uppercase;
+}
+.ft-brand span { display: block; }
+.ft-col h3 {
+  margin: 0 0 14px;
+  font: 600 12.5px/1 var(--font-body);
+  letter-spacing: 0;
+  color: rgba(8, 9, 12, .5);
+}
+.ft-col a {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #08090c;
+  text-decoration: none;
+}
+.ft-col a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.ar-foot-note {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  align-items: baseline; justify-content: space-between;
+  max-width: 1500px; margin: 46px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(8, 9, 12, .18);
+  font-size: 13px;
+}
+.ar-foot-note p { margin: 0; color: rgba(8, 9, 12, .72); }
+.ft-by { font-weight: 600; color: #08090c !important; }
+
+/* The legal bar goes back to the page's own black, the way the reference
+   does - it is a different kind of line and it should not look like the
+   footer's content. */
+.ar-foot-bar {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 15px clamp(20px, 6vw, 90px);
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between;
+  background: var(--bg);
+  font-size: 12px; color: var(--muted-2);
+}
+.ar-foot-links { display: flex; gap: 18px; }
+.ar-foot-links a { color: var(--muted); text-decoration: none; }
+.ar-foot-links a:hover { color: var(--text); }
+
+@media (max-width: 1080px) {
+  .ar-foot-in { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+  .ft-brand { grid-column: 1 / -1; margin-bottom: 6px; }
+}
+@media (max-width: 560px) {
+  .ar-foot { padding: 36px 18px 26px; }
+  .ar-foot-in { grid-template-columns: 1fr; }
+}
