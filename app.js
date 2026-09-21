@@ -57,8 +57,8 @@ const i18n = {
     vAddSlide: "+ Add slide (upload media)",
     vAddIntro: "+ Add intro scene",
     vAddOutro: "+ Add outro scene",
-    vAutoLabel: "⚡ Auto-build a full video",
-    vAutoImagesLbl: "✦ Auto-generate cinematic footage for every scene (free)",
+    vAutoLabel: "Auto-build a full video",
+    vAutoImagesLbl: "Auto-generate cinematic footage for every scene (free)",
     vAutoBatchLbl: "A separate video for each city / item in the link",
     vUsePexelsLbl: "Real video footage, auto-matched to each topic & city",
     vMusicLbl: "\ud83c\udfb5 Background music (cinematic, auto-fades)",
@@ -67,7 +67,7 @@ const i18n = {
     vAutoUrl: "Article URL (optional)",
     vAutoTopic: "Topic or article text",
     vAutoBuildBtn: "Build the video",
-    vAutoAiBtn: "✦ Build with AI",
+    vAutoAiBtn: "Build with AI",
     vIntroSceneLabel: "Intro scene settings",
     vIntroSceneHint: "Editing the selected intro scene — pick a background, write the two lines of text, and choose how the text animates in.",
     vIntroBgLabel: "Background",
@@ -89,7 +89,7 @@ const i18n = {
     vInfoLabel: "Infographic builder",
     vInfoOnLabel: "Show infographic overlay",
     vInfoHint: "Type your title and stats below — the infographic builds itself as you write. No JSON needed.",
-    vInfoAiLabel: "✦ Generate with AI",
+    vInfoAiLabel: "Generate with AI",
     vInfoAiHint: "Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.",
     vInfoAiBtn: "Generate infographic",
     vInfoFormTitle: "Title",
@@ -115,7 +115,7 @@ const i18n = {
     vTabNews: "News",
     vNewsLabel: "News banner",
     vNewsHint: "Add your own footage, then type the news details below — a broadcast-style banner is drawn over the video.",
-    vNewsAiLabel: "✦ Summarize with AI",
+    vNewsAiLabel: "Summarize with AI",
     vNewsAiHint: "Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.",
     vNewsAiBtn: "Summarize into banner",
     vNewsOnLabel: "Show news banner",
@@ -380,8 +380,8 @@ const i18n = {
     vAddSlide: "+ افزودن اسلاید (آپلود رسانه)",
     vAddIntro: "+ افزودن صحنه اینترو",
     vAddOutro: "+ افزودن صحنه پایانی",
-    vAutoLabel: "⚡ ساخت خودکار ویدیوی کامل",
-    vAutoImagesLbl: "✦ ساخت خودکار فوتیج سینمایی برای هر صحنه (رایگان)",
+    vAutoLabel: "ساخت خودکار ویدیوی کامل",
+    vAutoImagesLbl: "ساخت خودکار فوتیج سینمایی برای هر صحنه (رایگان)",
     vAutoBatchLbl: "برای هر شهر/مورد داخل لینک، یک ویدئوی جداگانه",
     vUsePexelsLbl: "فوتیج ویدئویی واقعی، خودکار متناسب با موضوع و شهر",
     vMusicLbl: "\ud83c\udfb5 موسیقی پس\u200cزمینه (سینمایی، با فید خودکار)",
@@ -390,7 +390,7 @@ const i18n = {
     vAutoUrl: "لینک مقاله (اختیاری)",
     vAutoTopic: "موضوع یا متن مقاله",
     vAutoBuildBtn: "ساخت ویدیو",
-    vAutoAiBtn: "✦ ساخت با هوش مصنوعی",
+    vAutoAiBtn: "ساخت با هوش مصنوعی",
     vIntroSceneLabel: "تنظیمات صحنه اینترو",
     vIntroSceneHint: "در حال ویرایش صحنه اینتروی انتخاب‌شده — یک پس‌زمینه انتخاب کن، دو خط متن بنویس و حرکت ورود متن را انتخاب کن.",
     vIntroBgLabel: "پس‌زمینه",
@@ -412,7 +412,7 @@ const i18n = {
     vInfoLabel: "سازنده اینفوگرافیک",
     vInfoOnLabel: "نمایش اینفوگرافیک",
     vInfoHint: "عنوان و آمارها را پایین بنویس — اینفوگرافیک همزمان با نوشتن ساخته می‌شود. نیازی به JSON نیست.",
-    vInfoAiLabel: "✦ ساخت با هوش مصنوعی",
+    vInfoAiLabel: "ساخت با هوش مصنوعی",
     vInfoAiHint: "موضوعت را توصیف کن یا یک پاراگراف بچسبان — هوش مصنوعی آن را به عنوان و آمار تبدیل می‌کند. اولین استفاده یک ورود رایگان Puter باز می‌کند.",
     vInfoAiBtn: "ساخت اینفوگرافیک",
     vInfoFormTitle: "عنوان",
@@ -438,7 +438,7 @@ const i18n = {
     vTabNews: "اخبار",
     vNewsLabel: "بنر خبری",
     vNewsHint: "ابتدا فیلم خودت را اضافه کن، سپس جزئیات خبر را پایین بنویس — یک بنر شبیه پخش تلویزیونی روی ویدیو کشیده می‌شود.",
-    vNewsAiLabel: "✦ خلاصه با هوش مصنوعی",
+    vNewsAiLabel: "خلاصه با هوش مصنوعی",
     vNewsAiHint: "یک مقاله یا یادداشت بچسبان — هوش مصنوعی یک تیتر کوتاه، سرتیتر و منبع می‌نویسد. اولین استفاده یک ورود رایگان Puter باز می‌کند.",
     vNewsAiBtn: "خلاصه در بنر",
     vNewsOnLabel: "نمایش بنر خبری",
@@ -24390,8 +24390,8 @@ function bindEvents() {
     vsRedrawPreview();
     refreshTimelineClips();
     vsStatus(state.lang === "fa"
-      ? "لوگو اضافه شد ✦ روی پیش‌نمایش بکش، و لبه‌های نوار لوگو را روی تایم‌لاین بکش."
-      : "Logo placed ✦ Drag it on the preview; drag the ends of its timeline bar to set timing.");
+      ? "لوگو اضافه شد روی پیش‌نمایش بکش، و لبه‌های نوار لوگو را روی تایم‌لاین بکش."
+      : "Logo placed Drag it on the preview; drag the ends of its timeline bar to set timing.");
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
   on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
@@ -25636,7 +25636,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
 • Filter / grade (applies to all slides): None, Cinematic, Warm, Cool, Black & white, Vivid.
 • Headline font (all slides): Prata (serif), Alice (elegant), Viaoda Libre (display), Archivo (MAISON), Space Grotesk, Inter (modern sans), Georgia (classic).
 • Add scenes: "+ Add scene (upload media)" (image or video), "+ Add intro scene", "+ Add outro scene".
-• ✦ AI Video Assistant: paste a topic OR a URL and AI builds the whole video automatically.
+• AI Video Assistant: paste a topic OR a URL and AI builds the whole video automatically.
    - Tone: Broadcast news, Explainer/educational, Hype/launch, Cinematic documentary, Punchy social (TikTok/Reels).
    - Length: Short (4-5 scenes ~20s), Medium (6-7 ~35s), Long (8-10 ~50s).
 • Intro scene settings (when an intro scene is selected): pick a Background from the gallery, write Main text + Secondary text, and choose Text motion: Fade in, Rise up, Slide from left, Slide from right, Drop down, Spring, Rise+spring, Punch in, Vox (snappy), Swing in, Zoom in, Blur in, Flip in, Glide in, Cinematic drift, Line reveal, Letter expand, Tilt in.
@@ -25646,10 +25646,10 @@ A video is made of one or more SCENES that play one after another. Each scene ha
 • Motion & elements (per scene):
    - Camera motion: Ken Burns zoom in, Ken Burns zoom out, Punch in, Zoom+pan, Vertigo (dolly zoom), Pan right, Pan left, Pan up, Pan down, Diagonal drift, Slow drift up, Parallax drift, Spin in, Pulse, Breathe, Sway, Handheld, Shake, None (static).
    - Overlay element: None, Gold frame, Shimmer sweep, Warm embers, Light leak, Edge glow, Bokeh lights, Minimal line, Corner brackets, Soft haze, Cinematic bars, Sparkle particles, Floating dust, Snow, Rain, Scanlines, VHS jitter. (Corner brackets only appear if you pick them here — they are NOT automatic.)
-• Infographic builder (per scene): tick "Show infographic overlay". Fill Title, Subtitle (optional), Data source (recommended — cite a real source; AI figures are estimates), and Stats rows (label + value). Or use ✦ Generate with AI from a topic/paragraph.
+• Infographic builder (per scene): tick "Show infographic overlay". Fill Title, Subtitle (optional), Data source (recommended — cite a real source; AI figures are estimates), and Stats rows (label + value). Or use Generate with AI from a topic/paragraph.
    - Chart style: Big Numbers (cinematic), Counting up, Ticker style, Side-by-side compare, Horizontal bars, Progress pills, Donut rings, Area/wave chart, Bubble chart, Stat cards, Dark glass cards, Neon accent cards, Magazine layout, Timeline/list, Ranking/leaderboard, VS split (2 values).
    - Position: Center, Left, Right. Entrance motion: Fade in, Rise up, Drop down, Slide from left, Slide from right, Pop/scale, Zoom in, Vox, None. Advanced: import/edit raw JSON.
-• News banner (per scene): tick "Show news banner". Use ✦ Summarize with AI to turn an article into a kicker+headline+source, or type News headline + Source/reporter.
+• News banner (per scene): tick "Show news banner". Use Summarize with AI to turn an article into a kicker+headline+source, or type News headline + Source/reporter.
    - Banner style: Lower third, Bottom ticker, Full lower bar, Breaking news bar, Top news bar, Centered title, Bold statement (huge), Left title block, Kinetic type, Word reveal, Quote style, Pull quote (side), Caption bottom, Annotation card, Split block, Badge headline, Magazine cover, Neon title, Minimal line. (All styles auto-fit the full text and finish their reveal/scroll within the scene.)
    - Banner accent: Match template, Breaking red, News blue, Studio gold, Mono/dark. Entrance motion: Slide up, Slide from left, Slide from right, Fade in, Pop/scale, Vox, None. Optional: Show live clock.
 
