@@ -18717,7 +18717,13 @@ function vsCreatorTools(opts) {
          #ctModal .card:hover::before{opacity:1}
          #ctModal .card .idx{position:absolute;top:12px;right:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:26px;font-weight:800;color:rgba(255,255,255,.08);letter-spacing:-.02em;transition:.18s}
          #ctModal .card:hover .idx{color:var(--ac,#5b9bff);opacity:.55}
-         #ctModal .card .ic{width:28px;height:28px;margin-bottom:13px;color:var(--ac,#5b9bff)}
+         /* Muted by default, the tool's own accent only on hover.
+            Nineteen tiles each wearing a different brand colour turns the
+            palette into a decoration: gold stops meaning money and green
+            stops meaning success when they are just tile identity. The
+            reference keeps its tile icons monochrome for the same reason. */
+         #ctModal .card .ic{width:28px;height:28px;margin-bottom:13px;color:#5e646e;transition:color .15s}
+         #ctModal .card:hover .ic{color:var(--ac,#5b9bff)}
          #ctModal .card .ic svg{width:100%;height:100%;display:block}
          #ctModal .card .nm{font-weight:800;color:#f4f5f7;font-size:15.5px;letter-spacing:-.01em}
          #ctModal .card .ds{font-size:12.5px;color:#8a919c;margin-top:5px;line-height:1.5;max-width:92%}
