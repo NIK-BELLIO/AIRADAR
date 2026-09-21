@@ -5069,3 +5069,84 @@ b, strong { font-weight: 600; }
   .sc-rail { animation: none; }
   .sc-wrap { overflow-x: auto; }
 }
+
+
+/* ══ The work, first ═════════════════════════════════════════════════════
+   Four cards directly under the nav, before anything on the page explains
+   itself. This is the shape the reference opens with and the reason its
+   home page feels like a product rather than a brochure: there is no
+   introduction, the work is the introduction.
+
+   Portrait, because our clips are - they are vertical video and cropping
+   them to landscape would show a third of each frame. */
+.ft-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 0;
+}
+.ft-card { display: block; text-decoration: none; }
+.ft-media {
+  display: block;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  transition: border-color .18s;
+}
+.ft-card:hover .ft-media { border-color: rgba(37, 99, 255, .55); }
+.ft-vid {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+/* Small, uppercase, tight - the reference's caption voice. */
+.ft-name {
+  display: block;
+  margin: 10px 0 3px;
+  font: 700 11.5px/1.2 var(--font-display);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.ft-line { display: block; font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+/* ══ The lede ════════════════════════════════════════════════════════════
+   One sentence, not a hero. It sits under the work rather than over it,
+   and it is sized like a paragraph with a large first line instead of a
+   billboard. */
+.hx-lede { padding: 44px 0 34px; }
+.hx-lede-in { max-width: 680px; }
+.hx-lede-h {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  color: #fff;
+}
+.hx-lede-p { margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+.hx-lede-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ══ Tile anatomy ════════════════════════════════════════════════════════
+   Icon top left, what it outputs top right, then the name and one line -
+   the reference's tile, which packs more into less height than a name and
+   a paragraph do. The icons stay here because at 16px in a tile they have
+   room to read, which is exactly what they did not have in the nav. */
+.mk-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mk-ic { width: 16px; height: 16px; opacity: .75; }
+.mk-kind {
+  font: 600 9.5px/1 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .04);
+}
+
+@media (max-width: 1080px) { .ft-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px)  { .ft-row { grid-template-columns: 1fr; } .hx-lede { padding: 30px 0 24px; } }

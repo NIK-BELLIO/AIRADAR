@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v699" />
+    <link rel="stylesheet" href="styles.css?v=v700" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -644,16 +644,59 @@
         <main id="top">
 
         <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
-        <section class="hero-x" id="heroX">
-          <div class="hero-x-glow" aria-hidden="true"></div>
-          <div class="hero-x-inner">
-            <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
-            <p class="hero-x-sub" data-i18n="heroText">Make video, images and campaigns in your browser. No install, no subscription, one balance across every tool.</p>
 
-            <p class="hero-x-cta">
+        <!-- ── THE WORK, LARGE ───────────────────────────────────────────
+             Four cards at the top of the page, before anything explains
+             itself. Real clips, full width, captions underneath in the same
+             small uppercase the reference uses. -->
+        <section class="ft-row">
+            <a class="ft-card" href="/reverse-engineer/">
+              <span class="ft-media">
+                <video class="ft-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Reverse Engineer</span>
+              <span class="ft-line">Point it at a post that worked and get the same thing, with you in it.</span>
+            </a>
+            <a class="ft-card" href="/studio/">
+              <span class="ft-media">
+                <video class="ft-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Video Studio</span>
+              <span class="ft-line">A link, an article or an idea becomes a finished video.</span>
+            </a>
+            <a class="ft-card" href="/workflows/cinema-studio">
+              <span class="ft-media">
+                <video class="ft-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Cinema Studio</span>
+              <span class="ft-line">Direct the shot: era, lens, lighting, camera move.</span>
+            </a>
+            <a class="ft-card" href="/marketing-studio">
+              <span class="ft-media">
+                <video class="ft-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Marketing Studio</span>
+              <span class="ft-line">Product shots and ads from your own photo.</span>
+            </a>
+        </section>
+
+        <!-- ── LEDE ──────────────────────────────────────────────────────
+             Not a hero. The reference this page follows opens straight onto
+             work, with no introduction at all; a centred headline holding
+             half a screen of black was the single biggest reason this page
+             read as empty. One sentence, two doors, and then the work. -->
+        <section class="hx-lede">
+          <div class="hx-lede-in">
+            <h1 class="hx-lede-h" data-i18n="heroTitle">AI that sees ahead.</h1>
+            <p class="hx-lede-p" data-i18n="heroText">Make video, images and campaigns in your browser. No install, no subscription, one balance across every tool.</p>
+            <span class="hx-lede-cta">
               <a class="hero-x-go" href="/studio/">Open Video Studio</a>
               <a class="hero-x-alt" href="/models">Browse the models</a>
-            </p>
+            </span>
           </div>
         </section>
 
@@ -838,52 +881,84 @@
           </div>
           <div class="mk-grid">
             <a class="mk-card" href="/studio/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/video-icon.svg" alt="" />
+                <span class="mk-kind">Video</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Video Studio</span>
               </span>
-              <span class="mk-card-line">Turn a link, an article or an idea into a finished video — script, footage, captions and voice.</span>
+              <span class="mk-card-line">Script, footage, captions and voice, from one link.</span>
             </a>
             <a class="mk-card" href="/spark/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/spark-icon.svg" alt="" />
+                <span class="mk-kind">Text</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Spark</span>
               </span>
-              <span class="mk-card-line">The quick tools: hooks, posts, thumbnails, carousels. Most of them free.</span>
+              <span class="mk-card-line">Hooks, posts, thumbnails, carousels. Most of them free.</span>
             </a>
             <a class="mk-card" href="/reverse-engineer/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/re-icon.svg" alt="" />
+                <span class="mk-kind">Video</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Reverse Engineer</span>
               </span>
-              <span class="mk-card-line">Point it at a post that worked and get the same thing, made with you in it.</span>
+              <span class="mk-card-line">Copy what worked, with you in it.</span>
             </a>
             <a class="mk-card" href="/models">
+              <span class="mk-top">
+                <img class="mk-ic" src="/models-icon.svg" alt="" />
+                <span class="mk-kind">Video · Image</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Models</span><span class="arh-new">NEW</span>
               </span>
-              <span class="mk-card-line">Thirteen image and video models, every setting they accept, one price in credits.</span>
+              <span class="mk-card-line">Thirteen models, every setting, one price in credits.</span>
             </a>
             <a class="mk-card" href="/workflows/cinema-studio">
+              <span class="mk-top">
+                <img class="mk-ic" src="/cinema-icon.svg" alt="" />
+                <span class="mk-kind">Video</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Cinema Studio</span><span class="arh-new">NEW</span>
               </span>
-              <span class="mk-card-line">Direct the shot instead of describing it: era, lens, lighting, camera move.</span>
+              <span class="mk-card-line">Era, lens, lighting, camera move.</span>
             </a>
             <a class="mk-card" href="/marketing-studio">
+              <span class="mk-top">
+                <img class="mk-ic" src="/marketing-icon.svg" alt="" />
+                <span class="mk-kind">Image</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Marketing Studio</span><span class="arh-new">NEW</span>
               </span>
-              <span class="mk-card-line">Product shots and ads from your own photo, using presets built for campaigns.</span>
+              <span class="mk-card-line">Product shots and ads from your photo.</span>
             </a>
             <a class="mk-card" href="/prompt-lab/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/lab-icon.svg" alt="" />
+                <span class="mk-kind">Text</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Prompt Lab</span>
               </span>
-              <span class="mk-card-line">Prompts that already work, for the models you actually use.</span>
+              <span class="mk-card-line">Prompts that already work.</span>
             </a>
             <a class="mk-card" href="/assistant">
+              <span class="mk-top">
+                <img class="mk-ic" src="/chat-icon.svg" alt="" />
+                <span class="mk-kind">Text</span>
+              </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Assistant</span>
               </span>
-              <span class="mk-card-line">Ask for something and it works out which tool to open.</span>
+              <span class="mk-card-line">Ask, and it opens the right tool.</span>
             </a>
           </div>
           <a class="mk-radar" href="/radar/">
@@ -1723,7 +1798,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v699"></script>
+    <script src="app.js?v=v700"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────
@@ -1737,7 +1812,7 @@ function arCredits(n){
          gets the posters and nothing else. */
       (function () {
         var rail = document.getElementById('scRail');
-        if (!rail || !('IntersectionObserver' in window)) return;
+        if (!('IntersectionObserver' in window)) return;
         if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
         var io = new IntersectionObserver(function (entries) {
@@ -1753,7 +1828,8 @@ function arCredits(n){
           });
         }, { rootMargin: '120px' });
 
-        rail.querySelectorAll('.sc-vid').forEach(function (v) { io.observe(v); });
+        if (rail) rail.querySelectorAll('.sc-vid').forEach(function (v) { io.observe(v); });
+        document.querySelectorAll('.ft-vid').forEach(function (v) { io.observe(v); });
       })();
     </script>
 
