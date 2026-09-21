@@ -5259,3 +5259,14 @@ b, strong { font-weight: 600; }
   color: var(--accent-lo); text-decoration: none;
 }
 .bn-more:hover { text-decoration: underline; }
+
+
+/* ══ Radar search bar ════════════════════════════════════════════════════
+   What the radar page opens with, in place of a hero: the search box, the
+   live counts, and the way into the fullscreen monitor. Left-aligned,
+   because a centred search box on a page of left-aligned panels is the
+   only thing on it pretending to be a landing page. */
+.rd-bar { padding: 22px 0 26px; }
+.rd-search { margin: 0; max-width: 620px; }
+.rd-meta { margin: 14px 0 0; justify-content: flex-start; }
+@media (max-width: 640px) { .rd-bar { padding: 14px 0 18px; } }

@@ -7199,7 +7199,10 @@ async function vsAssembleFromSections(data, skipFootage) {
     _sourceLine: srcLabel,              // "by X" rendered large under the title
     introMotion: "blur",
     headline: "", duration: narrationDuration(data.intro && data.intro.narration, 3), settings: cleanSet2(),
-    _kicker: kicker || "AI RADAR",
+    // The source of the stamp, not just its rendering: this set the kicker
+    // to our name whenever the writer produced none, so the guard further
+    // down never fired. Empty means the intro card simply has no eyebrow.
+    _kicker: kicker || "",
     _heroWord: (data.intro && data.intro.heroWord) || "",
     _timelineLabel: introMain
   });
@@ -14825,9 +14828,13 @@ function drawStudioFrame(elapsed) {
       // so title cards read differently from the middle slides.
       headlineFont: (tpl && (tpl.introFont || tpl.headlineFont)) || "Prata, serif",
       // eyebrow label above the intro title (uses the AI kicker if present)
+      // Same rule as the thumbnail templates: when there is nothing to put
+      // here, put nothing. This used to fall back to "AI RADAR", so any
+      // video whose kicker the writer left empty opened on our name - on
+      // somebody else's video, above their title.
       _eyebrow: introSlide.isOutro ? "" :
         ((introSlide.settings && introSlide.settings["#vsNewsKicker"]) ||
-         introSlide._kicker || "AI RADAR")
+         introSlide._kicker || "")
     };
     // Skip color filter for animated motion backgrounds — only apply to footage
     if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
@@ -18201,12 +18208,22 @@ function vsTplMinimal(R) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   const fit = vsThumbFitBox(ctx, words, W - M * 2, H * 0.34, W * (landscape ? 0.075 : 0.1), W * 0.04, "600", VS_TPL_FAM);
   const lh = fit.px * 1.08, blockH = fit.lines.length * lh, startY = H * 0.9 - blockH, ky = startY - H * 0.05;
-  ctx.fillStyle = accent; ctx.fillRect(M, ky - H * 0.006, W * 0.05, Math.max(3, H * 0.006));
-  const kp = Math.round(W * 0.024);
-  ctx.save(); ctx.font = `700 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
-  ctx.fillStyle = "rgba(255,255,255,0.82)"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-  ctx.fillText((source || "AI RADAR").toUpperCase().replace(/\s+/g, " ").slice(0, 28), M + W * 0.07, ky);
-  try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+  // No source, no source line - the rule the other five templates already
+  // follow. This one used to substitute "AI RADAR", so a thumbnail with
+  // nothing to credit got our name burned into it in caps, on the template
+  // whose whole point is that it is minimal. Our name is not a watermark;
+  // it belongs on the site, not on work somebody is about to publish.
+  //
+  // The accent rule goes with it. It exists to introduce the line, and a
+  // dash pointing at nothing reads worse than no dash.
+  if (source) {
+    ctx.fillStyle = accent; ctx.fillRect(M, ky - H * 0.006, W * 0.05, Math.max(3, H * 0.006));
+    const kp = Math.round(W * 0.024);
+    ctx.save(); ctx.font = `700 ${kp}px ${VS_TPL_FAM}`; try { ctx.letterSpacing = `${W * 0.006}px`; } catch (e) {}
+    ctx.fillStyle = "rgba(255,255,255,0.82)"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(source.toUpperCase().replace(/\s+/g, " ").slice(0, 28), M + W * 0.07, ky);
+    try { ctx.letterSpacing = "0px"; } catch (e) {} ctx.restore();
+  }
   ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `600 ${fit.px}px ${VS_TPL_FAM}`;
   ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = W * 0.012; ctx.shadowOffsetY = H * 0.002;
   fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, startY + li * lh, emph, accent, "#f4f5f7"));
