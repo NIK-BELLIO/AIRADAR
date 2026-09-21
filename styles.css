@@ -31,6 +31,7 @@ html { background: #08090c; }
 .arh-link:hover .arh-ic,.arh-link.arh-active .arh-ic,.arh-link[aria-current="page"] .arh-ic{opacity:1}
 /* A badge that shouts on eight items at once says nothing. Outline, not fill. */
 .arh-new{padding:1px 5px;border-radius:4px;font:600 8.5px/1.6 var(--font-mono);letter-spacing:.08em;color:var(--accent-lo);background:rgba(18,214,245,.1);border:1px solid rgba(18,214,245,.22)}
+.arh-free{padding:1px 5px;border-radius:4px;font:600 8.5px/1.6 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#5fe0b0;background:rgba(95,224,176,.1);border:1px solid rgba(95,224,176,.24)}
 .arh-right{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding-right:5px}
 .arh-signin{padding:7px 15px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;color:#fff;white-space:nowrap;background:var(--accent);border:0;text-decoration:none;transition:filter .14s}
 .arh-signin:hover{filter:brightness(1.12)}
@@ -5212,7 +5213,6 @@ b, strong { font-weight: 600; }
   box-shadow: 0 18px 40px -26px rgba(0, 0, 0, .9);
 }
 .bn-card + .bn-card { margin-top: 10px; }
-.bn-card-sm { padding: 10px 14px; }
 .bn-card-h {
   display: flex; align-items: center; gap: 7px;
   margin-bottom: 11px;
@@ -5227,17 +5227,6 @@ b, strong { font-weight: 600; }
   font-size: 11.5px; color: var(--text);
 }
 .bn-row b { font: 600 10px/1 var(--font-mono); letter-spacing: .04em; color: var(--muted); }
-.bn-dim, .bn-dim b { color: var(--muted-2); }
-.bn-ok { color: var(--success) !important; }
-.bn-run { color: var(--accent-lo) !important; }
-.bn-money { color: var(--money) !important; font-size: 11.5px !important; }
-.bn-price {
-  font-family: var(--font-display);
-  font-size: 30px; font-weight: 600; line-height: 1; color: #fff;
-}
-.bn-price span { font-family: var(--font-body); font-size: 12px; font-weight: 500; color: var(--muted); }
-.bn-bar { height: 3px; margin-top: 10px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; }
-.bn-bar i { display: block; height: 100%; background: var(--accent); }
 
 /* Below 1080 the side panels are decoration competing for a narrow column,
    so they go and the sentence keeps the space. */
@@ -5246,3 +5235,27 @@ b, strong { font-weight: 600; }
   .bn-side { display: none; }
   .bn-block { padding: 34px 20px; }
 }
+
+
+/* The clip that gives the panel its weight. The reference's version is full
+   of pictures; a panel of text rows is a table with a glow behind it. */
+.bn-clip { position: relative; margin: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.bn-clipvid { aspect-ratio: 3 / 4; }
+.bn-clip figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 20px 10px 8px;
+  font: 600 9.5px/1.2 var(--font-mono);
+  letter-spacing: .08em; text-transform: uppercase; color: #fff;
+  background: linear-gradient(transparent, rgba(0,0,0,.8));
+}
+/* Real numbers, each labelled with the job it is for - a bare figure would
+   read as a flat rate, and none of these are. */
+.bn-m { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--text); }
+.bn-m i { font-style: normal; font: 500 10px/1 var(--font-mono); letter-spacing: .04em; color: var(--muted-2); }
+.bn-row b { font: 600 13px/1 var(--font-display); color: #fff; }
+.bn-more {
+  display: inline-block; margin-top: 10px;
+  font: 600 10.5px/1 var(--font-mono); letter-spacing: .06em;
+  color: var(--accent-lo); text-decoration: none;
+}
+.bn-more:hover { text-decoration: underline; }

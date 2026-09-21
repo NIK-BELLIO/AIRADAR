@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v702" />
+    <link rel="stylesheet" href="styles.css?v=v703" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -605,7 +605,7 @@
       <nav class="arh-nav" aria-label="Primary navigation">
         <!-- AI Creator temporarily hidden — output quality not ready yet. -->
         <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
-        <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span></a>
+        <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free">FREE</span></a>
         <a href="/spark/" class="arh-link">Spark</a>
         <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
       <a href="/models" class="arh-link">Models<span class="arh-new">NEW</span></a>
@@ -986,30 +986,40 @@
           <div class="bn-glow" aria-hidden="true"></div>
           <div class="bn-in">
 
-            <div class="bn-side bn-left" aria-hidden="true">
-              <div class="bn-card">
-                <div class="bn-card-h"><span class="bn-dot"></span>Job queue</div>
-                <div class="bn-row"><span>Genjutsu · swap</span><b class="bn-ok">done</b></div>
-                <div class="bn-row"><span>Seedance · 5s 480p</span><b class="bn-run">rendering</b></div>
-                <div class="bn-row bn-dim"><span>Soul 2 · 4 images</span><b>queued</b></div>
-              </div>
+            <div class="bn-side bn-left">
+              <figure class="bn-clip">
+                <video class="ft-vid bn-clipvid" src="/tpl/broll_presenter__12.mp4"
+                       poster="/tpl/broll_presenter__12.jpg" muted loop playsinline preload="none"></video>
+                <figcaption>Made in Video Studio</figcaption>
+              </figure>
             </div>
 
             <div class="bn-mid">
               <h2 class="bn-title">One balance.<br />Every model.</h2>
-              <p class="bn-sub">Thirteen image and video models, four studios and a workflow engine, all drawing on the same credits. No per-tool subscription.</p>
+              <p class="bn-sub">Thirteen image and video models and four studios, all drawing on the same credits. No per-tool subscription.</p>
               <a class="hero-x-go" href="/pricing">See what credits cost</a>
             </div>
 
-            <div class="bn-side bn-right" aria-hidden="true">
+            <div class="bn-side bn-right">
               <div class="bn-card">
-                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span>This job</div>
-                <div class="bn-price">41<span> credits</span></div>
-                <div class="bn-row bn-dim"><span>Seedance 2.0</span><b>5s · 480p</b></div>
-                <div class="bn-bar"><i style="width:62%"></i></div>
-              </div>
-              <div class="bn-card bn-card-sm">
-                <div class="bn-row"><span>Balance</span><b class="bn-money">999,527</b></div>
+                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span>What a job costs</div>
+                <span class="bn-row">
+                  <span class="bn-m">Soul 2<i>one image</i></span>
+                  <b>5</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Kling 3.0<i>5s</i></span>
+                  <b>26</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Seedance 2.0<i>5s · 480p</i></span>
+                  <b>41</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Cinema Studio<i>5s · 480p</i></span>
+                  <b>62</b>
+                </span>
+                <a class="bn-more" href="/pricing">Every price &rarr;</a>
               </div>
             </div>
 
@@ -1812,7 +1822,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v702"></script>
+    <script src="app.js?v=v703"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────
