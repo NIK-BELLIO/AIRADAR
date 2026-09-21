@@ -31,7 +31,7 @@ html { background: #08090c; }
 .arh-link:hover .arh-ic,.arh-link.arh-active .arh-ic,.arh-link[aria-current="page"] .arh-ic{opacity:1}
 /* A badge that shouts on eight items at once says nothing. Outline, not fill. */
 .arh-new{padding:1px 5px;border-radius:4px;font:600 8.5px/1.6 var(--font-mono);letter-spacing:.08em;color:var(--accent-lo);background:rgba(18,214,245,.1);border:1px solid rgba(18,214,245,.22)}
-.arh-right{flex:0 0 auto;display:flex;align-items:center;gap:10px}
+.arh-right{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding-right:5px}
 .arh-signin{padding:7px 15px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;color:#fff;white-space:nowrap;background:var(--accent);border:0;text-decoration:none;transition:filter .14s}
 .arh-signin:hover{filter:brightness(1.12)}
 .arh-avatar{position:relative;width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font:600 13px var(--font-body);color:var(--text);text-decoration:none;background:var(--surface-2);border:1px solid var(--line-strong);cursor:pointer;transition:border-color .14s}
@@ -40,7 +40,7 @@ html { background: #08090c; }
    edge and onto the corner, where it does not need the header to be tall
    enough to hold it. */
 .arh-avatar[data-credits]{box-shadow:none}
-.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;top:-6px;right:-8px;font:600 9px/1 var(--font-mono);color:#241a06;background:var(--money);padding:3px 5px;border-radius:5px;border:1.5px solid var(--bg);white-space:nowrap;pointer-events:none}
+.arh-avatar[data-credits]::after{content:attr(data-credits);position:absolute;top:-5px;right:-5px;font:600 9px/1 var(--font-mono);color:#241a06;background:var(--money);padding:2px 4px;border-radius:5px;border:1.5px solid var(--bg);white-space:nowrap;pointer-events:none}
 .arh .seg-toggle{display:inline-flex;gap:1px;padding:2px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
 .arh .seg-btn{padding:4px 9px;border-radius:6px;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;min-height:0;height:auto}
 .arh .seg-btn.active{background:var(--surface-3);color:#fff}

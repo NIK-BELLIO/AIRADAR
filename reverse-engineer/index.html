@@ -58,8 +58,8 @@
     <nav class="arh-nav" aria-label="Primary navigation">
       <a href="/prompt-lab/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/lab-icon.svg" alt="" /></span>Prompt Lab</a>
       <a href="/studio/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/video-icon.svg" alt="" /></span>Video Studio</a>
-      <a href="/spark/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark<span class="arh-new">NEW</span></a>
-      <a href="/reverse-engineer/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer<span class="arh-new">NEW</span></a>
+      <a href="/spark/" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/spark-icon.svg" alt="" /></span>Spark</a>
+      <a href="/reverse-engineer/" class="arh-link" aria-current="page"><span class="arh-ic"><img class="lab-ic" src="/re-icon.svg" alt="" /></span>Reverse Engineer</a>
       <a href="/models" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/models-icon.svg" alt="" /></span>Models<span class="arh-new">NEW</span></a>
       <a href="/workflows/cinema-studio" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/cinema-icon.svg" alt="" /></span>Cinema<span class="arh-new">NEW</span></a>
       <a href="/marketing-studio" class="arh-link"><span class="arh-ic"><img class="lab-ic" src="/marketing-icon.svg" alt="" /></span>Marketing<span class="arh-new">NEW</span></a>
@@ -123,6 +123,19 @@
       </div>
     </div>
     <script>
+function arCredits(n){
+  n = Number(n) || 0;
+  if (n < 1000) return String(n);
+  // Below 999500, because Math.round would otherwise turn 999,527 into
+  // "1000k" - a unit that does not exist and a number wider than the one it
+  // was meant to shorten.
+  if (n < 999500) {
+    const k = n / 1000;
+    return (k < 10 ? k.toFixed(1).replace(/.0$/, "") : String(Math.round(k))) + "k";
+  }
+  return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
+}
+
       /* ── Unified auth for airadar.me — one login shared across the whole
          domain (main site + /studio + /dashboard) via a host-only cookie the
          studio Worker sets. All calls hit same-origin /api/* which Cloudflare
@@ -158,7 +171,7 @@
               $("authInitial").textContent = (me.user.email[0] || "?").toUpperCase();
               $("authEmail").textContent = me.user.email;
               $("authCredits").textContent = (me.credits ?? 0) + " credits";
-              try{ $("authAccountBtn").setAttribute("data-credits", String(me.credits ?? 0)); }catch(_){}
+              try{ $("authAccountBtn").setAttribute("data-credits", arCredits(me.credits)); }catch(_){}
             } else {
               $("authSignInBtn").hidden = false;
               $("authAccount").hidden = true;
@@ -334,7 +347,7 @@
     </main>
   </div>
 
-  <script src="/app.js?v=v683"></script>
+  <script src="/app.js?v=v684"></script>
   <script>
     (function () {
       var tries = 0;
