@@ -1782,11 +1782,11 @@ function getTrendBadge(tool) {
   }
   const stars = tool.stars || 0, score = tool.score || 0;
   const isNew = tool.tags && tool.tags.some(t => ['new','2025','2026'].includes(t.toLowerCase()));
-  if (stars >= 20000 && score >= 85) return `<span class="trend-badge badge-hot">🔥 ${fa?'پرطرفدار':'Trending'}</span>`;
-  if (stars >= 5000 && score >= 70)  return `<span class="trend-badge badge-growing">⬆ ${fa?'رشد سریع':'Growing'}</span>`;
-  if (tool.price === 0 && score >= 80) return `<span class="trend-badge badge-free-pick">✓ ${fa?'بهترین رایگان':'Best free'}</span>`;
-  if (isNew) return `<span class="trend-badge badge-new">✦ ${fa?'جدید':'New'}</span>`;
-  if (score >= 90) return `<span class="trend-badge badge-established">◈ ${fa?'تثبیت‌شده':'Established'}</span>`;
+  if (stars >= 20000 && score >= 85) return `<span class="trend-badge badge-hot">${fa?'پرطرفدار':'Trending'}</span>`;
+  if (stars >= 5000 && score >= 70)  return `<span class="trend-badge badge-growing">${fa?'رشد سریع':'Growing'}</span>`;
+  if (tool.price === 0 && score >= 80) return `<span class="trend-badge badge-free-pick">${fa?'بهترین رایگان':'Best free'}</span>`;
+  if (isNew) return `<span class="trend-badge badge-new">${fa?'جدید':'New'}</span>`;
+  if (score >= 90) return `<span class="trend-badge badge-established">${fa?'تثبیت‌شده':'Established'}</span>`;
   return '';
 }
 function renderToolCard(tool) {

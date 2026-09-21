@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v688" />
+    <link rel="stylesheet" href="styles.css?v=v689" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -541,36 +541,50 @@
         margin-bottom: 6px;
         width: fit-content;
       }
+      /* A badge states a fact about a tool, and the colour has to agree with
+         what the rest of the system means by that colour.
+
+         Three of these did not. "Trending" was error red - the colour every
+         failed job on the site uses - for a tool doing well. "Established"
+         had a blue background, a blue border and gold text, three colours in
+         one pill. "New" had a blue background and cyan text. All three were
+         left over from a re-theme that changed the values and not the
+         pairings.
+
+         Now: cyan is live movement, green is growth, blue is the brand
+         saying this one is solid. Background, border and text always the
+         same hue. */
       .badge-hot {
-        background: rgba(248,113,113,.12);
-        border: 1px solid rgba(248,113,113,.35);
-        color: #f87171;
+        background: rgba(18,214,245,.10);
+        border: 1px solid rgba(18,214,245,.32);
+        color: #12d6f5;
       }
       .badge-growing {
-        background: rgba(95,224,176,.12);
-        border: 1px solid rgba(95,224,176,.35);
+        background: rgba(95,224,176,.10);
+        border: 1px solid rgba(95,224,176,.32);
         color: #5fe0b0;
       }
       .badge-free-pick {
-        background: rgba(91,155,255,.12);
-        border: 1px solid rgba(91,155,255,.35);
+        background: rgba(91,155,255,.10);
+        border: 1px solid rgba(91,155,255,.32);
         color: #5b9bff;
       }
       .badge-new {
-        background: rgba(91,155,255,.12);
-        border: 1px solid rgba(91,155,255,.35);
+        background: rgba(18,214,245,.10);
+        border: 1px solid rgba(18,214,245,.32);
         color: #12d6f5;
       }
       .badge-established {
-        background: rgba(37,99,255,0.12);
-        border: 1px solid rgba(37,99,255,0.35);
-        color: var(--gold);
+        background: rgba(37,99,255,.10);
+        border: 1px solid rgba(37,99,255,.32);
+        color: #5b9bff;
       }
+      /* The one badge that is allowed to be louder, because only one tool a
+         day wears it. Still a flat fill, not a gradient with a glow. */
       .badge-today {
-        background: linear-gradient(90deg,rgba(37,99,255,0.2),rgba(37,99,255,0.08));
-        border: 1px solid rgba(37,99,255,0.5);
-        color: var(--gold-2);
-        box-shadow: 0 0 8px rgba(37,99,255,0.15);
+        background: rgba(245,196,81,.12);
+        border: 1px solid rgba(245,196,81,.38);
+        color: #f5c451;
       }
       /* in list mode — inline */
       .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
@@ -768,6 +782,8 @@
           <div class="section-head">
             <div>
               
+              <span class="sec-eyebrow">The finder</span>
+              
               <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
             </div>
             <div class="search-wrap">
@@ -821,6 +837,8 @@
           <div class="section-head">
             <div>
               
+              <span class="sec-eyebrow">Live data</span>
+              
               <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
               <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
             </div>
@@ -871,6 +889,8 @@
         <section id="about" class="panel">
           <div class="section-head" style="margin-bottom:20px;">
             <div>
+              
+              <span class="sec-eyebrow">About</span>
               
               <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
             </div>
@@ -1647,7 +1667,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v688"></script>
+    <script src="app.js?v=v689"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

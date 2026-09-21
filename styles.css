@@ -599,12 +599,20 @@ h1 {
   font-weight: 400;
 }
 
+/* One heading scale.
+
+   There were two. The base h2 was 46px at weight 400 and .section-head h2
+   overrode it to 32px at weight 800, so "Live AI tools trend" came out half
+   again as large as "Curated real AI tools" on the same page, and lighter -
+   a section looked more important depending on which wrapper it happened to
+   be inside. Both now say the same thing, at the weight the hero uses. */
 h2 {
-  margin-bottom: 14px;
-  font-size: clamp(28px, 3.8vw, 46px);
-  line-height: 1.14;
+  margin-bottom: 12px;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.18;
+  letter-spacing: -0.022em;
   font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 body[dir="rtl"] h1,
@@ -4003,11 +4011,13 @@ section.panel:last-of-type { border-bottom: none; }
 .performance-panel { padding-top: 48px; padding-bottom: 48px; }
 
 /* Section headings — cleaner typography */
+/* Deliberately identical to the base rule now - kept as a hook, not as a
+   different size. */
 .section-head h2 {
-  font-size: clamp(22px, 2.8vw, 32px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.18;
 }
 .section-head > div > p:not(.eyebrow) {
   max-width: 560px;
@@ -4855,3 +4865,17 @@ a, button, [role="button"], label, summary {
    One step up is enough to mark emphasis, and it keeps bold meaningful for
    headings. Numerals that need presence opt back in locally. */
 b, strong { font-weight: 600; }
+
+
+/* ── Section eyebrow ──────────────────────────────────────────────────────
+   The small monospace tag above a heading. Every page in the app half of the
+   site opens this way - Playground, Credits, Workflow, Your account - so the
+   home page's sections do too, and the whole product reads as one thing. */
+.sec-eyebrow {
+  display: block;
+  margin: 0 0 8px;
+  font: 600 10px/1 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #5b9bff;
+}
