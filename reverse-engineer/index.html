@@ -8,7 +8,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=v692" />
+  <link rel="stylesheet" href="/styles.css?v=v693" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
     body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -116,7 +116,7 @@
           <label class="auth-label" for="authCodeInput">Enter the 6-digit code sent to <b id="authSentTo"></b></label>
           <input id="authCodeInput" class="auth-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="••••••" />
           <button type="submit" class="button primary auth-submit" id="authCodeSubmit">Verify &amp; sign in</button>
-          <button type="button" class="auth-back" id="authBackBtn">← Use a different email</button>
+          <button type="button" class="auth-back" id="authBackBtn">Use a different email</button>
         </form>
 
         <p id="authError" class="auth-error" hidden></p>
@@ -347,7 +347,7 @@ function arCredits(n){
     </main>
   </div>
 
-  <script src="/app.js?v=v692"></script>
+  <script src="/app.js?v=v693"></script>
   <script>
     (function () {
       var tries = 0;

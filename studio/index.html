@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v692" />
+    <link rel="stylesheet" href="/styles.css?v=v693" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -926,13 +926,13 @@
 
           <!-- LIVE TICKER -->
           <div class="aimon-ticker">
-            <span class="aimon-ticker-tag" id="aimonTickerTag">● LIVE</span>
+            <span class="aimon-ticker-tag" id="aimonTickerTag">LIVE</span>
             <div class="aimon-ticker-track" id="aimonTickerTrack"></div>
           </div>
 
           <div class="ainews">
             <div class="ainews-head">
-              <span class="ainews-label" id="ainewsLabel">◆ AI PULSE</span>
+              <span class="ainews-label" id="ainewsLabel">AI PULSE</span>
               <span class="ainews-sub" id="ainewsSub">Latest in AI</span>
               <span class="ainews-refreshing" id="ainewsRefreshing"></span>
             </div>
@@ -1119,7 +1119,7 @@
                       <span data-i18n="vSlideFootage">+ Add / replace footage on this slide</span>
                       <input id="vsSlideMediaUpload" type="file" accept="video/*,image/*" hidden />
                     </label>
-                    <button type="button" id="vsSlideMediaRemove" class="button ghost" style="display:none;width:100%;margin-top:6px;color:#ff9a9a;border-color:rgba(255,90,90,.35)">✕ Remove footage (use generated background)</button>
+                    <button type="button" id="vsSlideMediaRemove" class="button ghost" style="display:none;width:100%;margin-top:6px;color:#ff9a9a;border-color:rgba(255,90,90,.35)">Remove footage (use generated background)</button>
                     <p id="vsSlideMediaName" class="vstudio-note"></p>
                     <p class="vstudio-note" data-i18n="vFootageTip">Tip: drag the footage on the preview to reframe it, and scroll over it to zoom. Each scene keeps its own framing.</p>
 
@@ -1176,14 +1176,14 @@
                       <div class="control-grid">
                         <label><span data-i18n="vCamMotionLabel">Camera motion</span>
                           <select id="vsMotion">
-                            <optgroup label="🎥 Zoom">
+                            <optgroup label="Zoom">
                               <option value="kenburns-in">Ken Burns — zoom in</option>
                               <option value="kenburns-out">Ken Burns — zoom out</option>
                               <option value="punch-in">Punch in</option>
                               <option value="zoom-pan">Zoom + pan</option>
                               <option value="vertigo">Vertigo (dolly zoom)</option>
                             </optgroup>
-                            <optgroup label="↔ Pan">
+                            <optgroup label="Pan">
                               <option value="pan-right">Pan right</option>
                               <option value="pan-left">Pan left</option>
                               <option value="pan-up">Pan up</option>
@@ -1192,7 +1192,7 @@
                               <option value="drift-up">Slow drift up</option>
                               <option value="parallax">Parallax drift</option>
                             </optgroup>
-                            <optgroup label="✨ Stylised">
+                            <optgroup label="Stylised">
                               <option value="spin-in">Spin in</option>
                               <option value="pulse">Pulse</option>
                               <option value="breathe">Breathe</option>
@@ -1205,14 +1205,14 @@
                         </label>
                         <label><span data-i18n="vTextAnimLabel">Text animation</span>
                           <select id="vsTextAnim">
-                            <optgroup label="◦ Simple">
+                            <optgroup label="Simple">
                               <option value="none">None (instant)</option>
                               <option value="fade">Fade</option>
                               <option value="fade-up" selected>Fade up</option>
                               <option value="fade-down">Fade down</option>
                               <option value="blur-in">Blur in</option>
                             </optgroup>
-                            <optgroup label="↔ Slide">
+                            <optgroup label="Slide">
                               <option value="slide-up">Slide up</option>
                               <option value="slide-down">Slide down</option>
                               <option value="slide-left">Slide left</option>
@@ -1220,7 +1220,7 @@
                               <option value="glide-in">Glide</option>
                               <option value="drift">Drift</option>
                             </optgroup>
-                            <optgroup label="⬤ Scale &amp; pop">
+                            <optgroup label="Scale &amp; pop">
                               <option value="pop">Pop</option>
                               <option value="spring">Spring</option>
                               <option value="zoom-in">Zoom in</option>
@@ -1228,7 +1228,7 @@
                               <option value="punch">Punch (impact)</option>
                               <option value="drop">Drop</option>
                             </optgroup>
-                            <optgroup label="✦ Kinetic / motion-graphic">
+                            <optgroup label="Kinetic / motion-graphic">
                               <option value="maison-kinetic">MAISON word-by-word ★</option>
                               <option value="rise">Rise</option>
                               <option value="rise-spring">Rise + bounce</option>
@@ -1243,7 +1243,7 @@
                         <label><span data-i18n="vOverlayLabel">Overlay element</span>
                           <select id="vsOverlay">
                             <option value="none">None</option>
-                            <optgroup label="✨ Luxury">
+                            <optgroup label="Luxury">
                               <option value="goldframe">Gold frame</option>
                               <option value="shimmer">Shimmer sweep</option>
                               <option value="embers">Warm embers</option>
@@ -1251,19 +1251,19 @@
                               <option value="glow">Edge glow</option>
                               <option value="bokeh">Bokeh lights</option>
                             </optgroup>
-                            <optgroup label="◻ Minimal">
+                            <optgroup label="Minimal">
                               <option value="minimalline">Minimal line</option>
                               <option value="corners">Corner brackets</option>
                               <option value="haze">Soft haze</option>
                               <option value="gradient">Cinematic bars</option>
                             </optgroup>
-                            <optgroup label="🌟 Particle">
+                            <optgroup label="Particle">
                               <option value="particles">Sparkle particles</option>
                               <option value="dust">Floating dust</option>
                               <option value="snow">Snow</option>
                               <option value="rain">Rain</option>
                             </optgroup>
-                            <optgroup label="📼 Retro">
+                            <optgroup label="Retro">
                               <option value="scanlines">Scanlines</option>
                               <option value="vhs">VHS jitter</option>
                             </optgroup>
@@ -1281,7 +1281,7 @@
                       <p class="vstudio-note" data-i18n="vInfoHint">Type your title and stats below — the infographic builds itself as you write. No JSON needed.</p>
 
                       <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vInfoAiLabel">✦ Generate with AI</span>
+                        <span class="vstudio-label" data-i18n="vInfoAiLabel">Generate with AI</span>
                         <p class="vstudio-note" data-i18n="vInfoAiHint">Describe your topic or paste a paragraph — AI turns it into a title and stats. First use opens a free Puter sign-in.</p>
                         <textarea id="vsInfoAiText" rows="3" placeholder="e.g. The 2026 housing market: prices up 8.4%, mortgage rates around 6.2%, 1.2M homes for sale, average 34 days on market."></textarea>
                         <button id="vsInfoAiBtn" class="button primary vs-ai-btn" type="button">
@@ -1308,13 +1308,13 @@
                       <div class="control-grid">
                         <label><span data-i18n="vInfoStyleLabel">Chart style</span>
                           <select id="vsInfoStyle">
-                            <optgroup label="🔢 Numbers">
+                            <optgroup label="Numbers">
                               <option value="big-numbers">Big Numbers (cinematic)</option>
                               <option value="counters">Counting up</option>
                               <option value="ticker-numbers">Ticker style</option>
                               <option value="comparison">Side-by-side compare</option>
                             </optgroup>
-                            <optgroup label="📊 Charts">
+                            <optgroup label="Charts">
                               <option value="bars">Horizontal bars</option>
                               <option value="pills">Progress pills</option>
                               <option value="donut">Donut rings</option>
@@ -1327,7 +1327,7 @@
                               <option value="neon-cards">Neon accent cards</option>
                               <option value="magazine">Magazine layout</option>
                             </optgroup>
-                            <optgroup label="📰 Editorial">
+                            <optgroup label="Editorial">
                               <option value="timeline-list">Timeline / list</option>
                               <option value="ranking">Ranking / leaderboard</option>
                               <option value="vs-split">VS split (2 values)</option>
@@ -1380,7 +1380,7 @@
                       <p class="vstudio-note" data-i18n="vNewsHint">Type the news details below — a broadcast-style banner is drawn over the video.</p>
 
                       <div class="vs-ai-block">
-                        <span class="vstudio-label" data-i18n="vNewsAiLabel">✦ Summarize with AI</span>
+                        <span class="vstudio-label" data-i18n="vNewsAiLabel">Summarize with AI</span>
                         <p class="vstudio-note" data-i18n="vNewsAiHint">Paste an article or notes — AI writes a short kicker, headline and source. First use opens a free Puter sign-in.</p>
                         <textarea id="vsNewsAiText" rows="4" placeholder="Paste the news article text or your notes here…"></textarea>
                         <button id="vsNewsAiBtn" class="button primary vs-ai-btn" type="button">
@@ -1398,27 +1398,27 @@
                       <div class="control-grid">
                         <label><span data-i18n="vNewsStyleLabel">Banner style</span>
                           <select id="vsNewsStyle">
-                            <optgroup label="📺 Broadcast">
+                            <optgroup label="Broadcast">
                               <option value="lowerthird">Lower third</option>
                               <option value="ticker">Bottom ticker</option>
                               <option value="fullbar">Full lower bar</option>
                               <option value="breaking">Breaking news bar</option>
                               <option value="topbar">Top news bar</option>
                             </optgroup>
-                            <optgroup label="🎬 Cinematic title">
+                            <optgroup label="Cinematic title">
                               <option value="title-center">Centered title</option>
                               <option value="bold-statement">Bold statement (huge)</option>
                               <option value="title-left">Left title block</option>
                               <option value="kinetic">Kinetic type</option>
                               <option value="reveal-words">Word reveal</option>
                             </optgroup>
-                            <optgroup label="💬 Quote &amp; context">
+                            <optgroup label="Quote &amp; context">
                               <option value="quote">Quote style</option>
                               <option value="pullquote">Pull quote (side)</option>
                               <option value="caption">Caption bottom</option>
                               <option value="annotation">Annotation card</option>
                             </optgroup>
-                            <optgroup label="🎨 Graphic">
+                            <optgroup label="Graphic">
                               <option value="split">Split block</option>
                               <option value="badge">Badge headline</option>
                               <option value="magazine-cover">Magazine cover</option>
@@ -1453,14 +1453,14 @@
                   </details>
                 </div>
                 <details class="vs-slide-section" id="vsAutoBuild" open>
-                  <summary class="vstudio-label" data-i18n="vAutoLabel">✦ AI Video Assistant</summary>
+                  <summary class="vstudio-label" data-i18n="vAutoLabel">AI Video Assistant</summary>
                   <div class="vs-section-body">
                     <p class="vstudio-note" id="vsAutoHint">Give the assistant <strong>anything</strong> — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro &amp; outro.</p>
 
                     <div class="vs-auto-mode" style="display:flex;gap:6px;margin-bottom:10px;">
-                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn">✦ Smart</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn">🔗 From link</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">📄 From text</button>
+                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn">Smart</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn">From link</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">From text</button>
                     </div>
 
 
@@ -1479,12 +1479,12 @@
 
                     <label><span id="vsAutoToneLbl">Tone</span>
                       <select id="vsAutoTone">
-                        <option value="advisor">📊 Advisor / analytical (for clients)</option>
-                        <option value="news">📰 Broadcast news</option>
-                        <option value="explainer">🎓 Explainer / educational</option>
-                        <option value="hype">🔥 Hype / launch</option>
-                        <option value="documentary">🎬 Cinematic documentary</option>
-                        <option value="social">📱 Punchy social (TikTok/Reels)</option>
+                        <option value="advisor">Advisor / analytical (for clients)</option>
+                        <option value="news">Broadcast news</option>
+                        <option value="explainer">Explainer / educational</option>
+                        <option value="hype">Hype / launch</option>
+                        <option value="documentary">Cinematic documentary</option>
+                        <option value="social">Punchy social (TikTok/Reels)</option>
                       </select>
                     </label>
 
@@ -1513,7 +1513,7 @@
                       <label class="vs-switch">
                         <input id="vsVoiceover" type="checkbox" />
                         <span class="vs-switch-track"></span>
-                        <span class="vs-switch-txt" id="vsVoiceoverLbl" data-i18n="vVoiceoverLbl">🎙️ AI voiceover narration (free)</span>
+                        <span class="vs-switch-txt" id="vsVoiceoverLbl" data-i18n="vVoiceoverLbl">AI voiceover narration (free)</span>
                       </label>
                       <div id="vsVoiceRow" style="display:flex;gap:8px;margin:2px 0 6px;padding-left:4px;">
                         <select id="vsVoice" title="Voice" style="flex:1;font-size:12.5px;">
@@ -1534,7 +1534,7 @@
                     </div>
                     <input id="vsPexelsKey" type="hidden" value="" />
                     <details class="vs-smart-model" style="margin-top:10px;border:1px solid rgba(37,99,255,0.25);border-radius:10px;padding:8px 10px;">
-                      <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#2563ff;list-style:none;">⚡ Smarter model (optional)</summary>
+                      <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#2563ff;list-style:none;">Smarter model (optional)</summary>
                       <p style="font-size:11.5px;opacity:0.75;margin:8px 0 6px;">Paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#2563ff;">OpenRouter</a> API key to write scripts with a top-tier model. Leave empty to keep using the free model. Your key stays in your browser.</p>
                       <input id="vsApiKey" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px;" />
                       <select id="vsApiModel" style="width:100%;">
@@ -1548,7 +1548,7 @@
 <div class="vs-auto-actions">
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;">✦ <span id="vsAutoAiBtnTxt">Generate my video</span></button>
                       <button id="vsExportBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;margin-top:10px;display:none;" data-i18n="vExportBtn">⬇ <span id="vsExportBtnTxt">Export video</span></button>
-                      <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;">🖼 <span id="vsCoverBtnTxt">Thumbnail Studio</span></button>
+                      <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;"><span id="vsCoverBtnTxt">Thumbnail Studio</span></button>
 
                       <!-- Realtor reels. Here with the other buttons that open a
                            tool, rather than up among the mode chips: it starts a
@@ -1585,21 +1585,21 @@
                     </label>
                     <label><span data-i18n="vIntroMotion2">Text motion</span>
                       <select id="vsIntroMotionInput">
-                        <optgroup label="⬆ Enter">
+                        <optgroup label="Enter">
                           <option value="fade">Fade in</option>
                           <option value="rise">Rise up</option>
                           <option value="slide">Slide from left</option>
                           <option value="slide-r">Slide from right</option>
                           <option value="drop">Drop down</option>
                         </optgroup>
-                        <optgroup label="💥 Dynamic">
+                        <optgroup label="Dynamic">
                           <option value="spring">Spring</option>
                           <option value="rise-spring">Rise + spring</option>
                           <option value="punch">Punch in</option>
                           <option value="vox">Vox (snappy)</option>
                           <option value="swing">Swing in</option>
                         </optgroup>
-                        <optgroup label="🎬 Cinematic">
+                        <optgroup label="Cinematic">
                           <option value="zoom">Zoom in</option>
                           <option value="blur">Blur in</option>
                           <option value="flip">Flip in</option>
@@ -2041,7 +2041,7 @@
             <span class="ld-tz" id="ldTz"></span>
           </div>
           <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
-          <a class="ld-monitor-btn" href="/monitor.html" title="Open the live world monitor — earthquakes, crises & headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
+          <a class="ld-monitor-btn" href="/monitor.html" title="Open the live world monitor — earthquakes, crises & headlines"><span id="ldMonitorTxt">World Monitor</span></a>
           <button class="ld-close" id="ldClose" type="button" aria-label="Close"><i>✕</i><span id="ldCloseTxt">Exit</span></button>
         </div>
       </div>
@@ -2068,7 +2068,7 @@
         <section class="ld-card ld-chart">
           <div class="ld-card-head">
             <span class="ld-card-title" id="ldChartTitle">Trending Models</span>
-            <span class="ld-chart-metric">★ GitHub</span>
+            <span class="ld-chart-metric">GitHub</span>
           </div>
           <div class="ld-chart-body" id="ldChartBody"></div>
         </section>
@@ -2088,7 +2088,7 @@
 
       <!-- BLOOMBERG-STYLE NEWS TICKER -->
       <div class="ld-ticker">
-        <span class="ld-ticker-label" id="ldTickerLabel">◆ AI FEED</span>
+        <span class="ld-ticker-label" id="ldTickerLabel">AI FEED</span>
         <div class="ld-ticker-track" id="ldTickerTrack"></div>
       </div>
     </div>
@@ -2455,7 +2455,7 @@
           <label class="auth-label" for="authCodeInput">Enter the 6-digit code sent to <b id="authSentTo"></b></label>
           <input id="authCodeInput" class="auth-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="••••••" />
           <button type="submit" class="button primary auth-submit" id="authCodeSubmit">Verify &amp; sign in</button>
-          <button type="button" class="auth-back" id="authBackBtn">← Use a different email</button>
+          <button type="button" class="auth-back" id="authBackBtn">Use a different email</button>
         </form>
 
         <p id="authError" class="auth-error" hidden></p>
@@ -2662,7 +2662,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v692"></script>
+    <script src="/app.js?v=v693"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
@@ -2950,7 +2950,7 @@ function arCredits(n){
     <div class="mg-guide-backdrop" id="vsMgGuide" hidden>
       <div class="mg-guide" role="dialog" aria-modal="true" aria-labelledby="mgGuideTitle">
         <button class="mg-guide-close" id="vsMgGuideClose" type="button" aria-label="Close">✕</button>
-        <span class="mg-guide-badge">✦ Skills</span>
+        <span class="mg-guide-badge">Skills</span>
         <h3 id="mgGuideTitle">Two AI skills, built in 3 steps</h3>
         <p class="mg-guide-sub"><b>/motion_graphic</b> — animated vector graphics, charts &amp; kinetic text. <b>/editorial</b> — a photo-led, magazine-style deck with AI images &amp; big display type. No footage needed either way (but you can add your own to any scene).</p>
 
