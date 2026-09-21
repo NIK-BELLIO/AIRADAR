@@ -4903,3 +4903,73 @@ b, strong { font-weight: 600; }
   text-transform: uppercase;
   color: #5b9bff;
 }
+
+
+/* ══ What we make ════════════════════════════════════════════════════════
+   The first thing on the home page: the eight studios, as a grid.
+
+   Flat cards on a hairline, no gradient and no shadow. The only colour is
+   the NEW badge and the border lifting on hover - which is the whole point
+   of a neutral canvas, that one pixel of brand is enough to show a card is
+   alive. Eight of anything is a lot, so the cards carry a name, a line, and
+   nothing else competing for the eye. */
+.mk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+.mk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color .15s, background .15s, transform .15s;
+}
+.mk-card:hover {
+  border-color: rgba(37, 99, 255, .5);
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+.mk-card-head { display: flex; align-items: center; gap: 8px; }
+.mk-card-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  color: var(--text);
+}
+.mk-card-line { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+/* The way out to the radar. It used to be the whole home page, so it gets a
+   full-width row rather than a ninth card pretending to be a studio. */
+.mk-radar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+}
+.mk-radar:hover { border-color: rgba(37, 99, 255, .5); background: var(--surface-2); }
+.mk-radar-txt { flex: 1 1 auto; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.mk-radar-txt b {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.mk-radar-go { flex: 0 0 auto; font-size: 17px; color: var(--accent-lo); }
+
+@media (max-width: 1080px) { .mk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px)  { .mk-grid { grid-template-columns: 1fr; } }

@@ -6,19 +6,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#08090c" />
-    <title>AI Radar - Find, Compare &amp; Create with Real AI Tools</title>
+    <title>Radar - Compare AI tools on real numbers | AI Radar</title>
     <meta property="og:title" content="AI Radar - Find, Compare &amp; Create" />
     <meta property="og:image" content="https://airadar.me/og.png" />
-    <meta property="og:url" content="https://airadar.me/" />
+    <meta property="og:url" content="https://airadar.me/radar/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="canonical" href="https://airadar.me/" />
+    <link rel="canonical" href="https://airadar.me/radar/" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <meta name="description" content="Discover real AI tools, compare live popularity, generate captions, and build videos." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v695" />
+    <link rel="stylesheet" href="/styles.css?v=v695" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -647,25 +647,9 @@
         <section class="hero-x" id="heroX">
           <div class="hero-x-glow" aria-hidden="true"></div>
           <div class="hero-x-inner">
-            <h1 class="motion-title" data-i18n="heroTitle">AI that sees ahead.</h1>
-            <p class="hero-x-sub" data-i18n="heroText">Find the AI tools that actually work, watch what is gaining traction, and make studio-grade video in your browser.</p>
-
-            <form class="hero-x-search" id="heroSearchForm" role="search">
-              <svg class="hero-x-search-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
-              <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools by name, use case, or price…" />
-              <button type="submit" class="hero-x-search-btn">Search</button>
-            </form>
-            <!-- One quiet line instead of a chip strip and a metrics card.
-                 The counts keep their ids so the live values still land, and
-                 Live Dashboard stays because this button is the only way to
-                 open it anywhere on the site. -->
-            <p class="hero-x-meta">
-              <span><strong id="metricTools">45+</strong> <span data-i18n="metricTools">AI tools</span></span>
-              <span><strong id="metricFree">100%</strong> <span data-i18n="metricFree">Free plans</span></span>
-              <span><strong id="metricJobs">Live</strong> <span data-i18n="metricJobs">GitHub data</span></span>
-              <button type="button" class="hero-x-dash" id="openDashboardBtn">Live Dashboard</button>
-            </p>
-
+            <span class="sec-eyebrow">The radar</span>
+            <h1 class="motion-title">What the rest of AI is doing.</h1>
+            <p class="hero-x-sub">Forty-four tools compared on real numbers, live GitHub popularity, a map of the infrastructure behind it, and the day's headlines.</p>
           </div>
         </section>
 
@@ -682,78 +666,6 @@
              rather than as a queue in front of it. -->
         <div class="models-ticker-wrap" aria-label="AI model logos ticker">
           <div class="models-ticker" id="modelsTicker"></div>
-
-        <!-- ── WHAT WE MAKE ──────────────────────────────────────────────
-             The home page used to open onto a directory of other people's
-             AI tools. Good work, and none of it about what this site does.
-             That lives on /radar/ now, and this is the first thing instead:
-             the eight things you can actually make here. -->
-        <section id="make" class="panel">
-          <div class="section-head">
-            <div>
-              <span class="sec-eyebrow">What you can make</span>
-              <h2>Eight studios, one balance</h2>
-              <p>Every tool draws on the same credits. Start in whichever one matches the job.</p>
-            </div>
-          </div>
-          <div class="mk-grid">
-            <a class="mk-card" href="/studio/">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Video Studio</span>
-              </span>
-              <span class="mk-card-line">Turn a link, an article or an idea into a finished video — script, footage, captions and voice.</span>
-            </a>
-            <a class="mk-card" href="/spark/">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Spark</span>
-              </span>
-              <span class="mk-card-line">The quick tools: hooks, posts, thumbnails, carousels. Most of them free.</span>
-            </a>
-            <a class="mk-card" href="/reverse-engineer/">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Reverse Engineer</span>
-              </span>
-              <span class="mk-card-line">Point it at a post that worked and get the same thing, made with you in it.</span>
-            </a>
-            <a class="mk-card" href="/models">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Models</span><span class="arh-new">NEW</span>
-              </span>
-              <span class="mk-card-line">Thirteen image and video models, every setting they accept, one price in credits.</span>
-            </a>
-            <a class="mk-card" href="/workflows/cinema-studio">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Cinema Studio</span><span class="arh-new">NEW</span>
-              </span>
-              <span class="mk-card-line">Direct the shot instead of describing it: era, lens, lighting, camera move.</span>
-            </a>
-            <a class="mk-card" href="/marketing-studio">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Marketing Studio</span><span class="arh-new">NEW</span>
-              </span>
-              <span class="mk-card-line">Product shots and ads from your own photo, using presets built for campaigns.</span>
-            </a>
-            <a class="mk-card" href="/prompt-lab/">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Prompt Lab</span>
-              </span>
-              <span class="mk-card-line">Prompts that already work, for the models you actually use.</span>
-            </a>
-            <a class="mk-card" href="/assistant">
-              <span class="mk-card-head">
-                <span class="mk-card-name">Assistant</span>
-              </span>
-              <span class="mk-card-line">Ask for something and it works out which tool to open.</span>
-            </a>
-          </div>
-          <a class="mk-radar" href="/radar/">
-            <span class="mk-radar-txt">
-              <b>Still want the radar?</b>
-              Forty-four AI tools compared, live GitHub popularity, a world map of AI infrastructure and the day's headlines.
-            </span>
-            <span class="mk-radar-go" aria-hidden="true">&rarr;</span>
-          </a>
-        </section>
         </div>
 
 
@@ -765,9 +677,95 @@
         <!-- TOP ROW: Tool of the Day (left) | AI Monitor (right) -->
         <!-- TOP ROW: Tool of the Day | Live AI Radar -->
         <div class="tod-radar-row">
+        <section id="toolOfDay" class="panel tod-panel">
+          <div class="tod-inner">
+            <div class="tod-left">
+              <div class="tod-eyebrow">
+                <span class="tod-live-dot"></span>
+                <span id="todLabel">Tool of the Day</span>
+              </div>
+              <div class="tod-card-main">
+                <div class="tod-logo-wrap" id="todLogoWrap">
+                  <span class="tod-logo" id="todLogo"></span>
+                </div>
+                <div class="tod-info">
+                  <h3 class="tod-name" id="todName">Loading…</h3>
+                  <span class="tod-category" id="todCategory"></span>
+                </div>
+                <span class="tod-price" id="todPrice"></span>
+              </div>
+              <p class="tod-desc" id="todDesc"></p>
+              <div class="tod-tags" id="todTags"></div>
+              <div class="tod-actions">
+                <a class="button primary tod-btn" id="todLink" href="#" target="_blank" rel="noopener">
+                  <span id="todBtnLabel">Visit tool</span> ↗
+                </a>
+                <span class="tod-next" id="todNext">
+                  Next tool in <span id="todCountdown">…</span>
+                </span>
+              </div>
+            </div>
+            <div class="tod-right">
+              <div class="tod-progress-ring">
+                <svg viewBox="0 0 120 120" width="120" height="120">
+                  <circle cx="60" cy="60" r="52" class="tod-ring-bg"/>
+                  <circle cx="60" cy="60" r="52" class="tod-ring-fill" id="todRingFill"/>
+                </svg>
+                <div class="tod-ring-inner">
+                  <span class="tod-day-num" id="todDayNum"></span>
+                  <span class="tod-day-label" id="todDayLabel">Today</span>
+                </div>
+              </div>
+              <div class="tod-stats" id="todStats"></div>
+            </div>
+          </div>
+          <!-- similar tools — fills the lower space with useful content -->
+          <div class="tod-related">
+            <div class="tod-related-head" id="todRelatedHead">More from this category</div>
+            <div class="tod-related-grid" id="todRelated"></div>
+          </div>
+        </section>
         <!-- /TOOL OF THE DAY -->
 
         <!-- AI WORLD MAP + NEWS -->
+        <section id="aiMonitor" class="panel ai-monitor">
+          <div class="aimon-head">
+            <div class="aimon-title-wrap">
+              <div>
+                
+                <h2 id="aimonTitle">Global AI Map</h2>
+              </div>
+            </div>
+            <div class="aimon-summary" id="aimonSummary">
+              <span class="aimon-summary-dot"></span>
+              <span id="aimonSummaryText">10 hubs</span>
+            </div>
+          </div>
+          <p class="aimon-sub" id="aimonSub">The world's AI power centers, live. Tap a hub to see who's there.</p>
+
+          <!-- LIVE METRIC CHIPS -->
+          <div class="aimon-chips" id="aimonChips"></div>
+
+          <div class="aimap-wrap">
+            <div class="aimap" id="aimap"></div>
+            <div class="aimap-info" id="aimapInfo"></div>
+          </div>
+
+          <!-- LIVE TICKER -->
+          <div class="aimon-ticker">
+            <span class="aimon-ticker-tag" id="aimonTickerTag">● LIVE</span>
+            <div class="aimon-ticker-track" id="aimonTickerTrack"></div>
+          </div>
+
+          <div class="ainews">
+            <div class="ainews-head">
+              <span class="ainews-label" id="ainewsLabel">◆ AI PULSE</span>
+              <span class="ainews-sub" id="ainewsSub">Latest in AI</span>
+              <span class="ainews-refreshing" id="ainewsRefreshing"></span>
+            </div>
+            <div class="ainews-list" id="ainewsList"></div>
+          </div>
+        </section>
         <!-- /AI WORLD MAP + NEWS -->
         </div>
         <!-- /TOP ROW -->
@@ -775,8 +773,103 @@
         <!-- TWIN PANELS: Tools+Compare (left) | Charts (right) -->
         <div class="twin-panels">
           <div class="twin-col">
+<section id="tools" class="panel">
+          <div class="section-head">
+            <div>
+              
+              <span class="sec-eyebrow">The finder</span>
+              
+              <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
+            </div>
+            <div class="search-wrap">
+              <label class="sr-only" for="searchInput">Search tools</label>
+              <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
+              <div class="view-toggle" role="group" aria-label="View mode">
+                <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="1" width="6" height="6" rx="1"/>
+                    <rect x="9" y="1" width="6" height="6" rx="1"/>
+                    <rect x="1" y="9" width="6" height="6" rx="1"/>
+                    <rect x="9" y="9" width="6" height="6" rx="1"/>
+                  </svg>
+                </button>
+                <button id="viewList" class="view-btn" type="button" aria-label="List view" title="List view">
+                  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                    <rect x="1" y="2" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="2.5" width="9" height="2" rx="1"/>
+                    <rect x="1" y="6.5" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="7" width="9" height="2" rx="1"/>
+                    <rect x="1" y="11" width="3" height="3" rx="0.5"/>
+                    <rect x="6" y="11.5" width="9" height="2" rx="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="filters" aria-label="Tool filters">
+            <label><span data-i18n="jumpToLabel">Jump to tool</span><select id="jumpToTool"></select></label>
+            <label><span data-i18n="categoryLabel">Category</span><select id="categoryFilter"></select></label>
+            <label><span data-i18n="budgetLabel">Budget</span><select id="budgetFilter"></select></label>
+            <label><span data-i18n="sortLabel">Sort</span><select id="sortFilter"></select></label>
+          </div>
+          <div class="advanced-search">
+            <label><span data-i18n="modelTypeLabel">Model type</span><select id="modelTypeFilter"></select></label>
+            <label><span data-i18n="minScoreLabel">Minimum score</span><input id="minScoreFilter" type="range" min="0" max="100" value="0" /></label>
+          </div>
+          <p id="toolCount" class="tool-count"></p>
+          <div id="toolGrid" class="tool-grid"></div>
+        </section>
+<section id="compare" class="compare panel">
+          <div class="section-head">
+            <div><h2 data-i18n="compareTitle">Compare selected tools</h2></div>
+            <button id="clearCompare" class="button ghost" type="button" data-i18n="clearCompare">Clear</button>
+          </div>
+          <div id="compareTable" class="compare-table"></div>
+        </section>
           </div>
           <div class="twin-col" style="position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;overflow-x:hidden;-webkit-mask-image:linear-gradient(to bottom,black 85%,transparent 100%);mask-image:linear-gradient(to bottom,black 85%,transparent 100%);">
+<section id="performance" class="panel performance-panel">
+          <div class="section-head">
+            <div>
+              
+              <span class="sec-eyebrow">Live data</span>
+              
+              <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
+              <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
+            </div>
+          </div>
+          <div class="chart-toolbar">
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
+              <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
+              <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
+              <button class="chart-tab" data-metric="multi" id="chartTabMulti">Multi-metric</button>
+            </div>
+            <div class="chart-live-bar">
+              <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
+              <button id="refreshChartBtn" class="chart-refresh-btn" type="button">
+                <span class="chart-refresh-ic">↻</span>
+                <span data-i18n="refreshLabel">Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- summary stat cards -->
+          <div class="gh-summary" id="ghSummary"></div>
+
+          <!-- sort + search controls -->
+          <div class="gh-controls">
+            <div class="gh-sort" id="ghSort">
+              <button class="gh-sort-btn active" data-sort="value">Highest</button>
+              <button class="gh-sort-btn" data-sort="growth">Most active</button>
+              <button class="gh-sort-btn" data-sort="name">A-Z</button>
+            </div>
+            <input id="ghSearch" class="gh-search" type="text" placeholder="Filter tools…" />
+          </div>
+
+          <div id="performanceChart" class="performance-chart"></div>
+          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> · <span id="lastRefreshed">Loading…</span></div>
+        </section>
           </div>
         </div>
 
@@ -788,80 +881,6 @@
 
 
         <!-- ABOUT / CREDITS -->
-        <section id="about" class="panel">
-          <div class="section-head" style="margin-bottom:20px;">
-            <div>
-              
-              <span class="sec-eyebrow">About</span>
-              
-              <h2 data-i18n="aboutTitle" style="font-size:clamp(22px,3vw,36px);">Built for the AI-curious</h2>
-            </div>
-          </div>
-          <div class="about-compact-grid">
-
-            <!-- LEFT: mission + stats -->
-            <div style="display:flex;flex-direction:column;gap:14px;">
-              <p data-i18n="aboutText" style="font-size:14px;line-height:1.8;">AI Radar is a free workspace to discover real AI tools, track live popularity, and build professional videos, all in your browser.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">45+</strong><span style="font-size:11px;color:var(--muted);">AI tools</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">100%</strong><span style="font-size:11px;color:var(--muted);">Free to use</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Live</strong><span style="font-size:11px;color:var(--muted);">GitHub data</span></div>
-                <div style="padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);text-align:center;"><strong style="display:block;font-size:22px;color:var(--gold-2);font-family:'Space Grotesk',ui-sans-serif,sans-serif;">Zero</strong><span style="font-size:11px;color:var(--muted);">Tracking / ads</span></div>
-              </div>
-              <div style="padding:14px 16px;border-left:3px solid var(--gold);background:rgba(37,99,255,0.05);border-radius:0 10px 10px 0;">
-                <p data-i18n="aboutMissionText" style="margin:0;font-size:13px;line-height:1.8;">The AI space moves faster than anyone can follow. AI Radar cuts through the noise. A calm, honest place to find genuinely useful tools and create real work without paywalls.</p>
-              </div>
-            </div>
-
-            <!-- RIGHT: creator + changelog -->
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <div style="padding:16px;border:1px solid rgba(37,99,255,0.3);border-radius:10px;background:rgba(37,99,255,0.05);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                  <div style="width:40px;height:40px;border-radius:50%;background:rgba(37,99,255,0.2);border:1px solid rgba(37,99,255,0.4);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--gold-2);flex-shrink:0;">SA</div>
-                  <div>
-                    <strong style="display:block;font-size:15px;">Shayan Alinia</strong>
-                    <span style="font-size:11px;color:var(--muted);" data-i18n="aboutRole">Creator &amp; Designer</span>
-                  </div>
-                </div>
-                <p data-i18n="aboutCreditText" style="margin:0;font-size:13px;line-height:1.75;">Designed and built AI Radar: concept, interface, and the video studio.</p>
-              </div>
-
-              <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);">
-                  <span style="font-size:12px;font-weight:800;" data-i18n="changelogTitle">Latest updates</span>
-                  <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(37,99,255,0.15);border:1px solid rgba(37,99,255,0.3);color:var(--gold);">v2.5</span>
-                </div>
-                <ul style="list-style:none;margin:0;padding:0;">
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.5</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Real AI news, cinematic map &amp; tool dashboards</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Live headlines from TechCrunch, VentureBeat &amp; The Verge, a dotted cinematic world map with live data packets, per-tool featured dashboards, live metric chips with sparklines, and similar-tool discovery cards.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.4</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Global AI map, news &amp; live dashboard</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">New world map of AI hubs, an AI news pulse, a fullscreen live dashboard for second monitors, and an advanced GitHub dashboard with sort, search &amp; multi-metric view.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.35</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Always-free AI assistant</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">The video assistant now runs on a free AI engine. No sign-in, no limits. Smarter intros &amp; outros with the source built in.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.3</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;">Font system &amp; snap guides</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);">Font selector now applies to all video styles: news, infographic, cinematic, neon, intro and outro. Center snap guide added.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.2</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl21Title">Cinematic design upgrade</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl21Text">Premium animated backgrounds, new infographic styles, Vox-style motion across the studio.</p></div>
-                  </li>
-                  <li style="display:flex;gap:10px;padding:10px 14px;">
-                    <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(37,99,255,0.12);border:1px solid rgba(37,99,255,0.25);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold);">2.1</span>
-                    <div><strong style="font-size:13px;display:block;margin-bottom:3px;" data-i18n="cl20Title">Smarter article-to-video</strong><p style="margin:0;font-size:12px;line-height:1.6;color:var(--muted);" data-i18n="cl20Text">Paste an article URL. AI reads the whole piece and builds a complete video using infographics where there are numbers.</p></div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-        </section>
 
       </main>
       <button id="scrollTopBtn" class="scroll-top" type="button"
@@ -1569,7 +1588,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v695"></script>
+    <script src="/app.js?v=v695"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
