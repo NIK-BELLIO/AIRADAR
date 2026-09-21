@@ -20703,7 +20703,24 @@ function vsReverseEngineer(prefill, opts) {
     const url = ($$("reUrl").value || "").trim();
     if (!url) { $$("reUrl").focus(); return; }
     const charge = await vsCharge("analyze"); if (charge.block) return;   // 1 credit (Apify read)
-    const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "···";
+    const b = $("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "···";
+    // Ninety-five seconds is a long time to show nothing. The card opens
+    // immediately with a spinner and a line that changes as the wait goes on,
+    // so it reads as work in progress rather than as a dead button.
+    const card0 = $("reRefCard");
+    card0.style.display = "flex";
+    card0.innerHTML =
+      '<div style="display:flex;align-items:center;gap:11px;font-size:12.5px;color:#8a919c">' +
+      '<span class="re-spin"></span><span id="reFetchMsg">' +
+      (fa ? "در حال خواندنِ لینک…" : "Reading the link…") + "</span></div>";
+    const steps = fa
+      ? ["در حال خواندنِ لینک…", "اینستاگرام کند است — ادامه می‌دهیم…", "هنوز منتظریم. تا ۹۰ ثانیه طول می‌کشد."]
+      : ["Reading the link…", "Instagram is slow — still going…", "Still waiting. This can take up to 90 seconds."];
+    let stepI = 0;
+    const ticker = setInterval(() => {
+      stepI = Math.min(stepI + 1, steps.length - 1);
+      const el = $("reFetchMsg"); if (el) el.textContent = steps[stepI];
+    }, 12000);
     try {
       ref = await vsReverseFetchPost(url);
       // Keep the address it came from. An Instagram /reel/ or /tv/ link IS a
@@ -20711,6 +20728,7 @@ function vsReverseEngineer(prefill, opts) {
       // that cannot be wrong - unlike a guess read off a single cover frame.
       if (ref) ref.srcUrl = url;
       // Only a real caption counts — refund the credit if IG couldn't be read.
+      clearInterval(ticker);
       vsSettle(charge.jobId, (ref && ref.ok) ? "done" : "failed");
       const card = $$("reRefCard");
       card.style.display = "flex";
@@ -20737,6 +20755,7 @@ function vsReverseEngineer(prefill, opts) {
         setTimeout(() => { try { $$("rePaste").focus(); } catch (e) {} }, 30);
       }
     } catch (e) {
+      clearInterval(ticker);
       vsSettle(charge.jobId, "failed");   // refund the credit if the read errored
       $$("reRefCard").style.display = "flex";
       try { $$("rePasteWrap").open = true; } catch (e2) {}
@@ -21335,9 +21354,23 @@ function vsReverseEngineer(prefill, opts) {
               : lockedBy === "template"
               ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
               : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
-            $$("reRouteLockTxt").innerHTML = fa
+            $("reRouteLockTxt").innerHTML = (fa
               ? "اسکریپت برای " + why + " نوشته شد، پس با <b>" + esc(how) + "</b> ساخته می‌شود."
-              : "The script was written for " + why + ", so it builds as <b>" + esc(how) + "</b>.";
+              : "The script was written for " + why + ", so it builds as <b>" + esc(how) + "</b>.")
+              // Say what would change it. Genjutsu is the only builder that can
+              // put somebody into an existing clip, so the other methods are
+              // genuinely unavailable here - but "unavailable" without a reason
+              // and without a way back is indistinguishable from broken.
+              + (onlyGenjutsu
+                ? (fa
+                  ? ' <button type="button" id="reBackToTone" class="re-lockswap">برای روش‌های دیگر، «فقط لحن» را انتخاب کن</button>'
+                  : ' <button type="button" id="reBackToTone" class="re-lockswap">Want the other methods? Switch to “only the tone”</button>')
+                : "");
+            const swap = $("reBackToTone");
+            if (swap) swap.onclick = () => {
+              const toneBtn = root.querySelector('.re-want[data-want="tone"]');
+              if (toneBtn) toneBtn.click();
+            };
           }
         }
         if ($$("reFmtTalk")) $$("reFmtTalk").classList.toggle("active", rt === "talking_head");

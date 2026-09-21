@@ -5270,3 +5270,27 @@ b, strong { font-weight: 600; }
 .rd-search { margin: 0; max-width: 620px; }
 .rd-meta { margin: 14px 0 0; justify-content: flex-start; }
 @media (max-width: 640px) { .rd-bar { padding: 14px 0 18px; } }
+
+
+/* ══ Reverse Engineer ═════════════════════════════════════════════════════
+   The spinner the reference card shows while Apify reads a post. Scoped
+   with :is() because the panel relocates its output out of #reModal, so a
+   descendant selector alone stops matching once it moves. */
+:is(#reModal, #reMainBody) .re-spin, .re-spin {
+  width: 14px; height: 14px; flex: none;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .14);
+  border-top-color: var(--accent-lo);
+  animation: reSpin .8s linear infinite;
+}
+@keyframes reSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .re-spin { animation-duration: 2.4s; } }
+
+/* The way out of the Genjutsu lock, inline in the sentence that explains it. */
+.re-lockswap {
+  display: inline; padding: 0; margin-left: 4px;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; color: var(--accent-lo);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.re-lockswap:hover { color: #fff; }
