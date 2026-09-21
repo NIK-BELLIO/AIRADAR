@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v687" />
+    <link rel="stylesheet" href="styles.css?v=v688" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -67,7 +67,7 @@
       .gh-multi-track { height: 7px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
       .gh-multi-fill { height: 100%; border-radius: 6px; }
       .gh-multi-fill.stars { background: linear-gradient(90deg, #2563ff, #5b9bff); }
-      .gh-multi-fill.forks { background: linear-gradient(90deg, #5b9bff, #5b9bff); }
+      .gh-multi-fill.forks { background: linear-gradient(90deg, #8a919c, #5b9bff); }
       .gh-multi-fill.activity { background: linear-gradient(90deg, #5fe0b0, #5fe0b0); }
       .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -1149,11 +1149,11 @@
       @media (max-width:880px){.luxury-hero .dash-hint{white-space:normal;position:static;margin-top:9px}}
       /* supporting line — readable measure + calm tone */
       .luxury-hero .luxury-hero-copy > p[data-i18n="heroText"]{max-width:38rem;
-        color:#5b9bff;font-size:clamp(15px,1.1vw,18px);line-height:1.72;margin:0 0 18px}
+        color:#8a919c;font-size:clamp(15px,1.1vw,18px);line-height:1.72;margin:0 0 18px}
       /* professional feature chips — that "AI product" feel */
       .luxury-hero .hero-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px;padding:0;list-style:none}
       .luxury-hero .hero-chips li{display:inline-flex;align-items:center;gap:7px;
-        font-size:12px;font-weight:600;color:#5b9bff;letter-spacing:.015em;
+        font-size:12px;font-weight:600;color:#f4f5f7;letter-spacing:.015em;
         padding:6px 13px;border-radius:999px;background:rgba(37,99,255,.08);
         border:1px solid rgba(37,99,255,.22);backdrop-filter:blur(2px)}
       .luxury-hero .hero-chips li::before{content:"";width:6px;height:6px;border-radius:50%;
@@ -1169,7 +1169,7 @@
 
       /* ── Auto-build toggle switches (clean iOS-style) ── */
       .vs-auto-opts{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}
-      .vs-switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:13px;color:#f5c451;line-height:1.35}
+      .vs-switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:13px;color:#f4f5f7;line-height:1.35}
       .vs-switch input{position:absolute;opacity:0;width:0;height:0}
       .vs-switch-track{position:relative;flex-shrink:0;width:42px;height:24px;border-radius:999px;
         background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);transition:background .2s,border-color .2s}
@@ -1215,7 +1215,7 @@
       .vs-batch-item.active{background:rgba(37,99,255,.16);border-color:rgba(37,99,255,.5);
         box-shadow:inset 0 1px 0 rgba(255,236,176,.2)}
       .vs-batch-open{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
-        text-align:start;cursor:pointer;padding:10px 13px;background:transparent;border:0;color:#f5c451}
+        text-align:start;cursor:pointer;padding:10px 13px;background:transparent;border:0;color:#f4f5f7}
       .vs-batch-open .vs-batch-name{font-weight:700;font-size:13.5px;color:#f5c451}
       .vs-batch-open .vs-batch-meta{font-size:11px;color:#8a919c}
       .vs-batch-dl{flex-shrink:0;width:42px;cursor:pointer;border:0;border-inline-start:1px solid rgba(255,255,255,.08);
@@ -1397,7 +1397,7 @@
         background:rgba(255,255,255,.05) !important;
         border:1px solid rgba(255,255,255,.10) !important;
         -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
-        color:#5b9bff !important;
+        color:#f4f5f7 !important;
         transition:background-color .2s ease,color .2s ease,border-color .2s ease !important;
       }
       .vtab:hover,.chart-tab:hover,.gh-sort-btn:hover,.seg-btn:hover{
@@ -1647,7 +1647,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v687"></script>
+    <script src="app.js?v=v688"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
@@ -1895,7 +1895,7 @@ function arCredits(n){
       .free-popup-actions{display:flex;flex-direction:column;gap:10px;}
       .free-popup-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;
         display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);
-        border:1px solid rgba(255,255,255,.1);color:#5b9bff;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;}
+        border:1px solid rgba(255,255,255,.1);color:#8a919c;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;}
       .free-popup-close:hover{background:rgba(255,255,255,.12);color:#fff;}
       [dir="rtl"] .free-popup-close{right:auto;left:14px;}
       [dir="rtl"] .free-popup-list{text-align:right;}

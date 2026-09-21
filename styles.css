@@ -517,7 +517,7 @@ textarea {
 .button.ghost {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.045);
-  color: #5b9bff;
+  color: #f4f5f7;
   backdrop-filter: blur(6px);
 }
 
@@ -1065,7 +1065,7 @@ body[dir="rtl"] .panel-chip {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: #5b9bff;
+  color: #f4f5f7;
   font-size: 12px;
   font-weight: 800;
 }
@@ -2248,7 +2248,7 @@ body[dir="rtl"] .chart-overlay {
 }
 
 /* Highlight JSON keys */
-.json-out { color: #5fe0b0; }
+.json-out { color: #f4f5f7; }
 
 /* Output box upgrade */
 .output-box {
@@ -2787,7 +2787,7 @@ h1[data-i18n="heroTitle"] {
   border: 1px solid var(--line);
 }
 body.theme-light .theme-toggle-dot {
-  background: linear-gradient(135deg, #f4f5f7 50%, #12d6f5 50%);
+  background: linear-gradient(135deg, #f4f5f7 50%, #8a919c 50%);
 }
 
 /* ── ABOUT / CREDITS SECTION ────────────────────────────── */
@@ -3240,7 +3240,7 @@ body.theme-light pre {
 }
 .vs-clip.is-active { opacity: 1; }
 .vs-clip-media { background: linear-gradient(90deg,#2563ff,#5b9bff); }
-.vs-clip-text  { background: linear-gradient(90deg,#5b9bff,#5b9bff); }
+.vs-clip-text  { background: linear-gradient(90deg,#5b9bff,#f4f5f7); }
 .vs-clip-logo  { background: linear-gradient(90deg,#5fe0b0,#5fe0b0); }
 .vs-clip-music { background: linear-gradient(90deg,#12d6f5,#12d6f5); }
 .vs-playhead { position: absolute; top: 0; bottom: 0; left: 76px; width: 2px; background: #f87171; pointer-events: none; }
@@ -4207,7 +4207,7 @@ textarea:focus {
   padding: 7px 15px; border-radius: 999px; margin-bottom: 30px;
   background: rgba(37, 99, 255, 0.10);
   border: 1px solid rgba(37, 99, 255, 0.26);
-  color: #5b9bff; font-size: 12.5px; font-weight: 600; letter-spacing: .015em;
+  color: #f4f5f7; font-size: 12.5px; font-weight: 600; letter-spacing: .015em;
 }
 .hero-x-badge-dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -4224,7 +4224,7 @@ textarea:focus {
 }
 .hero-x-sub {
   max-width: 620px; margin: 0 auto 42px;
-  color: #5b9bff; font-size: clamp(15px, 1.2vw, 19px); line-height: 1.62;
+  color: #8a919c; font-size: clamp(15px, 1.2vw, 19px); line-height: 1.62;
 }
 .hero-x-search {
   display: flex; align-items: center; gap: 8px;
@@ -4266,7 +4266,7 @@ textarea:focus {
   padding: 8px 15px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  color: #5b9bff; font-size: 13px; font-weight: 600; font-family: inherit;
+  color: #f4f5f7; font-size: 13px; font-weight: 600; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;
 }
 .hero-x-chip:hover {
@@ -4321,7 +4321,7 @@ textarea:focus {
   border-radius: 999px !important;
   border: 1px solid rgba(255,255,255,0.12) !important;
   background: rgba(255,255,255,0.05) !important;
-  color: #5b9bff !important;
+  color: #f4f5f7 !important;
   font-weight: 600 !important;
   padding: 8px 16px !important;
   transition: transform .16s ease, background .16s ease, border-color .16s ease, color .16s ease !important;
@@ -4369,7 +4369,7 @@ summary.vstudio-label {
   font-weight: 700 !important;
   font-size: 12.5px !important;
   letter-spacing: .02em;
-  color: #5b9bff !important;
+  color: #f4f5f7 !important;
   transition: background .16s ease, border-color .16s ease;
 }
 summary.vstudio-label::-webkit-details-marker { display: none; }
@@ -4393,7 +4393,7 @@ summary.vstudio-label:hover {
   border-radius: 10px !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
   background: rgba(255,255,255,0.04) !important;
-  color: #5b9bff !important;
+  color: #f4f5f7 !important;
   font-weight: 600 !important;
   transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s ease !important;
 }
@@ -4437,7 +4437,7 @@ summary.vstudio-label:hover {
   border-radius: 999px !important;
   background: rgba(255,255,255,0.035) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
-  color: #5b9bff !important;
+  color: #f4f5f7 !important;
   font-weight: 600 !important;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   transition: color .18s, background .18s, border-color .18s !important;
@@ -4547,7 +4547,7 @@ summary.vstudio-label:hover {
 .auth-menu-credits { font-size: 11px; color: #5b9bff; margin: 3px 0 0; }
 .auth-menu-item {
   display: block; width: 100%; text-align: left; padding: 9px 12px; border-radius: 10px;
-  font-size: 13.5px; font-weight: 600; color: #5b9bff; text-decoration: none; cursor: pointer;
+  font-size: 13.5px; font-weight: 600; color: #f4f5f7; text-decoration: none; cursor: pointer;
   background: none; border: none;
 }
 [dir="rtl"] .auth-menu-item { text-align: right; }
@@ -4566,16 +4566,16 @@ summary.vstudio-label:hover {
   animation: authIn .3s cubic-bezier(.2,.7,.3,1);
 }
 @keyframes authIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
-.auth-close { position: absolute; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 999px; border: none; cursor: pointer; background: rgba(255,255,255,0.06); color: #5b9bff; font-size: 13px; }
+.auth-close { position: absolute; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 999px; border: none; cursor: pointer; background: rgba(255,255,255,0.06); color: #8a919c; font-size: 13px; }
 [dir="rtl"] .auth-close { right: auto; left: 16px; }
 .auth-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
 .auth-brand { display: flex; align-items: center; gap: 9px; font-weight: 800; color: #fff; margin-bottom: 16px; }
 .auth-brand-logo { width: 30px; height: 30px; border-radius: 10px; }
 .auth-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #f4f5f7; margin: 0 0 6px; }
 [dir="rtl"] .auth-title { font-family: 'Vazirmatn', sans-serif; }
-.auth-sub { font-size: 13px; color: #5b9bff; line-height: 1.6; margin: 0 0 20px; }
+.auth-sub { font-size: 13px; color: #8a919c; line-height: 1.6; margin: 0 0 20px; }
 .auth-form { display: flex; flex-direction: column; gap: 10px; }
-.auth-label { font-size: 12px; font-weight: 600; color: #5b9bff; }
+.auth-label { font-size: 12px; font-weight: 600; color: #f4f5f7; }
 .auth-input {
   width: 100%; padding: 13px 15px; border-radius: 14px; font-size: 15px; color: #fff;
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14);
@@ -4583,8 +4583,8 @@ summary.vstudio-label:hover {
 .auth-input:focus { outline: none; border-color: rgba(91,155,255,0.6); box-shadow: 0 0 0 3px rgba(37,99,255,0.2); }
 #authCodeInput { letter-spacing: .5em; text-align: center; font-size: 20px; font-weight: 700; }
 .auth-submit { width: 100%; margin-top: 4px; }
-.auth-back { background: none; border: none; color: #5b9bff; font-size: 12.5px; cursor: pointer; padding: 6px; }
-.auth-back:hover { color: #5b9bff; }
+.auth-back { background: none; border: none; color: #8a919c; font-size: 12.5px; cursor: pointer; padding: 6px; }
+.auth-back:hover { color: #f4f5f7; }
 .auth-error { margin: 12px 0 0; font-size: 13px; color: #f87171; text-align: center; }
 
 /* hidden attribute must win over the display rules above */
@@ -4622,7 +4622,7 @@ summary.vstudio-label:hover {
 }
 /* Bright controls need the ring to sit against the dark page, not the fill. */
 .btn:focus-visible, .arh-signin:focus-visible, .mbtn:focus-visible {
-  outline-color: #5b9bff;
+  outline-color: #f4f5f7;
   outline-offset: 3px;
 }
 
@@ -4845,9 +4845,9 @@ a, button, [role="button"], label, summary {
 .hero-x-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 22px;margin-top:26px!important;margin-bottom:0;font-size:12.5px;color:#8a919c;font-family:"JetBrains Mono",ui-monospace,monospace;letter-spacing:.02em}
 .hero-x-meta > span{display:inline-flex;align-items:baseline;gap:6px}
 .hero-x-meta > span + span::before,.hero-x-meta .hero-x-dash::before{content:"";display:inline-block;width:1px;height:11px;margin-inline-end:22px;background:rgba(255,255,255,.14);vertical-align:-1px}
-.hero-x-meta strong{color:#5b9bff;font-weight:800;font-variant-numeric:tabular-nums}
+.hero-x-meta strong{color:#f4f5f7;font-weight:800;font-variant-numeric:tabular-nums}
 .hero-x-dash{appearance:none;background:none;border:0;padding:0;cursor:pointer;font:inherit;color:#5b9bff;border-bottom:1px solid rgba(110,168,255,.35);transition:color var(--ar-base) var(--ar-ease),border-color var(--ar-base) var(--ar-ease)}
-.hero-x-dash:hover{color:#5b9bff;border-color:rgba(169,201,255,.7)}
+.hero-x-dash:hover{color:#f4f5f7;border-color:rgba(169,201,255,.7)}
 @media (max-width:600px){.hero-x-meta{gap:6px 16px;font-size:11.5px}}
 
 /* Inline emphasis. The browser default of 700 is too heavy against 400 body
