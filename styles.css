@@ -4194,11 +4194,13 @@ textarea:focus {
    ══════════════════════════════════════════════════════════════ */
 .hero-x {
   position: relative;
-  /* Was 76vh with the content vertically centred, which floated the headline
-     roughly halfway down the first screen and read as a layout fault rather
-     than as deliberate space. The block now sits near the top of its own
-     section and the search box gains real headroom. */
-  min-height: 58vh;
+  /* 58vh of centred hero made sense when the hero WAS the page - a headline,
+     a search box and a long scroll of panels underneath. Now the work sits
+     directly below it, and half a screen of empty black between the two is
+     the page telling you there is nothing here. The claim and the proof want
+     to be visible together. */
+  min-height: 0;
+  padding: 58px 0 34px;
   display: flex;
   align-items: center;
   justify-content: center;
