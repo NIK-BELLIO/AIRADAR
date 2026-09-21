@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v697" />
+    <link rel="stylesheet" href="styles.css?v=v698" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -657,19 +657,171 @@
           </div>
         </section>
 
-        <!-- ── AI MODELS TICKER ──────────────────────────────────────────
-             The ticker belongs after the promise, not in front of it.
 
-             It was the first thing on the page: a scrolling strip of other
-             companies' logos, above the headline, so the first thing anybody
-             read was a list of products that are not this one. None of the
-             sites this design follows put anything above their own sentence.
 
-             Down here it does the job it was always doing - showing the
-             breadth of what the finder tracks - as evidence for the claim
-             rather than as a queue in front of it. -->
-        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-          <div class="models-ticker" id="modelsTicker"></div>
+        <!-- ── THE WORK ──────────────────────────────────────────────────
+             A rail of real output rather than a description of it. The
+             clips ship with the site already - the template picker draws
+             from the same fifteen - so this costs one request each and no
+             new asset.
+
+             They autoplay only while on screen and only after their poster
+             has done the waiting: fifteen videos all decoding at once on a
+             phone is how a landing page becomes a heater. -->
+        <section id="work" class="sc-wrap">
+          <div class="sc-rail" id="scRail">
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Branded interview</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Kinetic type</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Skit</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Branded interview</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Branded interview</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Kinetic type</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Skit</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Branded interview</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Fast montage</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Single take</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+            </figure>
+          </div>
+        </section>
 
         <!-- ── WHAT WE MAKE ──────────────────────────────────────────────
              The home page used to open onto a directory of other people's
@@ -776,6 +928,20 @@
 
 
         <!-- ABOUT / CREDITS -->
+        <!-- ── AI MODELS TICKER ──────────────────────────────────────────
+             The ticker belongs after the promise, not in front of it.
+
+             It was the first thing on the page: a scrolling strip of other
+             companies' logos, above the headline, so the first thing anybody
+             read was a list of products that are not this one. None of the
+             sites this design follows put anything above their own sentence.
+
+             Down here it does the job it was always doing - showing the
+             breadth of what the finder tracks - as evidence for the claim
+             rather than as a queue in front of it. -->
+        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+          <div class="models-ticker" id="modelsTicker"></div>
+
         <section id="about" class="panel">
           <div class="section-head" style="margin-bottom:20px;">
             <div>
@@ -1557,7 +1723,39 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v697"></script>
+    <script src="app.js?v=v698"></script>
+
+    <script>
+      /* ── scRailPlayback ──────────────────────────────────────────────
+         Thirty <video> elements are in the markup so the rail can loop
+         without a seam. Letting all thirty decode at once turns a landing
+         page into a heater and, on a phone, into a stutter.
+
+         So they load nothing until they are on screen, play while they are,
+         and pause the moment they leave. The poster does the waiting, which
+         is what a poster is for. Anyone who has asked for reduced motion
+         gets the posters and nothing else. */
+      (function () {
+        var rail = document.getElementById('scRail');
+        if (!rail || !('IntersectionObserver' in window)) return;
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            var v = e.target;
+            if (e.isIntersecting) {
+              if (v.preload !== 'auto') { v.preload = 'auto'; v.load(); }
+              var p = v.play();
+              if (p && p.catch) p.catch(function () {});
+            } else if (!v.paused) {
+              v.pause();
+            }
+          });
+        }, { rootMargin: '120px' });
+
+        rail.querySelectorAll('.sc-vid').forEach(function (v) { io.observe(v); });
+      })();
+    </script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

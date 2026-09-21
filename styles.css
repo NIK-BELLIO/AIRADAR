@@ -4999,3 +4999,71 @@ b, strong { font-weight: 600; }
 .hero-x-go:hover { filter: brightness(1.12); }
 .hero-x-alt { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
 .hero-x-alt:hover { background: var(--surface-2); border-color: rgba(255,255,255,.3); }
+
+
+/* ══ The work ════════════════════════════════════════════════════════════
+   A full-bleed rail of real output, drifting left, under the hero.
+
+   Full-bleed on purpose: the page is otherwise a 1320px column, and one
+   band that ignores it is what stops a dark page reading as a document.
+   The list is duplicated in the markup so the translation can reset at
+   -50% with no seam.
+
+   It pauses on hover, and it stops entirely for anyone who has asked their
+   system for less motion - a wall of moving video is exactly what that
+   setting is for. */
+.sc-wrap {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 4px 0 40px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+.sc-rail {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: scDrift 96s linear infinite;
+}
+.sc-wrap:hover .sc-rail { animation-play-state: paused; }
+@keyframes scDrift { to { transform: translateX(-50%); } }
+
+.sc-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 156px;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color .18s, transform .18s;
+}
+.sc-card:hover { border-color: rgba(37, 99, 255, .55); transform: translateY(-3px); }
+.sc-vid {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+/* The label sits on the clip, on a gradient rather than a slab, so it reads
+   over a bright frame and a dark one alike. */
+.sc-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 22px 10px 8px;
+  font: 600 10.5px/1.2 var(--font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .78));
+}
+
+@media (max-width: 640px) { .sc-card { width: 124px; } .sc-wrap { padding-bottom: 30px; } }
+@media (prefers-reduced-motion: reduce) {
+  .sc-rail { animation: none; }
+  .sc-wrap { overflow-x: auto; }
+}
