@@ -19638,7 +19638,18 @@ async function vsReverseFetchPost(url) {
   const parseEmbed = (raw) => {
     const res = { caption: "", username: "", thumb: "" };
     if (!raw) return res;
-    const tm = raw.match(/\((https:\/\/[^)]*cdninstagram[^)]*)\)/i); if (tm) res.thumb = tm[1];
+    // The first cdninstagram link in the document is the poster's avatar
+    // (t51.2885-19 is the profile-picture path), not the post. Take the first
+    // one that is not an avatar, and fall back to the avatar only if that is
+    // genuinely all there is.
+    const imgs = [...raw.matchAll(/\((https:\/\/[^)]*cdninstagram[^)]*)\)/gi)].map((m) => m[1]);
+    res.thumb = imgs.find((u) => !/t51\.2885-19/.test(u) && !/\.mp4/.test(u)) || imgs[0] || "";
+    // And the embed hands us the mp4 — the reel itself, no auth needed. This
+    // was being dropped, which left ref.videoUrl set only on the paid Apify
+    // path, which is why "this exact video" with "with me in it" never had a
+    // clip to work from.
+    const vm = raw.match(/(https:\/\/[^\s)"']*cdninstagram[^\s)"']*\.mp4[^\s)"']*)/i);
+    if (vm) res.video = vm[1];
     const md = demark(raw);          // collapses to a single clean line
     const um = md.match(/([A-Za-z0-9._]{2,30})\s+_?Verified_?/i) || md.match(/([A-Za-z0-9._]{2,30})\s+\d[\d,.KMB]*\s*posts/i);
     if (um) res.username = um[1];
@@ -19669,6 +19680,10 @@ async function vsReverseFetchPost(url) {
       || html.match(/"display_url"\s*:\s*"((?:\\.|[^"\\])+)"/)
       || html.match(/(https:\/\/[^"')\s]*scontent[^"')\s]*cdninstagram[^"')\s]*)/i);
     if (im) { let u = im[1]; try { u = JSON.parse('"' + u + '"'); } catch (e) {} res.thumb = u.replace(/\\u0026|&amp;/g, "&"); }
+    // Same clip pickup as the markdown branch: whichever reader answered,
+    // the mp4 is already in the bytes and there is no reason to fetch twice.
+    const vh = html.match(/(https:\/\/[^\s)"']*cdninstagram[^\s)"']*\.mp4[^\s)"']*)/i);
+    if (vh) res.video = vh[1].replace(/\u0026|&amp;/g, "&");
     return res;
   };
   if (shortcode) {
@@ -19698,7 +19713,11 @@ async function vsReverseFetchPost(url) {
       const p = rd.html ? parseEmbedHtml(t) : parseEmbed(t);
       if (!out.caption && p.caption && !isJunk(p.caption)) { out.caption = p.caption.slice(0, 1200); out.username = p.username || out.username; }
       if (!out.thumb && p.thumb) out.thumb = p.thumb;
-      if (out.caption && out.thumb) break;
+      // The clip, carried through from the embed. Without this the free read
+      // produced a reference with no video, and Genjutsu - the one builder
+      // that can put somebody into an existing clip - had nothing to work on.
+      if (!out.videoUrl && p.video) out.videoUrl = p.video;
+      if (out.caption && out.thumb && out.videoUrl) break;
     }
   }
   // Fallback for anything the embed missed: og:description via our worker (works
@@ -20607,6 +20626,26 @@ function vsReverseEngineer(prefill, opts) {
              <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
            </div>
            <!-- Carousel (image + text slides) — FREE -->
+           <!-- REMAKE THE IMAGE - the only builder here whose output is a
+                picture rather than footage, and the only honest answer to a
+                photo post. Ideogram and Grok both read the reference itself,
+                so this is the same image made again rather than something
+                new that happens to match the caption. Shown only when the
+                reference is a still; every paid video model is hidden in the
+                same breath. -->
+           <div class="re-mcard" id="reImgCard" data-route="image" data-build="image" style="display:none">
+             <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
+             <div class="mtop">
+               <span class="mico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 3.5 3.5L16 12l4 4"/></svg></span>
+               <div><div class="mname">${fa ? "ساختِ دوبارهٔ همین عکس" : "Remake this image"}</div><div class="meng">${fa ? "مدل‌های تصویرِ جدید" : "the new image models"}</div></div>
+             </div>
+             <div class="mdesc">${fa ? "همین عکس دوباره ساخته می‌شود — همان سوژه، همان صحنه، همان متنِ روی تصویر — با عکس و اطلاعاتِ خودت. خروجی عکس است، نه ویدیو." : "The same picture again — same subject, same scene, same words on the image — with your photo and your details. The output is an image, not a video."}</div>
+             <div class="re-mctl"><div class="cf"><b>${fa ? "مدل" : "Model"}</b><select id="reImgModel"><option value="ideogram">Ideogram 4.0</option><option value="grok">Grok Imagine 2.0</option><option value="soul">Soul 2</option></select></div><div class="cf"><b>${fa ? "نسبت" : "Aspect"}</b><select id="reImgAsp">${optSize("4:5")}</select></div></div>
+             <div id="reImgWhy" style="font-size:11px;color:#8a919c;line-height:1.5;margin-top:-2px"></div>
+             <div style="flex:1"></div>
+             <span class="ar-cred" id="reCredImg">${gemSvg}5</span>
+             <button id="reBuildImg" type="button" class="mbtn">${fa ? "همین عکس را بساز" : "Remake the image"}</button>
+           </div>
            <div class="re-mcard free" data-route="carousel" data-build="carousel">
              <span class="mribbon">${fa ? "مثلِ اصل" : "MATCHES ORIGINAL"}</span>
              <div class="mtop">
@@ -20703,11 +20742,11 @@ function vsReverseEngineer(prefill, opts) {
     const url = ($$("reUrl").value || "").trim();
     if (!url) { $$("reUrl").focus(); return; }
     const charge = await vsCharge("analyze"); if (charge.block) return;   // 1 credit (Apify read)
-    const b = $("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "···";
+    const b = $$("reFetch"); b.disabled = true; const old = b.innerHTML; b.textContent = "···";
     // Ninety-five seconds is a long time to show nothing. The card opens
     // immediately with a spinner and a line that changes as the wait goes on,
     // so it reads as work in progress rather than as a dead button.
-    const card0 = $("reRefCard");
+    const card0 = $$("reRefCard");
     card0.style.display = "flex";
     card0.innerHTML =
       '<div style="display:flex;align-items:center;gap:11px;font-size:12.5px;color:#8a919c">' +
@@ -20719,7 +20758,7 @@ function vsReverseEngineer(prefill, opts) {
     let stepI = 0;
     const ticker = setInterval(() => {
       stepI = Math.min(stepI + 1, steps.length - 1);
-      const el = $("reFetchMsg"); if (el) el.textContent = steps[stepI];
+      const el = $$("reFetchMsg"); if (el) el.textContent = steps[stepI];
     }, 12000);
     try {
       ref = await vsReverseFetchPost(url);
@@ -21100,6 +21139,16 @@ function vsReverseEngineer(prefill, opts) {
       const urlSaysVideo = !!(ref && /instagram\.com\/(reel|reels|tv)\//i.test(String(ref.srcUrl || "")));
       const isMovingRef = haveClip || !!(ref && ref.videoUrl) || urlSaysVideo;
       if ($$("reMtCard")) $$("reMtCard").style.display = haveClip ? "" : "none";
+      // The mirror of that line. A still gets the image builder; a clip does
+      // not, because remaking one frame of a video is not a copy of the video.
+      if ($$("reImgCard")) $$("reImgCard").style.display = isMovingRef ? "none" : "";
+      if ($$("reImgWhy")) {
+        $$("reImgWhy").textContent = (ref && ref.thumb)
+          ? (fa ? "عکسِ مرجع به مدل داده می‌شود؛ اگر عکسِ خودت را هم بالا بزنی، هر دو خوانده می‌شوند."
+                : "The reference photo is read by the model. Add your own photo above and both are used.")
+          : (fa ? "از روی توضیحِ پست ساخته می‌شود — عکسِ مرجع در دسترس نبود."
+                : "Built from the post's description — the reference photo could not be fetched.");
+      }
       // Genjutsu needs the same thing Motion transfer needs - the actual
       // clip - so it appears on the same condition, and quotes the same way:
       // the whole job, because it bills the reference and the reference is
@@ -21268,8 +21317,16 @@ function vsReverseEngineer(prefill, opts) {
         // still was being offered a video-to-video builder first, which is a
         // first suggestion that cannot work on what the user actually gave us.
         {
+          // A still cannot be reproduced by a model that reads footage, and a
+          // route that cannot run is not a weaker suggestion - it is a wrong
+          // one. They come out of the list rather than sorting to the bottom
+          // of it, and the image builder takes their place at the top.
+          if (!isMovingRef) {
+            recRoutes = recRoutes.filter((r) => r !== "genjutsu" && r !== "motion" && r !== "scene");
+            recRoutes.unshift("image");
+          }
           const VIDEO_FIRST = ["genjutsu", "motion", "scene", "video"];
-          const IMAGE_FIRST = ["carousel", "video", "scene"];
+          const IMAGE_FIRST = ["image", "carousel", "video", "scene"];
           const order = (ref && ref.refVideo) ? VIDEO_FIRST : IMAGE_FIRST;
           recRoutes.sort((a, b) => {
             const ia = order.indexOf(a), ib = order.indexOf(b);
@@ -21289,7 +21346,10 @@ function vsReverseEngineer(prefill, opts) {
             // so a reference that reads as a talking clip is best served by
             // Genjutsu when we have the video and by the scene rebuild when
             // we do not.
-            recRoutes = (ref && ref.refVideo) ? ["genjutsu", "motion"] : ["scene"];
+            // Putting the user into a STILL is an image job. The scene
+            // rebuild used to catch this case, but it generates footage from
+            // a photo, which is a different post than the one being copied.
+            recRoutes = (ref && ref.refVideo) ? ["genjutsu", "motion"] : isMovingRef ? ["scene"] : ["image"];
           } else if (reWantSource === "template" && rePickedTemplate) {
             const want = vsFormatBuild(vsTemplate(rePickedTemplate).shape).route;
             recRoutes = [want].concat(recRoutes.filter((r) => r !== want));
@@ -21305,7 +21365,12 @@ function vsReverseEngineer(prefill, opts) {
         // three are "video" — so committing to a route still left a menu on
         // screen. Commit to the one builder the template card quoted its credits
         // for: the free on-device slideshow, not MiniMax; Fabric, not Happy Horse.
-        const BUILD_OF = { genjutsu: "genjutsu", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion" };
+        // Every builder whose output is footage and whose bill is a model.
+        // The free on-device slideshow is deliberately not here: it costs
+        // nothing, it is not a model, and turning a photo post into a reel is
+        // a thing people come here to do.
+        const PAID_VIDEO = ["genjutsu", "motion", "scene", "presenter", "minimax", "grok"];
+        const BUILD_OF = { genjutsu: "genjutsu", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion", image: "image" };
         const chosen = BUILD_OF[recRoutes[0]] || recRoutes[0];
         // Putting YOURSELF into an existing clip is Genjutsu's whole job, and
         // no other builder here can do it - the rest generate something new.
@@ -21327,7 +21392,14 @@ function vsReverseEngineer(prefill, opts) {
           // The scene builder is gated on the REFERENCE being multi-shot — but a
           // skit template is multi-shot by definition, it brings its own beats,
           // so a template that routes there unlocks it on its own authority.
-          const gated = c.id === "reMtCard" ? !haveClip
+          // A still reference gets no paid video model at all. This is also
+          // where Genjutsu's own gate used to be lost: its card is hidden when
+          // the analysis finds no clip, but this loop then set display on
+          // EVERY card, and Genjutsu was not named here - so the hidden card
+          // came straight back. Naming it by its build closes that.
+          const gated = !isMovingRef && PAID_VIDEO.indexOf(b) !== -1 ? true
+            : c.id === "reMtCard" || c.id === "reGjCard" ? !haveClip
+            : c.id === "reImgCard" ? isMovingRef
             : c.id === "reSceneCard" ? !(multiShot || chosen === "scene") : false;
           c.style.display = gated || (lockedBy && b !== chosen) ? "none" : "";
         });
@@ -21335,7 +21407,11 @@ function vsReverseEngineer(prefill, opts) {
         // itself gated off, drop the lock rather than render an empty grid.
         if (lockedBy && !root.querySelector('.re-mcard[data-build="' + chosen + '"]:not([style*="display: none"])')) {
           root.querySelectorAll(".re-mcard").forEach((c) => {
-            const gated = c.id === "reMtCard" ? !haveClip : c.id === "reSceneCard" ? !multiShot : false;
+            const b2 = c.getAttribute("data-build");
+            const gated = !isMovingRef && PAID_VIDEO.indexOf(b2) !== -1 ? true
+              : c.id === "reMtCard" || c.id === "reGjCard" ? !haveClip
+              : c.id === "reImgCard" ? isMovingRef
+              : c.id === "reSceneCard" ? !multiShot : false;
             c.style.display = gated ? "none" : "";
           });
           lockedBy = null;
@@ -21354,7 +21430,7 @@ function vsReverseEngineer(prefill, opts) {
               : lockedBy === "template"
               ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
               : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
-            $("reRouteLockTxt").innerHTML = (fa
+            $$("reRouteLockTxt").innerHTML = (fa
               ? "اسکریپت برای " + why + " نوشته شد، پس با <b>" + esc(how) + "</b> ساخته می‌شود."
               : "The script was written for " + why + ", so it builds as <b>" + esc(how) + "</b>.")
               // Say what would change it. Genjutsu is the only builder that can
@@ -21366,7 +21442,7 @@ function vsReverseEngineer(prefill, opts) {
                   ? ' <button type="button" id="reBackToTone" class="re-lockswap">برای روش‌های دیگر، «فقط لحن» را انتخاب کن</button>'
                   : ' <button type="button" id="reBackToTone" class="re-lockswap">Want the other methods? Switch to “only the tone”</button>')
                 : "");
-            const swap = $("reBackToTone");
+            const swap = $$("reBackToTone");
             if (swap) swap.onclick = () => {
               const toneBtn = root.querySelector('.re-want[data-want="tone"]');
               if (toneBtn) toneBtn.click();
@@ -21421,7 +21497,7 @@ function vsReverseEngineer(prefill, opts) {
     // seven-beat video from a script written for one beat, or for nine.
     const tplPlan = reWantSource === "template" && rePickedTemplate ? vsFormatBuild(vsTemplate(rePickedTemplate).shape).plan : null;
     const lenVal = tplPlan ? (tplPlan.scenes <= 5 ? "short" : tplPlan.scenes <= 7 ? "medium" : "long")
-      : ($("reLen").value || "medium");
+      : ($$("reLen").value || "medium");
     const aspVal = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
     const topic = document.querySelector("#vsAutoTopic");
     // The standalone /reverse-engineer/ page doesn't have the Studio canvas
@@ -21616,6 +21692,31 @@ function vsReverseEngineer(prefill, opts) {
       });
     } catch (e) { vsStatus((fa ? "ساخت کاروسل ناموفق: " : "Carousel failed: ") + (e && e.message ? e.message : e)); }
     b.disabled = false; b.textContent = old;
+  };
+  // Remake the reference picture with one of the image models.
+  if ($$("reBuildImg")) $$("reBuildImg").onclick = () => {
+    const v = (ref && ref.vision) || {};
+    const bp = blueprint || {};
+    // Describe the picture we are copying, out of what was actually read from
+    // it - not out of the caption, which is marketing rather than description.
+    const said = [
+      v.subject ? String(v.subject) : "",
+      v.setting ? "in " + v.setting : (bp.setting || ""),
+      v.onscreen_text ? 'with the words "' + String(v.onscreen_text).slice(0, 90) + '" set on the image' : "",
+    ].filter(Boolean).join(", ");
+    const prompt = [said || String(bp.caption || "").slice(0, 180),
+                    ($$("rePrompt") && $$("rePrompt").value || "").trim(),
+                    vsExtraPrompt()].filter(Boolean).join(" — ").slice(0, 1800);
+    if (!prompt) { vsStatus(fa ? "اول لینک را تحلیل کن." : "Analyse the link first."); return; }
+    try {
+      reBuildImageModel({
+        which: ($$("reImgModel") && $$("reImgModel").value) || "ideogram",
+        aspect: ($$("reImgAsp") && $$("reImgAsp").value) || "4:5",
+        prompt,
+        refImage: (ref && ref.thumb) || "",
+        ownImage: anyImg || null,
+      });
+    } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
   // Scene-by-scene: rebuild the reference's actual shot sequence.
   if ($$("reBuildScene")) $$("reBuildScene").onclick = () => {
@@ -23159,6 +23260,156 @@ async function vsBuildSceneVideo(cfg) {
     }
     running = false; $s("scBtns").style.display = "none"; $s("scClose").style.display = "";
   };
+}
+
+/**
+ * Make the picture again.
+ *
+ * The video builders all charge by the second and hand back a clip; none of
+ * that applies here. An image is one flat charge, one submit, one poll, one
+ * file - so this is its own small loop rather than a flag threaded through a
+ * function that assumes footage at every step.
+ *
+ * Two of the three models read an input image, and that is the whole point:
+ * Ideogram takes one and Grok takes up to ten, so the reference itself goes
+ * in, and the user's own photo goes in beside it when they have added one.
+ * Soul generates from the description alone and is offered for the case where
+ * the reference could not be fetched at all.
+ *
+ * The price is settled server-side from the catalogue; the 5 on the card is
+ * what every one of them comes to once the per-model floor is applied, which
+ * is why it is not a per-model number.
+ */
+async function reBuildImageModel(cfg) {
+  const fa = state.lang === "fa";
+  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  const MODELS = {
+    ideogram: { action: "image_ideogram", model: "ideogram/v4.0" },
+    grok:     { action: "image_grok",     model: "xai/grok-imagine-image-2.0" },
+    soul:     { action: "image_soul",     model: "higgsfield-ai/soul/v2/standard" },
+  };
+  const M = MODELS[cfg.which] || MODELS.ideogram;
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:18px";
+  if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
+  ov.innerHTML = `<div style="width:min(560px,96vw);background:#14171d;border:1px solid rgba(37,99,255,.3);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+       <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#f4f5f7;margin-bottom:4px">${fa ? "ساختِ دوبارهٔ عکس" : "Remaking the image"}</div>
+       <div id="riStage" style="font-size:12px;color:#5b9bff;font-weight:700;margin-bottom:12px;min-height:16px"></div>
+       <div id="riSteps" style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#f4f5f7"></div>
+       <div id="riResult" style="margin-top:12px"></div>
+       <button id="riCancel" type="button" style="margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#f87171;border:1px solid rgba(240,120,120,.35)">${fa ? "لغو (کردیت برمی‌گردد)" : "Cancel (refunds credits)"}</button>
+       <button id="riClose" type="button" style="display:none;margin-top:14px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#f4f5f7;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button></div>`;
+  document.body.appendChild(ov);
+  const q = (id) => ov.querySelector("#" + id);
+  const steps = q("riSteps"), result = q("riResult"), stageEl = q("riStage");
+  const cancelBtn = q("riCancel"), closeBtn = q("riClose");
+  let cancelled = false;
+  const finishUi = () => { cancelBtn.style.display = "none"; closeBtn.style.display = ""; stageEl.textContent = ""; };
+  closeBtn.onclick = () => { try { ov.remove(); } catch (e) {} };
+  const line = (t) => { const d = document.createElement("div"); d.style.cssText = "display:flex;align-items:center;gap:9px"; d.innerHTML = `<span class="ic"><span style="width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#5b9bff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span></span><span>${t}</span>`; steps.appendChild(d); return d.querySelector(".ic"); };
+  const done = (ic) => { if (ic) { ic.textContent = "✓"; ic.style.color = "#5fe0b0"; } };
+  const bad = (ic) => { if (ic) { ic.textContent = "✕"; ic.style.color = "#f87171"; } };
+
+  const charge = await vsCharge(M.action, {});
+  if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  cancelBtn.onclick = () => {
+    cancelled = true;
+    vsSettle(charge.jobId, "failed");
+    steps.innerHTML = ""; stageEl.textContent = "";
+    result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
+    finishUi();
+  };
+
+  try {
+    // The user's own photo is a local File; the models take URLs, so it goes
+    // through the worker's uploader first. A failure here is not fatal - the
+    // reference image alone still remakes the picture.
+    let ownUrl = "";
+    if (cfg.ownImage) {
+      const upIc = line(fa ? "آپلودِ عکسِ تو" : "Uploading your photo");
+      try {
+        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.ownImage.type || "image/jpeg" }, body: cfg.ownImage });
+        const uj = await up.json().catch(() => ({}));
+        ownUrl = uj.file_url || "";
+        ownUrl ? done(upIc) : bad(upIc);
+      } catch (e) { bad(upIc); }
+    }
+    if (cancelled) return;
+
+    const asp = cfg.aspect || "4:5";
+    const refs = [cfg.refImage, ownUrl].filter(Boolean);
+    const input = M.action === "image_ideogram"
+      ? { prompt: cfg.prompt, aspect_ratio: asp, rendering_speed: "DEFAULT",
+          // One input only, and the user's own face outranks the reference
+          // when they have given one - they asked to be in it.
+          ...(refs.length ? { image_url: ownUrl || cfg.refImage, image_weight: 55 } : {}) }
+      : M.action === "image_grok"
+        ? { prompt: cfg.prompt, aspect_ratio: asp, resolution: "2k", quality: "medium",
+            ...(refs.length ? { image_urls: refs } : {}) }
+        : { prompt: cfg.prompt, aspect_ratio: asp, resolution: "1080p", batch_size: 1, enhance_prompt: true };
+
+    let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
+    const sub = await vsFalPost(WB, "/hf/submit", { model: M.model, input });
+    const statusUrl = sub.status_url;
+    if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
+    try { vsFalJobRemember({ statusUrl, respUrl: "", action: "image", name: "image" }); } catch (e) {}
+    done(ic);
+
+    const HF_TO = { queued: "IN_QUEUE", in_progress: "IN_PROGRESS", completed: "COMPLETED", failed: "FAILED", nsfw: "FAILED", canceled: "FAILED" };
+    const renderIc = line(fa ? "در حالِ ساخت" : "Generating");
+    const startedAt = Date.now();
+    let out = null, last = "";
+    for (let k = 0; k < 90 && !cancelled; k++) {
+      const el = Math.round((Date.now() - startedAt) / 1000);
+      stageEl.textContent = ((fa ? { IN_QUEUE: "در صف", IN_PROGRESS: "در حالِ پردازش" } : { IN_QUEUE: "queued", IN_PROGRESS: "processing" })[last] || (fa ? "در حالِ اتصال" : "connecting")) + " · " + Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      await new Promise(r => setTimeout(r, 3000));
+      if (cancelled) return;
+      let body = null, st = "?";
+      try { body = await (await vsFalFetch(WB + "/hf/poll?url=" + encodeURIComponent(statusUrl))).json(); st = (body && body.status) || "?"; } catch (e) {}
+      last = HF_TO[st] || "?";
+      if (last === "COMPLETED") {
+        // Image models answer with an images array; the video shape is checked
+        // too so a model that ever changes its mind does not read as a failure.
+        out = (body && Array.isArray(body.images) && body.images[0] && body.images[0].url)
+           || (body && body.image && body.image.url) || null;
+        break;
+      }
+      if (last === "FAILED") break;
+    }
+    if (cancelled) return;
+    if (!out) { bad(renderIc); throw new Error(fa ? "ساخت ناموفق بود یا زمان تمام شد" : "generation failed or timed out"); }
+    done(renderIc);
+    stageEl.textContent = "";
+    vsSettle(charge.jobId, "done");
+    try { vsFalJobForget(statusUrl); } catch (e) {}
+    try { vsTrackGen(M.action, M.model, "image"); } catch (e) {}
+
+    let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
+    const u = blob ? URL.createObjectURL(blob) : out;
+    result.innerHTML = `<img src="${u}" alt="" style="width:100%;border-radius:10px;background:#000"/><a href="${u}" download="remake.png" style="display:block;text-align:center;margin-top:10px;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">⬇ ${fa ? "دانلود" : "Download"}</a><div id="riSaved" style="text-align:center;margin-top:8px;font-size:11.5px;color:#8a919c"></div>`;
+    // Saved separately from the video path: that helper is wired to the Studio
+    // canvas for its poster frame, and there is no canvas here.
+    if (blob) {
+      try {
+        const fd = new FormData();
+        fd.append("image", blob, "remake." + ((blob.type || "").includes("jpeg") ? "jpg" : "png"));
+        fd.append("title", String(cfg.prompt || "Remade image").slice(0, 110));
+        const r = await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "include" });
+        const el = q("riSaved");
+        if (el) el.innerHTML = r && r.ok
+          ? '<span style="color:#5fe0b0">✓ ' + (fa ? "در داشبوردت ذخیره شد" : "Saved to your Dashboard") + "</span>"
+          : (fa ? "دانلود انجام شد — ذخیره در داشبورد نشد." : "Downloaded — could not save to your Dashboard.");
+      } catch (e) {}
+    }
+    finishUi();
+  } catch (e) {
+    if (cancelled) return;
+    vsSettle(charge.jobId, "failed");
+    stageEl.textContent = "";
+    result.innerHTML = `<div style="color:#f87171;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+    finishUi();
+  }
 }
 
 async function vsBuildVideoModel(cfg) {
