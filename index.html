@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v691" />
+    <link rel="stylesheet" href="styles.css?v=v692" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -640,11 +640,6 @@
         <button id="sidebarOpenBtn" class="sidebar-open" type="button"
           aria-label="Open menu" title="Menu">☰</button>
 
-        <!-- AI MODELS TICKER -->
-        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-          <div class="models-ticker" id="modelsTicker"></div>
-        </div>
-
         <main id="top">
 
         <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
@@ -672,6 +667,21 @@
 
           </div>
         </section>
+
+        <!-- ── AI MODELS TICKER ──────────────────────────────────────────
+             The ticker belongs after the promise, not in front of it.
+
+             It was the first thing on the page: a scrolling strip of other
+             companies' logos, above the headline, so the first thing anybody
+             read was a list of products that are not this one. None of the
+             sites this design follows put anything above their own sentence.
+
+             Down here it does the job it was always doing - showing the
+             breadth of what the finder tracks - as evidence for the claim
+             rather than as a queue in front of it. -->
+        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+          <div class="models-ticker" id="modelsTicker"></div>
+        </div>
 
 
 
@@ -1667,7 +1677,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v691"></script>
+    <script src="app.js?v=v692"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
