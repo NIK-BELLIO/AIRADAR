@@ -4490,7 +4490,16 @@ summary.vstudio-label:hover {
 .tod-eyebrow #todLabel, .tod-eyebrow #aimonEyebrow {
   margin: 0 !important;
 }
-/* Section titles — big, consistent Space Grotesk */
+/* Section titles.
+
+   The third heading scale, and the one that was actually winning - it
+   carries !important on every line, so the two rules further up the file
+   were being overruled without ever showing it. A page heading at 46px on
+   a screen whose largest other text is 30px reads as a second hero every
+   time you scroll past a panel.
+
+   One scale now, matching the base h2. The !important flags stay because
+   the rules they were written to beat are still here. */
 .panel > h2,
 .panel > .section-head h2,
 .section-head h2,
@@ -4498,12 +4507,12 @@ summary.vstudio-label:hover {
 .tod-name,
 #aimonTitle {
   font-family: 'Space Grotesk', ui-sans-serif, sans-serif !important;
-  font-size: clamp(30px, 3.2vw, 46px) !important;
-  font-weight: 700 !important;
-  line-height: 1.06 !important;
-  letter-spacing: -.02em !important;
+  font-size: clamp(22px, 2.6vw, 30px) !important;
+  font-weight: 600 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.022em !important;
   color: #f4f5f7 !important;
-  margin: 2px 0 16px !important;
+  margin: 2px 0 14px !important;
 }
 [dir="rtl"] .panel > h2,
 [dir="rtl"] .section-head h2,
