@@ -4973,3 +4973,29 @@ b, strong { font-weight: 600; }
 
 @media (max-width: 1080px) { .mk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px)  { .mk-grid { grid-template-columns: 1fr; } }
+
+
+/* The home hero's two doors. One filled, one not - a page with two equally
+   loud buttons has no primary action, which is the same as having none. */
+.hero-x-cta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 30px 0 0;
+}
+.hero-x-go, .hero-x-alt {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: filter .15s, border-color .15s, background .15s;
+}
+.hero-x-go { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+.hero-x-go:hover { filter: brightness(1.12); }
+.hero-x-alt { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
+.hero-x-alt:hover { background: var(--surface-2); border-color: rgba(255,255,255,.3); }

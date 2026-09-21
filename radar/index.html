@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v695" />
+    <link rel="stylesheet" href="/styles.css?v=v696" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -649,7 +649,22 @@
           <div class="hero-x-inner">
             <span class="sec-eyebrow">The radar</span>
             <h1 class="motion-title">What the rest of AI is doing.</h1>
-            <p class="hero-x-sub">Forty-four tools compared on real numbers, live GitHub popularity, a map of the infrastructure behind it, and the day's headlines.</p>
+            <p class="hero-x-sub">Tools compared on real numbers, live GitHub popularity, a map of the infrastructure behind it, and the day's headlines.</p>
+
+            <form class="hero-x-search" id="heroSearchForm" role="search">
+              <svg class="hero-x-search-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools by name, use case, or price…" />
+              <button type="submit" class="hero-x-search-btn">Search</button>
+            </form>
+            <!-- The counts keep their ids so the live values still land, and
+                 Live Dashboard stays because this button is the only way to
+                 open the fullscreen monitor anywhere on the site. -->
+            <p class="hero-x-meta">
+              <span><strong id="metricTools">45+</strong> <span data-i18n="metricTools">AI tools</span></span>
+              <span><strong id="metricFree">100%</strong> <span data-i18n="metricFree">Free plans</span></span>
+              <span><strong id="metricJobs">Live</strong> <span data-i18n="metricJobs">GitHub data</span></span>
+              <button type="button" class="hero-x-dash" id="openDashboardBtn">Live Dashboard</button>
+            </p>
           </div>
         </section>
 
@@ -1588,7 +1603,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v695"></script>
+    <script src="/app.js?v=v696"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
