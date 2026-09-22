@@ -5316,7 +5316,15 @@ function vsMoneyIn(text) {
  * neither could I, which is how a rule that rejects everything would go unseen.
  */
 let _vsReelReject = "";
+/* Set when the last draft failed because the writer could not be reached at
+   all, rather than because the draft broke a rule. The two need different
+   words and different advice. */
+let _vsReelUnreachable = false;
 function vsReelWhy() { return _vsReelReject; }
+/* Read through a function for the same reason the reason is: a top-level `let`
+   is not a property of the global object, so nothing outside this file - a
+   test, the console - can see it otherwise. */
+function vsReelOffline() { return _vsReelUnreachable; }
 
 /**
  * The words that make a line read as written by a machine.
@@ -6561,6 +6569,9 @@ async function vsBuildRealtorBatch(towns, month) {
   vstudio._saveFolder = "Realtor reels · " +
     VS_REEL_MONTHS[Math.max(0, Math.min(11, month - 1))] + " " + new Date().getFullYear();
   const skipped = [];
+  // Split by cause: a rejected draft is worth retrying, an unreachable
+  // writer is worth waiting out. The message says which.
+  const skippedOffline = [], skippedRejected = [];
   // How many towns came from the panel rather than from a model. Worth saying
   // out loud at the end: it is the difference between a batch somebody read
   // and a batch nobody has.
@@ -6618,7 +6629,13 @@ async function vsBuildRealtorBatch(towns, month) {
           (why ? (fa ? ` (${why})` : ` (${why})`) : "")),
         vsRecentPictures(townPictures));
     }
-    if (!reel) { skipped.push(place); continue; }
+    if (!reel) {
+      // Why, not just that. Six names with no reason is a dead end for anyone
+      // trying to decide whether to run it again or change something.
+      skipped.push(place);
+      (vsReelOffline() ? skippedOffline : skippedRejected).push(place);
+      continue;
+    }
     // An approved script is used as written, so it is not held to this - but
     // what it used still counts against the towns written after it.
     townPictures.push(vsDetailWords(reel.sentences, place));
@@ -6666,7 +6683,12 @@ async function vsBuildRealtorBatch(towns, month) {
   vsAutoStatus((fa ? `${n} ریل آماده شد.` : `${n} reels ready.`) +
     (fromPanel ? (fa ? ` ${fromPanel} تا از متن‌های تأییدشده‌ی پنل.`
                      : ` ${fromPanel} of them from approved panel scripts.`) : "") +
-    (skipped.length ? (fa ? ` رد شد: ${skipped.join("، ")}` : ` Skipped: ${skipped.join(", ")}`) : "") +
+    (skippedRejected.length ? (fa
+       ? ` ${skippedRejected.length} تا رد شد چون متن به قوانین نخورد: ${skippedRejected.join("، ")} — دوباره زدن معمولاً درستش می‌کند.`
+       : ` ${skippedRejected.length} skipped because the draft kept breaking the script rules: ${skippedRejected.join(", ")} — running it again usually fixes those.`) : "") +
+    (skippedOffline.length ? (fa
+       ? ` ${skippedOffline.length} تا نوشته نشد چون نویسندهٔ رایگان جواب نداد (سهمیهٔ روزانه): ${skippedOffline.join("، ")} — کارِ تو نیست؛ کمی بعد دوباره بزن.`
+       : ` ${skippedOffline.length} were not written because the free writer did not answer — that is the shared daily budget, not anything you did: ${skippedOffline.join(", ")}. Run it again in a while and they will come through.`) : "") +
     (fa ? " «دانلود همه» را بزن." : ' Press "Download all" to render them.'));
   return true;
 }
@@ -6674,6 +6696,7 @@ async function vsBuildRealtorBatch(towns, month) {
 /** Ask for one reel, re-rolling a draft that misses the brief. Shared by both. */
 async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind, say, avoid) {
   let out = null;
+  _vsReelUnreachable = false;
   const ATTEMPTS = 4;
   for (let attempt = 0; attempt < ATTEMPTS && !out && !vstudio._batchCancel; attempt++) {
     // A retry is not a stall, but it looks exactly like one from outside.
@@ -6684,8 +6707,18 @@ async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind
     // local copy is only for when the server cannot be reached.
     const prompt = serverPrompt || vsReelPrompt(place, month, seed);
     let raw = "";
+    let unreachable = "";
     try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
-    catch (e) { raw = ""; }
+    catch (e) { unreachable = (e && e.message) || "the writer could not be reached"; }
+    if (unreachable) {
+      // Nothing came back at all. Handing "" to the parser would report "no
+      // JSON in the reply" - a sentence about a model's output, for a call
+      // that never reached a model - and three more attempts would spend
+      // budget that is evidently already gone.
+      _vsReelReject = unreachable;
+      _vsReelUnreachable = true;
+      break;
+    }
     out = vsReelParse(raw, place, figure, figureKind);
 
     // Has another town in this run already written this picture?
