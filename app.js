@@ -20356,6 +20356,8 @@ function vsReverseEngineer(prefill, opts) {
          /* The single intake zone. Scoped to both roots because the page
             relocates this markup out of #reModal and an unscoped rule
             would then style nothing. */
+         :is(#reModal,#reMainBody) .re-charstep{display:flex;flex-direction:column;gap:8px;margin-bottom:13px;padding:11px 13px;border-radius:12px;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.24)}
+         :is(#reModal,#reMainBody) .re-charstep>b{font:800 12px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
          :is(#reModal,#reMainBody) .re-intake{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;background:rgba(37,99,255,.05);border:1.5px dashed rgba(37,99,255,.38);border-radius:16px;padding:26px 16px 18px;transition:border-color .15s,background .15s}
          :is(#reModal,#reMainBody) .re-intake.drag{border-color:#5b9bff;background:rgba(37,99,255,.13)}
          :is(#reModal,#reMainBody) .re-intake-ico{flex:none;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#5b9bff}
@@ -20471,18 +20473,10 @@ function vsReverseEngineer(prefill, opts) {
              <b>${fa ? "خودم در ویدئو باشم" : "With me in it"}</b>
              <i>${fa ? "با چهره‌ای که می‌دهی — عکس و تنظیماتِ خودت." : "Presented by the face you give it — your photo, your settings."}</i>
            </button>
-           <!-- Revealed only by the option that needs them, so the panel is not a
-                wall of inputs for someone who will never use them. -->
-           <div id="reCharBox" style="display:none;flex-direction:column;gap:7px;padding:9px 11px;border-radius:11px;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.22)">
-             <label id="reCharPhotoLbl" class="mdrop" style="cursor:pointer">${reIco("eye", 14)}<span id="reCharPhotoTxt">${fa ? "عکسِ چهرهٔ تو (لازم)" : "Your face photo (required)"}</span><input id="reCharPhoto" type="file" accept="image/*" style="display:none"/></label>
-             <div style="display:flex;gap:7px;flex-wrap:wrap">
-               <select id="reCharVoice" style="flex:1;min-width:120px">
-                 <option value="female">${fa ? "صدا: زنانه" : "Voice: Female"}</option>
-                 <option value="male">${fa ? "صدا: مردانه" : "Voice: Male"}</option>
-               </select>
-               <select id="reCharAsp" style="flex:1;min-width:120px">${optAsp("9:16")}</select>
-             </div>
-           </div>
+           <!-- The photo and the voice used to live here, above Generate, and
+                were demanded before anything had been read. They are in the
+                render section now, beside the builders that actually use
+                them. -->
          </div>
        </div>
        <button id="reGo" type="button" class="re-cta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg><span id="reGoTxt">${fa ? "ساخت" : "Generate"}</span><span class="price" id="reGoPrice">${arCreditIcon}${VS_SCRIPT_CREDITS}</span></button>
@@ -20533,6 +20527,19 @@ function vsReverseEngineer(prefill, opts) {
          </div>
          <div id="reToneBody" style="display:flex;flex-direction:column;gap:12px">
          <div class="re-render-h" id="reRenderH">${fa ? "رندر · یک مدل انتخاب کن" : "RENDER · PICK A MODEL"}</div>
+         <!-- Your face and your voice, at the point they are used rather than
+              on the page before it. Shown only for the answer that needs them. -->
+         <div id="reCharBox" class="re-charstep" style="display:none">
+           <b>${fa ? "تو در ویدیو" : "You, in the video"}</b>
+           <label id="reCharPhotoLbl" class="mdrop" style="cursor:pointer">${reIco("eye", 14)}<span id="reCharPhotoTxt">${fa ? "عکسِ چهرهٔ تو (لازم)" : "Your face photo (required)"}</span><input id="reCharPhoto" type="file" accept="image/*" style="display:none"/></label>
+           <div style="display:flex;gap:7px;flex-wrap:wrap">
+             <select id="reCharVoice" style="flex:1;min-width:130px">
+               <option value="female">${fa ? "صدا: زنانه" : "Voice: Female"}</option>
+               <option value="male">${fa ? "صدا: مردانه" : "Voice: Male"}</option>
+             </select>
+             <select id="reCharAsp" style="flex:1;min-width:130px">${optAsp("9:16")}</select>
+           </div>
+         </div>
          <div id="reFmtOverride" style="display:none;align-items:center;gap:8px;margin:-2px 0 10px;font-size:11px">
            <span style="color:#8a919c">${fa ? "تشخیصِ اشتباه؟" : "Wrong guess?"}</span>
            <button type="button" id="reFmtTalk" class="re-fmtseg" data-fmt="talking_head">${reIco("speaker", 12)} ${fa ? "آدمِ سخنگو" : "Talking-head"}</button>
@@ -20977,13 +20984,10 @@ function vsReverseEngineer(prefill, opts) {
       const u = $$("reUrl"); if (u) u.focus();
       return;
     }
-    if (reWantMode === "character" && !thPhoto) {
-      vsStatus(fa
-        ? "«با خودم در ویدیو» را انتخاب کردی — عکسِ چهره‌ات را اضافه کن."
-        : "You chose “with me in it” — add your face photo first.");
-      const l = $$("reCharPhotoLbl"); if (l) l.scrollIntoView({ block: "center" });
-      return;
-    }
+    // No photo check here any more. Generate writes a SCRIPT; it never looks
+    // at the face. The builders do, and each of them asks for it on its own
+    // card at the moment it is used - which is also the only moment the user
+    // can be told what it is for.
 
     // Every Generate is a fresh decision: whatever menu was opened against the
     // last script does not carry over to this one.
@@ -21406,6 +21410,9 @@ function vsReverseEngineer(prefill, opts) {
             recRoutes = recRoutes.filter((r) => r !== "genjutsu" && r !== "motion" && r !== "scene");
             recRoutes.unshift("image");
           }
+          // Recommending a builder that is about to be gated off would leave
+          // the badge pointing at a card nobody can see.
+          if (reWantMode !== "character") recRoutes = recRoutes.filter((r) => r !== "genjutsu" && r !== "motion");
           const VIDEO_FIRST = ["genjutsu", "motion", "scene", "video"];
           const IMAGE_FIRST = ["image", "carousel", "video", "scene"];
           const order = (ref && ref.refVideo) ? VIDEO_FIRST : IMAGE_FIRST;
@@ -21451,6 +21458,10 @@ function vsReverseEngineer(prefill, opts) {
         // nothing, it is not a model, and turning a photo post into a reel is
         // a thing people come here to do.
         const PAID_VIDEO = ["genjutsu", "motion", "scene", "presenter", "minimax", "grok"];
+        // The two builders that keep the original footage. They answer "with
+        // me in it" and nothing else: under "only the tone", which promises
+        // fresh footage, they contradict the sentence the user just read.
+        const REUSES_FOOTAGE = ["genjutsu", "motion"];
         const BUILD_OF = { genjutsu: "genjutsu", video: "slideshow", carousel: "carousel", scene: "scene", motion: "motion", image: "image" };
         const chosen = BUILD_OF[recRoutes[0]] || recRoutes[0];
         // Putting YOURSELF into an existing clip is Genjutsu's whole job, and
@@ -21479,7 +21490,7 @@ function vsReverseEngineer(prefill, opts) {
           // EVERY card, and Genjutsu was not named here - so the hidden card
           // came straight back. Naming it by its build closes that.
           const gated = !isMovingRef && PAID_VIDEO.indexOf(b) !== -1 ? true
-            : c.id === "reMtCard" || c.id === "reGjCard" ? !haveClip
+            : REUSES_FOOTAGE.indexOf(b) !== -1 ? (!haveClip || reWantMode !== "character")
             : c.id === "reImgCard" ? isMovingRef
             : c.id === "reSceneCard" ? !(multiShot || chosen === "scene") : false;
           c.style.display = gated || (lockedBy && b !== chosen) ? "none" : "";
@@ -21490,7 +21501,7 @@ function vsReverseEngineer(prefill, opts) {
           root.querySelectorAll(".re-mcard").forEach((c) => {
             const b2 = c.getAttribute("data-build");
             const gated = !isMovingRef && PAID_VIDEO.indexOf(b2) !== -1 ? true
-              : c.id === "reMtCard" || c.id === "reGjCard" ? !haveClip
+              : REUSES_FOOTAGE.indexOf(b2) !== -1 ? (!haveClip || reWantMode !== "character")
               : c.id === "reImgCard" ? isMovingRef
               : c.id === "reSceneCard" ? !multiShot : false;
             c.style.display = gated ? "none" : "";
