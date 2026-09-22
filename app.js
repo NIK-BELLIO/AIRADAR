@@ -20734,6 +20734,11 @@ function vsReverseEngineer(prefill, opts) {
              <p class="re-swapnote" id="reSwapVoiceNote">${fa ? "موسیقی، آمبیانس و صدای بقیه دست‌نخورده می‌ماند — فقط صدای همان شخص عوض می‌شود." : "Music, ambience and other speakers are untouched — only that person's voice changes."}</p>
            </div>
 
+           <!-- The way back. The lock box carries one too, but that box is
+                inside #reToneBody, which is hidden the moment this panel is
+                shown - so from here it does not exist. A panel with no exit
+                is indistinguishable from a broken one. -->
+           <button type="button" id="reSwapBack" class="re-lockswap" style="align-self:flex-start">${fa ? "روش‌های دیگر (فقط لحن)" : "Other methods — switch to “only the tone”"}</button>
            <div class="re-swapgo">
              <button type="button" id="reSwapRun" class="mbtn" disabled>${fa ? "ساخت" : "Generate"}</button>
              <span class="ar-cred" id="reSwapCost">—</span>
@@ -21309,8 +21314,10 @@ function vsReverseEngineer(prefill, opts) {
         // The choice was made before Generate ran; nothing is asked again here.
         // What canSwap still decides is whether putting the operator INTO the
         // original footage is even possible - that needs the clip in hand.
-        if ($$("reSwapBody")) $$("reSwapBody").style.display = "none";
-        if ($$("reToneBody")) $$("reToneBody").style.display = canSwap ? "none" : "flex";
+        // One decision, in one place. Written out here as two independent
+        // assignments, it was possible to hide both - and it did, whenever we
+        // actually held the clip. swapShow always shows exactly one.
+        try { swapShow(canSwap && reWantMode === "character" ? "swap" : "tone"); } catch (e) {}
         // The reference has just been read, so the plan has real numbers now.
         if (!canSwap) { try { reRenderFormatPlan(); } catch (e) {} }
         // And the templates belong in the canvas from this moment - this is
@@ -22246,6 +22253,12 @@ function vsReverseEngineer(prefill, opts) {
       ? `${plan.scenes} نما × ${plan.secondsPerScene}s = ${plan.duration}s · کپشن: ${plan.caption.style}${over} · ${plan.took}`
       : `${plan.scenes} shot${plan.scenes === 1 ? "" : "s"} × ${plan.secondsPerScene}s = ${plan.duration}s · captions: ${plan.caption.style}${over} · ${plan.took}`);
   }
+
+  // The swap panel's own exit, wired to the same control the lock box uses.
+  if ($$("reSwapBack")) $$("reSwapBack").onclick = () => {
+    const toneBtn = document.querySelector('.re-want[data-want="tone"]');
+    if (toneBtn) toneBtn.click();
+  };
 
   function swapShow(which) {
     const swapOn = which === "swap";
