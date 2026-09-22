@@ -20353,8 +20353,27 @@ function vsReverseEngineer(prefill, opts) {
             at every viewport width — not just mobile. */
          :is(#reModal,#reMainBody) .re-analyzerow{flex-direction:column}
          :is(#reModal,#reMainBody) .re-analyzerow #reFetch{width:100%;justify-content:center;padding-top:12px;padding-bottom:12px}
+         /* The single intake zone. Scoped to both roots because the page
+            relocates this markup out of #reModal and an unscoped rule
+            would then style nothing. */
+         :is(#reModal,#reMainBody) .re-intake{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;background:rgba(37,99,255,.05);border:1.5px dashed rgba(37,99,255,.38);border-radius:16px;padding:26px 16px 18px;transition:border-color .15s,background .15s}
+         :is(#reModal,#reMainBody) .re-intake.drag{border-color:#5b9bff;background:rgba(37,99,255,.13)}
+         :is(#reModal,#reMainBody) .re-intake-ico{flex:none;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#5b9bff}
+         :is(#reModal,#reMainBody) .re-intake-h{font:800 15px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#f4f5f7}
+         :is(#reModal,#reMainBody) .re-intake-sub{font-size:11.5px;color:#8a919c;max-width:34ch;line-height:1.5}
+         :is(#reModal,#reMainBody) .re-intake-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;width:100%;margin-top:5px}
+         :is(#reModal,#reMainBody) .re-intake-btn{flex:none;display:inline-flex;align-items:center;gap:7px;cursor:pointer;background:var(--accent,#2563ff);color:#fff;border:0;border-radius:11px;padding:11px 16px;font:700 13px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;transition:filter .14s}
+         :is(#reModal,#reMainBody) .re-intake-btn:hover{filter:brightness(1.12)}
+         :is(#reModal,#reMainBody) .re-intake-or{font-size:11.5px;color:#5e646e}
+         :is(#reModal,#reMainBody) .re-intake .re-analyzerow{flex:1;min-width:230px;display:flex;gap:7px}
+         :is(#reModal,#reMainBody) .re-intake-more{width:100%;margin-top:4px}
+         :is(#reModal,#reMainBody) .re-intake-more summary{cursor:pointer;font-size:11.5px;color:#8a919c;text-align:center}
+         :is(#reModal,#reMainBody) .re-intake-more textarea{margin-top:9px;width:100%}
          @media(max-width:640px){
            :is(#reModal,#reMainBody) .re-anymedia label{min-width:100%}
+           :is(#reModal,#reMainBody) .re-intake-row{flex-direction:column;align-items:stretch}
+           :is(#reModal,#reMainBody) .re-intake-btn{justify-content:center}
+           :is(#reModal,#reMainBody) .re-intake-or{text-align:center}
          }
        </style>
        <div class="re-panelhead" style="display:flex;align-items:center;gap:9px">
@@ -20365,20 +20384,32 @@ function vsReverseEngineer(prefill, opts) {
        <div class="re-paneldesc" style="font-size:12.5px;color:#8a919c;margin-top:-8px">${fa ? "لینک یک پست یا کل صفحه را بده؛ سبک، لحن و ساختارش را مهندسی معکوس می‌کنیم و دقیقاً همان ویدیو را با اطلاعاتِ خودت بازمی‌سازیم." : "Drop a post — or a whole page — link; we reverse-engineer its style & structure and rebuild the SAME video with YOUR own info."}</div>
 
        <div class="step">
-         <div class="lbl"><span class="num">1</span>${fa ? "پست یا صفحهٔ مرجع (لینک اینستاگرام)" : "Reference post or page (Instagram link)"}</div>
-         <div class="re-analyzerow" style="display:flex;gap:9px">
-           <input id="reUrl" type="text" placeholder="instagram.com/reel/…  ${fa ? "یا" : "or"}  instagram.com/username" />
-           <button id="reFetch" type="button" class="re-cta2">${fa ? "تحلیل" : "Analyze"}<span class="price">${arCreditIcon}${VS_ANALYZE_CREDITS}</span></button>
+         <div class="lbl"><span class="num">1</span>${fa ? "پستِ مرجع" : "The reference post"}</div>
+         <!-- One zone. It takes a drop, a file or a link, and the link field
+              sits inside it rather than above it so there is one thing on
+              screen to act on instead of three. -->
+         <div id="reIntake" class="re-intake">
+           <span class="re-intake-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg></span>
+           <b class="re-intake-h">${fa ? "پست را بینداز اینجا، یا لینکش را بده" : "Drop the post in, or paste its link"}</b>
+           <span class="re-intake-sub" id="reUploadTxt">${fa ? "ویدیو یا عکس — هر دو را می‌خوانم. چیزی جایی آپلود نمی‌شود." : "Video or image — I read either. Nothing is uploaded anywhere."}</span>
+
+           <div class="re-intake-row">
+             <label id="reUploadLbl" class="re-intake-btn">
+               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+               ${fa ? "انتخابِ فایل" : "Upload media"}
+               <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
+             </label>
+             <span class="re-intake-or">${fa ? "یا" : "or"}</span>
+             <div class="re-analyzerow">
+               <input id="reUrl" type="text" placeholder="instagram.com/reel/…" />
+               <button id="reFetch" type="button" class="re-cta2">${fa ? "تحلیل" : "Analyze"}<span class="price">${arCreditIcon}${VS_ANALYZE_CREDITS}</span></button>
+             </div>
+           </div>
+
+           <details id="rePasteWrap" class="re-intake-more"><summary>${fa ? "لینکی ندارم — کپشن را پیست می‌کنم" : "No link — I'll paste the captions instead"}</summary>
+             <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}"></textarea>
+           </details>
          </div>
-         <label id="reUploadLbl" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;margin-top:11px;font-size:12.5px;font-weight:600;color:#f4f5f7;background:rgba(37,99,255,.06);border:1.5px dashed rgba(37,99,255,.42);border-radius:14px;padding:22px 14px;cursor:pointer;transition:.15s">
-           <span style="flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(37,99,255,.12);border:1px solid rgba(37,99,255,.3);color:#5b9bff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
-           <b style="font-size:13.5px;font-weight:800;color:#f4f5f7">${fa ? "عکس یا ویدیوی پست را آپلود کن" : "Upload the post's image or video"}</b>
-           <span id="reUploadTxt" style="font-size:11.5px;color:#8a919c;font-weight:500">${fa ? "مستقیم تحلیلش می‌کنم — بدونِ نیاز به لینک" : "I'll analyze it directly — no link needed"}</span>
-           <input id="reUpload" type="file" accept="image/*,video/*" style="display:none"/>
-         </label>
-         <details id="rePasteWrap" style="margin-top:9px"><summary style="cursor:pointer;font-size:12px;color:#8a919c">${fa ? "یا کپشنِ یک یا چند پست را پیست کن (هر کدام در یک خط)" : "…or paste one or several posts' captions (one per line)"}</summary>
-           <textarea id="rePaste" rows="4" placeholder="${fa ? "کپشن یا متنِ روی ویدیو — چند پست را می‌توانی با هم پیست کنی…" : "Captions / on-screen text — you can paste several posts together…"}" style="margin-top:8px"></textarea>
-         </details>
          <div id="reRefCard" style="display:none;margin-top:11px;gap:11px;align-items:flex-start"></div>
        </div>
 
@@ -20805,6 +20836,49 @@ function vsReverseEngineer(prefill, opts) {
     try { reRenderTemplateGallery(); } catch (e2) {}
     b.disabled = false; b.innerHTML = old;
   };
+
+  // The zone is a real drop target and a real paste target.
+  //
+  // It is drawn as one, which is a promise: a dashed box with an upload arrow
+  // on it says "drag something here". Dragging a video onto it and having
+  // nothing happen is a small dead end, and small dead ends are most of what
+  // makes a tool feel unfinished.
+  //
+  // A dropped file is routed through the SAME handler the file picker uses,
+  // rather than a second copy of the analysis - the copy is how two ways in
+  // end up disagreeing about what they accept.
+  if ($$("reIntake")) {
+    const zone = $$("reIntake");
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+    ["dragenter", "dragover"].forEach((t) => zone.addEventListener(t, (e) => { stop(e); zone.classList.add("drag"); }));
+    ["dragleave", "drop"].forEach((t) => zone.addEventListener(t, (e) => { stop(e); zone.classList.remove("drag"); }));
+    zone.addEventListener("drop", (e) => {
+      const dt = e.dataTransfer; if (!dt) return;
+      const file = dt.files && dt.files[0];
+      if (file && /^(image|video)\//.test(file.type)) {
+        // Hand it to the picker's own input so one handler runs either way.
+        try {
+          const dtx = new DataTransfer(); dtx.items.add(file);
+          $$("reUpload").files = dtx.files;
+          $$("reUpload").dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (err) { vsStatus(fa ? "این فایل خوانده نشد." : "Could not read that file."); }
+        return;
+      }
+      // Dropping a link (from the address bar, or a post in another tab) is
+      // the other half of "drop it in" and costs nothing to support.
+      const txt = (dt.getData("text/uri-list") || dt.getData("text/plain") || "").trim();
+      if (/^https?:\/\//i.test(txt)) { $$("reUrl").value = txt; $$("reFetch").click(); }
+    });
+    // Ctrl-V anywhere in the zone, which is how a link actually arrives.
+    zone.addEventListener("paste", (e) => {
+      const txt = (e.clipboardData && e.clipboardData.getData("text") || "").trim();
+      if (!/^https?:\/\//i.test(txt)) return;
+      if (e.target && e.target.id === "reUrl") return;   // it is already going there
+      stop(e);
+      $$("reUrl").value = txt;
+      $$("reFetch").click();
+    });
+  }
 
   // Upload the POST's own image/video → analyze it directly (no IG fetch needed).
   $$("reUpload").onchange = async (e) => {
