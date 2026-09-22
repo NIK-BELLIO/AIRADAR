@@ -20472,6 +20472,21 @@ function vsReverseEngineer(prefill, opts) {
             what unlocks it is the point of showing it at all. */
          :is(#reModal,#reMainBody) .re-want[disabled]{opacity:.45;cursor:not-allowed}
          :is(#reModal,#reMainBody) .re-want[disabled]::after{content:attr(data-why);display:block;margin-top:4px;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:#5b9bff}
+         /* The reference as a card with its own picture on it, the way the
+            chosen model is presented on the reference site. The cover is the
+            background rather than a thumbnail beside the text, because it is
+            the thing being chosen. */
+         :is(#reModal,#reMainBody) .re-refhero{position:relative;overflow:hidden;border-radius:14px;border:1px solid rgba(37,99,255,.28);background:#0e1014;padding:13px 14px;min-height:96px}
+         :is(#reModal,#reMainBody) .re-refhero .re-refbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.3;filter:saturate(.85)}
+         :is(#reModal,#reMainBody) .re-refhero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,9,12,.55),rgba(8,9,12,.92))}
+         :is(#reModal,#reMainBody) .re-refhero>*{position:relative;z-index:1}
+         :is(#reModal,#reMainBody) .re-refbadge{font:700 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;color:#5b9bff;margin-bottom:5px}
+         :is(#reModal,#reMainBody) .re-refchange{position:absolute;top:9px;right:9px;z-index:2;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#f4f5f7;font:700 10.5px "Space Grotesk",ui-sans-serif,system-ui,sans-serif;padding:5px 9px;cursor:pointer;backdrop-filter:blur(4px)}
+         :is(#reModal,#reMainBody) .re-refchange:hover{background:rgba(0,0,0,.72);border-color:rgba(255,255,255,.35)}
+         /* One line, above the button, like the reference. */
+         :is(#reModal,#reMainBody) .re-modelrow{display:flex;align-items:center;gap:10px;margin:11px 0 0;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1)}
+         :is(#reModal,#reMainBody) .re-modelrow-k{font:700 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}
+         :is(#reModal,#reMainBody) .re-modelrow-v{margin-inline-start:auto;font:700 12.5px "Space Grotesk",ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
          :is(#reModal,#reMainBody) .re-charstep{display:flex;flex-direction:column;gap:8px;margin-bottom:13px;padding:11px 13px;border-radius:12px;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.24)}
          :is(#reModal,#reMainBody) .re-charstep>b{font:800 12px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
          :is(#reModal,#reMainBody) .re-intake{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;background:rgba(37,99,255,.05);border:1.5px dashed rgba(37,99,255,.38);border-radius:16px;padding:26px 16px 18px;transition:border-color .15s,background .15s}
@@ -20594,6 +20609,12 @@ function vsReverseEngineer(prefill, opts) {
                 render section now, beside the builders that actually use
                 them. -->
          </div>
+       </div>
+       <!-- What will render it, decided by the two answers above and said
+            before the charge rather than after it. -->
+       <div id="reModelRow" class="re-modelrow">
+         <span class="re-modelrow-k">${fa ? "مدل" : "Model"}</span>
+         <span class="re-modelrow-v" id="reModelName">—</span>
        </div>
        <button id="reGo" type="button" class="re-cta"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3c0 5 8 6 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 6-8 9s8 4 8 9"/><path d="M9 6.5h6M8 12h8M9 17.5h6"/></svg><span id="reGoTxt">${fa ? "ساخت" : "Generate"}</span><span class="price" id="reGoPrice">${arCreditIcon}${VS_SCRIPT_CREDITS}</span></button>
        <div id="reGoNote" style="margin-top:7px;text-align:center;font:600 10.5px 'JetBrains Mono',ui-monospace,monospace;color:#8a919c"></div>
@@ -20935,14 +20956,41 @@ function vsReverseEngineer(prefill, opts) {
         // There is a reference now, so the answer that needs one can be given.
         try { reUnlockSteps(); } catch (e) {}
         if (ref.caption && !$$("rePaste").value) $$("rePaste").value = ref.caption;
+        // The intake has done its job; the reference takes its place. Change
+        // brings it back.
+        try { if ($$("reIntake")) $$("reIntake").style.display = "none"; } catch (e) {}
+        card.classList.add("re-refhero");
         card.innerHTML =
-          (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:10px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
-          `<div style="flex:1;min-width:0">
+          (ref.thumb ? `<img class="re-refbg" src="${esc(ref.thumb)}" alt="" onerror="this.style.display='none'"/>` : "") +
+          `<button type="button" id="reRefChange" class="re-refchange">${fa ? "تعویض" : "Change"}</button>
+           <div class="re-refbadge">${fa ? "مرجع" : "REFERENCE"}</div>
+           <div style="flex:1;min-width:0">
              ${ref.username ? `<div style="font-weight:800;color:#f4f5f7;font-size:13px">@${esc(ref.username)}${ref.isProfile ? ` <span style="font-weight:600;color:#8a919c">· ${fa ? "صفحه" : "page"}</span>` : ""}</div>` : ""}
              <div style="font-size:12px;color:#8a919c;margin-top:3px;max-height:66px;overflow:auto;line-height:1.5">${esc((ref.caption || "").slice(0, 320))}</div>
              ${ref.hashtags && ref.hashtags.length ? `<div style="margin-top:5px">${ref.hashtags.slice(0, 8).map(h => `<span class="tag">${esc(h)}</span>`).join("")}</div>` : ""}
              ${ref.isProfile ? `<div style="font-size:11px;color:#f87171;margin-top:6px">${fa ? "برای تحلیلِ «همهٔ پست‌ها»، چند تا از کپشن‌های این صفحه را در کادرِ بالا پیست کن تا سبکِ مشترک دقیق دربیاد." : "To analyze ALL posts, paste a few of this page's captions into the box above so the shared style is captured."}</div>` : ""}
            </div>`;
+        // Change: forget the reference and put the intake back, which also
+        // re-locks the answer that needs one.
+        try {
+          const chg = $$("reRefChange");
+          if (chg) chg.onclick = () => {
+            ref = null;
+            card.style.display = "none";
+            card.classList.remove("re-refhero");
+            card.innerHTML = "";
+            if ($$("reIntake")) $$("reIntake").style.display = "";
+            const vidBtn = document.querySelector('.re-want[data-src="video"]');
+            if (vidBtn) {
+              vidBtn.disabled = true;
+              vidBtn.classList.add("re-steplock");
+              vidBtn.setAttribute("data-why", fa ? "اول یک لینک را تحلیل کن" : "analyse a link first");
+              const tpl = document.querySelector('.re-want[data-src="template"]');
+              if (tpl) tpl.click();
+            }
+            try { if ($$("reUrl")) $$("reUrl").focus(); } catch (e2) {}
+          };
+        } catch (e) {}
       } else {
         // Instagram blocked the read (login wall) — open the paste box for the user.
         try { $$("rePasteWrap").open = true; } catch (e) {}
@@ -22406,6 +22454,7 @@ function vsReverseEngineer(prefill, opts) {
    * those three sites, where two of them would eventually forget.
    */
   function reUnlockSteps() {
+    try { rePaintModelRow(); } catch (e) {}
     const btn = document.querySelector('.re-want[data-src="video"]');
     if (!btn || !ref) return;
     const wasLocked = btn.disabled;
@@ -22416,6 +22465,34 @@ function vsReverseEngineer(prefill, opts) {
     // want. Only on the transition, so a later click of "a ready template" is
     // not undone by the next re-render.
     if (wasLocked) btn.click();
+  }
+
+  /**
+   * Name the builder the current answers point at.
+   *
+   * Deliberately the same three cases applyRoute uses, in the same order,
+   * so the row cannot promise one model and the cards offer another.
+   */
+  function rePaintModelRow() {
+    const el = $$("reModelName");
+    if (!el) return;
+    const haveClip = !!(ref && ref.refVideo);
+    const moving = haveClip || !!(ref && ref.videoUrl) ||
+      !!(ref && /instagram\.com\/(reel|reels|tv)\//i.test(String(ref.srcUrl || "")));
+    let name;
+    if (reWantMode === "character") {
+      // The only builder that can put somebody into footage that exists.
+      name = haveClip ? "Genjutsu"
+           : moving ? (fa ? "بازسازیِ نما‌به‌نما" : "Scene-by-scene rebuild")
+           : (fa ? "ساختِ دوبارهٔ عکس" : "Remake the image");
+    } else if (!moving && ref) {
+      name = (fa ? "ساختِ دوبارهٔ عکس" : "Remake the image");
+    } else {
+      // The tone answer opens the whole menu rather than one model, and
+      // saying "several" is truer than naming the first of them.
+      name = (fa ? "انتخاب از بینِ چند مدل" : "your pick of several");
+    }
+    el.textContent = name;
   }
 
   function swapShow(which) {
@@ -22439,6 +22516,7 @@ function vsReverseEngineer(prefill, opts) {
       try { reRenderFormatPlan(); } catch (e) {}
       // Re-route against the script that already exists, if one does.
       try { if (reApplyRoute) reApplyRoute(false); } catch (e) {}
+      try { rePaintModelRow(); } catch (e) {}
     };
   });
   document.querySelectorAll(".re-want[data-want]").forEach((btn) => {
@@ -22455,12 +22533,14 @@ function vsReverseEngineer(prefill, opts) {
       // Same again: "only the tone" is supposed to give the whole menu back,
       // and it could not, because the routing only ever ran inside Generate.
       try { if (reApplyRoute) reApplyRoute(false); } catch (e) {}
+      try { rePaintModelRow(); } catch (e) {}
     };
   });
   // Draw the answer the page opens with. Everything below reacts to a click,
   // and the default was never clicked.
   try { reRenderTemplateGallery(); } catch (e) {}
   try { reRenderFormatPlan(); } catch (e) {}
+  try { rePaintModelRow(); } catch (e) {}
 
   // One photo, not two that can disagree: this feeds the same variable the
   // talking-head build already reads.
