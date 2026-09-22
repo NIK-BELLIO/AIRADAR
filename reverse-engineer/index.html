@@ -8,7 +8,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=v717" />
+  <link rel="stylesheet" href="/styles.css?v=v718" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
     body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -298,7 +298,15 @@ function arCredits(n){
 
 <style>
     .re-app{max-width:none;margin:0;padding:12px 14px;display:grid;grid-template-columns:380px 1fr;gap:14px;position:relative;z-index:1;align-items:stretch;height:calc(100vh - 74px)}
-    .re-rail{border:1px solid rgba(37,99,255,.2);border-radius:14px;background:linear-gradient(180deg,rgba(20,18,26,.94),rgba(10,8,14,.94));padding:16px 15px;position:sticky;top:14px}
+    .re-rail{border:1px solid rgba(37,99,255,.2);border-radius:14px;background:linear-gradient(180deg,rgba(20,18,26,.94),rgba(10,8,14,.94));padding:16px 0 0;position:sticky;top:14px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+    .re-rail>.re-railhead{flex:none;padding:0 15px}
+    /* The steps, scrolling by themselves. min-height:0 is load-bearing: a flex
+       child will not shrink below its content without it, so the column grows
+       past the rail and the footer is pushed out of sight. */
+    .re-railscroll{flex:1;min-height:0;overflow-y:auto;padding:0 15px 14px}
+    /* The action, always on screen, with the price on it. */
+    .re-railgo{flex:none;padding:11px 15px 13px;border-top:1px solid rgba(255,255,255,.08);background:rgba(8,7,12,.72)}
+    .re-railgo .re-cta{width:100%}
     .re-main{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,rgba(13,16,24,.94),rgba(7,9,14,.96));overflow:hidden;display:flex;flex-direction:column;height:100%}
     .re-mbar{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
     .re-dot{width:11px;height:11px;border-radius:50%}
@@ -326,7 +334,11 @@ function arCredits(n){
   </style>
 
   <div class="re-app" id="ar-main">
-    <aside class="re-rail"><div class="re-railhead"><h1 class="re-railtitle">Build from a reference</h1><div class="re-railsub">Paste a link, add your info, then pick how to render it.</div></div><div id="reMount"></div></aside>
+    <aside class="re-rail">
+      <div class="re-railhead"><h1 class="re-railtitle">Build from a reference</h1><div class="re-railsub">Paste a link, add your info, then pick how to render it.</div></div>
+      <div class="re-railscroll"><div id="reMount"></div></div>
+      <div class="re-railgo" id="reRailGo"></div>
+    </aside>
     <main class="re-main">
       <div class="re-mbar">
         <span class="re-dot" style="background:#f87171"></span><span class="re-dot" style="background:#f5c451"></span><span class="re-dot" style="background:#5fe0b0"></span>
@@ -348,7 +360,7 @@ function arCredits(n){
     </main>
   </div>
 
-  <script src="/app.js?v=v717"></script>
+  <script src="/app.js?v=v718"></script>
   <script>
     (function () {
       var tries = 0;
@@ -363,6 +375,12 @@ function arCredits(n){
               // reProgress rides along so the "generating" steps appear in the
               // canvas the user is already looking at, not down the side rail.
               ["reProgress", "reOut", "reThRow"].forEach(function (id) { var el = document.getElementById(id); if (el && main) main.appendChild(el); });
+              // Generate and its note move to the rail's pinned footer. They
+              // are built inside the panel because that is where the panel
+              // knows how to price them; they belong at the bottom of the rail
+              // because that is where they have to stay visible.
+              var go = document.getElementById("reRailGo");
+              ["reGo", "reGoNote"].forEach(function (id) { var el = document.getElementById(id); if (el && go) go.appendChild(el); });
               var vid = document.querySelector(".re-herovid"); if (vid) { vid.addEventListener("timeupdate", function () { var d = vid.duration; if (!d || isNaN(d)) return; var f = 0.4, lo = 0.42, o = 1; if (vid.currentTime < f) o = lo + (1 - lo) * (vid.currentTime / f); else if (d - vid.currentTime < f) o = lo + (1 - lo) * ((d - vid.currentTime) / f); vid.style.opacity = o.toFixed(3); }); }
               var hero = document.getElementById("reHero"), reOut = document.getElementById("reOut");
               function sync() { if (!reOut || !hero) return; hero.style.display = (getComputedStyle(reOut).display !== "none") ? "none" : "flex"; }

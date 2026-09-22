@@ -20389,6 +20389,10 @@ function vsReverseEngineer(prefill, opts) {
          /* The single intake zone. Scoped to both roots because the page
             relocates this markup out of #reModal and an unscoped rule
             would then style nothing. */
+         /* A locked answer is dimmed, not hidden: knowing the option exists and
+            what unlocks it is the point of showing it at all. */
+         :is(#reModal,#reMainBody) .re-want[disabled]{opacity:.45;cursor:not-allowed}
+         :is(#reModal,#reMainBody) .re-want[disabled]::after{content:attr(data-why);display:block;margin-top:4px;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:#5b9bff}
          :is(#reModal,#reMainBody) .re-charstep{display:flex;flex-direction:column;gap:8px;margin-bottom:13px;padding:11px 13px;border-radius:12px;background:rgba(37,99,255,.06);border:1px solid rgba(37,99,255,.24)}
          :is(#reModal,#reMainBody) .re-charstep>b{font:800 12px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
          :is(#reModal,#reMainBody) .re-intake{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;background:rgba(37,99,255,.05);border:1.5px dashed rgba(37,99,255,.38);border-radius:16px;padding:26px 16px 18px;transition:border-color .15s,background .15s}
@@ -20490,7 +20494,7 @@ function vsReverseEngineer(prefill, opts) {
              <b>${fa ? "یک قالبِ آماده" : "A ready template"}</b>
              <i>${fa ? "شش شکلِ اندازه‌گیری‌شده — مرجع لازم نیست." : "One of the six measured shapes — no reference needed."}</i>
            </button>
-           <button type="button" class="re-want" data-src="video" aria-pressed="false">
+           <button type="button" class="re-want re-steplock" data-src="video" aria-pressed="false" disabled data-why="${fa ? "اول یک لینک را تحلیل کن" : "analyse a link first"}">
              <b>${fa ? "همین ویدئو" : "This exact video"}</b>
              <i>${fa ? "ساختار، قلاب و ریتمِ مرجعی که تحلیل کردی." : "The structure, hook and pacing of the reference you analysed."}</i>
            </button>
@@ -20849,6 +20853,8 @@ function vsReverseEngineer(prefill, opts) {
       card.style.display = "flex";
       // Success = a REAL caption was scraped (junk/login-wall is rejected upstream).
       if (ref && ref.ok) {
+        // There is a reference now, so the answer that needs one can be given.
+        try { reUnlockSteps(); } catch (e) {}
         if (ref.caption && !$$("rePaste").value) $$("rePaste").value = ref.caption;
         card.innerHTML =
           (ref.thumb ? `<img src="${esc(ref.thumb)}" style="width:84px;height:84px;object-fit:cover;border-radius:10px;background:#000;flex:none" onerror="this.style.display='none'"/>` : "") +
@@ -20873,6 +20879,7 @@ function vsReverseEngineer(prefill, opts) {
       clearInterval(ticker);
       vsSettle(charge.jobId, "failed");   // refund the credit if the read errored
       $$("reRefCard").style.display = "flex";
+      try { reUnlockSteps(); } catch (e) {}
       try { $$("rePasteWrap").open = true; } catch (e2) {}
       $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#f87171">${fa ? "خطا در خواندن لینک — کپشن را در کادرِ پایین پیست کن." : "Error reading the link — paste the caption into the box below."}</div>`;
     }
@@ -20993,7 +21000,8 @@ function vsReverseEngineer(prefill, opts) {
       card.innerHTML = `<img src="${esc(thumbUrl)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:10px;background:#000;flex:none"/>
         <div style="flex:1;min-width:0"><div style="font-weight:800;color:#f4f5f7;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
         <div style="font-size:12px;color:#8a919c;margin-top:3px">${esc(seenTxt)}</div>${fmtTxt}${cardsTxt}</div>`;
-    } catch (err) { $$("reRefCard").style.display = "flex"; $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#f87171">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
+    } catch (err) { $$("reRefCard").style.display = "flex";
+      try { reUnlockSteps(); } catch (e) {} $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#f87171">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
     try { reRenderTemplateGallery(); } catch (e2) {}
     lbl.textContent = old; e.target.value = "";
   };
@@ -22310,6 +22318,26 @@ function vsReverseEngineer(prefill, opts) {
     const toneBtn = document.querySelector('.re-want[data-want="tone"]');
     if (toneBtn) toneBtn.click();
   };
+
+  /**
+   * Open the answers the panel can now honour.
+   *
+   * Called wherever a reference lands - a link read, an upload analysed,
+   * captions pasted - so the rule lives in one place instead of at each of
+   * those three sites, where two of them would eventually forget.
+   */
+  function reUnlockSteps() {
+    const btn = document.querySelector('.re-want[data-src="video"]');
+    if (!btn || !ref) return;
+    const wasLocked = btn.disabled;
+    btn.disabled = false;
+    btn.classList.remove("re-steplock");
+    btn.removeAttribute("data-why");
+    // Somebody who has just analysed a post is telling you which answer they
+    // want. Only on the transition, so a later click of "a ready template" is
+    // not undone by the next re-render.
+    if (wasLocked) btn.click();
+  }
 
   function swapShow(which) {
     const swapOn = which === "swap";
