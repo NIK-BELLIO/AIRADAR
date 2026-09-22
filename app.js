@@ -21665,10 +21665,18 @@ function vsReverseEngineer(prefill, opts) {
   const vsExtraPrompt = () => ($$("reExtraPrompt") && $$("reExtraPrompt").value || "").trim();
 
   // Own-photo picker: remember the file and show its name.
+  //
+  // Guarded, because #reThPhoto belonged to the talking-head builder and that
+  // builder is gone. Unguarded, this threw and took every binding below it
+  // with it — the choice cards, the builders and Generate all went dead while
+  // still looking live. The other readers of thPhoto (the scene rebuild, the
+  // cinematic shot) fall back to the shared "add your image" picker, so the
+  // value is simply never set rather than missing.
   let thPhoto = null;
-  $$("reThPhoto").onchange = (e) => {
+  if ($$("reThPhoto")) $$("reThPhoto").onchange = (e) => {
     thPhoto = (e.target.files && e.target.files[0]) || null;
-    $$("reThPhotoTxt").textContent = thPhoto
+    const lbl = $$("reThPhotoTxt");
+    if (lbl) lbl.textContent = thPhoto
       ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + thPhoto.name.slice(0, 30)
       : (fa ? "عکسِ چهره (اختیاری)" : "Face photo (optional)");
   };
