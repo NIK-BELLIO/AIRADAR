@@ -9859,6 +9859,8 @@ try {
 } catch (e) {}
 
 function vsRenderBatchList() {
+  // The queue just changed, so the main button's promise may be out of date.
+  try { if (window.vsExportBtnSyncBatch) window.vsExportBtnSyncBatch(); } catch (e) {}
   const box = document.querySelector("#vsBatchResults");
   if (!box) return;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -24957,7 +24959,39 @@ function bindEvents() {
       : "Logo placed Drag it on the preview; drag the ends of its timeline bar to set timing.");
   });
   on("#vsPreviewBtn", "click", previewStudioVideo);
-  on("#vsExportBtn", "click", () => vsShowExportOptions(exportStudioVideo));
+  // With a batch queued this is the batch's button. The one-reel export did
+  // not move - it is on that reel's own row, where the name beside it says
+  // which reel is meant.
+  on("#vsExportBtn", "click", () => {
+    const many = (vstudio.batchVideos || []).length;
+    if (many > 1) return vsExportAllBatch();
+    return vsShowExportOptions(exportStudioVideo);
+  });
+
+  /**
+   * Keep the label honest about what pressing it will do.
+   *
+   * Called wherever the queue changes, so the button cannot promise one video
+   * while three are waiting - which is the whole of this bug.
+   */
+  window.vsExportBtnSyncBatch = function () {
+    const btn = document.getElementById("vsExportBtn");
+    if (!btn) return;
+    const many = (vstudio.batchVideos || []).length;
+    const fa2 = state.lang === "fa";
+    const label = many > 1
+      ? (fa2 ? `دانلودِ هر ${many} ویدیو (ZIP)` : `Download all ${many} videos (zip)`)
+      : (fa2 ? "خروجیِ ویدیو" : "Export video");
+    // Written onto the button itself rather than into #vsExportBtnTxt. That
+    // span is gone by the time anyone looks: the i18n pass writes the
+    // translation into the button's text and takes the span with it, so a
+    // function that needed it just returned and the label never changed.
+    btn.textContent = "⬇ " + label;
+    btn.title = many > 1
+      ? (fa2 ? "هر ویدیوی صف رندر و در یک ZIP دانلود می‌شود. چند دقیقه برای هرکدام."
+             : "Renders every video in the queue into one zip. A few minutes each.")
+      : "";
+  };
   on("#vsCoverBtn", "click", () => { try { vsThumbStudio(); } catch (e) {} });
   // Reverse Engineer is gated behind a "SOON" lock until it's finalized.
   // To UNLOCK: set window.VS_REVERSE_SOON = false (or delete this flag).
