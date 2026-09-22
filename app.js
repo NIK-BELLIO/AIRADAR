@@ -6556,7 +6556,15 @@ function vsReelLook(place, month, index) {
 async function vsBuildRealtorBatch(towns, month) {
   const fa = state.lang === "fa";
   vstudio._batchCancel = false;
-  vstudio.batchVideos = [];
+  // What earlier runs already wrote, kept across runs so a second pass can
+  // finish the gap instead of starting the whole list again.
+  vstudio._reelDone = vstudio._reelDone || {};
+  const doneKey = (place) => String(place).trim().toLowerCase() + "|" + month;
+  // Anything asked for again that is already written comes straight back,
+  // in the order it was asked for.
+  const carried = towns.map((t) => vstudio._reelDone[doneKey(typeof t === "string" ? t : (t && (t.place || t.name)) || "")])
+                       .filter(Boolean);
+  vstudio.batchVideos = carried.slice();
   // This run owns the popup from the first word to the last frame. Without it
   // the footage step closes it between every reel and the screen blinks empty.
   //
@@ -6572,6 +6580,8 @@ async function vsBuildRealtorBatch(towns, month) {
   // Split by cause: a rejected draft is worth retrying, an unreachable
   // writer is worth waiting out. The message says which.
   const skippedOffline = [], skippedRejected = [];
+  // Carried over from an earlier run rather than written now.
+  let reused = 0;
   // How many towns came from the panel rather than from a model. Worth saying
   // out loud at the end: it is the difference between a batch somebody read
   // and a batch nobody has.
@@ -6604,6 +6614,9 @@ async function vsBuildRealtorBatch(towns, month) {
   for (let i = 0; i < towns.length && !vstudio._batchCancel; i++) {
     const entry = towns[i];
     const place = typeof entry === "string" ? entry : entry.place;
+    // Already written in an earlier run of this month. Nothing to ask a model
+    // about, and asking would spend budget the towns still missing need.
+    if (vstudio._reelDone[doneKey(place)]) { reused++; continue; }
     vsBatchProgress(true, i, towns.length, (fa ? "متن: " : "Writing: ") + place);
     const brief = briefs && briefs.find((b) => b.regionId === (entry && entry.id));
 
@@ -6642,7 +6655,7 @@ async function vsBuildRealtorBatch(towns, month) {
     // Its own look and its own music, rather than the one default the whole
     // batch used to share.
     const look = vsReelLook(place, month, i);
-    vstudio.batchVideos.push({
+    const built = {
       name: place.split(",")[0].trim(),
       location: place,
       template: look.template,
@@ -6661,7 +6674,10 @@ async function vsBuildRealtorBatch(towns, month) {
         _look: look,
         _location: place, _batchName: place, _topic: "realtor reel"
       }
-    });
+    };
+    vstudio.batchVideos.push(built);
+    // Remembered so a later run for the same month does not rewrite it.
+    vstudio._reelDone[doneKey(place)] = built;
     vsRenderBatchList();
   }
   } finally {
@@ -6681,6 +6697,8 @@ async function vsBuildRealtorBatch(towns, month) {
   await vsLoadBatchVideo(0);
   const n = vstudio.batchVideos.length;
   vsAutoStatus((fa ? `${n} ریل آماده شد.` : `${n} reels ready.`) +
+    (reused ? (fa ? ` ${reused} تا از اجرای قبلی نگه داشته شد.`
+                  : ` ${reused} kept from an earlier run.`) : "") +
     (fromPanel ? (fa ? ` ${fromPanel} تا از متن‌های تأییدشده‌ی پنل.`
                      : ` ${fromPanel} of them from approved panel scripts.`) : "") +
     (skippedRejected.length ? (fa
