@@ -9933,8 +9933,17 @@ async function vsExportAllBatch() {
 
   const zip = JSZip ? new JSZip() : null;
   const used = {};
+  // Named, not just counted: "1 of 3" with no names is the report that sent
+  // somebody back here ten times.
+  const _exportLost = [];
   for (let i = 0; i < vids.length; i++) {
     if (vstudio._batchCancel) break;
+    // The exporter refuses to start while vstudio.rendering is set, and it
+    // refuses by returning undefined rather than by throwing. The flag is
+    // cleared in seven places inside it and not one of them is a finally, so
+    // one missed path leaves every later video returning instantly with no
+    // blob. Clear it here, the way vsExportOne already does.
+    vstudio.rendering = false;
     vsBatchProgress(true, i, vids.length, (fa ? "خروجی: " : "Exporting: ") + vids[i].name);
     vstudio._exportSpeaking = true;
     vsAutoStatus(fa ? `خروجی ${i + 1} از ${vids.length}: ${vids[i].name}…`
@@ -9947,6 +9956,7 @@ async function vsExportAllBatch() {
         vstudio._returnBlob = true;
         const res = await exportStudioVideo();      // record → return blob (no download)
         vstudio._returnBlob = false;
+        if (!res || !res.blob) _exportLost.push(vids[i].name);
         if (res && res.blob) {
           let base = String(vids[i].name).replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").slice(0, 50) || ("video-" + (i + 1));
           if (used[base]) base += "-" + (++used[base]); else used[base] = 1;
@@ -9964,7 +9974,12 @@ async function vsExportAllBatch() {
       } else {
         await exportStudioVideo();                  // fallback: individual download
       }
-    } catch (e) { /* skip a failed one, continue */ }
+    } catch (e) {
+      // Carrying on is right - one bad reel should not cost the other nine -
+      // but doing it in silence is what made a short zip look like a short
+      // batch.
+      _exportLost.push(vids[i].name + (e && e.message ? " (" + String(e.message).slice(0, 60) + ")" : ""));
+    }
     vstudio._exportName = null;
     vstudio._returnBlob = false;
   }
@@ -9982,6 +9997,14 @@ async function vsExportAllBatch() {
     } catch (e) { /* zip failed */ }
   }
 
+  if (_exportLost.length) {
+    const fa2 = state.lang === "fa";
+    vstudio._exportSpeaking = true;
+    vsAutoStatus(fa2
+      ? `${vids.length - _exportLost.length} از ${vids.length} ویدیو در ZIP است. رندر نشد: ${_exportLost.join("، ")} — دوباره «دانلود همه» را بزن.`
+      : `${vids.length - _exportLost.length} of ${vids.length} videos are in the zip. These did not render: ${_exportLost.join(", ")} - press "Download all" again to retry them.`);
+    vstudio._exportSpeaking = false;
+  }
   vstudio._batchExporting = false;
   vstudio.rendering = false;
   const wasCancelled = vstudio._batchCancel;
