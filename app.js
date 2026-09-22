@@ -6723,7 +6723,14 @@ async function vsWriteRealtorReel(place, month, serverPrompt, figure, figureKind
     // The server's brief when there is one - it is the same set of rules the
     // monthly run writes to, and it knows what this town has already had. The
     // local copy is only for when the server cannot be reached.
-    const prompt = serverPrompt || vsReelPrompt(place, month, seed);
+    let prompt = serverPrompt || vsReelPrompt(place, month, seed);
+    // Tell it what it got wrong last time. Without this every attempt is the
+    // same question, so the same small model makes the same mistake until the
+    // town is skipped - which is exactly what was happening.
+    if (attempt && _vsReelReject) {
+      prompt += "\n\nYOUR LAST ATTEMPT WAS REJECTED: " + _vsReelReject +
+                "\nWrite it again and fix exactly that. Everything else about the brief still applies.";
+    }
     let raw = "";
     let unreachable = "";
     try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 1.0 }); }
