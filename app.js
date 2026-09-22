@@ -21538,6 +21538,9 @@ function vsReverseEngineer(prefill, opts) {
       const fmtOv = $$("reFmtOverride");
       const paintOv = () => { if (fmtOv) fmtOv.style.display = (!reRouteUnlocked && (reWantMode === "character" || (reWantSource === "template" && rePickedTemplate))) ? "none" : "flex"; };
       applyRoute(route, false);
+      // Hand it out. The cards below change the answers this was computed from,
+      // and until now they had no way to say so.
+      reApplyRoute = (manual) => { applyRoute(route, !!manual); paintOv(); };
       paintOv();
       if ($$("reRouteLockMore")) $$("reRouteLockMore").onclick = () => { reRouteUnlocked = true; applyRoute(route, false); paintOv(); };
       if ($$("reFmtTalk")) $$("reFmtTalk").onclick = () => applyRoute("talking_head", true);
@@ -21915,6 +21918,10 @@ function vsReverseEngineer(prefill, opts) {
   // walk away from the shape the script was actually written for. The menu is
   // still reachable, but it has to be asked for.
   let reRouteUnlocked = false;
+  // Set by Generate, so the choice cards can re-run the routing after a script
+  // exists. Null until then, which is also the test for "has anything been
+  // written yet" - before that there is no route to re-apply.
+  let reApplyRoute = null;
   // Which category the grid is filtered to, and whether it has been opened up
   // past the first page.
   let reTplCat = "all";
@@ -22279,6 +22286,8 @@ function vsReverseEngineer(prefill, opts) {
         b2.setAttribute("aria-pressed", String(b2.dataset.src === reWantSource)));
       try { reRenderTemplateGallery(); } catch (e) {}
       try { reRenderFormatPlan(); } catch (e) {}
+      // Re-route against the script that already exists, if one does.
+      try { if (reApplyRoute) reApplyRoute(false); } catch (e) {}
     };
   });
   document.querySelectorAll(".re-want[data-want]").forEach((btn) => {
@@ -22292,6 +22301,9 @@ function vsReverseEngineer(prefill, opts) {
       // is only possible while we are holding that footage.
       try { swapShow(reWantMode === "character" && !!(ref && ref.refVideo) ? "swap" : "tone"); } catch (e) {}
       try { reRenderFormatPlan(); } catch (e) {}
+      // Same again: "only the tone" is supposed to give the whole menu back,
+      // and it could not, because the routing only ever ran inside Generate.
+      try { if (reApplyRoute) reApplyRoute(false); } catch (e) {}
     };
   });
   // Draw the answer the page opens with. Everything below reacts to a click,
