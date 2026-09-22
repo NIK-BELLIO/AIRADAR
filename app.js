@@ -7862,9 +7862,10 @@ async function vsEnsureDefaultMusic(data) {
       aiEl.loop = true; aiEl.preload = "auto";
       return aiEl;
     }
+    // Not a failure the operator has to act on: a track follows either way.
     vsStatus(state.lang === "fa"
-      ? "موسیقی AI ساخته نشد؛ اعتبار Audio در Pollinations فعال نیست."
-      : "AI music failed; Pollinations Audio credit is not enabled.");
+      ? "موسیقیِ Pollinations در دسترس نیست — یک قطعه همین‌جا ساخته شد."
+      : "Pollinations music isn't available on this account - composed one here instead.");
     // This offline synth composes its own intro swell / outro fade directly
     // into the buffer (see the gain ramps below) — it's a one-shot cue, not a
     // seamless loop bed. It used to always render a fixed 20s buffer and cache
@@ -8068,9 +8069,11 @@ async function vsGenerateNarration(data, voice) {
     }
   } catch (e) {}
   if (!blob) {
+    // This one really does fail - there is no local fallback for speech, so
+    // the reel comes out silent. Say what that means and what fixes it.
     vsStatus(state.lang === "fa"
-      ? "Voice-over ساخته نشد؛ اعتبار Audio در Pollinations فعال نیست."
-      : "Voice-over failed; Pollinations Audio credit is not enabled.");
+      ? "ویس‌اور ساخته نشد (اعتبار Audio در Pollinations فعال نیست) — ویدیو بدونِ روایت ساخته می‌شود. صدای خودت را آپلود کن یا اعتبار اضافه کن."
+      : "No voice-over: Pollinations Audio is not enabled on this account, so the reel renders without narration. Upload your own voice, or add Pollinations credit.");
     return null;
   }
   const objUrl = URL.createObjectURL(blob);
@@ -8807,9 +8810,22 @@ async function vsAutoGenerateBackgrounds(data) {
   } else {
     await Promise.all(slides.map((s, i) => genOne(s, i)));   // PARALLEL — much faster
   }
-  vsAutoStatus(state.lang === "fa"
-    ? (made ? `فوتیج ${made} صحنه آماده شد.` : "فوتیج در دسترس نبود.")
-    : (made ? `Footage ready for ${made} scene${made > 1 ? "s" : ""}.` : "Footage unavailable."));
+  // N of M, not just N. "Footage ready for 3 scenes" sounds finished when the
+  // other four are still on a plain template background - which is what a
+  // reel that looks half-built actually is, and the only place it was ever
+  // going to be visible.
+  {
+    const total = slides.length;
+    const bare = Math.max(0, total - made);
+    vsAutoStatus(state.lang === "fa"
+      ? (made
+          ? `فوتیج برای ${made} از ${total} صحنه آماده شد.` + (bare ? ` ${bare} صحنه با پس‌زمینهٔ قالب می‌ماند.` : "")
+          : "هیچ فوتیجی پیدا نشد — همهٔ صحنه‌ها با پس‌زمینهٔ قالب ساخته می‌شوند.")
+      : (made
+          ? `Footage ready for ${made} of ${total} scene${total > 1 ? "s" : ""}.` +
+            (bare ? ` ${bare} stay${bare === 1 ? "s" : ""} on the template background.` : "")
+          : "No footage found - every scene renders on the template background."));
+  }
   if (!vstudio.looping) previewStudioVideo(false);
   } finally {
     vstudio._footageBusy = false;
