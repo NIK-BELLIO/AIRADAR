@@ -6696,7 +6696,7 @@ async function vsBuildRealtorBatch(towns, month) {
   vsRenderBatchList();
   await vsLoadBatchVideo(0);
   const n = vstudio.batchVideos.length;
-  vsAutoStatus((fa ? `${n} ریل آماده شد.` : `${n} reels ready.`) +
+  vsAutoStatus((fa ? `${n} متن نوشته شد.` : `${n} scripts written.`) +
     (reused ? (fa ? ` ${reused} تا از اجرای قبلی نگه داشته شد.`
                   : ` ${reused} kept from an earlier run.`) : "") +
     (fromPanel ? (fa ? ` ${fromPanel} تا از متن‌های تأییدشده‌ی پنل.`
@@ -6707,7 +6707,9 @@ async function vsBuildRealtorBatch(towns, month) {
     (skippedOffline.length ? (fa
        ? ` ${skippedOffline.length} تا نوشته نشد چون نویسندهٔ رایگان جواب نداد (سهمیهٔ روزانه): ${skippedOffline.join("، ")} — کارِ تو نیست؛ کمی بعد دوباره بزن.`
        : ` ${skippedOffline.length} were not written because the free writer did not answer — that is the shared daily budget, not anything you did: ${skippedOffline.join(", ")}. Run it again in a while and they will come through.`) : "") +
-    (fa ? " «دانلود همه» را بزن." : ' Press "Download all" to render them.'));
+    (fa
+      ? " فوتیج و موزیک موقعِ باز کردن یا خروجی گرفتنِ هر ریل اضافه می‌شود — یکی دو دقیقه برای هرکدام. «دانلود همه» را بزن."
+      : ' Footage and music are added when you open or export each one - a minute or two per reel. Press "Download all" to render them.'));
   return true;
 }
 
@@ -9696,8 +9698,13 @@ async function vsLoadBatchVideo(i) {
 
   // First time → generate footage, then cache it on the video.
   if (!vstudio._batchCancel) {
-    vsAutoStatus(fa ? `در حال ساخت فوتیج برای ${v.name}…` : `Finding footage for ${v.name}…`);
+    vsAutoStatus(fa ? `در حال ساخت فوتیج برای ${v.name}… (یکی دو دقیقه)` : `Finding footage for ${v.name}… (a minute or two)`);
+    // Visible in the list too, so the wait belongs to the reel it is for
+    // rather than living only in a status line the next step overwrites.
+    v._footaging = true;
+    try { vsRenderBatchList(); } catch (e) {}
     try { await vsAutoGenerateBackgrounds(v.data); } catch (e) {}
+    v._footaging = false;
     v._mediaCache = vstudio.slides.map(s => ({
       el: s.mediaEl || null, url: s.url || null, isVideo: !!s.isVideo,
       motion: s.settings && s.settings["#vsMotion"]
@@ -9851,10 +9858,16 @@ function vsRenderBatchList() {
   vids.forEach((v, i) => {
     const active = i === vstudio.batchCurrent ? " active" : "";
     const n = (v.data && v.data.sections ? v.data.sections.length + 2 : 0);
+    // Three states, and the middle one is the whole point: a reel that is
+    // getting its footage looks identical to one that never will.
+    const st = v._footaged ? (fa ? "فوتیج و موزیک دارد" : "footage + music")
+             : v._footaging ? (fa ? "در حالِ گرفتنِ فوتیج…" : "getting footage…")
+             : (fa ? "فقط متن — با باز کردن کامل می‌شود" : "script only - opens to fill in");
+    const stCls = v._footaged ? " done" : v._footaging ? " busy" : "";
     html += `<div class="vs-batch-item${active}">
       <button type="button" class="vs-batch-open" data-batch="${i}">
         <span class="vs-batch-name">${esc(v.name)}</span>
-        <span class="vs-batch-meta">${n ? (fa ? n + " صحنه" : n + " scenes") : ""}</span>
+        <span class="vs-batch-meta">${n ? (fa ? n + " صحنه" : n + " scenes") : ""}<span class="vs-batch-state${stCls}">${st}</span></span>
       </button>
       <button type="button" class="vs-batch-dl" data-dl="${i}" title="${fa ? "دانلود این ویدئو" : "Download this video"}">⬇</button>
     </div>`;

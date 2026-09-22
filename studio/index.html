@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v720" />
+    <link rel="stylesheet" href="/styles.css?v=v721" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -2216,6 +2216,10 @@
         text-align:start;cursor:pointer;padding:10px 13px;background:transparent;border:0;color:#f4f5f7}
       .vs-batch-open .vs-batch-name{font-weight:700;font-size:13.5px;color:#f5c451}
       .vs-batch-open .vs-batch-meta{font-size:11px;color:#8a919c}
+      /* Which of the three states a reel is in. */
+      .vs-batch-open .vs-batch-state{display:block;margin-top:2px;font:600 10px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.03em;color:#8a919c}
+      .vs-batch-open .vs-batch-state.busy{color:#5b9bff}
+      .vs-batch-open .vs-batch-state.done{color:#5fe0b0}
       .vs-batch-dl{flex-shrink:0;width:42px;cursor:pointer;border:0;border-inline-start:1px solid rgba(255,255,255,.08);
         background:transparent;color:#2563ff;font-size:16px;border-radius:0 14px 14px 0;transition:background .16s,color .16s}
       .vs-batch-dl:hover{background:rgba(37,99,255,.18);color:#fff}
@@ -2663,7 +2667,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v720"></script>
+    <script src="/app.js?v=v721"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
