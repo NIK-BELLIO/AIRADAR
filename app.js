@@ -4896,10 +4896,28 @@ async function vsAutoAiChat(prompt, opts) {
     }
   }
 
-  // With the built-in key, the strong free models unlock. Try them in order of
-  // quality, then fall back to the always-free default. `opts.fast` (used by the
-  // chat assistant) prefers the quickest models and does a single pass.
-  const models = ["openai"];
+  // Ask for a writer, not the fastest thing on the shelf.
+  //
+  // "openai" resolves to gpt-5.4-NANO, and that one alias was writing every
+  // script on the site. Nano writes filler: asked for a reel about Akron at a
+  // $135,000 median it produced "right where you need to be", "everyday
+  // convenience", "the fit is usually straightforward" - five lines that could
+  // be about any town in America.
+  //
+  // The same endpoint, same prompt, same afternoon, serves much better models
+  // for nothing extra:
+  //
+  //   openai        gpt-5.4-nano    5s   generic filler
+  //   gpt-5.4-mini  gpt-5.4-mini    5s   serviceable
+  //   openai-large  gpt-5.5         7s   "older single-family homes, brick
+  //                                       colonials", "block-by-block research
+  //                                       matters here"
+  //
+  // Two seconds buys copy a realtor would actually read out. So script writing
+  // asks for the big model first and keeps the others as fallbacks, while
+  // `opts.fast` - the chat assistant, where a reply is a conversation and
+  // latency is the whole experience - stays on nano.
+  const models = opts.fast ? ["openai"] : ["openai-large", "gpt-5.4-mini", "openai"];
   // Ordered by MEASURED latency, not by which was written first.
   //
   // The same prompt, the same afternoon, twice each:
