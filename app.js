@@ -6262,7 +6262,9 @@ function vsFormatMatch(opts) {
              ranked: VS_FORMATS.map((f) => ({ id: f.id, label: f.label, score: 0 })) };
   }
   const v = opts.vision || {};
-  const talking = /talking_head|selfie|podcast/.test(String(v.format || ""));
+  // The vision read writes "talking head" as often as "talking_head"; every
+  // other reader on the page accepts both, and this one only took the second.
+  const talking = /talking[_ ]?head|selfie|podcast/i.test(String(v.format || ""));
   const captions = !!v.captions;
   // A premise card announces a skit in one of a few set phrases.
   const onscreen = String(v.title_text || v.onscreen_text || "").trim();
@@ -19913,7 +19915,7 @@ async function vsReverseFetchPost(url) {
     // Same clip pickup as the markdown branch: whichever reader answered,
     // the mp4 is already in the bytes and there is no reason to fetch twice.
     const vh = html.match(/(https:\/\/[^\s)"']*cdninstagram[^\s)"']*\.mp4[^\s)"']*)/i);
-    if (vh) res.video = vh[1].replace(/\u0026|&amp;/g, "&");
+    if (vh) res.video = vh[1].replace(/\\u0026|&amp;/g, "&");
     return res;
   };
   if (shortcode) {
@@ -20213,6 +20215,7 @@ function vsFalJobRemember(o) {
   if (!o || !o.statusUrl) return;
   const a = vsFalJobsRead().filter((x) => x.statusUrl !== o.statusUrl);
   a.push({ statusUrl: o.statusUrl, respUrl: o.respUrl || "", model: o.model || "",
+           provider: o.provider || "", kind: o.kind || "",
            action: o.action || "", name: o.name || "video", credits: o.credits || 0,
            jobId: o.jobId || "", at: Date.now() });
   vsFalJobsWrite(a);
@@ -20236,20 +20239,43 @@ async function vsFalRecover(opts) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const jobs = vsFalJobsRead();
   const report = { checked: jobs.length, recovered: [], stillRunning: [], failed: [], unreachable: [] };
+  // Higgsfield jobs (Genjutsu, the video and image models) are asked through
+  // their own poll route and answer in lowercase with the output in the same
+  // body. Asking fal about them could only ever say "not reachable", so a paid
+  // Genjutsu render that lost its tab was never collected.
+  const HF_TO_FAL = { queued: "IN_QUEUE", in_progress: "IN_PROGRESS", completed: "COMPLETED",
+                      failed: "FAILED", nsfw: "FAILED", canceled: "FAILED" };
   for (const j of jobs) {
-    let st = "?";
-    try { st = (await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.statusUrl))).json()).status || "?"; }
+    const isHf = j.provider === "hf" || /higgsfi/i.test(j.model || "") || /higgsfield/i.test(j.statusUrl || "");
+    let st = "?", body = null;
+    try {
+      body = await (await vsFalFetch(WB + (isHf ? "/hf/poll?url=" : "/fal/poll?url=") + encodeURIComponent(j.statusUrl))).json();
+      st = (body && body.status) || "?";
+      if (isHf) st = HF_TO_FAL[st] || st;
+    }
     catch (e) { report.unreachable.push(j.name); continue; }
     if (st === "IN_QUEUE" || st === "IN_PROGRESS") { report.stillRunning.push(j.name); continue; }
     if (st === "FAILED" || st === "ERROR") { vsFalJobForget(j.statusUrl); report.failed.push(j.name); continue; }
     if (st !== "COMPLETED") { report.unreachable.push(j.name + " (" + st + ")"); continue; }
     try {
-      const rr = await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.respUrl || j.statusUrl.replace(/\/status$/, "")))).json();
-      const url = rr && (rr.video && rr.video.url || rr.url);
+      const rr = isHf ? body
+        : await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.respUrl || j.statusUrl.replace(/\/status$/, "")))).json();
+      const url = rr && (rr.video && rr.video.url || rr.url
+        || (Array.isArray(rr.images) && rr.images[0] && rr.images[0].url) || (rr.image && rr.image.url));
       if (!url) { report.unreachable.push(j.name + " (no url)"); continue; }
       const blob = await (await fetch(url)).blob();
       if (!blob || blob.size < 1000) { report.unreachable.push(j.name + " (empty)"); continue; }
-      try { if (typeof vsSaveToDashboard === "function") await vsSaveToDashboard(blob, "mp4", j.name); } catch (e) {}
+      const isImg = /^image\//.test(blob.type || "") || j.kind === "image";
+      try {
+        if (isImg) {
+          // A picture is saved the way the image remake saves one - the video
+          // uploader would file it as a broken .mp4.
+          const fd = new FormData();
+          fd.append("image", blob, (j.name || "image") + "." + ((blob.type || "").includes("jpeg") ? "jpg" : "png"));
+          fd.append("title", String(j.name || "Recovered image").slice(0, 110));
+          await fetch("/api/studio/save", { method: "POST", body: fd, credentials: "include" });
+        } else if (typeof vsSaveToDashboard === "function") await vsSaveToDashboard(blob, "mp4", j.name);
+      } catch (e) {}
       vsFalJobForget(j.statusUrl);
       report.recovered.push({ name: j.name, bytes: blob.size, url: URL.createObjectURL(blob) });
     } catch (e) { report.unreachable.push(j.name + ": " + (e && e.message || e)); }
@@ -20433,7 +20459,6 @@ function vsReverseEngineer(prefill, opts) {
   // the live credit on per-second models.
   const optDur = (sel) => ["auto", "5", "8", "10", "15"].map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v === "auto" ? (fa ? "زمان: خودکار" : "Time: Auto") : (fa ? "زمان: " : "Time: ") + v + "s"}</option>`).join("");
   const optAsp = (sel) => [["9:16", fa ? "عمودی 9:16" : "Vertical 9:16"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["16:9", fa ? "افقی 16:9" : "Wide 16:9"]].map(([v, l]) => `<option value="${v}"${v === (sel || "9:16") ? " selected" : ""}>${l}</option>`).join("");
-  const optRes = (sel) => [["720p", "720p"], ["1080p", "1080p"]].map(([v, l]) => `<option value="${v}"${v === (sel || "720p") ? " selected" : ""}>${fa ? "کیفیت: " : "Quality: "}${l}</option>`).join("");
   const optSize = (sel) => [["4:5", fa ? "پرتره 4:5" : "Portrait 4:5"], ["1:1", fa ? "مربع 1:1" : "Square 1:1"], ["9:16", fa ? "استوری 9:16" : "Story 9:16"]].map(([v, l]) => `<option value="${v}"${v === (sel || "4:5") ? " selected" : ""}>${l}</option>`).join("");
   // The credit mark. Defined once and reused so a cost never renders two
   // different ways on the same screen.
@@ -20704,7 +20729,7 @@ function vsReverseEngineer(prefill, opts) {
            <div class="re-qlbl">${fa ? "شکلِ ویدئو از کجا بیاید؟" : "Where should the shape come from?"}</div>
            <button type="button" class="re-want" data-src="template" aria-pressed="true">
              <b>${fa ? "یک قالبِ آماده" : "A ready template"}</b>
-             <i>${fa ? "شش شکلِ اندازه‌گیری‌شده — مرجع لازم نیست." : "One of the six measured shapes — no reference needed."}</i>
+             <i>${fa ? VS_TEMPLATES.length + " قالبِ اندازه‌گیری‌شده — مرجع لازم نیست." : "One of " + VS_TEMPLATES.length + " measured shapes — no reference needed."}</i>
            </button>
            <button type="button" class="re-want re-steplock" data-src="video" aria-pressed="false" disabled data-why="${fa ? "اول یک لینک را تحلیل کن" : "analyse a link first"}">
              <b>${fa ? "همین ویدئو" : "This exact video"}</b>
@@ -20913,7 +20938,10 @@ function vsReverseEngineer(prefill, opts) {
                <div><div class="mname">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</div><div class="meng">CINEMA STUDIO 4.0 · ${fa ? "عکس→ویدیو+صدا" : "image→video+audio"}</div></div>
              </div>
              <div class="mdesc">${fa ? "نمای متحرک با صدای همزمان از عکسِ تو یا کاورِ ساخته‌شده." : "A moving shot with synced audio from your photo or the generated cover."}</div>
-             <div class="re-mctl"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reGrokDur">${optDur("auto")}</select></div><div class="cf"><b>${fa ? "کیفیت" : "Quality"}</b><select id="reGrokRes">${optRes("720p")}</select></div></div>
+             <!-- No quality picker: the build always renders at 480p (720p is
+                  2.25x the price for the same clip), and a 720p/1080p choice
+                  that changed nothing was a setting that lied. -->
+             <div class="re-mctl one"><div class="cf"><b>${fa ? "زمان" : "Time"}</b><select id="reGrokDur">${optDur("auto")}</select></div></div>
              <div style="flex:1"></div>
              <span class="ar-cred" id="reCredGrok">${gemSvg}9 ${fa ? "/ ثانیه" : "/ sec"}</span>
              <button id="reBuildGrok" type="button" class="mbtn">${fa ? "سینمایی + صدا" : "Cinematic + audio"}</button>
@@ -21177,6 +21205,9 @@ function vsReverseEngineer(prefill, opts) {
     });
   }
 
+  // Captions typed or pasted by hand count as the reference.
+  if ($$("rePaste")) $$("rePaste").addEventListener("input", () => { try { reUnlockSteps(); } catch (e) {} });
+
   // Upload the POST's own image/video → analyze it directly (no IG fetch needed).
   $$("reUpload").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -21233,7 +21264,12 @@ function vsReverseEngineer(prefill, opts) {
       const parts = [];
       if (vision) { if (vision.format) parts.push("format: " + vision.format); if (vision.onscreen_text) parts.push("on-screen text: " + vision.onscreen_text); if (vision.subject) parts.push("shows: " + vision.subject); if (vision.setting) parts.push("setting: " + vision.setting); }
       if (titleCards.length > 1) parts.push("caption sequence: " + titleCards.join(" → "));
-      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, refVideo: file, uploaded: true, isProfile: false , format, cutInfo };
+      // refVideo is the clip Genjutsu and motion transfer run on, and every
+      // "is this a video?" test on the page reads it. An uploaded PHOTO was
+      // stored here too, so a still was offered video-to-video builders and
+      // the image remake - the one right answer for a photo - was hidden.
+      const isVideoFile = /^video\//.test(file.type);
+      ref = { ok: true, caption: parts.join("; ") || (fa ? "پستِ آپلودشده" : "uploaded post"), thumb: thumbUrl, username: "", hashtags: [], vision, titleCards, shotList, refDuration, refVideo: isVideoFile ? file : null, uploaded: true, isProfile: false , format, cutInfo };
       const card = $$("reRefCard"); card.style.display = "flex";
       const seenTxt = vision ? ((vision.format || "") + (vision.mic ? " · mic" : "") + (vision.captions ? " · captions" : "") + (vision.setting ? " · " + vision.setting : "")) : (fa ? "تحلیلِ ناقص" : "partial");
       // What shape it is, and how sure. Said plainly - a guess presented as a
@@ -21245,6 +21281,10 @@ function vsReverseEngineer(prefill, opts) {
       card.innerHTML = `<img src="${esc(thumbUrl)}" crossorigin="anonymous" style="width:84px;height:84px;object-fit:cover;border-radius:10px;background:#000;flex:none"/>
         <div style="flex:1;min-width:0"><div style="font-weight:800;color:#f4f5f7;font-size:13px">${fa ? "✓ از عکس/ویدیو تحلیل شد" : "✓ Analyzed from your upload"}</div>
         <div style="font-size:12px;color:#8a919c;margin-top:3px">${esc(seenTxt)}</div>${fmtTxt}${cardsTxt}</div>`;
+      // An analysed upload is as much a reference as a read link, so the
+      // answer that needs one opens here too. Only the failure path below
+      // called this, which left "This exact video" locked after a success.
+      try { reUnlockSteps(); } catch (e) {}
     } catch (err) { $$("reRefCard").style.display = "flex";
       try { reUnlockSteps(); } catch (e) {} $$("reRefCard").innerHTML = `<div style="font-size:12.5px;color:#f87171">${esc((fa ? "آپلود/تحلیل ناموفق: " : "upload/analyze failed: ") + (err.message || err))}</div>`; }
     try { reRenderTemplateGallery(); } catch (e2) {}
@@ -21347,17 +21387,22 @@ function vsReverseEngineer(prefill, opts) {
       stepProg(1);
       // ── REAL-VIDEO ANALYSIS: "watch" the cover frame and let it OVERRIDE the
       // text-only guess (podcast? mic? burned captions? environment?). ──────────
-      if (ref && ref.thumb) {
+      // A reel whose cover could not be scraped still has its clip, and the
+      // clip is what Genjutsu and motion transfer run on - so the watching
+      // step no longer waits for a thumbnail before it looks at the video.
+      if (ref && (ref.thumb || ref.videoUrl || ref.vision)) {
         go.textContent = (fa ? "در حال دیدنِ پست…" : "Watching the post…");
-        const vis = ref.vision || await vsVisionAnalyze(ref.thumb);   // reuse upload's analysis
+        const vis = ref.vision || (ref.thumb ? await vsVisionAnalyze(ref.thumb) : null);   // reuse upload's analysis
         // A pasted Instagram link only ever gives us ONE static cover image from
         // Apify — that misses a progressive on-screen caption reveal ("MY" →
         // "I'M" → "HOW TO…") or a later scene/angle change entirely, which is
         // often the single most defining visual signature of the reference. If
         // Apify also handed back the reel's own videoUrl, pull the ACTUAL clip
         // through our CDN relay and sample several frames across it instead.
-        let linkTitleCards = [];
-        if (ref.videoUrl && !ref.uploaded) {
+        let linkTitleCards = ref.linkCards || [];
+        // Pulled and read once per reference. A second Generate against the
+        // same reel used to download and re-read the whole clip again.
+        if (ref.videoUrl && !ref.uploaded && !ref.refVideo) {
           try {
             go.textContent = (fa ? "در حال دیدنِ کلیپ…" : "Watching the full clip…");
             // Pull the real clip once, then read every sampled frame at SHOT
@@ -21368,9 +21413,10 @@ function vsReverseEngineer(prefill, opts) {
             const vblob = r.ok ? await r.blob() : null;
             if (vblob && vblob.size > 1000) {
               const sl = await vsAnalyzeShotList(vblob);
-              blueprint.shotList = sl.shots;
-              blueprint.refDuration = await vsVideoDuration(vblob);
+              ref.shotList = sl.shots;
+              ref.refDuration = await vsVideoDuration(vblob);
               ref.refVideo = vblob;   // motion transfer drives off the real clip
+              ref.linkCards = sl.cards;
               linkTitleCards = sl.cards;
               // We are holding the actual clip, so the pacing can be measured
               // rather than guessed - the same read an uploaded file gets. This
@@ -21380,7 +21426,7 @@ function vsReverseEngineer(prefill, opts) {
                 const rate = await vsVideoCutRate(vblob);
                 ref.cutInfo = rate;
                 ref.format = vsFormatMatch({
-                  duration: rate.duration || blueprint.refDuration,
+                  duration: rate.duration || ref.refDuration,
                   cuts: rate.cuts,
                   vision: ref.vision || {},
                 });
@@ -21388,6 +21434,12 @@ function vsReverseEngineer(prefill, opts) {
             }
           } catch (e) {}
         }
+        // The shot list and the real length belong to the reference, whichever
+        // way it arrived. They were copied inside the vision branch only, so a
+        // frame the vision model could not read also threw away the clip's
+        // duration - and Genjutsu then quoted and billed a guessed 8 seconds.
+        if (ref.shotList && ref.shotList.length) blueprint.shotList = ref.shotList;
+        if (ref.refDuration) blueprint.refDuration = ref.refDuration;
         if (vis) {
           // A person in ONE cover frame does NOT make the post a talking-head
           // VIDEO — quote-card carousels and slideshows very often put the
@@ -21447,9 +21499,6 @@ function vsReverseEngineer(prefill, opts) {
           // logo, a prop, or a hallucinated placeholder — confirmed live on a
           // plain no-overlay reel that produced the literal text "MY NAME",
           // which then got burned across the user's own face.
-          // An uploaded reference carries its own shot list from the upload step.
-          if (!blueprint.shotList && ref.shotList && ref.shotList.length) blueprint.shotList = ref.shotList;
-          if (!blueprint.refDuration && ref.refDuration) blueprint.refDuration = ref.refDuration;
           const multiCards = (linkTitleCards && linkTitleCards.length) ? linkTitleCards : (ref.titleCards || []);
           if (vsHasCaptionStyle(multiCards)) {
             blueprint.captionStyle = {
@@ -21600,16 +21649,15 @@ function vsReverseEngineer(prefill, opts) {
       // the real clip, so that option only appears when we actually pulled
       // one; a photo post falls straight through to the tone flow.
       {
-        const canSwap = !!(ref && ref.refVideo);
         // The choice was made before Generate ran; nothing is asked again here.
-        // What canSwap still decides is whether putting the operator INTO the
-        // original footage is even possible - that needs the clip in hand.
-        // One decision, in one place. Written out here as two independent
-        // assignments, it was possible to hide both - and it did, whenever we
-        // actually held the clip. swapShow always shows exactly one.
-        try { swapShow(canSwap && reWantMode === "character" ? "swap" : "tone"); } catch (e) {}
+        // "With me in it" on a real clip is Genjutsu's job, and its card lives
+        // in the builder grid - applyRoute below locks the grid to it and the
+        // model row already names it. Opening the older subject-replacement
+        // panel here hid that grid, so the one builder the rail promised was
+        // never on screen.
+        try { swapShow("tone"); } catch (e) {}
         // The reference has just been read, so the plan has real numbers now.
-        if (!canSwap) { try { reRenderFormatPlan(); } catch (e) {} }
+        try { reRenderFormatPlan(); } catch (e) {}
         // And the templates belong in the canvas from this moment - this is
         // where the operator chooses what to build.
         try { reRenderTemplateGallery(); } catch (e) {}
@@ -21843,13 +21891,14 @@ function vsReverseEngineer(prefill, opts) {
       if ($$("reFmtTalk")) $$("reFmtTalk").onclick = () => applyRoute("talking_head", true);
       if ($$("reFmtSlide")) $$("reFmtSlide").onclick = () => applyRoute("carousel", true);
       $$("reRenderH").textContent = fa ? "رندر · مدلِ پیشنهادی بالاست" : "RENDER · RECOMMENDED IS ON TOP";
-      // remember the reference gender guess to pick a matching face by default
-      try { const g = /\b(she|her|woman|female|mom|mother|lady|girl|actress|waitress)\b/i.test(blueprint.script || "") ? "female" : /\b(he|his|him|man|male|dad|father|guy|actor|waiter)\b/i.test(blueprint.script || "") ? "male" : ""; if (g) $$("reThGender").value = g; } catch (e) {}
       vsTrackGen("reverse", vstudio._lastScriptModel || "local", "fmt:" + route + " lang:" + ($$("reLang").value) + " skill:" + (blueprint.skill || $$("reSkill").value));
       // The script exists now, so the render length is measured rather than
       // assumed. Every price on screen was an estimate until this moment.
       try { reRenderTemplateGallery(); } catch (e) {}
       try { rePaintGoPrice(); } catch (e) {}
+      // Generate may have just pulled the clip, which changes the builder the
+      // rail names (a reel link becomes Genjutsu only once the clip is held).
+      try { rePaintModelRow(); } catch (e) {}
       $$("reOut").scrollIntoView({ behavior: "smooth", block: "start" });
       vsSettle(charge.jobId, "done");
     } catch (e) {
@@ -21970,6 +22019,12 @@ function vsReverseEngineer(prefill, opts) {
       : (fa ? "عکس‌های ملک/محصول (چندتایی)" : "Listing / product photos (multiple)");
   };
   const vsExtraPrompt = () => ($$("reExtraPrompt") && $$("reExtraPrompt").value || "").trim();
+  // "With me in it" asks for a voice and an aspect beside the face. They used
+  // to be read by the talking-head builder under other ids (#reThGender,
+  // #reThAsp); that builder is gone, so the answers were asked for and then
+  // ignored. These are the one place the builders read them from now.
+  const reGender = () => ($$("reCharVoice") && $$("reCharVoice").value) === "male" ? "male" : "female";
+  const reCharAspect = (fallback) => (reWantMode === "character" && $$("reCharAsp") && $$("reCharAsp").value) || fallback || "9:16";
 
   // Own-photo picker: remember the file and show its name.
   //
@@ -22016,7 +22071,6 @@ function vsReverseEngineer(prefill, opts) {
   if ($$("reBuildGrok")) $$("reBuildGrok").onclick = async () => {
     const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const sec = durSeconds("reGrokDur", script), nar = vsExtractNarration(script) || script;
-    const res = ($$("reGrokRes") && $$("reGrokRes").value) || "720p";
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     let imageUrl = "";
     try {
@@ -22073,7 +22127,7 @@ function vsReverseEngineer(prefill, opts) {
         // else's brand on their carousel; blank is correct when they haven't
         // given one.
         handle: vsOwnHandle(),
-        photo: carPhoto || anyImg, gender: $$("reThGender") ? $$("reThGender").value : "female",
+        photo: carPhoto || anyImg, gender: reGender(),
         setting: (blueprint && blueprint.setting) || "",
         theme: (blueprint && blueprint.theme) || null,
         coverPerson: !!(blueprint && blueprint.coverHasPerson),
@@ -22103,7 +22157,8 @@ function vsReverseEngineer(prefill, opts) {
         aspect: ($$("reImgAsp") && $$("reImgAsp").value) || "4:5",
         prompt,
         refImage: (ref && ref.thumb) || "",
-        ownImage: anyImg || null,
+        // The face given under "with me in it" is the one they asked to see.
+        ownImage: thPhoto || anyImg || null,
       });
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
@@ -22111,13 +22166,19 @@ function vsReverseEngineer(prefill, opts) {
   if ($$("reBuildScene")) $$("reBuildScene").onclick = () => {
     const script = ($$("reScript").value || "").trim();
     if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
+    // The rebuild speaks in the user's own recorded voice and has no fallback,
+    // so ask for it here rather than after the credits have been taken.
+    if (!anyAud) {
+      vsStatus(fa ? "این ساخت صدای خودت را لازم دارد — اول فایلِ صوتی را اضافه کن." : "This build uses your own voice — add your audio file first.");
+      try { $$("reAnyAudio").click(); } catch (e) {}
+      return;
+    }
     try {
       vsBuildSceneVideo({
         shots: (blueprint && blueprint.shotList) || [],
         narration: vsExtractNarration(script) || script,
         photo: thPhoto || anyImg, audio: anyAud,
-        voice: $$("reThVoice") ? $$("reThVoice").value : "af_heart",
-        aspect: ($$("reThAsp") && $$("reThAsp").value) || "9:16",
+        aspect: reCharAspect("9:16"),
         assets: assetPhotos,
         refDuration: (blueprint && blueprint.refDuration) || 0
       });
@@ -22574,7 +22635,10 @@ function vsReverseEngineer(prefill, opts) {
   function reUnlockSteps() {
     try { rePaintModelRow(); } catch (e) {}
     const btn = document.querySelector('.re-want[data-src="video"]');
-    if (!btn || !ref) return;
+    // Pasted captions are a reference as well: Generate already accepts them
+    // for "this exact video", so the button that picks it has to open too.
+    const pasted = !!(($$("rePaste") && $$("rePaste").value) || "").trim();
+    if (!btn || !(ref || pasted)) return;
     const wasLocked = btn.disabled;
     btn.disabled = false;
     btn.classList.remove("re-steplock");
@@ -22646,7 +22710,9 @@ function vsReverseEngineer(prefill, opts) {
       if (box) box.style.display = reWantMode === "character" ? "flex" : "none";
       // Being in the video means putting a face into the original footage, which
       // is only possible while we are holding that footage.
-      try { swapShow(reWantMode === "character" && !!(ref && ref.refVideo) ? "swap" : "tone"); } catch (e) {}
+      // Genjutsu (in the builder grid) is what puts a face into the original
+      // footage now, so the grid stays on screen for both answers.
+      try { swapShow("tone"); } catch (e) {}
       try { reRenderFormatPlan(); } catch (e) {}
       // Same again: "only the tone" is supposed to give the whole menu back,
       // and it could not, because the routing only ever ran inside Generate.
@@ -22807,7 +22873,16 @@ function vsReverseEngineer(prefill, opts) {
       : (fa ? "عکسِ شخصیت یا محصول (تا ۸ تا)" : "Character or product photos (up to 8)");
   };
 
-  if ($$("reBuildGj")) $$("reBuildGj").onclick = () => {
+  // How long the reference clip really is. Genjutsu bills per second of THIS,
+  // and a blueprint without a measured length used to send a flat 8 - a
+  // thirty-second reel quoted and charged as eight.
+  const reClipSeconds = async (clip) => {
+    let d = Math.round((blueprint && blueprint.refDuration) || (ref && ref.refDuration) || 0);
+    if (!d && clip && typeof clip !== "string") { try { d = Math.round(await vsVideoDuration(clip)); } catch (e) {} }
+    return d || 8;
+  };
+
+  if ($$("reBuildGj")) $$("reBuildGj").onclick = async () => {
     const clip = ref && ref.refVideo;
     if (!clip) { vsStatus(fa ? "ویدیوی مرجع در دسترس نیست." : "The reference clip isn't available."); return; }
     // One photo is the minimum the model's schema accepts, and asking for it
@@ -22820,7 +22895,7 @@ function vsReverseEngineer(prefill, opts) {
         clip: clip,
         images: imgs,
         resolution: ($$("reGjRes") && $$("reGjRes").value) || "480p",
-        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        seconds: await reClipSeconds(clip),
         // What to change. The reference already carries everything else, so
         // this is an instruction, not a description of the whole shot.
         prompt: [($$("rePrompt").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
@@ -22828,7 +22903,7 @@ function vsReverseEngineer(prefill, opts) {
     } catch (e) { vsStatus((fa ? "خطا: " : "Error: ") + (e && e.message ? e.message : e)); }
   };
 
-  if ($$("reBuildMt")) $$("reBuildMt").onclick = () => {
+  if ($$("reBuildMt")) $$("reBuildMt").onclick = async () => {
     const photo = mtPhoto || thPhoto || anyImg;
     if (!photo) { vsStatus(fa ? "اول عکسِ خودت را بده." : "Add your photo first."); $$("reMtPhoto").click(); return; }
     const clip = ref && ref.refVideo;
@@ -22839,7 +22914,7 @@ function vsReverseEngineer(prefill, opts) {
         clip,
         images: [photo],
         resolution: ($$("reMtRes") && $$("reMtRes").value) || "480p",
-        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        seconds: await reClipSeconds(clip),
         // What the reference should now be ABOUT. The camera, the timing, the
         // lighting and the audio all come out of the clip itself, so this is
         // an instruction rather than a description of the shot.
@@ -22853,7 +22928,7 @@ function vsReverseEngineer(prefill, opts) {
     try {
       vsReverseMotionClip({
         photo: thPhoto || anyImg,
-        gender: $$("reThGender") ? $$("reThGender").value : "female",
+        gender: reGender(),
         setting: (blueprint && blueprint.setting) || "",
         motion: (blueprint && (blueprint.motion || blueprint.camera)) || "",
         caption: (blueprint && blueprint.caption) || "",
@@ -22919,8 +22994,11 @@ async function vsVideoCutRate(file, opts) {
       const url = URL.createObjectURL(file);
       const c = document.createElement("canvas"); c.width = W; c.height = H;
       const ctx = c.getContext("2d", { willReadFrequently: true });
-      let times = [], i = 0, prev = null, cuts = 0, dur = 0;
-      const finish = () => { try { URL.revokeObjectURL(url); } catch (e) {} done(cuts, dur); };
+      let times = [], i = 0, prev = null, cuts = 0, dur = 0, over = false;
+      // Same guard as the frame sampler: a seek that never lands must not
+      // stall the read. Whatever was counted by then stands.
+      const guard = setTimeout(() => finish(), 90000);
+      const finish = () => { if (over) return; over = true; clearTimeout(guard); try { URL.revokeObjectURL(url); } catch (e) {} done(cuts, dur); };
       const next = () => {
         if (i >= times.length) return finish();
         try { v.currentTime = times[i]; } catch (e) { i++; next(); }
@@ -22965,8 +23043,12 @@ async function vsVideoFrames(file, fracs) {
       v.muted = true; v.playsInline = true; v.preload = "metadata";
       const url = URL.createObjectURL(file);
       const c = document.createElement("canvas");
-      const out = []; let i = 0;
-      const finish = () => { try { URL.revokeObjectURL(url); } catch (e) {} resolve(out); };
+      const out = []; let i = 0, over = false;
+      // A clip the browser can open but not seek (some HEVC reels) never fires
+      // seeked, and this promise then never settled - leaving Analyze, or a
+      // paid Generate, spinning forever. It gives up with what it has.
+      const guard = setTimeout(() => finish(), 15000 + 6000 * fracs.length);
+      const finish = () => { if (over) return; over = true; clearTimeout(guard); try { URL.revokeObjectURL(url); } catch (e) {} resolve(out); };
       const grabNext = () => {
         if (i >= fracs.length) return finish();
         const dur = v.duration || 2;
@@ -23012,24 +23094,27 @@ async function vsVideoDuration(blob) {
     try {
       const v = document.createElement("video"); v.preload = "metadata"; v.muted = true;
       const u = URL.createObjectURL(blob);
-      v.onloadedmetadata = () => { const d = v.duration || 0; try { URL.revokeObjectURL(u); } catch (e) {} res(d); };
-      v.onerror = () => { try { URL.revokeObjectURL(u); } catch (e) {} res(0); };
+      let over = false;
+      const end = (d) => { if (over) return; over = true; try { URL.revokeObjectURL(u); } catch (e) {} res(isFinite(d) ? d : 0); };
+      setTimeout(() => end(0), 15000);
+      v.onloadedmetadata = () => end(v.duration || 0);
+      v.onerror = () => end(0);
       v.src = u;
     } catch (e) { res(0); }
   });
 }
 
 async function vsAnalyzeShotList(blob, fracs) {
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
   const at = fracs && fracs.length ? fracs : [0.06, 0.3, 0.55, 0.8];
   const out = { shots: [], cards: [] };
   try {
     const frames = await vsVideoFrames(blob, at);
     for (let i = 0; i < frames.length; i++) {
       try {
-        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
-        const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
-        const sc = await vsVisionScene(uj.file_url); if (!sc) continue;
+        // The frame goes to the vision read as it is, the same way an uploaded
+        // reference's frames do. Parking it in fal storage first needed a paid
+        // pass, so a signed-out read of a link came back with no shots at all.
+        const sc = await vsVisionScene(frames[i]); if (!sc) continue;
         out.shots.push({
           at: at[i], shot: sc.shot || "", camera: sc.camera || "", angle: sc.angle || "",
           subject_pos: sc.subject_pos || "", subject: sc.subject || "", action: sc.action || "",
@@ -23586,6 +23671,12 @@ async function vsBuildSceneVideo(cfg) {
     if (running) return;
     const per = Number($s("scPer").value) || perShot;
     const secs = per * shots.length;
+    // The voiceover is required and checked below - but only after the charge,
+    // so a missing file cost a charge-and-refund round trip for nothing.
+    if (!cfg.audio) {
+      result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "برای این ساخت یک فایل صوتی لازم است — صدای خودت را آپلود کن." : "This build needs an audio file — record your voiceover and upload it."}</div>`;
+      return;
+    }
     const charge = await vsCharge("grok", { seconds: secs });
     if (charge.block) return;
     running = true; $s("scBtns").style.display = "none"; $s("scPer").disabled = true;
@@ -23769,8 +23860,10 @@ async function reBuildImageModel(cfg) {
 
   const charge = await vsCharge(M.action, {});
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  let hfCancelUrl = "";
   cancelBtn.onclick = () => {
     cancelled = true;
+    if (hfCancelUrl) vsHfCancel(hfCancelUrl);
     vsSettle(charge.jobId, "failed");
     steps.innerHTML = ""; stageEl.textContent = "";
     result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
@@ -23807,9 +23900,11 @@ async function reBuildImageModel(cfg) {
 
     let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
     const sub = await vsFalPost(WB, "/hf/submit", { model: M.model, input });
+    if (sub && sub.cancel_url) hfCancelUrl = sub.cancel_url;
+    if (cancelled) { if (hfCancelUrl) vsHfCancel(hfCancelUrl); return; }
     const statusUrl = sub.status_url;
     if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
-    try { vsFalJobRemember({ statusUrl, respUrl: "", action: "image", name: "image" }); } catch (e) {}
+    try { vsFalJobRemember({ statusUrl, respUrl: "", model: M.model, provider: "hf", kind: "image", action: "image", name: "image" }); } catch (e) {}
     done(ic);
 
     const HF_TO = { queued: "IN_QUEUE", in_progress: "IN_PROGRESS", completed: "COMPLETED", failed: "FAILED", nsfw: "FAILED", canceled: "FAILED" };
@@ -23906,9 +24001,13 @@ async function vsBuildVideoModel(cfg) {
   // 1) charge credits (per second)
   const charge = await vsCharge(cfg.action, { seconds: cfg.seconds });
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  let hfCancelUrl = "";
   cancelBtn.onclick = () => {
     cancelled = true;
-    vsSettle(charge.jobId, "failed");   // refund — we stop polling; the fal job itself can't be recalled, but we never charge for what we don't deliver
+    // A Higgsfield job still in the queue can be called back, so it is -
+    // otherwise the refund below pays for a render that keeps running.
+    if (hfCancelUrl) vsHfCancel(hfCancelUrl);
+    vsSettle(charge.jobId, "failed");   // refund — we stop polling; a fal job itself can't be recalled, but we never charge for what we don't deliver
     stageEl.textContent = "";
     steps.innerHTML = "";
     noteEl.style.display = "none";
@@ -23922,14 +24021,15 @@ async function vsBuildVideoModel(cfg) {
     // audio-driven builders (text-to-speech and strict lip-sync).
     const isHf = cfg.provider === "hf";
     const sub = await post(isHf ? "/hf/submit" : "/fal/submit", { model: cfg.model, input: cfg.input });
-    if (cancelled) return;
+    if (isHf && sub && sub.cancel_url) hfCancelUrl = sub.cancel_url;
+    if (cancelled) { if (hfCancelUrl) vsHfCancel(hfCancelUrl); return; }
     // Higgsfield hands back a status_url and the docs say to follow it rather
     // than build one; fal needs the response url derived from the status url.
     const statusUrl = sub.status_url, respUrl = isHf ? "" : (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
     // Written down BEFORE the first poll: fal has already been paid by now,
     // and until this line the only handle on the result was a local variable.
-    try { vsFalJobRemember({ statusUrl, respUrl, action: "video", name: "video" }); } catch (e) {}
+    try { vsFalJobRemember({ statusUrl, respUrl, model: cfg.model, provider: isHf ? "hf" : "fal", action: "video", name: cfg.name || "video" }); } catch (e) {}
     done(ic);
     const pollUrl = (u) => WB + (isHf ? "/hf/poll?url=" : "/fal/poll?url=") + encodeURIComponent(u);
     // Higgsfield's vocabulary, translated into the one this loop already
@@ -27087,9 +27187,11 @@ async function vsHfRun(model, input, opts) {
   // finishing is the one way a paid job disappears with nothing to refund and
   // no way to collect it, and this is the ledger that survives a reload.
   try {
-    vsFalJobRemember({ statusUrl: sub.status_url, model: model, action: opts.action || "",
+    vsFalJobRemember({ statusUrl: sub.status_url, model: model, provider: "hf", action: opts.action || "",
                        name: opts.name || "video", credits: opts.credits || 0, jobId: opts.jobId || "" });
   } catch (e) {}
+  // The caller needs the cancel handle while the job runs, not after it ends.
+  if (opts.onSubmit) { try { opts.onSubmit(sub); } catch (e) {} }
 
   const TERMINAL = ["completed", "failed", "nsfw", "canceled"];
   let wait = 0;
@@ -27196,6 +27298,8 @@ async function vsBuildGenjutsu(cfg) {
     if (!videoUrl) throw new Error(fa ? "ویدیوی مرجع نیست" : "no reference clip");
     if (!imageUrls.length) throw new Error(fa ? "حداقل یک عکس لازم است" : "at least one reference image is required");
     done(up);
+    // Cancelled while uploading: already refunded, so nothing may be submitted.
+    if (cancelled) return;
 
     stage.textContent = fa ? "در صف" : "Queued";
     const gen = line(fa ? "ساختِ ویدیو" : "Generating");
@@ -27207,12 +27311,16 @@ async function vsBuildGenjutsu(cfg) {
     }, {
       action: action, name: title, credits: 0, jobId: charge.jobId,
       cancelled: () => cancelled,
+      // Captured at submit time. It used to be read off the finished result,
+      // so pressing Cancel mid-render refunded the credits and left the
+      // Genjutsu job running and billed.
+      onSubmit: (sub) => { cancelUrl = (sub && sub.cancel_url) || ""; if (cancelled && cancelUrl) vsHfCancel(cancelUrl); },
       onStatus: (st) => {
         stage.textContent = st === "in_progress" ? (fa ? "در حالِ ساخت" : "Rendering") : (fa ? "در صف" : "Queued");
         if (tray && tray.stage) { try { tray.stage(stage.textContent); } catch (e) {} }
       },
     });
-    cancelUrl = out.cancel_url || "";
+    cancelUrl = out.cancel_url || cancelUrl;
 
     if (cancelled || out.status === "canceled") { bad(gen); return; }
     if (out.status === "nsfw") {
@@ -27239,6 +27347,7 @@ async function vsBuildGenjutsu(cfg) {
     if (tray && tray.done) { try { tray.done(url); } catch (e) {} }
     finish();
   } catch (e) {
+    if (cancelled) return;   // already refunded and reported by Cancel
     vsSettle(charge.jobId, "failed");
     result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "خطا — کردیتت برگشت. " : "Error — your credits were refunded. ") + String((e && e.message) || e).slice(0, 180) + '</div>';
     finish();
