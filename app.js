@@ -8195,7 +8195,10 @@ function vsEditorialImagePrompt(visual, topic) {
   // subject is already a full scene description, appending the headline just feeds
   // the model the words to render AS TEXT in the image — so drop it.
   const withCtx = (ctx2 && ctx2.toLowerCase() !== subj.toLowerCase() && subj.length < 42) ? `${subj}, in the context of ${ctx2}` : subj;
-  return `award-winning editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate; no deformed faces, no extra fingers; no illustration, no cartoon, no 3d render`;
+  // Not "award-winning": flux has no negative prompt and reads that literally.
+  // A test run drew gold award seals with garbled lettering on two images out
+  // of two; without the phrase, three of three were clean and no less good.
+  return `editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate; no deformed faces, no extra fingers; no illustration, no cartoon, no 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 // Fetched (not a bare <img>) so we can read the X-Image-Source header — WHICH
@@ -8230,6 +8233,50 @@ function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
     }).catch(() => { clearTimeout(to); fail({ kind: "network" }); });
   });
 }
+/**
+ * A real photograph, when the AI picture cannot be had.
+ *
+ * Every AI image comes from Cloudflare flux now - Gemini answers 429, Hugging
+ * Face 402 - and flux is on the account's free daily budget. When that runs
+ * out, covers and thumbnails used to fall back to the title on a gradient. A
+ * stock photo of the same subject is a far better background than no
+ * background, costs nothing, and does not touch the AI budget: Pexels, through
+ * the worker's own /stock search and its CORS-safe /stock/media proxy, so the
+ * canvas stays exportable.
+ *
+ * Pexels matches short keyword queries far better than the sentence-long scene
+ * descriptions the image prompts are, so the query is cut to the first clause
+ * and a handful of words. Its own timeout, so a slow search can never freeze a
+ * thumbnail that has already waited on the AI.
+ */
+async function vsStockPhoto(query, landscape) {
+  const q = String(query || "").split(/[,.;:]/)[0]
+    .replace(/\b(a|an|the|of|with|in|on|at|and)\b/gi, " ")
+    .replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim()
+    .split(" ").slice(0, 6).join(" ");
+  if (!q) return null;
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const r = await fetch(VS_STOCK_BASE + "/stock?kind=photo&orientation=" + (landscape ? "landscape" : "portrait") +
+                          "&q=" + encodeURIComponent(q), { signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const hit = (j && j.results || []).find((x) => x && x.url);
+    if (!hit) return null;
+    const m = await fetch(VS_STOCK_BASE + "/stock/media?url=" + encodeURIComponent(hit.url), { signal: ctrl.signal });
+    if (!m.ok) return null;
+    const bu = URL.createObjectURL(await m.blob());
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => { img._imgModel = "pexels"; resolve(img); };
+      img.onerror = () => resolve(null);
+      img.src = bu;
+    });
+  } catch (e) { return null; }
+  finally { clearTimeout(tm); }
+}
+
 // Log a generation event to the admin panel (kind + which model served it), so
 // we can see how each model performs and where to improve. Best-effort, never
 // blocks or throws.
@@ -18099,7 +18146,13 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   let img = null;
   try { vstudio._lastImgError = null; } catch (e) {}
   try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
-  const imgError = img ? null : ((typeof vstudio !== "undefined" && vstudio._lastImgError) || { kind: "unknown" });
+  // The AI picture failed: record why, then try a real photograph of the same
+  // subject before settling for text on a gradient.
+  const aiError = img ? null : ((typeof vstudio !== "undefined" && vstudio._lastImgError) || { kind: "unknown" });
+  if (!img) {
+    try { img = await vsStockPhoto(imgPrompt, (imgW || 1024) >= (imgH || 1024)) || await vsStockPhoto(topic, (imgW || 1024) >= (imgH || 1024)); } catch (e) {}
+  }
+  const imgError = img ? null : aiError;
   return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none", imgError };
 }
 
@@ -18435,6 +18488,8 @@ async function vsComposeCover(topic, source, aspect, size) {
   const ih = H >= W ? 1024 : Math.round(1024 * H / W);
   let img = null;
   try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), iw, ih); } catch (e) {}
+  // Same fallback as the thumbnails: a real photo before a blank background.
+  if (!img) { try { img = await vsStockPhoto(imgPrompt, iw >= ih) || await vsStockPhoto(topic, iw >= ih); } catch (e) {} }
 
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
