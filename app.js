@@ -8205,18 +8205,29 @@ function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
   return new Promise((resolve) => {
     const sd = seed != null ? seed : Math.floor(Math.random() * 1e9);
     const url = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "");
-    const to = setTimeout(() => resolve(null), 40000);
+    // Every way this can come back empty is recorded, because the callers
+    // turn an empty result into a card with no picture on it and, until now,
+    // said nothing. "The free image service is out of quota for today" and
+    // "it timed out" need different advice, and the worker knows which.
+    const fail = (why) => { try { vstudio._lastImgError = why; } catch (e) {} resolve(null); };
+    const to = setTimeout(() => fail({ kind: "timeout" }), 40000);
     fetch(url).then(async (r) => {
-      if (!r.ok) { clearTimeout(to); resolve(null); return; }
+      if (!r.ok) {
+        clearTimeout(to);
+        let debug = ""; try { debug = r.headers.get("X-Image-Debug") || ""; } catch (e) {}
+        fail({ kind: "http", status: r.status, debug });
+        return;
+      }
+      try { vstudio._lastImgError = null; } catch (e) {}
       let src = ""; try { src = r.headers.get("X-Image-Source") || ""; } catch (e) {}
       try { vstudio._lastImgModel = src; } catch (e) {}
       const blob = await r.blob();
       const bu = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => { clearTimeout(to); img._imgModel = src; resolve(img); };
-      img.onerror = () => { clearTimeout(to); resolve(null); };
+      img.onerror = () => { clearTimeout(to); fail({ kind: "decode" }); };
       img.src = bu;
-    }).catch(() => { clearTimeout(to); resolve(null); });
+    }).catch(() => { clearTimeout(to); fail({ kind: "network" }); });
   });
 }
 // Log a generation event to the admin panel (kind + which model served it), so
@@ -18086,8 +18097,10 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   if (opts.exactTitle) coverTitle = topic.slice(0, 64);
   if (!imgPrompt) imgPrompt = topic;   // fallback only if the AI gave nothing
   let img = null;
+  try { vstudio._lastImgError = null; } catch (e) {}
   try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
-  return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none" };
+  const imgError = img ? null : ((typeof vstudio !== "undefined" && vstudio._lastImgError) || { kind: "unknown" });
+  return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none", imgError };
 }
 
 // Render a cover/banner from pre-made assets at an exact W×H → image blob.
@@ -19540,6 +19553,32 @@ function vsCreatorTools(opts) {
   hub();
 }
 
+/**
+ * Why a thumbnail came out with no picture, in words a person can act on.
+ *
+ * The image worker walks four providers and today three of them are gone:
+ * Gemini answers 429, Hugging Face 402 (twice), and everything is served by
+ * Cloudflare's flux - the last free option, on the account's shared daily
+ * budget. When that budget is spent the fallback behind it shares it too, the
+ * worker answers 502, and the studio used to render the title on a gradient
+ * and present it as done. Saying which it was is the whole fix here.
+ */
+function vsThumbNoImageReason(err) {
+  const fa2 = state.lang === "fa";
+  const dbg = String((err && err.debug) || "").toLowerCase();
+  const quota = /neuron|allocation|4006|quota|capacity|429|402/.test(dbg) || (err && err.status === 502);
+  if (err && err.kind === "timeout") {
+    return fa2 ? "تصویر پس‌زمینه به‌موقع ساخته نشد. این نسخهٔ فقط‌متن است — «دوباره بساز» را بزن."
+               : "The background image took too long. This is the text-only version — press Generate again.";
+  }
+  if (quota) {
+    return fa2 ? "سهمیهٔ رایگانِ ساخت تصویر برای امروز تمام شده، پس این نسخه بدون تصویر پس‌زمینه است. فردا دوباره امتحان کن."
+               : "Today's free image quota is used up, so this one has no background picture. Try again tomorrow.";
+  }
+  return fa2 ? "تصویر پس‌زمینه ساخته نشد. این نسخهٔ فقط‌متن است — «دوباره بساز» را بزن."
+             : "The background image could not be made. This is the text-only version — press Generate again.";
+}
+
 // Standalone Thumbnail Studio — generate ONE or several thumbnails at any size
 // (including a 486×279 thumbnail or a fully custom W×H), from a topic, WITHOUT
 // needing to build a video first. Each result has its own Download.
@@ -19673,9 +19712,15 @@ function vsThumbStudio(prefillTopic) {
           const kb = Math.round(blob.size / 1024);
           results.push({ blob, name });
           vsTrackGen("thumbnail", (assets && assets.imgModel) || "none", sz.w + "x" + sz.h + " tpl:" + template);
+          // A card rendered without its picture is text on a gradient. It is
+          // still a usable file, so it is still offered - but it is labelled
+          // for what it is, instead of looking like a finished thumbnail.
+          const noPic = !(assets && assets.img);
+          const why = noPic ? vsThumbNoImageReason(assets && assets.imgError) : "";
           cell.innerHTML =
-            `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>
-             <a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:10px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB</a>`;
+            `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>` +
+            (noPic ? `<div role="status" style="font-size:11.5px;line-height:1.45;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:8px;padding:7px 9px">${why}</div>` : "") +
+            `<a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:10px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB${noPic ? (fa ? " (بدون تصویر)" : " (text only)") : ""}</a>`;
         } else {
           cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#0e1014;border-radius:6px;color:#f87171;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
         }
