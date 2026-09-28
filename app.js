@@ -7106,6 +7106,21 @@ SOURCE: """${text.slice(0, 9000)}"""`;
 }
 
 /**
+ * A picture served from airadar.me (/api/decks/<id>/media/<n>), loaded so the
+ * canvas stays exportable. Null when it cannot be had.
+ */
+function vsLoadOwnImage(src) {
+  return new Promise((resolve) => {
+    if (!src || !/^\/api\/decks\//.test(src)) return resolve(null);
+    const im = new Image();
+    const t = setTimeout(() => resolve(null), 20000);
+    im.onload = () => { clearTimeout(t); im._imgModel = "your AI"; resolve(im.naturalWidth ? im : null); };
+    im.onerror = () => { clearTimeout(t); resolve(null); };
+    im.src = src;
+  });
+}
+
+/**
  * Build a video from a script someone else's AI wrote.
  *
  * The customer's own Claude or ChatGPT writes far better copy than the free
@@ -7616,6 +7631,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     // down never fired. Empty means the intro card simply has no eyebrow.
     _kicker: kicker || "",
     _heroWord: (data.intro && data.intro.heroWord) || "",
+    _image: (data.intro && data.intro.image) || "",
     _timelineLabel: introMain
   });
 
@@ -7713,7 +7729,7 @@ async function vsAssembleFromSections(data, skipFootage) {
         duration: narrationDuration(sec.narration, 6,
           [sec.title || ""].concat(sec.stats.map(st => st.label + " " + st.value)).join(" "), 6), settings: set, _standaloneInfo: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
-        _caption: sec.caption || "Key numbers", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
+        _caption: sec.caption || "Key numbers", _visual: sec.visual || "", _heroWord: sec.heroWord || "", _image: sec.image || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
       });
 
@@ -7769,7 +7785,7 @@ async function vsAssembleFromSections(data, skipFootage) {
         introMotion: motion, headline: "",
         duration: narrationDuration(sec.narration, 6, hl, 4), settings: set, _standaloneNews: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
-        _caption: sec.caption || "", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
+        _caption: sec.caption || "", _visual: sec.visual || "", _heroWord: sec.heroWord || "", _image: sec.image || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
       });
     }
@@ -7786,6 +7802,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     _sourceLine: srcLabel,              // credit the real source on the outro too
     headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3, outroMain + " " + outroSub), settings: cleanSet2(),
     _heroWord: (data.outro && data.outro.heroWord) || "",
+    _image: (data.outro && data.outro.image) || "",
     _timelineLabel: outroMain
   });
 
@@ -8753,7 +8770,12 @@ async function vsEditorialBackgrounds(data) {
   const runOne = async () => {
     while (idx < slides.length) {
       const my = idx++; const s = slides[my];
-      if (s._edStyle === "cutout") {
+      // The customer's own picture for this scene, when their AI sent one: shown
+      // full-bleed, since a cut-out needs the plain background only flux draws.
+      const own = s._image ? await vsLoadOwnImage(s._image) : null;
+      if (own) {
+        s._edStyle = "full"; s.mediaEl = own; s._edImage = own;
+      } else if (s._edStyle === "cutout") {
         // FLUX only (honours the plain-white-background prompt needed to key).
         const img = await vsEdLoadImage(s._edPrompt, 1024, 1024, true);
         const cut = img ? vsEdMakeCutout(img) : null;
@@ -9120,6 +9142,17 @@ async function vsAutoGenerateBackgrounds(data) {
 
   const genOne = async (s, i) => {
     if (vstudio._batchCancel || s.mediaEl) return;
+    // A picture the customer's own AI made for this scene (MCP create_video)
+    // is the scene: nothing to search for.
+    if (s._image) {
+      const own = await vsLoadOwnImage(s._image);
+      if (own && !vstudio._batchCancel) {
+        s.mediaEl = own; s.isVideo = false; s.ready = true; s.url = own.src;
+        s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
+        made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+        return;
+      }
+    }
     const isTitle = !s._standaloneInfo && !s._standaloneNews;   // intro / outro
     const headline = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"]))
                      || s.headline || "";
@@ -18601,6 +18634,11 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
   let coverTitle = topic.slice(0, 64), imgPrompt = "";
+  // A picture the customer's own AI made (MCP create_thumbnail): with their own
+  // words too there is nothing left to ask a model for.
+  if (opts.image && opts.exactTitle) {
+    return { coverTitle, img: opts.image, source, imgModel: opts.image._imgModel || "supplied", imgError: null };
+  }
   // ALWAYS ask the AI for a concrete, RELEVANT image concept (a real object/place
   // that represents the topic — not the headline text, and not random people).
   // exactTitle only decides whether we also rewrite the TITLE; the image concept
@@ -18619,6 +18657,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
     if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 180);
   } catch (e) {}
   if (opts.exactTitle) coverTitle = topic.slice(0, 64);
+  if (opts.image) return { coverTitle, img: opts.image, source, imgModel: opts.image._imgModel || "supplied", imgError: null };
   if (!imgPrompt) imgPrompt = topic;   // fallback only if the AI gave nothing
   // The model still reaches for a face - a smiling agent, a worried couple -
   // on topics where a face says nothing. For money and housing the picture is
@@ -20130,7 +20169,8 @@ function vsThumbNoImageReason(err) {
 // Standalone Thumbnail Studio — generate ONE or several thumbnails at any size
 // (including a 486×279 thumbnail or a fully custom W×H), from a topic, WITHOUT
 // needing to build a video first. Each result has its own Download.
-function vsThumbStudio(prefillTopic) {
+function vsThumbStudio(prefillTopic, preset) {
+  preset = preset || {};
   const fa = state.lang === "fa";
   const sd = vstudio.storyData || {};
   const topic0 = String(prefillTopic || sd.title || sd._topic || vstudio._exportName || "").slice(0, 90);
@@ -20244,7 +20284,7 @@ function vsThumbStudio(prefillTopic) {
         grid.appendChild(cell); return cell;
       });
       let assets = null;
-      try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle }); } catch (e) {}
+      try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {}
       for (let k = 0; k < sizes.length; k++) {
         const sz = sizes[k], cell = cells[k];
         // ALL banners are JPEG; the 496×279 thumbnail is additionally capped <50KB.
@@ -20297,6 +20337,26 @@ function vsThumbStudio(prefillTopic) {
     }
     zb.disabled = false; zb.textContent = old;
   };
+  // Opened from an MCP thumbnail link: the customer's AI already chose the
+  // words, the look, the sizes and maybe the picture - set them and render.
+  if (preset.template) {
+    const r = ov.querySelector('.tstpl[value="' + preset.template + '"]');
+    if (r) r.checked = true;
+  }
+  if (Array.isArray(preset.sizes) && preset.sizes.length) {
+    ov.querySelectorAll(".tssz").forEach((cb) => { cb.checked = false; });
+    preset.sizes.forEach((val) => {
+      const hit = ov.querySelector('.tssz[value="' + val + '"]');
+      if (hit) { hit.checked = true; return; }
+      const [w, h] = String(val).split("x").map(Number);
+      if (!(w >= 64 && h >= 64)) return;
+      const lab = document.createElement("label");
+      lab.className = "chip";
+      lab.innerHTML = '<input type="checkbox" class="tssz" value="' + w + "x" + h + '" checked/> <b>' + w + " × " + h + "</b>";
+      $$("tsSizes").appendChild(lab);
+    });
+  }
+  if (preset.autoGenerate) { setTimeout(() => { try { $$("tsGen").click(); } catch (e) {} }, 80); return; }
   setTimeout(() => { try { $$("tsTopic").focus(); } catch (e) {} }, 50);
 }
 
@@ -25470,6 +25530,13 @@ async function vsLoadDeckFromUrl() {
     return;
   }
   if (j.skill === "reel") { await vsOpenReelDeck(j.script); return; }
+  if (j.skill === "thumbnail") {
+    const t = j.script || {};
+    const image = t.image ? await vsLoadOwnImage(t.image) : null;
+    vsAutoStatus(fa ? "تامبنیلی که AIِ تو فرستاد…" : "The thumbnail your AI sent…");
+    vsThumbStudio(t.text || t.topic || "", { template: t.template, sizes: t.sizes, image, autoGenerate: true });
+    return;
+  }
   await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
 }
 
