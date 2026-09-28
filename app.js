@@ -20237,11 +20237,48 @@ async function vsFalRecover(opts) {
   const jobs = vsFalJobsRead();
   const report = { checked: jobs.length, recovered: [], stillRunning: [], failed: [], unreachable: [] };
   for (const j of jobs) {
+    // Higgsfield jobs - every Genjutsu run - are not fal jobs. They were polled
+    // through /fal/poll, which only accepts fal hosts, and read against fal's
+    // upper-case statuses; so a Genjutsu whose tab was closed mid-render landed
+    // in "could not be reached" forever. Paid for twice over - the customer's
+    // credits and our Higgsfield bill - and never delivered or refunded.
+    let host = "";
+    try { host = new URL(j.statusUrl).host; } catch (e) {}
+    if (/(^|\.)higgsfield\.ai$/i.test(host)) {
+      let st = null;
+      try { st = await (await vsFalFetch(WB + "/hf/poll?url=" + encodeURIComponent(j.statusUrl))).json(); }
+      catch (e) { report.unreachable.push(j.name); continue; }
+      const s = st && st.status;
+      if (s === "queued" || s === "in_progress") { report.stillRunning.push(j.name); continue; }
+      if (s === "failed" || s === "nsfw" || s === "canceled") {
+        // It never produced anything, so the customer gets their credits back.
+        vsSettle(j.jobId, "failed");
+        vsFalJobForget(j.statusUrl);
+        report.failed.push(j.name);
+        continue;
+      }
+      const url = s === "completed" && st.video && st.video.url;
+      if (!url) { report.unreachable.push(j.name + " (" + (s || "?") + ")"); continue; }
+      // Delivered. Try to keep a copy on the Dashboard; if the file host will
+      // not hand the bytes to a script, the link itself is still the video.
+      let saved = false;
+      try {
+        const blob = await (await fetch(url)).blob();
+        if (blob && blob.size > 1000 && typeof vsSaveToDashboard === "function") { await vsSaveToDashboard(blob, "mp4", j.name); saved = true; }
+      } catch (e) {}
+      vsSettle(j.jobId, "done");
+      vsFalJobForget(j.statusUrl);
+      report.recovered.push({ name: j.name, url, saved });
+      continue;
+    }
+
     let st = "?";
     try { st = (await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.statusUrl))).json()).status || "?"; }
     catch (e) { report.unreachable.push(j.name); continue; }
     if (st === "IN_QUEUE" || st === "IN_PROGRESS") { report.stillRunning.push(j.name); continue; }
-    if (st === "FAILED" || st === "ERROR") { vsFalJobForget(j.statusUrl); report.failed.push(j.name); continue; }
+    // Failed at fal: nothing was delivered, so refund - forgetting it without
+    // one kept the credits for a job that produced nothing.
+    if (st === "FAILED" || st === "ERROR") { vsSettle(j.jobId, "failed"); vsFalJobForget(j.statusUrl); report.failed.push(j.name); continue; }
     if (st !== "COMPLETED") { report.unreachable.push(j.name + " (" + st + ")"); continue; }
     try {
       const rr = await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.respUrl || j.statusUrl.replace(/\/status$/, "")))).json();
@@ -20250,8 +20287,9 @@ async function vsFalRecover(opts) {
       const blob = await (await fetch(url)).blob();
       if (!blob || blob.size < 1000) { report.unreachable.push(j.name + " (empty)"); continue; }
       try { if (typeof vsSaveToDashboard === "function") await vsSaveToDashboard(blob, "mp4", j.name); } catch (e) {}
+      vsSettle(j.jobId, "done");
       vsFalJobForget(j.statusUrl);
-      report.recovered.push({ name: j.name, bytes: blob.size, url: URL.createObjectURL(blob) });
+      report.recovered.push({ name: j.name, bytes: blob.size, url: URL.createObjectURL(blob), saved: true });
     } catch (e) { report.unreachable.push(j.name + ": " + (e && e.message || e)); }
   }
   if (!opts.quiet) {
@@ -20303,9 +20341,12 @@ function vsFalPendingNotice() {
       b.disabled = true; b.textContent = fa ? "در حالِ گرفتن…" : "Collecting…";
       const r = await vsFalRecover();
       box.innerHTML = '<div style="font-size:12px;line-height:1.6;color:#f4f5f7">' +
-        (r.recovered.length ? "\u2713 " + r.recovered.length + (fa ? " ویدیو برگشت و در داشبورد ذخیره شد." : " recovered, saved to your Dashboard.") + "<br>" : "") +
+        (r.recovered.length ? "\u2713 " + r.recovered.length + (fa ? " ویدیو برگشت:" : " recovered:") + "<br>" +
+          r.recovered.map((x) => '<a href="' + esc2(x.url) + '" target="_blank" rel="noopener" style="color:#5b9bff">' + esc2(x.name) + "</a>" +
+            (x.saved ? (fa ? " (در داشبورد)" : " (on your Dashboard)") : "")).join("<br>") + "<br>" : "") +
+        (r.failed.length ? r.failed.length + (fa ? " ساخته نشده بود — کردیتش برگشت." : " never finished — its credits were refunded.") + "<br>" : "") +
         (r.stillRunning.length ? r.stillRunning.length + (fa ? " هنوز در حالِ ساخت." : " still rendering.") + "<br>" : "") +
-        (r.failed.length ? r.failed.length + (fa ? " از سمتِ fal شکست خورده بود." : " had failed at fal.") + "<br>" : "") +
+
         (r.unreachable.length ? r.unreachable.length + (fa ? " در دسترس نبود." : " could not be reached.") : "") +
         "</div>";
       setTimeout(() => { try { box.remove(); } catch (e) {} }, 9000);
@@ -21528,8 +21569,9 @@ function vsReverseEngineer(prefill, opts) {
         // below this block - reaching forward for it was a ReferenceError
         // that fired exactly when a clip was present, which is the only time
         // this card is shown.
-        const gjRaw = Math.round((blueprint && blueprint.refDuration) || 0);
-        const gjSec = Math.min(Math.max(Math.ceil(gjRaw) || 0, 1), 30);
+        // Rounded UP from the raw length, the way Higgsfield bills it.
+        const gjRaw = vsGjSeconds(blueprint && blueprint.refDuration);
+        const gjSec = Math.min(Math.max(gjRaw, 1), VS_GJ_MAX_SEC);
         const paintGj = () => {
           const res = ($$("reGjRes") && $$("reGjRes").value) || "480p";
           const rate = VS_GENJUTSU_PERSEC[res] || VS_GENJUTSU_PERSEC["480p"];
@@ -21545,8 +21587,8 @@ function vsReverseEngineer(prefill, opts) {
         // swap card above already does. Without it a 40-second reference made
         // this card quote 800 credits for a job the server prices at 600 - not
         // a loss, but a number the customer was told and never charged.
-        const mtRaw = Math.round((blueprint && blueprint.refDuration) || 0);
-        const mtSec = mtRaw ? Math.min(Math.max(Math.ceil(mtRaw), 1), 30) : 0;
+        const mtRaw = vsGjSeconds(blueprint && blueprint.refDuration);
+        const mtSec = mtRaw ? Math.min(Math.max(mtRaw, 1), VS_GJ_MAX_SEC) : 0;
         // Genjutsu's real rate - the same numbers the catalogue and the
         // server use: $0.318/s at 480p and $0.681/s at 720p, at $0.02 a
         // credit with the house 20% margin. The old 14-and-18 belonged to
@@ -22820,7 +22862,8 @@ function vsReverseEngineer(prefill, opts) {
         clip: clip,
         images: imgs,
         resolution: ($$("reGjRes") && $$("reGjRes").value) || "480p",
-        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        // Only a hint now: the builder measures the clip it is about to send.
+        seconds: (blueprint && blueprint.refDuration) || 0,
         // What to change. The reference already carries everything else, so
         // this is an instruction, not a description of the whole shot.
         prompt: [($$("rePrompt").value || "").trim(), vsExtraPrompt()].filter(Boolean).join(", "),
@@ -22839,7 +22882,8 @@ function vsReverseEngineer(prefill, opts) {
         clip,
         images: [photo],
         resolution: ($$("reMtRes") && $$("reMtRes").value) || "480p",
-        seconds: Math.round((blueprint && blueprint.refDuration) || 0) || 8,
+        // Only a hint now: the builder measures the clip it is about to send.
+        seconds: (blueprint && blueprint.refDuration) || 0,
         // What the reference should now be ABOUT. The camera, the timing, the
         // lighting and the audio all come out of the clip itself, so this is
         // an instruction rather than a description of the shot.
@@ -23012,12 +23056,41 @@ async function vsVideoDuration(blob) {
     try {
       const v = document.createElement("video"); v.preload = "metadata"; v.muted = true;
       const u = URL.createObjectURL(blob);
-      v.onloadedmetadata = () => { const d = v.duration || 0; try { URL.revokeObjectURL(u); } catch (e) {} res(d); };
-      v.onerror = () => { try { URL.revokeObjectURL(u); } catch (e) {} res(0); };
+      let settled = false;
+      const fin = (d) => {
+        if (settled) return; settled = true;
+        try { URL.revokeObjectURL(u); } catch (e) {}
+        res(Number.isFinite(d) && d > 0 ? d : 0);
+      };
+      v.onloadedmetadata = () => {
+        if (Number.isFinite(v.duration) && v.duration > 0) return fin(v.duration);
+        // A fragmented MP4 - which is what Instagram serves - reports Infinity
+        // until the player has walked to the end. Asking for an impossible time
+        // makes it do so and fire durationchange with the real length. Before
+        // this the Infinity went straight into the price.
+        v.ondurationchange = () => { if (Number.isFinite(v.duration) && v.duration > 0) fin(v.duration); };
+        try { v.currentTime = 1e101; } catch (e) { fin(0); }
+        setTimeout(() => fin(v.duration), 4000);
+      };
+      v.onerror = () => fin(0);
       v.src = u;
     } catch (e) { res(0); }
   });
 }
+
+/**
+ * The seconds Genjutsu bills for a clip of this length.
+ *
+ * Their pricing text: "Input duration is rounded up to the nearest whole
+ * second." The panel used Math.round, so any clip ending under the half second
+ * - 10.4s - was quoted and charged as 10 while Higgsfield billed 11.
+ */
+function vsGjSeconds(raw) {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.ceil(n) : 0;
+}
+/** Genjutsu's own limits on the reference clip, from its schema page. */
+var VS_GJ_MIN_SEC = 4, VS_GJ_MAX_SEC = 30;
 
 async function vsAnalyzeShotList(blob, fracs) {
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
@@ -23906,14 +23979,32 @@ async function vsBuildVideoModel(cfg) {
   // 1) charge credits (per second)
   const charge = await vsCharge(cfg.action, { seconds: cfg.seconds });
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
-  cancelBtn.onclick = () => {
-    cancelled = true;
-    vsSettle(charge.jobId, "failed");   // refund — we stop polling; the fal job itself can't be recalled, but we never charge for what we don't deliver
-    stageEl.textContent = "";
-    steps.innerHTML = "";
-    noteEl.style.display = "none";
-    result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
-    finishUi();
+  const isHfJob = cfg.provider === "hf";
+  // Set once the submit returns. A Higgsfield job can be cancelled while it is
+  // queued, so a Cancel pressed then should actually stop it - refunding and
+  // walking away left it running on our bill.
+  let hfCancelUrl = "", submitted = false;
+  cancelBtn.onclick = async () => {
+    const stopped = () => {
+      cancelled = true;
+      vsSettle(charge.jobId, "failed");
+      stageEl.textContent = "";
+      steps.innerHTML = "";
+      noteEl.style.display = "none";
+      result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
+      finishUi();
+    };
+    // Nothing sent yet, or a fal job - which cannot be recalled, and where the
+    // standing choice is to refund rather than bill for an undelivered video.
+    if (!submitted || !isHfJob) { stopped(); return; }
+    // A Higgsfield job: only a cancel it accepts stops the bill. One already
+    // rendering is refused, and then it finishes and is delivered rather than
+    // refunded while we pay for it.
+    cancelBtn.disabled = true; cancelBtn.style.opacity = ".6";
+    if (await vsHfCancel(hfCancelUrl)) { stopped(); return; }
+    cancelBtn.textContent = fa ? "در حالِ ساخت است — دیگر قابلِ لغو نیست" : "Already rendering — it can't be stopped now";
+    noteEl.style.display = "block";
+    noteEl.textContent = fa ? "ساخت شروع شده و متوقف نمی‌شود. تمام که شد، ویدیو همین‌جا می‌آید." : "It has started rendering and can't be stopped. The video will appear here when it finishes.";
   };
   try {
     let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
@@ -23921,15 +24012,23 @@ async function vsBuildVideoModel(cfg) {
     // where nothing on Higgsfield does the job, which is now just the two
     // audio-driven builders (text-to-speech and strict lip-sync).
     const isHf = cfg.provider === "hf";
+    if (cancelled) return;                   // cancelled before anything was sent
     const sub = await post(isHf ? "/hf/submit" : "/fal/submit", { model: cfg.model, input: cfg.input });
-    if (cancelled) return;
+    submitted = true;
+    hfCancelUrl = (sub && sub.cancel_url) || "";
+    // Cancelled while the submit was in flight: the job is queued, so cancel
+    // it rather than let it run on a refunded order.
+    if (cancelled) { if (isHf) await vsHfCancel(hfCancelUrl); return; }
     // Higgsfield hands back a status_url and the docs say to follow it rather
     // than build one; fal needs the response url derived from the status url.
     const statusUrl = sub.status_url, respUrl = isHf ? "" : (sub.response_url || (statusUrl || "").replace(/\/status$/, ""));
     if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
     // Written down BEFORE the first poll: fal has already been paid by now,
     // and until this line the only handle on the result was a local variable.
-    try { vsFalJobRemember({ statusUrl, respUrl, action: "video", name: "video" }); } catch (e) {}
+    // With the job id, so a recovery on a later visit can refund a failure or
+    // settle a delivery - without it the ledger could collect a video but never
+    // square the account.
+    try { vsFalJobRemember({ statusUrl, respUrl, action: cfg.action || "video", name: cfg.title || "video", jobId: charge.jobId }); } catch (e) {}
     done(ic);
     const pollUrl = (u) => WB + (isHf ? "/hf/poll?url=" : "/fal/poll?url=") + encodeURIComponent(u);
     // Higgsfield's vocabulary, translated into the one this loop already
@@ -27079,9 +27178,24 @@ var VS_GENJUTSU_PERSEC = { "480p": 20, "720p": 41 };
 async function vsHfRun(model, input, opts) {
   opts = opts || {};
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
+  // Cancelled while the files were still uploading: nothing has been sent, so
+  // nothing is sent. Submitting here anyway was a paid job for a customer who
+  // had already been refunded.
+  if (opts.cancelled && opts.cancelled()) return { status: "canceled" };
   const sub = await vsFalPost(WB, "/hf/submit", { model: model, input: input });
   if (!sub || !sub.request_id || !sub.status_url) {
     throw new Error((sub && (sub.error || sub.detail)) || "the model did not accept the request");
+  }
+  // The cancel handle exists from this moment. It used to reach the caller
+  // only when the run was over, so a Cancel pressed while the job was queued
+  // had nothing to cancel with: the customer was refunded and the job ran on,
+  // billed to us. Hand it over now.
+  if (opts.onSubmit) { try { opts.onSubmit(sub); } catch (e) {} }
+  // Cancel pressed while the submit itself was in flight: the job is queued
+  // and still cancelable, so cancel it rather than let it run unpaid.
+  if (opts.cancelled && opts.cancelled()) {
+    await vsHfCancel(sub.cancel_url);
+    return { status: "canceled", cancel_url: sub.cancel_url, status_url: sub.status_url };
   }
   // Written down BEFORE the first poll. A tab closed between submitting and
   // finishing is the one way a paid job disappears with nothing to refund and
@@ -27129,9 +27243,26 @@ async function vsBuildGenjutsu(cfg) {
   const model = mode === "motion"
     ? "higgsfiled/genjutsu/motion-transfer/v1.0"
     : "higgsfiled/genjutsu/object-swap/v1.0";
-  // The model's own schema stops at thirty seconds, and the charge is per
-  // second of THIS number, so it is clamped before anything is billed.
-  const secs = Math.min(Math.max(Math.ceil(Number(cfg.seconds) || 0), 1), 30);
+  // Measured from the clip that is about to be sent, not taken from an
+  // estimate. The estimate could be missing, and a missing one used to be
+  // replaced with eight seconds: a thirty-second clip at 720p was charged 328
+  // credits for a job Higgsfield bills at $20.43.
+  let rawSecs = 0;
+  try { rawSecs = (cfg.clip instanceof Blob) ? await vsVideoDuration(cfg.clip) : Number(cfg.seconds) || 0; } catch (e) {}
+  if (!(rawSecs > 0) && Number(cfg.seconds) > 0) rawSecs = Number(cfg.seconds);
+  const secs = vsGjSeconds(rawSecs);
+  if (!secs) {
+    vsStatus(fa ? "طولِ ویدیوی مرجع خوانده نشد، پس چیزی شروع نشد و کردیتی کم نشد."
+                : "The reference clip's length could not be read, so nothing was started and nothing was charged.");
+    return;
+  }
+  // Its schema takes 4 to 30 seconds. Outside that it is rejected - and
+  // telling the customer before charging beats refunding them afterwards.
+  if (secs < VS_GJ_MIN_SEC || secs > VS_GJ_MAX_SEC) {
+    vsStatus(fa ? `Genjutsu ویدیوی ${VS_GJ_MIN_SEC} تا ${VS_GJ_MAX_SEC} ثانیه می‌گیرد و این یکی ${secs} ثانیه است. کردیتی کم نشد.`
+                : `Genjutsu takes a ${VS_GJ_MIN_SEC}–${VS_GJ_MAX_SEC} second clip and this one is ${secs}s. Nothing was charged.`);
+    return;
+  }
   const title = mode === "motion"
     ? (fa ? "انتقالِ حرکت (Genjutsu)" : "Genjutsu motion transfer")
     : (fa ? "جایگزینیِ شخصیت (Genjutsu)" : "Genjutsu character swap");
@@ -27176,22 +27307,37 @@ async function vsBuildGenjutsu(cfg) {
   const charge = await vsCharge(action, { seconds: secs });
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
 
-  $g("gjCancel").onclick = () => {
-    cancelled = true;
-    vsHfCancel(cancelUrl);
-    vsSettle(charge.jobId, "failed");
-    steps.innerHTML = "";
-    result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded.") + '</div>';
-    finish();
+  $g("gjCancel").onclick = async () => {
+    const cb = $g("gjCancel");
+    const stopped = () => {
+      cancelled = true;
+      vsSettle(charge.jobId, "failed");
+      steps.innerHTML = "";
+      result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded.") + '</div>';
+      finish();
+    };
+    // Not submitted yet: nothing is running anywhere, so stopping is free.
+    if (!cancelUrl) { stopped(); return; }
+    // Submitted: only a cancel Higgsfield accepts stops the bill. If it is
+    // already rendering it cannot be stopped, and refunding then would mean
+    // paying for the job ourselves while the customer walks away - so say so,
+    // and let it finish.
+    cb.disabled = true; cb.style.opacity = ".6";
+    if (await vsHfCancel(cancelUrl)) { stopped(); return; }
+    cb.textContent = fa ? "در حالِ ساخت است — دیگر قابلِ لغو نیست" : "Already rendering — it can't be stopped now";
+    result.innerHTML = '<div style="color:#fbbf24;font-size:12.5px">' +
+      (fa ? "ساخت شروع شده و متوقف نمی‌شود. تمام که شد، ویدیو همین‌جا می‌آید." : "It has started rendering and can't be stopped. The video will appear here when it finishes.") + '</div>';
   };
 
   try {
     stage.textContent = fa ? "آماده‌سازی" : "Preparing";
     const up = line(fa ? "فرستادنِ ویدیو و عکس‌ها" : "Uploading the clip and your images");
     const videoUrl = typeof cfg.clip === "string" ? cfg.clip : await upload(cfg.clip, "video/mp4");
+    if (cancelled) return;
     const imageUrls = [];
     for (const img of (cfg.images || []).slice(0, 8)) {
       imageUrls.push(typeof img === "string" ? img : await upload(img));
+      if (cancelled) return;
     }
     if (!videoUrl) throw new Error(fa ? "ویدیوی مرجع نیست" : "no reference clip");
     if (!imageUrls.length) throw new Error(fa ? "حداقل یک عکس لازم است" : "at least one reference image is required");
@@ -27207,6 +27353,7 @@ async function vsBuildGenjutsu(cfg) {
     }, {
       action: action, name: title, credits: 0, jobId: charge.jobId,
       cancelled: () => cancelled,
+      onSubmit: (sub) => { cancelUrl = (sub && sub.cancel_url) || ""; },
       onStatus: (st) => {
         stage.textContent = st === "in_progress" ? (fa ? "در حالِ ساخت" : "Rendering") : (fa ? "در صف" : "Queued");
         if (tray && tray.stage) { try { tray.stage(stage.textContent); } catch (e) {} }
@@ -27247,9 +27394,13 @@ async function vsBuildGenjutsu(cfg) {
 
 /** A queued Genjutsu job is cancelable, and thirty seconds at 720p is $20. */
 async function vsHfCancel(cancelUrl) {
-  if (!cancelUrl) return;
+  // True only when Higgsfield accepted the cancel. A queued request can be
+  // cancelled; one already rendering is refused, and a refused cancel means
+  // we are billed for the job whatever we tell the customer.
+  if (!cancelUrl) return false;
   const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  try { await vsFalPost(WB, "/hf/cancel?url=" + encodeURIComponent(cancelUrl), {}); } catch (e) {}
+  try { await vsFalPost(WB, "/hf/cancel?url=" + encodeURIComponent(cancelUrl), {}); return true; }
+  catch (e) { return false; }
 }
 
 
