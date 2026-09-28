@@ -4272,6 +4272,24 @@ function renderTemplatePicker() {
 function setVideoTemplate(id) {
   vstudio.templateId = id;
   vstudio._userPickedTemplate = true;   // respect this even in motion-graphic mode
+  // A template is a whole look, font included. The headline-font menu always
+  // holds a value and every scene keeps its own copy of it, and that menu wins
+  // over the template - so a template's own face never reached the screen and
+  // switching templates left every headline in the font it was built with.
+  // Choosing a template now sets its font everywhere; the menu can still
+  // change it afterwards.
+  const tpl = videoTemplates.find((t) => t.id === id);
+  const fontSel = $("#vsHeadlineFont");
+  if (tpl && tpl.headlineFont && fontSel) {
+    if (![...fontSel.options].some((o) => o.value === tpl.headlineFont)) {
+      const o = document.createElement("option");
+      o.value = tpl.headlineFont;
+      o.textContent = tpl.headlineFont.split(",")[0].replace(/['"]/g, "") + " (template)";
+      fontSel.appendChild(o);
+    }
+    fontSel.value = tpl.headlineFont;
+    (vstudio.slides || []).forEach((s) => { if (s && s.settings) s.settings["#vsHeadlineFont"] = tpl.headlineFont; });
+  }
   renderTemplatePicker();
   // redraw whenever there's anything to show — media, slides, or an
   // intro scene — so picking a template updates the preview immediately.
@@ -6419,7 +6437,7 @@ const VS_ANALYZE_CREDITS = 1;
  */
 function reCost(templateId, ctx) {
   ctx = ctx || {};
-  const b = vsFormatBuild(vsTemplate(templateId).shape);
+  const b = vsFormatBuild(vsReTemplate(templateId).shape);
   const parts = [];
   // Analyze is spent the moment a reference is read, and these cards are shown
   // after that - leaving it out understates the bill by a credit.
@@ -6466,14 +6484,22 @@ const VS_TPL_CATS = [
 /** How many fill the grid before "show more" takes over. */
 const VS_TPL_PAGE = 6;
 
-/** A template by id, or the first one when the id means nothing. */
-function vsTemplate(id) {
+/**
+ * A Reverse Engineer template by id, or the first one when the id means nothing.
+ *
+ * Named vsReTemplate, not vsTemplate: it was, and a second top-level function
+ * of the same name replaces the first. Video Studio's vsTemplate() - the one
+ * every frame asks for its colours and fonts - silently became this one, so
+ * each frame got "Podcast single take", which has neither, and choosing a
+ * template changed nothing on screen.
+ */
+function vsReTemplate(id) {
   return VS_TEMPLATES.find((t) => t.id === id) || VS_TEMPLATES[0];
 }
 
 /** Everything a card needs: the shape's plan and price, plus this clip. */
 function vsTemplateCard(id) {
-  const t = vsTemplate(id);
+  const t = vsReTemplate(id);
   const b = vsFormatBuild(t.shape);
   return { tpl: t, build: b, still: !!t.still, aspect: t.aspect || "9/16",
            clip: t.still ? "" : "/tpl/" + t.clip + ".mp4", poster: "/tpl/" + t.clip + ".jpg" };
@@ -7655,11 +7681,15 @@ async function vsAssembleFromSections(data, skipFootage) {
           infoStyle = alt[Math.floor(Math.random() * alt.length)];
         }
       } else {
-        const tightPool = ["donut", "bars", "progress-pills"];
+        // The renderer's own names. These were "progress-pills" and
+        // "split-block", which it has never drawn: every "pills" or two-number
+        // "comparison" chart - and a third of the random picks - came out as
+        // an empty card with only its title.
+        const tightPool = ["donut", "bars", "pills"];
         if (aiChart === "donut") infoStyle = "donut";
         else if (aiChart === "bars") infoStyle = "bars";
-        else if (aiChart === "pills") infoStyle = "progress-pills";
-        else if ((aiChart === "split" || aiChart === "comparison") && n === 2) infoStyle = "split-block";
+        else if (aiChart === "pills") infoStyle = "pills";
+        else if ((aiChart === "split" || aiChart === "comparison") && n === 2) infoStyle = "comparison";
         else if (aiChart === "ranking") infoStyle = "cards";
         else infoStyle = "donut";
         if (infoStyle === vstudio._lastInfoStyle && tightPool.includes(infoStyle)) {
@@ -12430,7 +12460,15 @@ function drawInfographic(ctx, W, H, elapsed, tpl, dsVal, vsOff) {
   };
 
   const stats = data.stats;
-  const style = val("#vsInfoStyle", "big-numbers");
+  // A name the renderer has no branch for drew the card's title and nothing
+  // under it - how "progress-pills" and "split-block" shipped. Anything
+  // unknown now draws as cards, which fit any data.
+  const VS_INFO_STYLES = ["big-numbers", "counters", "ticker-numbers", "comparison", "bars", "pills", "donut",
+    "area-chart", "bubble", "cards", "dark-cards", "neon-cards", "magazine", "timeline-list", "ranking"];
+  let style = val("#vsInfoStyle", "big-numbers");
+  if (style === "progress-pills") style = "pills";
+  else if (style === "split-block") style = "comparison";
+  else if (!VS_INFO_STYLES.includes(style)) style = "cards";
   const pos = val("#vsInfoPos", "center");
   const motion = val("#vsInfoMotion", "rise");
   const playing = vstudio.looping || vstudio.rendering;
@@ -20469,7 +20507,7 @@ async function vsReverseAnalyze(refText, brief) {
   // it in the prompt the model wrote the same four-to-six-beat script whichever
   // card was chosen, so "Kinetic typography" and "Full house tour" came back
   // identical and picking one bought nothing.
-  const tpl = brief.template ? vsTemplate(brief.template) : null;
+  const tpl = brief.template ? vsReTemplate(brief.template) : null;
   const tf = tpl ? vsFormat(tpl.shape) : null;
   const tplan = tpl ? vsFormatBuild(tpl.shape).plan : null;
   const capWord = tf && ({
@@ -22084,7 +22122,7 @@ function vsReverseEngineer(prefill, opts) {
       // multi-shot reference, and a card showing a bare per-second rate next to
       // a template that quoted a total is the same figure told two ways.
       if (!multiShot && reWantSource === "template" && rePickedTemplate && $$("reCredScene")) {
-        const tb = vsFormatBuild(vsTemplate(rePickedTemplate).shape);
+        const tb = vsFormatBuild(vsReTemplate(rePickedTemplate).shape);
         if (tb.route === "scene") {
           $$("reCredScene").outerHTML = arCredit(tb.render, { id: "reCredScene", suffix: fa ? `· ${tb.plan.scenes} نما` : `· ${tb.plan.scenes} shots` });
         }
@@ -22240,7 +22278,7 @@ function vsReverseEngineer(prefill, opts) {
             // a photo, which is a different post than the one being copied.
             recRoutes = (ref && ref.refVideo) ? ["genjutsu", "motion"] : isMovingRef ? ["scene"] : ["image"];
           } else if (reWantSource === "template" && rePickedTemplate) {
-            const want = vsFormatBuild(vsTemplate(rePickedTemplate).shape).route;
+            const want = vsFormatBuild(vsReTemplate(rePickedTemplate).shape).route;
             recRoutes = [want].concat(recRoutes.filter((r) => r !== want));
           }
         }
@@ -22321,7 +22359,7 @@ function vsReverseEngineer(prefill, opts) {
             const why = onlyGenjutsu
               ? (fa ? "«با خودم در ویدیو» روی یک ویدیوی واقعی" : "“with me in it” on a real clip")
               : lockedBy === "template"
-              ? (fa ? "قالبِ «" + esc(vsTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsTemplate(rePickedTemplate).label) + "” template")
+              ? (fa ? "قالبِ «" + esc(vsReTemplate(rePickedTemplate).label) + "»" : "the “" + esc(vsReTemplate(rePickedTemplate).label) + "” template")
               : (fa ? "«با خودم در ویدیو»" : "“with me in it”");
             $$("reRouteLockTxt").innerHTML = (fa
               ? "اسکریپت برای " + why + " نوشته شد، پس با <b>" + esc(how) + "</b> ساخته می‌شود."
@@ -22391,7 +22429,7 @@ function vsReverseEngineer(prefill, opts) {
     // 6-7, long 8-10). When a template decided the shape, the shape knows how
     // many scenes it wants - taking the generic selector instead rendered a
     // seven-beat video from a script written for one beat, or for nine.
-    const tplPlan = reWantSource === "template" && rePickedTemplate ? vsFormatBuild(vsTemplate(rePickedTemplate).shape).plan : null;
+    const tplPlan = reWantSource === "template" && rePickedTemplate ? vsFormatBuild(vsReTemplate(rePickedTemplate).shape).plan : null;
     const lenVal = tplPlan ? (tplPlan.scenes <= 5 ? "short" : tplPlan.scenes <= 7 ? "medium" : "long")
       : ($$("reLen").value || "medium");
     const aspVal = ($$("reSlideAsp") && $$("reSlideAsp").value) || "9:16";
@@ -22848,7 +22886,7 @@ function vsReverseEngineer(prefill, opts) {
     const det = ref && ref.format;
     box.querySelectorAll(".re-tplcard").forEach((c) => {
       const picked = rePickedTemplate === c.dataset.tpl;
-      const isMatch = det && det.measured && det.best === vsTemplate(c.dataset.tpl).shape;
+      const isMatch = det && det.measured && det.best === vsReTemplate(c.dataset.tpl).shape;
       c.style.background = picked ? "rgba(52,211,153,.10)" : "rgba(255,255,255,.035)";
       c.style.borderColor = picked ? "rgba(52,211,153,.6)" : isMatch ? "rgba(37,99,255,.5)" : "rgba(255,255,255,.10)";
       c.setAttribute("aria-pressed", String(picked));
@@ -23022,7 +23060,7 @@ function vsReverseEngineer(prefill, opts) {
     }
     // A template chosen by hand outranks a detected one - it is the only one of
     // the two the operator actually asked for.
-    const pickedShape = rePickedTemplate ? vsTemplate(rePickedTemplate).shape : null;
+    const pickedShape = rePickedTemplate ? vsReTemplate(rePickedTemplate).shape : null;
     if (pickedShape && pick.value !== pickedShape) pick.value = pickedShape;
     // Shown when there is something to say: a reference was read, or a template
     // was chosen. Otherwise it is an empty green box explaining nothing.
