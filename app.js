@@ -4331,10 +4331,11 @@ function bindIntroEditor() {
   const addBtn = $("#vsAddIntroBtn");
   if (addBtn) addBtn.addEventListener("click", () => {
     addIntroSlide();
-    selectSlide(vstudio.slides.length - 1);
+    selectSlide(0);          // an intro opens the video - see addIntroSlide
+    vsPushHistory();
   });
   const outroBtn = $("#vsAddOutroBtn");
-  if (outroBtn) outroBtn.addEventListener("click", () => addOutroSlide());
+  if (outroBtn) outroBtn.addEventListener("click", () => { addOutroSlide(); vsPushHistory(); });
   const autoBtn = $("#vsAutoBuildBtn");
   if (autoBtn) autoBtn.addEventListener("click", () => buildAutoVideo(false));
   // ── AI Assistant mode switching (document-level delegation — robust) ──
@@ -4532,21 +4533,27 @@ function vsCanvasSize(targetLongEdge) {
 // plus dual animated text. It behaves like any other slide otherwise.
 function addIntroSlide() {
   vsSaveActiveSlide();
+  try { vsHistoryBaseline(); } catch (e) {}
   const slide = {
     url: null, isVideo: false, mediaEl: null, ready: true,
     isIntro: true,
     introBg: introBackgrounds[0].id,
-    introMain: "AI Radar presents",
-    introSub: "A new standard of calm",
+    // The customer's video, not our billboard: this used to open every added
+    // intro with "AI Radar presents". Their own title when there is one.
+    introMain: String((vstudio.storyData && vstudio.storyData.title) || (state.lang === "fa" ? "عنوان ویدیو" : "Your title")).slice(0, 60),
+    introSub: "",
     introMotion: "rise",
     headline: "", duration: 3,
     settings: vsCaptureSettings()
   };
-  vstudio.slides.push(slide);
+  // At the start. It was pushed to the end, so "+ Add intro scene" put the
+  // intro after "Thanks for watching".
+  vstudio.slides.unshift(slide);
+  vstudio.activeSlide = 0;
   renderSlideList();
   // an intro scene needs a canvas even with no uploaded media
   if (!$("#vsCanvas")) buildPreviewCanvas();
-  if (vstudio.slides.length === 1) selectSlide(0);
+  selectSlide(0);
   drawStudioFrame(0);
   vsStatus(state.lang === "fa"
     ? `صحنه اینترو اضافه شد.`
@@ -4680,6 +4687,7 @@ function vsExtractStats(text) {
 // Build the sequence from already-decided pieces.
 function vsAssembleStory({ title, subtitle, stats, points, kicker, outroMain, captions }) {
   vstudio.slides = [];
+  vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
   const bgPool = ["cine-aurora", "cine-violet", "cine-mesh", "cine-ember",
     "cine-spotlight", "cine-wave", "aurora", "gold-rings"];
   const bg = (i) => bgPool[i % bgPool.length];
@@ -7016,7 +7024,13 @@ SOURCE: """${text.slice(0, 9000)}"""`;
         const b = jsonStr.lastIndexOf("}");
         if (a !== -1 && b !== -1 && b > a) jsonStr = jsonStr.slice(a, b + 1);
       }
-      const parsed = JSON.parse(jsonStr);
+      let parsed;
+      try { parsed = JSON.parse(jsonStr); }
+      catch (e) {
+        // Nearly-right JSON is repaired rather than thrown away with the script.
+        parsed = vsParseJsonLoose(raw);
+        if (!parsed) throw e;
+      }
       const refusalText = JSON.stringify(parsed).toLowerCase();
       if (!Array.isArray(parsed.sections) || !parsed.sections.length ||
           /i can.?t write|i cannot write|can.?t help with|unable to (write|create)|cannot assist|not able to create/.test(refusalText)) {
@@ -7290,6 +7304,7 @@ async function vsFetchArticle(url) {
 // Build a video from the AI's ordered "sections" (infographic vs text).
 async function vsAssembleFromSections(data, skipFootage) {
   vstudio.slides = [];
+  vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
   vstudio.storyData = data;
   // Fixed scene lengths: intro/outro always 3s, every content scene always 6s
   // — a consistent rhythm instead of stretching/shrinking with narration length.
@@ -9031,6 +9046,77 @@ async function vsAutoGenerateBackgrounds(data) {
    one assembles it and (optionally) generates its footage on demand.
    Uses the free strong models + FLUX images via the Pollinations key.
    ════════════════════════════════════════════════════════════════════ */
+/**
+ * JSON from a language model, repaired when it is nearly right.
+ *
+ * Gemini's JSON is occasionally off by a character, and one character threw
+ * away a whole good script. Two real replies, both rejected and both dropping
+ * the video to basic mode: `..."heroWord":"STRATEGY"}schl}` (a stray word
+ * before the last brace) and one missing only its final `}`. Repairs, in
+ * order, retried until it parses or nothing more can be done: a stray word
+ * where a comma or brace belongs, trailing commas, and brackets left open.
+ */
+function vsCloseJson(s) {
+  const scan = (str) => {
+    const stack = [];
+    let inStr = false, esc = false, lastComplete = -1;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (ch === "\\") esc = true;
+        else if (ch === '"') inStr = false;
+        continue;
+      }
+      if (ch === '"') inStr = true;
+      else if (ch === "{") stack.push("}");
+      else if (ch === "[") stack.push("]");
+      else if ((ch === "}" || ch === "]") && stack.length) { stack.pop(); lastComplete = i; }
+    }
+    return { stack, inStr, lastComplete };
+  };
+  let st = scan(s);
+  // Cut off mid-string: the item it was writing is unfinished, and a half
+  // headline ("Move fast and cra") would go on screen. Keep what was complete.
+  if (st.inStr && st.lastComplete > 0) { s = s.slice(0, st.lastComplete + 1); st = scan(s); }
+  let out = s.replace(/,\s*$/, "");
+  if (st.inStr) out += '"';
+  const stack = st.stack;
+  while (stack.length) out += stack.pop();
+  return out;
+}
+function vsParseJsonLoose(raw) {
+  let s = String(raw == null ? "" : raw).replace(/```json|```/g, "").trim();
+  const a = s.indexOf("{");
+  if (a < 0) return null;
+  s = s.slice(a);
+  for (let tries = 0; tries < 8; tries++) {
+    try { return JSON.parse(s); } catch (e) {
+      const msg = String(e && e.message || "");
+      let pos = -1;
+      const pm = /position (\d+)/.exec(msg);
+      if (pm) pos = +pm[1];
+      else {
+        const lc = /line (\d+) column (\d+)/.exec(msg);
+        if (lc) {
+          const lines = s.split("\n");
+          pos = lines.slice(0, +lc[1] - 1).reduce((n, l) => n + l.length + 1, 0) + (+lc[2] - 1);
+        }
+      }
+      if (pos >= 0 && pos < s.length && /[A-Za-z_]/.test(s[pos])) {
+        const junk = /^[A-Za-z_]+/.exec(s.slice(pos))[0];
+        if (!/^(true|false|null)$/.test(junk)) { s = s.slice(0, pos) + s.slice(pos + junk.length); continue; }
+      }
+      const noTrailing = s.replace(/,\s*([}\]])/g, "$1");
+      if (noTrailing !== s) { s = noTrailing; continue; }
+      const closed = vsCloseJson(s);
+      if (closed !== s) { s = closed; continue; }
+      return null;
+    }
+  }
+  return null;
+}
+
 function vsParseAiJson(raw) {
   let s = String(raw == null ? "" : raw).replace(/```json|```/g, "").trim();
   // grab the outermost { } or [ ] block
@@ -9043,7 +9129,10 @@ function vsParseAiJson(raw) {
   if (end > start) s = s.slice(start, end + 1);
   try { return JSON.parse(s); } catch (e) {
     // tolerate trailing commas
-    try { return JSON.parse(s.replace(/,\s*([}\]])/g, "$1")); } catch (e2) { return null; }
+    try { return JSON.parse(s.replace(/,\s*([}\]])/g, "$1")); } catch (e2) {
+      // an object reply that is nearly right - see vsParseJsonLoose
+      return s.trim()[0] === "{" ? vsParseJsonLoose(s) : null;
+    }
   }
 }
 
@@ -10214,6 +10303,7 @@ async function vsExportAllBatch() {
 
 function addOutroSlide() {
   vsSaveActiveSlide();
+  try { vsHistoryBaseline(); } catch (e) {}
   const slide = {
     url: null, isVideo: false, mediaEl: null, ready: true,
     isIntro: true, isOutro: true,
@@ -10420,6 +10510,7 @@ function addStudioSlide(file) {
 
 // Remove a slide by index.
 function removeStudioSlide(i) {
+  try { vsHistoryBaseline(); } catch (e) {}
   const s = vstudio.slides[i];
   if (s && s.url) { try { URL.revokeObjectURL(s.url); } catch {} }
   vstudio.slides.splice(i, 1);
@@ -17466,6 +17557,13 @@ const vsHistory = { stack: [], index: -1, suspended: false };
 
 function vsSnapshot() {
   const snap = { templateId: vstudio.templateId };
+  // The scene list too. Undo used to hold only the form controls, so adding,
+  // deleting, duplicating or moving a scene could not be undone at all. Tagged
+  // with its build: an undo must never reach back past a fresh AI build to the
+  // empty project the page opened with and wipe the video.
+  snap._slides = (vstudio.slides || []).slice();
+  snap._active = vstudio.activeSlide || 0;
+  snap._build = vstudio._buildSeq || 0;
   VS_CONTROLS.forEach(sel => {
     const el = $(sel);
     if (el) snap[sel] = el.type === "checkbox" ? el.checked : el.value;
@@ -17486,11 +17584,35 @@ function vsPushHistory() {
   vsUpdateUndoButtons();
 }
 
+/**
+ * Record where this build stands before its first structural edit.
+ *
+ * After a fresh build, the newest snapshot belongs to the build before it, and
+ * undo will not restore structure across builds - so the first scene deleted
+ * after generating could not be brought back. Called before any change to the
+ * scene list; a no-op once this build has a snapshot of its own.
+ */
+function vsHistoryBaseline() {
+  if (vsHistory.suspended) return;
+  const top = vsHistory.stack[vsHistory.index];
+  if (!top || top._build !== (vstudio._buildSeq || 0)) vsPushHistory();
+}
+
 function vsApplySnapshot(snap) {
   vsHistory.suspended = true;
   if (snap.templateId) setVideoTemplate(snap.templateId);
+  // Structure first, so the controls below land on the right scene.
+  if (snap._slides && snap._build === (vstudio._buildSeq || 0)) {
+    const cur = vstudio.slides || [];
+    const same = cur.length === snap._slides.length && cur.every((x, k) => x === snap._slides[k]);
+    if (!same) {
+      vstudio.slides = snap._slides.slice();
+      vstudio.activeSlide = Math.min(snap._active || 0, Math.max(0, vstudio.slides.length - 1));
+      try { renderSlideList(); if (vstudio.slides.length) selectSlide(vstudio.activeSlide); } catch (e) {}
+    }
+  }
   Object.keys(snap).forEach(sel => {
-    if (sel === "templateId") return;
+    if (sel === "templateId" || sel[0] === "_") return;
     const el = $(sel);
     if (!el) return;
     if (el.type === "checkbox") el.checked = snap[sel];
@@ -26972,7 +27094,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     importing = true;
     try {
       vstudio.slides.forEach(s => { if (s.url && String(s.url).startsWith("blob:")) try { URL.revokeObjectURL(s.url); } catch {} });
-      vstudio.slides.length = 0;
+      vstudio.slides.length = 0; vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
       if (data.controls && typeof vsApplySnapshot === "function") vsApplySnapshot(data.controls);
       if (data.templateId && typeof setVideoTemplate === "function") setVideoTemplate(data.templateId);
       data.slides.forEach(raw => {
@@ -27003,15 +27125,19 @@ A video is made of one or more SCENES that play one after another. Each scene ha
   function duplicateScene() {
     const source = vstudio.slides[vstudio.activeSlide]; if (!source) return;
     try { vsSaveActiveSlide(); } catch {}
+    try { vsHistoryBaseline(); } catch (e) {}
     const copy = { ...source, id: "scene-" + crypto.randomUUID(), settings: cleanSettings(source.settings), introMain: source.introMain ? source.introMain + " copy" : source.introMain };
     const at = vstudio.activeSlide + 1; vstudio.slides.splice(at, 0, copy); selectSlide(at); renderSlideList(); autosave(); vsStatus("Scene duplicated.");
+    try { vsPushHistory(); } catch (e) {}
   }
   function moveScene(delta) {
     const from = vstudio.activeSlide, to = from + delta;
     if (from < 0 || to < 0 || to >= vstudio.slides.length) return;
     try { vsSaveActiveSlide(); } catch {}
+    try { vsHistoryBaseline(); } catch (e) {}
     const scene = vstudio.slides.splice(from, 1)[0]; vstudio.slides.splice(to, 0, scene); vstudio.activeSlide = to;
     renderSlideList(); selectSlide(to); autosave();
+    try { vsPushHistory(); } catch (e) {}
   }
   document.addEventListener("DOMContentLoaded", () => {
     const list = el("vsSlideList");
@@ -27023,7 +27149,7 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     el("vsProjectName")?.addEventListener("input", autosave);
     el("vsProjectNew")?.addEventListener("click", () => {
       if (vstudio.slides.length && !confirm("Start a new project? Save the current project first if you want to keep it.")) return;
-      vstudio.slides.length = 0; vstudio.activeSlide = 0;
+      vstudio.slides.length = 0; vstudio.activeSlide = 0; vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
       if (el("vsProjectName")) el("vsProjectName").textContent = "Untitled project";
       renderSlideList(); updateProjectUI(); autosave(); vsStatus("New project ready.");
     });
