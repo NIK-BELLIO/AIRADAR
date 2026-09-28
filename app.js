@@ -25450,7 +25450,51 @@ async function vsLoadDeckFromUrl() {
                     : "That video link was not found. Ask your AI to call create_video again.");
     return;
   }
+  if (j.skill === "reel") { await vsOpenReelDeck(j.script); return; }
   await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
+}
+
+/**
+ * A realtor reel sent through the MCP connector (create_realtor_reel).
+ *
+ * Opened exactly the way the monthly batch opens one: the town's own look,
+ * grade and music from vsReelLook, its saved clip first, then footage - so a
+ * reel written by the customer's own AI is indistinguishable from the batch's
+ * except in how well it is written. The server already held it to the Regions
+ * rules before handing out the link.
+ */
+async function vsOpenReelDeck(r) {
+  const fa = state.lang === "fa";
+  if (!r || !Array.isArray(r.sentences) || r.sentences.length !== 5) {
+    vsAutoStatus(fa ? "این ریل کامل نیست." : "That reel is incomplete.");
+    return;
+  }
+  const place = String(r.place || r.name || "");
+  const month = Number(r.month) || (new Date().getMonth() + 1);
+  const look = vsReelLook(place, month, 0);
+  vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
+  vstudio._batchCancel = false;
+  vstudio._lastScriptModel = "your AI (MCP reel)";
+  vstudio.batchVideos = [{
+    name: String(r.name || place.split(",")[0]).trim(),
+    location: place,
+    template: look.template,
+    regionId: r.regionId,
+    data: {
+      _regionId: r.regionId,
+      _knownClip: r.clip || "",
+      title: r.title,
+      sections: r.sentences.map((t, i) => ({ headline: t, narration: t, visual: (r.visuals || [])[i] || "" })),
+      source: r.source || "",
+      palette: look.palette,
+      music: look.music,
+      _look: look,
+      _location: place, _batchName: place, _topic: "realtor reel",
+    },
+  }];
+  vstudio.batchCurrent = 0;
+  vsRenderBatchList();
+  await vsLoadBatchVideo(0);
 }
 
 function bindEvents() {
