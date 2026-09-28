@@ -9142,17 +9142,6 @@ async function vsAutoGenerateBackgrounds(data) {
 
   const genOne = async (s, i) => {
     if (vstudio._batchCancel || s.mediaEl) return;
-    // A picture the customer's own AI made for this scene (MCP create_video)
-    // is the scene: nothing to search for.
-    if (s._image) {
-      const own = await vsLoadOwnImage(s._image);
-      if (own && !vstudio._batchCancel) {
-        s.mediaEl = own; s.isVideo = false; s.ready = true; s.url = own.src;
-        s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
-        made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
-        return;
-      }
-    }
     const isTitle = !s._standaloneInfo && !s._standaloneNews;   // intro / outro
     const headline = (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"]))
                      || s.headline || "";
@@ -9190,6 +9179,18 @@ async function vsAutoGenerateBackgrounds(data) {
     // differently (the editorial-style motion-graphic feel), instead of every
     // scene using the same fade-up.
     const txAnim = ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"][i % 8];
+    // A picture the customer's own AI made for this scene (MCP create_video)
+    // is the scene: nothing to search for. After cam and txAnim, which it uses -
+    // placed above them it threw, and the whole build fell back to basic mode.
+    if (s._image) {
+      const own = await vsLoadOwnImage(s._image);
+      if (own && !vstudio._batchCancel) {
+        s.mediaEl = own; s.isVideo = false; s.ready = true; s.url = own.src;
+        s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
+        made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+        return;
+      }
+    }
 
     // 0) the clip this town was given last time, on its opening scene.
     // Already known and already at the edge: 21ms against 1057ms for a search
