@@ -4376,6 +4376,11 @@ function bindIntroEditor() {
 
   const autoAiBtn = $("#vsAutoAiBtn");
   if (autoAiBtn) autoAiBtn.addEventListener("click", () => buildAutoVideo(true));
+  const ownAiBtn = $("#vsOwnAiBtn");
+  if (ownAiBtn) {
+    if (state.lang === "fa") ownAiBtn.textContent = "با هوش مصنوعیِ خودت بنویس";
+    ownAiBtn.addEventListener("click", () => vsOpenOwnAi());
+  }
   // Skill command: typing "/motion_graphic <url>" and pressing Enter builds the
   // motion-graphic video straight away (Shift+Enter still inserts a newline).
   const autoTopic = $("#vsAutoTopic");
@@ -4491,7 +4496,8 @@ function bindIntroEditor() {
     });
     // show it once, the first time someone opens the studio
     try {
-      if (!localStorage.getItem("vsMgGuideSeen")) setTimeout(openGuide, 1400);
+      // Not over a video someone's AI just sent: the link opens straight on it.
+      if (!localStorage.getItem("vsMgGuideSeen") && !/[?&]deck=/.test(location.search)) setTimeout(openGuide, 1400);
     } catch (e) {}
   }
 }
@@ -6967,55 +6973,9 @@ async function buildAutoVideo(useAI) {
   // This decides how strict fact-grounding is and how the prompt is framed.
   const hasSource = !!(url || window._vsAutoMode === "text" || text.length > 400);
 
-  // The Length label counts TOTAL scenes (Short 4-5 · Medium 6-7 · Long 8-10),
-  // and every video already includes an intro + outro — so the AI writes 2 FEWER
-  // content sections than the label, keeping the finished video within the range.
-  const sectionRange = lenChoice === "short" ? "2 to 3" : lenChoice === "long" ? "6 to 8" : "4 to 5";
-  const toneGuide = {
-    news:        "authoritative broadcast-news director. Crisp, factual, urgent. Use title-left and title-center styles, bars/comparison charts.",
-    explainer:   "friendly educator. Clear, step-by-step, builds understanding. Use title-center, donut/pills charts, simple language.",
-    hype:        "high-energy launch hype-master. Bold, punchy, exciting. Use bold-statement, neon-title, big single numbers.",
-    documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
-    social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers."
-  }[tone] || "broadcast-news director.";
-
   vsAutoStatus(state.lang === "fa"
     ? "دستیار در حال نوشتن فیلمنامه…" : "Assistant is writing the script…");
-
-  // Framed so the model writes like an analyst who actually did the legwork
-  // on this exact SOURCE — not a generic copywriter guessing at a headline.
-  const groundingRule = hasSource
-    ? `You have the FULL SOURCE text below. Write as a senior investigative analyst who just finished reading it start to finish — as if you opened the link yourself, worked through every paragraph, cross-checked the key facts against each other, and are now briefing a client on what it really means. Ground every figure, name, date, quote and claim in this SOURCE. Never invent a statistic, quote, ranking or attribution that isn't in it — if a precise number isn't explicitly there, don't state one; instead dig deeper into the documented facts you DO have (causes, mechanics, stakes, who's affected, what happens next).`
-    : `No article or link was supplied — only a topic idea. Write as a senior analyst drawing on solid, verifiable general knowledge: real organizations, real events, real figures you are genuinely confident about. Never fabricate a precise statistic just to sound authoritative — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead.`;
-
-  const buildScriptPrompt = (revise) => `You are a senior investigative analyst and award-winning ${toneGuide}
-${groundingRule}
-Turn the SOURCE below into a complete, professional short-form video script that sounds like a briefing from someone who genuinely researched the subject — never generic, never filler. Lead with what actually matters most, and explain WHY it matters, not just what happened.
-IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
-
-Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
-
-RULES:
-0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
-1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
-2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
-3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
-4. Never two infographics in a row. Vary text styles for rhythm.
-4b. "visual" on every section: a short, concrete, filmable stock-footage query for THAT scene's specific content (e.g. "engineers testing server racks", not "technology" or "innovation concept").
-5. Match the ${tone} tone precisely in word choice and energy.
-6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
-7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
-8. Every line must be accurate and specific. Real numbers, real names, real detail.
-9. Write narration for the ear: natural transitions, varied sentence length, no bullet-list rhythm, no generic hype.
-10. Separate fact from inference. Never invent numbers, quotes, dates, rankings or attribution.
-11. Keep the SOURCE language. Narration and on-screen copy must use the same language.
-12. Build a real arc: hook, context, strongest evidence, consequence, takeaway. Every scene must advance the story — like a report, not a slideshow of trivia.
-13. "evidence" is mandatory on every section — a concrete detail a viewer could point back to in the SOURCE, never a paraphrase of the headline.
-14. Never write meta-commentary about missing data, sourcing or the production process (no "no data", "not provided", "verify locally", "article footnote" or similar).
-14b. "heroWord" is REQUIRED on intro, every section and outro — a single real word (max 9 letters, no spaces) pulled from that scene's own substance that could headline a magazine cover. Never a generic filler word, never a chopped fragment, never a duplicate of the previous scene's heroWord.
-15. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).${revise ? "\n16. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
-SOURCE: """${text.slice(0, 9000)}"""`;
+  const buildScriptPrompt = (revise) => vsScriptPrompt({ text, tone, lenChoice, hasSource, revise });
 
   let data = null, lastErr = null, softData = null;
   for (let attempt = 0; attempt < 2 && !data; attempt++) {
@@ -7056,6 +7016,236 @@ SOURCE: """${text.slice(0, 9000)}"""`;
   // draft the model produced.
   if (!data && softData) data = softData;
 
+  await vsBuildFromScript(data, text, lenChoice);
+}
+
+/**
+ * The script brief, as text.
+ *
+ * Shared by the studio's own writer and by "write it with your own AI" and the
+ * MCP guide, so a script written anywhere comes back in the one shape the
+ * builder reads. Tone now comes from vsToneGuide: the local table here had no
+ * "advisor" - the studio's default tone - so every default build was briefed
+ * as a broadcast-news director.
+ */
+function vsScriptPrompt(o) {
+  o = o || {};
+  const text = String(o.text || "");
+  const tone = o.tone || "news";
+  const lenChoice = o.lenChoice || "medium";
+  const hasSource = !!o.hasSource;
+  const revise = !!o.revise;
+  // The Length label counts TOTAL scenes (Short 4-5 · Medium 6-7 · Long 8-10),
+  // and every video already includes an intro + outro — so the AI writes 2 FEWER
+  // content sections than the label, keeping the finished video within the range.
+  const sectionRange = lenChoice === "short" ? "2 to 3" : lenChoice === "long" ? "6 to 8" : "4 to 5";
+  const toneGuide = vsToneGuide(tone);
+
+
+
+  // Framed so the model writes like an analyst who actually did the legwork
+  // on this exact SOURCE — not a generic copywriter guessing at a headline.
+  const groundingRule = hasSource
+    ? `You have the FULL SOURCE text below. Write as a senior investigative analyst who just finished reading it start to finish — as if you opened the link yourself, worked through every paragraph, cross-checked the key facts against each other, and are now briefing a client on what it really means. Ground every figure, name, date, quote and claim in this SOURCE. Never invent a statistic, quote, ranking or attribution that isn't in it — if a precise number isn't explicitly there, don't state one; instead dig deeper into the documented facts you DO have (causes, mechanics, stakes, who's affected, what happens next).`
+    : `No article or link was supplied — only a topic idea. Write as a senior analyst drawing on solid, verifiable general knowledge: real organizations, real events, real figures you are genuinely confident about. Never fabricate a precise statistic just to sound authoritative — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead.`;
+
+  return `You are a senior investigative analyst and award-winning ${toneGuide}
+${groundingRule}
+Turn the SOURCE below into a complete, professional short-form video script that sounds like a briefing from someone who genuinely researched the subject — never generic, never filler. Lead with what actually matters most, and explain WHY it matters, not just what happened.
+IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
+
+Return ONLY valid compact JSON (no markdown, no commentary):
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
+
+RULES:
+0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
+1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
+2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
+3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
+4. Never two infographics in a row. Vary text styles for rhythm.
+4b. "visual" on every section: a short, concrete, filmable stock-footage query for THAT scene's specific content (e.g. "engineers testing server racks", not "technology" or "innovation concept").
+5. Match the ${tone} tone precisely in word choice and energy.
+6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
+7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
+8. Every line must be accurate and specific. Real numbers, real names, real detail.
+9. Write narration for the ear: natural transitions, varied sentence length, no bullet-list rhythm, no generic hype.
+10. Separate fact from inference. Never invent numbers, quotes, dates, rankings or attribution.
+11. Keep the SOURCE language. Narration and on-screen copy must use the same language.
+12. Build a real arc: hook, context, strongest evidence, consequence, takeaway. Every scene must advance the story — like a report, not a slideshow of trivia.
+13. "evidence" is mandatory on every section — a concrete detail a viewer could point back to in the SOURCE, never a paraphrase of the headline.
+14. Never write meta-commentary about missing data, sourcing or the production process (no "no data", "not provided", "verify locally", "article footnote" or similar).
+14b. "heroWord" is REQUIRED on intro, every section and outro — a single real word (max 9 letters, no spaces) pulled from that scene's own substance that could headline a magazine cover. Never a generic filler word, never a chopped fragment, never a duplicate of the previous scene's heroWord.
+15. "caption" and "kicker" are on-screen category tags a viewer would recognize (e.g. "MARKET WATCH", "BUYER OUTLOOK") — never a note about the scene's role or intent (never "context only", "filler", "background info" or similar), and never a self-referential remark that quotes or comments on another field in this same script (e.g. never reference the word "rising" as if describing the script itself).${revise ? "\n16. REVISION REQUIRED: your previous draft failed evidence checks — it either invented an ungrounded number or exposed the production process. Rewrite it clean, strictly from the SOURCE." : ""}
+SOURCE: """${text.slice(0, 9000)}"""`;
+}
+
+/**
+ * Build a video from a script someone else's AI wrote.
+ *
+ * The customer's own Claude or ChatGPT writes far better copy than the free
+ * models behind the studio, and pays for it themselves. It arrives two ways -
+ * pasted into "Write it with your own AI", or sent through the MCP connector
+ * as a deck link - and both land here, then in the same builder the studio's
+ * own scripts use.
+ *
+ * opts: { skill: "footage" | "editorial" | "motion_graphic", template, aspect }
+ */
+async function vsBuildFromReadyScript(data, opts) {
+  opts = opts || {};
+  const fa = state.lang === "fa";
+  if (!data || !Array.isArray(data.sections) || !data.sections.length) {
+    vsAutoStatus(fa ? "این متن فیلم‌نامه‌ای با صحنه نبود. جوابِ کاملِ JSON را بچسبان."
+                    : "That isn't a script with scenes. Paste the AI's whole JSON answer.");
+    return false;
+  }
+  const skill = String(opts.skill || data.skill || "").toLowerCase();
+  vstudio._editorialMode = /editorial/.test(skill);
+  vstudio._motionGfxMode = !vstudio._editorialMode && /motion/.test(skill);
+  vstudio._realtorMode = false;
+  const tpl = String(opts.template || data.template || "");
+  if (tpl && videoTemplates.some((t) => t.id === tpl)) setVideoTemplate(tpl);
+  const asp = String(opts.aspect || data.aspect || "");
+  const aspSel = $("#vsAspect");
+  if (aspSel && asp && [...aspSel.options].some((o) => o.value === asp)) {
+    aspSel.value = asp; aspSel.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  // The Length control trims content scenes to fit its label. A script written
+  // elsewhere already chose its length, so the control follows the script.
+  const n = data.sections.length;
+  const lenChoice = n <= 3 ? "short" : n <= 5 ? "medium" : "long";
+  const lenSel = $("#vsAutoLen");
+  if (lenSel) lenSel.value = lenChoice;
+
+  try { vsSaveActiveSlide(); } catch (e) {}
+  vstudio._batchCancel = false;
+  vstudio._lastScriptModel = opts.via || "customer AI";
+  vsBuildOverlay(true, fa ? "ساختِ ویدیو از فیلم‌نامهٔ تو…" : "Building your video from your script…", null, 120000,
+    { onCancel: () => { vstudio._batchCancel = true; } });
+  vsAutoStatus(fa ? "ساختِ ویدیو از فیلم‌نامهٔ تو…" : "Building your video from your script…");
+  await vsBuildFromScript(data, [data.title, data.subtitle].filter(Boolean).join(". "), lenChoice);
+  return true;
+}
+
+/**
+ * "Write it with your own AI": copy the brief, paste the answer back.
+ *
+ * Works with any assistant, free ChatGPT included - no key, no connector. The
+ * brief is the studio's own (vsScriptPrompt), so the answer comes back in the
+ * shape the builder reads, and a nearly-right answer is repaired rather than
+ * refused (vsParseJsonLoose).
+ */
+function vsOpenOwnAi() {
+  const fa = state.lang === "fa";
+  const old = document.getElementById("vsOwnAiModal");
+  if (old) old.remove();
+  const topicNow = (($("#vsAutoTopic") || {}).value || "").trim()
+    .replace(/^\/?(?:moti[o]?n[_\s-]?graphic|motiongraphic|mg|editorial|editor|edit|ed|realtor|reel)\b[:\s]*/i, "");
+  const linkNow = window._vsAutoMode === "link" ? ((($("#vsAutoUrl") || {}).value || "").trim()) : "";
+  const T = (en, f) => (fa ? f : en);
+  const ov = document.createElement("div");
+  ov.id = "vsOwnAiModal";
+  ov.setAttribute("role", "dialog");
+  ov.setAttribute("aria-modal", "true");
+  ov.setAttribute("aria-labelledby", "vsOwnAiTitle");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
+  const fld = "width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;color:#f4f5f7;background:#0e1015;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px";
+  const step = "display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(37,99,255,.18);color:#5b9bff;font-weight:800;font-size:12px;flex:none";
+  ov.innerHTML = `<div style="width:min(620px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#14171d;border:1px solid rgba(37,99,255,.3);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
+    <div style="display:flex;align-items:start;justify-content:space-between;gap:12px">
+      <div>
+        <div id="vsOwnAiTitle" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#f4f5f7">${T("Write it with your own AI", "با هوش مصنوعیِ خودت بنویس")}</div>
+        <p style="margin:6px 0 0;font-size:12.5px;line-height:1.55;color:#8a919c">${T("ChatGPT, Claude or Gemini writes the script — usually far sharper than the free writer here. We build the video from its answer.", "ChatGPT، Claude یا Gemini فیلم‌نامه را می‌نویسد — معمولاً خیلی بهتر از نویسندهٔ رایگانِ اینجا. ما از جوابش ویدیو می‌سازیم.")}</p>
+      </div>
+      <button type="button" id="vsOwnAiClose" aria-label="${T("Close", "بستن")}" style="flex:none;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;cursor:pointer;font-size:16px">✕</button>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin:18px 0 8px"><span style="${step}">1</span><b style="font-size:13.5px;color:#f4f5f7">${T("What is the video about?", "ویدیو درباره‌ی چیست؟")}</b></div>
+    <textarea id="vsOwnAiTopic" rows="2" style="${fld};resize:vertical" placeholder="${T("A topic, an idea, or an article link", "یک موضوع، یک ایده، یا لینکِ یک مقاله")}">${esc2(linkNow || topicNow)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <select id="vsOwnAiSkill" style="${fld};width:auto;flex:1;min-width:180px" aria-label="${T("Style", "سبک")}">
+        <option value="footage">${T("Real footage + text", "فوتیجِ واقعی + متن")}</option>
+        <option value="editorial">${T("Editorial — AI photos, magazine type", "ادیتوریال — عکسِ AI، تایپِ مجله‌ای")}</option>
+        <option value="motion_graphic">${T("Motion graphic — charts & kinetic text", "موشن‌گرافیک — نمودار و متنِ متحرک")}</option>
+      </select>
+      <select id="vsOwnAiLen" style="${fld};width:auto;flex:1;min-width:140px" aria-label="${T("Length", "طول")}">
+        <option value="short">${T("Short (~20s)", "کوتاه (~۲۰ ثانیه)")}</option>
+        <option value="medium" selected>${T("Medium (~35s)", "متوسط (~۳۵ ثانیه)")}</option>
+        <option value="long">${T("Long (~50s)", "بلند (~۵۰ ثانیه)")}</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin:18px 0 8px"><span style="${step}">2</span><b style="font-size:13.5px;color:#f4f5f7">${T("Copy the brief and send it to your AI", "دستور را کپی کن و به AIِ خودت بده")}</b></div>
+    <button type="button" id="vsOwnAiCopy" class="button primary" style="width:100%;min-height:42px;font-weight:800">${T("Copy the brief", "کپیِ دستور")}</button>
+    <div id="vsOwnAiCopied" role="status" style="min-height:18px;margin-top:6px;font-size:12px;color:#5fe0b0"></div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin:12px 0 8px"><span style="${step}">3</span><b style="font-size:13.5px;color:#f4f5f7">${T("Paste its whole answer here", "کلِ جوابش را اینجا بچسبان")}</b></div>
+    <textarea id="vsOwnAiAnswer" rows="6" style="${fld};resize:vertical;font-family:'JetBrains Mono',monospace;font-size:12px" placeholder='{"title": "…", "sections": [ … ] }'></textarea>
+    <div id="vsOwnAiErr" role="alert" style="min-height:18px;margin-top:6px;font-size:12.5px;color:#f87171"></div>
+    <button type="button" id="vsOwnAiBuild" class="button primary" style="width:100%;min-height:46px;font-weight:800;margin-top:4px">${T("Build my video", "ساختِ ویدیو")}</button>
+    <p style="margin:12px 0 0;font-size:11.5px;line-height:1.5;color:#8a919c">${T("Use Claude or ChatGPT with connectors? Connect AI Radar once from your Dashboard and ask it for the video directly.", "از Claude یا ChatGPT با connector استفاده می‌کنی؟ یک بار از داشبورد AI Radar را وصل کن و ویدیو را مستقیم از خودش بخواه.")} <a href="/dashboard#connect-ai" style="color:#5b9bff">${T("Connect your AI", "وصل کردنِ AI")}</a></p>
+  </div>`;
+  document.body.appendChild(ov);
+  const q = (id) => ov.querySelector("#" + id);
+  const close = () => { try { ov.remove(); } catch (e) {} document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  q("vsOwnAiClose").onclick = close;
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  const brief = () => {
+    const topic = q("vsOwnAiTopic").value.trim();
+    const isLink = /^https?:\/\/\S+$/i.test(topic);
+    const skill = q("vsOwnAiSkill").value;
+    const source = isLink
+      ? `Open and read this article in full before writing: ${topic}\n(If you cannot open links, say so instead of guessing.)`
+      : topic;
+    const tone = (($("#vsAutoTone") || {}).value) || "advisor";
+    return vsScriptPrompt({ text: source, tone, lenChoice: q("vsOwnAiLen").value, hasSource: isLink }) +
+      (skill === "motion_graphic" ? "\n\nThis video is a MOTION GRAPHIC: favour infographic scenes with real, comparable numbers." : "") +
+      (skill === "editorial" ? "\n\nThis video is EDITORIAL: every scene is a photo; make each \"visual\" a vivid, photographable scene." : "") +
+      "\n\nAnswer with the JSON object only - no introduction, no code fences, nothing after it.";
+  };
+  q("vsOwnAiCopy").onclick = async () => {
+    const out = q("vsOwnAiCopied");
+    if (!q("vsOwnAiTopic").value.trim()) { out.style.color = "#f87171"; out.textContent = T("Write a topic first.", "اول موضوع را بنویس."); q("vsOwnAiTopic").focus(); return; }
+    const text = brief();
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+    if (!ok) {
+      // A browser without clipboard access gets the brief to copy by hand.
+      const ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;left:-9999px"; document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+    }
+    out.style.color = ok ? "#5fe0b0" : "#fbbf24";
+    out.textContent = ok ? T("Copied. Paste it into ChatGPT, Claude or Gemini, then paste its answer below.", "کپی شد. در ChatGPT، Claude یا Gemini بچسبان و جوابش را پایین بگذار.")
+                         : T("Your browser blocked copying. Select the brief in the answer box and copy it by hand.", "مرورگر اجازهٔ کپی نداد؛ متن را دستی کپی کن.");
+    if (!ok) q("vsOwnAiAnswer").value = text;
+  };
+  q("vsOwnAiBuild").onclick = async () => {
+    const err = q("vsOwnAiErr"); err.textContent = "";
+    const raw = q("vsOwnAiAnswer").value.trim();
+    if (!raw) { err.textContent = T("Paste your AI's answer first.", "اول جوابِ AI را بچسبان."); return; }
+    const data = vsParseJsonLoose(raw);
+    if (!data || !Array.isArray(data.sections) || !data.sections.length) {
+      err.textContent = T("That doesn't look like the script. Paste the whole answer, from the first { to the last }.", "این شبیهِ فیلم‌نامه نیست. کلِ جواب را از اولین { تا آخرین } بچسبان.");
+      return;
+    }
+    close();
+    await vsBuildFromReadyScript(data, { skill: q("vsOwnAiSkill").value, via: "your AI (pasted)" });
+  };
+  setTimeout(() => { try { q(q("vsOwnAiTopic").value ? "vsOwnAiCopy" : "vsOwnAiTopic").focus(); } catch (e) {} }, 30);
+}
+
+/**
+ * Turn a finished script into the video.
+ *
+ * Everything after the script is written: assemble the scenes, fetch footage,
+ * add music, report. Split out of buildAutoVideo so a script written by the
+ * customer's own AI - pasted in, or sent through the MCP connector - is built
+ * by exactly the same code as one written here. With no script it builds the
+ * basic local version from `text`.
+ */
+async function vsBuildFromScript(data, text, lenChoice) {
   let _usedLocalFallback = false;
   try {
     if (!data) {
@@ -9109,6 +9299,9 @@ function vsParseJsonLoose(raw) {
           pos = lines.slice(0, +lc[1] - 1).reduce((n, l) => n + l.length + 1, 0) + (+lc[2] - 1);
         }
       }
+      // A complete object followed by leftovers ("...}xq}", or a sign-off
+      // line): the object is the answer, so keep it and drop the rest.
+      if (pos > 0 && /after JSON/i.test(msg)) { s = s.slice(0, pos); continue; }
       if (pos >= 0 && pos < s.length && /[A-Za-z_]/.test(s[pos])) {
         const junk = /^[A-Za-z_]+/.exec(s.slice(pos))[0];
         if (!/^(true|false|null)$/.test(junk)) { s = s.slice(0, pos) + s.slice(pos + junk.length); continue; }
@@ -24698,6 +24891,10 @@ async function vsHeadlessRender(deck, opts) {
   // person would before pressing export.
   const set = (sel, val) => { const el = document.querySelector(sel); if (el && val != null) { el.value = String(val); try { el.dispatchEvent(new Event("change")); } catch (e) {} } };
   set("#vsAspect", opts.aspect || "9:16");
+  // The style a script was sent with through the MCP connector - editorial
+  // (AI photos) or motion graphic - rather than always stock footage.
+  vstudio._editorialMode = opts.skill === "editorial";
+  vstudio._motionGfxMode = opts.skill === "motion_graphic";
   set("#vsExportSize", opts.size || 1080);
   set("#vsExportQuality", opts.quality || "high");
   if (deck._look && deck._look.grade) set("#vsFilter", deck._look.grade);
@@ -25194,7 +25391,32 @@ async function exportStudioVideo() {
   return result;                // { blob, ext } | null — used by ZIP export
 }
 
+/**
+ * Open a script sent through the MCP connector: /studio/?deck=<id>.
+ *
+ * create_video stores the customer's script and hands their AI this link; the
+ * studio fetches it and builds the video with the same code as everything
+ * else. The id is dropped from the address afterwards so a reload does not
+ * build it a second time over whatever they have changed since.
+ */
+async function vsLoadDeckFromUrl() {
+  const m = /[?&]deck=(deck_[0-9a-f]{32})/.exec(location.search);
+  if (!m) return;
+  const fa = state.lang === "fa";
+  vsAutoStatus(fa ? "باز کردنِ ویدیویی که AIِ تو فرستاد…" : "Opening the video your AI sent…");
+  let j = null;
+  try { j = await (await fetch("/api/decks/" + m[1], { credentials: "include" })).json(); } catch (e) {}
+  try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+  if (!j || !j.ok || !j.script) {
+    vsAutoStatus(fa ? "این لینک پیدا نشد. از AIِ خودت بخواه دوباره create_video را صدا بزند."
+                    : "That video link was not found. Ask your AI to call create_video again.");
+    return;
+  }
+  await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
+}
+
 function bindEvents() {
+  setTimeout(() => { vsLoadDeckFromUrl().catch(() => {}); }, 600);
   // Browsers keep AudioContext "suspended" until a user gesture. Unlock it on the
   // first interaction so music/voiceover are actually captured into exports.
   const unlockAudio = () => {
