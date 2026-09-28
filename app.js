@@ -20408,7 +20408,10 @@ async function vsCharge(action, extra) {
     if (r.status === 401) { vsStatus(fa ? "برای این کار اول وارد شو." : "Please sign in to continue."); try { const b = document.getElementById("authSignInBtn"); if (b) b.click(); } catch (e) {} return { block: true }; }
     const j = await r.json().catch(() => ({}));
     if (r.status === 402) { vsStatus(fa ? `کردیتِ کافی نداری — ${j.cost} لازمه، موجودیت ${j.balance || 0}.` : `Not enough credits — need ${j.cost}, you have ${j.balance || 0}.`); return { block: true }; }
-    if (j && j.ok && j.jobId) { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} return { jobId: j.jobId, balance: j.balance }; }
+    // Refused on its merits - a clip that could not be measured, or is outside
+    // what the model takes. Nothing was charged, and the reason is worth showing.
+    if (r.status === 400 && j && j.error) { vsStatus((fa ? "شروع نشد و کردیتی کم نشد: " : "Nothing was started or charged: ") + j.error); return { block: true }; }
+    if (j && j.ok && j.jobId) { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} return { jobId: j.jobId, balance: j.balance, cost: j.cost, seconds: j.seconds }; }
     // No job id means the ledger did not record this. Going ahead anyway would
     // bill fal for work nobody paid for, and leave nothing to refund if it
     // failed, so stop here instead.
@@ -20421,7 +20424,41 @@ async function vsCharge(action, extra) {
     return { block: true };
   }
 }
-function vsSettle(jobId, status) { if (!jobId) return; try { fetch("/api/credits/settle", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) }).then(() => { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} }); } catch (e) {} }
+// Resolves to the server's answer. For a job that ran a model the server
+// checks the real outcome before refunding, so {refunded:false, running:true}
+// or {delivered:true} are possible answers to "failed" - callers that tell the
+// customer about a refund should read it rather than assume one.
+function vsSettle(jobId, status) {
+  if (!jobId) return Promise.resolve(null);
+  try {
+    return fetch("/api/credits/settle", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, status }) })
+      .then((r) => r.json().catch(() => null))
+      .then((j) => { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} return j; })
+      .catch(() => null);
+  } catch (e) { return Promise.resolve(null); }
+}
+
+/**
+ * Start the model a charge paid for.
+ *
+ * Through our own server, never straight to the worker: the worker no longer
+ * accepts a job the browser starts, because a browser could start one it had
+ * not paid for. The server checks the request against the charge - same
+ * model, no dearer, the clip that was measured, once - and passes the
+ * worker's answer back unchanged.
+ */
+async function vsStartPaid(jobId, model, input) {
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), 90000);
+  let r;
+  try {
+    r = await fetch("/api/credits/start", { method: "POST", credentials: "include", signal: ctrl.signal,
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, model, input }) });
+  } finally { clearTimeout(tm); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j && (j.error || (typeof j.detail === "string" ? j.detail : ""))) || ("the request was refused (" + r.status + ")"));
+  return j;
+}
 
 /**
  * The panel's icons, drawn rather than typed.
@@ -23842,9 +23879,18 @@ async function reBuildImageModel(cfg) {
 
   const charge = await vsCharge(M.action, {});
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
-  cancelBtn.onclick = () => {
+  let riCancelUrl = "";
+  cancelBtn.onclick = async () => {
+    // Once it is submitted, only a cancel Higgsfield accepts stops the bill,
+    // and the server checks exactly that before it refunds.
+    cancelBtn.disabled = true; cancelBtn.style.opacity = ".6";
+    if (riCancelUrl) await vsHfCancel(riCancelUrl);
+    const st = await vsSettle(charge.jobId, "failed");
+    if (st && st.refunded === false && (st.running || st.delivered)) {
+      cancelBtn.textContent = fa ? "در حالِ ساخت است — دیگر قابلِ لغو نیست" : "Already rendering — it can't be stopped now";
+      return;
+    }
     cancelled = true;
-    vsSettle(charge.jobId, "failed");
     steps.innerHTML = ""; stageEl.textContent = "";
     result.innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "لغو شد — کردیتت برگشت." : "Cancelled — your credits were refunded."}</div>`;
     finishUi();
@@ -23879,7 +23925,9 @@ async function reBuildImageModel(cfg) {
         : { prompt: cfg.prompt, aspect_ratio: asp, resolution: "1080p", batch_size: 1, enhance_prompt: true };
 
     let ic = line(fa ? "ثبتِ درخواست" : "Submitting the request");
-    const sub = await vsFalPost(WB, "/hf/submit", { model: M.model, input });
+    if (cancelled) return;
+    const sub = await vsStartPaid(charge.jobId, M.model, input);
+    riCancelUrl = (sub && sub.cancel_url) || "";
     const statusUrl = sub.status_url;
     if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
     try { vsFalJobRemember({ statusUrl, respUrl: "", action: "image", name: "image" }); } catch (e) {}
@@ -24013,7 +24061,8 @@ async function vsBuildVideoModel(cfg) {
     // audio-driven builders (text-to-speech and strict lip-sync).
     const isHf = cfg.provider === "hf";
     if (cancelled) return;                   // cancelled before anything was sent
-    const sub = await post(isHf ? "/hf/submit" : "/fal/submit", { model: cfg.model, input: cfg.input });
+    const sub = isHf ? await vsStartPaid(charge.jobId, cfg.model, cfg.input)
+                     : await post("/fal/submit", { model: cfg.model, input: cfg.input });
     submitted = true;
     hfCancelUrl = (sub && sub.cancel_url) || "";
     // Cancelled while the submit was in flight: the job is queued, so cancel
@@ -27182,7 +27231,8 @@ async function vsHfRun(model, input, opts) {
   // nothing is sent. Submitting here anyway was a paid job for a customer who
   // had already been refunded.
   if (opts.cancelled && opts.cancelled()) return { status: "canceled" };
-  const sub = await vsFalPost(WB, "/hf/submit", { model: model, input: input });
+  if (!opts.jobId) throw new Error("no charge for this job");
+  const sub = await vsStartPaid(opts.jobId, model, input);
   if (!sub || !sub.request_id || !sub.status_url) {
     throw new Error((sub && (sub.error || sub.detail)) || "the model did not accept the request");
   }
@@ -27301,11 +27351,31 @@ async function vsBuildGenjutsu(cfg) {
   let tray = null;
   $g("gjBg").onclick = () => { try { ov.remove(); } catch (e) {} if (!tray) tray = vsJobCard(title); };
 
-  // Charged first, and on the server, from the catalogue. The client's own
-  // quote is only for the label on the card.
   const action = "genjutsu_" + (mode === "motion" ? "motion_" : "swap_") + (res === "720p" ? "720" : "480");
-  const charge = await vsCharge(action, { seconds: secs });
+  // Before the charge nothing is owed, so Cancel only closes the panel.
+  $g("gjCancel").onclick = () => { cancelled = true; try { ov.remove(); } catch (e) {} };
+
+  // The clip goes up FIRST, because the server charges by measuring it: the
+  // seconds used to be a number this page sent, and a page can be edited to
+  // send any number. Uploading is free; the charge follows.
+  stage.textContent = fa ? "آماده‌سازی" : "Preparing";
+  const upClip = line(fa ? "فرستادنِ ویدیوی مرجع" : "Uploading the reference clip");
+  let videoUrl = "";
+  try { videoUrl = typeof cfg.clip === "string" ? cfg.clip : await upload(cfg.clip, "video/mp4"); }
+  catch (e) {
+    bad(upClip);
+    result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "آپلودِ ویدیو نشد — کردیتی کم نشد." : "The clip did not upload — nothing was charged.") + '</div>';
+    finish();
+    return;
+  }
+  if (cancelled) return;
+  if (!videoUrl) { bad(upClip); result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "ویدیوی مرجع نیست" : "no reference clip") + '</div>'; finish(); return; }
+  done(upClip);
+
+  // Charged on the server, from the clip it measures itself.
+  const charge = await vsCharge(action, { seconds: secs, videoUrl: videoUrl });
   if (charge.block) { try { ov.remove(); } catch (e) {} return; }
+  if (cancelled) { vsSettle(charge.jobId, "failed"); return; }
 
   $g("gjCancel").onclick = async () => {
     const cb = $g("gjCancel");
@@ -27330,16 +27400,12 @@ async function vsBuildGenjutsu(cfg) {
   };
 
   try {
-    stage.textContent = fa ? "آماده‌سازی" : "Preparing";
-    const up = line(fa ? "فرستادنِ ویدیو و عکس‌ها" : "Uploading the clip and your images");
-    const videoUrl = typeof cfg.clip === "string" ? cfg.clip : await upload(cfg.clip, "video/mp4");
-    if (cancelled) return;
+    const up = line(fa ? "فرستادنِ عکس‌ها" : "Uploading your images");
     const imageUrls = [];
     for (const img of (cfg.images || []).slice(0, 8)) {
       imageUrls.push(typeof img === "string" ? img : await upload(img));
       if (cancelled) return;
     }
-    if (!videoUrl) throw new Error(fa ? "ویدیوی مرجع نیست" : "no reference clip");
     if (!imageUrls.length) throw new Error(fa ? "حداقل یک عکس لازم است" : "at least one reference image is required");
     done(up);
 
