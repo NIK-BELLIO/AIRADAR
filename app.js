@@ -4816,6 +4816,20 @@ function vsPollinationsKey() {
   return (((document.querySelector("#vsPollinationsKey") || {}).value || "").trim()) || VS_POLLINATIONS_KEY || "";
 }
 
+/**
+ * Is this "reply" really a provider saying no?
+ *
+ * Pollinations answers an empty balance with HTTP 200 and a chat message
+ * telling the reader to top up. Anything that reads a reply as content needs
+ * to tell the two apart. Specific on purpose: a script about home buying may
+ * well say "top up your deposit", and must not be thrown away for it.
+ */
+function vsProviderErrorText(t) {
+  const s = String(t || "");
+  if (s.length > 800) return false;           // a real script, not a notice
+  return /enter\.pollinations\.ai|doesn.?t have enough (credits|pollen)|insufficient (credits|balance|pollen)|api key (is )?(invalid|expired)|rate limit(ed)? exceeded|quota (has been )?exceeded/i.test(s);
+}
+
 async function vsAutoAiChat(prompt, opts) {
   opts = opts || {};
   const seed = Math.floor(Math.random() * 1e6);
@@ -4855,6 +4869,13 @@ async function vsAutoAiChat(prompt, opts) {
     const data = await resp.json();
     const t = parseChoices(data);
     if (!t) throw new Error("empty");
+    // A provider that has run out of credit still answers 200 - with its
+    // top-up notice as the "reply". Taken as an answer, it failed the JSON
+    // parse upstream and dropped every script to basic mode without ever
+    // asking the endpoint that works.
+    if (vsProviderErrorText(t)) throw new Error("provider refused: " + t.slice(0, 60));
+    // Asked for JSON and got prose with no object in it: not an answer either.
+    if (useJson && t.indexOf("{") < 0) throw new Error("no json in reply");
     try { if (data && data.model) vstudio._lastScriptModel = data.model; } catch (e) {}
     return t;
   }
@@ -4929,7 +4950,14 @@ async function vsAutoAiChat(prompt, opts) {
   // retries up to four times when the parser rejects a script - so one town
   // could sit at "Writing:" for a minute of pure queueing before anything had
   // gone wrong. Fast first.
-  const endpoints = [VS_WORKER_BASE + "/chat", VS_AI_FALLBACK];
+  //
+  // Measured again 2026-09-28, and the "fast" one was fast because it was
+  // failing: airadar-api proxies Pollinations, whose balance is spent, and it
+  // answers every model in under a second with a 200 whose content is a
+  // top-up notice. airadar-ai runs Gemini with Cloudflare Workers AI behind it,
+  // returns a real script, and answers 502 when both are down. It goes first;
+  // the other stays as a hedge in case its balance is ever restored.
+  const endpoints = [VS_AI_FALLBACK, VS_WORKER_BASE + "/chat"];
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   // If the quick one is having a bad day, bring the other in alongside it
   // rather than waiting out its whole timeout first. Only after this long:
@@ -6810,7 +6838,11 @@ async function buildAutoVideo(useAI) {
   const urlInp = document.querySelector("#vsAutoUrl");
   const inp = document.querySelector("#vsAutoTopic");
   let text = (inp && inp.value || "").trim();
-  let url = (urlInp && urlInp.value || "").trim();
+  // The link field only counts in "From link" mode. It is hidden, not cleared,
+  // when you switch away - so a link pasted earlier went on overriding every
+  // topic typed in Smart afterwards: asked for solar power, it rebuilt the
+  // Wikipedia page from before, and said "Built a 6-scene video".
+  let url = (window._vsAutoMode === "link" && urlInp && urlInp.value || "").trim();
 
   // "/motion_graphic <url or topic>" — the motion-graphic skill command. Strip
   // the command word (lenient variants: /mg, /motion-graphic, /motion graphic).
@@ -7083,6 +7115,52 @@ SOURCE: """${text.slice(0, 9000)}"""`;
   }
 }
 
+/**
+ * The readable text of an HTML page, with the article kept and the chrome gone.
+ *
+ * This used to be regex: strip a few elements, then `<[^>]+>`. That pattern
+ * ends a tag at the first ">" - including one inside an attribute - and
+ * Wikipedia keeps its template source in attributes. A Wikipedia link turned
+ * into scenes reading `"unit_pref":{"wt":"Imperial"},"area_footnotes"...`,
+ * with stock footage searched for "unit_pref Imperial area_footnotes name".
+ * A real parser never reads an attribute as text.
+ */
+function vsHtmlArticleText(html) {
+  let doc;
+  try { doc = new DOMParser().parseFromString(html, "text/html"); } catch (e) { return ""; }
+  const drop = [
+    "script", "style", "noscript", "template", "svg", "iframe", "form", "button", "select",
+    "nav", "header", "footer", "aside", "[role=navigation]", "[role=banner]", "[role=contentinfo]",
+    "[aria-hidden=true]", "[hidden]",
+    // Wikipedia and MediaWiki chrome: edit links, footnote markers, the "for
+    // other uses" notes, navigation boxes, the table of contents, references.
+    ".mw-editsection", "sup.reference", ".reference", ".hatnote", ".navbox", ".vertical-navbox",
+    ".toc", "#toc", ".mw-references-wrap", ".reflist", ".references", ".metadata", ".noprint",
+    ".sidebar", ".shortdescription", "#siteSub", "#contentSub", "#jump-to-nav", ".mw-jump-link",
+    // common site chrome
+    ".cookie", ".cookies", ".newsletter", ".share", ".social", ".related", ".advert", ".ad", ".ads",
+  ];
+  try { doc.querySelectorAll(drop.join(",")).forEach((el) => el.remove()); } catch (e) {}
+  const root = doc.querySelector("article") || doc.querySelector("#mw-content-text") ||
+               doc.querySelector("main") || doc.querySelector("[role=main]") ||
+               doc.querySelector("#content") || doc.body;
+  if (!root) return "";
+  // Line breaks where a reader sees them, so headings and paragraphs stay apart.
+  root.querySelectorAll("p,li,tr,h1,h2,h3,h4,h5,h6,div,br,section,blockquote,dd,dt,figcaption").forEach((el) => {
+    try { el.appendChild(doc.createTextNode("\n")); } catch (e) {}
+  });
+  root.querySelectorAll("td,th").forEach((el) => { try { el.appendChild(doc.createTextNode(" · ")); } catch (e) {} });
+  const headings = [...root.querySelectorAll("h2,h3")].map((h) => h.textContent.replace(/\s+/g, " ").trim())
+    .filter((h) => h && h.length < 90 && !/^(contents|references|external links|see also|notes|further reading|bibliography)$/i.test(h));
+  let body = (root.textContent || "").replace(/\[\d+\]|\[edit\]|\[citation needed\]/gi, " ");
+  body = body.split("\n").map((l) => l.replace(/[^\S\n]+/g, " ").trim()).filter(Boolean).join("\n");
+  // Only the site's own suffix: " - Wikipedia", or "| Site Name". A dash is
+  // left alone, because "Fed raises rates - what it means" is a headline.
+  const title = String(doc.title || "").replace(/\s+[-–]\s+Wikipedia$/i, "").replace(/\s+\|\s+[^|]{2,40}$/, "").trim();
+  return (title ? "ARTICLE TITLE: " + title + "\n" : "") +
+    (headings.length ? "ARTICLE SECTIONS: " + [...new Set(headings)].slice(0, 20).join(" | ") + "\n" : "") + body;
+}
+
 // Try to fetch an article's readable text. Direct fetch usually fails
 // cross-origin; we try a couple of public read-only proxies, and if all
 // fail we return "" so the caller falls back to pasted text.
@@ -7170,9 +7248,14 @@ async function vsFetchArticle(url) {
     || (s.length < 20000 && /attention required/i.test(s) && /cloudflare/i.test(s));
 
   for (const entry of tryUrls) {
+    // Every attempt has a deadline. None did, so one reader that accepted the
+    // connection and never answered left the page on "Reading the article..."
+    // with no way forward - the five other sources never got asked.
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 20000);
     try {
       const res = await fetch(entry.u, {
-        mode: "cors",
+        mode: "cors", signal: ctrl.signal,
         headers: entry.clean ? { "X-Return-Format": "markdown" } : {}
       });
       if (!res.ok) continue;
@@ -7180,6 +7263,8 @@ async function vsFetchArticle(url) {
       if (isBotChallenge(t)) continue;
       if (entry.clean) {
         t = focusArticle(t);
+      } else if (/<html|<body|<!doctype/i.test(t.slice(0, 2000)) && typeof DOMParser !== "undefined") {
+        t = vsHtmlArticleText(t);
       } else {
         // strip scripts/styles/nav/header/footer, then tags
         t = t.replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -7197,6 +7282,7 @@ async function vsFetchArticle(url) {
       // require a decent amount of real prose
       if (t.length > 300) return t.slice(0, 18000);
     } catch (e) { /* try next */ }
+    finally { clearTimeout(tm); }
   }
   return "";
 }
@@ -7218,10 +7304,21 @@ async function vsAssembleFromSections(data, skipFootage) {
    * On-screen text is READ, not heard. About 2.2 words a second is comfortable,
    * plus a beat to land on and a beat to leave on.
    */
-  const narrationDuration = (text, fallback) => {
-    const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  const wordCount = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  const readSeconds = (words, min) => Math.min(Math.max(words / 2.2 + 1.4, min || 3.5), 11);
+  // Voiceover was removed, so the narration is never heard and never shown -
+  // yet it was what set every scene's length. Two or three spoken sentences
+  // always hit the eleven-second cap, so an eight-word headline sat on screen
+  // for eleven seconds and "Medium (~35s)" came out at 1:04. Scenes are timed
+  // from the words a viewer actually reads; narration only counts again if
+  // there is a voice to speak it.
+  const voiced = !!((document.querySelector("#vsVoiceover") || {}).checked);
+  const narrationDuration = (text, fallback, onScreen, min) => {
+    const shown = wordCount(onScreen);
+    const spoken = voiced ? wordCount(text) : 0;
+    const words = Math.max(shown, spoken);
     if (!words) return fallback;
-    return Math.min(Math.max(words / 2.2 + 1.4, 3.5), 11);
+    return readSeconds(words, min);
   };
 
   // Palette → background pool mapping for cinematic variety
@@ -7276,7 +7373,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     introSub: "",                       // intro shows ONLY the source line (no subtitle)
     _sourceLine: srcLabel,              // "by X" rendered large under the title
     introMotion: "blur",
-    headline: "", duration: narrationDuration(data.intro && data.intro.narration, 3), settings: cleanSet2(),
+    headline: "", duration: narrationDuration(data.intro && data.intro.narration, 3, introMain + " " + srcLabel), settings: cleanSet2(),
     // The source of the stamp, not just its rendering: this set the kicker
     // to our name whenever the writer produced none, so the guard further
     // down never fired. Empty means the intro card simply has no eyebrow.
@@ -7372,7 +7469,8 @@ async function vsAssembleFromSections(data, skipFootage) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: narrationDuration(sec.narration, 6), settings: set, _standaloneInfo: true,
+        duration: narrationDuration(sec.narration, 6,
+          [sec.title || ""].concat(sec.stats.map(st => st.label + " " + st.value)).join(" "), 6), settings: set, _standaloneInfo: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
         _caption: sec.caption || "Key numbers", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
         _timelineLabel: sec.caption || sec.title || "📊 Stats"
@@ -7428,7 +7526,7 @@ async function vsAssembleFromSections(data, skipFootage) {
         url: null, isVideo: false, mediaEl: null, ready: true,
         isIntro: true, introBg: bg(bi++), introMain: "", introSub: "",
         introMotion: motion, headline: "",
-        duration: narrationDuration(sec.narration, 6), settings: set, _standaloneNews: true,
+        duration: narrationDuration(sec.narration, 6, hl, 4), settings: set, _standaloneNews: true,
         _narration: sec.narration || "", _evidence: sec.evidence || "", _keywords: Array.isArray(sec.keywords) ? sec.keywords : [], _metrics: Array.isArray(sec.metrics) ? sec.metrics : [],
         _caption: sec.caption || "", _visual: sec.visual || "", _heroWord: sec.heroWord || "",
         _timelineLabel: sec.caption || (sec.headline || "").slice(0, 22) || "Slide"
@@ -7445,7 +7543,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     introMain: outroMain,
     introSub: outroSub, introMotion: "rise",
     _sourceLine: srcLabel,              // credit the real source on the outro too
-    headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3), settings: cleanSet2(),
+    headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3, outroMain + " " + outroSub), settings: cleanSet2(),
     _heroWord: (data.outro && data.outro.heroWord) || "",
     _timelineLabel: outroMain
   });
@@ -7880,10 +7978,10 @@ async function vsEnsureDefaultMusic(data) {
       aiEl.loop = true; aiEl.preload = "auto";
       return aiEl;
     }
-    // Not a failure the operator has to act on: a track follows either way.
-    vsStatus(state.lang === "fa"
-      ? "موسیقیِ Pollinations در دسترس نیست — یک قطعه همین‌جا ساخته شد."
-      : "Pollinations music isn't available on this account - composed one here instead.");
+    // Not a failure anyone has to act on: a track follows either way, so the
+    // customer is not told about it. It used to announce that "Pollinations
+    // music isn't available on this account" - our supplier's balance, in the
+    // customer's status bar, on every single build.
     // This offline synth composes its own intro swell / outro fade directly
     // into the buffer (see the gain ramps below) — it's a one-shot cue, not a
     // seamless loop bed. It used to always render a fixed 20s buffer and cache
@@ -8373,9 +8471,18 @@ async function vsEditorialBackgrounds(data) {
     s._edIsTitle = isTitle; s._edIsOutro = isEnd;
     // Prefer Gemini's deliberate cover word for this scene; fall back to the
     // longest meaningful word from the headline only when it wasn't supplied.
-    const gemWord = String(s._heroWord || "").split(/\s+/)[0];
-    const bw = gemWord || hl.split(/\s+/).filter((w) => w.length > 3).sort((a, b) => b.length - a.length)[0] || hl.split(/\s+/)[0] || "";
-    s._edBigWord = bw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 9);
+    // A whole word or none. This was cut to nine characters, so the model's
+    // "AFFORDABILITY" went on screen as "AFFORDABI"; the renderer already
+    // scales the word to the frame, so length only needs a sane ceiling. And
+    // letters, not A-Z: the old filter erased every Persian cover word.
+    const cleanWord = (w) => String(w || "").toUpperCase().replace(/[^\p{L}\p{N}]/gu, "");
+    const MAX_BIG = 14;
+    let big = cleanWord(String(s._heroWord || "").split(/\s+/)[0]);
+    if (!big || big.length > MAX_BIG) {
+      big = hl.split(/\s+/).map(cleanWord).filter((w) => w.length > 3 && w.length <= MAX_BIG)
+        .sort((a, b) => b.length - a.length)[0] || "";
+    }
+    s._edBigWord = big;
     s._edLayout = isTitle ? "center" : ["low", "mid", "low", "top"][i % 4];
     // Alternate between a full-bleed cinematic scene and a cut-out subject on a
     // light "paper" background (both looks are supported) — intro/outro stay full-bleed.
@@ -8905,8 +9012,16 @@ async function vsAutoGenerateBackgrounds(data) {
   if (!vstudio.looping) previewStudioVideo(false);
   } finally {
     vstudio._footageBusy = false;
+    // Every exit, not just the last line. The /motion_graphic and /editorial
+    // branches return from inside the try, and the release used to sit after
+    // this block - so for both skills it never ran, and their own release
+    // calls were refused because this flag was still up. The video was built
+    // and the customer was left behind "Building your video..." for good.
+    vsOverlayRelease();   // every scene is in; whoever owns the popup may close it
+    if (!vstudio.looping && !vstudio.rendering && (vstudio.slides || []).length) {
+      try { previewStudioVideo(false); } catch (e) {}
+    }
   }
-  vsOverlayRelease();   // every scene is in; whoever owns the popup may close it
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -24597,6 +24712,19 @@ async function exportStudioVideo() {
     } catch (e) {
       try { console.warn("offline encode failed — falling back to recorder", e); } catch (_) {}
     }
+    // Cancelled, not failed. This used to fall through to the recorder below,
+    // which started a second recording, saw the cancel on its first frame,
+    // stopped with nothing in it and told the customer "Recording failed - no
+    // frames were captured. Refresh the page and try again."
+    if (vstudio._batchCancel) {
+      vstudio.rendering = false;
+      if (!vstudio._returnBlob) {
+        vsBuildOverlay(false);
+        vsStatus(state.lang === "fa" ? "خروجی لغو شد." : "Export cancelled.");
+      }
+      previewStudioVideo();
+      return null;
+    }
     // fall through to the real-time recorder path
   }
 
@@ -24707,6 +24835,14 @@ async function exportStudioVideo() {
         ext = "mp4";
       } else {
         const webmBlob = new Blob(chunks, { type: "video/webm" });
+        // A recording cancelled before its first chunk is empty for that
+        // reason alone - say so, not "failed, refresh the page".
+        if (vstudio._batchCancel) {
+          if (!vstudio._returnBlob) vsStatus(state.lang === "fa" ? "خروجی لغو شد." : "Export cancelled.");
+          vstudio.rendering = false;
+          resolve(null);
+          return;
+        }
         if (!webmBlob || !webmBlob.size) {
           // nothing was actually recorded — no chunks came out of the
           // MediaRecorder. Fail loudly instead of silently downloading a
