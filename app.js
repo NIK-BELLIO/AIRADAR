@@ -4852,7 +4852,13 @@ async function vsAutoAiChat(prompt, opts) {
   // The free Cloudflare-AI models genuinely need 20-40s to write a full script,
   // so give non-fast calls a generous timeout (18s aborted every attempt before
   // the worker could answer). The chat assistant keeps the short fast timeout.
-  const timeoutMs = opts.timeout || (opts.fast ? 18000 : 48000);
+  //
+  // 80, not 48: the worker gives Gemini up to 40s and then runs Cloudflare's
+  // models, which take 20-40s more on a full script. When Gemini was rate
+  // limited the page gave up at 48s, a few seconds before the fallback
+  // answered, and started the whole chain again - ninety seconds for a script
+  // the first call was about to deliver.
+  const timeoutMs = opts.timeout || (opts.fast ? 18000 : 80000);
 
   // POST a chat request to one endpoint. `model` selects the LLM,
   // `useJson` toggles response_format, `viaProxy` wraps via corsproxy.
