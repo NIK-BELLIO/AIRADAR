@@ -1668,13 +1668,16 @@ function passesBudget(tool) {
 
 function filteredTools() {
   const query = state.query.trim().toLowerCase();
+  // Both languages, whichever the page is showing: someone typing in Persian
+  // on the English page used to get "No tools found" for everything.
+  const both = (v) => (v && typeof v === "object") ? [v.en, v.fa].filter(Boolean).join(" ") : String(v || "");
   return tools
     .filter((tool) => {
       const searchable = [
         tool.name,
-        text(tool.category),
-        text(tool.useCase),
-        text(tool.pricing),
+        both(tool.category),
+        both(tool.useCase),
+        both(tool.pricing),
         tool.tags.join(" "),
         tool.jobs.join(" ")
       ]
@@ -7037,6 +7040,10 @@ async function buildAutoVideo(useAI) {
   // Prefer a grounded script, but rather than fail outright, accept the best
   // draft the model produced.
   if (!data && softData) data = softData;
+  // A bare topic has no publisher. Asked for one anyway, the model credited a
+  // real outlet ("by Reuters") on a video that outlet never wrote - never put
+  // a newsroom's name on something it did not publish.
+  if (data && !hasSource) data.source = "";
 
   await vsBuildFromScript(data, text, lenChoice);
 }
@@ -7077,7 +7084,7 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"real publication or empty string","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"${hasSource ? "the real publication named in the SOURCE, or empty string" : ""}","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
 
 RULES:
 0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
@@ -9827,7 +9834,7 @@ async function vsBuildBatchFromArticle(text, tone, lenChoice) {
 `Read the ARTICLE and list its MAIN list entries — the distinct people, places, products or companies it profiles (usually a numbered 1,2,3… list), in order, names exactly as written.
 Do NOT list sub-sections, categories, budget line-items or recurring headings (e.g. "Home", "Groceries", "Healthcare", "Subscriptions"). Only the top-level entries — typically between 3 and 20 of them.
 Return ONLY compact JSON, nothing else:
-{"topic":"overall subject in <=6 words","source":"the outlet name if identifiable else a fitting newsroom label","items":["name 1","name 2","name 3"]}
+{"topic":"overall subject in <=6 words","source":"the outlet name if the text names it, else empty string","items":["name 1","name 2","name 3"]}
 ARTICLE: """${String(text).slice(0, 12000)}"""`;
     let aiNames = [];
     for (let attempt = 0; attempt < 2 && aiNames.length < 2; attempt++) {
@@ -9890,7 +9897,7 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
 `The TEXT below is the intro of a news listicle; the actual ranked list usually lives on separate slides not included here.
 Identify the article from its headline/topic and list EVERY entry it ranks — for a "best and worst" piece include BOTH the best AND the worst entries — in order${hintN ? ", aiming for about " + hintN + " of them" : ""}.
 ${nameRule} Use your knowledge of this widely-published article/topic to complete the list accurately. Do NOT include data sources (Redfin, Zillow, Census), quoted experts, or generic phrases — only the ranked entries themselves. Do NOT invent fictional entries.
-Return ONLY compact JSON: {"topic":"overall subject in <=6 words","source":"outlet name if identifiable else a fitting label","items":${exItems}}
+Return ONLY compact JSON: {"topic":"overall subject in <=6 words","source":"the outlet name if the text names it, else empty string","items":${exItems}}
 TEXT: """${String(text).slice(0, 8000)}"""`;
     try {
       const ex2 = vsParseAiJson(await vsAutoAiChat(kPrompt));
@@ -19567,14 +19574,19 @@ function vsCreatorTools(opts) {
          <span style="flex:1;height:1px;background:rgba(255,255,255,.08)"></span>
        </div>
        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:${page ? "14px" : "12px"}">
-         ${TOOLS.map((t, i) => `<div class="card" data-tool="${t.id}" style="--ac:${t.accent}">
+         ${TOOLS.map((t, i) => `<div class="card" data-tool="${t.id}" role="button" tabindex="0" aria-label="${t.name}" style="--ac:${t.accent}">
             <div class="idx">${String(i + 1).padStart(2, "0")}</div>
             <div class="ic">${toolIcon(t.id)}</div>
             <div class="nm">${t.name}</div>
             <div class="ds">${t.desc}</div>
             <div class="tag">${catOf(t.id)} · ${t.credits ? `<b style="color:#f5c451">${t.credits} ${fa ? "کردیت" : "credits"}</b>` : `<b>${fa ? "رایگان" : "FREE"}</b>`}</div></div>`).join("")}
        </div>`;
-    body.querySelectorAll(".card").forEach(c => c.onclick = () => openTool(c.getAttribute("data-tool")));
+    // The cards are the only way into a tool, so they must work from the
+    // keyboard too - Enter or Space, like the buttons they stand in for.
+    body.querySelectorAll(".card").forEach(c => {
+      c.onclick = () => openTool(c.getAttribute("data-tool"));
+      c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTool(c.getAttribute("data-tool")); } };
+    });
   }
   const backBar = (title) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button id="ctBack" type="button" class="btn" style="background:rgba(255,255,255,.06);color:#f4f5f7;padding:7px 12px;font-size:13px">← ${fa ? "برگشت" : "Back"}</button><span style="font-weight:800;color:#f4f5f7;font-size:16px">${title}</span></div>`;
 
@@ -26845,19 +26857,20 @@ async function loadAiNews(force) {
 
 // LIVE METRIC CHIPS — base values from real GitHub data, with a per-second
 // "live" jitter so the numbers visibly move like a real ops dashboard.
-let _chipBase = null;
 let _chipSpark = {};   // short rolling history per chip for mini sparklines
+// Every number here is one the page actually has. This strip used to show
+// "Requests/min", "Tokens/min", "Active now" and "Models tracked" - random
+// numbers nudged every second to look alive, on a page whose promise is
+// "real numbers". A figure that is not real has no place on it.
 function aiChipBase() {
   const withData = (typeof liveChartData !== "undefined" ? liveChartData : []).filter(d => (d.stars||0) > 0);
-  const stars = withData.reduce((s,d)=>s+(d.stars||0),0) || 658000;
-  const forks = withData.reduce((s,d)=>s+(d.forks||0),0) || 104000;
   return {
-    requests: 1.2e6 + Math.random()*4e5,   // simulated global inference req/min
-    tokens: 8.4e9 + Math.random()*1e9,       // tokens processed /min
-    stars: stars,
-    forks: forks,
-    active: 320 + Math.floor(Math.random()*60), // active sessions (simulated)
-    models: 1280 + Math.floor(Math.random()*40) // models tracked (simulated)
+    tools: (typeof tools !== "undefined" ? tools.length : withData.length),
+    week: withData.filter(d => d.activity != null && d.activity >= 86).length,   // pushed in the last 7 days
+    repos: withData.length,
+    hubs: AI_HUBS.length,
+    stars: withData.reduce((s,d)=>s+(d.stars||0),0),
+    forks: withData.reduce((s,d)=>s+(d.forks||0),0)
   };
 }
 function aiFmtNum(n) {
@@ -26879,21 +26892,17 @@ function aiSparkSvg(key, val) {
 function renderAiChips(tickOnly) {
   const box = document.querySelector("#aimonChips");
   if (!box) return;
-  if (!_chipBase) _chipBase = aiChipBase();
-  // per-second drift to feel alive
-  _chipBase.requests += (Math.random()-0.3)*9000;
-  _chipBase.tokens += (Math.random()-0.3)*4e7;
-  _chipBase.active += Math.round((Math.random()-0.5)*6);
-  _chipBase.models += Math.round((Math.random()-0.45)*3);
-  if (_chipBase.active < 200) _chipBase.active = 200;
+  // Re-read each time: the GitHub numbers arrive after the first paint.
+  const b = aiChipBase();
   const fa = state.lang === "fa";
+  const dash = (n) => n > 0 ? aiFmtNum(n) : "—";
   const chips = [
-    { k:"req", v: aiFmtNum(_chipBase.requests), raw:_chipBase.requests, l: fa?"درخواست/دقیقه":"Requests/min", t:"▲", up:true },
-    { k:"tok", v: aiFmtNum(_chipBase.tokens), raw:_chipBase.tokens, l: fa?"توکن/دقیقه":"Tokens/min", t:"▲", up:true },
-    { k:"act", v: _chipBase.active, raw:_chipBase.active, l: fa?"نشست فعال":"Active now", t:"●", up:true },
-    { k:"mdl", v: aiFmtNum(_chipBase.models), raw:_chipBase.models, l: fa?"مدل ردیابی":"Models tracked", t:"◆" },
-    { k:"str", v: aiFmtNum(_chipBase.stars), raw:_chipBase.stars, l: fa?"ستاره گیت‌هاب":"GitHub stars", t:"★" },
-    { k:"frk", v: aiFmtNum(_chipBase.forks), raw:_chipBase.forks, l: fa?"فورک":"Forks", t:"⑂" }
+    { k:"tls", v: b.tools, raw:b.tools, l: fa?"ابزار":"Tools compared", t:"◆" },
+    { k:"wk", v: b.repos ? b.week : "—", raw:b.week, l: fa?"به‌روز این هفته":"Updated this week", t:"●", up:true },
+    { k:"rep", v: b.repos || "—", raw:b.repos, l: fa?"مخزن با داده":"Repos tracked", t:"▲" },
+    { k:"hub", v: b.hubs, raw:b.hubs, l: fa?"مرکز":"AI hubs", t:"◉" },
+    { k:"str", v: dash(b.stars), raw:b.stars, l: fa?"ستاره گیت‌هاب":"GitHub stars", t:"★" },
+    { k:"frk", v: dash(b.forks), raw:b.forks, l: fa?"فورک":"Forks", t:"⑂" }
   ];
   box.innerHTML = chips.map(c => `
     <div class="aimon-chip">
@@ -26921,7 +26930,7 @@ function initAiMonitor() {
   renderAiChips();
   loadAiNews(false);
   // per-second live chip drift
-  setInterval(() => renderAiChips(true), 1000);
+  setInterval(() => { if (!document.hidden) renderAiChips(true); }, 30000);
   // fresh AI news + ticker every 20s (feels alive, stays within free limits);
   // not while the tab is in the background
   setInterval(() => { if (!document.hidden) loadAiNews(true); }, 20000);
@@ -27117,7 +27126,11 @@ function ldRenderHealth() {
   const withData = liveChartData.filter(d => (d.stars||0) > 0).length;
   const total = (typeof tools !== "undefined" ? tools.length : withData) || 1;
   const coverage = Math.min(1, withData / total);
-  const score = Math.round(88 + coverage * 11); // 88-99 feels alive & healthy
+  // The share of tools we have live numbers for - it used to be squeezed into
+  // 88-99 so it always "felt healthy", which is a number made up to look good.
+  const score = Math.round(coverage * 100);
+  const lbl = document.querySelector("#ldHealthLbl");
+  if (lbl) lbl.textContent = state.lang === "fa" ? "دادهٔ زنده" : "LIVE DATA %";
   const arc = document.querySelector("#ldGaugeArc");
   const val = document.querySelector("#ldHealthVal");
   const C = 327; // 2πr, r=52
@@ -27134,7 +27147,8 @@ function ldRenderHero() {
   const top = [...withData].sort((a,b)=>(b.stars||0)-(a.stars||0))[0];
   const items = [
     { b: ldFmt(totalStars), s: fa?"مجموع ستاره":"Total stars" },
-    { b: "+"+(6+Math.round(Math.random()*5))+"%", s: fa?"رشد هفتگی":"Weekly growth", up:true },
+    // Was "Weekly growth": a random 6-11%, redrawn each time. This is real.
+    { b: withData.filter(d => d.activity != null && d.activity >= 86).length, s: fa?"به‌روز این هفته":"Updated this week", up:true },
     { b: (typeof tools!=="undefined"?tools.length:withData.length), s: fa?"پروژه فعال":"Active projects" },
     { b: top ? top.name : "—", s: fa?"داغ‌ترین مدل":"Trending model" },
     { b: "San Francisco", s: fa?"فعال‌ترین منطقه":"Most active region" }
