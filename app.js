@@ -24934,8 +24934,12 @@ async function vsRenderDeck(deck, opts) {
     // returned" on every single call and fell back to the browser. The service
     // would have rendered the video perfectly and nobody would ever have
     // collected it.
+    // The worker takes a render job only with a signed-in ticket - otherwise
+    // anyone could queue work on the render box. Signed out, build it here.
+    const ticket = await vsFalTicketGet();
+    if (!ticket) return local("signed out");
     const r = await fetch(VS_RENDER_SERVICE, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", "x-fal-ticket": ticket },
       body: JSON.stringify({ deck: deck, opts: opts }),
     });
     if (!r.ok) throw new Error("render " + r.status);
