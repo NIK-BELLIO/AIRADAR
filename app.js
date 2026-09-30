@@ -1334,11 +1334,8 @@ const toolRepos = {
   "Notion AI":       "makenotion/notion-sdk-js",
   "Gemini":          "google-gemini/cookbook",
   "Midjourney":      "midjourney/docs",
-  "Adobe Firefly":   "AdobeDocs/firefly-services",
   "Suno":            "suno-ai/bark",
   "Mistral Le Chat": "mistralai/mistral-src",
-  "Luma AI":         "lumalabs/luma-api-examples",
-  "Pika":            "pika-org/pikascript",
   "Replit AI":       "replit/replit-ai-python",
   "Grok":            "xai-org/grok-1",
   "DeepSeek":        "deepseek-ai/DeepSeek-V3",
@@ -1349,7 +1346,6 @@ const toolRepos = {
   "Stability AI":    "Stability-AI/generative-models",
   "Krea AI":         "krea-ai/open-prompts",
   "Higgsfield":      "higgsfield-ai/higgsfield",
-  "Google Flow":     "google-deepmind/veo",
   "Microsoft Copilot": "microsoft/copilot-studio-samples",
   "Notebook LM":     "google-gemini/cookbook",
   "Leonardo AI":     "leonardo-ai/leonardo-python-sdk",
@@ -26550,13 +26546,22 @@ _bootStep("bindIntroEditor", bindIntroEditor);
 // Engineer share this app.js but have neither, so running it there would
 // just burn through the shared unauth GitHub rate limit (60 req/hr) for
 // nothing every page load AND every 5-minute interval.
-const _hasCatalog = !!($("#toolGrid") || $("#performanceChart"));
+//
+// "Has the markup" is not enough: Video Studio carries the whole catalog in
+// its HTML and hides it with CSS, so it was fetching ~40 repos on every visit
+// for a chart nobody could see. Ask whether it is actually rendered.
+const _rendered = (sel) => { const el = $(sel); return !!(el && el.getClientRects().length); };
+const _hasCatalog = _rendered("#toolGrid") || _rendered("#performanceChart");
 if (_hasCatalog) {
-  _bootStep("fetchLiveChartData", fetchLiveChartData);
-  // Auto-refresh from the GitHub API every 5 minutes.
-  // (Unauthenticated GitHub allows 60 requests/hour per IP; with ~20
-  // repos per refresh, a 5-minute interval stays well within budget.)
-  setInterval(fetchLiveChartData, 5 * 60 * 1000);
+  // ~40 repos per refresh against 60 requests/hour per visitor: the old
+  // 5-minute refresh asked for ~480 an hour and lived on the rate limit.
+  // Refresh when the cached numbers are over half an hour old, no sooner -
+  // star counts do not move faster than that.
+  const GH_FRESH_MS = 30 * 60 * 1000;
+  const ghStale = () => !lastRefreshTime || Date.now() - lastRefreshTime.getTime() > GH_FRESH_MS;
+  if (ghStale()) _bootStep("fetchLiveChartData", fetchLiveChartData);
+  else setRefreshLabel(`Live · updated ${lastRefreshTime.toLocaleTimeString()}`);
+  setInterval(() => { if (ghStale() && !document.hidden) fetchLiveChartData(); }, 5 * 60 * 1000);
 }
 _bootStep("setLanguage", () => setLanguage(state.lang));
 
@@ -26725,6 +26730,7 @@ function renderAiMap() {
 let _aiNewsLoaded = false;
 let _aiNewsPool = [];   // larger pool we rotate through between refreshes
 let _aiNewsRealAt = 0;  // when we last got real RSS news
+let _aiNewsAiTried = false;  // the AI fallback is asked once per page, not per refresh
 
 const AI_NEWS_FEEDS = [
   { src: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/" },
@@ -26791,7 +26797,8 @@ async function loadAiNews(force) {
   }
 
   // 2) AI-generated fallback only if we have no real news at all
-  if (!_aiNewsPool.length) {
+  if (!_aiNewsPool.length && !_aiNewsAiTried) {
+    _aiNewsAiTried = true;
     try {
       const reply = await vsAutoAiChat(
         "Generate 10 short, realistic, current AI-industry news headlines. Each is an " +
@@ -26818,10 +26825,13 @@ async function loadAiNews(force) {
   const start = Math.floor(Math.random() * Math.max(1, _aiNewsPool.length - 6));
   const show = _aiNewsPool.slice(start, start + 6);
   list.innerHTML = show.map((it,i) => {
-    const inner = `<span class="ainews-tag">${(it.tag||"AI").toString().slice(0,14)}</span>
-      <span class="ainews-text">${(it.text||"").toString().slice(0,140)}</span>`;
-    return it.link
-      ? `<a class="ainews-item" style="animation-delay:${i*50}ms" href="${it.link}" target="_blank" rel="noopener">${inner}</a>`
+    const inner = `<span class="ainews-tag">${escapeHtml((it.tag||"AI").toString().slice(0,14))}</span>
+      <span class="ainews-text">${escapeHtml((it.text||"").toString().slice(0,140))}</span>`;
+    // Feed text and links come from other sites - never let them be markup,
+    // and never a javascript: link.
+    const safeLink = /^https?:\/\//i.test(String(it.link || "").trim()) ? String(it.link).trim() : "";
+    return safeLink
+      ? `<a class="ainews-item" style="animation-delay:${i*50}ms" href="${escapeHtml(safeLink)}" target="_blank" rel="noopener">${inner}</a>`
       : `<div class="ainews-item" style="animation-delay:${i*50}ms">${inner}</div>`;
   }).join("");
   setTimeout(() => { if (refl) refl.classList.remove("on"); }, 700);
@@ -26897,7 +26907,7 @@ function renderAiTicker() {
   const track = document.querySelector("#aimonTickerTrack");
   if (!track) return;
   const pool = _aiNewsPool.length ? _aiNewsPool : [{tag:"LIVE",text:"AI Radar live feed"}];
-  const html = pool.map(it => `<span><b>${(it.tag||"AI")}</b>${it.text||""}</span>`).join("");
+  const html = pool.map(it => `<span><b>${escapeHtml(it.tag||"AI")}</b>${escapeHtml(it.text||"")}</span>`).join("");
   track.innerHTML = html + html;
 }
 
@@ -26908,13 +26918,21 @@ function initAiMonitor() {
   loadAiNews(false);
   // per-second live chip drift
   setInterval(() => renderAiChips(true), 1000);
-  // fresh AI news + ticker every 20s (feels alive, stays within free limits)
-  setInterval(() => loadAiNews(true), 20000);
+  // fresh AI news + ticker every 20s (feels alive, stays within free limits);
+  // not while the tab is in the background
+  setInterval(() => { if (!document.hidden) loadAiNews(true); }, 20000);
 }
 
+// Only where the monitor is actually shown: Video Studio has the markup but
+// hides it, and there the 20-second refresh fell back to asking the script AI
+// for headlines whenever the feeds were down - spending the free daily quota
+// Video Studio needs on a panel nobody could see. Pages without a map at all
+// used to re-check for one every 300ms forever; give up after a few seconds.
+let _aiMonTries = 0;
 function _aiMonBoot() {
-  if (document.querySelector("#aimap")) initAiMonitor();
-  else setTimeout(_aiMonBoot, 300);
+  const map = document.querySelector("#aimap");
+  if (map) { if (map.getClientRects().length) initAiMonitor(); return; }
+  if (++_aiMonTries < 20) setTimeout(_aiMonBoot, 300);
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => setTimeout(_aiMonBoot, 200));
