@@ -5380,3 +5380,49 @@ b, strong { font-weight: 600; }
   .ar-foot { padding: 36px 18px 26px; }
   .ar-foot-in { grid-template-columns: 1fr; }
 }
+
+/* ══ Mobile tab bar (.mtb) — phones only ═════════════════════════════════
+   Same markup and rules in repo/styles.css and aistudio globals.css; the
+   bar itself is drawn by MobileTabBar.tsx (app) and app.js (static pages).
+   On a phone the top header keeps the logo and the account, and the
+   destinations move to the bottom where a thumb reaches them. */
+.mtb,.mtb-scrim{display:none}
+@media (max-width:720px){
+  .arh-nav{display:none!important}
+  .arh{justify-content:space-between}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+  body.mtb-locked{overflow:hidden}
+  .mtb{position:fixed;left:0;right:0;bottom:0;z-index:990;display:grid;grid-template-columns:repeat(5,1fr);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+    background:rgba(8,9,12,.94);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border-top:1px solid rgba(255,255,255,.08)}
+  .mtb-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;
+    padding:4px 2px;border:0;background:none;border-radius:12px;color:#8a919c;text-decoration:none;
+    font:600 10.5px/1.1 var(--font-manrope,Manrope),system-ui,sans-serif;letter-spacing:.01em;cursor:pointer;
+    -webkit-tap-highlight-color:transparent}
+  .mtb-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .mtb-item.mtb-on{color:#fff}
+  .mtb-item.mtb-on svg{color:#2563ff}
+  .mtb-item:active{background:rgba(255,255,255,.06)}
+  .mtb-item:focus-visible{outline:2px solid #2563ff;outline-offset:-2px}
+  .mtb-scrim{position:fixed;inset:0;z-index:1100;display:flex;align-items:flex-end;background:rgba(0,0,0,.55);
+    animation:mtbFade .16s ease-out}
+  .mtb-sheet{width:100%;max-height:82vh;overflow-y:auto;padding:8px 14px calc(18px + env(safe-area-inset-bottom,0px));
+    background:#0e1014;border-top:1px solid rgba(255,255,255,.1);border-radius:20px 20px 0 0;
+    animation:mtbUp .2s cubic-bezier(.2,.8,.2,1)}
+  .mtb-grip{width:38px;height:4px;margin:2px auto 10px;border-radius:4px;background:rgba(255,255,255,.18)}
+  .mtb-sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px;
+    font:700 11px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}
+  .mtb-close{border:0;background:rgba(255,255,255,.06);color:#f4f5f7;border-radius:8px;padding:7px 12px;
+    font:600 12px/1 var(--font-manrope,Manrope),system-ui,sans-serif;cursor:pointer}
+  .mtb-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mtb-list a{display:flex;flex-direction:column;gap:3px;min-height:64px;padding:12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.07);background:#14171d;text-decoration:none;color:#f4f5f7}
+  .mtb-list a b{font:700 14px/1.2 var(--font-manrope,Manrope),system-ui,sans-serif}
+  .mtb-list a small{font-size:11.5px;line-height:1.35;color:#8a919c}
+  .mtb-list a.mtb-here{border-color:rgba(37,99,255,.6)}
+  .mtb-list a:focus-visible{outline:2px solid #2563ff;outline-offset:2px}
+  @keyframes mtbUp{from{transform:translateY(100%)}to{transform:none}}
+  @keyframes mtbFade{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.mtb-scrim,.mtb-sheet{animation:none}}
+}

@@ -28225,3 +28225,80 @@ function vsJobCard(title) {
     close
   };
 }
+
+// ── Mobile tab bar ─────────────────────────────────────────────────────────
+// Phones only (styles.css hides it above 720px). The same bar, items, icons
+// and class names as aistudio's MobileTabBar.tsx - change both together.
+// Drawn here once so the five static pages share one copy.
+(function mountMobileTabBar() {
+  if (document.querySelector(".mtb")) return;
+  const ICONS = {
+    home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+    studio: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor" stroke="none"/>',
+    lab: '<path d="M9 3h6"/><path d="M10 3v6.5L5.2 17.6A2.3 2.3 0 0 0 7.2 21h9.6a2.3 2.3 0 0 0 2-3.4L14 9.5V3"/><path d="M7.5 15h9"/>',
+    assistant: '<path d="M21 12a8 8 0 0 1-11.7 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"/>',
+    more: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>'
+  };
+  const svg = (n) => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>';
+  const path = location.pathname || "/";
+  const MAIN = [
+    { href: "/", label: "Home", icon: "home", on: path === "/" || path === "/index.html" },
+    { href: "/studio/", label: "Studio", icon: "studio", on: path.indexOf("/studio") === 0 },
+    { href: "/prompt-lab", label: "Prompt Lab", icon: "lab", on: path.indexOf("/prompt-lab") === 0 },
+    { href: "/assistant", label: "Assistant", icon: "assistant", on: path.indexOf("/assistant") === 0 }
+  ];
+  const MORE = [
+    ["/dashboard", "Library", "Your videos, images and credits"],
+    ["/spark/", "Spark", "Hooks, posts, carousels"],
+    ["/reverse-engineer/", "Reverse Engineer", "Copy a viral format"],
+    ["/models/video", "Models", "Every video and image model"],
+    ["/workflows/cinema-studio", "Cinema Studio", "Cinematic shots"],
+    ["/marketing-studio", "Marketing Studio", "Product ads"],
+    ["/radar/", "Radar", "Compare AI tools"],
+    ["/pricing", "Pricing", "Credit packs"]
+  ];
+  const moreOn = !MAIN.some((m) => m.on);
+  const nav = document.createElement("nav");
+  nav.className = "mtb";
+  nav.setAttribute("aria-label", "Main");
+  nav.innerHTML = MAIN.map((m) =>
+    '<a href="' + m.href + '" class="mtb-item' + (m.on ? " mtb-on" : "") + '"' + (m.on ? ' aria-current="page"' : "") + ">" +
+    svg(m.icon) + "<span>" + m.label + "</span></a>").join("") +
+    '<button type="button" class="mtb-item' + (moreOn ? " mtb-on" : "") + '" aria-haspopup="dialog" aria-expanded="false">' +
+    svg("more") + "<span>More</span></button>";
+  document.body.appendChild(nav);
+
+  const moreBtn = nav.querySelector("button");
+  let scrim = null, prevFocus = null;
+  const close = () => {
+    if (!scrim) return;
+    scrim.remove(); scrim = null;
+    document.body.classList.remove("mtb-locked");
+    moreBtn.setAttribute("aria-expanded", "false");
+    document.removeEventListener("keydown", onKey);
+    if (prevFocus && prevFocus.focus) prevFocus.focus();
+  };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  moreBtn.addEventListener("click", () => {
+    if (scrim) return;
+    prevFocus = document.activeElement;
+    scrim = document.createElement("div");
+    scrim.className = "mtb-scrim";
+    scrim.innerHTML =
+      '<div class="mtb-sheet" role="dialog" aria-modal="true" aria-label="All studios">' +
+      '<div class="mtb-grip" aria-hidden="true"></div>' +
+      '<div class="mtb-sheet-head"><span>All studios</span><button type="button" class="mtb-close" aria-label="Close">Close</button></div>' +
+      '<ul class="mtb-list">' + MORE.map((m) => {
+        const here = path.indexOf(m[0].replace(/\/$/, "")) === 0;
+        return '<li><a href="' + m[0] + '"' + (here ? ' class="mtb-here"' : "") + "><b>" + m[1] + "</b><small>" + m[2] + "</small></a></li>";
+      }).join("") + "</ul></div>";
+    scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
+    scrim.querySelector(".mtb-close").addEventListener("click", close);
+    document.body.appendChild(scrim);
+    document.body.classList.add("mtb-locked");
+    moreBtn.setAttribute("aria-expanded", "true");
+    document.addEventListener("keydown", onKey);
+    const first = scrim.querySelector(".mtb-close");
+    if (first) first.focus();
+  });
+})();
