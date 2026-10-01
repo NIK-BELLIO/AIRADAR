@@ -8548,8 +8548,10 @@ function vsEditorialImagePrompt(visual, topic) {
   // Lead with the CONCRETE scene subject and demand a literal photo. The old
   // prompt said "conceptual and symbolic", which pushed the model toward abstract
   // art that had nothing to do with the story ("axaye bi rabt").
-  const subj = String(visual || topic || "documentary scene").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 130);
-  const ctx2 = String(topic || "").replace(/[^\w\s,]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  // \p{L}: every alphabet. [^\w] kept ASCII only, so a Persian subject was
+  // erased and the model got "a photograph clearly showing ," - and drew sky.
+  const subj = String(visual || topic || "documentary scene").replace(/[^\p{L}\p{N}\s,'-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 130) || "documentary scene";
+  const ctx2 = String(topic || "").replace(/[^\p{L}\p{N}\s,'-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
   // Only append the topic as extra context for a SHORT keyword subject. When the
   // subject is already a full scene description, appending the headline just feeds
   // the model the words to render AS TEXT in the image — so drop it.
@@ -8560,7 +8562,7 @@ function vsEditorialImagePrompt(visual, topic) {
   // a thumbnail about mortgage rates came back as a portrait.
   // A test run drew gold award seals with garbled lettering on two images out
   // of two; without the phrase, three of three were clean and no less good.
-  return `editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. ABSOLUTELY NO text of any kind, no words, no letters, no numbers, no captions, no typography, no signage, no labels, no watermark, no logo, no poster, no UI, no infographic, no charts, no graphs, no screens, no monitors, no TV, no boards, no whiteboard, no billboard, no newspaper, no documents, no money, no banknote, no cash, no coins, no currency, no flag, no clock, no watch, no license plate; no illustration, no cartoon, no 3d render`;
+  return `editorial photograph clearly showing ${withCtx}, a real literal photorealistic documentary scene of the ACTUAL subject in its real environment, shot on a full-frame camera with a 35mm lens, cinematic directional lighting, rich filmic colour grade, fine natural texture and detail, high dynamic range, premium magazine photojournalism, ultra realistic, 4k. The subject fills the frame and is unmistakable. No text, letters or numbers anywhere, no watermark, no logo; not an illustration, not a cartoon, not a 3d render`;
 }
 // Load an AI image through the CORS-safe worker so the canvas stays exportable.
 // Fetched (not a bare <img>) so we can read the X-Image-Source header — WHICH
@@ -18633,6 +18635,21 @@ async function vsProbeDashboardLogin() {
 // Make the cover ASSETS once (the AI title line + a background image), so the
 // SAME banner can be rendered at several sizes without re-rolling a different
 // title/image each time.
+// The image model reads English only. A Persian sentence reached it as an
+// empty prompt and it painted sky and clouds; so the subject is made English
+// here - the concept the AI already wrote, the topic itself if it is English,
+// or one short translation - and "" when none of those works.
+const vsIsLatinPrompt = (x) => /[a-z]{3}/i.test(String(x || "")) && !/[\u0600-\u06FF]/.test(String(x || ""));
+async function vsImageSubjectEN(topic, candidate) {
+  if (candidate && vsIsLatinPrompt(candidate)) return String(candidate).slice(0, 180);
+  if (vsIsLatinPrompt(topic)) return String(topic).slice(0, 180);
+  try {
+    const t2 = await vsAutoAiChat(`Describe in English, in under 15 words, one concrete photo subject that clearly represents this topic (no text, no sky, no generic house): "${topic}". Reply with the description only.`, { temperature: 0.4 });
+    const clean = String(t2 || "").replace(/["{}\n]/g, " ").trim().slice(0, 160);
+    return vsIsLatinPrompt(clean) ? clean : "";
+  } catch (e) { return ""; }
+}
+
 async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   opts = opts || {};
   topic = String(topic || "AI Radar").slice(0, 90);
@@ -18651,27 +18668,31 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
     const raw = await vsAutoAiChat(
       `A thumbnail is being made about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
       `Return ONLY compact JSON with two fields:\n` +
-      `1) "coverTitle": a 2-5 word scroll-stopping headline (same language as the topic; no quotes, hashtags or emojis; dramatic/high-stakes, e.g. "Coal Is Finished", "The Housing Reckoning").\n` +
-      `2) "imagePrompt": the SINGLE most RELEVANT real-photo subject for THIS exact topic, as a PLACE or an OBJECT. Show a person ONLY when the topic is about a person or something a body does (a sick day, a workout, cooking, a marathon) - never for money, rates, prices, markets, housing, rent, loans, taxes, insurance, the economy or the news, where a face is generic filler. Be specific and literal, e.g. mortgage/interest rates → a row of suburban houses at golden hour; rent → an apartment building with balconies at dusk; home prices → a modern house with a manicured front lawn; a startup → a modern open-plan office in morning light; sick day → a person resting in bed with tea and tissues; coffee → steam rising from a fresh espresso. Do NOT default to a generic city or building unless the topic is actually about a city or building.\n` +
-      `HARD BANS — never include these, the AI turns them into gibberish: charts, graphs, screens, monitors, TVs, boards, signs, billboards, newspapers, documents, money, banknotes, coins, currency, flags, clocks, watches, license plates; and ANY text, words, letters or numbers on anything.\n` +
-      `Keep it to ONE clear subject, real photograph, cinematic. Example: {"coverTitle":"The Sick Day Myth","imagePrompt":"a person resting in bed under a warm blanket with a mug of tea and tissues on the nightstand, soft window light, cozy cinematic mood"}`,
-      { temperature: 0.9 });
+      `1) "coverTitle": a 2-5 word scroll-stopping headline in the SAME language as the topic (no quotes, hashtags or emojis).\n` +
+      `2) "imagePrompt": ALWAYS IN ENGLISH, whatever language the topic is in. One concrete photo scene that a viewer would instantly connect to THIS topic: name the main subject of the sentence as a visible thing, plus where it is and how it is framed. Read the whole sentence - if it is about a phone, show the phone; about a football match, show the players or the ball on the pitch; about bitcoin, a gold bitcoin coin; about coffee, the cup of coffee; about a city, that city's landmark; about cooking, the dish being cooked.\n` +
+      `Do NOT fall back on generic filler: no sky, clouds, sunset or skyline, no generic house or street, no random portrait of a person - use those ONLY when the topic is literally about weather, the sky, a skyline, a house or that person. Show a person only when the topic is about a person or something people do.\n` +
+      `No readable text anywhere: no signs, screens, charts, documents or labels. One clear subject, real photograph, cinematic light.\n` +
+      `Examples: "best phones of 2026" -> {"coverTitle":"The Phone To Beat","imagePrompt":"a sleek new smartphone standing upright on a dark stone surface, dramatic rim light, close-up product shot"}; "قیمت بیت‌کوین امروز" -> {"coverTitle":"بیت‌کوین کجا می‌رود؟","imagePrompt":"a shiny gold bitcoin coin on a dark textured surface, dramatic low-key lighting, macro shot"}; "how to make perfect pasta" -> {"coverTitle":"Pasta Done Right","imagePrompt":"a plate of fresh spaghetti with basil and parmesan on a rustic wooden table, overhead shot, warm light"}; "mortgage rates are falling" -> {"coverTitle":"Rates Are Dropping","imagePrompt":"a quiet suburban street of family houses at golden hour, wide shot"}.`,
+      { temperature: 0.7 });
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle && !opts.exactTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
     if (j && j.imagePrompt) imgPrompt = String(j.imagePrompt).slice(0, 180);
   } catch (e) {}
   if (opts.exactTitle) coverTitle = topic.slice(0, 64);
   if (opts.image) return { coverTitle, img: opts.image, source, imgModel: opts.image._imgModel || "supplied", imgError: null };
-  if (!imgPrompt) imgPrompt = topic;   // fallback only if the AI gave nothing
+  // The image model reads English only; a Persian sentence reached it as
+  // nothing at all (the cleaner kept ASCII) and it painted sky and clouds.
+  const latin = vsIsLatinPrompt;
+  imgPrompt = await vsImageSubjectEN(topic, imgPrompt);
   // The model still reaches for a face - a smiling agent, a worried couple -
   // on topics where a face says nothing. For money and housing the picture is
   // the place, so a person there is swapped for the place itself.
-  const placeTopic = /mortgage|interest|\brates?\b|loan|refinanc|price|market|rent|housing|home|house|real estate|realtor|listing|inflation|econom|stock|invest|tax|insurance|budget|afford|down payment|equity|apprais|inventory|sell|buy/i;
+  const placeTopic = /mortgage|refinanc|\brent\b|renting|housing|home prices?|house prices?|real estate|realtor|listing|down payment|apprais|مسکن|اجاره|وام مسکن/i;
   const personWords = /\b(person|people|man|men|woman|women|couple|family|agent|realtor|buyer|seller|homeowner|investor|businessman|businesswoman|portrait|face|smiling|holding|child|children|kid|kids)\b/i;
   const peopleTopic = /\b(sick|workout|fitness|gym|cook|chef|recipe|marathon|yoga|parent|baby|wedding|interview|doctor|nurse|teacher|student)\b/i;
   // And anything that carries writing: the brief bans signs, and the model
   // still drew "FOR SALE" boards across a thumbnail whose own title is the text.
-  const textObjects = /\b(sign|signs|signage|billboard|poster|banner|chart|graph|screen|monitor|newspaper|document|calculator|money|cash|dollar|coins?)\b/i;
+  const textObjects = /\b(sign|signs|signage|billboard|poster|banner|chart|graph|screen|monitor|newspaper|document|calculator)\b/i;
   if (placeTopic.test(topic) && !peopleTopic.test(topic) && (personWords.test(imgPrompt) || textObjects.test(imgPrompt))) {
     const t = topic.toLowerCase();
     imgPrompt = /rent|apartment|lease|tenant/.test(t) ? "an apartment building with balconies at dusk, warm window light"
@@ -18681,12 +18702,12 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   }
   let img = null;
   try { vstudio._lastImgError = null; } catch (e) {}
-  try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
+  if (imgPrompt) { try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {} }
   // The AI picture failed: record why, then try a real photograph of the same
   // subject before settling for text on a gradient.
   const aiError = img ? null : ((typeof vstudio !== "undefined" && vstudio._lastImgError) || { kind: "unknown" });
   if (!img) {
-    try { img = await vsStockPhoto(imgPrompt, (imgW || 1024) >= (imgH || 1024)) || await vsStockPhoto(topic, (imgW || 1024) >= (imgH || 1024)); } catch (e) {}
+    try { if (imgPrompt) img = await vsStockPhoto(imgPrompt, (imgW || 1024) >= (imgH || 1024)) || (latin(topic) ? await vsStockPhoto(topic, (imgW || 1024) >= (imgH || 1024)) : null); } catch (e) {}
   }
   const imgError = img ? null : aiError;
   return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none", imgError };
@@ -18987,7 +19008,7 @@ function vsTplStamp(R) {
 async function vsComposeCover(topic, source, aspect, size) {
   topic = String(topic || "AI Radar").slice(0, 90);
   source = String(source || "").replace(/^by\s+/i, "").trim();
-  let coverTitle = topic.slice(0, 64), imgPrompt = topic;
+  let coverTitle = topic.slice(0, 64), imgPrompt = "";
   try {
     const raw = await vsAutoAiChat(
       `You are a world-class viral thumbnail copywriter (YouTube/TikTok). Write the ONE big line of text for a thumbnail about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
@@ -19001,7 +19022,7 @@ async function vsComposeCover(topic, source, aspect, size) {
       `- A chokepoint threatens 20% of global oil -> One Ship Can Freeze Oil\n` +
       `- 10 best states to live in 2026 -> Leave Your State Now\n` +
       `- Housing prices fall in major cities -> The Housing Reckoning\n` +
-      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"a concrete, filmable real-photo description of the actual subject for the cover background — no text, no words"}`,
+      `Return ONLY compact JSON: {"coverTitle":"the scroll-stopping line","imagePrompt":"IN ENGLISH whatever the topic's language: one concrete real-photo scene of the topic's main subject (the phone, the dish, the player, the coin, the city's landmark) - not sky, clouds, a skyline, a generic house or a random portrait unless the topic is about that; no text"}`,
       { temperature: 1.0 });
     const j = vsParseAiJson(raw);
     if (j && j.coverTitle) coverTitle = String(j.coverTitle).replace(/\s+/g, " ").trim().slice(0, 64);
@@ -19023,9 +19044,10 @@ async function vsComposeCover(topic, source, aspect, size) {
   const iw = W >= H ? 1024 : Math.round(1024 * W / H);
   const ih = H >= W ? 1024 : Math.round(1024 * H / W);
   let img = null;
-  try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), iw, ih); } catch (e) {}
+  imgPrompt = await vsImageSubjectEN(topic, imgPrompt);
+  if (imgPrompt) { try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), iw, ih); } catch (e) {} }
   // Same fallback as the thumbnails: a real photo before a blank background.
-  if (!img) { try { img = await vsStockPhoto(imgPrompt, iw >= ih) || await vsStockPhoto(topic, iw >= ih); } catch (e) {} }
+  if (!img && imgPrompt) { try { img = await vsStockPhoto(imgPrompt, iw >= ih) || (vsIsLatinPrompt(topic) ? await vsStockPhoto(topic, iw >= ih) : null); } catch (e) {} }
 
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
