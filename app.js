@@ -28407,3 +28407,57 @@ function vsJobCard(title) {
     if (first) first.focus();
   });
 })();
+
+// ── Hand-off from the Assistant page ──────────────────────────────────────
+// /assistant's "Make a video" menu (and its BUILD directive, and the Video
+// button under an answer) puts the brief in localStorage "arBuildPayload" and
+// opens /studio/?arbuild=1. This used to be read inside the old floating chat
+// widget - which was switched off with a `return` at the top of its boot(), so
+// the Studio opened and then did nothing. Now it stands on its own.
+//   { text, batch, kind: "video" | "thumbnail", ts }
+(function () {
+  function run() {
+    var qp = "";
+    try { qp = new URLSearchParams(location.search).get("arbuild") || ""; } catch (e) {}
+    if (!qp) return;
+    var topic = document.getElementById("vsAutoTopic");
+    if (!topic) return;                                   // not the Studio page
+    var payload = null;
+    try {
+      var raw = localStorage.getItem("arBuildPayload");
+      if (raw) { payload = JSON.parse(raw); localStorage.removeItem("arBuildPayload"); }
+    } catch (e) {}
+    // A stale brief (an hour old) is not what this tab was opened for.
+    if (!payload || !payload.text || (payload.ts && Date.now() - payload.ts > 3600000)) return;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}   // a reload must not build twice
+    var text = String(payload.text);
+
+    if (payload.kind === "thumbnail") {
+      // The Thumbnail Studio takes a short subject; the modal lets them pick
+      // sizes and a look before anything is generated.
+      var subj = text.replace(/^\/(editorial|motion_graphic)\s+/i, "").replace(/\s+/g, " ").trim().slice(0, 90);
+      try { vsThumbStudio(subj); } catch (e) {}
+      return;
+    }
+
+    // Same guard the chat builder had: "one per item" only for a real
+    // article or an explicit list of 3+, never for a single topic.
+    var words = text.trim().split(/\s+/).filter(Boolean).length;
+    var items = text.split(/[,\n;]+|\band\b|\bو\b/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
+    var doBatch = !!payload.batch && ((text.length >= 220 && words >= 30) || items.length >= 3);
+
+    try { if (window._vsAutoMode === "link") window._vsAutoMode = "smart"; } catch (e) {}
+    topic.value = text;
+    topic.dispatchEvent(new Event("input", { bubbles: true }));
+    var bt = document.getElementById("vsAutoBatch");
+    if (bt && bt.checked !== doBatch) bt.click();
+    var ln = document.getElementById("vsAutoLen");
+    if (ln && !ln.value) ln.value = "medium";
+    try { topic.scrollIntoView({ block: "center" }); } catch (e) {}
+    try { buildAutoVideo(true); } catch (e) {}
+  }
+  // After the Studio has wired its own controls.
+  function later() { setTimeout(run, 900); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", later, { once: true });
+  else later();
+})();
