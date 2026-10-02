@@ -16,6 +16,59 @@ const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
+
+// ── Free allowance for visitors who are not signed in ─────────────────────
+// The AI worker counts a visitor's free uses per device per day; signed in,
+// the ticket says so and nothing is counted. When the allowance is used up
+// the worker answers 401 {needLogin} and the page asks for a free account
+// instead of quietly trying the next model.
+function arDeviceId() {
+  try {
+    let d = localStorage.getItem("arDevice");
+    if (!d) { d = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, ""); localStorage.setItem("arDevice", d); }
+    return d;
+  } catch (e) { return ""; }
+}
+async function arGuestHeaders() {
+  const h = { "x-device": arDeviceId() };
+  try { const t = await vsFalTicketGet(); if (t) h["x-fal-ticket"] = t; } catch (e) {}
+  return h;
+}
+function arGuestWall(kind) {
+  window.__arGuestWall = true;
+  try { vstudio._batchCancel = true; } catch (e) {}
+  if (document.getElementById("arGuestWall")) return;
+  const fa = document.documentElement.lang === "fa" || /[\u0600-\u06FF]/.test(document.body ? document.body.innerText.slice(0, 400) : "");
+  const next = encodeURIComponent(location.pathname + location.search);
+  const what = kind === "image" ? (fa ? "تصویرهای رایگان" : "free AI images") : (fa ? "استفاده‌های رایگان" : "free AI uses");
+  const w = document.createElement("div");
+  w.id = "arGuestWall";
+  w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "arGwT");
+  w.innerHTML =
+    '<style>#arGuestWall{position:fixed;inset:0;z-index:2147483600;display:grid;place-items:center;padding:16px;background:rgba(4,6,10,.72);backdrop-filter:blur(6px)}' +
+    '#arGuestWall .gw{width:min(420px,100%);background:#0f1217;border:1px solid #262c36;border-radius:16px;padding:26px 24px 20px;color:#e9edf3;font:15px/1.55 system-ui,sans-serif;box-shadow:0 30px 80px -20px #000}' +
+    '#arGuestWall h2{margin:0 0 8px;font-size:20px;letter-spacing:-.01em}#arGuestWall p{margin:0 0 18px;color:#a9b3c1}' +
+    '#arGuestWall .gwb{display:flex;gap:10px;flex-wrap:wrap}#arGuestWall a,#arGuestWall button{flex:1 1 140px;text-align:center;padding:11px 14px;border-radius:10px;font:600 14px system-ui,sans-serif;text-decoration:none;cursor:pointer}' +
+    '#arGuestWall .gwp{background:#e9edf3;color:#0b0d11;border:0}#arGuestWall .gws{background:transparent;color:#e9edf3;border:1px solid #333b47}' +
+    '#arGuestWall .gwx{display:block;margin:14px auto 0;background:none;border:0;color:#7f8a99;flex:none;padding:4px}</style>' +
+    '<div class="gw" ' + (fa ? 'dir="rtl"' : '') + '><h2 id="arGwT">' + (fa ? "برای ادامه، یک حساب رایگان بسازید" : "Create a free account to keep going") + '</h2>' +
+    '<p>' + (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. با ثبت‌نام رایگان بدون محدودیت مهمان ادامه دهید." : "You've used today's " + what + " for guests. Sign up free and carry on - your work stays on this page.") + '</p>' +
+    '<div class="gwb"><a class="gwp" href="/login?mode=signup&next=' + next + '">' + (fa ? "ثبت‌نام رایگان" : "Create free account") + '</a>' +
+    '<a class="gws" href="/login?next=' + next + '">' + (fa ? "ورود" : "Sign in") + '</a></div>' +
+    '<button type="button" class="gwx">' + (fa ? "بعداً" : "Not now") + '</button></div>';
+  document.body.appendChild(w);
+  const close = () => { w.remove(); };
+  w.querySelector(".gwx").addEventListener("click", close);
+  w.addEventListener("click", (e) => { if (e.target === w) close(); });
+  document.addEventListener("keydown", function esc(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); } });
+  try { w.querySelector(".gwp").focus(); } catch (e) {}
+}
+// A 401 from the AI worker: is it the guest allowance?
+async function arIsGuestWall(resp) {
+  if (!resp || resp.status !== 401) return false;
+  try { const j = await resp.clone().json(); if (j && j.needLogin) { arGuestWall(j.kind); return true; } } catch (e) {}
+  return false;
+}
 const VS_BUILD = "v456-496-jpeg";
 try { console.log("%cAI Radar Studio build " + VS_BUILD, "color:#2563ff;font-weight:bold"); } catch(e){}
 try { document.addEventListener("DOMContentLoaded", function(){ var b=document.getElementById("vsBuildBadge"); if(b) b.textContent="build "+VS_BUILD+" \u2713"; }); } catch(e){}
@@ -4894,6 +4947,8 @@ async function vsAutoAiChat(prompt, opts) {
     if (useJson) body.response_format = { type: "json_object" };
     const target = endpoint || (VS_WORKER_BASE + "/chat");
     const headers = { "Content-Type": "application/json" };
+    if (window.__arGuestWall) throw new Error("needLogin");
+    if (target === VS_AI_FALLBACK) Object.assign(headers, await arGuestHeaders());
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), timeoutMs);   // never hang forever
     let resp;
@@ -4902,7 +4957,10 @@ async function vsAutoAiChat(prompt, opts) {
         method: "POST", headers: headers, body: JSON.stringify(body), signal: ctrl.signal
       });
     } finally { clearTimeout(tm); }
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    if (!resp.ok) {
+      if (await arIsGuestWall(resp)) throw new Error("needLogin");
+      throw new Error("HTTP " + resp.status);
+    }
     const data = await resp.json();
     const t = parseChoices(data);
     if (!t) throw new Error("empty");
@@ -5018,9 +5076,11 @@ async function vsAutoAiChat(prompt, opts) {
   // Try every model/endpoint combo. The whole sweep is retried a couple of
   // times with a short backoff so a transient outage doesn't kill the build.
   for (let pass = 0; pass < passes; pass++) {
+    if (window.__arGuestWall) throw new Error("needLogin");
     if (vstudio._batchCancel) return null;        // bail fast on cancel
     for (const model of models) {
       for (const useJson of (wantJson ? [true, false] : [false])) {
+        if (window.__arGuestWall) throw new Error("needLogin");
         if (vstudio._batchCancel) return null;    // bail between every attempt
         try { return await hedged(model, useJson); }
         catch (e) { /* next combo */ }
@@ -8578,9 +8638,11 @@ function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
     // "it timed out" need different advice, and the worker knows which.
     const fail = (why) => { try { vstudio._lastImgError = why; } catch (e) {} resolve(null); };
     const to = setTimeout(() => fail({ kind: "timeout" }), 40000);
-    fetch(url).then(async (r) => {
+    if (window.__arGuestWall) { clearTimeout(to); fail({ kind: "needLogin" }); return; }
+    arGuestHeaders().then((gh) => fetch(url, { headers: gh })).then(async (r) => {
       if (!r.ok) {
         clearTimeout(to);
+        if (await arIsGuestWall(r)) { fail({ kind: "needLogin" }); return; }
         let debug = ""; try { debug = r.headers.get("X-Image-Debug") || ""; } catch (e) {}
         fail({ kind: "http", status: r.status, debug });
         return;
