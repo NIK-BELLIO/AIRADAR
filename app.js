@@ -92,6 +92,8 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    annAsst: "Our chatbot just got smarter: it remembers you and learns from feedback every day",
+    annAsstCta: "Try the new chatbot",
     navAIStudio: "AI Studio",
     aiStudioEyebrow: "New — AI Image & Video Studio",
     aiStudioTitle: "Generate AI photos and videos — pay in Rial, no international card needed",
@@ -415,6 +417,8 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    annAsst: "چت‌بات ما ارتقا پیدا کرد: شما را به خاطر می‌سپارد و هر روز از بازخوردها باهوش‌تر می‌شود",
+    annAsstCta: "امتحانش کنید",
     navAIStudio: "استودیوی هوش مصنوعی",
     aiStudioEyebrow: "جدید — استودیوی تصویر و ویدیوی هوش مصنوعی",
     aiStudioTitle: "عکس و ویدیوی هوش مصنوعی بساز — پرداخت ریالی، بدون نیاز به کارت بین‌المللی",
@@ -1586,6 +1590,21 @@ function applyTheme(theme) {
     btn.classList.toggle("active", btn.dataset.theme === (isLight ? "light" : "dark"));
   });
 }
+
+// The announcement bar on the homepage: closed once, stays closed (per id).
+(function () {
+  try {
+    const bar = document.getElementById("arAnn");
+    if (!bar) return;
+    const key = "arAnnClosed:" + bar.dataset.id;
+    if (localStorage.getItem(key)) { bar.remove(); return; }
+    bar.hidden = false;
+    bar.querySelector(".ar-ann-x").addEventListener("click", () => {
+      bar.remove();
+      try { localStorage.setItem(key, "1"); } catch (e) {}
+    });
+  } catch (e) {}
+})();
 
 function setLanguage(lang) {
   state.lang = lang;

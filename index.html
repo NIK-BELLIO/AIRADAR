@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v747" />
+    <link rel="stylesheet" href="styles.css?v=v748" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -604,6 +604,14 @@
   <a class="ar-skip" href="#top">Skip to content</a>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
+
+    <!-- Announcement: closing it is remembered per data-id; change the id for a new one. -->
+    <div class="ar-ann" id="arAnn" data-id="assistant-2026-10" role="region" aria-label="Announcement" hidden>
+      <svg class="ar-ann-ic" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 12.6V4.5a2 2 0 0 1 2-2h8.1a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8l-8.1 8.1a2 2 0 0 1-2.8 0L3.1 14a2 2 0 0 1-.6-1.4ZM8 9.5A1.5 1.5 0 1 0 8 6.5a1.5 1.5 0 0 0 0 3Z"/></svg>
+      <span class="ar-ann-t" data-i18n="annAsst">Our chatbot just got smarter: it remembers you and learns from feedback every day</span>
+      <a class="ar-ann-cta" href="/assistant" data-i18n="annAsstCta">Try the new chatbot</a>
+      <button type="button" class="ar-ann-x" aria-label="Close announcement"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
 
     <!-- HEADER with motion ticker -->
     <!-- ── UNIFIED TOP HEADER (identical on every page) ──────────── -->
@@ -1803,7 +1811,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v747"></script>
+    <script src="app.js?v=v748"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────
