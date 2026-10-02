@@ -52,12 +52,14 @@ function arGuestWall(kind) {
     '#arGuestWall .gwp{background:#e9edf3;color:#0b0d11;border:0}#arGuestWall .gws{background:transparent;color:#e9edf3;border:1px solid #333b47}' +
     '#arGuestWall .gwx{display:block;margin:14px auto 0;background:none;border:0;color:#7f8a99;flex:none;padding:4px}</style>' +
     '<div class="gw" ' + (fa ? 'dir="rtl"' : '') + '><h2 id="arGwT">' + (fa ? "برای ادامه، یک حساب رایگان بسازید" : "Create a free account to keep going") + '</h2>' +
-    '<p>' + (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. با ثبت‌نام رایگان بدون محدودیت مهمان ادامه دهید." : "You've used today's " + what + " for guests. Sign up free and carry on - your work stays on this page.") + '</p>' +
+    '<p>' + (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. ساخت حساب رایگان یک دقیقه طول می‌کشد و محدودیت مهمان را برمی‌دارد." : "You've used today's " + what + " for guests. A free account takes a minute and lifts the guest limit.") + '</p>' +
     '<div class="gwb"><a class="gwp" href="/login?mode=signup&next=' + next + '">' + (fa ? "ثبت‌نام رایگان" : "Create free account") + '</a>' +
     '<a class="gws" href="/login?next=' + next + '">' + (fa ? "ورود" : "Sign in") + '</a></div>' +
     '<button type="button" class="gwx">' + (fa ? "بعداً" : "Not now") + '</button></div>';
   document.body.appendChild(w);
-  const close = () => { w.remove(); };
+  // Closed: the next try asks the server again (they may have signed in
+  // in another tab); still out of allowance, the wall comes straight back.
+  const close = () => { w.remove(); window.__arGuestWall = false; };
   w.querySelector(".gwx").addEventListener("click", close);
   w.addEventListener("click", (e) => { if (e.target === w) close(); });
   document.addEventListener("keydown", function esc(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); } });
