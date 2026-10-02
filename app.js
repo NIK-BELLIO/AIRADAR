@@ -28091,8 +28091,8 @@ async function vsBuildGenjutsu(cfg) {
   const mode = cfg.mode === "motion" ? "motion" : "swap";
   const res = cfg.resolution === "720p" ? "720p" : "480p";
   const model = mode === "motion"
-    ? "higgsfiled/genjutsu/motion-transfer/v1.0"
-    : "higgsfiled/genjutsu/object-swap/v1.0";
+    ? "higgsfield/genjutsu/motion-transfer/v1.0"
+    : "higgsfield/genjutsu/object-swap/v1.0";
   // Measured from the clip that is about to be sent, not taken from an
   // estimate. The estimate could be missing, and a missing one used to be
   // replaced with eight seconds: a thirty-second clip at 720p was charged 328
