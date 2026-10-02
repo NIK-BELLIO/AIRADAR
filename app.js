@@ -28461,3 +28461,83 @@ function vsJobCard(title) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", later, { once: true });
   else later();
 })();
+
+// ── Account menu on the static pages ──────────────────────────────────────
+// The Next pages have the full panel (aistudio components/AccountMenu.tsx):
+// who you are, the balance and what it buys, Top up, library, credits,
+// admin, sign out - opening on hover. These pages kept the first version (an
+// email, "N credits", two links, click only), so walking from /assistant to
+// the homepage looked like the menu had been rolled back. Same panel here.
+(function () {
+  function boot() {
+    var acct = document.getElementById("authAccount");
+    var menu = document.getElementById("authMenu");
+    var btn = document.getElementById("authAccountBtn");
+    if (!acct || !menu || !btn || menu.classList.contains("am")) return;
+    var ico = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+    menu.classList.add("am");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", "Account");
+    menu.innerHTML =
+      '<div class="am-who"><span class="am-av" id="amAv">?</span><span class="am-id"><p id="authEmail" class="auth-menu-email"></p><span class="am-since" id="amSince">Pay as you go</span></span></div>' +
+      '<div class="am-box"><div class="am-row"><span class="am-lbl">Credits</span><span class="am-num" id="amNum">0</span></div>' +
+      '<div class="am-grid" id="amGrid" hidden><span id="amImg"><b>Images</b><i></i></span><span id="amVid"><b>Video</b><i></i></span></div>' +
+      '<p class="am-note" id="amNote"></p><p id="authCredits" class="auth-menu-credits"></p>' +
+      '<a class="am-top" href="/pricing" role="menuitem">Top up</a></div>' +
+      '<div class="am-links">' +
+      '<a href="/dashboard" role="menuitem">' + ico("M4 5h6v6H4zM14 5h6v4h-6zM14 13h6v6h-6zM4 15h6v4H4z") + 'Your library</a>' +
+      '<a href="/pricing" role="menuitem">' + ico("M12 3v18M7.5 7.5h6.8a2.6 2.6 0 0 1 0 5.2H9.7a2.6 2.6 0 0 0 0 5.2h6.8") + 'Credits &amp; plans</a>' +
+      '<a href="/admin" role="menuitem" id="amAdmin" hidden>' + ico("M12 3l7.5 3.4v5c0 4.2-3 7.9-7.5 9.3-4.5-1.4-7.5-5.1-7.5-9.3v-5z") + 'Admin</a>' +
+      '</div><div class="am-foot"><button type="button" class="am-out" id="authLogoutBtn" role="menuitem">' + ico("M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5") + 'Sign out</button></div>';
+
+    document.getElementById("authLogoutBtn").addEventListener("click", async function () {
+      try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch (e) {}
+      location.href = "/";
+    });
+
+    function render(me) {
+      if (!me || !me.ok || !me.user) return;
+      var email = String(me.user.email || "");
+      var credits = Number(me.credits || 0);
+      document.getElementById("authEmail").textContent = email;
+      document.getElementById("amAv").textContent = (email[0] || "?").toUpperCase();
+      var since = me.user.created_at ? new Date(me.user.created_at * 1000).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
+      document.getElementById("amSince").textContent = "Pay as you go" + (since ? " · since " + since : "");
+      document.getElementById("amNum").textContent = credits.toLocaleString();
+      var r = me.rates || {};
+      document.getElementById("amGrid").hidden = !(credits > 0 && (r.perImage > 0 || r.perSecond > 0));
+      document.getElementById("amImg").hidden = !(r.perImage > 0);
+      document.getElementById("amVid").hidden = !(r.perSecond > 0);
+      if (r.perImage > 0) document.querySelector("#amImg i").textContent = Math.floor(credits / r.perImage).toLocaleString();
+      if (r.perSecond > 0) document.querySelector("#amVid i").textContent = Math.floor(credits / r.perSecond).toLocaleString() + "s";
+      document.getElementById("amNote").textContent = credits > 0
+        ? "At each model's cheapest setting. Longer and sharper costs more."
+        : "Nothing left — top up to keep generating.";
+      document.getElementById("amAdmin").hidden = !me.isAdmin;
+      btn.setAttribute("aria-label", "Account — " + credits + " credits");
+    }
+    function load() { fetch("/api/me", { credentials: "include" }).then(function (r) { return r.json(); }).then(render).catch(function () {}); }
+    load();
+    // The page's own refresh (after a purchase or a generation) updates this too.
+    try {
+      var A = window.AIRadarAuth;
+      if (A && typeof A.refresh === "function" && !A.__am) {
+        var orig = A.refresh;
+        A.refresh = function () { var p = orig.apply(this, arguments); load(); return p; };
+        A.__am = true;
+      }
+    } catch (e) {}
+
+    // Hover opens it (after a beat, so a pointer passing by does not), a gap
+    // to the panel is forgiven on the way out; click and keyboard still work.
+    var t = null;
+    var hover = function () { try { return window.matchMedia("(hover: hover)").matches; } catch (e) { return true; } };
+    var set = function (open) { menu.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false"); };
+    acct.addEventListener("mouseenter", function () { if (!hover()) return; clearTimeout(t); t = setTimeout(function () { set(true); }, 110); });
+    acct.addEventListener("mouseleave", function () { if (!hover()) return; clearTimeout(t); t = setTimeout(function () { set(false); }, 220); });
+    acct.addEventListener("focusin", function () { clearTimeout(t); set(true); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) { set(false); btn.focus(); } });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+  else boot();
+})();
