@@ -20124,7 +20124,7 @@ function vsCreatorTools(opts) {
       if (!hook) hook = title.slice(0, 40);
       // Force the bright, saturated, expressive-YouTuber look (NOT dark/cinematic).
       const thumbImg = imgPrompt + `, professional YouTube thumbnail, real person with exaggerated ${faceDesc} expression, looking straight at camera, bright vivid ${accWord} studio background, punchy saturated colors, strong rim lighting, ultra sharp, subject on the right side, photorealistic, no text, no words, no logo`;
-      // image: your own photo → else free CF image → else fal (quality)
+      // image: your own photo → else the free Cloudflare image model
       let img = null;
       try {
         if (ytPhoto) { img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = URL.createObjectURL(ytPhoto); }); }
@@ -20672,8 +20672,8 @@ async function vsVisionAnalyze(src, opts) {
   const scene = opts && opts.scene ? "&scene=1" : "";
   try {
     const r = (typeof src === "string")
-      ? await fetch(WB + "/vision?fal=1" + scene + "&img=" + encodeURIComponent(src))
-      : await fetch(WB + "/vision?fal=1" + scene, {
+      ? await fetch(WB + "/vision?" + scene.replace(/^&/, "") + "&img=" + encodeURIComponent(src))
+      : await fetch(WB + "/vision?" + scene.replace(/^&/, ""), {
           method: "POST",
           headers: { "Content-Type": src.type || "image/jpeg" },
           body: src,
@@ -20822,9 +20822,10 @@ function vsReverseParseSections(raw, brief, refText) {
 }
 
 // ── THE PASS FOR PAID CALLS ─────────────────────────────────────────────────
-// /fal/* spends real money and lives on another origin, so the session cookie
-// never reaches it. The app signs a short-lived ticket instead, and every paid
-// call carries it.
+// The worker's paid routes (/hf/*, /upload, the AI gate) live on another
+// origin, so the session cookie never reaches them. The app signs a short-lived
+// ticket instead, and every paid call carries it. (The header is still called
+// x-fal-ticket for history; nothing goes to fal - that provider is gone.)
 //
 // Cached until a minute before it expires: a ten-minute pass fetched afresh on
 // every poll would be a request per second during a video job.
@@ -20849,180 +20850,11 @@ async function vsFalTicketGet() {
   } catch (e) { return noTicket(); }
 }
 
-/**
- * Every fal job we have paid for and not yet collected.
- *
- * fal charges the moment it accepts a job. Our own credit ledger refunds on
- * failure, so the operator's credits were always safe - but the REAL money was
- * already spent, and the only handle on the finished video was a local variable
- * inside a poll loop. Three ordinary things threw it away:
- *
- *   - the status said COMPLETED and the follow-up fetch for the payload threw
- *   - the poll ran out its ten minutes on a model that took eleven
- *   - the tab was closed, or cancel was pressed after the render had finished
- *
- * In each case fal had the video and we had nothing. This writes the handle
- * down before the first poll and rubs it out only once the bytes are in hand,
- * so a lost collection is a job you can pick up later rather than money gone.
- */
-const VS_FAL_JOBS_KEY = "vsFalJobs";
-
-function vsFalJobsRead() {
-  try { const a = JSON.parse(localStorage.getItem(VS_FAL_JOBS_KEY) || "[]"); return Array.isArray(a) ? a : []; }
-  catch (e) { return []; }
-}
-function vsFalJobsWrite(a) {
-  // Twenty is plenty of history and keeps this well clear of the storage cap.
-  try { localStorage.setItem(VS_FAL_JOBS_KEY, JSON.stringify(a.slice(-20))); } catch (e) {}
-}
-/** Called BEFORE the first poll, so nothing can be lost between the two. */
-function vsFalJobRemember(o) {
-  if (!o || !o.statusUrl) return;
-  const a = vsFalJobsRead().filter((x) => x.statusUrl !== o.statusUrl);
-  a.push({ statusUrl: o.statusUrl, respUrl: o.respUrl || "", model: o.model || "",
-           action: o.action || "", name: o.name || "video", credits: o.credits || 0,
-           jobId: o.jobId || "", at: Date.now() });
-  vsFalJobsWrite(a);
-}
-/** Called only once the video has actually been delivered. */
-function vsFalJobForget(statusUrl) {
-  if (!statusUrl) return;
-  vsFalJobsWrite(vsFalJobsRead().filter((x) => x.statusUrl !== statusUrl));
-}
-
-/**
- * Go back for anything that was paid for and never collected.
- *
- * Asks fal what became of each remembered job. A finished one is downloaded and
- * saved to the dashboard; one that fal itself failed is dropped; one still
- * running is left alone to be picked up next time.
- */
-async function vsFalRecover(opts) {
-  opts = opts || {};
-  const fa = state.lang === "fa";
-  const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
-  const jobs = vsFalJobsRead();
-  const report = { checked: jobs.length, recovered: [], stillRunning: [], failed: [], unreachable: [] };
-  for (const j of jobs) {
-    // Higgsfield jobs - every Genjutsu run - are not fal jobs. They were polled
-    // through /fal/poll, which only accepts fal hosts, and read against fal's
-    // upper-case statuses; so a Genjutsu whose tab was closed mid-render landed
-    // in "could not be reached" forever. Paid for twice over - the customer's
-    // credits and our Higgsfield bill - and never delivered or refunded.
-    let host = "";
-    try { host = new URL(j.statusUrl).host; } catch (e) {}
-    if (/(^|\.)higgsfield\.ai$/i.test(host)) {
-      let st = null;
-      try { st = await (await vsFalFetch(WB + "/hf/poll?url=" + encodeURIComponent(j.statusUrl))).json(); }
-      catch (e) { report.unreachable.push(j.name); continue; }
-      const s = st && st.status;
-      if (s === "queued" || s === "in_progress") { report.stillRunning.push(j.name); continue; }
-      if (s === "failed" || s === "nsfw" || s === "canceled") {
-        // It never produced anything, so the customer gets their credits back.
-        vsSettle(j.jobId, "failed");
-        vsFalJobForget(j.statusUrl);
-        report.failed.push(j.name);
-        continue;
-      }
-      const url = s === "completed" && st.video && st.video.url;
-      if (!url) { report.unreachable.push(j.name + " (" + (s || "?") + ")"); continue; }
-      // Delivered. Try to keep a copy on the Dashboard; if the file host will
-      // not hand the bytes to a script, the link itself is still the video.
-      let saved = false;
-      try {
-        const blob = await (await fetch(url)).blob();
-        if (blob && blob.size > 1000 && typeof vsSaveToDashboard === "function") { await vsSaveToDashboard(blob, "mp4", j.name); saved = true; }
-      } catch (e) {}
-      vsSettle(j.jobId, "done");
-      vsFalJobForget(j.statusUrl);
-      report.recovered.push({ name: j.name, url, saved });
-      continue;
-    }
-
-    let st = "?";
-    try { st = (await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.statusUrl))).json()).status || "?"; }
-    catch (e) { report.unreachable.push(j.name); continue; }
-    if (st === "IN_QUEUE" || st === "IN_PROGRESS") { report.stillRunning.push(j.name); continue; }
-    // Failed at fal: nothing was delivered, so refund - forgetting it without
-    // one kept the credits for a job that produced nothing.
-    if (st === "FAILED" || st === "ERROR") { vsSettle(j.jobId, "failed"); vsFalJobForget(j.statusUrl); report.failed.push(j.name); continue; }
-    if (st !== "COMPLETED") { report.unreachable.push(j.name + " (" + st + ")"); continue; }
-    try {
-      const rr = await (await vsFalFetch(WB + "/fal/poll?url=" + encodeURIComponent(j.respUrl || j.statusUrl.replace(/\/status$/, "")))).json();
-      const url = rr && (rr.video && rr.video.url || rr.url);
-      if (!url) { report.unreachable.push(j.name + " (no url)"); continue; }
-      const blob = await (await fetch(url)).blob();
-      if (!blob || blob.size < 1000) { report.unreachable.push(j.name + " (empty)"); continue; }
-      try { if (typeof vsSaveToDashboard === "function") await vsSaveToDashboard(blob, "mp4", j.name); } catch (e) {}
-      vsSettle(j.jobId, "done");
-      vsFalJobForget(j.statusUrl);
-      report.recovered.push({ name: j.name, bytes: blob.size, url: URL.createObjectURL(blob), saved: true });
-    } catch (e) { report.unreachable.push(j.name + ": " + (e && e.message || e)); }
-  }
-  if (!opts.quiet) {
-    const r = report.recovered.length, q = report.stillRunning.length;
-    if (r) vsStatus(fa ? `${r} ویدیوی پرداخت‌شده برگردانده شد و در داشبورد ذخیره شد.` : `Recovered ${r} paid video${r === 1 ? "" : "s"} — saved to your Dashboard.`);
-    else if (q) vsStatus(fa ? `${q} کار هنوز در حالِ ساخت است.` : `${q} job${q === 1 ? " is" : "s are"} still rendering.`);
-    else if (jobs.length) vsStatus(fa ? "چیزی برای برگرداندن نبود." : "Nothing left to collect.");
-  }
-  return report;
-}
-
-/**
- * Tell the operator about anything paid for and not collected.
- *
- * A ledger nobody reads is no better than no ledger, so this runs on load: if
- * something is owed it says so, and offers to go and get it. Anything younger
- * than a minute is still in flight in some tab and is left alone.
- */
-function vsFalPendingNotice() {
-  try {
-    const fa = state.lang === "fa";
-    const jobs = vsFalJobsRead().filter((j) => Date.now() - (j.at || 0) > 60000);
-    const old = document.getElementById("vsFalPending");
-    if (old) old.remove();
-    if (!jobs.length) return;
-    const box = document.createElement("div");
-    box.id = "vsFalPending";
-    box.style.cssText = "position:fixed;z-index:100002;inset-inline-end:16px;bottom:16px;max-width:340px;display:flex;flex-direction:column;gap:9px;" +
-      "background:#14171d;border:1px solid rgba(37,99,255,.45);border-radius:13px;padding:13px 14px;box-shadow:0 20px 50px rgba(0,0,0,.55);" +
-      "font:inherit;color:#f4f5f7";
-    const names = jobs.map((j) => j.name).join(", ").slice(0, 80);
-    box.innerHTML =
-      '<div style="font:800 12.5px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif">' +
-        (fa ? jobs.length + " کارِ پرداخت‌شده جمع نشده" : jobs.length + " paid job" + (jobs.length === 1 ? "" : "s") + " not collected") +
-      "</div>" +
-      '<div style="font-size:11.5px;color:#8a919c;line-height:1.5">' +
-        (fa ? "برایشان پول داده شده ولی ویدیویشان گرفته نشد: " : "These were paid for but never picked up: ") + esc2(names) +
-      "</div>" +
-      '<div style="display:flex;gap:7px">' +
-        '<button type="button" id="vsFalGet" style="flex:1;padding:9px;border:0;border-radius:9px;cursor:pointer;font:800 12px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">' +
-          (fa ? "برو بگیرشان" : "Collect them") + "</button>" +
-        '<button type="button" id="vsFalDismiss" style="padding:9px 11px;border:1px solid rgba(255,255,255,.18);border-radius:9px;cursor:pointer;font:700 12px \'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;color:#8a919c;background:rgba(255,255,255,.05)">' +
-          (fa ? "بعداً" : "Later") + "</button>" +
-      "</div>";
-    document.body.appendChild(box);
-    document.getElementById("vsFalDismiss").onclick = () => box.remove();
-    document.getElementById("vsFalGet").onclick = async () => {
-      const b = document.getElementById("vsFalGet");
-      b.disabled = true; b.textContent = fa ? "در حالِ گرفتن…" : "Collecting…";
-      const r = await vsFalRecover();
-      box.innerHTML = '<div style="font-size:12px;line-height:1.6;color:#f4f5f7">' +
-        (r.recovered.length ? "\u2713 " + r.recovered.length + (fa ? " ویدیو برگشت:" : " recovered:") + "<br>" +
-          r.recovered.map((x) => '<a href="' + esc2(x.url) + '" target="_blank" rel="noopener" style="color:#5b9bff">' + esc2(x.name) + "</a>" +
-            (x.saved ? (fa ? " (در داشبورد)" : " (on your Dashboard)") : "")).join("<br>") + "<br>" : "") +
-        (r.failed.length ? r.failed.length + (fa ? " ساخته نشده بود — کردیتش برگشت." : " never finished — its credits were refunded.") + "<br>" : "") +
-        (r.stillRunning.length ? r.stillRunning.length + (fa ? " هنوز در حالِ ساخت." : " still rendering.") + "<br>" : "") +
-
-        (r.unreachable.length ? r.unreachable.length + (fa ? " در دسترس نبود." : " could not be reached.") : "") +
-        "</div>";
-      setTimeout(() => { try { box.remove(); } catch (e) {} }, 9000);
-    };
-  } catch (e) {}
-}
-// Checked on every load, in every tab: an unclaimed paid job should never be
-// something the operator has to remember to go looking for.
-try { document.addEventListener("DOMContentLoaded", function () { setTimeout(vsFalPendingNotice, 1500); }, { once: true }); } catch (e) {}
+// Uncollected paid jobs used to be remembered in this browser (localStorage
+// "vsFalJobs") and collected from here. The server's sweeper does that now for
+// every job, open tab or not: it settles it, refunds a failure and puts a
+// finished file in the Library (aistudio /api/jobs/sweep, every 15 minutes).
+try { localStorage.removeItem("vsFalJobs"); } catch (e) {}
 
 // A tiny escape, because this box prints names that came back from a job.
 function esc2(x) { return String(x == null ? "" : x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -22744,7 +22576,7 @@ function vsReverseEngineer(prefill, opts) {
     let imageUrl = "";
     try {
       const gImg = thPhoto || anyImg;
-      if (gImg) { const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": gImg.type || "image/jpeg" }, body: gImg }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
+      if (gImg) { const up = await vsFalFetch(WB + "/upload", { method: "POST", headers: { "Content-Type": gImg.type || "image/jpeg" }, body: gImg }); const uj = await up.json().catch(() => ({})); imageUrl = uj.file_url || ""; }
     } catch (e) {}
     // No photo: Cinema Studio works from the text alone.
     try {
@@ -23767,7 +23599,7 @@ async function vsAnalyzeShotList(blob, fracs) {
     const frames = await vsVideoFrames(blob, at);
     for (let i = 0; i < frames.length; i++) {
       try {
-        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
+        const up = await vsFalFetch(WB + "/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: frames[i] });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
         const sc = await vsVisionScene(uj.file_url); if (!sc) continue;
         out.shots.push({
@@ -23811,7 +23643,7 @@ async function vsSampleVideoTitleCards(videoUrl) {
     const cards = [];
     for (const fr of frames) {
       try {
-        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
+        const up = await vsFalFetch(WB + "/upload", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fr });
         const uj = await up.json().catch(() => ({})); if (!uj.file_url) continue;
         const vis = await vsVisionAnalyze(uj.file_url); if (!vis) continue;
         // The vision model doesn't always classify a bold on-screen phrase as
@@ -24287,7 +24119,7 @@ async function reBuildImageModel(cfg) {
     if (cfg.ownImage) {
       const upIc = line(fa ? "آپلودِ عکسِ تو" : "Uploading your photo");
       try {
-        const up = await vsFalFetch(WB + "/fal/upload", { method: "POST", headers: { "Content-Type": cfg.ownImage.type || "image/jpeg" }, body: cfg.ownImage });
+        const up = await vsFalFetch(WB + "/upload", { method: "POST", headers: { "Content-Type": cfg.ownImage.type || "image/jpeg" }, body: cfg.ownImage });
         const uj = await up.json().catch(() => ({}));
         ownUrl = uj.file_url || "";
         ownUrl ? done(upIc) : bad(upIc);
@@ -24313,7 +24145,6 @@ async function reBuildImageModel(cfg) {
     riCancelUrl = (sub && sub.cancel_url) || "";
     const statusUrl = sub.status_url;
     if (!statusUrl) throw new Error((sub && (sub.error || sub.detail)) || "submit failed");
-    try { vsFalJobRemember({ statusUrl, respUrl: "", action: "image", name: "image" }); } catch (e) {}
     done(ic);
 
     const HF_TO = { queued: "IN_QUEUE", in_progress: "IN_PROGRESS", completed: "COMPLETED", failed: "FAILED", nsfw: "FAILED", canceled: "FAILED" };
@@ -24342,7 +24173,6 @@ async function reBuildImageModel(cfg) {
     done(renderIc);
     stageEl.textContent = "";
     vsSettle(charge.jobId, "done");
-    try { vsFalJobForget(statusUrl); } catch (e) {}
     try { vsTrackGen(M.action, M.model, "image"); } catch (e) {}
 
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
@@ -24444,8 +24274,8 @@ async function vsBuildVideoModel(cfg) {
     // audio-driven builders (text-to-speech and strict lip-sync).
     const isHf = cfg.provider === "hf";
     if (cancelled) return;                   // cancelled before anything was sent
-    const sub = isHf ? await vsStartPaid(charge.jobId, cfg.model, cfg.input)
-                     : await post("/fal/submit", { model: cfg.model, input: cfg.input });
+    // Higgsfield only (fal is gone): started by the server, which charged first.
+    const sub = await vsStartPaid(charge.jobId, cfg.model, cfg.input);
     submitted = true;
     hfCancelUrl = (sub && sub.cancel_url) || "";
     // Cancelled while the submit was in flight: the job is queued, so cancel
@@ -24460,9 +24290,8 @@ async function vsBuildVideoModel(cfg) {
     // With the job id, so a recovery on a later visit can refund a failure or
     // settle a delivery - without it the ledger could collect a video but never
     // square the account.
-    try { vsFalJobRemember({ statusUrl, respUrl, action: cfg.action || "video", name: cfg.title || "video", jobId: charge.jobId }); } catch (e) {}
     done(ic);
-    const pollUrl = (u) => WB + (isHf ? "/hf/poll?url=" : "/fal/poll?url=") + encodeURIComponent(u);
+    const pollUrl = (u) => WB + "/hf/poll?url=" + encodeURIComponent(u);
     // Higgsfield's vocabulary, translated into the one this loop already
     // speaks. nsfw and canceled become FAILED because that is what they are
     // from here: no video, and the credits go back.
@@ -24504,7 +24333,6 @@ async function vsBuildVideoModel(cfg) {
     done(renderIc);
     stageEl.textContent = "";
     vsSettle(charge.jobId, "done");
-    try { vsFalJobForget(statusUrl); } catch (e) {}   // collected - nothing left owing
     vsTrackGen(cfg.action, cfg.model, "sec:" + cfg.seconds);
     let blob = null; try { blob = await (await fetch(out)).blob(); } catch (e) {}
     // Burn the reference's detected title-card text onto the video (e.g. a
@@ -27648,13 +27476,8 @@ async function vsHfRun(model, input, opts) {
     await vsHfCancel(sub.cancel_url);
     return { status: "canceled", cancel_url: sub.cancel_url, status_url: sub.status_url };
   }
-  // Written down BEFORE the first poll. A tab closed between submitting and
-  // finishing is the one way a paid job disappears with nothing to refund and
-  // no way to collect it, and this is the ledger that survives a reload.
-  try {
-    vsFalJobRemember({ statusUrl: sub.status_url, model: model, action: opts.action || "",
-                       name: opts.name || "video", credits: opts.credits || 0, jobId: opts.jobId || "" });
-  } catch (e) {}
+  // A tab closed mid-render no longer loses the job: the server's sweeper
+  // settles it and puts the result in the Library.
 
   const TERMINAL = ["completed", "failed", "nsfw", "canceled"];
   let wait = 0;
@@ -27677,8 +27500,8 @@ async function vsHfRun(model, input, opts) {
  * Swap a character or an object out of a finished clip.
  *
  * The reference video and the reference images both have to be URLs the model
- * can fetch, so they go through the existing /fal/upload - used here purely
- * as a file host, which is all it ever was. Generation is Higgsfield's.
+ * can fetch, so they go through the worker's /upload - Higgsfield's own file
+ * storage, the same platform that then generates.
  *
  * Priced on the INPUT clip, rounded up to the second, which is the part worth
  * saying out loud on screen before anyone presses the button: ten seconds at
@@ -27719,7 +27542,7 @@ async function vsBuildGenjutsu(cfg) {
     : (fa ? "جایگزینیِ شخصیت (Genjutsu)" : "Genjutsu character swap");
 
   const upload = async (file, type) => {
-    const r = await vsFalFetch(WB + "/fal/upload", { method: "POST", timeoutMs: 180000,
+    const r = await vsFalFetch(WB + "/upload", { method: "POST", timeoutMs: 180000,
       headers: { "Content-Type": type || file.type || "application/octet-stream" }, body: file });
     const j = await r.json().catch(() => ({}));
     if (!j.file_url) throw new Error(j.error || "upload failed");
@@ -27844,7 +27667,6 @@ async function vsBuildGenjutsu(cfg) {
     done(gen);
 
     // Delivered, so the ledger can let go of it.
-    try { vsFalJobForget(out.status_url); } catch (e) {}
     vsSettle(charge.jobId, "done");
     stage.textContent = "";
     result.innerHTML = '<video src="' + url + '" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>' +
