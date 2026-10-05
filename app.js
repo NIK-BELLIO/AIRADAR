@@ -92,6 +92,7 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    vNarrateLbl: "Voice-over + word-by-word captions (free · English, Spanish, French)",
     reTitle: "Build from a reference",
     reSub: "Paste a link, add your info, then pick how to render it.",
     reH2: "Turn any post into yours",
@@ -559,6 +560,7 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    vNarrateLbl: "صدای گوینده + زیرنویس کلمه‌به‌کلمه (رایگان · انگلیسی، اسپانیایی، فرانسوی)",
     reTitle: "ساختن از روی یک نمونه",
     reSub: "لینک را بگذار، اطلاعات خودت را اضافه کن، بعد نحوهٔ ساخت را انتخاب کن.",
     reH2: "هر پستی را مال خودت کن",
@@ -7458,15 +7460,15 @@ Turn the SOURCE below into a complete, professional short-form video script that
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"${hasSource ? "the real publication named in the SOURCE, or empty string" : ""}","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"natural 1-2 sentence spoken hook","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"2-3 spoken sentences that interpret the verified figures and explain the real-world implication, not just read them out","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"specific on-screen sentence max 12 words","narration":"2-3 broadcast-quality spoken sentences with context and consequence","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"3-6 word stock-footage search query for this scene's B-roll — concrete and filmable, no abstract concepts","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence — the analyst's bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"${hasSource ? "the real publication named in the SOURCE, or empty string" : ""}","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"ONE punchy spoken hook sentence, max 14 words, that makes the viewer stay","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"1-2 short spoken sentences, max 24 words in total, saying what these numbers mean for the viewer","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"on-screen line, max 7 words, plain everyday words","narration":"1-2 short spoken sentences, max 24 words in total, with the context and why it matters","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence, max 14 words — the bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
 
 RULES:
-0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
+0. Add narration to intro, every section and outro. It is READ ALOUD by a voice-over, so write for the ear: 1-2 short sentences per content scene (max 24 words), short everyday words, contractions, like a sharp creator talking to a friend. Say numbers the way people say them ("100 dollars", "40 percent"). Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
 1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
 2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
-3. TEXT: narrative/quotes/context. headline = ONE concrete, specific sentence pulled from the real substance — never vague filler like "a new era" or "the future is here".
+3. TEXT: narrative/quotes/context. headline = max 7 words a 12-year-old understands, concrete and specific — never jargon ("maturation", "accelerates availability", "leverage", "paradigm") and never vague filler like "a new era" or "the future is here". The narration explains; the headline only lands the point.
 4. Never two infographics in a row. Vary text styles for rhythm.
-4b. "visual" on every section: a short, concrete, filmable stock-footage query for THAT scene's specific content (e.g. "engineers testing server racks", not "technology" or "innovation concept").
+4b. "visual" on every section: 2-4 common, filmable words a stock-video site would actually have for THAT scene (e.g. "server room engineer", "electric car charging", "factory robot arm") — never "technology" or "innovation concept", and never a long phrase stock libraries cannot match.
 5. Match the ${tone} tone precisely in word choice and energy.
 6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
 7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
@@ -7716,13 +7718,13 @@ async function vsBuildFromScript(data, text, lenChoice) {
       vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null;
     }
 
-    vsAutoStatus(state.lang === "fa"
+    vsAutoStatus((state.lang === "fa"
       ? (_usedLocalFallback
           ? `ویدیو با ${vstudio.slides.length} صحنه ساخته شد (حالت ساده — مدل هوشمند در دسترس نبود).`
           : `ویدیو با ${vstudio.slides.length} صحنه ساخته شد.`)
       : (_usedLocalFallback
           ? `Built a ${vstudio.slides.length}-scene video (basic mode — smart model was unavailable).`
-          : `Built a ${vstudio.slides.length}-scene video.`));
+          : `Built a ${vstudio.slides.length}-scene video.`)) + (vstudio._voiceNote ? " " + vstudio._voiceNote : ""));
   } catch (e) {
     // Last-resort safety net: even if assembling the AI script threw, try one
     // clean local build so the user still ends up with a video.
@@ -8007,6 +8009,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     // to our name whenever the writer produced none, so the guard further
     // down never fired. Empty means the intro card simply has no eyebrow.
     _kicker: kicker || "",
+    _narration: (data.intro && data.intro.narration) || "",
     _heroWord: (data.intro && data.intro.heroWord) || "",
     _image: (data.intro && data.intro.image) || "",
     _timelineLabel: introMain
@@ -8178,6 +8181,7 @@ async function vsAssembleFromSections(data, skipFootage) {
     introSub: outroSub, introMotion: "rise",
     _sourceLine: srcLabel,              // credit the real source on the outro too
     headline: "", duration: narrationDuration(data.outro && data.outro.narration, 3, outroMain + " " + outroSub), settings: cleanSet2(),
+    _narration: (data.outro && data.outro.narration) || "",
     _heroWord: (data.outro && data.outro.heroWord) || "",
     _image: (data.outro && data.outro.image) || "",
     _timelineLabel: outroMain
@@ -8197,8 +8201,16 @@ async function vsAssembleFromSections(data, skipFootage) {
   // AWAIT it so the loading overlay stays up until every scene's footage is
   // loaded — the user asked to see the finished video WITH its footage, not a
   // text-only preview that fills in seconds later.
+  // The voice is recorded while the footage is found - neither waits on the
+  // other - and the scenes are re-timed to it once both are in.
+  vstudio._voiceNote = "";
+  const voiceJob = skipFootage ? null : vsAddVoiceover(data).catch(() => false);
   if (!skipFootage) {
     await vsAutoGenerateBackgrounds(data);
+  }
+  if (voiceJob && await voiceJob) {
+    renderSlideList();
+    drawStudioFrame(vstudio.position || 0);
   }
 }
 
@@ -8383,7 +8395,29 @@ function vsLoadClipUrl(url, ms) {
   });
 }
 
-async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
+// How well a stock result's own description matches the search. Pexels
+// answers by popularity as much as by meaning, so "dealership lot with electric
+// cars" came back with palm trees first; every result carries words of its own
+// (a clip's page slug, a photo's alt text), and ranking by the overlap puts the
+// ones that are actually about the scene in front.
+function vsStockRelevance(query, item) {
+  const stem = (w) => w.toLowerCase().replace(/(ing|ies|es|ed|s)$/, "");
+  const words = (t) => String(t || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2).map(stem);
+  const slug = String((item && item.url) || "").split("/").filter(Boolean).pop() || "";
+  const desc = new Set(words([slug.replace(/-\d+$/, ""), item && item.alt, (item && Array.isArray(item.tags) ? item.tags.join(" ") : "")].join(" ")));
+  const q = Array.from(new Set(words(query)));
+  if (!q.length) return 0;
+  return q.reduce((n, w) => n + (desc.has(w) ? 1 : 0), 0) / q.length;
+}
+// Rotation keeps scenes on different results; relevance decides the order.
+function vsStockOrder(items, query, variant, extra) {
+  const rot = [];
+  for (let k = 0; k < items.length; k++) rot.push(items[(variant + k) % items.length]);
+  return rot.map((it, k) => ({ it, k, sc: vsStockRelevance(query, it) + (extra ? extra(it) : 0) }))
+    .sort((a, b) => (b.sc - a.sc) || (a.k - b.k)).map((x) => x.it);
+}
+
+async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/videos/search?query=" + encodeURIComponent(query) +
@@ -8391,9 +8425,8 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
   const json = await vsPexelsSearch(url, key);
   const vids = (json && json.videos) || [];
   if (!vids.length) return null;
-  // rotate the video order by `variant` so each scene starts at a different clip
-  const order = [];
-  for (let k = 0; k < vids.length; k++) order.push(vids[(variant + k) % vids.length]);
+  // A clip long enough to play at normal speed through a scene is worth a little.
+  const order = vsStockOrder(vids, query, variant, (v) => (v.duration >= 6 ? 0.15 : 0));
   // Every candidate, not the first four: skipping a taken url is a string
   // comparison, and with a shared set the later scenes found their four already
   // gone and came away with nothing.
@@ -8426,7 +8459,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken) {
         // that miss used to hold the gate for sixteen, two at a time, which is
         // where a batch lost its minutes. Eight is past the arrivals and well
         // short of the stragglers.
-        _vsPexelsDirectDead ? 8000 : 7000);
+        deadline || (_vsPexelsDirectDead ? 8000 : 7000));
       el.onloadeddata = () => {
         if (done) return; done = true; clearTimeout(timer);
         // Deliberately NOT played here. A playing, looping element downloads the
@@ -8457,8 +8490,7 @@ async function vsFetchPexelsPhoto(query, key, aspect, variant, taken) {
   const json = await vsPexelsSearch(url, key);
   const photos = (json && json.photos) || [];
   if (!photos.length) return null;
-  const order = [];
-  for (let k = 0; k < photos.length; k++) order.push(photos[(variant + k) % photos.length]);
+  const order = vsStockOrder(photos, query, variant);
   for (const p of order) {   // every candidate - see the note in the clip fetch
     const link = p.src && (p.src.large2x || p.src.large || p.src.original);
     if (!link) continue;
@@ -8894,6 +8926,287 @@ async function vsGenerateNarrationLegacy(data, voice) {
     } catch (e) { buffer = null; }
     return { url: objUrl, el, buffer };
   } catch (e) { return null; }
+}
+
+// ── Voice-over + word-by-word captions ─────────────────────────────────────
+// Every scene's narration is spoken by MeloTTS on our own worker (/tts, about
+// 18 neurons a spoken minute - free in practice), one request per scene so each
+// line starts exactly when its scene does. The scene is then stretched to fit
+// its line, the lines are laid into ONE buffer at their scenes' start times, and
+// that buffer is the narration track the preview and both exporters already
+// play. Captions are timed from the same clips: the real speech start/end is
+// measured from the samples and the words are spread across it by length.
+const VS_TTS_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/tts";
+const VS_TTS_LANGS = { en: 1, es: 1, fr: 1, zh: 1, ja: 1, ko: 1 };
+const VS_VOICE_LEAD = 0.2;    // a beat before the line starts in each scene
+const VS_VOICE_TAIL = 0.45;   // and a beat after it ends, before the cut
+
+function vsNarrateOn() {
+  const t = document.querySelector("#vsNarrate");
+  return !t || !!t.checked;
+}
+
+// The script's language when the writer gave one, checked against the letters
+// actually used - a Persian script tagged "en" must not be read as English.
+function vsVoiceLang(data, sample) {
+  const s = String(sample || "");
+  if (/[؀-ۿ]/.test(s)) return "fa";
+  if (/[぀-ヿ]/.test(s)) return "ja";
+  if (/[가-힯]/.test(s)) return "ko";
+  if (/[一-鿿]/.test(s)) return "zh";
+  const l = String((data && data.language) || "").toLowerCase().slice(0, 2);
+  return /^[a-z]{2}$/.test(l) ? l : "en";
+}
+
+// What the voice should say: no markdown, no emoji, symbols as words.
+function vsSpeakable(text) {
+  return String(text || "")
+    .replace(/[#*_`~>\[\]{}|]/g, " ")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ")
+    .replace(/(\d)\s*%/g, "$1 percent")
+    .replace(/&/g, " and ")
+    .replace(/\s+/g, " ").trim().slice(0, 560);
+}
+
+// Where the speech really is inside a clip - MeloTTS pads both ends with
+// silence, and timing captions from the padded length puts every word late.
+function vsSpeechBounds(buf) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate, thr = 0.02;
+  let a = 0, b = d.length - 1;
+  while (a < d.length && Math.abs(d[a]) < thr) a++;
+  while (b > a && Math.abs(d[b]) < thr) b--;
+  if (b <= a) return { start: 0, end: buf.duration };
+  return { start: Math.max(0, a / sr - 0.03), end: Math.min(buf.duration, (b + 1) / sr + 0.05) };
+}
+
+// Word timings from length: each word takes time in proportion to its letters,
+// and a comma or full stop adds a pause after it.
+function vsWordTimes(text, t0, t1) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const len = (w) => w.replace(/[^\p{L}\p{N}]/gu, "").length + 1.5;
+  const gap = (w) => /[.!?]["')]*$/.test(w) ? 3.5 : /[,;:—-]["')]*$/.test(w) ? 1.8 : 0;
+  const total = words.reduce((n, w) => n + len(w) + gap(w), 0) || 1;
+  const unit = Math.max(0.01, t1 - t0) / total;
+  let t = t0;
+  return words.map((w) => {
+    const o = { w, t0: t, t1: t + len(w) * unit };
+    t = o.t1 + gap(w) * unit;
+    return o;
+  });
+}
+
+// Group words into caption lines of up to three, breaking after punctuation.
+function vsCaptionChunks(words) {
+  const out = [];
+  let cur = [];
+  words.forEach((w, i) => {
+    cur.push(i);
+    const long = cur.reduce((n, k) => n + words[k].w.length, 0) > 16;
+    if (cur.length >= 3 || long || /[.!?,;:]["')]*$/.test(w.w)) { out.push(cur); cur = []; }
+  });
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+// Recorded lines are kept for the page's life: a batch rebuilds its scenes every
+// time a video is opened, and the same line need not be spoken twice.
+const VS_TTS_CACHE = new Map();
+async function vsFetchSceneVoice(text, lang, headers) {
+  const key = lang + "|" + text;
+  if (VS_TTS_CACHE.has(key)) return VS_TTS_CACHE.get(key);
+  const buf = await vsFetchSceneVoiceOnce(text, lang, headers);
+  if (buf) VS_TTS_CACHE.set(key, buf);
+  return buf;
+}
+async function vsFetchSceneVoiceOnce(text, lang, headers) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController();
+    const tm = setTimeout(() => ctrl.abort(), 40000);
+    try {
+      const r = await fetch(VS_TTS_URL, { method: "POST", headers, signal: ctrl.signal,
+        body: JSON.stringify({ text, lang }) });
+      if (r.status === 401) {
+        try { const j = await r.json(); if (j && j.needLogin) arGuestWall("tts"); } catch (e) {}
+        return null;
+      }
+      if (!r.ok) continue;
+      const bytes = await r.arrayBuffer();
+      if (bytes.byteLength < 400) continue;
+      if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return await vstudio._playCtx.decodeAudioData(bytes);
+    } catch (e) {
+      // a timeout or a dropped connection - one more try, then the scene is silent
+    } finally { clearTimeout(tm); }
+  }
+  return null;
+}
+
+/**
+ * Speak every scene's narration and fit the scenes to it. Returns true when at
+ * least one scene got a voice. Never throws: a reel without a voice is still a
+ * reel, so every failure here just leaves that scene silent.
+ */
+async function vsAddVoiceover(data) {
+  const slides = vstudio.slides;
+  slides.forEach((s) => { s._voice = null; });
+  vstudio._voiceSig = "";
+  if (!vsNarrateOn() || !slides.length) { vsClearVoiceTrack(); return false; }
+  const fa = state.lang === "fa";
+  const lines = slides.map((s) => vsSpeakable(s._narration || ""));
+  const sample = lines.join(" ");
+  if (!sample.trim()) { vsClearVoiceTrack(); return false; }
+  const lang = vsVoiceLang(data, sample);
+  if (!VS_TTS_LANGS[lang]) {
+    vsClearVoiceTrack();
+    vstudio._voiceNote = fa
+      ? "صدای گوینده فعلاً فقط برای انگلیسی، اسپانیایی و فرانسوی است، پس این ویدیو بدون گوینده است."
+      : "Voice-over speaks English, Spanish and French for now, so this one has no voice.";
+    return false;
+  }
+  vsAutoStatus(fa ? "ضبط صدای گوینده…" : "Recording the voice-over…");
+  let headers = { "Content-Type": "application/json" };
+  try { Object.assign(headers, await arGuestHeaders()); } catch (e) {}
+  const bufs = new Array(slides.length).fill(null);
+  const queue = lines.map((text, i) => ({ text, i })).filter((q) => q.text);
+  await Promise.all(new Array(Math.min(4, queue.length)).fill(0).map(async () => {
+    while (queue.length && !vstudio._batchCancel) {
+      const q = queue.shift();
+      bufs[q.i] = await vsFetchSceneVoice(q.text, lang, headers);
+    }
+  }));
+  let any = false;
+  bufs.forEach((buf, i) => {
+    if (!buf) return;
+    const s = slides[i];
+    const b = vsSpeechBounds(buf);
+    const len = b.end - b.start;
+    const words = vsWordTimes(lines[i], VS_VOICE_LEAD, VS_VOICE_LEAD + len);
+    s._voice = { buf, cut: b.start, len, at: VS_VOICE_LEAD, words, chunks: vsCaptionChunks(words) };
+    s.duration = Math.max(Number(s.duration) || 0, VS_VOICE_LEAD + len + VS_VOICE_TAIL);
+    any = true;
+  });
+  if (!any) {
+    vsClearVoiceTrack();
+    vstudio._voiceNote = fa ? "صدای گوینده ضبط نشد، پس این ویدیو بدون گوینده است." : "The voice-over could not be recorded, so this one has no voice.";
+    return false;
+  }
+  vsMixVoiceTrack(true);
+  return true;
+}
+
+function vsClearVoiceTrack() {
+  if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch (e) {} }
+  if (vstudio._voiceUrl) { try { URL.revokeObjectURL(vstudio._voiceUrl); } catch (e) {} }
+  vstudio._voiceUrl = null; vstudio.narrationEl = null; vstudio._narrationBuffer = null; vstudio._voiceSig = "";
+}
+
+// Lay each scene's line into one track at its scene's start time. Rebuilt
+// whenever scenes are reordered, removed or re-timed, so the voice never drifts
+// from the picture after an edit.
+function vsMixVoiceTrack(force) {
+  const slides = vstudio.slides;
+  if (!slides.some((s) => s._voice)) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); return; }
+  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "")).join("|");
+  if (!force && sig === vstudio._voiceSig) return;
+  if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const sr = vstudio._playCtx.sampleRate;
+  const total = slides.reduce((n, s) => n + (Number(s.duration) || 4), 0);
+  const out = vstudio._playCtx.createBuffer(1, Math.max(1, Math.ceil(total * sr)), sr);
+  const dst = out.getChannelData(0);
+  let start = 0;
+  slides.forEach((s) => {
+    const d = Number(s.duration) || 4;
+    const v = s._voice;
+    if (v && v.buf) {
+      const src = v.buf.getChannelData(0);
+      const from = Math.floor(v.cut * v.buf.sampleRate);
+      // Never past the scene's end: a line cut short by a shortened scene stops
+      // there instead of talking over the next one.
+      const n = Math.min(Math.floor(v.len * v.buf.sampleRate), Math.floor((d - v.at) * sr));
+      const at = Math.floor((start + v.at) * sr);
+      for (let k = 0; k < n && at + k < dst.length; k++) dst[at + k] = src[from + k] || 0;
+    }
+    start += d;
+  });
+  const wasPlaying = !!(vstudio.narrationEl && !vstudio.narrationEl.paused);
+  if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch (e) {} }
+  if (vstudio._voiceUrl) { try { URL.revokeObjectURL(vstudio._voiceUrl); } catch (e) {} }
+  vstudio._voiceUrl = URL.createObjectURL(vsAudioBufferToWav(out));
+  const el = new Audio(vstudio._voiceUrl); el.preload = "auto";
+  vstudio.narrationEl = el;
+  vstudio._narrationBuffer = out;
+  vstudio._voiceSig = sig;
+  if (wasPlaying && vstudio.looping) {
+    try { el.currentTime = vstudio.position || 0; el.play().catch(() => {}); } catch (e) {}
+  }
+}
+
+// The caption line under the speaker: up to three words, the one being said
+// lifted onto an accent block. Drawn last (after text and graphics), so it is
+// never hidden, and from the same timings in preview and export.
+function vsDrawCaptions(ctx, W, H, elapsed) {
+  if (!vstudio.slides.length || !vstudio._narrationBuffer || !vsNarrateOn()) return;
+  const at = slideAtTime(elapsed);
+  const s = vstudio.slides[at.index];
+  const v = s && s._voice;
+  if (!v || !v.words.length) return;
+  const t = at.local;
+  const first = v.words[0], last = v.words[v.words.length - 1];
+  if (t < first.t0 - 0.04 || t > last.t1 + 0.3 || t > at.dur - 0.08) return;
+  let cur = 0;
+  for (let k = 0; k < v.words.length; k++) if (v.words[k].t0 <= t) cur = k;
+  const chunk = v.chunks.find((c) => c.includes(cur)) || v.chunks[0];
+  const words = chunk.map((k) => v.words[k]);
+  const sinceChunk = t - words[0].t0;
+  const portrait = H > W;
+  const base = Math.round(Math.min(W, H) * (portrait ? 0.074 : 0.062));
+  const font = (px) => `900 ${px}px Archivo, "Vazirmatn", system-ui, sans-serif`;
+  // pop in: each new line lands from 86% to full size in a tenth of a second
+  const pop = Math.min(1, Math.max(0, sinceChunk / 0.1));
+  const scale = 0.86 + 0.14 * (1 - Math.pow(1 - pop, 3));
+  ctx.save();
+  ctx.font = font(base);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  try { ctx.direction = "ltr"; } catch (e) {}
+  const label = (w) => w.w.replace(/^["'(]+|["')]+$/g, "").toUpperCase();
+  const space = base * 0.32;
+  const widths = words.map((w) => ctx.measureText(label(w)).width);
+  let lineW = widths.reduce((n, w) => n + w, 0) + space * (words.length - 1);
+  const maxW = W * 0.86;
+  const fit = lineW > maxW ? maxW / lineW : 1;
+  // Below the headline band (titles end near two-thirds down) and above the
+  // strip a phone app covers with its own buttons.
+  const cx = W / 2, cy = H * (portrait ? 0.83 : 0.86);
+  ctx.translate(cx, cy);
+  ctx.scale(scale * fit, scale * fit);
+  ctx.globalAlpha = Math.min(1, 0.25 + pop);
+  let x = -lineW / 2;
+  let accent = "#f5c451";
+  try { const tp = typeof vsTemplate === "function" ? vsTemplate() : null; if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
+  words.forEach((w, j) => {
+    const k = chunk[j];
+    const txt = label(w);
+    const ww = widths[j];
+    const on = k === cur;
+    if (on) {
+      const padX = base * 0.18, padY = base * 0.12, r = base * 0.16;
+      const bx = x - padX, by = -base / 2 - padY, bw = ww + padX * 2, bh = base + padY * 2;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh);
+      ctx.fill();
+    }
+    ctx.lineJoin = "round";
+    ctx.lineWidth = base * 0.16;
+    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    if (!on) ctx.strokeText(txt, x, 0);
+    ctx.fillStyle = on ? "#0b0d12" : "#ffffff";
+    ctx.fillText(txt, x, 0);
+    x += ww + space;
+  });
+  ctx.restore();
 }
 
 // A per-topic colour system for the Editorial mode (keeps one
@@ -9602,6 +9915,8 @@ async function vsAutoGenerateBackgrounds(data) {
         if (media && !vstudio._batchCancel) {
           s.mediaEl = media; s.isVideo = (media.tagName === "VIDEO");
           s.ready = true; s.url = media.currentSrc || media.src;
+          // A still is a stand-in: the pass below tries once more for a clip.
+          s._stillQuery = s.isVideo ? "" : query;
           // The opening clip is the town's, so keep it. Only a clip: a still is
           // cheap to find again and not worth pinning a town to.
           if (i === 0 && s.isVideo && data && data._regionId) {
@@ -9629,6 +9944,7 @@ async function vsAutoGenerateBackgrounds(data) {
   };
 
   vsAutoStatus(state.lang === "fa" ? "در حال ساخت فوتیج همهٔ صحنه‌ها…" : "Finding footage for all scenes…");
+  const _vsFootageRun = async () => {
   // All at once when the CDN is reachable: the requests go to several different
   // hosts and nothing queues. When everything is relayed through our worker they
   // all land on one origin, where a browser allows about six connections - so
@@ -9651,6 +9967,32 @@ async function vsAutoGenerateBackgrounds(data) {
     await Promise.all(runners);
   } else {
     await Promise.all(slides.map((s, i) => genOne(s, i)));   // PARALLEL — much faster
+  }
+  };
+  await _vsFootageRun();
+  // Stills into clips. A scene falls back to a photo when its clip missed the
+  // first deadline, which on the relayed route is a slow download rather than
+  // no clip at all. The search is cached, so this costs no API call - only a
+  // second, longer wait for the same kind of clip - and the whole pass is
+  // capped so a bad connection cannot hold the build up.
+  {
+    const stills = slides.filter((s) => s._stillQuery && !s.isVideo && s.mediaEl);
+    if (stills.length && pexelsOn && pexelsKey && !vstudio._batchCancel) {
+      vsAutoStatus(state.lang === "fa" ? "جایگزینی عکس‌های ثابت با فیلم…" : "Swapping still photos for video clips…");
+      const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
+      let open = true;
+      const swaps = stills.map(async (s, k) => {
+        const m = await vsFetchPexelsClip(s._stillQuery, pexelsKey, aspect, k, used, 15000);
+        if (!m) return;
+        const src = m.currentSrc || m.src;
+        if (!open || vstudio._batchCancel || used.has(src)) { try { m.removeAttribute("src"); m.load(); } catch (e) {} return; }
+        used.add(src);
+        s.mediaEl = m; s.isVideo = true; s.url = src; s._stillQuery = "";
+      });
+      await Promise.race([Promise.all(swaps), new Promise((r) => setTimeout(r, 25000))]);
+      open = false;
+      renderSlideList(); drawStudioFrame(vstudio.position || 0);
+    }
   }
   // N of M, not just N. "Footage ready for 3 scenes" sounds finished when the
   // other four are still on a plain template background - which is what a
@@ -10606,22 +10948,9 @@ async function vsLoadBatchVideo(i) {
     vstudio._musicBuffer = vstudio._userMusicBuffer || null;
   }
 
-  // AI voiceover — generate once per video, cache it, set as the narration track.
-  const voTog = document.querySelector("#vsVoiceover");
-  if (false && voTog && voTog.checked) {
-    if (!v._narrationEl && !vstudio._batchCancel) {
-      vsAutoStatus(fa ? `در حال ساخت روایت صوتی برای ${v.name}…` : `Recording voiceover for ${v.name}…`);
-      const nar = await vsGenerateNarration(v.data);
-      if (nar) { v._narrationEl = nar.el; v._narrationUrl = nar.url; v._narrationBuffer = nar.buffer || null;
-        try { console.log("[audio] voiceover ready for", v.name, "(buffer:" + (!!nar.buffer) + ")"); } catch(e){} }
-      else { try { console.warn("[audio] voiceover generation FAILED for", v.name); } catch(e){} }
-    }
-    vstudio.narrationEl = v._narrationEl || null;
-    vstudio._narrationBuffer = v._narrationBuffer || null;
-  } else {
-    vstudio.narrationEl = null;
-    vstudio._narrationBuffer = null;
-  }
+  // Voice-over: recorded once per line (cached), laid over this video's scenes.
+  vstudio._voiceNote = "";
+  if (!vstudio._batchCancel) await vsAddVoiceover(v.data).catch(() => false);
 
   // Motion-graphic decks carry their look in per-slide props (motionBg /
   // sceneGraphic / panelLayout) that the footage cache does NOT capture, and they
@@ -11304,6 +11633,8 @@ function syncStudioControls() {
 
 // Render the slide list with thumbnails and controls.
 function renderSlideList() {
+  // A scene moved, removed or re-timed moves its voice with it.
+  try { if (vstudio._voiceSig) { clearTimeout(vstudio._voiceMixT); vstudio._voiceMixT = setTimeout(() => vsMixVoiceTrack(false), 250); } } catch (e) {}
   const list = $("#vsSlideList");
   if (!list) return;
   if (!vstudio.slides.length) {
@@ -16887,6 +17218,7 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     try { if (typeof vsTemplate === "function") _tpl = vsTemplate(); } catch (e) {}
     vsDrawLogo(ctx, W, H, elapsed, dsLocal, _tpl);
   }
+  try { vsDrawCaptions(ctx, W, H, elapsed); } catch (e) {}
   // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
   if (vstudio.snapGuideX || vstudio.snapGuideY) {
     ctx.save();
@@ -16906,8 +17238,35 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     }
     ctx.restore();
   }
-  const transKind = vsVal("#vsTransition", "fade");
-  if (vstudio.slides.length && transKind !== "none") {
+  const transKind = vsVal("#vsTransition", "punch");
+  // Punch cut: the reel look. No dip to black between scenes - the new scene
+  // lands with a quick zoom settle and a light flash, a quarter of a second -
+  // so only the very first and last frames fade.
+  if (vstudio.slides.length && transKind === "punch") {
+    const at = slideAtTime(elapsed);
+    const pIn = 0.24;
+    if (at.index > 0 && dsLocal < pIn) {
+      const c = 1 - dsLocal / pIn;
+      const tmp = vsScratchCanvas(W, H);
+      const tctx = tmp.getContext("2d");
+      tctx.clearRect(0, 0, W, H); tctx.drawImage(canvas, 0, 0);
+      const z = 1 + 0.1 * c * c;
+      ctx.save();
+      ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+      ctx.drawImage(tmp, 0, 0);
+      ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.3 * c * c; ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+    let cover = 0;
+    if (at.index === 0 && dsLocal < 0.3) cover = 1 - dsLocal / 0.3;
+    if (at.index === vstudio.slides.length - 1 && dsLocal > dsDur - 0.8) cover = Math.max(cover, 1 - (dsDur - dsLocal) / 0.8);
+    if (cover > 0.001) {
+      ctx.save(); ctx.globalAlpha = Math.min(1, cover); ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+  }
+  if (vstudio.slides.length && transKind !== "none" && transKind !== "punch") {
     const fadeT = 0.45;
     let cover = 0, slideOff = 0, zoom = 1;
     if (dsLocal < fadeT) cover = Math.max(cover, 1 - dsLocal / fadeT);
@@ -17690,7 +18049,9 @@ function vsApplyMusicFade(elapsed, duration) {
   }
   // respect a user music-volume setting if one exists
   const base = Number(vsVal("#vsMusicVolume", 1));
-  try { m.volume = Math.max(0, Math.min(1, vol * (isNaN(base) ? 1 : base))); }
+  // Under a voice the bed drops to half, as it does in the export mix.
+  const duck = vstudio._narrationBuffer ? 0.5 : 1;
+  try { m.volume = Math.max(0, Math.min(1, vol * duck * (isNaN(base) ? 1 : base))); }
   catch {}
 }
 
