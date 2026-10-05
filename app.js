@@ -9638,17 +9638,28 @@ function vsCleanItemNames(names, fullText) {
     /,\s*(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/.test(n) ||
     /\b(?:City|Suburbs)$/i.test(n) ||
     BARE_STATE.test(String(n).trim());
+  const body = String(fullText || "").toLowerCase();
+  const isNamedPlace = (n) => isPlace(n) || (
+    body.includes(String(n).toLowerCase()) && /^[\p{Lu}\p{Lo}]/u.test(String(n)) &&
+    String(n).trim().split(/\s+/).length <= 3 && !/\d/.test(n));
 
   let out = (names || []).map(n => String(n).trim().replace(/^[\d.)\-\s]+/, ""))
     .map(n => isPlace(n) ? stripLead(n) : n)               // clean "Expo City, ST" → "City, ST"
-    .filter(n => n.length >= 3 && n.length <= 40 && /[A-Za-z]/.test(n))
+    .filter(n => n.length >= 2 && n.length <= 40 && /\p{L}/u.test(n))   // any alphabet, not only Latin
     .filter(n => !STOP.has(n.toLowerCase().replace(/[.!?,:;]+$/, "")))
     .filter(n => !CRED.test(n))                               // drop quoted experts
     .filter(n => !/^(your|the|a|an|my|our|this|these|those|how|why|what|when)\s/i.test(n)); // drop phrases
   out = out.filter((n, i) => out.findIndex(m => m.toLowerCase() === n.toLowerCase()) === i);
 
-  const placesMode = /\b\d{0,2}\s*(?:most|least|best|top|cheapest|affordable|safest|cheap|nicest|coolest)?\s*(cities|towns|places|destinations|states|suburbs|neighborhoods|counties|markets|metros|metro areas)\b/i.test(String(fullText || ""));
-  const places = out.filter(isPlace);
+  const placesMode = /\b\d{0,2}\s*(?:most|least|best|top|cheapest|affordable|safest|cheap|nicest|coolest)?\s*(cities|towns|places|destinations|states|suburbs|neighborhoods|counties|markets|metros|metro areas)\b/i.test(String(fullText || "")) ||
+    /(شهرها|شهرهای|شهر|استان|مقصد|جاهای)/.test(String(fullText || ""));
+  // US-shaped names win when there are enough of them (the original rule, so
+  // "Source" or "Redfin" never ride along with "Akron, OH"). Otherwise, places
+  // named the way the text names them - minus a word that only describes the
+  // list ("Iranian cities", "Italian towns").
+  const usPlaces = out.filter(isPlace);
+  const describes = (n) => new RegExp("\\b" + String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(cities|city|towns|places|destinations|regions|provinces|food|people)\\b", "i").test(String(fullText || ""));
+  const places = usPlaces.length >= 2 ? usPlaces : out.filter((n) => isNamedPlace(n) && !describes(n));
   if (placesMode) {
     out = places.length >= 2 ? places : [];   // empty → triggers knowledge-assist
   } else if (places.length >= 3) {
@@ -10038,10 +10049,17 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
   //    usually lives on separate slides, so reconstruct it when we have fewer
   //    than the headline number — or fewer than 6 for an un-numbered best/worst
   //    list — then UNION it in. This stops the "sometimes 2, sometimes 8" wobble.
-  const placesMode = /\b\d{0,2}\s*(?:most|least|best|top|cheapest|affordable|safest|cheap|nicest|coolest)?\s*(cities|towns|places|destinations|states|suburbs|neighborhoods|counties|markets|metros)\b/i.test(String(text));
-  const numM = String(text).match(/\b(\d{1,2})\s+(?:[a-z]+\s+){0,3}(?:cities|towns|places|states|destinations|suburbs|markets|metros)\b/i);
+  const placesMode = /\b\d{0,2}\s*(?:most|least|best|top|cheapest|affordable|safest|cheap|nicest|coolest)?\s*(cities|towns|places|destinations|states|suburbs|neighborhoods|counties|markets|metros)\b/i.test(String(text)) ||
+    /(شهرها|شهرهای|شهر|استان|مقصد|جاهای)/.test(String(text));
+  const NUMW ={ two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20 };
+  const textN = String(text).replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b/gi, (w) => String(NUMW[w.toLowerCase()]));
+  const numM = textN.match(/\b(\d{1,2})\s+(?:[a-z]+\s+){0,3}(?:cities|towns|places|states|destinations|suburbs|markets|metros)\b/i) ||
+    textN.match(/(\d{1,2})\s*(?:\S+\s+){0,2}(?:شهر|استان|مقصد|جا)/);
   const expectedN = (placesMode && numM) ? Number(numM[1]) : 0;
-  const floor = expectedN || (placesMode ? 6 : 0);
+  // Six is the guess for an un-numbered US listicle teaser. A short list that
+  // names its own places ("Shiraz, Isfahan, Yazd") is complete as written.
+  const floor = expectedN || (placesMode && names.length < 3 ? 6 : 0);
   const needMore = names.length < 2 || (floor >= 4 && names.length < floor);
   if (needMore && !vstudio._batchCancel) {
     vsAutoStatus(fa ? "متن کامل نبود — بازسازی فهرست با کمک مدل…"
@@ -10053,7 +10071,7 @@ ARTICLE: """${String(text).slice(0, 12000)}"""`;
       !/\bcit(?:y|ies)|towns|metros|suburbs\b/i.test(String(text).slice(0, 400));
     const nameRule = statesMode
       ? `Each entry is a US STATE — name each EXACTLY as its full state name (e.g. "Vermont", "Texas"), no city, no abbreviation.`
-      : `For CITIES/PLACES/METROS, name each EXACTLY as "City, ST" (two-letter state).`;
+      : `For US cities/metros, name each EXACTLY as "City, ST" (two-letter state). For places outside the US, use the place name as the text writes it (e.g. "Shiraz", "Kyoto") - never invent a state code.`;
     const exItems = statesMode ? `["Vermont", "Texas", "..."]` : `["City, ST", "City, ST", "..."]`;
     const kPrompt =
 `The TEXT below is the intro of a news listicle; the actual ranked list usually lives on separate slides not included here.
