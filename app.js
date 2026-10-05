@@ -92,6 +92,40 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    vsModeSmart: "Smart",
+    vsModeLink: "From link",
+    vsModeText: "From text",
+    vsGuide: "? guide",
+    vsTone: "Tone",
+    vsLength: "Length",
+    vsSmarter: "Smarter model (optional)",
+    vsGenerate: "Generate my video",
+    mgBadge: "Skills",
+    mgTitle: "Two AI skills, built in 3 steps",
+    mgSub: "<b>/motion_graphic</b> — animated vector graphics, charts &amp; kinetic text. <b>/editorial</b> — a photo-led, magazine-style deck with AI images &amp; big display type. No footage needed either way (but you can add your own to any scene).",
+    mgS1h: "Type <code>/</code>",
+    mgS1p: "A command menu appears — pick <b>/motion_graphic</b> or <b>/editorial</b>. No need to type it out.",
+    mgS2h: "Add a topic or link",
+    mgS2p: "Write a subject, or paste an article URL — it reads the page and writes the script.",
+    mgS3h: "Press <code>Enter</code>",
+    mgS3p: "<b>/motion_graphic</b> builds animated graphics, charts &amp; kinetic text; <b>/editorial</b> builds a photo-led magazine deck. Then <b>Export</b> as MP4.",
+    mgTryMg: "Try /motion_graphic",
+    mgTryEd: "Try /editorial",
+    mgGotIt: "Got it",
+    vsOwnAi: "Write it with your own AI",
+    vsThumbStudioBtn: "Thumbnail Studio",
+    vsReels: "Realtor reels",
+    vsReelsSub: "One per town, straight from your Regions list",
+    vsToneAdvisor: "Advisor / analytical (for clients)",
+    vsToneNews: "Broadcast news",
+    vsToneExplainer: "Explainer / educational",
+    vsToneHype: "Hype / launch",
+    vsToneDoc: "Cinematic documentary",
+    vsToneSocial: "Punchy social (TikTok/Reels)",
+    vsLenShort: "Short — 4-5 scenes (~20s)",
+    vsLenMedium: "Medium — 6-7 scenes (~35s)",
+    vsLenLong: "Long — 8-10 scenes (~50s)",
+    vsHint: "Give the assistant anything — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro & outro.",
     annAsst: "Our chatbot just got smarter: it remembers you and learns from feedback every day",
     annAsstCta: "Try the new chatbot",
     navAIStudio: "AI Studio",
@@ -417,6 +451,40 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    vsModeSmart: "هوشمند",
+    vsModeLink: "از لینک",
+    vsModeText: "از متن",
+    vsGuide: "؟ راهنما",
+    vsTone: "لحن",
+    vsLength: "طول",
+    vsSmarter: "مدل قوی‌تر (اختیاری)",
+    vsGenerate: "ویدیوی من را بساز",
+    mgBadge: "مهارت‌ها",
+    mgTitle: "دو مهارت هوش مصنوعی، در ۳ قدم",
+    mgSub: "<b>/motion_graphic</b> — گرافیک برداری متحرک، نمودار و متن پویا. <b>/editorial</b> — ارائه‌ای مجله‌ای با عکس‌های هوش مصنوعی و تیترهای درشت. در هیچ‌کدام به فیلم نیازی نیست (ولی می‌توانی برای هر صحنه فیلم خودت را بگذاری).",
+    mgS1h: "<code>/</code> را بنویس",
+    mgS1p: "یک منوی فرمان باز می‌شود — <b>/motion_graphic</b> یا <b>/editorial</b> را انتخاب کن. لازم نیست کامل تایپش کنی.",
+    mgS2h: "یک موضوع یا لینک بده",
+    mgS2p: "یک موضوع بنویس یا لینک یک مقاله را بگذار — صفحه را می‌خواند و متن ویدیو را می‌نویسد.",
+    mgS3h: "<code>Enter</code> را بزن",
+    mgS3p: "<b>/motion_graphic</b> گرافیک متحرک، نمودار و متن پویا می‌سازد؛ <b>/editorial</b> یک ارائهٔ مجله‌ای با عکس. بعد با <b>Export</b> خروجی MP4 بگیر.",
+    mgTryMg: "امتحانِ /motion_graphic",
+    mgTryEd: "امتحانِ /editorial",
+    mgGotIt: "فهمیدم",
+    vsOwnAi: "با هوش مصنوعیِ خودت بنویس",
+    vsThumbStudioBtn: "استودیوی تصویر بندانگشتی",
+    vsReels: "ریل‌های ملکی",
+    vsReelsSub: "یکی برای هر شهر، از فهرست مناطق",
+    vsToneAdvisor: "مشاور / تحلیلی (برای مشتری)",
+    vsToneNews: "خبری",
+    vsToneExplainer: "توضیحی / آموزشی",
+    vsToneHype: "هیجانی / معرفی محصول",
+    vsToneDoc: "مستند سینمایی",
+    vsToneSocial: "شبکه‌های اجتماعی (TikTok/Reels)",
+    vsLenShort: "کوتاه — ۴ تا ۵ صحنه (حدود ۲۰ ثانیه)",
+    vsLenMedium: "متوسط — ۶ تا ۷ صحنه (حدود ۳۵ ثانیه)",
+    vsLenLong: "بلند — ۸ تا ۱۰ صحنه (حدود ۵۰ ثانیه)",
+    vsHint: "هر چیزی بده — لینک خبر، یک مقاله، یک موضوع یا فقط یک ایده. زاویه را پیدا می‌کند، متن را می‌نویسد، برای داده‌ها اینفوگرافیک انتخاب می‌کند و یک ویدیوی کامل سینمایی با شروع و پایان می‌سازد.",
     annAsst: "چت‌بات ما ارتقا پیدا کرد: شما را به خاطر می‌سپارد و هر روز از بازخوردها باهوش‌تر می‌شود",
     annAsstCta: "امتحانش کنید",
     navAIStudio: "استودیوی هوش مصنوعی",
@@ -1614,6 +1682,11 @@ function setLanguage(lang) {
   document.body.dir = document.documentElement.dir;
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
+  });
+  // Our own fixed strings that carry <b>/<code>: set as markup. Never used for
+  // anything a user or a page could have written.
+  document.querySelectorAll("[data-i18n-html]").forEach((node) => {
+    node.innerHTML = t(node.dataset.i18nHtml);
   });
   // highlight the active language segment
   document.querySelectorAll("#langSeg .seg-btn").forEach(btn => {
@@ -4456,9 +4529,13 @@ function bindIntroEditor() {
       var topicLbl = document.querySelector("#vsAutoTopicLbl");
       var topicTa  = document.querySelector("#vsAutoTopic");
       if (topicLbl && topicTa) {
-        if (mode==="smart"){ topicLbl.textContent="What should the video be about?"; topicTa.placeholder="e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
-        else if (mode==="link"){ topicLbl.textContent="Notes (optional — used if the link can't be read)"; topicTa.placeholder="Optional fallback text…"; }
-        else { topicLbl.textContent="Paste your article or text"; topicTa.placeholder="Paste the full article text here…"; }
+        var fa = state.lang === "fa";
+        // Only the label's text: it also holds the "? guide" button, which
+        // textContent used to wipe out on every mode switch.
+        var setLbl = function (x) { var n = topicLbl.firstChild; if (n && n.nodeType === 3) n.nodeValue = x + " "; else topicLbl.insertBefore(document.createTextNode(x + " "), topicLbl.firstChild); };
+        if (mode==="smart"){ setLbl(fa?"ویدیو دربارهٔ چه باشد؟":"What should the video be about?"); topicTa.placeholder=fa?"مثلاً «رشد ایجنت‌های هوش مصنوعی در ۲۰۲۶» — یا هر ایده‌ای را بنویس، دستیار گسترشش می‌دهد":"e.g. 'The rise of AI agents in 2026' — or describe any idea, the assistant develops it"; }
+        else if (mode==="link"){ setLbl(fa?"یادداشت (اختیاری — اگر لینک خوانده نشد استفاده می‌شود)":"Notes (optional — used if the link can't be read)"); topicTa.placeholder=fa?"متن جایگزین (اختیاری)…":"Optional fallback text…"; }
+        else { setLbl(fa?"مقاله یا متنت را اینجا بگذار":"Paste your article or text"); topicTa.placeholder=fa?"متن کامل مقاله را اینجا بچسبان…":"Paste the full article text here…"; }
         // restore THIS mode's own independent text
         if (prevMode !== mode) topicTa.value = window._vsModeText[mode] || "";
       }
@@ -27963,4 +28040,36 @@ function vsJobCard(title) {
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
   else boot();
+})();
+
+// Realtor reels write from the Regions list, which only admins have: the card
+// is hidden in the markup and shown here for them alone.
+(function () {
+  function boot() {
+    const b = document.getElementById("vsReelBtn");
+    if (!b) return;
+    fetch("/api/me", { credentials: "include" }).then((r) => r.json()).then((me) => { if (me && me.isAdmin) b.hidden = false; }).catch(() => {});
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+  else boot();
+})();
+
+// Translate what was parsed after this script ran - the Studio's first-visit
+// guide sits below the script tag, so setLanguage() at load never saw it and
+// a Persian visitor met an English dialog first.
+(function () {
+  function again() {
+    try {
+      if (state.lang !== "fa") return;
+      document.querySelectorAll("[data-i18n]").forEach((n) => { n.textContent = t(n.dataset.i18n); });
+      document.querySelectorAll("[data-i18n-html]").forEach((n) => { n.innerHTML = t(n.dataset.i18nHtml); });
+      // The topic box's first label and placeholder (the mode buttons rewrite
+      // them on every switch, in the current language).
+      const lbl = document.getElementById("vsAutoTopicLbl"), ta = document.getElementById("vsAutoTopic");
+      if (lbl && lbl.firstChild && lbl.firstChild.nodeType === 3) lbl.firstChild.nodeValue = "ویدیو دربارهٔ چه باشد؟";
+      if (ta) ta.placeholder = "/ را بزن برای فرمان‌ها — یا لینک یک مقاله یا یک موضوع بنویس";
+    } catch (e) {}
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", again, { once: true });
+  else again();
 })();

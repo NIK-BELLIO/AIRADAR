@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v754" />
+    <link rel="stylesheet" href="/styles.css?v=v755" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -593,6 +593,7 @@
         transition:border-color .15s,background-color .15s,transform .12s;}
       .vs-reel-cta:hover{border-color:rgba(37,99,255,.62);background:linear-gradient(135deg,rgba(37,99,255,.2),rgba(37,99,255,.08));}
       .vs-reel-cta:active{transform:translateY(1px);}
+      .vs-reel-cta[hidden]{display:none;}
       .vs-reel-cta-ic{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
         justify-content:center;font-size:15px;background:rgba(37,99,255,.24);color:#f4f5f7;}
       .vs-reel-cta-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
@@ -1469,12 +1470,12 @@
                 <details class="vs-slide-section" id="vsAutoBuild" open>
                   <summary class="vstudio-label" data-i18n="vAutoLabel">AI Video Assistant</summary>
                   <div class="vs-section-body">
-                    <p class="vstudio-note" id="vsAutoHint">Give the assistant <strong>anything</strong> — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro &amp; outro.</p>
+                    <p class="vstudio-note" id="vsAutoHint" data-i18n="vsHint">Give the assistant <strong>anything</strong> — a news link, an article, a topic, or just an idea. It researches the angle, writes the script, picks infographics for the data, and assembles a complete cinematic video with intro &amp; outro.</p>
 
                     <div class="vs-auto-mode" style="display:flex;gap:6px;margin-bottom:10px;">
-                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn">Smart</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn">From link</button>
-                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn">From text</button>
+                      <button type="button" class="vs-auto-mode-btn active" data-mode="smart" id="vsModeSmartBtn" data-i18n="vsModeSmart">Smart</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="link" id="vsModeLinkBtn" data-i18n="vsModeLink">From link</button>
+                      <button type="button" class="vs-auto-mode-btn" data-mode="text" id="vsModeTextBtn" data-i18n="vsModeText">From text</button>
                     </div>
 
 
@@ -1482,7 +1483,7 @@
                       <input id="vsAutoUrl" type="url" placeholder="https://example.com/news/article" />
                     </label>
                     <label><span id="vsAutoTopicLbl">What should the video be about?
-                      <button type="button" id="vsMgHelpBtn" class="vs-help-chip" title="How the /motion_graphic and /editorial skills work">? guide</button>
+                      <button type="button" id="vsMgHelpBtn" class="vs-help-chip" data-i18n="vsGuide" title="How the /motion_graphic and /editorial skills work">? guide</button>
                     </span>
                       <div class="vs-slash-wrap">
                         <textarea id="vsAutoTopic" rows="3" placeholder="Type / for commands — or paste an article link or a topic"></textarea>
@@ -1491,22 +1492,22 @@
                       </div>
                     </label>
 
-                    <label><span id="vsAutoToneLbl">Tone</span>
+                    <label><span id="vsAutoToneLbl" data-i18n="vsTone">Tone</span>
                       <select id="vsAutoTone">
-                        <option value="advisor">Advisor / analytical (for clients)</option>
-                        <option value="news">Broadcast news</option>
-                        <option value="explainer">Explainer / educational</option>
-                        <option value="hype">Hype / launch</option>
-                        <option value="documentary">Cinematic documentary</option>
-                        <option value="social">Punchy social (TikTok/Reels)</option>
+                        <option value="advisor" data-i18n="vsToneAdvisor">Advisor / analytical (for clients)</option>
+                        <option value="news" data-i18n="vsToneNews">Broadcast news</option>
+                        <option value="explainer" data-i18n="vsToneExplainer">Explainer / educational</option>
+                        <option value="hype" data-i18n="vsToneHype">Hype / launch</option>
+                        <option value="documentary" data-i18n="vsToneDoc">Cinematic documentary</option>
+                        <option value="social" data-i18n="vsToneSocial">Punchy social (TikTok/Reels)</option>
                       </select>
                     </label>
 
-                    <label><span id="vsAutoLenLbl">Length</span>
+                    <label><span id="vsAutoLenLbl" data-i18n="vsLength">Length</span>
                       <select id="vsAutoLen">
-                        <option value="short">Short — 4-5 scenes (~20s)</option>
-                        <option value="medium" selected>Medium — 6-7 scenes (~35s)</option>
-                        <option value="long">Long — 8-10 scenes (~50s)</option>
+                        <option value="short" data-i18n="vsLenShort">Short — 4-5 scenes (~20s)</option>
+                        <option value="medium" selected data-i18n="vsLenMedium">Medium — 6-7 scenes (~35s)</option>
+                        <option value="long" data-i18n="vsLenLong">Long — 8-10 scenes (~50s)</option>
                       </select>
                     </label>
                     <div class="vs-auto-opts">
@@ -1548,7 +1549,7 @@
                     </div>
                     <input id="vsPexelsKey" type="hidden" value="" />
                     <details class="vs-smart-model" style="margin-top:10px;border:1px solid rgba(37,99,255,0.25);border-radius:10px;padding:8px 10px;">
-                      <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#2563ff;list-style:none;">Smarter model (optional)</summary>
+                      <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#2563ff;list-style:none;" data-i18n="vsSmarter">Smarter model (optional)</summary>
                       <p style="font-size:11.5px;opacity:0.75;margin:8px 0 6px;">Paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#2563ff;">OpenRouter</a> API key to write scripts with a top-tier model. Leave empty to keep using the free model. Your key stays in your browser.</p>
                       <input id="vsApiKey" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px;" />
                       <select id="vsApiModel" style="width:100%;">
@@ -1560,27 +1561,27 @@
                       </select>
                     </details>
 <div class="vs-auto-actions">
-                      <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;"><span id="vsAutoAiBtnTxt">Generate my video</span></button>
-                      <button id="vsOwnAiBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;" aria-haspopup="dialog">Write it with your own AI</button>
+                      <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;"><span id="vsAutoAiBtnTxt" data-i18n="vsGenerate">Generate my video</span></button>
+                      <button id="vsOwnAiBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;" aria-haspopup="dialog" data-i18n="vsOwnAi">Write it with your own AI</button>
                       <button id="vsExportBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;margin-top:10px;display:none;" data-i18n="vExportBtn">⬇ <span id="vsExportBtnTxt">Export video</span></button>
-                      <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;"><span id="vsCoverBtnTxt">Thumbnail Studio</span></button>
+                      <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;"><span id="vsCoverBtnTxt" data-i18n="vsThumbStudioBtn">Thumbnail Studio</span></button>
 
                       <!-- Realtor reels. Here with the other buttons that open a
                            tool, rather than up among the mode chips: it starts a
                            whole batch from the Regions list and has nothing to do
                            with the topic box it was sitting above. -->
-                      <button type="button" id="vsReelBtn" class="vs-reel-cta"
+                      <button type="button" id="vsReelBtn" class="vs-reel-cta" hidden
                               title="Write a reel for each town in your Regions list">
                         <span class="vs-reel-cta-ic">⌂</span>
                         <span class="vs-reel-cta-tx">
-                          <strong>Realtor reels</strong>
-                          <small>One per town, straight from your Regions list</small>
+                          <strong data-i18n="vsReels">Realtor reels</strong>
+                          <small data-i18n="vsReelsSub">One per town, straight from your Regions list</small>
                         </span>
                         <span class="vs-reel-cta-go">→</span>
                       </button>
                     </div>
                     <p id="vsAutoStatus" class="vstudio-note"></p>
-                    <div id="vsBuildBadge" style="text-align:center;font-size:10px;letter-spacing:.08em;color:#5e646e;margin-top:4px;opacity:.8">build · loading…</div>
+                    <div id="vsBuildBadge" hidden style="text-align:center;font-size:10px;letter-spacing:.08em;color:#5e646e;margin-top:4px;opacity:.8">build · loading…</div>
                     <div id="vsBatchResults" class="vs-batch-results" hidden></div>
                   </div>
                 </details>
@@ -2681,7 +2682,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v754"></script>
+    <script src="/app.js?v=v755"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
@@ -2969,9 +2970,9 @@ function arCredits(n){
     <div class="mg-guide-backdrop" id="vsMgGuide" hidden>
       <div class="mg-guide" role="dialog" aria-modal="true" aria-labelledby="mgGuideTitle">
         <button class="mg-guide-close" id="vsMgGuideClose" type="button" aria-label="Close">✕</button>
-        <span class="mg-guide-badge">Skills</span>
-        <h3 id="mgGuideTitle">Two AI skills, built in 3 steps</h3>
-        <p class="mg-guide-sub"><b>/motion_graphic</b> — animated vector graphics, charts &amp; kinetic text. <b>/editorial</b> — a photo-led, magazine-style deck with AI images &amp; big display type. No footage needed either way (but you can add your own to any scene).</p>
+        <span class="mg-guide-badge" data-i18n="mgBadge">Skills</span>
+        <h3 id="mgGuideTitle" data-i18n="mgTitle">Two AI skills, built in 3 steps</h3>
+        <p class="mg-guide-sub" data-i18n-html="mgSub"><b>/motion_graphic</b> — animated vector graphics, charts &amp; kinetic text. <b>/editorial</b> — a photo-led, magazine-style deck with AI images &amp; big display type. No footage needed either way (but you can add your own to any scene).</p>
 
         <div class="mg-steps">
           <!-- 1 -->
@@ -2988,8 +2989,8 @@ function arCredits(n){
               </svg>
             </div>
             <span class="mg-num">1</span>
-            <h4>Type <code>/</code></h4>
-            <p>A command menu appears — pick <b>/motion_graphic</b> or <b>/editorial</b>. No need to type it out.</p>
+            <h4 data-i18n-html="mgS1h">Type <code>/</code></h4>
+            <p data-i18n-html="mgS1p">A command menu appears — pick <b>/motion_graphic</b> or <b>/editorial</b>. No need to type it out.</p>
           </div>
 
           <!-- 2 -->
@@ -3005,8 +3006,8 @@ function arCredits(n){
               </svg>
             </div>
             <span class="mg-num">2</span>
-            <h4>Add a topic or link</h4>
-            <p>Write a subject, or paste an article URL — it reads the page and writes the script.</p>
+            <h4 data-i18n="mgS2h">Add a topic or link</h4>
+            <p data-i18n="mgS2p">Write a subject, or paste an article URL — it reads the page and writes the script.</p>
           </div>
 
           <!-- 3 -->
@@ -3030,15 +3031,15 @@ function arCredits(n){
               </svg>
             </div>
             <span class="mg-num">3</span>
-            <h4>Press <code>Enter</code></h4>
-            <p><b>/motion_graphic</b> builds animated graphics, charts &amp; kinetic text; <b>/editorial</b> builds a photo-led magazine deck. Then <b>Export</b> as MP4.</p>
+            <h4 data-i18n-html="mgS3h">Press <code>Enter</code></h4>
+            <p data-i18n-html="mgS3p"><b>/motion_graphic</b> builds animated graphics, charts &amp; kinetic text; <b>/editorial</b> builds a photo-led magazine deck. Then <b>Export</b> as MP4.</p>
           </div>
         </div>
 
         <div class="mg-guide-actions">
-          <button class="button primary" id="vsMgGuideTry" type="button">Try /motion_graphic</button>
-          <button class="button primary" id="vsMgGuideTryEd" type="button">Try /editorial</button>
-          <button class="button ghost" id="vsMgGuideDismiss" type="button">Got it</button>
+          <button class="button primary" id="vsMgGuideTry" type="button" data-i18n="mgTryMg">Try /motion_graphic</button>
+          <button class="button primary" id="vsMgGuideTryEd" type="button" data-i18n="mgTryEd">Try /editorial</button>
+          <button class="button ghost" id="vsMgGuideDismiss" type="button" data-i18n="mgGotIt">Got it</button>
         </div>
       </div>
     </div>
