@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v756" />
+    <link rel="stylesheet" href="/styles.css?v=v757" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -601,7 +601,7 @@
     </style>
   </head>
   <body>
-  <a class="ar-skip" href="#top">Skip to content</a>
+  <a class="ar-skip" href="#top" data-i18n="home00">Skip to content</a>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
 
@@ -624,7 +624,7 @@
       <div class="arh-right">
         <!-- Unified auth: signed out shows "Sign in"; signed in shows an account
              chip whose menu links to the shared dashboard / logs out. -->
-        <button type="button" id="authSignInBtn" class="arh-signin">Sign in</button>
+        <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">Sign in</button>
         <div id="authAccount" class="auth-account" hidden>
           <button type="button" id="authAccountBtn" class="arh-avatar" aria-haspopup="true" aria-expanded="false">
             <span id="authInitial" class="auth-initial">?</span>
@@ -660,7 +660,7 @@
           <form class="hero-x-search rd-search" id="heroSearchForm" role="search">
             <svg class="hero-x-search-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.9"/><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
             <input id="heroSearchInput" type="search" autocomplete="off" placeholder="Search 45+ AI tools by name, use case, or price…" />
-            <button type="submit" class="hero-x-search-btn">Search</button>
+            <button type="submit" class="hero-x-search-btn" data-i18n="rdSearch">Search</button>
           </form>
           <!-- The counts keep their ids so the live values still land, and
                Live Dashboard stays because this button is the only way to
@@ -669,7 +669,7 @@
             <span><strong id="metricTools">45+</strong> <span data-i18n="metricTools">AI tools</span></span>
             <span><strong id="metricFree">100%</strong> <span data-i18n="metricFree">Free plans</span></span>
             <span><strong id="metricJobs">Live</strong> <span data-i18n="metricJobs">GitHub data</span></span>
-            <button type="button" class="hero-x-dash" id="openDashboardBtn">Live Dashboard</button>
+            <button type="button" class="hero-x-dash" id="openDashboardBtn" data-i18n="rdDash">Live Dashboard</button>
           </p>
         </section>
 
@@ -721,7 +721,7 @@
                   <span id="todBtnLabel">Visit tool</span> ↗
                 </a>
                 <span class="tod-next" id="todNext">
-                  Next tool in <span id="todCountdown">…</span>
+                  <span data-i18n="rdNextTool">Next tool in</span> <span id="todCountdown">…</span>
                 </span>
               </div>
             </div>
@@ -779,7 +779,7 @@
 
           <div class="ainews">
             <div class="ainews-head">
-              <span class="ainews-label" id="ainewsLabel">◆ AI PULSE</span>
+              <span class="ainews-label" id="ainewsLabel" data-i18n="rdPulse">◆ AI PULSE</span>
               <span class="ainews-sub" id="ainewsSub">Latest in AI</span>
               <span class="ainews-refreshing" id="ainewsRefreshing"></span>
             </div>
@@ -797,12 +797,12 @@
           <div class="section-head">
             <div>
               
-              <span class="sec-eyebrow">The finder</span>
+              <span class="sec-eyebrow" data-i18n="rdFinder">The finder</span>
               
               <h2 data-i18n="toolsTitle">Curated real AI tools</h2>
             </div>
             <div class="search-wrap">
-              <label class="sr-only" for="searchInput">Search tools</label>
+              <label class="sr-only" for="searchInput" data-i18n="rdSearchTools">Search tools</label>
               <input id="searchInput" type="search" placeholder="Search by use case, price, job..." />
               <div class="view-toggle" role="group" aria-label="View mode">
                 <button id="viewGrid" class="view-btn active" type="button" aria-label="Grid view" title="Grid view">
@@ -852,7 +852,7 @@
           <div class="section-head">
             <div>
               
-              <span class="sec-eyebrow">Live data</span>
+              <span class="sec-eyebrow" data-i18n="rdLive">Live data</span>
               
               <h2 data-i18n="performanceTitle">Live AI tools trend</h2>
               <p data-i18n="performanceText">A live chart of real GitHub popularity for every AI tool in the finder, refreshed every 5 minutes. Tools you add to Compare are highlighted.</p>
@@ -863,7 +863,7 @@
               <button class="chart-tab active" data-metric="stars" data-i18n="chartTabStars">GitHub Stars</button>
               <button class="chart-tab" data-metric="forks" data-i18n="chartTabForks">Forks</button>
               <button class="chart-tab" data-metric="activity" data-i18n="chartTabActivity">Dev Activity</button>
-              <button class="chart-tab" data-metric="multi" id="chartTabMulti">Multi-metric</button>
+              <button class="chart-tab" data-metric="multi" id="chartTabMulti" data-i18n="rdMulti">Multi-metric</button>
             </div>
             <div class="chart-live-bar">
               <span id="liveIndicator" class="live-dot-wrap"><span class="live-dot"></span> <span data-i18n="liveLabel">Live</span></span>
@@ -880,15 +880,15 @@
           <!-- sort + search controls -->
           <div class="gh-controls">
             <div class="gh-sort" id="ghSort">
-              <button class="gh-sort-btn active" data-sort="value">Highest</button>
-              <button class="gh-sort-btn" data-sort="growth">Most active</button>
+              <button class="gh-sort-btn active" data-sort="value" data-i18n="rdHighest">Highest</button>
+              <button class="gh-sort-btn" data-sort="growth" data-i18n="rdActive">Most active</button>
               <button class="gh-sort-btn" data-sort="name">A-Z</button>
             </div>
             <input id="ghSearch" class="gh-search" type="text" placeholder="Filter tools…" />
           </div>
 
           <div id="performanceChart" class="performance-chart"></div>
-          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">Live source: GitHub REST API</a> · <span id="lastRefreshed">Loading…</span></div>
+          <div class="source-note"><a href="https://docs.github.com/en/rest" target="_blank" rel="noopener" data-i18n="rdSource">Live source: GitHub REST API</a> · <span id="lastRefreshed">Loading…</span></div>
         </section>
           </div>
         </div>
@@ -1608,7 +1608,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v756"></script>
+    <script src="/app.js?v=v757"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */

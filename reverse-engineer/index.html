@@ -15,7 +15,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=v756" />
+  <link rel="stylesheet" href="/styles.css?v=v757" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
     body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -58,7 +58,7 @@
   </style>
 </head>
 <body>
-  <a class="ar-skip" href="#ar-main">Skip to content</a>
+  <a class="ar-skip" href="#ar-main" data-i18n="home00">Skip to content</a>
   <!-- ── UNIFIED TOP HEADER (identical on every page) ──────────── -->
   <header class="arh">
     <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
@@ -74,7 +74,7 @@
       <a href="/radar/" class="arh-link">Radar</a>
     </nav>
     <div class="arh-right">
-      <button type="button" id="authSignInBtn" class="arh-signin">Sign in</button>
+      <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">Sign in</button>
       <div id="authAccount" class="auth-account" hidden>
         <button type="button" id="authAccountBtn" class="arh-avatar" aria-haspopup="true" aria-expanded="false">
           <span id="authInitial" class="auth-initial">?</span>
@@ -342,20 +342,20 @@ function arCredits(n){
 
   <div class="re-app" id="ar-main">
     <aside class="re-rail">
-      <div class="re-railhead"><h1 class="re-railtitle">Build from a reference</h1><div class="re-railsub">Paste a link, add your info, then pick how to render it.</div></div>
+      <div class="re-railhead"><h1 class="re-railtitle" data-i18n="reTitle">Build from a reference</h1><div class="re-railsub" data-i18n="reSub">Paste a link, add your info, then pick how to render it.</div></div>
       <div class="re-railscroll"><div id="reMount"></div></div>
       <div class="re-railgo" id="reRailGo"></div>
     </aside>
     <main class="re-main">
       <div class="re-mbar">
         <span class="re-dot" style="background:#f87171"></span><span class="re-dot" style="background:#f5c451"></span><span class="re-dot" style="background:#5fe0b0"></span>
-        <div class="re-tabs"><b>REVERSE&nbsp;ENGINEER</b><span>SOURCE</span><span>STYLE&nbsp;DNA</span><span>SCRIPT</span><span>RENDER</span></div>
+        <div class="re-tabs"><b>REVERSE&nbsp;ENGINEER</b><span data-i18n="reTabSrc">SOURCE</span><span data-i18n="reTabDna">STYLE&nbsp;DNA</span><span data-i18n="reTabScript">SCRIPT</span><span data-i18n="reTabRender">RENDER</span></div>
       </div>
       <div class="re-mbody">
         <div id="reHero" class="re-hero">
           <video class="re-herovid" src="/rev.mp4" autoplay loop muted playsinline preload="auto"></video>
-          <h2>Turn any post into yours</h2>
-          <p>Paste a reference on the left, add your own info, and hit build — the style blueprint and your rendered outputs appear here.</p>
+          <h2 data-i18n="reH2">Turn any post into yours</h2>
+          <p data-i18n="reP">Paste a reference on the left, add your own info, and hit build — the style blueprint and your rendered outputs appear here.</p>
           <div class="re-lockup" aria-hidden="true">
             <img src="/logo-mark.svg" alt="" class="re-lockup-mark" />
             <span class="re-lockup-x">×</span>
@@ -367,7 +367,7 @@ function arCredits(n){
     </main>
   </div>
 
-  <script src="/app.js?v=v756"></script>
+  <script src="/app.js?v=v757"></script>
   <script>
     (function () {
       var tries = 0;

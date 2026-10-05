@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v756" />
+    <link rel="stylesheet" href="styles.css?v=v757" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -601,7 +601,7 @@
     </style>
   </head>
   <body>
-  <a class="ar-skip" href="#top">Skip to content</a>
+  <a class="ar-skip" href="#top" data-i18n="home00">Skip to content</a>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
 
@@ -623,16 +623,16 @@
         <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free">FREE</span></a>
         <a href="/spark/" class="arh-link">Spark</a>
         <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models/video" class="arh-link">Models<span class="arh-new">NEW</span></a>
-      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new">NEW</span></a>
-      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new">NEW</span></a>
+      <a href="/models/video" class="arh-link">Models<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
+      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
       <a href="/assistant" class="arh-link">Assistant</a>
       <a href="/radar/" class="arh-link">Radar</a>
       </nav>
       <div class="arh-right">
         <!-- Unified auth: signed out shows "Sign in"; signed in shows an account
              chip whose menu links to the shared dashboard / logs out. -->
-        <button type="button" id="authSignInBtn" class="arh-signin">Sign in</button>
+        <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">Sign in</button>
         <div id="authAccount" class="auth-account" hidden>
           <button type="button" id="authAccountBtn" class="arh-avatar" aria-haspopup="true" aria-expanded="false">
             <span id="authInitial" class="auth-initial">?</span>
@@ -671,7 +671,7 @@
                        muted loop playsinline preload="none"></video>
               </span>
               <span class="ft-name">Reverse Engineer</span>
-              <span class="ft-line">Point it at a post that worked and get the same thing, with you in it.</span>
+              <span class="ft-line" data-i18n="home01">Point it at a post that worked and get the same thing, with you in it.</span>
             </a>
             <a class="ft-card" href="/studio/">
               <span class="ft-media">
@@ -679,7 +679,7 @@
                        muted loop playsinline preload="none"></video>
               </span>
               <span class="ft-name">Video Studio</span>
-              <span class="ft-line">A link, an article or an idea becomes a finished video.</span>
+              <span class="ft-line" data-i18n="home02">A link, an article or an idea becomes a finished video.</span>
             </a>
             <a class="ft-card" href="/workflows/cinema-studio">
               <span class="ft-media">
@@ -687,7 +687,7 @@
                        muted loop playsinline preload="none"></video>
               </span>
               <span class="ft-name">Cinema Studio</span>
-              <span class="ft-line">Direct the shot: era, lens, lighting, camera move.</span>
+              <span class="ft-line" data-i18n="home03">Direct the shot: era, lens, lighting, camera move.</span>
             </a>
             <a class="ft-card" href="/marketing-studio">
               <span class="ft-media">
@@ -695,7 +695,7 @@
                        muted loop playsinline preload="none"></video>
               </span>
               <span class="ft-name">Marketing Studio</span>
-              <span class="ft-line">Product shots and ads from your own photo.</span>
+              <span class="ft-line" data-i18n="home04">Product shots and ads from your own photo.</span>
             </a>
         </section>
 
@@ -709,8 +709,8 @@
             <h1 class="hx-lede-h" data-i18n="heroTitle">AI that sees ahead.</h1>
             <p class="hx-lede-p" data-i18n="heroText">Make video, images and campaigns in your browser. No install, no subscription, one balance across every tool.</p>
             <span class="hx-lede-cta">
-              <a class="hero-x-go" href="/studio/">Open Video Studio</a>
-              <a class="hero-x-alt" href="/models">Browse the models</a>
+              <a class="hero-x-go" href="/studio/" data-i18n="home05">Open Video Studio</a>
+              <a class="hero-x-alt" href="/models" data-i18n="home06">Browse the models</a>
             </span>
           </div>
         </section>
@@ -731,152 +731,152 @@
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Branded interview</figcaption>
+              <figcaption class="sc-cap" data-i18n="home10">Branded interview</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Kinetic type</figcaption>
+              <figcaption class="sc-cap" data-i18n="home11">Kinetic type</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Skit</figcaption>
+              <figcaption class="sc-cap" data-i18n="home12">Skit</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Branded interview</figcaption>
+              <figcaption class="sc-cap" data-i18n="home10">Branded interview</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card">
               <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Branded interview</figcaption>
+              <figcaption class="sc-cap" data-i18n="home10">Branded interview</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Kinetic type</figcaption>
+              <figcaption class="sc-cap" data-i18n="home11">Kinetic type</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Skit</figcaption>
+              <figcaption class="sc-cap" data-i18n="home12">Skit</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Branded interview</figcaption>
+              <figcaption class="sc-cap" data-i18n="home10">Branded interview</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Fast montage</figcaption>
+              <figcaption class="sc-cap" data-i18n="home09">Fast montage</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Single take</figcaption>
+              <figcaption class="sc-cap" data-i18n="home07">Single take</figcaption>
             </figure>
             <figure class="sc-card" aria-hidden="true">
               <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
                      muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap">Presenter + b-roll</figcaption>
+              <figcaption class="sc-cap" data-i18n="home08">Presenter + b-roll</figcaption>
             </figure>
           </div>
         </section>
@@ -889,97 +889,97 @@
         <section id="make" class="panel">
           <div class="section-head">
             <div>
-              <span class="sec-eyebrow">What you can make</span>
-              <h2>Eight studios, one balance</h2>
-              <p>Every tool draws on the same credits. Start in whichever one matches the job.</p>
+              <span class="sec-eyebrow" data-i18n="home13">What you can make</span>
+              <h2 data-i18n="home14">Eight studios, one balance</h2>
+              <p data-i18n="home15">Every tool draws on the same credits. Start in whichever one matches the job.</p>
             </div>
           </div>
           <div class="mk-grid">
             <a class="mk-card" href="/studio/">
               <span class="mk-top">
                 <img class="mk-ic" src="/video-icon.svg" alt="" />
-                <span class="mk-kind">Video</span>
+                <span class="mk-kind" data-i18n="kindVideo">Video</span>
               </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Video Studio</span>
               </span>
-              <span class="mk-card-line">Script, footage, captions and voice, from one link.</span>
+              <span class="mk-card-line" data-i18n="home16">Script, footage, captions and voice, from one link.</span>
             </a>
             <a class="mk-card" href="/spark/">
               <span class="mk-top">
                 <img class="mk-ic" src="/spark-icon.svg" alt="" />
-                <span class="mk-kind">Text</span>
+                <span class="mk-kind" data-i18n="kindText">Text</span>
               </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Spark</span>
               </span>
-              <span class="mk-card-line">Hooks, posts, thumbnails, carousels. Most of them free.</span>
+              <span class="mk-card-line" data-i18n="home17">Hooks, posts, thumbnails, carousels. Most of them free.</span>
             </a>
             <a class="mk-card" href="/reverse-engineer/">
               <span class="mk-top">
                 <img class="mk-ic" src="/re-icon.svg" alt="" />
-                <span class="mk-kind">Video</span>
+                <span class="mk-kind" data-i18n="kindVideo">Video</span>
               </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Reverse Engineer</span>
               </span>
-              <span class="mk-card-line">Copy what worked, with you in it.</span>
+              <span class="mk-card-line" data-i18n="home18">Copy what worked, with you in it.</span>
             </a>
             <a class="mk-card" href="/models">
               <span class="mk-top">
                 <img class="mk-ic" src="/models-icon.svg" alt="" />
-                <span class="mk-kind">Video · Image</span>
+                <span class="mk-kind" data-i18n="kindVidImg">Video · Image</span>
               </span>
               <span class="mk-card-head">
-                <span class="mk-card-name">Models</span><span class="arh-new">NEW</span>
+                <span class="mk-card-name" data-i18n="cardModels">Models</span><span class="arh-new" data-i18n="badgeNew">NEW</span>
               </span>
-              <span class="mk-card-line">Thirteen models, every setting, one price in credits.</span>
+              <span class="mk-card-line" data-i18n="home19">Thirteen models, every setting, one price in credits.</span>
             </a>
             <a class="mk-card" href="/workflows/cinema-studio">
               <span class="mk-top">
                 <img class="mk-ic" src="/cinema-icon.svg" alt="" />
-                <span class="mk-kind">Video</span>
+                <span class="mk-kind" data-i18n="kindVideo">Video</span>
               </span>
               <span class="mk-card-head">
-                <span class="mk-card-name">Cinema Studio</span><span class="arh-new">NEW</span>
+                <span class="mk-card-name">Cinema Studio</span><span class="arh-new" data-i18n="badgeNew">NEW</span>
               </span>
-              <span class="mk-card-line">Era, lens, lighting, camera move.</span>
+              <span class="mk-card-line" data-i18n="home20">Era, lens, lighting, camera move.</span>
             </a>
             <a class="mk-card" href="/marketing-studio">
               <span class="mk-top">
                 <img class="mk-ic" src="/marketing-icon.svg" alt="" />
-                <span class="mk-kind">Image</span>
+                <span class="mk-kind" data-i18n="kindImage">Image</span>
               </span>
               <span class="mk-card-head">
-                <span class="mk-card-name">Marketing Studio</span><span class="arh-new">NEW</span>
+                <span class="mk-card-name">Marketing Studio</span><span class="arh-new" data-i18n="badgeNew">NEW</span>
               </span>
-              <span class="mk-card-line">Product shots and ads from your photo.</span>
+              <span class="mk-card-line" data-i18n="home21">Product shots and ads from your photo.</span>
             </a>
             <a class="mk-card" href="/prompt-lab/">
               <span class="mk-top">
                 <img class="mk-ic" src="/lab-icon.svg" alt="" />
-                <span class="mk-kind">Text</span>
+                <span class="mk-kind" data-i18n="kindText">Text</span>
               </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Prompt Lab</span>
               </span>
-              <span class="mk-card-line">Prompts that already work.</span>
+              <span class="mk-card-line" data-i18n="home22">Prompts that already work.</span>
             </a>
             <a class="mk-card" href="/assistant">
               <span class="mk-top">
                 <img class="mk-ic" src="/chat-icon.svg" alt="" />
-                <span class="mk-kind">Text</span>
+                <span class="mk-kind" data-i18n="kindText">Text</span>
               </span>
               <span class="mk-card-head">
                 <span class="mk-card-name">Assistant</span>
               </span>
-              <span class="mk-card-line">Ask, and it opens the right tool.</span>
+              <span class="mk-card-line" data-i18n="home23">Ask, and it opens the right tool.</span>
             </a>
           </div>
           <a class="mk-radar" href="/radar/">
             <span class="mk-radar-txt">
-              <b>Still want the radar?</b>
-              Forty-four AI tools compared, live GitHub popularity, a world map of AI infrastructure and the day's headlines.
+              <b data-i18n="home25">Still want the radar?</b>
+              <span data-i18n="home24">Forty-four AI tools compared, live GitHub popularity, a world map of AI infrastructure and the day's headlines.</span>
             </span>
             <span class="mk-radar-go" aria-hidden="true">&rarr;</span>
           </a>
@@ -1005,21 +1005,21 @@
               <figure class="bn-clip">
                 <video class="ft-vid bn-clipvid" src="/prev/made.mp4"
                        poster="/prev/made.jpg" muted loop playsinline preload="none"></video>
-                <figcaption>Made in Video Studio</figcaption>
+                <figcaption data-i18n="home26">Made in Video Studio</figcaption>
               </figure>
             </div>
 
             <div class="bn-mid">
-              <h2 class="bn-title">One balance.<br />Every model.</h2>
-              <p class="bn-sub">Thirteen image and video models and four studios, all drawing on the same credits. No per-tool subscription.</p>
-              <a class="hero-x-go" href="/pricing">See what credits cost</a>
+              <h2 class="bn-title" data-i18n="home27">One balance.<br />Every model.</h2>
+              <p class="bn-sub" data-i18n="home29">Thirteen image and video models and four studios, all drawing on the same credits. No per-tool subscription.</p>
+              <a class="hero-x-go" href="/pricing" data-i18n="home30">See what credits cost</a>
             </div>
 
             <div class="bn-side bn-right">
               <div class="bn-card">
-                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span>What a job costs</div>
+                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span><span data-i18n="home30">What a job costs</span></div>
                 <span class="bn-row">
-                  <span class="bn-m">Soul 2<i>one image</i></span>
+                  <span class="bn-m">Soul 2<i data-i18n="home32">one image</i></span>
                   <b>5</b>
                 </span>
                 <span class="bn-row">
@@ -1034,7 +1034,7 @@
                   <span class="bn-m">Cinema Studio<i>5s · 480p</i></span>
                   <b>62</b>
                 </span>
-                <a class="bn-more" href="/pricing">Every price &rarr;</a>
+                <a class="bn-more" href="/pricing" data-i18n="home32">Every price →</a>
               </div>
             </div>
 
@@ -1059,11 +1059,11 @@
         <footer class="ar-foot">
           <div class="ar-foot-in">
             <div class="ft-brand">
-              <span>Make it in</span>
-              <span>your browser.</span>
+              <span data-i18n="home34">Make it in</span>
+              <span data-i18n="home35">your browser.</span>
             </div>
             <div class="ft-col">
-              <h3>Studios</h3>
+              <h3 data-i18n="home36">Studios</h3>
               <a href="/studio/">Video Studio</a>
               <a href="/spark/">Spark</a>
               <a href="/reverse-engineer/">Reverse Engineer</a>
@@ -1071,36 +1071,36 @@
               <a href="/marketing-studio">Marketing Studio</a>
             </div>
             <div class="ft-col">
-              <h3>Models</h3>
-              <a href="/models/video">Video models</a>
-              <a href="/models/image">Image models</a>
+              <h3 data-i18n="ftModels">Models</h3>
+              <a href="/models/video" data-i18n="home37">Video models</a>
+              <a href="/models/image" data-i18n="home38">Image models</a>
               <a href="/prompt-lab/">Prompt Lab</a>
               <a href="/assistant">Assistant</a>
             </div>
             <div class="ft-col">
               <h3>Radar</h3>
-              <a href="/radar/#tools">The finder</a>
-              <a href="/radar/#performance">Live trend</a>
-              <a href="/radar/#aiMonitor">Global AI map</a>
-              <a href="/radar/#toolOfDay">Tool of the day</a>
+              <a href="/radar/#tools" data-i18n="home39">The finder</a>
+              <a href="/radar/#performance" data-i18n="home40">Live trend</a>
+              <a href="/radar/#aiMonitor" data-i18n="home41">Global AI map</a>
+              <a href="/radar/#toolOfDay" data-i18n="home42">Tool of the day</a>
             </div>
             <div class="ft-col">
-              <h3>Account</h3>
-              <a href="/dashboard">Your library</a>
-              <a href="/pricing">Credits</a>
+              <h3 data-i18n="home43">Account</h3>
+              <a href="/dashboard" data-i18n="home44">Your library</a>
+              <a href="/pricing" data-i18n="home45">Credits</a>
               <a href="/login">Sign in</a>
             </div>
           </div>
           <div class="ar-foot-note">
-            <p>Every tool draws on one balance. No per-tool subscription, no tracking, no ads.</p>
-            <p class="ft-by">Built by Shayan Alinia</p>
+            <p data-i18n="home46">Every tool draws on one balance. No per-tool subscription, no tracking, no ads.</p>
+            <p class="ft-by" data-i18n="home47">Built by Shayan Alinia</p>
           </div>
         </footer>
         <div class="ar-foot-bar">
           <span>&copy; 2026 AI Radar</span>
           <span class="ar-foot-links">
             <a href="/radar/">Radar</a>
-            <a href="/pricing">Credits</a>
+            <a href="/pricing" data-i18n="home45">Credits</a>
             <a href="/assistant">Assistant</a>
           </span>
         </div>
@@ -1811,7 +1811,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v756"></script>
+    <script src="app.js?v=v757"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────

@@ -5018,7 +5018,9 @@ b, strong { font-weight: 600; }
 .sc-wrap {
   position: relative;
   width: 100vw;
-  margin-left: calc(50% - 50vw);
+  /* inline-start, not left: in Persian (RTL) a left margin left the strip
+     anchored right and 54px off the page, and the whole page scrolled sideways. */
+  margin-inline-start: calc(50% - 50vw);
   padding: 4px 0 40px;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
@@ -5306,7 +5308,8 @@ b, strong { font-weight: 600; }
    where the accent blue would be three. */
 .ar-foot {
   width: 100vw;
-  margin: 64px 0 0 calc(50% - 50vw);
+  margin: 64px 0 0;
+  margin-inline-start: calc(50% - 50vw);
   padding: 54px clamp(20px, 6vw, 90px) 34px;
   background: var(--accent-lo);
   background: #12d6f5;
@@ -5361,7 +5364,7 @@ b, strong { font-weight: 600; }
    footer's content. */
 .ar-foot-bar {
   width: 100vw;
-  margin-left: calc(50% - 50vw);
+  margin-inline-start: calc(50% - 50vw);
   padding: 15px clamp(20px, 6vw, 90px);
   display: flex; flex-wrap: wrap; gap: 12px;
   align-items: center; justify-content: space-between;

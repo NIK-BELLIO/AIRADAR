@@ -92,6 +92,114 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    reTitle: "Build from a reference",
+    reSub: "Paste a link, add your info, then pick how to render it.",
+    reH2: "Turn any post into yours",
+    reP: "Paste a reference on the left, add your own info, and hit build — the style blueprint and your rendered outputs appear here.",
+    reTabSrc: "SOURCE",
+    reTabDna: "STYLE DNA",
+    reTabScript: "SCRIPT",
+    reTabRender: "RENDER",
+    rdNextTool: "Next tool in",
+    rdSearch: "Search",
+    rdDash: "Live Dashboard",
+    rdPulse: "◆ AI PULSE",
+    rdFinder: "The finder",
+    rdSearchTools: "Search tools",
+    rdLive: "Live data",
+    rdMulti: "Multi-metric",
+    rdHighest: "Highest",
+    rdActive: "Most active",
+    rdSource: "Live source: GitHub REST API",
+    signIn: "Sign in",
+    spkEyebrow: "CREATOR OS",
+    spkTitle: "Make content that stops the scroll.",
+    spkSub: "Nineteen tools for posts, carousels, thumbnails, logos, quotes and more. Pick one, ship in seconds — all free.",
+    spkInside: "What’s inside",
+    spkN0: "Hook Generator",
+    spkD0: "6 two-line scroll-stopping hooks across 6 angles.",
+    spkN1: "Post Writer",
+    spkD1: "A ready post using PAS / AIDA / BAB / STAR / SLAY.",
+    spkN2: "Content Matrix",
+    spkD2: "32+ ideas — your pillars × 8 formats.",
+    spkN3: "Quote Post",
+    spkD3: "9 viral quotes → one click renders the graphic.",
+    spkN4: "Infographic",
+    spkD4: "Paste content → a whiteboard infographic, 1080×1350.",
+    spkN5: "Post Scorer",
+    spkD5: "Score a draft /50, plus 3 fixes and a stronger hook.",
+    spkN6: "Profile Optimizer",
+    spkD6: "Headline, about, experience and image prompts.",
+    spkN7: "Carousel",
+    spkD7: "A branded multi-slide carousel from a topic.",
+    spkN8: "YouTube Thumbnail",
+    spkD8: "A designed 1280×720 high-CTR thumbnail.",
+    spkN9: "Social Post Maker",
+    spkD9: "Eight sizes, AI copy and your own photo.",
+    spkN10: "Logo / Wordmark",
+    spkD10: "Wordmark plus initial mark, transparent PNG.",
+    spkN11: "And eight more",
+    spkD11: "Pinned comment, newsletter, voice profile, ads, bio…",
+    spkTips: "Tips",
+    spkTip1: "Start with <b>Hook Generator</b>, then feed the winning hook into <b>Post Writer</b>.",
+    spkTip2: "Copy buttons are everywhere — nothing needs re-typing.",
+    spkTip3: "For a carousel built from someone else&rsquo;s post, use <b>Reverse Engineer</b>.",
+    spkTabTool: "TOOL",
+    spkTabIn: "INPUT",
+    spkTabOut: "OUTPUT",
+    kindVideo: "Video",
+    kindText: "Text",
+    kindVidImg: "Video · Image",
+    kindImage: "Image",
+    cardModels: "Models",
+    ftModels: "Models",
+    badgeNew: "NEW",
+    home00: "Skip to content",
+    home01: "Point it at a post that worked and get the same thing, with you in it.",
+    home02: "A link, an article or an idea becomes a finished video.",
+    home03: "Direct the shot: era, lens, lighting, camera move.",
+    home04: "Product shots and ads from your own photo.",
+    home05: "Open Video Studio",
+    home06: "Browse the models",
+    home07: "Single take",
+    home08: "Presenter + b-roll",
+    home09: "Fast montage",
+    home10: "Branded interview",
+    home11: "Kinetic type",
+    home12: "Skit",
+    home13: "What you can make",
+    home14: "Eight studios, one balance",
+    home15: "Every tool draws on the same credits. Start in whichever one matches the job.",
+    home16: "Script, footage, captions and voice, from one link.",
+    home17: "Hooks, posts, thumbnails, carousels. Most of them free.",
+    home18: "Copy what worked, with you in it.",
+    home19: "Thirteen models, every setting, one price in credits.",
+    home20: "Era, lens, lighting, camera move.",
+    home21: "Product shots and ads from your photo.",
+    home22: "Prompts that already work.",
+    home23: "Ask, and it opens the right tool.",
+    home24: "Forty-four AI tools compared, live GitHub popularity, a world map of AI infrastructure and the day's headlines.",
+    home25: "Still want the radar?",
+    home26: "Made in Video Studio",
+    home27: "One balance.",
+    home28: "Every model.",
+    home29: "Thirteen image and video models and four studios, all drawing on the same credits. No per-tool subscription.",
+    home30: "What a job costs",
+    home32: "Every price →",
+    home34: "Make it in",
+    home35: "your browser.",
+    home36: "Studios",
+    home37: "Video models",
+    home38: "Image models",
+    home39: "The finder",
+    home40: "Live trend",
+    home41: "Global AI map",
+    home42: "Tool of the day",
+    home43: "Account",
+    home44: "Your library",
+    home45: "Credits",
+    home46: "Every tool draws on one balance. No per-tool subscription, no tracking, no ads.",
+    home47: "Built by Shayan Alinia",
     vsModeSmart: "Smart",
     vsModeLink: "From link",
     vsModeText: "From text",
@@ -451,6 +559,114 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    reTitle: "ساختن از روی یک نمونه",
+    reSub: "لینک را بگذار، اطلاعات خودت را اضافه کن، بعد نحوهٔ ساخت را انتخاب کن.",
+    reH2: "هر پستی را مال خودت کن",
+    reP: "نمونه را در ستون کناری بگذار، اطلاعات خودت را اضافه کن و «بساز» را بزن — طرح سبک و خروجی‌هایت اینجا نشان داده می‌شود.",
+    reTabSrc: "منبع",
+    reTabDna: "سبک",
+    reTabScript: "متن",
+    reTabRender: "ساخت",
+    rdNextTool: "ابزار بعدی تا",
+    rdSearch: "جست‌وجو",
+    rdDash: "داشبورد زنده",
+    rdPulse: "◆ نبض هوش مصنوعی",
+    rdFinder: "جست‌وجوگر ابزار",
+    rdSearchTools: "جست‌وجوی ابزارها",
+    rdLive: "دادهٔ زنده",
+    rdMulti: "چندمعیاره",
+    rdHighest: "بیشترین",
+    rdActive: "فعال‌ترین",
+    rdSource: "منبع زنده: GitHub REST API",
+    signIn: "ورود",
+    spkEyebrow: "ابزار سازندگان محتوا",
+    spkTitle: "محتوایی بساز که اسکرول را متوقف کند.",
+    spkSub: "نوزده ابزار برای پست، کاروسل، تصویر بندانگشتی، لوگو، نقل‌قول و بیشتر. یکی را انتخاب کن و در چند ثانیه آماده‌اش کن — همه رایگان.",
+    spkInside: "داخلش چه هست",
+    spkN0: "سازندهٔ هوک",
+    spkD0: "۶ هوک دوخطی که اسکرول را نگه می‌دارد، از ۶ زاویه.",
+    spkN1: "نویسندهٔ پست",
+    spkD1: "یک پست آماده با PAS / AIDA / BAB / STAR / SLAY.",
+    spkN2: "ماتریس محتوا",
+    spkD2: "بیش از ۳۲ ایده — محورهای تو × ۸ قالب.",
+    spkN3: "پست نقل‌قول",
+    spkD3: "۹ نقل‌قول پرطرفدار ← با یک کلیک طرحش ساخته می‌شود.",
+    spkN4: "اینفوگرافیک",
+    spkD4: "متن را بچسبان ← یک اینفوگرافیک وایت‌بردی، ۱۰۸۰×۱۳۵۰.",
+    spkN5: "امتیازدهی پست",
+    spkD5: "امتیاز پیش‌نویس از ۵۰، به‌همراه ۳ اصلاح و یک هوک قوی‌تر.",
+    spkN6: "بهینه‌ساز پروفایل",
+    spkD6: "تیتر، درباره، سابقه و پرامپت‌های تصویر.",
+    spkN7: "کاروسل",
+    spkD7: "یک کاروسل چنداسلایدی برنددار از یک موضوع.",
+    spkN8: "تصویر بندانگشتی یوتیوب",
+    spkD8: "یک تصویر بندانگشتی طراحی‌شدهٔ ۱۲۸۰×۷۲۰ با نرخ کلیک بالا.",
+    spkN9: "پست‌ساز شبکه‌های اجتماعی",
+    spkD9: "هشت اندازه، متن با هوش مصنوعی و عکس خودت.",
+    spkN10: "لوگو / لوگوتایپ",
+    spkD10: "لوگوتایپ به‌همراه نشانهٔ حرف اول، PNG بی‌زمینه.",
+    spkN11: "و هشت ابزار دیگر",
+    spkD11: "کامنت پین‌شده، خبرنامه، پروفایل لحن، تبلیغ، بیو…",
+    spkTips: "نکته‌ها",
+    spkTip1: "با <b>سازندهٔ هوک</b> شروع کن، بعد بهترین هوک را به <b>نویسندهٔ پست</b> بده.",
+    spkTip2: "همه‌جا دکمهٔ کپی هست — لازم نیست چیزی را دوباره تایپ کنی.",
+    spkTip3: "برای ساختن کاروسل از روی پست شخص دیگر، از <b>Reverse Engineer</b> استفاده کن.",
+    spkTabTool: "ابزار",
+    spkTabIn: "ورودی",
+    spkTabOut: "خروجی",
+    kindVideo: "ویدیو",
+    kindText: "متن",
+    kindVidImg: "ویدیو · تصویر",
+    kindImage: "تصویر",
+    cardModels: "مدل‌ها",
+    ftModels: "مدل‌ها",
+    badgeNew: "جدید",
+    home00: "پرش به محتوا",
+    home01: "یک پست موفق را بده و همان را، این بار با خودت، بگیر.",
+    home02: "یک لینک، یک مقاله یا یک ایده به ویدیوی آماده تبدیل می‌شود.",
+    home03: "نما را کارگردانی کن: دوره، لنز، نور، حرکت دوربین.",
+    home04: "عکس محصول و تبلیغ، از عکس خودت.",
+    home05: "باز کردن استودیوی ویدیو",
+    home06: "دیدن مدل‌ها",
+    home07: "یک برداشت",
+    home08: "مجری + تصاویر تکمیلی",
+    home09: "مونتاژ سریع",
+    home10: "مصاحبهٔ برند",
+    home11: "تایپوگرافی متحرک",
+    home12: "اسکچ",
+    home13: "چه می‌توانی بسازی",
+    home14: "هشت استودیو، یک موجودی",
+    home15: "همهٔ ابزارها از یک کردیت استفاده می‌کنند. با هرکدام که به کارت می‌خورد شروع کن.",
+    home16: "متن، فیلم، زیرنویس و صدا، از یک لینک.",
+    home17: "هوک، پست، تصویر بندانگشتی، کاروسل. بیشترشان رایگان.",
+    home18: "چیزی که جواب داده را، با خودت، دوباره بساز.",
+    home19: "سیزده مدل، همهٔ تنظیمات، یک قیمت به کردیت.",
+    home20: "دوره، لنز، نور، حرکت دوربین.",
+    home21: "عکس محصول و تبلیغ، از عکس خودت.",
+    home22: "پرامپت‌هایی که از قبل جواب داده‌اند.",
+    home23: "بپرس، ابزار درست را برایت باز می‌کند.",
+    home24: "مقایسهٔ چهل‌وچهار ابزار هوش مصنوعی، محبوبیت زندهٔ GitHub، نقشهٔ جهانی زیرساخت هوش مصنوعی و خبرهای روز.",
+    home25: "هنوز رادار را می‌خواهی؟",
+    home26: "ساخته‌شده در استودیوی ویدیو",
+    home27: "یک موجودی.",
+    home28: "همهٔ مدل‌ها.",
+    home29: "سیزده مدل تصویر و ویدیو و چهار استودیو، همه با یک کردیت. بدون اشتراک جدا برای هر ابزار.",
+    home30: "هر کار چقدر می‌شود",
+    home32: "همهٔ قیمت‌ها ←",
+    home34: "بسازش",
+    home35: "در مرورگر خودت.",
+    home36: "استودیوها",
+    home37: "مدل‌های ویدیو",
+    home38: "مدل‌های تصویر",
+    home39: "جست‌وجوگر ابزار",
+    home40: "روند زنده",
+    home41: "نقشهٔ جهانی هوش مصنوعی",
+    home42: "ابزار روز",
+    home43: "حساب کاربری",
+    home44: "کتابخانهٔ تو",
+    home45: "کردیت‌ها",
+    home46: "همهٔ ابزارها از یک موجودی استفاده می‌کنند. بدون اشتراک جدا، بدون ردیابی، بدون تبلیغ.",
+    home47: "ساختهٔ شایان علینیا",
     vsModeSmart: "هوشمند",
     vsModeLink: "از لینک",
     vsModeText: "از متن",
@@ -3368,7 +3584,7 @@ async function fetchLiveChartData() {
   isFetchingLive = true;
   const refreshBtn = document.getElementById("refreshChartBtn");
   if (refreshBtn) refreshBtn.classList.add("loading");
-  setRefreshLabel("Fetching live GitHub data…");
+  setRefreshLabel(state.lang === "fa" ? "در حال گرفتن دادهٔ زندهٔ GitHub…" : "Fetching live GitHub data…");
 
   const withRepos = tools.filter(t => t.repo);
   let okCount = 0, rateLimited = false;
@@ -3524,7 +3740,7 @@ function renderLiveChart() {
     label.className = "chart-label";
     container.parentElement.insertBefore(label, container);
   }
-  const metricText = activeMetric === "stars" ? "Live GitHub stars"
+  const metricText = activeMetric === "stars" ? (state.lang === "fa" ? "ستاره‌های زندهٔ GitHub" : "Live GitHub stars")
     : activeMetric === "forks" ? "Live GitHub forks"
     : "Development activity (recent commits)";
   const comparedNote = state.compare.length
@@ -6560,22 +6776,22 @@ const VS_FORMAT_BUILD = {
  * decides its timing, captions and cost; the clip is the proof.
  */
 const VS_TEMPLATES = [
-  { id: "podcast_take", cat: "talk",    clip: "single_take__3",        shape: "single_take",       label: "Podcast single take",   note: "one unbroken take into a mic" },
-  { id: "walk_talk", cat: "talk",       clip: "single_take__6",        shape: "single_take",       label: "Walk-and-talk selfie",  note: "handheld, outdoors, straight to camera" },
-  { id: "skit_to_camera", cat: "talk",  clip: "single_take__14",       shape: "single_take",       label: "Skit into camera",      note: "a staged beat, then the point" },
-  { id: "desk_take", cat: "talk",       clip: "single_take__16",       shape: "single_take",       label: "Desk talking head",     note: "seated, steady, caption-led" },
-  { id: "branded_frame", cat: "interview",   clip: "branded_interview__2",  shape: "branded_interview", label: "Branded interview frame", note: "logo, topic card, watch-more end" },
-  { id: "two_seat", cat: "interview",        clip: "branded_interview__11", shape: "branded_interview", label: "Two-seat interview",    note: "cut between two speakers" },
-  { id: "drone_lots", cat: "property",      clip: "broll_presenter__4",    shape: "broll_presenter",   label: "Drone lots + presenter", note: "aerials cut with a person explaining" },
-  { id: "house_tour", cat: "property",      clip: "broll_presenter__10",   shape: "broll_presenter",   label: "Full house tour",       note: "room after room, word-by-word captions" },
-  { id: "listing_tour", cat: "property",    clip: "broll_presenter__12",   shape: "broll_presenter",   label: "Cinematic listing tour", note: "match cuts, landmark opening" },
-  { id: "whip_pan", cat: "property",        clip: "broll_presenter__13",   shape: "broll_presenter",   label: "Whip-pan announcement", note: "a fast pan into one static shot" },
-  { id: "moody_montage", cat: "marketing",   clip: "fast_montage__5",       shape: "fast_montage",      label: "Moody montage",         note: "high contrast, no talking" },
-  { id: "lifestyle_ugc", cat: "marketing",   clip: "fast_montage__7",       shape: "fast_montage",      label: "Lifestyle UGC",         note: "a day out, ending on one call" },
-  { id: "wide_studio", cat: "marketing",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work" },
-  { id: "pov_skit", cat: "skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out" },
-  { id: "kinetic", cat: "explainer",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker" },
-  { id: "quote_card", cat: "graphic",      clip: "quote_card__1",         shape: "quote_card",        label: "Branded quote card",    note: "one still: your photo, the line in two weights", still: true, aspect: "4/5" },
+  { id: "podcast_take", cat: "talk",    clip: "single_take__3",        shape: "single_take",       label: "Podcast single take",   note: "one unbroken take into a mic", labelFa: "پادکست یک‌برداشته", noteFa: "یک برداشت پیوسته جلوی میکروفون" },
+  { id: "walk_talk", cat: "talk",       clip: "single_take__6",        shape: "single_take",       label: "Walk-and-talk selfie",  note: "handheld, outdoors, straight to camera", labelFa: "سلفی در حال قدم زدن", noteFa: "دوربین در دست، بیرون، رو به دوربین" },
+  { id: "skit_to_camera", cat: "talk",  clip: "single_take__14",       shape: "single_take",       label: "Skit into camera",      note: "a staged beat, then the point", labelFa: "اسکچ رو به دوربین", noteFa: "یک صحنهٔ کوتاه، بعد حرف اصلی" },
+  { id: "desk_take", cat: "talk",       clip: "single_take__16",       shape: "single_take",       label: "Desk talking head",     note: "seated, steady, caption-led", labelFa: "مجری پشت میز", noteFa: "نشسته، ثابت، با زیرنویس" },
+  { id: "branded_frame", cat: "interview",   clip: "branded_interview__2",  shape: "branded_interview", label: "Branded interview frame", note: "logo, topic card, watch-more end", labelFa: "قاب مصاحبهٔ برند", noteFa: "لوگو، کارت موضوع، دعوت به دیدن ادامه" },
+  { id: "two_seat", cat: "interview",        clip: "branded_interview__11", shape: "branded_interview", label: "Two-seat interview",    note: "cut between two speakers", labelFa: "مصاحبهٔ دونفره", noteFa: "برش بین دو گوینده" },
+  { id: "drone_lots", cat: "property",      clip: "broll_presenter__4",    shape: "broll_presenter",   label: "Drone lots + presenter", note: "aerials cut with a person explaining", labelFa: "تصاویر هوایی + مجری", noteFa: "نماهای هوایی با توضیح یک نفر" },
+  { id: "house_tour", cat: "property",      clip: "broll_presenter__10",   shape: "broll_presenter",   label: "Full house tour",       note: "room after room, word-by-word captions", labelFa: "تور کامل خانه", noteFa: "اتاق به اتاق، زیرنویس کلمه‌به‌کلمه" },
+  { id: "listing_tour", cat: "property",    clip: "broll_presenter__12",   shape: "broll_presenter",   label: "Cinematic listing tour", note: "match cuts, landmark opening", labelFa: "تور سینمایی ملک", noteFa: "برش‌های هم‌خوان، شروع با یک نشانه" },
+  { id: "whip_pan", cat: "property",        clip: "broll_presenter__13",   shape: "broll_presenter",   label: "Whip-pan announcement", note: "a fast pan into one static shot", labelFa: "اعلان با حرکت سریع دوربین", noteFa: "یک چرخش سریع به یک نمای ثابت" },
+  { id: "moody_montage", cat: "marketing",   clip: "fast_montage__5",       shape: "fast_montage",      label: "Moody montage",         note: "high contrast, no talking", labelFa: "مونتاژ پرحس", noteFa: "کنتراست بالا، بدون گفتار" },
+  { id: "lifestyle_ugc", cat: "marketing",   clip: "fast_montage__7",       shape: "fast_montage",      label: "Lifestyle UGC",         note: "a day out, ending on one call", labelFa: "سبک زندگی (UGC)", noteFa: "یک روز بیرون، پایان با یک دعوت" },
+  { id: "wide_studio", cat: "marketing",     clip: "fast_montage__9",       shape: "fast_montage",      label: "Wide studio, fast cuts", note: "subject small, the room does the work", labelFa: "استودیوی باز، برش‌های سریع", noteFa: "سوژه کوچک، فضا کار را می‌کند" },
+  { id: "pov_skit", cat: "skit",        clip: "skit__8",               shape: "skit",              label: "POV skit",              note: "a premise card, played out", labelFa: "اسکچ از دید اول‌شخص", noteFa: "یک کارت موقعیت، و اجرای آن" },
+  { id: "kinetic", cat: "explainer",         clip: "kinetic_type__15",      shape: "kinetic_type",      label: "Kinetic typography",    note: "coloured words behind the speaker", labelFa: "تایپوگرافی متحرک", noteFa: "کلمه‌های رنگی پشت گوینده" },
+  { id: "quote_card", cat: "graphic",      clip: "quote_card__1",         shape: "quote_card",        label: "Branded quote card",    note: "one still: your photo, the line in two weights", labelFa: "کارت نقل‌قول برند", noteFa: "یک تصویر: عکس تو، جمله در دو وزن", still: true, aspect: "4/5" },
 ];
 
 /** What Analyze costs, so the total can include it instead of ignoring it. */
@@ -19769,7 +19985,7 @@ function vsCreatorTools(opts) {
     const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
-         <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#12d6f5">// TOOLKIT</span>
+         <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#12d6f5">${state.lang === "fa" ? "// ابزارها" : "// TOOLKIT"}</span>
          <span style="font-size:12px;color:#8a919c">${fa ? `${TOOLS.length} ابزار` : `${TOOLS.length} tools`}</span>
          <span style="flex:1;height:1px;background:rgba(255,255,255,.08)"></span>
        </div>
@@ -23039,9 +23255,9 @@ function vsReverseEngineer(prefill, opts) {
 
         <span style="display:flex;flex-direction:column;gap:10px;padding:12px 13px 13px">
           <span style="display:flex;flex-direction:column;gap:3px">
-            <b style="font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f4f5f7;line-height:1.2">${esc(t.label)}</b>
-            <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5b9bff;text-transform:uppercase;letter-spacing:.05em">${esc(b.method)}</span>
-            <span style="font-size:11px;color:#8a919c;line-height:1.45">${esc(t.note)}</span>
+            <b style="font:800 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#f4f5f7;line-height:1.2">${esc(state.lang === "fa" && t.labelFa ? t.labelFa : t.label)}</b>
+            <span style="font:700 9.5px 'JetBrains Mono',ui-monospace,monospace;color:#5b9bff;text-transform:uppercase;letter-spacing:.05em">${esc(state.lang === "fa" ? ({ "Talking-head": "مجری رو به دوربین", "Slideshow video": "ویدیوی اسلایدی", "Image card": "کارت تصویری" }[b.method] || b.method) : b.method)}</span>
+            <span style="font-size:11px;color:#8a919c;line-height:1.45">${esc(state.lang === "fa" && t.noteFa ? t.noteFa : t.note)}</span>
           </span>
 
           <span style="display:flex;flex-direction:column;gap:5px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)">
@@ -26407,7 +26623,13 @@ async function aiFetchRssTitles(feed) {
       const nodes = doc.querySelectorAll("item, entry");
       const out = [];
       nodes.forEach(n => {
-        const t = (n.querySelector("title") || {}).textContent || "";
+        // Atom titles of type="html" (The Verge) arrive entity-encoded, so the
+        // text still reads "AI&#8217;s" - and escaping it for display then
+        // showed the codes themselves. Decode once, here, as plain text.
+        const raw = (n.querySelector("title") || {}).textContent || "";
+        const t = /&(#\d+|#x[0-9a-f]+|[a-z]+);/i.test(raw)
+          ? (new DOMParser().parseFromString(raw, "text/html").documentElement.textContent || raw)
+          : raw;
         const link = (n.querySelector("link") || {}).textContent
           || (n.querySelector("link") || {getAttribute:()=>""}).getAttribute("href") || "";
         if (t && t.length > 12) out.push({ tag: feed.src, text: t.trim(), link: (link||"").trim() });
