@@ -9399,6 +9399,261 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   ctx.restore();
 }
 
+// ── Edit my video: the styled layer - hook, stickers, icons, beat ──────────
+// A raw talking video becomes a reel: a hook that grabs the first seconds,
+// the key phrase of each moment popping up as a sticker the instant it is
+// said, an icon that matches it, cuts that land on the music's beat and a
+// punch on every beat. All of it sits on the scene (s._hook, s._sticker) so
+// the scene editor can change or remove it, and is drawn in preview and
+// export alike.
+const VS_STICKER_ICONS = ["money", "growth", "decline", "home", "heart", "idea", "time", "check", "warning", "fire",
+  "star", "rocket", "target", "phone", "people", "chart", "calendar", "book", "food", "travel", "tech", "fitness", "music", "question"];
+
+// A line icon drawn at (cx, cy) inside radius r, in one colour.
+function vsStickerIcon(ctx, cx, cy, r, key, ink) {
+  const g = r * 0.62, lw = Math.max(2, r * 0.13);
+  ctx.save();
+  ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const P = (fn, fill) => { ctx.beginPath(); fn(); fill ? ctx.fill() : ctx.stroke(); };
+  const star = (rr, n) => P(() => { for (let k = 0; k < n * 2; k++) { const a = -Math.PI / 2 + k * Math.PI / n, d = k % 2 ? rr * 0.45 : rr; ctx.lineTo(cx + Math.cos(a) * d, cy + Math.sin(a) * d); } ctx.closePath(); });
+  switch (key) {
+    case "money":
+      P(() => { ctx.moveTo(cx + g * 0.55, cy - g * 0.55); ctx.bezierCurveTo(cx - g * 0.9, cy - g * 0.75, cx - g * 0.8, cy, cx, cy); ctx.bezierCurveTo(cx + g * 0.8, cy, cx + g * 0.9, cy + g * 0.75, cx - g * 0.55, cy + g * 0.55); });
+      P(() => { ctx.moveTo(cx, cy - g); ctx.lineTo(cx, cy + g); }); break;
+    case "growth": case "chart": case "decline": {
+      const up = key !== "decline";
+      P(() => { ctx.moveTo(cx - g, cy - g); ctx.lineTo(cx - g, cy + g); ctx.lineTo(cx + g, cy + g); });
+      if (key === "chart") { [-0.4, 0.1, 0.6].forEach((x, k) => ctx.strokeRect(cx + x * g - g * 0.12, cy + g * (0.6 - k * 0.45), g * 0.24, g * (0.4 + k * 0.45))); break; }
+      P(() => { ctx.moveTo(cx - g * 0.6, cy + (up ? 0.5 : -0.5) * g); ctx.lineTo(cx - g * 0.05, cy + (up ? -0.05 : 0.05) * g); ctx.lineTo(cx + g * 0.25, cy + (up ? 0.2 : -0.2) * g); ctx.lineTo(cx + g * 0.85, cy + (up ? -0.6 : 0.6) * g); });
+      P(() => { const ty = cy + (up ? -0.6 : 0.6) * g; ctx.moveTo(cx + g * 0.45, ty); ctx.lineTo(cx + g * 0.85, ty); ctx.lineTo(cx + g * 0.85, ty + (up ? 0.4 : -0.4) * g); });
+      break;
+    }
+    case "home":
+      P(() => { ctx.moveTo(cx - g, cy - g * 0.05); ctx.lineTo(cx, cy - g * 0.95); ctx.lineTo(cx + g, cy - g * 0.05); });
+      P(() => { ctx.moveTo(cx - g * 0.7, cy - g * 0.3); ctx.lineTo(cx - g * 0.7, cy + g * 0.85); ctx.lineTo(cx + g * 0.7, cy + g * 0.85); ctx.lineTo(cx + g * 0.7, cy - g * 0.3); });
+      P(() => { ctx.moveTo(cx - g * 0.2, cy + g * 0.85); ctx.lineTo(cx - g * 0.2, cy + g * 0.3); ctx.lineTo(cx + g * 0.2, cy + g * 0.3); ctx.lineTo(cx + g * 0.2, cy + g * 0.85); }); break;
+    case "heart":
+      P(() => { ctx.moveTo(cx, cy + g * 0.85); ctx.bezierCurveTo(cx - g * 1.5, cy - g * 0.2, cx - g * 0.5, cy - g * 1.1, cx, cy - g * 0.35); ctx.bezierCurveTo(cx + g * 0.5, cy - g * 1.1, cx + g * 1.5, cy - g * 0.2, cx, cy + g * 0.85); }, true); break;
+    case "idea":
+      P(() => { ctx.arc(cx, cy - g * 0.25, g * 0.62, Math.PI * 0.8, Math.PI * 2.2); ctx.lineTo(cx + g * 0.3, cy + g * 0.45); ctx.lineTo(cx - g * 0.3, cy + g * 0.45); ctx.closePath(); });
+      P(() => { ctx.moveTo(cx - g * 0.25, cy + g * 0.72); ctx.lineTo(cx + g * 0.25, cy + g * 0.72); }); break;
+    case "time": case "calendar":
+      if (key === "time") {
+        P(() => ctx.arc(cx, cy, g, 0, Math.PI * 2));
+        P(() => { ctx.moveTo(cx, cy - g * 0.6); ctx.lineTo(cx, cy); ctx.lineTo(cx + g * 0.45, cy + g * 0.3); });
+      } else {
+        ctx.strokeRect(cx - g, cy - g * 0.7, g * 2, g * 1.6);
+        P(() => { ctx.moveTo(cx - g, cy - g * 0.2); ctx.lineTo(cx + g, cy - g * 0.2); });
+        P(() => { ctx.moveTo(cx - g * 0.45, cy - g); ctx.lineTo(cx - g * 0.45, cy - g * 0.5); ctx.moveTo(cx + g * 0.45, cy - g); ctx.lineTo(cx + g * 0.45, cy - g * 0.5); });
+      }
+      break;
+    case "check":
+      P(() => { ctx.moveTo(cx - g * 0.75, cy); ctx.lineTo(cx - g * 0.2, cy + g * 0.55); ctx.lineTo(cx + g * 0.8, cy - g * 0.55); }); break;
+    case "warning":
+      P(() => { ctx.moveTo(cx, cy - g); ctx.lineTo(cx + g, cy + g * 0.75); ctx.lineTo(cx - g, cy + g * 0.75); ctx.closePath(); });
+      P(() => { ctx.moveTo(cx, cy - g * 0.35); ctx.lineTo(cx, cy + g * 0.2); });
+      P(() => ctx.arc(cx, cy + g * 0.48, lw * 0.4, 0, Math.PI * 2), true); break;
+    case "fire":
+      P(() => { ctx.moveTo(cx, cy + g); ctx.bezierCurveTo(cx - g * 1.1, cy + g, cx - g * 0.9, cy - g * 0.1, cx - g * 0.2, cy - g); ctx.bezierCurveTo(cx - g * 0.1, cy - g * 0.4, cx + g * 0.3, cy - g * 0.3, cx + g * 0.35, cy - g * 0.6); ctx.bezierCurveTo(cx + g * 1.1, cy, cx + g * 0.9, cy + g, cx, cy + g); }, true); break;
+    case "star": star(g, 5); break;
+    case "rocket":
+      P(() => { ctx.moveTo(cx, cy - g); ctx.bezierCurveTo(cx + g * 0.6, cy - g * 0.5, cx + g * 0.5, cy + g * 0.2, cx + g * 0.35, cy + g * 0.5); ctx.lineTo(cx - g * 0.35, cy + g * 0.5); ctx.bezierCurveTo(cx - g * 0.5, cy + g * 0.2, cx - g * 0.6, cy - g * 0.5, cx, cy - g); });
+      P(() => ctx.arc(cx, cy - g * 0.25, g * 0.18, 0, Math.PI * 2));
+      P(() => { ctx.moveTo(cx - g * 0.18, cy + g * 0.65); ctx.lineTo(cx, cy + g); ctx.lineTo(cx + g * 0.18, cy + g * 0.65); }); break;
+    case "target":
+      [1, 0.62, 0.25].forEach((k) => P(() => ctx.arc(cx, cy, g * k, 0, Math.PI * 2))); break;
+    case "phone": case "tech":
+      if (key === "phone") { ctx.strokeRect(cx - g * 0.55, cy - g, g * 1.1, g * 2); P(() => { ctx.moveTo(cx - g * 0.15, cy + g * 0.72); ctx.lineTo(cx + g * 0.15, cy + g * 0.72); }); }
+      else { ctx.strokeRect(cx - g, cy - g * 0.7, g * 2, g * 1.25); P(() => { ctx.moveTo(cx - g * 0.4, cy + g * 0.9); ctx.lineTo(cx + g * 0.4, cy + g * 0.9); ctx.moveTo(cx, cy + g * 0.55); ctx.lineTo(cx, cy + g * 0.9); }); }
+      break;
+    case "people":
+      P(() => ctx.arc(cx - g * 0.35, cy - g * 0.35, g * 0.32, 0, Math.PI * 2)); P(() => ctx.arc(cx + g * 0.45, cy - g * 0.25, g * 0.26, 0, Math.PI * 2));
+      P(() => { ctx.moveTo(cx - g * 0.95, cy + g * 0.8); ctx.quadraticCurveTo(cx - g * 0.35, cy - g * 0.1, cx + g * 0.25, cy + g * 0.8); });
+      P(() => { ctx.moveTo(cx + g * 0.15, cy + g * 0.25); ctx.quadraticCurveTo(cx + g * 0.6, cy + g * 0.05, cx + g * 0.95, cy + g * 0.7); }); break;
+    case "book":
+      P(() => { ctx.moveTo(cx, cy - g * 0.7); ctx.lineTo(cx, cy + g * 0.8); });
+      P(() => { ctx.moveTo(cx, cy - g * 0.7); ctx.quadraticCurveTo(cx - g * 0.5, cy - g, cx - g, cy - g * 0.75); ctx.lineTo(cx - g, cy + g * 0.6); ctx.quadraticCurveTo(cx - g * 0.5, cy + g * 0.5, cx, cy + g * 0.8); });
+      P(() => { ctx.moveTo(cx, cy - g * 0.7); ctx.quadraticCurveTo(cx + g * 0.5, cy - g, cx + g, cy - g * 0.75); ctx.lineTo(cx + g, cy + g * 0.6); ctx.quadraticCurveTo(cx + g * 0.5, cy + g * 0.5, cx, cy + g * 0.8); }); break;
+    case "food":
+      P(() => { ctx.moveTo(cx - g * 0.45, cy - g); ctx.lineTo(cx - g * 0.45, cy + g); });
+      [-0.75, -0.15].forEach((x) => P(() => { ctx.moveTo(cx + x * g, cy - g); ctx.lineTo(cx + x * g, cy - g * 0.3); }));
+      P(() => { ctx.moveTo(cx - g * 0.75, cy - g * 0.3); ctx.lineTo(cx - g * 0.15, cy - g * 0.3); });
+      P(() => { ctx.moveTo(cx + g * 0.55, cy + g); ctx.lineTo(cx + g * 0.55, cy - g); ctx.quadraticCurveTo(cx + g * 1.05, cy - g * 0.5, cx + g * 0.55, cy - g * 0.05); }); break;
+    case "travel":
+      P(() => { ctx.moveTo(cx, cy + g); ctx.arc(cx, cy - g * 0.2, g * 0.75, Math.PI * 0.75, Math.PI * 0.25); ctx.closePath(); });
+      P(() => ctx.arc(cx, cy - g * 0.2, g * 0.28, 0, Math.PI * 2)); break;
+    case "fitness":
+      P(() => { ctx.moveTo(cx - g * 0.75, cy); ctx.lineTo(cx + g * 0.75, cy); });
+      [-1, 1].forEach((d) => { ctx.fillRect(cx + d * g * 0.75 - (d > 0 ? 0 : g * 0.28), cy - g * 0.55, g * 0.28, g * 1.1); }); break;
+    case "music":
+      P(() => ctx.arc(cx - g * 0.45, cy + g * 0.55, g * 0.3, 0, Math.PI * 2), true);
+      P(() => { ctx.moveTo(cx - g * 0.15, cy + g * 0.55); ctx.lineTo(cx - g * 0.15, cy - g * 0.9); ctx.lineTo(cx + g * 0.75, cy - g * 0.6); ctx.lineTo(cx + g * 0.75, cy + g * 0.25); });
+      P(() => ctx.arc(cx + g * 0.45, cy + g * 0.25, g * 0.3, 0, Math.PI * 2), true); break;
+    default: // question
+      P(() => { ctx.arc(cx, cy - g * 0.35, g * 0.5, Math.PI * 1.1, Math.PI * 2.3); ctx.lineTo(cx, cy + g * 0.25); });
+      P(() => ctx.arc(cx, cy + g * 0.72, lw * 0.5, 0, Math.PI * 2), true);
+  }
+  ctx.restore();
+}
+
+// The hook, the sticker and its icon for the scene on screen. Called from
+// vsFinishFrame, before the captions.
+function vsDrawEditOverlays(ctx, W, H, elapsed) {
+  if (!vstudio.slides.length) return;
+  const at = slideAtTime(elapsed);
+  const s = vstudio.slides[at.index];
+  if (!s || (!s._hook && !s._sticker)) return;
+  const t = at.local, U = Math.min(W, H);
+  let accent = "#f5c451";
+  try { const tp = vsTemplate(); if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
+  if (s._accent) accent = s._accent;
+  const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  const easeBack = (p) => { p = Math.max(0, Math.min(1, p)); const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+  const rtlOf = (txt) => /[؀-ۿ]/.test(txt);
+
+  // ── HOOK: big words popping in, one by one, over the opening ──
+  if (s._hook && s._hook.text) {
+    const until = Number(s._hook.until) || 2.6;
+    if (t < until) {
+      const words = String(s._hook.text).trim().split(/\s+/).filter(Boolean).slice(0, 10);
+      const rtl = rtlOf(s._hook.text);
+      const out = Math.max(0, Math.min(1, (until - t) / 0.25));
+      const cy = H * 0.33, maxW = W * 0.84;
+      let px = Math.round(U * 0.105);
+      const lineUp = (sz) => {
+        ctx.font = `900 ${sz}px ${FAM}`;
+        const lines = []; let cur = [];
+        words.forEach((w) => { const test = cur.concat(w).join(" "); if (ctx.measureText(test.toUpperCase()).width > maxW && cur.length) { lines.push(cur); cur = [w]; } else cur.push(w); });
+        if (cur.length) lines.push(cur);
+        return lines;
+      };
+      let lines = lineUp(px);
+      while (px > U * 0.06 && lines.length > 3) { px -= 4; lines = lineUp(px); }
+      const lh = px * 1.08, top = cy - (lines.length * lh) / 2;
+      ctx.save();
+      vsElTransform(ctx, W, H, s, "hook", W / 2, cy);
+      vsElHit(W, H, s, "hook", W * 0.06, top - px * 0.2, W * 0.88, lines.length * lh + px * 0.4, W / 2, cy);
+      // a soft shade behind the words, not a box
+      const sh = ctx.createRadialGradient(W / 2, cy, 0, W / 2, cy, W * 0.75);
+      sh.addColorStop(0, `rgba(0,0,0,${0.45 * out})`); sh.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
+      ctx.font = `900 ${px}px ${FAM}`; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      try { ctx.direction = "ltr"; } catch (e) {}
+      const longest = words.reduce((m, w) => (w.replace(/[^\p{L}\p{N}]/gu, "").length > m.replace(/[^\p{L}\p{N}]/gu, "").length ? w : m), "");
+      let k = 0;
+      lines.forEach((ln, li) => {
+        const ws = rtl ? ln.slice().reverse() : ln;
+        const widths = ws.map((w) => ctx.measureText(w.toUpperCase()).width), sp = px * 0.28;
+        const lineW = widths.reduce((a, b) => a + b, 0) + sp * (ws.length - 1);
+        let x = W / 2 - lineW / 2;
+        const y = top + li * lh + lh / 2;
+        ws.forEach((w, j) => {
+          const idx = rtl ? (k + ln.length - 1 - j) : (k + j);
+          const p = (t - idx * 0.11) / 0.28;
+          if (p > 0) {
+            const sc = easeBack(p), word = w.toUpperCase(), ww = widths[j];
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, p * 2) * out;
+            ctx.translate(x + ww / 2, y); ctx.scale(sc, sc); ctx.translate(-(x + ww / 2), -y);
+            ctx.lineJoin = "round"; ctx.lineWidth = px * 0.16; ctx.strokeStyle = "rgba(0,0,0,0.9)";
+            ctx.strokeText(word, x, y);
+            ctx.fillStyle = w === longest ? accent : "#ffffff";
+            ctx.fillText(word, x, y);
+            ctx.restore();
+          }
+          x += widths[j] + sp;
+        });
+        k += ln.length;
+      });
+      ctx.restore();
+    }
+  }
+
+  // ── STICKER: the key phrase, tilted, popping in when it is said ──
+  const st = s._sticker;
+  if (st && (st.text || st.icon) && t >= (Number(st.at) || 0) && t < at.dur - 0.1) {
+    const p = (t - (Number(st.at) || 0)) / 0.32;
+    const exitP = Math.max(0, Math.min(1, (at.dur - 0.1 - t) / 0.18));
+    const sc = easeBack(p) * (0.85 + 0.15 * exitP);
+    const side = st.side === "right" ? 1 : st.side === "left" ? -1 : 0;
+    const cx = W / 2 + side * W * 0.08, cy = H * (st.y || 0.2);
+    const rot = (st.rot != null ? st.rot : (side >= 0 ? -3.5 : 3.5)) * Math.PI / 180;
+    const fs = Math.round(U * 0.062);
+    ctx.save();
+    ctx.font = `900 ${fs}px ${FAM}`;
+    const label = String(st.text || "").toUpperCase();
+    const tw = label ? ctx.measureText(label).width : 0;
+    const iconR = st.icon ? fs * 0.95 : 0;
+    const padX = fs * 0.5, bh = fs * 1.55, bw = (label ? tw + padX * 2 : 0);
+    const gap = label && st.icon ? fs * 0.3 : 0;
+    const total = bw + (iconR ? iconR * 2 + gap : 0);
+    vsElTransform(ctx, W, H, s, "sticker", cx, cy);
+    vsElHit(W, H, s, "sticker", cx - total / 2 - fs * 0.3, cy - Math.max(bh, iconR * 2) / 2 - fs * 0.2, total + fs * 0.6, Math.max(bh, iconR * 2) + fs * 0.4, cx, cy);
+    ctx.translate(cx, cy + Math.sin(t * 3.2) * U * 0.004);
+    ctx.rotate(rot);
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = Math.min(1, p * 3) * (0.3 + 0.7 * exitP);
+    let x0 = -total / 2;
+    ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.5; ctx.shadowOffsetY = fs * 0.12;
+    if (iconR) {
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(x0 + iconR, 0, iconR, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      vsStickerIcon(ctx, x0 + iconR, 0, iconR * 0.78, st.icon, accent);
+      x0 += iconR * 2 + gap;
+      ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.5; ctx.shadowOffsetY = fs * 0.12;
+    }
+    if (label) {
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x0, -bh / 2, bw, bh, bh * 0.22); else ctx.rect(x0, -bh / 2, bw, bh);
+      ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      let lum = 0.5;
+      try { const h = accent.replace("#", ""); lum = (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) / 255; } catch (e) {}
+      ctx.fillStyle = lum > 0.55 ? "#0b0d12" : "#ffffff";
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      try { ctx.direction = "ltr"; } catch (e) {}
+      ctx.fillText(label, x0 + padX, fs * 0.04);
+    }
+    ctx.restore();
+  }
+}
+
+// Snap the cuts to the music's beat: each scene ends on the beat nearest its
+// own end (never cutting into the speech), on the grid the default music bed
+// plays its kick on - every beat from 2.0s at the bed's tempo.
+function vsSnapCutsToBeat(slides, bpm) {
+  const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100)), grid0 = 2.0;
+  let cum = 0;
+  slides.forEach((s) => {
+    const speechEnd = s._voice && s._voice.words.length ? s._voice.words[s._voice.words.length - 1].t1 + 0.06 : 0.5;
+    const end = cum + Number(s.duration);
+    let k = Math.round((end - grid0) / beat);
+    let snapped = grid0 + k * beat;
+    while (snapped - cum < speechEnd) { k++; snapped = grid0 + k * beat; }
+    s.duration = Math.round((snapped - cum) * 1000) / 1000;
+    cum = snapped;
+  });
+  vstudio._beat = { bpm: 60 / beat, beat, grid0 };
+}
+
+// The AI's read of the talk: a hook for the opening, and for most scenes the
+// key phrase to put on screen and an icon for it. Words are the speaker's own.
+async function vsEditStylePlan(scenes, lang) {
+  const list = scenes.map((t, i) => `${i}: ${t}`).join("\n").slice(0, 6000);
+  const prompt = `You are editing a short talking video into a social reel. Below is what the speaker says in each scene, numbered.\n` +
+    `1. Write ONE hook for the first seconds: 3 to 7 punchy words that make people stay, true to what is said, in the SAME language as the speech.\n` +
+    `2. For about two out of three scenes, pick the KEY PHRASE to show on screen: 1 to 4 words copied from that scene's own words (a number, a name or the strongest idea), and ONE icon from this list that matches it: ${VS_STICKER_ICONS.join(", ")}.\n` +
+    `Skip scenes that have nothing worth showing. Never invent facts.\n` +
+    `Return ONLY JSON: {"hook":"...","scenes":[{"i":0,"text":"...","icon":"..."}]}\n` +
+    `SCENES:\n${list}`;
+  let raw = "";
+  try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.6 }); } catch (e) {}
+  const j = vsParseAiJson(raw || "") || {};
+  return { hook: String(j.hook || "").replace(/^["'«“]+|["'»”]+$/g, "").trim().slice(0, 80), scenes: Array.isArray(j.scenes) ? j.scenes : [] };
+}
+
 // ── Edit my video ───────────────────────────────────────────────────────────
 // The customer's own video in, an edited reel out, for free: the speech is
 // transcribed (Whisper on our worker, /transcribe) into words with times; the
@@ -9426,8 +9681,10 @@ function vsEditMineDialog(file) {
       ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
       ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
       ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
+      ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
+      ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
+      ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
       ${opt("vsEmZoom", "Punch-in zoom on every other cut", "زوم ضربه‌ای یکی در میان", true)}
-      ${opt("vsEmTitle", "A hook title on the opening", "تیتر جذاب روی شروع ویدیو", true)}
       ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
       <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
         <select id="vsEmAspect">
@@ -9450,6 +9707,7 @@ function vsEditMineDialog(file) {
       cut: d.querySelector("#vsEmCut").checked, fillers: d.querySelector("#vsEmFill").checked,
       captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
       title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
+      stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
       aspect: d.querySelector("#vsEmAspect").value
     };
     close();
@@ -9586,7 +9844,12 @@ async function vsEditMyVideo(file, o) {
     const words = [];
     (tr.segments || []).forEach((sg) => (sg.words || []).forEach((w) => {
       const t = String(w.word || "").trim();
-      if (t && isFinite(w.start) && isFinite(w.end)) words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
+      if (!t || !isFinite(w.start) || !isFinite(w.end)) return;
+      // Whisper splits "10%" into "10" "%" and "$20,000" into "$20" ",000":
+      // a piece that starts with punctuation belongs to the word before it.
+      const prev = words[words.length - 1];
+      if (prev && /^[%,.!?;:،؛]/.test(t)) { prev.w += t; prev.e = Math.max(prev.e, Number(w.end)); return; }
+      words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
     }));
 
     vsAutoStatus(L("Cutting the pauses…", "در حال حذف مکث‌ها…"));
@@ -9623,23 +9886,37 @@ async function vsEditMyVideo(file, o) {
     }
     if (!vstudio.slides.length) throw new Error(L("nothing to keep was found", "چیزی برای نگه‌داشتن پیدا نشد"));
 
-    if (o.title) {
-      vsAutoStatus(L("Writing a hook title…", "در حال نوشتن تیتر…"));
-      const said = words.map((w) => w.w).join(" ").slice(0, 2500);
-      let hook = "";
-      try {
-        hook = await vsAutoAiChat(`Write ONE hook title for the opening of a short video, based on what the speaker says below. 3 to 7 words, in the SAME language as the speech, no quotes, no hashtags, no emoji. Output only the title.\nSPEECH: """${said}"""`, { json: false, temperature: 0.7 });
-      } catch (e) {}
-      hook = String(hook || "").split("\n")[0].replace(/^["'«“]+|["'»”]+$/g, "").trim().slice(0, 80);
-      if (hook) {
+    const lang2 = (tr.language || "").slice(0, 2);
+    vstudio.storyData = { title: file.name, language: lang2, music: { mood: "upbeat", energy: "medium", bpm: 104 } };
+    if (o.title || o.stickers) {
+      vsAutoStatus(L("Writing the hook and picking the key words…", "در حال نوشتن هوک و انتخاب کلمات کلیدی…"));
+      const plan2 = await vsEditStylePlan(vstudio.slides.map((x) => x._narration || ""), lang2);
+      if (o.title && plan2.hook) {
         const s0 = vstudio.slides[0];
-        s0.headline = hook;
-        s0.settings["#vsTextPos"] = "top"; s0.settings["#vsTextAnim"] = "pop";
+        s0._hook = { text: plan2.hook, until: Math.min(2.8, Math.max(1.6, Number(s0.duration) - 0.2)) };
+        vstudio.storyData.title = plan2.hook;
       }
-      vstudio.storyData = { title: hook || file.name, language: (tr.language || "").slice(0, 2), music: { mood: "upbeat", energy: "low", bpm: 100 } };
-    } else {
-      vstudio.storyData = { title: file.name, language: (tr.language || "").slice(0, 2), music: { mood: "upbeat", energy: "low", bpm: 100 } };
+      if (o.stickers) {
+        let side = 0;
+        plan2.scenes.forEach((x) => {
+          const sl = vstudio.slides[Number(x && x.i)];
+          const txt = String((x && x.text) || "").replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
+          if (!sl || !txt) return;
+          // pop up the moment its first word is said
+          const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
+          const w = (sl._voice && sl._voice.words || []).find((ww) => ww.w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === first);
+          const atT = Math.max(0.15, Math.min(Number(sl.duration) - 1, w ? w.t0 : 0.3));
+          // the opening has its hook; its sticker waits until the hook is gone
+          const after = sl._hook ? Math.max(atT, (sl._hook.until || 2.6) + 0.1) : atT;
+          if (after > Number(sl.duration) - 0.8) return;
+          sl._sticker = { text: txt, icon: VS_STICKER_ICONS.includes(x.icon) ? x.icon : "", at: Math.round(after * 100) / 100,
+            side: ["left", "right", ""][side++ % 3], y: 0.2 };
+        });
+      }
     }
+    // cuts on the beat of the bed the music step is about to make
+    if (o.beat) vsSnapCutsToBeat(vstudio.slides, vstudio.storyData.music.bpm);
+    const tsel = $("#vsTransition"); if (tsel) { tsel.value = "punch"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "punch"; }); }
 
     // their own voice, laid under the cuts; captions read from the same words
     vstudio._voiceSig = "edit";
@@ -9655,6 +9932,7 @@ async function vsEditMyVideo(file, o) {
         vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
       }
     } else if (!o.music && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
+    vstudio._editBeatPulse = !!(o.beat && o.music);
 
     vstudio.activeSlide = 0;
     renderSlideList();
@@ -9683,7 +9961,7 @@ async function vsEditMyVideo(file, o) {
 // While a frame is drawn each element records where it landed in
 // vstudio._hits, which is what a click on the preview is tested against.
 
-const VS_EL_OWN = { graphic: 1, title: 1, label: 1, edKicker: 1, edText: 1, captions: 1 };
+const VS_EL_OWN = { graphic: 1, title: 1, label: 1, edKicker: 1, edText: 1, captions: 1, hook: 1, sticker: 1 };
 const VS_GRAPHIC_SCALE = 1.08;
 // Accents a scene can take - the brand's own colours, plus white.
 const VS_ACCENTS = ["#f5c451", "#12d6f5", "#2563ff", "#5fe0b0", "#f87171", "#ffffff"];
@@ -9748,7 +10026,7 @@ const VS_EL_NAME = {
   scene: ["Scene", "صحنه"], title: ["Title", "عنوان"], label: ["Label", "برچسب"], text: ["Headline", "تیتر"],
   news: ["Headline", "تیتر"], info: ["Chart", "نمودار"], graphic: ["Graphic", "گرافیک"],
   edKicker: ["Section tab", "برچسب بخش"], edText: ["Cover text", "متن جلد"], captions: ["Voice & captions", "صدا و زیرنویس"],
-  footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"]
+  footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"], hook: ["Hook", "هوک"], sticker: ["Key words & icon", "کلمه کلیدی و آیکون"]
 };
 const vsT = (pair) => (state.lang === "fa" ? pair[1] : pair[0]);
 
@@ -9761,6 +10039,7 @@ function vsSceneElements(s, i) {
   else if (t === "motion") { out.push("text"); if (s.sceneGraphic) out.push("graphic"); }
   else if (t === "chart") { out.push("info"); if (s._caption) out.push("label"); }
   else if (t === "text") { out.push("news"); if (s._caption) out.push("label"); }
+  else if (t === "own") { if (s._hook) out.push("hook"); out.push("sticker"); }
   else { out.push("text"); }
   if (s.mediaEl && t !== "editorial") out.push("footage");
   if (s._voice || (s._narration && vsNarrateOn())) out.push("captions");
@@ -10094,6 +10373,26 @@ function vsElementFields(s, i, id) {
     return F;
   }
 
+  if (id === "hook") {
+    const h = s._hook || (s._hook = { text: "", until: 2.6 });
+    F.push({ type: "textarea", label: L("Hook (first seconds)", "هوک (ثانیه‌های اول)"), rows: 2, list: true, get: () => h.text || "", set: (v) => { h.text = v; } });
+    F.push({ type: "range", label: L("On screen for", "مدت نمایش"), min: 1, max: Math.max(1.2, Math.min(6, Number(s.duration) || 3)), step: 0.1, fmt: (v) => v.toFixed(1) + "s",
+      get: () => Number(h.until) || 2.6, set: (v) => { h.until = v; } });
+    moveSize(s, "hook", 0.5, 1.8);
+    F.push({ type: "buttons", buttons: [{ t: L("Remove the hook", "حذف هوک"), danger: true, act: () => { delete s._hook; vstudio._sel = { slide: i, id: "scene" }; vsInspRedraw(true); vsRenderInspector(); } }] });
+    return F;
+  }
+  if (id === "sticker") {
+    const st = () => s._sticker || (s._sticker = { text: "", icon: "", at: 0.3, side: "", y: 0.2 });
+    F.push({ type: "text", label: L("Words on screen", "کلمات روی تصویر"), list: true, get: () => (s._sticker && s._sticker.text) || "", set: (v) => { st().text = v; } });
+    F.push({ type: "select", label: L("Icon", "آیکون"), options: [{ v: "", t: L("No icon", "بدون آیکون") }].concat(VS_STICKER_ICONS.map((k) => ({ v: k, t: k }))),
+      get: () => (s._sticker && s._sticker.icon) || "", set: (v) => { st().icon = v; } });
+    F.push({ type: "range", label: L("Appears at", "زمان ظاهر شدن"), min: 0, max: Math.max(0.5, (Number(s.duration) || 2) - 0.5), step: 0.05, fmt: (v) => v.toFixed(2) + "s",
+      get: () => (s._sticker && Number(s._sticker.at)) || 0, set: (v) => { st().at = v; } });
+    moveSize(s, "sticker", 0.5, 2);
+    if (s._sticker) F.push({ type: "buttons", buttons: [{ t: L("Remove", "حذف"), danger: true, act: () => { delete s._sticker; vsInspRedraw(true); vsRenderInspector(); } }] });
+    return F;
+  }
   if (id === "captions" && s._ownSpeech) {
     // The customer's own voice: the words are fixed in time, so editing fixes
     // what the captions SAY (a misheard word) and keeps when each one lands.
@@ -13352,7 +13651,7 @@ function setupTextDrag() {
       return null;
     }
     const h = hits();
-    for (const id of ["captions", "label", "edKicker"]) if (inBox(pt, h[id])) return id;
+    for (const id of ["sticker", "captions", "label", "edKicker", "hook"]) if (inBox(pt, h[id])) return id;
     if (inBox(pt, vstudio.infoBox)) return "info";
     if (inBox(pt, vstudio.textBox)) return "text";
     if (vstudio.logoEl && inBox(pt, vstudio.logoBox)) return "logo";
@@ -17816,7 +18115,13 @@ function drawStudioFrame(elapsed) {
   // ratio. Math.max scales so the smaller side still covers the frame;
   // overflow is cropped. One uniform `fit` factor → never stretched.
   // `mediaScale` is the user's manual zoom (scroll wheel on the footage).
-  const manualZoom = Math.max(1, vsOff.mediaScale || 1);   // never below cover
+  let manualZoom = Math.max(1, vsOff.mediaScale || 1);   // never below cover
+  // An edited talk punches in on every beat of its music: a quick 3% push
+  // that falls away in a tenth of a second, on the grid the cuts land on.
+  if (vstudio._editBeatPulse && vstudio._beat && dsSlideObj && dsSlideObj._ownSpeech && (vstudio.looping || vstudio.rendering)) {
+    const bt = vstudio._beat, ph = ((elapsed - bt.grid0) % bt.beat + bt.beat) % bt.beat;
+    manualZoom *= 1 + 0.03 * Math.exp(-ph / 0.09);
+  }
   const fit = Math.max(W / mw, H / mh) * zoom * manualZoom;
   const dw = mw * fit, dh = mh * fit;
 
@@ -18555,6 +18860,7 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     try { if (typeof vsTemplate === "function") _tpl = vsTemplate(); } catch (e) {}
     vsDrawLogo(ctx, W, H, elapsed, dsLocal, _tpl);
   }
+  try { vsDrawEditOverlays(ctx, W, H, elapsed); } catch (e) {}
   try { vsDrawCaptions(ctx, W, H, elapsed); } catch (e) {}
   try { vsDrawSelection(ctx, W, H, elapsed); } catch (e) {}
   // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
