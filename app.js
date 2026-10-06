@@ -9253,13 +9253,15 @@ function vsMixVoiceTrack(force) {
       // there instead of talking over the next one.
       const n = Math.min(Math.floor(v.len * sr), Math.floor((d - v.at) * sr));
       const at = Math.floor((start + v.at) * sr);
+      const fadeN = Math.max(1, Math.floor(sr * 0.006));
+      const fade = (k) => (k < fadeN ? k / fadeN : k > n - fadeN ? Math.max(0, (n - k) / fadeN) : 1);
       if (ratio === 1) {
         const f0 = Math.floor(from);
-        for (let k = 0; k < n && at + k < dst.length; k++) dst[at + k] = src[f0 + k] || 0;
+        for (let k = 0; k < n && at + k < dst.length; k++) dst[at + k] = (src[f0 + k] || 0) * fade(k);
       } else {
         for (let k = 0; k < n && at + k < dst.length; k++) {
           const pos = from + k * ratio, i0 = Math.floor(pos), fr = pos - i0;
-          dst[at + k] = (src[i0] || 0) * (1 - fr) + (src[i0 + 1] || 0) * fr;
+          dst[at + k] = ((src[i0] || 0) * (1 - fr) + (src[i0 + 1] || 0) * fr) * fade(k);
         }
       }
     }
@@ -9268,7 +9270,7 @@ function vsMixVoiceTrack(force) {
   // the edit's sounds, each with its loudest moment on its beat
   if (vstudio._editSfxOn && vstudio._sfx && vstudio._sfx.sr === sr) {
     fxEvents.forEach((ev) => {
-      const fx = vstudio._sfx[ev.n];
+      const fx = vsSfxFor(ev.n);
       if (!fx) return;
       const src = fx.buf.getChannelData(0);
       const at = Math.floor((ev.t - fx.peak) * sr);
@@ -9308,6 +9310,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const v = s && s._voice;
   if (!v || !v.words.length || s._gfx) return;   // a graphic card writes its own words
   const t = at.local;
+  { const bk = vsBigKeyWindow(s); if (bk && t >= bk.from - 0.05 && t < bk.to) return; }   // the big words speak for themselves
   const first = v.words[0], last = v.words[v.words.length - 1];
   if (t < first.t0 - 0.04 || t > last.t1 + 0.3 || t > at.dur - 0.08) return;
   const look = ((vstudio._toneProfile || {}).captions) || "pop";
@@ -9659,15 +9662,54 @@ function vsSnapCutsToBeat(slides, bpm) {
   const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100)), grid0 = 2.0;
   let cum = 0;
   slides.forEach((s) => {
+    const dur = Number(s.duration);
     const speechEnd = s._voice && s._voice.words.length ? s._voice.words[s._voice.words.length - 1].t1 + 0.06 : 0.5;
-    const end = cum + Number(s.duration);
-    let k = Math.round((end - grid0) / beat);
-    let snapped = grid0 + k * beat;
-    while (snapped - cum < speechEnd) { k++; snapped = grid0 + k * beat; }
-    s.duration = Math.round((snapped - cum) * 1000) / 1000;
-    cum = snapped;
+    // Only ever SHORTEN, into the clip's own quiet tail. Lengthening a clip to
+    // reach the next beat left the speaker mouthing words with no sound for
+    // up to half a second at every cut - the voice "cutting in and out".
+    const snapped = grid0 + Math.floor((cum + dur - grid0) / beat + 1e-6) * beat;
+    if (snapped - cum >= speechEnd && snapped < cum + dur) s.duration = Math.round((snapped - cum) * 1000) / 1000;
+    cum += Number(s.duration);
   });
   vstudio._beat = { bpm: 60 / beat, beat, grid0 };
+}
+// Whisper now and then stretches a word over the silence next to it (a
+// 3.1-second "affordability" swallowed a 1.4-second pause, which then played
+// as dead air inside a clip). A word far longer than its letters allow is
+// re-measured: it is the longest run of sound inside its stamped span.
+function vsTrimLongWords(words, data, sr) {
+  const fr = Math.max(1, Math.round(sr * 0.02));
+  words.forEach((w) => {
+    const len = w.e - w.s, est = 0.085 * w.w.length + 0.18;
+    if (len < Math.max(0.7, est * 1.8)) return;
+    const a = Math.max(0, Math.floor(w.s * sr)), b = Math.min(data.length, Math.floor(w.e * sr));
+    const rms = [];
+    for (let i = a; i + fr <= b; i += fr) { let q = 0; for (let k = 0; k < fr; k++) q += data[i + k] * data[i + k]; rms.push(Math.sqrt(q / fr)); }
+    if (rms.length < 4) return;
+    let peak = 0; rms.forEach((r) => { if (r > peak) peak = r; });
+    if (peak <= 0) return;
+    const thr = peak * 0.12;
+    let best = null, cur = null;
+    rms.forEach((r, i) => {
+      if (r >= thr) { if (!cur) cur = { a: i, b: i }; else cur.b = i; }
+      else if (cur && i - cur.b > 6) { if (!best || cur.b - cur.a > best.b - best.a) best = cur; cur = null; }
+    });
+    if (cur && (!best || cur.b - cur.a > best.b - best.a)) best = cur;
+    if (!best) return;
+    const ns = w.s + best.a * 0.02 - 0.03, ne = w.s + (best.b + 1) * 0.02 + 0.03;
+    if (ne - ns > 0.12) { w.s = Math.max(w.s, ns); w.e = Math.min(w.e, ne); }
+  });
+}
+
+// A cut lands just after the last word: no long quiet tail before the next
+// clip starts talking.
+function vsTightenEditTails(slides) {
+  slides.forEach((s) => {
+    const w = s._voice && s._voice.words;
+    if (!w || !w.length) return;
+    const end = w[w.length - 1].t1 + 0.14;
+    if (Number(s.duration) > end) s.duration = Math.round(end * 1000) / 1000;
+  });
 }
 
 // The AI's read of the talk: a hook for the opening, and for most scenes the
@@ -9697,9 +9739,8 @@ async function vsEditStylePlan(scenes, lang) {
 // Transitions sit only where the talk moves to a new point (and around the
 // teaser and B-roll): whip, zoom-through, glitch or flash, each with its own
 // sound mixed into the voice track.
-const VS_EDIT_TRANSITIONS = ["whip", "zoom", "glitch", "flash"];
 // the sound each transition makes
-const VS_TRANS_SFX = { whip: "whoosh", zoom: "sweep", glitch: "texture", flash: "sparkle", wipe: "whoosh" };
+const VS_TRANS_SFX = { whip: "whoosh", zoom: "riser", glitch: "digital", flash: "sparkle", wipe: "whoosh" };
 const vsEase = {
   out: (p) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3),
   inOut: (p) => { p = Math.max(0, Math.min(1, p)); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
@@ -9790,62 +9831,90 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
   }
 }
 
-// The transition at this scene's edges, applied to the picture in `src`.
-function vsEditTransition(ctx, W, H, src, inType, outType, local, dur) {
-  const IN = inType === "wipe" ? 0.3 : 0.26, OUT = outType === "wipe" ? 0.3 : 0.2;
-  let type = "", phase = 0, dir = 0;     // dir -1 = leaving, +1 = arriving
-  if (inType && local < IN) { type = inType; phase = 1 - local / IN; dir = 1; }
-  else if (outType && local > dur - OUT) { type = outType; phase = (local - (dur - OUT)) / OUT; dir = -1; }
-  if (!type || phase <= 0) { ctx.drawImage(src, 0, 0); return; }
-  const e = dir > 0 ? vsEase.in(phase) : vsEase.in(phase);
-  if (type === "whip") {
-    const off = (dir > 0 ? 1 : -1) * W * 0.6 * e;
-    const n = 6, spread = W * 0.06 * e;
-    for (let k = 0; k < n; k++) {
-      ctx.globalAlpha = 1 / (k + 1) * 0.9 + 0.1;
-      ctx.drawImage(src, off - spread * (k / n) * (dir > 0 ? 1 : -1), 0);
-    }
+// ── transitions between two clips (Edit my video) ──
+// Drawn over the first third of a second of the NEW clip, with both pictures
+// on screen: the last finished frame of the clip before (captions and all) and
+// the new clip's finished frame. Nothing is covered by a black or a flat
+// colour hold - the old one-clip-at-a-time version did exactly that, and a
+// title floated on a yellow screen while it waited.
+//   whip  - the old frame slides out, the new one slides in after it
+//   zoom  - the old frame pushes in and fades, the new one settles from 92%
+//   wipe  - a band of the accent sweeps across, the new frame behind its edge
+//   flash - a soft white flash crossing from one to the other
+//   glitch- a few frames of split bands, then the new picture
+const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24 };
+function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
+  const W = canvas.width, H = canvas.height;
+  const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
+  const s = vstudio.slides[idx];
+  const type = s && s._transIn;
+  const D = VS_TRANS_LEN[type] || 0.3;
+  const mk = (c) => { if (!c) c = document.createElement("canvas"); if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } return c; };
+  // Only straight after the clip before was drawn: a jump in the timeline
+  // (a seek, a scrub) has no "before" picture, so it simply cuts.
+  const start = elapsed - local;
+  if (type && local < D && T.snap && T.snapIdx === idx - 1 && Math.abs(T.snapEnd - start) < 0.2) {
+    T.inc = mk(T.inc);
+    const ix = T.inc.getContext("2d");
+    ix.setTransform(1, 0, 0, 1, 0, 0); ix.clearRect(0, 0, W, H); ix.drawImage(canvas, 0, 0);
+    const p = Math.max(0, Math.min(1, local / D));
+    const e = vsEase.inOut(p);
+    const A = T.snap, B = T.inc;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
-  } else if (type === "zoom") {
-    const zz = 1 + 0.45 * e;
-    ctx.save();
-    try { ctx.filter = `blur(${Math.round(e * Math.min(W, H) * 0.012)}px)`; } catch (er) {}
-    ctx.translate(W / 2, H / 2); ctx.scale(zz, zz); ctx.translate(-W / 2, -H / 2);
-    ctx.drawImage(src, 0, 0);
-    ctx.restore();
-    try { ctx.filter = "none"; } catch (er) {}
-  } else if (type === "glitch") {
-    const bands = 9, bh = H / bands;
-    for (let b = 0; b < bands; b++) {
-      const jitter = ((Math.sin(b * 12.9898 + local * 78.233) * 43758.5453) % 1) * W * 0.08 * e;
-      ctx.drawImage(src, 0, b * bh, W, bh, jitter, b * bh, W, bh);
+    ctx.fillStyle = "#0b0d12"; ctx.fillRect(0, 0, W, H);
+    if (type === "whip") {
+      ctx.drawImage(A, -W * e, 0);
+      ctx.drawImage(B, W * (1 - e), 0);
+      // a soft shadow on the arriving edge gives the two depth
+      const gx = W * (1 - e);
+      const sh = ctx.createLinearGradient(gx - W * 0.05, 0, gx, 0);
+      sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,0.35)");
+      ctx.fillStyle = sh; ctx.fillRect(gx - W * 0.05, 0, W * 0.05, H);
+    } else if (type === "zoom") {
+      ctx.save();
+      ctx.globalAlpha = 1 - e;
+      ctx.translate(W / 2, H / 2); ctx.scale(1 + 0.22 * e, 1 + 0.22 * e); ctx.translate(-W / 2, -H / 2);
+      ctx.drawImage(A, 0, 0);
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = e;
+      const z = 0.92 + 0.08 * e;
+      ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+      ctx.drawImage(B, 0, 0);
+      ctx.restore();
+    } else if (type === "wipe") {
+      // the edge travels right to left; the new frame is revealed behind it
+      const edge = W * (1 - e);
+      ctx.drawImage(A, 0, 0);
+      ctx.save(); ctx.beginPath(); ctx.rect(edge, 0, W - edge, H); ctx.clip(); ctx.drawImage(B, 0, 0); ctx.restore();
+      const band = W * 0.075 * Math.sin(Math.PI * p);
+      ctx.fillStyle = vsEditAccent(s); ctx.fillRect(edge - band, 0, band, H);
+      ctx.fillStyle = "#141414"; ctx.fillRect(edge, 0, Math.max(2, band * 0.18), H);
+    } else if (type === "flash") {
+      ctx.drawImage(A, 0, 0);
+      ctx.globalAlpha = e; ctx.drawImage(B, 0, 0);
+      ctx.globalAlpha = 0.75 * Math.sin(Math.PI * p);
+      ctx.fillStyle = "#fffaf0"; ctx.fillRect(0, 0, W, H);
+    } else {   // glitch
+      const src = p < 0.5 ? A : B, amt = Math.sin(Math.PI * p);
+      const bands = 7, bh = H / bands;
+      for (let b = 0; b < bands; b++) {
+        const j = (((Math.sin((b + 1) * 12.9898 + idx * 4.1) * 43758.5453) % 1) - 0.5) * W * 0.12 * amt;
+        ctx.drawImage(src, 0, b * bh, W, bh, j, b * bh, W, bh);
+      }
+      ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.35 * amt;
+      ctx.drawImage(src, W * 0.012 * amt, 0);
     }
-    ctx.save();
-    ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.45 * e;
-    ctx.drawImage(src, W * 0.015 * e, 0);
-    ctx.fillStyle = "rgba(255,0,80,0.18)"; ctx.fillRect(0, 0, W, H);
     ctx.restore();
-  } else if (type === "wipe") {
-    // a panel of the accent sweeps across and the cut happens under it
-    ctx.drawImage(src, 0, 0);
-    const acc = vsEditAccent(null);
-    const e2 = vsEase.inOut(phase);
-    ctx.save();
-    if (dir < 0) {
-      ctx.fillStyle = "#141414"; ctx.fillRect(W - W * Math.min(1, e2 * 1.15), 0, W * Math.min(1, e2 * 1.15), H);
-      ctx.fillStyle = acc; ctx.fillRect(W - W * e2, 0, W * e2, H);
-    } else {
-      ctx.fillStyle = "#141414"; ctx.fillRect(0, 0, W * e2 * 0.9, H);
-      ctx.fillStyle = acc; ctx.fillRect(0, 0, W * e2, H);
-    }
-    ctx.restore();
-  } else {   // flash
-    ctx.drawImage(src, 0, 0);
-    ctx.save();
-    const g = ctx.createRadialGradient(W * 0.75, H * 0.25, 0, W * 0.75, H * 0.25, Math.max(W, H));
-    g.addColorStop(0, `rgba(255,248,230,${0.95 * e})`); g.addColorStop(0.5, `rgba(255,200,140,${0.55 * e})`); g.addColorStop(1, `rgba(255,255,255,${0.35 * e})`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.restore();
+  }
+  // keep the finished last frames of each clip, for the transition after it
+  if (local > dur - 0.12) {
+    T.snap = mk(T.snap);
+    const sx = T.snap.getContext("2d");
+    sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, W, H); sx.drawImage(canvas, 0, 0);
+    T.snapIdx = idx; T.snapEnd = start + dur;
   }
 }
 
@@ -9991,39 +10060,67 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
       try { ctx.direction = "ltr"; } catch (e) {}
       ctx.fillText(shown, x, cy2 + fs * 0.04);
     } else {
-      // a pill sitting on the card's top edge, sliding in from its side
-      const fs = Math.round(U * 0.056);
-      ctx.font = `900 ${fs}px ${FAM}`;
-      const label = String(st.text || "").toUpperCase();
-      const tw = label ? ctx.measureText(label).width : 0;
-      const iconR = st.icon ? fs * 0.9 : 0, padX = fs * 0.5, bh2 = fs * 1.5, gap = label && iconR ? fs * 0.25 : 0;
-      const total = (label ? tw + padX * 2 : 0) + (iconR ? iconR * 2 + gap : 0);
-      const side = st.side === "right" ? 1 : st.side === "left" ? -1 : 0;
-      // inside the frame with a margin, however long the words are
-      const half = Math.min(total / 2, W * 0.46);
-      const cx2 = Math.max(W * 0.04 + half, Math.min(W * 0.96 - half, W / 2 + side * W * 0.12));
-      const cy2 = layout === "card" ? c.y : H * (st.y || 0.2);
-      vsElTransform(ctx, W, H, s, "sticker", cx2, cy2);
-      vsElHit(W, H, s, "sticker", cx2 - total / 2, cy2 - bh2 / 2, total, bh2, cx2, cy2);
-      ctx.globalAlpha = vis;
-      ctx.translate(cx2 + (1 - p) * (side || 1) * W * 0.06, cy2);
-      ctx.rotate((side >= 0 ? -2.5 : 2.5) * Math.PI / 180);
-      ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.45; ctx.shadowOffsetY = fs * 0.1;
-      let x0 = -total / 2;
-      if (iconR) {
-        ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(x0 + iconR, 0, iconR, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        vsStickerIcon(ctx, x0 + iconR, 0, iconR * 0.72, st.icon, accent);
-        x0 += iconR * 2 + gap;
-        ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.45; ctx.shadowOffsetY = fs * 0.1;
-      }
-      if (label) {
-        ctx.fillStyle = accent;
-        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, -bh2 / 2, tw + padX * 2, bh2, bh2 * 0.24); else ctx.rect(x0, -bh2 / 2, tw + padX * 2, bh2); ctx.fill();
-        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        ctx.fillStyle = ink; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      // the key words BIG over the speaker, each landing in turn, with the
+      // icon above them; the captions step aside while they are up
+      const bk = vsBigKeyWindow(s);
+      if (bk && local < bk.to) {
+        const outA = Math.max(0, Math.min(1, (bk.to - local) / 0.25));
+        const ws = String(st.text || "").toUpperCase().split(/\s+/).filter(Boolean);
+        const maxW = W * 0.88;
+        let px = U * 0.15, lines = [];
+        const layWords = () => {
+          ctx.font = `900 ${px}px ${FAM}`;
+          lines = []; let cur = [];
+          ws.forEach((w, j) => {
+            const test = cur.concat([j]).map((x) => ws[x]).join(" ");
+            if (cur.length && ctx.measureText(test).width > maxW) { lines.push(cur); cur = [j]; } else cur.push(j);
+          });
+          if (cur.length) lines.push(cur);
+        };
+        layWords();
+        while (px > U * 0.07 && (lines.length > 2 || lines.some((ln) => ctx.measureText(ln.map((x) => ws[x]).join(" ")).width > maxW))) { px *= 0.92; layWords(); }
+        const lh = px * 1.0;
+        const cy0 = layout === "card" ? c.y + c.h * 0.76 : H * 0.6;
+        const top = cy0 - (lines.length * lh) / 2;
+        vsElTransform(ctx, W, H, s, "sticker", W / 2, cy0);
+        vsElHit(W, H, s, "sticker", W * 0.06, top - px, W * 0.88, lines.length * lh + px, W / 2, cy0);
+        // a soft shade so white type reads on any picture
+        const shade = ctx.createRadialGradient(W / 2, cy0, px * 0.5, W / 2, cy0, W * 0.62);
+        shade.addColorStop(0, `rgba(0,0,0,${0.42 * outA * vsEase.out((local - bk.from) / 0.3)})`); shade.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = shade; ctx.fillRect(0, top - px * 1.6, W, lines.length * lh + px * 3);
+        // the icon, popping in just before the words
+        if (st.icon) {
+          const ir = U * 0.068, pI = vsEase.out((local - bk.from + 0.05) / 0.35);
+          ctx.save();
+          ctx.globalAlpha = pI * outA;
+          ctx.translate(W / 2, top - ir * 1.25); ctx.scale(0.7 + 0.3 * pI, 0.7 + 0.3 * pI);
+          ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, 0, ir, 0, Math.PI * 2); ctx.fill();
+          vsStickerIcon(ctx, 0, 0, ir * 0.72, st.icon, ink);
+          ctx.restore();
+        }
+        ctx.textBaseline = "top"; ctx.textAlign = "left";
         try { ctx.direction = "ltr"; } catch (e) {}
-        ctx.fillText(label, x0 + padX, fs * 0.04);
+        ctx.font = `900 ${px}px ${FAM}`;
+        const sp = ctx.measureText(" ").width;
+        let wi = 0;
+        lines.forEach((ln, li) => {
+          const widths = ln.map((x) => ctx.measureText(ws[x]).width);
+          let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + sp * (ln.length - 1)) / 2;
+          ln.forEach((kIdx, j) => {
+            const pw = vsEase.out((local - bk.from - wi * 0.09) / 0.3);
+            wi++;
+            if (pw > 0) {
+              ctx.save();
+              ctx.globalAlpha = pw * outA;
+              const y = top + li * lh + (1 - pw) * px * 0.35;
+              ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = px * 0.22; ctx.shadowOffsetY = px * 0.04;
+              ctx.fillStyle = kIdx === ws.length - 1 ? accent : "#ffffff";
+              ctx.fillText(ws[kIdx], x, y);
+              ctx.restore();
+            }
+            x += widths[j] + sp;
+          });
+        });
       }
     }
     ctx.restore();
@@ -10051,16 +10148,29 @@ function vsGfxKeyTimes(s) {
   const norm = (w) => String(w || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
   const out = [];
   let lastSaid = -1, prev = 0;
+  const o0 = vsGfxDelay(s);
   keys.forEach((k, j) => {
     const w = words.find((x) => norm(x.w) === norm(k) && x.t0 > lastSaid);
-    const seq = 0.3 + j * 0.14;
+    const seq = 0.3 + o0 + j * 0.14;
     let t = seq;
-    if (w) { lastSaid = w.t0; if (w.t0 < dur * 0.55) t = Math.max(0.18, w.t0); }
+    if (w) { lastSaid = w.t0; if (w.t0 < dur * 0.55) t = Math.max(0.18 + o0, w.t0); }
     t = Math.min(t, seq + 0.9);
     if (j && t < prev + 0.08) t = prev + 0.08;
     out.push(t); prev = t;
   });
   return out;
+}
+
+// A card's own entrance starts once the transition into it has played.
+function vsGfxDelay(s) { return s && s._transIn ? 0.24 : 0; }
+
+// When the big key words stand over the speaker (a sticker that is not a
+// number): from the moment they are said, for about two seconds.
+function vsBigKeyWindow(s) {
+  const st = s && s._sticker;
+  if (!st || !st.text || vsIsStatText(st.text) || s._gfx) return null;
+  const from = Number(st.at) || 0, d = Number(s.duration) || 4;
+  return { from, to: Math.min(d - 0.05, from + 2.3) };
 }
 
 // A quantity worth a chart and a count-up: a price, a percentage, an amount.
@@ -10094,6 +10204,7 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur) {
   const v = Number(g.v) || 0;
   const iconY = H > W ? H * 0.34 : H * 0.36;
   const iconR = U * (H > W ? 0.2 : 0.17);
+  const o0 = vsGfxDelay(s);
 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -10107,11 +10218,33 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur) {
   ctx.stroke();
 
   // the accent shape wipes in over the first half second
-  const pB = ease(local / 0.5);
+  const pB = ease((local - o0) / 0.5);
   ctx.fillStyle = block;
-  if (v === 0) ctx.fillRect(0, 0, W * 0.42, H * pB);
+  let win = null;
+  if (v === 3) {
+    // the speaker in a window: an accent card set behind it, offset
+    const ww = W * 0.78, wh = Math.min(ww * 1.05, H * 0.46), wx = (W - ww) / 2, wy = H * 0.09;
+    win = { x: wx, y: wy, w: ww, h: wh, r: U * 0.035 };
+    const off = U * 0.035 * ease((local - o0 - 0.15) / 0.4);
+    if (off < 0.5) ctx.fillStyle = "rgba(0,0,0,0)";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(wx + off, wy + off, ww, wh, win.r); else ctx.rect(wx + off, wy + off, ww, wh); ctx.fill();
+  } else if (v === 0) ctx.fillRect(0, 0, W * 0.42, H * pB);
   else if (v === 1) ctx.fillRect(0, 0, W * pB, H * 0.44);
   else { ctx.beginPath(); ctx.arc(W / 2, iconY, iconR * 1.45 * pB, 0, Math.PI * 2); ctx.fill(); }
+  if (win && s.mediaEl && (s.mediaEl.videoWidth || s.mediaEl.naturalWidth)) {
+    const pW = ease((local - o0) / 0.28);
+    ctx.save();
+    ctx.globalAlpha = pW;
+    const sc = 0.94 + 0.06 * pW;
+    ctx.translate(W / 2, win.y + win.h / 2); ctx.scale(sc, sc); ctx.translate(-W / 2, -(win.y + win.h / 2));
+    ctx.shadowColor = "rgba(0,0,0,0.22)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.015;
+    ctx.fillStyle = "#0b0d12";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.clip();
+    vsDrawCover(ctx, s.mediaEl, win.x, win.y, win.w, win.h, 1 + 0.03 * (dur > 0 ? local / dur : 0), s._focusX != null ? s._focusX : 0.5, 0, 0);
+    ctx.restore();
+  }
 
   // the words: which of them are the key words, and when each is said
   const text = String(g.text || "").trim();
@@ -10121,8 +10254,18 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur) {
   const keyTimes = vsGfxKeyTimes(s);
 
   // ── icon, or a chart that grows for a number ──
-  const pI = ease((local - 0.12) / 0.45);
-  if (isStat) {
+  const pI = ease((local - 0.12 - o0) / 0.45);
+  if (win) {
+    // a small icon badge on the window's corner
+    if (g.icon) {
+      const br = U * 0.075;
+      ctx.save(); ctx.globalAlpha = pI;
+      ctx.translate(win.x + win.w - br * 0.4, win.y + br * 0.4); ctx.scale(0.8 + 0.2 * pI, 0.8 + 0.2 * pI);
+      ctx.fillStyle = lum > 0.5 ? accent : "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, br, 0, Math.PI * 2); ctx.fill();
+      vsStickerIcon(ctx, 0, 0, br * 0.72, g.icon, INK);
+      ctx.restore();
+    }
+  } else if (isStat) {
     const baseY = iconY + iconR * 0.95, bw = U * 0.13, gap = U * 0.05;
     const hA = iconR * 0.9 * pI, hB = iconR * 1.9 * vsEase.inOut(Math.max(0, Math.min(1, (local - 0.3) / 0.9)));
     ctx.fillStyle = INK; ctx.fillRect(W / 2 - bw - gap / 2, baseY - hA, bw, hA);
@@ -10159,7 +10302,7 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur) {
     let lines = lay();
     while (px > U * 0.07 && (lines.length > 2 || lines.some((ln) => ctx.measureText(ln.map((x) => label(keys[x])).join(" ")).width > maxW))) { px *= 0.92; lines = lay(); }
     const lh = px * 1.02;
-    const top = (H > W ? H * 0.6 : H * 0.66) - (lines.length * lh) / 2;
+    const top = (win ? win.y + win.h + (H * 0.76 - win.y - win.h) * 0.55 : (H > W ? H * 0.6 : H * 0.66)) - (lines.length * lh) / 2;
     ctx.textBaseline = "top"; ctx.textAlign = "left";
     try { ctx.direction = "ltr"; } catch (e) {}
     const sp = ctx.measureText(" ").width;
@@ -10241,22 +10384,11 @@ async function vsClipLuma(el) {
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
   if (!s._gfx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
-  const next = vstudio.slides[idx + 1];
-  const inT = s._transIn || "", outT = (next && next._transIn) || "";
-  const needSrc = !!((inT && local < (inT === "wipe" ? 0.3 : 0.26)) || (outT && local > dur - (outT === "wipe" ? 0.3 : 0.2)));
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   ctx.clearRect(0, 0, W, H);
-  if (needSrc) {
-    const sc = vsScratchCanvas(W, H), sx = sc.getContext("2d");
-    sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, W, H);
-    vsDrawEditScene(sx, W, H, s, local, dur, off);
-    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
-    vsEditTransition(ctx, W, H, sc, inT, outT, local, dur);
-  } else {
-    vsDrawEditScene(ctx, W, H, s, local, dur, off);
-  }
+  vsDrawEditScene(ctx, W, H, s, local, dur, off);
   ctx.restore();
   vstudio._frameHasMedia = true;
   vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed);
@@ -10269,7 +10401,7 @@ const VS_SFX_GAIN = 0.3;
 async function vsPrepareEditSfx() {
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
   const sr = vstudio._playCtx.sampleRate;
-  if (vstudio._sfx && vstudio._sfx.sr === sr && vstudio._sfx.v === 2) return vstudio._sfx;
+  if (vstudio._sfx && vstudio._sfx.sr === sr && vstudio._sfx.v === 3) return vstudio._sfx;
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const noise = (ctx, len) => { const b = ctx.createBuffer(1, Math.ceil(len * sr), sr); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; };
   const render = async (len, build) => { const ctx = new OAC(1, Math.ceil(len * sr), sr); build(ctx); return await ctx.startRendering(); };
@@ -10341,10 +10473,32 @@ async function vsPrepareEditSfx() {
     tone(ctx, "sine", 90, 0.004, 0.4, 0.3, null, 50);
   });
   // `peak` is the moment that lands on the beat: the cut, the word, the pop
-  vstudio._sfx = { sr, v: 2,
+  vstudio._sfx = { sr, v: 3,
     whoosh: { buf: whoosh, peak: 0.38 }, sweep: { buf: sweep, peak: 0.3 }, texture: { buf: texture, peak: 0.15 }, sparkle: { buf: sparkle, peak: 0.03 },
     pluck: { buf: pluck, peak: 0.006 }, tick: { buf: tick, peak: 0.003 }, button: { buf: button, peak: 0.004 }, boom: { buf: boom, peak: 0.008 }, hit: { buf: hit, peak: 0.005 } };
+  // The recorded sounds in /sfx/edit/ win over the made ones. Each is levelled
+  // to the same peak and timed by its loudest moment.
+  await Promise.all(VS_SFX_FILES.map(async (n) => {
+    try {
+      const r = await fetch("/sfx/edit/" + n + ".mp3");
+      if (!r.ok) return;
+      const b = await vstudio._playCtx.decodeAudioData(await r.arrayBuffer());
+      const d = b.getChannelData(0);
+      let pk = 0, pi = 0;
+      for (let i = 0; i < d.length; i++) { const x = Math.abs(d[i]); if (x > pk) { pk = x; pi = i; } }
+      if (pk > 0) { const k = 0.9 / pk; for (let i = 0; i < d.length; i++) d[i] *= k; }
+      vstudio._sfx["f_" + n] = { buf: b, peak: pi / b.sampleRate };
+    } catch (e) {}
+  }));
   return vstudio._sfx;
+}
+const VS_SFX_FILES = ["whoosh", "riser", "sparkle", "digital", "boom", "impact", "button1", "button2", "button3", "pluck", "pluck2", "tick", "tick2", "hit", "hit2", "bloop", "texture"];
+// a made sound standing in for each recorded one
+const VS_SFX_STANDIN = { whoosh: "whoosh", riser: "sweep", sparkle: "sparkle", digital: "texture", boom: "boom", impact: "boom", button1: "button", button2: "button", button3: "button",
+  pluck: "pluck", pluck2: "pluck", tick: "tick", tick2: "tick", hit: "hit", hit2: "hit", bloop: "sweep", texture: "texture" };
+function vsSfxFor(n) {
+  const S = vstudio._sfx || {};
+  return S["f_" + n] || S[VS_SFX_STANDIN[n] || n] || null;
 }
 
 // Every timed sound of an edit: the cut's sound on each transition, a sub
@@ -10352,17 +10506,17 @@ async function vsPrepareEditSfx() {
 // a button-click for the icon and a soft tick as each big word lands.
 function vsEditSfxEvents(slides) {
   const ev = [];
-  let t = 0;
-  const norm = (w) => String(w || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  let t = 0, nb = 0, nk = 0;
   (slides || []).forEach((sl, i) => {
     const d = Number(sl.duration) || 4;
-    if (sl._transIn && VS_TRANS_SFX[sl._transIn]) ev.push({ n: VS_TRANS_SFX[sl._transIn], t, g: 1 });
-    if (i === 0 && sl._hook && sl._hook.text) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "sparkle", t: t + Math.max(0.6, (Number(sl._hook.until) || 2.6) - 0.5), g: 0.6 }); }
-    if (sl._sticker && (sl._sticker.text || sl._sticker.icon)) ev.push({ n: vsIsStatText(sl._sticker.text) ? "hit" : "pluck", t: t + (Number(sl._sticker.at) || 0), g: 0.8 });
+    // a transition plays over the first third of a second of the new clip
+    if (sl._transIn && VS_TRANS_SFX[sl._transIn]) ev.push({ n: VS_TRANS_SFX[sl._transIn], t: t + 0.12, g: VS_TRANS_SFX[sl._transIn] === "whoosh" ? 0.7 : 0.85 });
+    if (i === 0 && sl._hook && sl._hook.text) { ev.push({ n: "boom", t: t + 0.05, g: 1.1 }); ev.push({ n: "sparkle", t: t + Math.max(0.6, (Number(sl._hook.until) || 2.6) - 0.5), g: 0.6 }); }
+    if (sl._sticker && (sl._sticker.text || sl._sticker.icon)) ev.push({ n: vsIsStatText(sl._sticker.text) ? "hit" : (nk++ % 2 ? "pluck2" : "pluck"), t: t + (Number(sl._sticker.at) || 0), g: 0.75 });
     if (sl._gfx) {
-      ev.push({ n: "button", t: t + 0.14, g: 0.7 });
-      vsGfxKeyTimes(sl).slice(0, 4).forEach((kt) => { if (kt < d - 0.2) ev.push({ n: "tick", t: t + kt, g: 0.55 }); });
-      if (vsIsStatText(sl._gfx.text)) ev.push({ n: "sweep", t: t + 0.55, g: 0.45 });
+      ev.push({ n: ["button1", "button2", "button3"][nb++ % 3], t: t + 0.14 + vsGfxDelay(sl), g: 0.8 });
+      vsGfxKeyTimes(sl).slice(0, 4).forEach((kt, j) => { if (kt < d - 0.2) ev.push({ n: j % 2 ? "tick2" : "pluck", t: t + kt, g: 0.6 }); });
+      if (vsIsStatText(sl._gfx.text)) ev.push({ n: "digital", t: t + 0.6 + vsGfxDelay(sl), g: 0.5 });
     }
     t += d;
   });
@@ -10604,6 +10758,7 @@ async function vsEditMyVideo(file, o) {
       if (prev && /^[%,.!?;:،؛]/.test(t)) { prev.w += t; prev.e = Math.max(prev.e, Number(w.end)); return; }
       words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
     }));
+    vsTrimLongWords(words, md, mono.sampleRate);
 
     // ── watch it: sampled frames + timed sentences → the edit, decided ──
     const lang2 = (tr.language || "").slice(0, 2);
@@ -10776,11 +10931,11 @@ async function vsEditMyVideo(file, o) {
     // carries on - never the opening, never two in a row, under half the cuts.
     if (o.gfx !== false && o.stickers) {
       let lastG = -9, nG = 0;
-      const maxG = Math.max(1, Math.round(vstudio.slides.length * 0.4));
+      const maxG = Math.max(1, Math.round(vstudio.slides.length * 0.6));
       vstudio.slides.forEach((sl, i) => {
         const st = sl._sticker;
         if (i === 0 || sl._teaser || sl._broll || nG >= maxG || i - lastG < 2 || !st || !st.text) return;
-        sl._gfx = { text: st.text, icon: st.icon || "", v: nG % 3 };
+        sl._gfx = { text: st.text, icon: st.icon || "", v: [3, 0, 2, 1][nG % 4] };
         delete sl._sticker; delete sl._emph;
         lastG = i; nG++;
       });
@@ -10797,13 +10952,13 @@ async function vsEditMyVideo(file, o) {
       const prev = vstudio.slides[i - 1];
       const k2 = sentOf(sl._clipIn != null && !sl._broll ? sl._clipIn + 0.1 : (sl._ownClipIn || 0) + 0.1);
       const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
-      if (sl._gfx || prev._gfx) sl._transIn = "wipe";
-      else if (prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = VS_EDIT_TRANSITIONS[tk++ % VS_EDIT_TRANSITIONS.length];
+      if (sl._gfx || prev._gfx || prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = ["wipe", "whip", "zoom", "wipe", "flash"][tk++ % 5];
     });
     vstudio._editSfxOn = !!o.trans;
     if (o.trans) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
 
     // cuts on the beat of the bed the music step is about to make
+    if (o.cut) vsTightenEditTails(vstudio.slides);
     if (o.beat) vsSnapCutsToBeat(vstudio.slides, vstudio.storyData.music.bpm);
     // the edit's own transitions only: no fade or punch on every cut
     const tsel = $("#vsTransition"); if (tsel) { tsel.value = "none"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "none"; }); }
@@ -11096,7 +11251,7 @@ function vsElementFields(s, i, id) {
     F.push({ type: "number", label: L("Length (seconds)", "طول (ثانیه)"), min: 0.3, max: Math.ceil(total), step: 0.1, list: true,
       get: () => Math.round((Number(s.duration) || 1) * 10) / 10, set: (v) => recut(s._clipIn || 0, Number(v) || 1) });
     F.push({ type: "select", label: L("Transition into this clip", "ترنزیشن ورود به این کلیپ"), list: true,
-      options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Whip pan + whoosh", "حرکت سریع + صدای ووش") },
+      options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Slide across + whoosh", "اسلاید + صدای ووش") },
         { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") },
         { v: "wipe", t: L("Colour wipe + whoosh", "پردهٔ رنگی + صدای ووش") }],
       get: () => s._transIn || "", set: async (v) => {
@@ -11121,7 +11276,7 @@ function vsElementFields(s, i, id) {
       F.push({ type: "select", label: L("Icon", "آیکون"), options: [{ v: "", t: L("None", "بدون آیکون") }].concat(VS_STICKER_ICONS.map((k) => ({ v: k, t: k }))),
         get: () => s._gfx.icon || "", set: (v) => { s._gfx.icon = v; } });
       F.push({ type: "select", label: L("Card layout", "چیدمان کارت"),
-        options: [{ v: "0", t: L("Colour panel on the side", "پنل رنگی کنار") }, { v: "1", t: L("Colour band on top", "نوار رنگی بالا") }, { v: "2", t: L("Colour circle behind the icon", "دایرهٔ رنگی پشت آیکون") }],
+        options: [{ v: "0", t: L("Colour panel on the side", "پنل رنگی کنار") }, { v: "1", t: L("Colour band on top", "نوار رنگی بالا") }, { v: "2", t: L("Colour circle behind the icon", "دایرهٔ رنگی پشت آیکون") }, { v: "3", t: L("You in a window, words below", "خودت در یک قاب، کلمات زیرش") }],
         get: () => String(s._gfx.v || 0), set: (v) => { s._gfx.v = Number(v) || 0; } });
     }
     F.push({ type: "select", label: L("Look (whole video)", "ظاهر (کل ویدیو)"),
@@ -18645,6 +18800,7 @@ function drawStudioFrame(elapsed) {
     const at3 = slideAtTime(elapsed);
     if (vsDrawEditFrame(ctx, canvas, W, H, dsSlideObj, at3.index, dsLocal, dsDur, elapsed, vsOff)) {
       vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+      try { vsEditTransitionPost(ctx, canvas, at3.index, dsLocal, dsDur, elapsed); } catch (e) {}
       return;
     }
   }
@@ -21713,7 +21869,7 @@ async function _vsSeekActiveFootage(t) {
   if (!vstudio.slides.length) return;
   const at = slideAtTime(t);
   const slide = vstudio.slides[at.index];
-  if (!slide || !slide.isVideo || !slide.mediaEl || slide._gfx) return;
+  if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
   const vid = slide.mediaEl;
   const clipIn = slide._clipIn || 0;
   const vdur = (vid.duration && isFinite(vid.duration)) ? Math.max(0.05, vid.duration - clipIn) : at.dur;
