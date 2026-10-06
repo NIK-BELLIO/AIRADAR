@@ -5543,3 +5543,18 @@ b, strong { font-weight: 600; }
 #videoStudio .vsi-sw.vsi-sw-tpl::after{content:"";position:absolute;inset:9px;border-radius:50%;border:2px solid rgba(8,9,12,.7)}
 #videoStudio .vsi-sw.on{border-color:#fff;box-shadow:0 0 0 2px #2563ff}
 #videoStudio .vsi-sw:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+/* "Edit my video" options (vsEditMineDialog). */
+#vsEditMineDlg{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:16px;background:rgba(4,6,10,.72);backdrop-filter:blur(6px)}
+#vsEditMineDlg .vsem{width:min(440px,100%);background:#0e1014;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:22px 22px 18px;color:#f4f5f7;box-shadow:0 30px 80px -20px #000;font:500 14px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif}
+#vsEditMineDlg h2{margin:0 0 4px;font:700 20px/1.2 "Space Grotesk",ui-sans-serif,system-ui,sans-serif}
+#vsEditMineDlg .vsem-file{margin:0 0 14px;color:#8a919c;font:500 12px/1.4 "JetBrains Mono",ui-monospace,monospace;word-break:break-all}
+#vsEditMineDlg .vsem-opt{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+#vsEditMineDlg .vsem-opt input{width:18px;height:18px;accent-color:#2563ff;flex:none}
+#vsEditMineDlg .vsem-row{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:12px;color:#8a919c}
+#vsEditMineDlg select{background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f4f5f7;padding:9px 10px;font:500 14px Manrope,ui-sans-serif,system-ui,sans-serif}
+#vsEditMineDlg .vsem-note{margin:12px 0 0;color:#8a919c;font-size:12px}
+#vsEditMineDlg .vsem-btns{display:flex;gap:10px;margin-top:16px}
+#vsEditMineDlg .vsem-btns button{flex:1;min-height:44px;border-radius:10px;font:700 14px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}
+#vsEditMineDlg .vsem-go{background:#2563ff;color:#fff;border:0}
+#vsEditMineDlg .vsem-x{background:transparent;color:#f4f5f7;border:1px solid rgba(255,255,255,.18)}
+#vsEditMineDlg button:focus-visible,#vsEditMineDlg input:focus-visible,#vsEditMineDlg select:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}

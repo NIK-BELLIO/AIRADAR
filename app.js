@@ -95,6 +95,7 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    vsEditMine: "Edit my video",
     vNarrateLbl: "Voice-over + word-by-word captions",
     reTitle: "Build from a reference",
     reSub: "Paste a link, add your info, then pick how to render it.",
@@ -563,6 +564,7 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    vsEditMine: "ادیت ویدیوی من",
     vNarrateLbl: "صدای گوینده + زیرنویس کلمه‌به‌کلمه",
     reTitle: "ساختن از روی یک نمونه",
     reSub: "لینک را بگذار، اطلاعات خودت را اضافه کن، بعد نحوهٔ ساخت را انتخاب کن.",
@@ -9231,12 +9233,21 @@ function vsMixVoiceTrack(force) {
     const v = s._voice;
     if (v && v.buf) {
       const src = v.buf.getChannelData(0);
-      const from = Math.floor(v.cut * v.buf.sampleRate);
+      const from = v.cut * v.buf.sampleRate;
+      const ratio = v.buf.sampleRate / sr;   // source samples per output sample
       // Never past the scene's end: a line cut short by a shortened scene stops
       // there instead of talking over the next one.
-      const n = Math.min(Math.floor(v.len * v.buf.sampleRate), Math.floor((d - v.at) * sr));
+      const n = Math.min(Math.floor(v.len * sr), Math.floor((d - v.at) * sr));
       const at = Math.floor((start + v.at) * sr);
-      for (let k = 0; k < n && at + k < dst.length; k++) dst[at + k] = src[from + k] || 0;
+      if (ratio === 1) {
+        const f0 = Math.floor(from);
+        for (let k = 0; k < n && at + k < dst.length; k++) dst[at + k] = src[f0 + k] || 0;
+      } else {
+        for (let k = 0; k < n && at + k < dst.length; k++) {
+          const pos = from + k * ratio, i0 = Math.floor(pos), fr = pos - i0;
+          dst[at + k] = (src[i0] || 0) * (1 - fr) + (src[i0 + 1] || 0) * fr;
+        }
+      }
     }
     start += d;
   });
@@ -9304,6 +9315,8 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const space = base * (look === "subtitle" ? 0.28 : 0.3);
   const widths = words.map((w) => ctx.measureText(label(w)).width);
   const lineW = widths.reduce((n, w) => n + w, 0) + space * (words.length - 1);
+  // Persian and Arabic run right to left: the first word goes on the right.
+  const rtl = words.some((w) => /[\u0600-\u06FF]/.test(w.w));
   const maxW = W * (look === "news" ? 0.8 : 0.86);
   const fit = lineW > maxW ? maxW / lineW : 1;
   // Below the headline band (titles end near two-thirds down) and above the
@@ -9337,11 +9350,12 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   ctx.translate(W / 2, cy);
   ctx.scale(scale * fit, scale * fit);
   ctx.globalAlpha = look === "pop" ? Math.min(1, 0.25 + pop) : Math.min(1, pop);
-  let x = -lineW / 2;
+  let x = rtl ? lineW / 2 : -lineW / 2;
   words.forEach((w, j) => {
     const k = chunk[j];
     const txt = label(w);
     const ww = widths[j];
+    if (rtl) x -= ww;
     const on = k === cur;
     const said = k <= cur;
     if (look === "pop") {
@@ -9380,9 +9394,280 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
       ctx.fillStyle = said ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.55)";
       ctx.fillText(txt, x, 0);
     }
-    x += ww + space;
+    x = rtl ? x - space : x + ww + space;
   });
   ctx.restore();
+}
+
+// ── Edit my video ───────────────────────────────────────────────────────────
+// The customer's own video in, an edited reel out, for free: the speech is
+// transcribed (Whisper on our worker, /transcribe) into words with times; the
+// pauses and "um"s between them are cut; every kept stretch becomes a scene
+// that plays that part of THEIR video, with their own voice as the soundtrack
+// and the words captioned as they are said. Jump cuts alternate a punch-in,
+// the opening gets a hook title, a quiet bed goes underneath, and the frame is
+// reframed to the chosen shape. Everything lands in the ordinary scene list, so
+// the scene editor can change any of it afterwards.
+const VS_TRANSCRIBE_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/transcribe";
+const VS_FILLERS = { um: 1, umm: 1, uh: 1, uhm: 1, uhh: 1, erm: 1, er: 1, hmm: 1, mm: 1, ah: 1, "اوم": 1, "اِ": 1, "اه": 1 };
+const VS_EDIT_MAX_SECONDS = 12 * 60;
+
+function vsEditMineDialog(file) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  document.getElementById("vsEditMineDlg")?.remove();
+  const d = document.createElement("div");
+  d.id = "vsEditMineDlg";
+  d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "vsEmT");
+  const opt = (id, en, f, on) => `<label class="vsem-opt"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
+  d.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
+      <h2 id="vsEmT">${L("Edit my video", "ادیت ویدیوی من")}</h2>
+      <p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>
+      ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
+      ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
+      ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
+      ${opt("vsEmZoom", "Punch-in zoom on every other cut", "زوم ضربه‌ای یکی در میان", true)}
+      ${opt("vsEmTitle", "A hook title on the opening", "تیتر جذاب روی شروع ویدیو", true)}
+      ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
+      <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
+        <select id="vsEmAspect">
+          <option value="9:16">9:16 · Reels / TikTok / Shorts</option>
+          <option value="1:1">1:1 · ${L("Square", "مربع")}</option>
+          <option value="4:5">4:5 · ${L("Feed", "فید")}</option>
+          <option value="16:9">16:9 · YouTube</option>
+        </select></label>
+      <p class="vsem-note">${L("Free. Your video stays on this device; only its sound is sent to be transcribed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش برای متن‌شدن فرستاده می‌شود.")}</p>
+      <div class="vsem-btns">
+        <button type="button" class="vsem-go">${L("Edit it", "ادیتش کن")}</button>
+        <button type="button" class="vsem-x">${L("Cancel", "انصراف")}</button>
+      </div></div>`;
+  document.body.appendChild(d);
+  const close = () => d.remove();
+  d.querySelector(".vsem-x").onclick = close;
+  d.addEventListener("click", (e) => { if (e.target === d) close(); });
+  d.querySelector(".vsem-go").onclick = () => {
+    const o = {
+      cut: d.querySelector("#vsEmCut").checked, fillers: d.querySelector("#vsEmFill").checked,
+      captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
+      title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
+      aspect: d.querySelector("#vsEmAspect").value
+    };
+    close();
+    vsEditMyVideo(file, o).catch((e) => {
+      vsBuildOverlay(false);
+      vsAutoStatus((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(e && e.message || e).slice(0, 140));
+    });
+  };
+  try { d.querySelector(".vsem-go").focus(); } catch (e) {}
+}
+
+// The speech in a decoded mono buffer, as 16 kHz WAV for Whisper.
+async function vsSpeechWav(mono) {
+  const sr = 16000;
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oac = new OAC(1, Math.max(1, Math.ceil(mono.duration * sr)), sr);
+  const src = oac.createBufferSource(); src.buffer = mono; src.connect(oac.destination); src.start(0);
+  return vsAudioBufferToWav(await oac.startRendering());
+}
+
+// Kept stretches of speech -> scenes of at most ~7 seconds, split where the
+// speaker breathes or ends a sentence, so the cuts land on natural beats.
+function vsPlanEdit(words, total, o) {
+  const keep = words.filter((w) => !(o.fillers && VS_FILLERS[w.w.toLowerCase().replace(/[^\p{L}]/gu, "")]));
+  if (!keep.length) return [{ start: 0, end: total, words: [] }];
+  const GAP = o.cut ? 0.45 : 1e9, PRE = 0.08, POST = 0.14;
+  const segs = [];
+  let cur = null;
+  keep.forEach((w) => {
+    if (cur && w.s - cur.lastEnd <= GAP) { cur.words.push(w); cur.lastEnd = w.e; }
+    else { if (cur) segs.push(cur); cur = { words: [w], firstStart: w.s, lastEnd: w.e }; }
+  });
+  if (cur) segs.push(cur);
+  const out = [];
+  segs.forEach((sg) => {
+    // split long stretches at the best break: a sentence end, else the longest gap
+    let ws = sg.words;
+    while (ws.length) {
+      const startT = ws[0].s;
+      let cutAt = ws.length;
+      if (ws[ws.length - 1].e - startT > 7) {
+        let best = -1, bestScore = -1;
+        for (let k = 1; k < ws.length; k++) {
+          const t = ws[k].s - startT;
+          if (t < 2.2 || t > 7) continue;
+          const gap = ws[k].s - ws[k - 1].e;
+          const score = gap + (/[.!?؟]$/.test(ws[k - 1].w) ? 1 : /[,،;:]$/.test(ws[k - 1].w) ? 0.4 : 0);
+          if (score > bestScore) { bestScore = score; best = k; }
+        }
+        cutAt = best > 0 ? best : Math.max(1, ws.findIndex((w) => w.s - startT > 6) || ws.length);
+      }
+      const part = ws.slice(0, cutAt);
+      out.push({ start: Math.max(0, part[0].s - PRE), end: Math.min(total, part[part.length - 1].e + POST), words: part });
+      ws = ws.slice(cutAt);
+    }
+  });
+  // no overlaps after padding
+  for (let k = 1; k < out.length; k++) if (out[k].start < out[k - 1].end) out[k].start = out[k - 1].end;
+  return out.filter((x) => x.end - x.start > 0.25);
+}
+
+// A <video> of the customer's file, ready to draw.
+function vsEditVideoEl(url) {
+  return new Promise((resolve) => {
+    const el = document.createElement("video");
+    el.muted = true; el.playsInline = true; el.preload = "auto"; el.loop = false;
+    let done = false;
+    const fin = (ok) => { if (done) return; done = true; resolve(ok ? el : null); };
+    // A file recorded in a browser often says its length is Infinity until it
+    // has been read to the end; seeking far past it makes it look, and every
+    // timing in the studio needs a real number.
+    const settle = () => {
+      if (isFinite(el.duration) && el.duration > 0) { fin(!!el.videoWidth); return; }
+      const back = () => { if (isFinite(el.duration) && el.duration > 0) { el.removeEventListener("durationchange", back); el.currentTime = 0; fin(!!el.videoWidth); } };
+      el.addEventListener("durationchange", back);
+      try { el.currentTime = 1e101; } catch (e) { fin(!!el.videoWidth); }
+    };
+    el.onloadeddata = settle;
+    el.onerror = () => fin(false);
+    setTimeout(() => fin(!!el.videoWidth), 20000);
+    el.src = url;
+  });
+}
+
+async function vsEditMyVideo(file, o) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  if (!file || !/^video\//.test(file.type || "") && !/\.(mp4|mov|webm|m4v|mkv)$/i.test(file.name || "")) {
+    vsAutoStatus(L("Pick a video file.", "یک فایل ویدیو انتخاب کن.")); return;
+  }
+  if (file.size > 400 * 1048576) { vsAutoStatus(L("That file is over 400 MB - trim it first.", "این فایل بیشتر از ۴۰۰ مگابایت است؛ اول کوتاهش کن.")); return; }
+  try { stopStudioPreview(); } catch (e) {}
+  vstudio._buildHold = true;
+  vsBuildOverlay(true, L("Reading your video…", "در حال خواندن ویدیوی تو…"), L("Editing your video", "در حال ادیت ویدیوی تو"), 600000);
+  try {
+    const url = URL.createObjectURL(file);
+    const probe = await vsEditVideoEl(url);
+    if (!probe) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد"));
+    let total = isFinite(probe.duration) ? probe.duration : 0;
+    if (total > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the video under 12 minutes", "ویدیو باید زیر ۱۲ دقیقه باشد"));
+
+    vsAutoStatus(L("Listening to your video…", "در حال گوش‌دادن به ویدیو…"));
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    let decoded;
+    try { decoded = await new OAC(1, 1, 24000).decodeAudioData(await file.arrayBuffer()); }
+    catch (e) { throw new Error(L("this video has no sound we can read", "صدای این ویدیو خوانده نشد")); }
+    // one channel, 24 kHz: enough for a voice, a quarter of the memory
+    const mono = new AudioBuffer({ length: decoded.length, numberOfChannels: 1, sampleRate: decoded.sampleRate });
+    const md = mono.getChannelData(0);
+    for (let c = 0; c < decoded.numberOfChannels; c++) {
+      const ch = decoded.getChannelData(c);
+      for (let k = 0; k < ch.length; k++) md[k] += ch[k] / decoded.numberOfChannels;
+    }
+    decoded = null;
+    if (!total) total = mono.duration;
+    if (total > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the video under 12 minutes", "ویدیو باید زیر ۱۲ دقیقه باشد"));
+
+    // The edit is a build - one a day for a guest, free for members - counted
+    // only now, once the file has opened and been read, so a video that will
+    // not open does not cost a guest their one.
+    try {
+      const g = await fetch(VS_AI_BUILD_GATE, { method: "POST", headers: await arGuestHeaders() });
+      if (g.status === 401 && await arIsGuestWall(g)) { vsBuildOverlay(false); return; }
+    } catch (e) {}
+    vsAutoStatus(L("Writing down every word…", "در حال نوشتن کلمه‌به‌کلمه…"));
+    const wav = await vsSpeechWav(mono);
+    let tr = null;
+    try {
+      const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav });
+      if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+      tr = await r.json();
+      if (!r.ok) throw new Error(tr && tr.error || ("HTTP " + r.status));
+    } catch (e) { throw new Error(L("the speech could not be transcribed", "متن صحبت‌ها گرفته نشد") + (e && e.message ? " (" + e.message + ")" : "")); }
+    const words = [];
+    (tr.segments || []).forEach((sg) => (sg.words || []).forEach((w) => {
+      const t = String(w.word || "").trim();
+      if (t && isFinite(w.start) && isFinite(w.end)) words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
+    }));
+
+    vsAutoStatus(L("Cutting the pauses…", "در حال حذف مکث‌ها…"));
+    const plan = vsPlanEdit(words, total, o);
+
+    // the shape first, so the scenes are captured in it
+    const asp = $("#vsAspect");
+    if (asp && o.aspect) { asp.value = o.aspect; asp.dispatchEvent(new Event("change", { bubbles: true })); }
+    const narr = $("#vsNarrate"); if (narr) narr.checked = !!o.captions;
+    vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
+    vstudio._toneProfile = vsToneProfile();
+    vstudio.slides = [];
+    vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
+    vstudio._editSrc = { url, mono, words, name: file.name };
+    const base = vsCaptureSettings();
+    ["#vsInfoOn", "#vsNewsOn"].forEach((k) => { base[k] = false; });
+    Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none" });
+
+    vsAutoStatus(L("Laying out the cuts…", "در حال چیدن برش‌ها…"));
+    for (let i = 0; i < plan.length; i++) {
+      const p = plan[i];
+      const el = i === 0 ? probe : await vsEditVideoEl(url);
+      if (!el) continue;
+      const dur = Math.round((p.end - p.start) * 100) / 100;
+      const local = p.words.map((w) => ({ w: w.w, t0: Math.max(0, w.s - p.start), t1: Math.max(0.05, w.e - p.start) }));
+      const settings = Object.assign({}, base, { _mediaScale: (o.zoom && i % 2 === 1) ? 1.14 : 1 });
+      vstudio.slides.push({
+        url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "",
+        duration: dur, settings, _clipIn: p.start, _ownSpeech: true,
+        _narration: p.words.map((w) => w.w).join(" "),
+        _voice: { buf: mono, cut: p.start, len: dur, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} },
+        _timelineLabel: (p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ")
+      });
+    }
+    if (!vstudio.slides.length) throw new Error(L("nothing to keep was found", "چیزی برای نگه‌داشتن پیدا نشد"));
+
+    if (o.title) {
+      vsAutoStatus(L("Writing a hook title…", "در حال نوشتن تیتر…"));
+      const said = words.map((w) => w.w).join(" ").slice(0, 2500);
+      let hook = "";
+      try {
+        hook = await vsAutoAiChat(`Write ONE hook title for the opening of a short video, based on what the speaker says below. 3 to 7 words, in the SAME language as the speech, no quotes, no hashtags, no emoji. Output only the title.\nSPEECH: """${said}"""`, { json: false, temperature: 0.7 });
+      } catch (e) {}
+      hook = String(hook || "").split("\n")[0].replace(/^["'«“]+|["'»”]+$/g, "").trim().slice(0, 80);
+      if (hook) {
+        const s0 = vstudio.slides[0];
+        s0.headline = hook;
+        s0.settings["#vsTextPos"] = "top"; s0.settings["#vsTextAnim"] = "pop";
+      }
+      vstudio.storyData = { title: hook || file.name, language: (tr.language || "").slice(0, 2), music: { mood: "upbeat", energy: "low", bpm: 100 } };
+    } else {
+      vstudio.storyData = { title: file.name, language: (tr.language || "").slice(0, 2), music: { mood: "upbeat", energy: "low", bpm: 100 } };
+    }
+
+    // their own voice, laid under the cuts; captions read from the same words
+    vstudio._voiceSig = "edit";
+    vsMixVoiceTrack(true);
+    if (!o.captions) { const n2 = $("#vsNarrate"); if (n2) n2.checked = false; }
+
+    if (o.music && !vstudio._userMusic) {
+      vsAutoStatus(L("Adding music…", "در حال افزودن موسیقی…"));
+      const dm = await vsEnsureDefaultMusic(vstudio.storyData);
+      if (dm) {
+        if (vstudio.musicEl && vstudio.musicEl !== dm) { try { vstudio.musicEl.pause(); } catch (e) {} }
+        vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+        vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
+      }
+    } else if (!o.music && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
+
+    vstudio.activeSlide = 0;
+    renderSlideList();
+    selectSlide(0);
+    const cutSecs = Math.max(0, total - slidesTotalDuration());
+    vsAutoStatus(L(`Edited your video: ${vstudio.slides.length} cuts, ${Math.round(cutSecs)}s of pauses removed. Press Play to watch it.`,
+      `ویدیوت ادیت شد: ${vstudio.slides.length} برش، ${Math.round(cutSecs)} ثانیه مکث حذف شد. برای دیدن، Play را بزن.`));
+    try { vsTrackGen("editmine", "whisper", Math.round(total) + "s"); } catch (e) {}
+  } finally {
+    vstudio._buildHold = false;
+    vsBuildOverlay(false);
+    vsShowBuiltVideo();
+  }
 }
 
 // ── Scene editor ─────────────────────────────────────────────────────────────
@@ -9445,6 +9730,7 @@ function vsElHit(W, H, host, id, x, y, w, h, cx, cy) {
 function vsSceneType(s, i) {
   if (!s) return "";
   if (s._editorial) return "editorial";
+  if (s._ownSpeech) return "own";
   const n = vstudio.slides.length;
   const titleCard = s.isIntro && !s._standaloneInfo && !s._standaloneNews;
   if (titleCard) return (s.isOutro || (i === n - 1 && n > 1)) ? "outro" : "intro";
@@ -9456,7 +9742,7 @@ function vsSceneType(s, i) {
 const VS_SCENE_TYPE_NAME = {
   editorial: ["Editorial scene", "صحنهٔ ادیتوریال"], intro: ["Intro", "اینترو"], outro: ["Outro", "اوترو"],
   motion: ["Motion graphic", "موشن‌گرافیک"], chart: ["Data chart", "نمودار داده"], text: ["Headline scene", "صحنهٔ تیتر"],
-  media: ["Footage scene", "صحنهٔ فوتیج"]
+  media: ["Footage scene", "صحنهٔ فوتیج"], own: ["Your clip", "کلیپ تو"]
 };
 const VS_EL_NAME = {
   scene: ["Scene", "صحنه"], title: ["Title", "عنوان"], label: ["Label", "برچسب"], text: ["Headline", "تیتر"],
@@ -9623,6 +9909,28 @@ function vsElementFields(s, i, id) {
     F.push({ type: "xy", label: L("Position", "موقعیت"), get: () => [dx.get(), dy.get()], set: ([x, y]) => { dx.set(x); dy.set(y); } });
   };
 
+  if (id === "scene" && s._ownSpeech && vstudio._editSrc) {
+    const src = vstudio._editSrc;
+    const total = (s.mediaEl && s.mediaEl.duration) || 0;
+    // Re-cut a clip: where it starts in the original and how long it runs. The
+    // voice and the captions follow, re-read from the original's words.
+    const recut = (start, dur) => {
+      s._clipIn = Math.max(0, Math.min(total - 0.3, start));
+      s.duration = Math.max(0.3, Math.min(total - s._clipIn, dur));
+      const local = src.words.filter((w) => w.s >= s._clipIn - 0.05 && w.e <= s._clipIn + s.duration + 0.05)
+        .map((w) => ({ w: w.w, t0: Math.max(0, w.s - s._clipIn), t1: Math.max(0.05, w.e - s._clipIn) }));
+      s._voice = { buf: src.mono, cut: s._clipIn, len: s.duration, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} };
+      s._narration = local.map((w) => w.w).join(" ");
+      vsMixVoiceTrack(true);
+    };
+    F.push({ type: "number", label: L("Starts at (seconds into your video)", "شروع (ثانیه از ویدیوی تو)"), min: 0, max: Math.floor(total), step: 0.1, list: true,
+      get: () => Math.round((s._clipIn || 0) * 10) / 10, set: (v) => recut(Number(v) || 0, s.duration) });
+    F.push({ type: "number", label: L("Length (seconds)", "طول (ثانیه)"), min: 0.3, max: Math.ceil(total), step: 0.1, list: true,
+      get: () => Math.round((Number(s.duration) || 1) * 10) / 10, set: (v) => recut(s._clipIn || 0, Number(v) || 1) });
+    F.push({ type: "select", label: L("Texture", "بافت روی تصویر"), options: vsOptsFrom("#vsOverlay"), ...vsViaControl("#vsOverlay") });
+    F.push({ type: "select", label: L("Cut between scenes (whole video)", "برش بین صحنه‌ها (کل ویدیو)"), options: vsOptsFrom("#vsTransition"), ...vsViaControl("#vsTransition") });
+    return F;
+  }
   if (id === "scene") {
     F.push({ type: "number", label: L("Duration (seconds)", "مدت (ثانیه)"), min: 1, max: 120, step: 0.5, list: true,
       get: () => Math.round((Number(s.duration) || 4) * 100) / 100, set: (v) => { s.duration = Math.max(1, Math.min(120, Number(v) || 4)); } });
@@ -9786,6 +10094,28 @@ function vsElementFields(s, i, id) {
     return F;
   }
 
+  if (id === "captions" && s._ownSpeech) {
+    // The customer's own voice: the words are fixed in time, so editing fixes
+    // what the captions SAY (a misheard word) and keeps when each one lands.
+    const v = s._voice || {};
+    F.push({ type: "textarea", label: L("Caption words (fix any mistake)", "کلمات زیرنویس (هر اشتباهی را درست کن)"), rows: 3,
+      get: () => (v.words || []).map((w) => w.w).join(" "),
+      set: (txt) => {
+        const ws = String(txt).split(/\s+/).filter(Boolean);
+        const old = v.words || [];
+        const t0 = old.length ? old[0].t0 : 0, t1 = old.length ? old[old.length - 1].t1 : (s.duration || 2);
+        v.words = old.length === ws.length ? old.map((w, k) => ({ w: ws[k], t0: w.t0, t1: w.t1 })) : vsWordTimes(ws.join(" "), t0, t1);
+        v.chunks = vsCaptionChunks(v.words); v._byMax = {};
+        s._narration = ws.join(" ");
+      } });
+    const TP2 = vstudio._toneProfile || (vstudio._toneProfile = vsToneProfile());
+    F.push({ type: "select", label: L("Caption look (whole video)", "ظاهر زیرنویس (کل ویدیو)"),
+      options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
+      get: () => TP2.captions || "pop", set: (val) => { TP2.captions = val; } });
+    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsNarrate") });
+    moveSize(vsCapHost(), "captions", 0.5, 1.8);
+    return F;
+  }
   if (id === "captions") {
     F.push({ type: "textarea", label: L("What the voice says in this scene", "متنی که گوینده در این صحنه می‌خواند"), rows: 3, ...own("_narration") });
     F.push({ type: "buttons", buttons: [{ t: L("Record this line again", "ضبط دوبارهٔ این جمله"), act: async (btn) => {
@@ -17022,7 +17352,10 @@ function drawStudioFrame(elapsed) {
   //    so it stretches to fill the longer span. Never sped up.
   if (media && media.tagName === "VIDEO" &&
       isFinite(media.duration) && media.duration > 0) {
-    let span, clipLen = media.duration, targetT;
+    // A scene can play from part-way into its clip - "Edit my video" cuts one
+    // file into many scenes, each starting where its stretch of speech does.
+    const clipIn = (vstudio.slides.length && dsSlideObj && dsSlideObj.mediaEl === media && dsSlideObj._clipIn) || 0;
+    let span, clipLen = Math.max(0.05, media.duration - clipIn), targetT;
     const localTime = vstudio.slides.length ? dsLocal : elapsed;
     if (vstudio.slides.length) {
       span = dsDur > 0 ? dsDur : clipLen;
@@ -17045,6 +17378,7 @@ function drawStudioFrame(elapsed) {
     // if the video has drifted from where it should be (e.g. after a
     // pause, a scrub, or rate clamping) nudge it back with ONE seek —
     // not every frame, so the browser can finish the seek and not freeze.
+    targetT += clipIn;
     if (Math.abs(media.currentTime - targetT) > 0.4) {
       try { media.currentTime = targetT; } catch {}
     }
@@ -19810,7 +20144,7 @@ function scrubTimeline(clientX) {
           s.mediaEl.pause();
           if (i === at.index) {
             s.mediaEl.currentTime = Math.min(
-              s.mediaEl.duration || at.local, at.local);
+              s.mediaEl.duration || at.local, (s._clipIn || 0) + at.local);
           }
         } catch {}
       }
@@ -19850,7 +20184,7 @@ function scrubSceneStrip(clientX) {
       if (s.ready && s.isVideo && s.mediaEl) {
         try {
           s.mediaEl.pause();
-          if (i === at.index) s.mediaEl.currentTime = Math.min(s.mediaEl.duration || at.local, at.local);
+          if (i === at.index) s.mediaEl.currentTime = Math.min(s.mediaEl.duration || at.local, (s._clipIn || 0) + at.local);
         } catch {}
       }
     });
@@ -20110,7 +20444,8 @@ async function _vsSeekActiveFootage(t) {
   const slide = vstudio.slides[at.index];
   if (!slide || !slide.isVideo || !slide.mediaEl) return;
   const vid = slide.mediaEl;
-  const vdur = (vid.duration && isFinite(vid.duration)) ? vid.duration : at.dur;
+  const clipIn = slide._clipIn || 0;
+  const vdur = (vid.duration && isFinite(vid.duration)) ? Math.max(0.05, vid.duration - clipIn) : at.dur;
   if (!vdur) return;
   // Real time from the clip's start, the same rule the draw path uses: stretch
   // only when the clip is SHORTER than the scene it has to fill.
@@ -20123,7 +20458,7 @@ async function _vsSeekActiveFootage(t) {
   // frames of that is the two and a half minutes an export was taking.
   const span = at.dur > 0 ? at.dur : vdur;
   let target = span > vdur ? (Math.min(at.local, span) / span) * vdur : at.local;
-  target = Math.max(0, Math.min(vdur - 0.05, target));
+  target = Math.max(0, Math.min(vdur - 0.05, target)) + clipIn;
   if (Math.abs((vid.currentTime || 0) - target) < 0.008) return;
   await _vsSeekVideo(vid, target);
 }
@@ -27771,6 +28106,8 @@ function bindEvents() {
   vsUpdateUndoButtons();
 
   // Timeline: play/pause button + scrubbing by dragging the track area.
+  on("#vsEditMineBtn", "click", () => { const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } });
+  on("#vsEditMineFile", "change", (e) => { const f = e.target.files && e.target.files[0]; if (f) vsEditMineDialog(f); });
   on("#vsPlayBtn", "click", () => {
     if (vstudio.playing) {
       stopStudioPreview();
