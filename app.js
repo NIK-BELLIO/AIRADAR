@@ -7444,32 +7444,38 @@ function vsScriptPrompt(o) {
   // and every video already includes an intro + outro — so the AI writes 2 FEWER
   // content sections than the label, keeping the finished video within the range.
   const sectionRange = lenChoice === "short" ? "2 to 3" : lenChoice === "long" ? "6 to 8" : "4 to 5";
-  const toneGuide = vsToneGuide(tone);
+  const T = vsToneProfile(tone);
+  // Hype and social lines are read in a blink; the others get a little more.
+  const hlMax = (T.id === "hype" || T.id === "social") ? 5 : 7;
 
 
 
   // Framed so the model writes like an analyst who actually did the legwork
   // on this exact SOURCE — not a generic copywriter guessing at a headline.
   const groundingRule = hasSource
-    ? `You have the FULL SOURCE text below. Write as a senior investigative analyst who just finished reading it start to finish — as if you opened the link yourself, worked through every paragraph, cross-checked the key facts against each other, and are now briefing a client on what it really means. Ground every figure, name, date, quote and claim in this SOURCE. Never invent a statistic, quote, ranking or attribution that isn't in it — if a precise number isn't explicitly there, don't state one; instead dig deeper into the documented facts you DO have (causes, mechanics, stakes, who's affected, what happens next).`
-    : `No article or link was supplied — only a topic idea. Write as a senior analyst drawing on solid, verifiable general knowledge: real organizations, real events, real figures you are genuinely confident about. Never fabricate a precise statistic just to sound authoritative — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead.`;
+    ? `You have the FULL SOURCE text below. Read it start to finish as if you opened the link yourself, worked through every paragraph and cross-checked the key facts against each other. Ground every figure, name, date, quote and claim in this SOURCE. Never invent a statistic, quote, ranking or attribution that isn't in it — if a precise number isn't explicitly there, don't state one; instead dig deeper into the documented facts you DO have (causes, mechanics, stakes, who's affected, what happens next).`
+    : `No article or link was supplied — only a topic idea. Draw on solid, verifiable general knowledge: real organizations, real events, real figures you are genuinely confident about. Never fabricate a precise statistic just to sound authoritative — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead.`;
 
-  return `You are a senior investigative analyst and award-winning ${toneGuide}
+  return `You are an award-winning ${T.persona}, and you do your research.
+THE TONE IS THE BRIEF. Every word of this script - the hook, each headline, every narration line and the close - must sound like a ${T.persona}:
+- Voice: ${T.voice}
+- Hook (intro): ${T.hook}
+- On-screen headlines: ${T.headline}
 ${groundingRule}
-Turn the SOURCE below into a complete, professional short-form video script that sounds like a briefing from someone who genuinely researched the subject — never generic, never filler. Lead with what actually matters most, and explain WHY it matters, not just what happened.
+Turn the SOURCE below into a complete short-form video script in exactly that tone — never generic, never filler. Lead with what actually matters most, and make clear why it matters.
 IGNORE website navigation, menus, button labels, cookie/subscribe notices, "skip to main content", category lists, related-links — these are NOT the story. Find the real topic and build around it. Never use nav words as a title or headline.
 
 Return ONLY valid compact JSON (no markdown, no commentary):
-{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"${hasSource ? "the real publication named in the SOURCE, or empty string" : ""}","language":"ISO language code","angle":"one-sentence editorial angle — the analyst's read on what this really means","music":{"mood":"tense|hopeful|investigative|urgent|inspiring|neutral","energy":"low|medium|high","bpm":92},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"ONE punchy spoken hook sentence, max 14 words, that makes the viewer stay","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"1-2 short spoken sentences, max 24 words in total, saying what these numbers mean for the viewer","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"on-screen line, max 7 words, plain everyday words","narration":"1-2 short spoken sentences, max 24 words in total, with the context and why it matters","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence, max 14 words — the bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
+{"title":"core story in max 6 words","subtitle":"max 8 words of context","kicker":"1-2 ALL-CAPS category words","source":"${hasSource ? "the real publication named in the SOURCE, or empty string" : ""}","language":"ISO language code","angle":"one-sentence angle — what this really means, in the tone's voice","music":{"mood":"${T.music.mood}","energy":"${T.music.energy}","bpm":${T.music.bpm}},"intro":{"main":"sharp 3-6 word hook","sub":"max 8 words framing the story","narration":"ONE punchy spoken hook sentence, max 14 words, that makes the viewer stay","heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors this opening scene as a giant editorial cover word — a real, meaningful word from the story's substance, never filler like THE/AND/NEW"},"sections":[{"type":"infographic","caption":"2-3 words","title":"chart headline max 5 words","narration":"1-2 short spoken sentences, max 24 words in total, saying what these numbers mean for the viewer","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","stats":[{"label":"short label","value":"formatted value","num":2400000000}],"chartType":"bars|donut|pills|comparison|ranking","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"},{"type":"text","caption":"2-3 words","headline":"on-screen line, max ${hlMax} words, digits for numbers (43%, $740)","narration":"1-2 short spoken sentences, max 24 words in total, with the context and why it matters","evidence":"one specific, concrete detail grounded in the SOURCE — a name, number, or attributed fact, never a vague restatement","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","metrics":"OPTIONAL array [{\"label\":\"short 1-2 words\",\"value\":\"formatted e.g. 42% or $8B\",\"num\":42}] — include ONLY when THIS scene states 2-4 real comparable figures from the SOURCE, so it renders as a precise data chart; omit or [] otherwise. Never invent numbers.","visual":"2-4 word stock-footage search of common filmable nouns, e.g. electric car charging","keywords":["3-4 SHORT labels (1-2 words each) naming the real entities/ideas in THIS scene — used as diagram node labels; must be clean concepts a viewer recognises, NEVER chopped words from the headline"],"heroWord":"ONE short powerful word (max 9 letters, NO spaces) that anchors THIS scene as a giant editorial cover word — a real, meaningful word from the scene's substance, never filler like THE/AND/NEW"}],"outro":{"main":"3-5 word takeaway","sub":"max 6 words","narration":"one memorable closing sentence, max 14 words — the bottom line","heroWord":"ONE short powerful takeaway word (max 9 letters, NO spaces) that anchors the closing scene as a giant editorial cover word"}}
 
 RULES:
-0. Add narration to intro, every section and outro. It is READ ALOUD by a voice-over, so write for the ear: 1-2 short sentences per content scene (max 24 words), short everyday words, contractions, like a sharp creator talking to a friend. Say numbers the way people say them ("100 dollars", "40 percent"). Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
+0. Add narration to intro, every section and outro. It is READ ALOUD by a voice-over, so write for the ear: 1-2 short sentences per content scene (max 24 words), everyday words, in the voice above. In NARRATION only, say numbers the way people say them ("100 dollars", "40 percent"); on-screen headlines, titles and stats always use digits ("$100", "40%"). Keep the top-level music exactly as given. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
 1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
 2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
-3. TEXT: narrative/quotes/context. headline = max 7 words a 12-year-old understands, concrete and specific — never jargon ("maturation", "accelerates availability", "leverage", "paradigm") and never vague filler like "a new era" or "the future is here". The narration explains; the headline only lands the point.
+3. TEXT: narrative/quotes/context. headline = max ${hlMax} words a 12-year-old understands, in the tone's headline style, concrete and specific — never jargon ("maturation", "accelerates availability", "leverage", "paradigm") and never vague filler like "a new era" or "the future is here". The narration explains; the headline only lands the point.
 4. Never two infographics in a row. Vary text styles for rhythm.
 4b. "visual" on every section: 2-4 common, filmable words a stock-video site would actually have for THAT scene (e.g. "server room engineer", "electric car charging", "factory robot arm") — never "technology" or "innovation concept", and never a long phrase stock libraries cannot match.
-5. Match the ${tone} tone precisely in word choice and energy.
+5. Tone check on every line: would a ${T.persona} say it exactly like this? If not, rewrite it. Two scripts on the same SOURCE in different tones must read completely differently.
 6. intro.main = a punchy hook tied to the real story. outro.main = the single key takeaway.
 7. source = the real outlet (e.g. "ABC News", "Reuters") if identifiable from the SOURCE, otherwise leave it as an empty string "".
 8. Every line must be accurate and specific. Real numbers, real names, real detail.
@@ -7807,6 +7813,11 @@ async function vsFetchArticle(url) {
     { u: "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=" + encodeURIComponent(clean), clean: false },
     { u: "https://r.jina.ai/" + clean, clean: true },
     { u: "https://r.jina.ai/" + encodeURIComponent(clean), clean: true },
+    // The Wayback Machine's copy, read by our worker. Sites behind Cloudflare's
+    // bot wall (thezebra.com) answer every reader above with "Attention
+    // Required"; their archived page is the same article and is not walled.
+    // "id_" asks for the page as it was served, without the archive's toolbar.
+    { u: "https://airadar-ai.aliniashyn-9b4.workers.dev/read?url=" + encodeURIComponent("https://web.archive.org/web/" + new Date().getFullYear() + "id_/" + clean), clean: false },
     { u: "https://api.allorigins.win/raw?url=" + encodeURIComponent(clean), clean: false },
     { u: "https://corsproxy.io/?url=" + encodeURIComponent(clean), clean: false },
     { u: clean, clean: false }
@@ -7890,7 +7901,11 @@ async function vsFetchArticle(url) {
       });
       if (!res.ok) continue;
       let t = await res.text();
-      if (isBotChallenge(t)) continue;
+      // A wall page is small. A real article behind Cloudflare carries the same
+      // "/cdn-cgi/challenge-platform" script in its markup as a background
+      // check, and treating that as a wall threw away a 420KB thezebra.com
+      // article that read perfectly.
+      if (t.length < 60000 && isBotChallenge(t)) continue;
       if (entry.clean) {
         t = focusArticle(t);
       } else if (/<html|<body|<!doctype/i.test(t.slice(0, 2000)) && typeof DOMParser !== "undefined") {
@@ -7922,6 +7937,12 @@ async function vsAssembleFromSections(data, skipFootage) {
   vstudio.slides = [];
   vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
   vstudio.storyData = data;
+  // The chosen tone sets the look before any scene captures the controls, and
+  // its music wins over whatever mood the writer guessed.
+  const TP = vsToneProfile();
+  vstudio._toneProfile = TP;
+  vsApplyToneLook(TP);
+  if (data) data.music = Object.assign({}, data.music || {}, TP.music);
   // Fixed scene lengths: intro/outro always 3s, every content scene always 6s
   // — a consistent rhythm instead of stretching/shrinking with narration length.
   /**
@@ -7936,7 +7957,8 @@ async function vsAssembleFromSections(data, skipFootage) {
    * plus a beat to land on and a beat to leave on.
    */
   const wordCount = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
-  const readSeconds = (words, min) => Math.min(Math.max(words / 2.2 + 1.4, min || 3.5), 11);
+  // A documentary lets a line breathe; a social cut moves on as soon as it lands.
+  const readSeconds = (words, min) => Math.min(Math.max((words / 2.2 + 1.4) * TP.pace, (min || 3.5) * TP.pace), 11);
   // Voiceover was removed, so the narration is never heard and never shown -
   // yet it was what set every scene's length. Two or three spoken sentences
   // always hit the eleven-second cap, so an eight-word headline sat on screen
@@ -7966,7 +7988,7 @@ async function vsAssembleFromSections(data, skipFootage) {
   const bg = (i) => bgPool[i % bgPool.length];
 
   // Varied entrance motions — never repeat same motion twice in a row
-  const motionPool = ["drift", "glide", "zoom", "rise", "blur", "expand"];
+  const motionPool = (TP.newsMotion && TP.newsMotion.length > 1) ? TP.newsMotion : ["drift", "glide", "zoom", "rise", "blur", "expand"];
   let lastMotion = "";
   const pickMotion = () => {
     const candidates = motionPool.filter(m => m !== lastMotion);
@@ -7983,8 +8005,10 @@ async function vsAssembleFromSections(data, skipFootage) {
   const srcLabel = srcRaw ? ("by " + srcRaw) : "";
 
   // Helper: clean settings with all overlays explicitly OFF
+  let overlayN = 0;
   const cleanSet2 = () => {
     const s = vsCaptureSettings();
+    s["#vsOverlay"] = TP.overlays[overlayN++ % TP.overlays.length];
     s["#vsInfoOn"] = false; s["#vsNewsOn"] = false;
     // A newly assembled video must never inherit manual zoom/position from the
     // previously opened batch item. Every scene starts clean and owns its state.
@@ -8144,6 +8168,8 @@ async function vsAssembleFromSections(data, skipFootage) {
       // used to always fall back to pool[0] — deterministic, so every video
       // in a batch (near-identical headline lengths city to city) landed on
       // the same style. Pick randomly within the length-safe pool instead.
+      const tonePool = pool.filter((x) => TP.styles.includes(x));
+      if (tonePool.length) pool = tonePool;
       let style = pool.includes(sec.style) ? sec.style : pool[Math.floor(Math.random() * pool.length)];
       if (style === vstudio._lastNewsStyle) {           // avoid two identical in a row
         const alt = pool.filter(s => s !== style);
@@ -8427,6 +8453,10 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
   if (!vids.length) return null;
   // A clip long enough to play at normal speed through a scene is worth a little.
   const order = vsStockOrder(vids, query, variant, (v) => (v.duration >= 6 ? 0.15 : 0));
+  // Two downloads that miss their deadline mean the route is slow right now,
+  // not that the next ten clips will arrive: walking all twelve kept one scene
+  // waiting 84 seconds before it tried a photo.
+  let misses = 0;
   // Every candidate, not the first four: skipping a taken url is a string
   // comparison, and with a shared set the later scenes found their four already
   // gone and came away with nothing.
@@ -8475,6 +8505,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
     });
     release();
     if (vid) return vid;
+    if (++misses >= 2) break;
     // A candidate that failed to load is not worth a second deadline; move on
     // to the next url rather than retrying this one.
   }
@@ -8997,13 +9028,14 @@ function vsWordTimes(text, t0, t1) {
 }
 
 // Group words into caption lines of up to three, breaking after punctuation.
-function vsCaptionChunks(words) {
+function vsCaptionChunks(words, max) {
+  max = max || 3;
   const out = [];
   let cur = [];
   words.forEach((w, i) => {
     cur.push(i);
-    const long = cur.reduce((n, k) => n + words[k].w.length, 0) > 16;
-    if (cur.length >= 3 || long || /[.!?,;:]["')]*$/.test(w.w)) { out.push(cur); cur = []; }
+    const long = cur.reduce((n, k) => n + words[k].w.length, 0) > max * 6;
+    if (cur.length >= max || long || /[.!?,;:]["')]*$/.test(w.w)) { out.push(cur); cur = []; }
   });
   if (cur.length) out.push(cur);
   return out;
@@ -9076,14 +9108,19 @@ async function vsAddVoiceover(data) {
     }
   }));
   let any = false;
+  // The tone sets the breath around each line: a hype cut is on the next
+  // scene a quarter-second after the line ends, a documentary waits.
+  const TP = vstudio._toneProfile || vsToneProfile();
+  const lead = TP.lead != null ? TP.lead : VS_VOICE_LEAD;
+  const tail = TP.tail != null ? TP.tail : VS_VOICE_TAIL;
   bufs.forEach((buf, i) => {
     if (!buf) return;
     const s = slides[i];
     const b = vsSpeechBounds(buf);
     const len = b.end - b.start;
-    const words = vsWordTimes(lines[i], VS_VOICE_LEAD, VS_VOICE_LEAD + len);
-    s._voice = { buf, cut: b.start, len, at: VS_VOICE_LEAD, words, chunks: vsCaptionChunks(words) };
-    s.duration = Math.max(Number(s.duration) || 0, VS_VOICE_LEAD + len + VS_VOICE_TAIL);
+    const words = vsWordTimes(lines[i], lead, lead + len);
+    s._voice = { buf, cut: b.start, len, at: lead, words, chunks: vsCaptionChunks(words), _byMax: {} };
+    s.duration = Math.max(Number(s.duration) || 0, lead + len + tail);
     any = true;
   });
   if (!any) {
@@ -9142,9 +9179,14 @@ function vsMixVoiceTrack(force) {
   }
 }
 
-// The caption line under the speaker: up to three words, the one being said
-// lifted onto an accent block. Drawn last (after text and graphics), so it is
-// never hidden, and from the same timings in preview and export.
+// The caption line under the speaker, in the look the tone calls for:
+//   pop      - hype/social: 3 words, UPPERCASE, the spoken word on an accent block
+//   clean    - advisor/explainer: 4 words, sentence case, the spoken word in accent
+//   news     - news: a lower-third bar, 5 words, the spoken word in accent
+//   subtitle - documentary: a serif subtitle line, 5 words, quiet fade
+// Drawn last (after text and graphics), so it is never hidden, and from the same
+// timings in preview and export.
+const VS_CAPTION_MAX = { pop: 3, clean: 4, news: 5, subtitle: 5 };
 function vsDrawCaptions(ctx, W, H, elapsed) {
   if (!vstudio.slides.length || !vstudio._narrationBuffer || !vsNarrateOn()) return;
   const at = slideAtTime(elapsed);
@@ -9154,56 +9196,102 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const t = at.local;
   const first = v.words[0], last = v.words[v.words.length - 1];
   if (t < first.t0 - 0.04 || t > last.t1 + 0.3 || t > at.dur - 0.08) return;
+  const look = ((vstudio._toneProfile || {}).captions) || "pop";
+  const max = VS_CAPTION_MAX[look] || 3;
+  v._byMax = v._byMax || {};
+  const chunks = v._byMax[max] || (v._byMax[max] = vsCaptionChunks(v.words, max));
   let cur = 0;
   for (let k = 0; k < v.words.length; k++) if (v.words[k].t0 <= t) cur = k;
-  const chunk = v.chunks.find((c) => c.includes(cur)) || v.chunks[0];
+  const chunk = chunks.find((c) => c.includes(cur)) || chunks[0];
   const words = chunk.map((k) => v.words[k]);
   const sinceChunk = t - words[0].t0;
   const portrait = H > W;
-  const base = Math.round(Math.min(W, H) * (portrait ? 0.074 : 0.062));
-  const font = (px) => `900 ${px}px Archivo, "Vazirmatn", system-ui, sans-serif`;
-  // pop in: each new line lands from 86% to full size in a tenth of a second
-  const pop = Math.min(1, Math.max(0, sinceChunk / 0.1));
-  const scale = 0.86 + 0.14 * (1 - Math.pow(1 - pop, 3));
+  const unit = Math.min(W, H);
+  const base = Math.round(unit * ({ pop: portrait ? 0.074 : 0.062, clean: portrait ? 0.07 : 0.058, news: portrait ? 0.06 : 0.05, subtitle: portrait ? 0.072 : 0.06 })[look]);
+  const font = look === "subtitle"
+    ? `400 ${base}px "Viaoda Libre", Alice, Georgia, serif`
+    : `${look === "pop" ? 900 : 800} ${base}px Archivo, "Vazirmatn", system-ui, sans-serif`;
+  // pop lands from 86% to full size in a tenth of a second; the others fade
+  const pIn = look === "subtitle" ? 0.22 : look === "pop" ? 0.1 : 0.14;
+  const pop = Math.min(1, Math.max(0, sinceChunk / pIn));
+  const scale = look === "pop" ? 0.86 + 0.14 * (1 - Math.pow(1 - pop, 3)) : 1;
+  let accent = "#f5c451";
+  try { const tp = typeof vsTemplate === "function" ? vsTemplate() : null; if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
+
   ctx.save();
-  ctx.font = font(base);
+  ctx.font = font;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   try { ctx.direction = "ltr"; } catch (e) {}
-  const label = (w) => w.w.replace(/^["'(]+|["')]+$/g, "").toUpperCase();
-  const space = base * 0.32;
+  const label = (w) => {
+    const x = w.w.replace(/^["'(]+|["')]+$/g, "");
+    return look === "pop" ? x.toUpperCase() : x;
+  };
+  const space = base * (look === "subtitle" ? 0.28 : 0.3);
   const widths = words.map((w) => ctx.measureText(label(w)).width);
-  let lineW = widths.reduce((n, w) => n + w, 0) + space * (words.length - 1);
-  const maxW = W * 0.86;
+  const lineW = widths.reduce((n, w) => n + w, 0) + space * (words.length - 1);
+  const maxW = W * (look === "news" ? 0.8 : 0.86);
   const fit = lineW > maxW ? maxW / lineW : 1;
   // Below the headline band (titles end near two-thirds down) and above the
   // strip a phone app covers with its own buttons.
-  const cx = W / 2, cy = H * (portrait ? 0.83 : 0.86);
-  ctx.translate(cx, cy);
+  const cy = H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86);
+
+  if (look === "news") {
+    // lower-third bar: full-bleed dark band with an accent edge
+    const bh = base * 1.9;
+    ctx.globalAlpha = Math.min(1, pop);
+    ctx.fillStyle = "rgba(10,12,18,0.82)";
+    ctx.fillRect(0, cy - bh / 2, W, bh);
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, cy - bh / 2, Math.max(4, unit * 0.012), bh);
+  }
+
+  ctx.translate(W / 2, cy);
   ctx.scale(scale * fit, scale * fit);
-  ctx.globalAlpha = Math.min(1, 0.25 + pop);
+  ctx.globalAlpha = look === "pop" ? Math.min(1, 0.25 + pop) : Math.min(1, pop);
   let x = -lineW / 2;
-  let accent = "#f5c451";
-  try { const tp = typeof vsTemplate === "function" ? vsTemplate() : null; if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
   words.forEach((w, j) => {
     const k = chunk[j];
     const txt = label(w);
     const ww = widths[j];
     const on = k === cur;
-    if (on) {
-      const padX = base * 0.18, padY = base * 0.12, r = base * 0.16;
-      const bx = x - padX, by = -base / 2 - padY, bw = ww + padX * 2, bh = base + padY * 2;
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh);
-      ctx.fill();
+    const said = k <= cur;
+    if (look === "pop") {
+      if (on) {
+        const padX = base * 0.18, padY = base * 0.12, r = base * 0.16;
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x - padX, -base / 2 - padY, ww + padX * 2, base + padY * 2, r);
+        else ctx.rect(x - padX, -base / 2 - padY, ww + padX * 2, base + padY * 2);
+        ctx.fill();
+      }
+      ctx.lineJoin = "round";
+      ctx.lineWidth = base * 0.16;
+      ctx.strokeStyle = "rgba(0,0,0,0.85)";
+      if (!on) ctx.strokeText(txt, x, 0);
+      ctx.fillStyle = on ? "#0b0d12" : "#ffffff";
+      ctx.fillText(txt, x, 0);
+    } else if (look === "clean") {
+      ctx.shadowColor = "rgba(0,0,0,0.75)";
+      ctx.shadowBlur = base * 0.35;
+      ctx.shadowOffsetY = base * 0.05;
+      ctx.lineJoin = "round";
+      ctx.lineWidth = base * 0.1;
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
+      ctx.strokeText(txt, x, 0);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.fillStyle = on ? accent : "#ffffff";
+      ctx.fillText(txt, x, 0);
+    } else if (look === "news") {
+      ctx.fillStyle = on ? accent : said ? "#ffffff" : "rgba(255,255,255,0.72)";
+      ctx.fillText(txt, x, 0);
+    } else {
+      // subtitle: words already said are full white, the rest wait half-lit
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = base * 0.45;
+      ctx.fillStyle = said ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.55)";
+      ctx.fillText(txt, x, 0);
     }
-    ctx.lineJoin = "round";
-    ctx.lineWidth = base * 0.16;
-    ctx.strokeStyle = "rgba(0,0,0,0.85)";
-    if (!on) ctx.strokeText(txt, x, 0);
-    ctx.fillStyle = on ? "#0b0d12" : "#ffffff";
-    ctx.fillText(txt, x, 0);
     x += ww + space;
   });
   ctx.restore();
@@ -9868,11 +9956,13 @@ async function vsAutoGenerateBackgrounds(data) {
         : (firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length]) : "cinematic background");
       fallbackQuery = firstPlace ? (firstPlace + " " + cityViews[i % cityViews.length]) : "cinematic city";
     }
-    const cam = camMoves[i % camMoves.length];
+    const TPc = vstudio._toneProfile || vsToneProfile();
+    const cam = (TPc.cams && TPc.cams.length ? TPc.cams : camMoves)[i % (TPc.cams && TPc.cams.length ? TPc.cams.length : camMoves.length)];
     // Professional kinetic-typography rotation so each scene's text enters
     // differently (the editorial-style motion-graphic feel), instead of every
     // scene using the same fade-up.
-    const txAnim = ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"][i % 8];
+    const txPool = (TPc.anims && TPc.anims.length) ? TPc.anims : ["rise", "pop", "slide-up", "spring", "punch", "fade-up", "zoom-in", "vox"];
+    const txAnim = txPool[i % txPool.length];
     // A picture the customer's own AI made for this scene (MCP create_video)
     // is the scene: nothing to search for. After cam and txAnim, which it uses -
     // placed above them it threw, and the whole build fell back to basic mode.
@@ -10125,16 +10215,144 @@ function vsParseAiJson(raw) {
   }
 }
 
-function vsToneGuide(tone) {
-  return ({
-    news:        "authoritative broadcast-news director. Crisp, factual, urgent. Use title-left and title-center styles, bars/comparison charts.",
-    explainer:   "friendly educator. Clear, step-by-step, builds understanding. Use title-center, donut/pills charts, simple language.",
-    hype:        "high-energy launch hype-master. Bold, punchy, exciting. Use bold-statement, neon-title, big single numbers.",
-    documentary: "cinematic documentary narrator. Atmospheric, thoughtful, emotive. Use quote, magazine-cover, title-center, slower reveals.",
-    social:      "viral social-media editor. Ultra-punchy, hook-first, scroll-stopping. Use bold-statement, neon-title, short headlines, big numbers.",
-    advisor:     "seasoned housing-market analyst. Authoritative, source-grounded and consultative — explain what verified facts mean for buyers or sellers. Never introduce insurance unless the source explicitly discusses it."
-  })[tone] || "broadcast-news director.";
+/**
+ * What each Tone choice means, end to end.
+ *
+ * The tone used to change one phrase in the script brief - which then opened
+ * with "senior investigative analyst" whatever was picked - and nothing at all
+ * in the picture: every tone got the same music, cuts, text styles, pacing and
+ * captions. One profile per tone now drives the writer AND the build:
+ *   persona/voice/hook/headline  -> the script brief
+ *   music                        -> the bed (mood, energy, tempo)
+ *   styles/newsMotion/anims/cams -> how text enters and how the camera moves
+ *   transition/filter/font       -> the cut, the grade and the headline face
+ *   overlays                     -> the texture laid over footage
+ *   pace/lead/tail               -> how long a scene holds around its line
+ *   captions                     -> the caption look under the voice
+ */
+const VS_TONES = {
+  advisor: {
+    persona: "senior advisor briefing a client",
+    voice: "calm, measured and consultative. Plain, confident sentences that explain what the facts mean for the viewer's own decisions - never hype, never alarm.",
+    hook: "open on the single fact that changes the viewer's decision, stated plainly.",
+    headline: "a clear takeaway a client would write in their notes.",
+    music: { mood: "investigative", energy: "low", bpm: 84 },
+    styles: ["title-left", "annotation", "caption", "quote", "title-center"],
+    newsMotion: ["glide", "rise", "drift"],
+    anims: ["fade-up", "rise", "glide-in", "fade"],
+    cams: ["kenburns-in", "kenburns-out", "pan-right", "pan-left", "drift-up"],
+    transition: "fade", filter: "cinematic", font: "Alice, serif",
+    overlays: ["none", "corners", "minimalline"],
+    pace: 1.1, lead: 0.25, tail: 0.55, captions: "clean"
+  },
+  news: {
+    persona: "broadcast-news anchor and producer",
+    voice: "crisp, factual and urgent. Short declarative sentences, the newest development first, who/what/when up front, attribution where it matters.",
+    hook: "open like a breaking-news lead: the newest, biggest development in one line.",
+    headline: "a news chyron - the fact itself, present tense.",
+    music: { mood: "urgent", energy: "medium", bpm: 104 },
+    styles: ["title-left", "caption", "annotation", "title-center"],
+    newsMotion: ["glide", "rise"],
+    anims: ["slide-left", "slide-up", "fade-up", "glide-in"],
+    cams: ["pan-right", "pan-left", "zoom-pan", "kenburns-in"],
+    transition: "slide", filter: "cool", font: "Archivo, ui-sans-serif, sans-serif",
+    overlays: ["minimalline", "none", "corners"],
+    pace: 0.95, lead: 0.15, tail: 0.35, captions: "news"
+  },
+  explainer: {
+    persona: "friendly science-and-ideas educator",
+    voice: "warm, curious and clear. Build understanding step by step - one idea per scene, a simple comparison or everyday example where it helps, no unexplained terms.",
+    hook: "open with the question the viewer is already wondering about.",
+    headline: "the one idea of the scene, in simple words.",
+    music: { mood: "hopeful", energy: "medium", bpm: 96 },
+    styles: ["title-center", "badge", "caption", "annotation"],
+    newsMotion: ["rise", "zoom", "expand"],
+    anims: ["pop", "spring", "rise-spring", "fade-up"],
+    cams: ["kenburns-in", "drift-up", "pan-up", "pan-right"],
+    transition: "zoom", filter: "warm", font: "'Space Grotesk', ui-sans-serif, sans-serif",
+    overlays: ["none", "glow", "bokeh"],
+    pace: 1.15, lead: 0.2, tail: 0.5, captions: "clean"
+  },
+  hype: {
+    persona: "high-energy launch-trailer hype director",
+    voice: "bold, fast and exciting. Very short punchy sentences, strong verbs, big moments, building to a peak - confident, never corporate.",
+    hook: "open with the most exciting claim or number, as a bold statement.",
+    headline: "2-5 explosive words - a bold statement or one big number.",
+    music: { mood: "inspiring", energy: "high", bpm: 126 },
+    styles: ["bold-statement", "badge", "magazine-cover", "title-center"],
+    newsMotion: ["zoom", "expand"],
+    anims: ["punch", "drop", "zoom-in", "bounce"],
+    cams: ["punch-in", "zoom-pan", "handheld", "kenburns-in"],
+    transition: "punch", filter: "vivid", font: "Archivo, ui-sans-serif, sans-serif",
+    overlays: ["lightleak", "shimmer", "glow"],
+    pace: 0.8, lead: 0.1, tail: 0.25, captions: "pop"
+  },
+  documentary: {
+    persona: "cinematic documentary narrator",
+    voice: "atmospheric, thoughtful and emotive. Unhurried sentences with imagery and human stakes; let a line breathe before the next.",
+    hook: "open on an evocative image or a human moment, then the stakes.",
+    headline: "a quiet, resonant line - like a film title card.",
+    music: { mood: "tense", energy: "low", bpm: 76 },
+    styles: ["quote", "magazine-cover", "title-center"],
+    newsMotion: ["blur", "drift", "glide"],
+    anims: ["blur-in", "fade", "drift", "typewriter"],
+    cams: ["kenburns-in", "kenburns-out", "drift-up", "pan-left"],
+    transition: "blur", filter: "cinematic", font: "'Viaoda Libre', serif",
+    overlays: ["gradient", "dust", "haze"],
+    pace: 1.3, lead: 0.4, tail: 0.9, captions: "subtitle"
+  },
+  social: {
+    persona: "viral TikTok/Reels creator",
+    voice: "ultra-punchy and conversational, like talking to a friend. Hook in the first two seconds, one idea per line, 'you' language, curiosity gaps, no throat-clearing.",
+    hook: "a scroll-stopping first line - a surprising claim, a 'you' question, or 'stop doing X'.",
+    headline: "2-5 words that stop the scroll.",
+    music: { mood: "upbeat", energy: "high", bpm: 118 },
+    styles: ["bold-statement", "badge", "title-center"],
+    newsMotion: ["zoom", "expand", "rise"],
+    anims: ["punch", "pop", "spring", "zoom-in"],
+    cams: ["handheld", "punch-in", "zoom-pan", "pan-up"],
+    transition: "punch", filter: "vivid", font: "Archivo, ui-sans-serif, sans-serif",
+    overlays: ["none", "lightleak", "shimmer"],
+    pace: 0.8, lead: 0.1, tail: 0.25, captions: "pop"
+  }
+};
+
+function vsToneProfile(tone) {
+  const t = tone || ((document.querySelector("#vsAutoTone") || {}).value) || "advisor";
+  return Object.assign({ id: VS_TONES[t] ? t : "advisor" }, VS_TONES[t] || VS_TONES.advisor);
 }
+
+// Kept for the batch brief, which reads one line: who is writing, and how.
+function vsToneGuide(tone) {
+  const p = vsToneProfile(tone);
+  return p.persona + ". Voice: " + p.voice;
+}
+
+// The tone's cut, grade and headline face go onto the controls before the
+// scenes are captured - unless the user set that control by hand since they
+// last chose a tone, which wins. Choosing a tone again hands them back.
+const VS_TONE_LOOK = { "#vsTransition": "transition", "#vsFilter": "filter", "#vsHeadlineFont": "font" };
+function vsApplyToneLook(p) {
+  vstudio._userLook = vstudio._userLook || {};
+  Object.keys(VS_TONE_LOOK).forEach((sel) => {
+    const el = document.querySelector(sel);
+    const want = p[VS_TONE_LOOK[sel]];
+    if (!el || !want || vstudio._userLook[sel]) return;
+    if (Array.from(el.options || []).some((o) => o.value === want)) el.value = want;
+  });
+}
+(function vsWatchToneLook() {
+  const wire = () => {
+    Object.keys(VS_TONE_LOOK).forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.addEventListener("change", (e) => { if (e.isTrusted) { vstudio._userLook = vstudio._userLook || {}; vstudio._userLook[sel] = true; } });
+    });
+    const tone = document.querySelector("#vsAutoTone");
+    if (tone) tone.addEventListener("change", () => { vstudio._userLook = {}; });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire, { once: true });
+  else wire();
+})();
 
 // Reject scripts that expose the production process, invent rankings, or turn
 // an unranked list into a fake chart. A finished video must sound like an
@@ -10690,6 +10908,12 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
   // scene count follows the Length selector: short→3, medium→5, long→7 content
   const contentCount = lenChoice === "short" ? 3 : lenChoice === "long" ? 7 : 5;
   const guide = vsToneGuide(tone);
+  const T = vsToneProfile(tone);
+  // Advisor is the housing analyst this brief was written for; any other tone
+  // keeps the facts and the format but speaks in its own voice.
+  const toneMode = T.id === "advisor"
+    ? `ANALYST MODE — write as a senior housing-market analyst. Never mention insurance unless it explicitly appears in the source:`
+    : `TONE — write every line as a ${T.persona}, about these housing-market facts. Voice: ${T.voice} Hook: ${T.hook} Never mention insurance unless it explicitly appears in the source:`;
 
   vstudio.batchVideos = [];
   vstudio._batchUsedMedia = new Set();
@@ -10720,13 +10944,13 @@ TEXT: """${String(text).slice(0, 8000)}"""`;
       ? `Never state a precise statistic, price, rate or rank you cannot verify — where you're not certain of an exact number, make a sharp, well-reasoned qualitative point instead. Never discuss missing data or tell the viewer to verify anything.`
       : `Use ONLY the supplied excerpt for ${name}. Never invent a rank, price, rate, statistic or comparison. Never discuss missing data or tell the viewer to verify anything. If there are no usable numbers, use text scenes and analyze documented causes, market mechanics, risks and buyer/seller implications.`;
     const sPrompt =
-`You are an award-winning ${guide} and rigorous research editor.
+`You are an award-winning ${T.persona} and a rigorous research editor. Voice: ${T.voice}
 Create a concise analyst briefing about "${name}" for a news piece whose subject is: "${topic}". Write as if you carefully read the excerpt, isolated its evidence, and developed a causal market thesis.
 ${groundingRule}
 The ENTIRE video must stay on that subject as it applies specifically to ${shortName} — every line ties ${shortName} to "${topic}" with region-specific facts and the data points that matter for it (prices, ranks, rates, why it's best/worst for this topic).
 ${dataLine}
 If the source has limited data for ${shortName}, interpret the verified facts more deeply; never invent or approximate a missing number. Never write meta-commentary.
-ANALYST MODE — write as a senior housing-market analyst. Never mention insurance unless it explicitly appears in the source:
+${toneMode}
 • Every scene pairs a concrete figure with its IMPLICATION for the client — but keep each on-screen headline to ONE tight sentence (≤13 words); put the number itself in an infographic where it fits.
 • Add comparative context where it sharpens the point (vs the national average, vs a nearby metro, or year-over-year).
 • Surface the non-obvious insight, not just the raw number. Sound like a sharp, credible advisor — specific, useful, zero hype or filler.
@@ -10735,7 +10959,7 @@ Return ONLY valid compact JSON (no markdown):
 {"title":"a question headline naming ${shortName} about \\"${topic}\\", in this exact format: \\"How Will ${shortName} Market End 2026?\\" (swap in the real forecast year), max 9 words","subtitle":"${shortName} + topic context, max 9 words","kicker":"1-2 ALL-CAPS words drawn from the topic","source":"${source || 'the publication if known, else empty'}","palette":"fire|ocean|forest|gold|neon|mono","intro":{"main":"the SAME question headline as title, e.g. \\"How Will ${shortName} Market End 2026?\\", max 9 words","sub":"max 8 words on the topic"},"sections":[{"type":"text","caption":"2-3 words","headline":"ONE tight punchy sentence tying ${shortName} to the topic — 8 to 13 words, never longer","style":"title-center|title-left|bold-statement|quote|caption|annotation|badge|magazine-cover","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}${noExcerpt ? "" : `,{"type":"infographic","caption":"2-3 words","title":"a question headline naming ${shortName}, same format as the top-level title (e.g. \\"How Will ${shortName} Market End 2026?\\"), max 40 chars","stats":[{"label":"short label (max 14 chars)","value":"e.g. $1,250 or 18% (max 9 chars)","num":1250}],"chartType":"bars|donut|pills|comparison|ranking","visual":"3-6 word stock-footage query for this scene, naming ${shortName} or a concrete filmable detail of it"}`}],"outro":{"main":"topic takeaway naming ${shortName}, 3-5 words","sub":"max 6 words"}}
 
 RULES:
-0. Add narration to intro, every section and outro: 2-3 natural spoken sentences per content scene. Add top-level music as {"mood":"investigative","energy":"medium","bpm":92}. Narration interprets evidence and explains the client implication; it never just repeats the headline.
+0. Add narration to intro, every section and outro. It is READ ALOUD by a voice-over: 1-2 short spoken sentences per content scene (max 24 words), in the voice above. Add top-level music as {"mood":"${T.music.mood}","energy":"${T.music.energy}","bpm":${T.music.bpm}}. Narration interprets evidence and explains the implication; it never just repeats the headline.
 1. EXACTLY ${contentCount} content sections (besides intro/outro).
 2. EVERY scene stays on "${topic}" for ${shortName}, each a DIFFERENT angle (e.g. home prices, affordability rank, income-to-cost, growth, why best/worst). NEVER repeat a fact, number, phrase, caption or headline across scenes — all UNIQUE.
 3. title AND intro.main must clearly name ${shortName}, echo the article subject "${topic}", and be phrased as a question in the "How Will ${shortName} Market End 2026?" format — always keep the "How Will ___ Market End ____?" shape, just swap in the real city and forecast year.
