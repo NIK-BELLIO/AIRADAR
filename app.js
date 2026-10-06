@@ -9664,6 +9664,32 @@ async function vsEditStylePlan(scenes, lang) {
 // reframed to the chosen shape. Everything lands in the ordinary scene list, so
 // the scene editor can change any of it afterwards.
 const VS_TRANSCRIBE_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/transcribe";
+const VS_EDIT_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/edit-plan";
+
+// Frames sampled across the video, small JPEGs for the analysis.
+async function vsSampleFrames(el, total, n) {
+  const out = [];
+  const c = document.createElement("canvas");
+  const vw = el.videoWidth || 640, vh = el.videoHeight || 360;
+  c.width = 384; c.height = Math.max(1, Math.round(384 * vh / vw));
+  const x = c.getContext("2d");
+  for (let k = 0; k < n; k++) {
+    const t = Math.min(Math.max(0.2, total - 0.2), 0.3 + (total - 0.6) * (k / Math.max(1, n - 1)));
+    await new Promise((res) => {
+      let done = false;
+      const fin = () => { if (!done) { done = true; el.removeEventListener("seeked", fin); res(); } };
+      el.addEventListener("seeked", fin);
+      try { el.currentTime = t; } catch (e) { fin(); }
+      setTimeout(fin, 3000);
+    });
+    try {
+      x.drawImage(el, 0, 0, c.width, c.height);
+      out.push({ t: Math.round(t * 10) / 10, jpeg: c.toDataURL("image/jpeg", 0.7).split(",")[1] });
+    } catch (e) {}
+  }
+  try { el.currentTime = 0; } catch (e) {}
+  return out;
+}
 const VS_FILLERS = { um: 1, umm: 1, uh: 1, uhm: 1, uhh: 1, erm: 1, er: 1, hmm: 1, mm: 1, ah: 1, "اوم": 1, "اِ": 1, "اه": 1 };
 const VS_EDIT_MAX_SECONDS = 12 * 60;
 
@@ -9684,6 +9710,7 @@ function vsEditMineDialog(file) {
       ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
       ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
       ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
+      ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
       ${opt("vsEmZoom", "Punch-in zoom on every other cut", "زوم ضربه‌ای یکی در میان", true)}
       ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
       <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
@@ -9708,6 +9735,7 @@ function vsEditMineDialog(file) {
       captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
       title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
       stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
+      broll: d.querySelector("#vsEmBroll").checked,
       aspect: d.querySelector("#vsEmAspect").value
     };
     close();
@@ -9852,8 +9880,57 @@ async function vsEditMyVideo(file, o) {
       words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
     }));
 
-    vsAutoStatus(L("Cutting the pauses…", "در حال حذف مکث‌ها…"));
-    const plan = vsPlanEdit(words, total, o);
+    // ── watch it: sampled frames + timed sentences → the edit, decided ──
+    const lang2 = (tr.language || "").slice(0, 2);
+    const sentences = (tr.segments || []).map((sg, i) => ({ i, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text: String(sg.text || "").trim() }))
+      .filter((x) => x.text);
+    vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
+    const frames = await vsSampleFrames(probe, total, Math.max(6, Math.min(12, Math.round(total / 3))));
+    vsAutoStatus(L("Deciding the edit…", "در حال تصمیم‌گیری برای ادیت…"));
+    let ai = null;
+    try {
+      const r = await fetch(VS_EDIT_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+        body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }) });
+      if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+      const j = await r.json();
+      if (j && j.ok && j.plan) ai = j.plan;
+    } catch (e) {}
+    vstudio._editPlan = ai;
+    const sPlan = {};
+    ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
+    const sentOf = (t) => { for (const x of sentences) if (t >= x.start - 0.05 && t <= x.end + 0.05) return x.i; return -1; };
+    // what the analysis drops: retakes, stumbles, rambling
+    const kept = ai ? words.filter((w) => { const k = sentOf(w.s); return k < 0 || !sPlan[k] || sPlan[k].keep !== false; }) : words;
+    const droppedN = ai ? Object.values(sPlan).filter((x) => x.keep === false).length : 0;
+
+    vsAutoStatus(L("Cutting…", "در حال برش…"));
+    const plan = vsPlanEdit(kept.length ? kept : words, total, o);
+    // the teaser: the strongest moment, up front, under the hook
+    let teaser = null;
+    const tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
+    if (o.title && tz >= 0 && sentences[tz] && !(sPlan[tz] && sPlan[tz].keep === false)) {
+      const tw = words.filter((w) => w.s >= sentences[tz].start - 0.05 && w.e <= sentences[tz].end + 0.05);
+      if (tw.length >= 2) {
+        let e = tw.length - 1;
+        while (e > 1 && tw[e].e - tw[0].s > 3.6) e--;
+        const part = tw.slice(0, e + 1);
+        teaser = { teaser: true, start: Math.max(0, part[0].s - 0.08), end: Math.min(total, part[part.length - 1].e + 0.15), words: part };
+        if (plan[0] && Math.abs(plan[0].start - teaser.start) < 0.6) teaser = null;   // it already opens the video
+      }
+    }
+    const parts = teaser ? [teaser].concat(plan) : plan;
+
+    // the speaker stays centred in the new frame
+    const fr = ai && Array.isArray(ai.frames) ? ai.frames.filter((f) => f && isFinite(f.t)) : [];
+    const focusAt = (t) => {
+      let best = null;
+      fr.forEach((f) => { if (!best || Math.abs(f.t - t) < Math.abs(best.t - t)) best = f; });
+      const fx = best ? Number(best.subject_x) : 0.5;
+      return isFinite(fx) ? Math.max(0, Math.min(1, fx)) : 0.5;
+    };
+    const dstAR = { "9:16": 9 / 16, "1:1": 1, "4:5": 0.8, "16:9": 16 / 9 }[o.aspect] || 9 / 16;
+    const srcAR = (probe.videoWidth || 16) / (probe.videoHeight || 9);
+    const dxFor = (focus, z) => Math.max(-1.5, Math.min(1.5, -(focus - 0.5) * z * Math.max(1, srcAR / dstAR)));
 
     // the shape first, so the scenes are captured in it
     const asp = $("#vsAspect");
@@ -9869,51 +9946,90 @@ async function vsEditMyVideo(file, o) {
     Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none" });
 
     vsAutoStatus(L("Laying out the cuts…", "در حال چیدن برش‌ها…"));
-    for (let i = 0; i < plan.length; i++) {
-      const p = plan[i];
+    const seenSentence = {};
+    const brollJobs = [];
+    let side = 0, lastBroll = -9;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
       const el = i === 0 ? probe : await vsEditVideoEl(url);
       if (!el) continue;
+      const k = sentOf(p.words[0] ? p.words[0].s : p.start);
+      const sp = sPlan[k] || {};
+      const firstOfSentence = !p.teaser && !seenSentence[k];
+      if (!p.teaser) seenSentence[k] = true;
       const dur = Math.round((p.end - p.start) * 100) / 100;
       const local = p.words.map((w) => ({ w: w.w, t0: Math.max(0, w.s - p.start), t1: Math.max(0.05, w.e - p.start) }));
-      const settings = Object.assign({}, base, { _mediaScale: (o.zoom && i % 2 === 1) ? 1.14 : 1 });
-      vstudio.slides.push({
+      const zoomed = o.zoom && (ai ? sp.zoom === "tight" || !!p.teaser : i % 2 === 1);
+      const z = zoomed ? 1.15 : 1;
+      const settings = Object.assign({}, base, { _mediaScale: z, _mediaDX: fr.length ? dxFor(focusAt((p.start + p.end) / 2), z) : 0 });
+      const slide = {
         url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "",
         duration: dur, settings, _clipIn: p.start, _ownSpeech: true,
         _narration: p.words.map((w) => w.w).join(" "),
         _voice: { buf: mono, cut: p.start, len: dur, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} },
-        _timelineLabel: (p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ")
-      });
+        _timelineLabel: (p.teaser ? L("Teaser · ", "تیزر · ") : "") + ((p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ"))
+      };
+      if (p.teaser) slide._teaser = true;
+      if (o.stickers && ai && sp.text && firstOfSentence) {
+        const txt = String(sp.text).replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
+        const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
+        const w = local.find((ww) => ww.w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === first);
+        const atT = Math.max(0.15, Math.min(dur - 1, w ? w.t0 : 0.3));
+        if (txt && atT <= dur - 0.8) slide._sticker = { text: txt, icon: VS_STICKER_ICONS.includes(sp.icon) ? sp.icon : "", at: Math.round(atT * 100) / 100, side: ["left", "right", ""][side++ % 3], y: 0.2 };
+      }
+      if (o.broll && ai && sp.broll && firstOfSentence && i - lastBroll > 1 && i > (teaser ? 1 : 0)) { brollJobs.push({ slide, q: String(sp.broll).slice(0, 60) }); lastBroll = i; }
+      vstudio.slides.push(slide);
     }
     if (!vstudio.slides.length) throw new Error(L("nothing to keep was found", "چیزی برای نگه‌داشتن پیدا نشد"));
 
-    const lang2 = (tr.language || "").slice(0, 2);
-    vstudio.storyData = { title: file.name, language: lang2, music: { mood: "upbeat", energy: "medium", bpm: 104 } };
-    if (o.title || o.stickers) {
+    // the hook, over the opening (the teaser when there is one)
+    let hookText = ai && ai.hook && ai.hook.text ? String(ai.hook.text).trim().slice(0, 80) : "";
+    if (!ai && (o.title || o.stickers)) {
+      // the analysis was unavailable: the words alone still give a hook and key words
       vsAutoStatus(L("Writing the hook and picking the key words…", "در حال نوشتن هوک و انتخاب کلمات کلیدی…"));
       const plan2 = await vsEditStylePlan(vstudio.slides.map((x) => x._narration || ""), lang2);
-      if (o.title && plan2.hook) {
-        const s0 = vstudio.slides[0];
-        s0._hook = { text: plan2.hook, until: Math.min(2.8, Math.max(1.6, Number(s0.duration) - 0.2)) };
-        vstudio.storyData.title = plan2.hook;
-      }
-      if (o.stickers) {
-        let side = 0;
-        plan2.scenes.forEach((x) => {
-          const sl = vstudio.slides[Number(x && x.i)];
-          const txt = String((x && x.text) || "").replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
-          if (!sl || !txt) return;
-          // pop up the moment its first word is said
-          const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
-          const w = (sl._voice && sl._voice.words || []).find((ww) => ww.w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === first);
-          const atT = Math.max(0.15, Math.min(Number(sl.duration) - 1, w ? w.t0 : 0.3));
-          // the opening has its hook; its sticker waits until the hook is gone
-          const after = sl._hook ? Math.max(atT, (sl._hook.until || 2.6) + 0.1) : atT;
-          if (after > Number(sl.duration) - 0.8) return;
-          sl._sticker = { text: txt, icon: VS_STICKER_ICONS.includes(x.icon) ? x.icon : "", at: Math.round(after * 100) / 100,
-            side: ["left", "right", ""][side++ % 3], y: 0.2 };
-        });
+      hookText = plan2.hook;
+      if (o.stickers) plan2.scenes.forEach((x) => {
+        const sl = vstudio.slides[Number(x && x.i)];
+        const txt = String((x && x.text) || "").replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
+        if (!sl || !txt) return;
+        const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
+        const w = (sl._voice && sl._voice.words || []).find((ww) => ww.w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === first);
+        const atT = Math.max(0.15, Math.min(Number(sl.duration) - 1, w ? w.t0 : 0.3));
+        if (atT > Number(sl.duration) - 0.8) return;
+        sl._sticker = { text: txt, icon: VS_STICKER_ICONS.includes(x.icon) ? x.icon : "", at: Math.round(atT * 100) / 100, side: ["left", "right", ""][side++ % 3], y: 0.2 };
+      });
+    }
+    if (o.title && hookText) {
+      const s0 = vstudio.slides[0];
+      s0._hook = { text: hookText, until: Math.min(2.8, Math.max(1.6, Number(s0.duration) - 0.2)) };
+      if (s0._sticker && s0._sticker.at < s0._hook.until + 0.1) {
+        s0._sticker.at = s0._hook.until + 0.1;
+        if (s0._sticker.at > Number(s0.duration) - 0.8) delete s0._sticker;
       }
     }
+
+    // B-roll over the static stretches; the speaker's voice carries on under it
+    if (brollJobs.length) {
+      vsAutoStatus(L("Finding B-roll…", "در حال پیدا کردن B-roll…"));
+      const used = new Set();
+      await Promise.all(brollJobs.map(async (bj, n) => {
+        let clip = null;
+        try { clip = await vsFetchPexelsClip(bj.q, VS_PEXELS_KEY, o.aspect, n, used, 12000); } catch (e) {}
+        if (!clip) return;
+        used.add(clip.currentSrc || clip.src);
+        const sl = bj.slide;
+        sl._ownEl = sl.mediaEl; sl._ownClipIn = sl._clipIn; sl._ownSettings = { _mediaScale: sl.settings._mediaScale, _mediaDX: sl.settings._mediaDX };
+        sl.mediaEl = clip; sl._clipIn = 0; sl._broll = bj.q;
+        sl.settings._mediaScale = 1; sl.settings._mediaDX = 0;
+      }));
+    }
+
+    const mu = (ai && ai.music) || {};
+    vstudio.storyData = { title: hookText || file.name, language: lang2, summary: (ai && ai.summary) || "",
+      music: { mood: String(mu.mood || "upbeat"), energy: String(mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
+    vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
+
     // cuts on the beat of the bed the music step is about to make
     if (o.beat) vsSnapCutsToBeat(vstudio.slides, vstudio.storyData.music.bpm);
     const tsel = $("#vsTransition"); if (tsel) { tsel.value = "punch"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "punch"; }); }
@@ -9938,8 +10054,9 @@ async function vsEditMyVideo(file, o) {
     renderSlideList();
     selectSlide(0);
     const cutSecs = Math.max(0, total - slidesTotalDuration());
-    vsAutoStatus(L(`Edited your video: ${vstudio.slides.length} cuts, ${Math.round(cutSecs)}s of pauses removed. Press Play to watch it.`,
-      `ویدیوت ادیت شد: ${vstudio.slides.length} برش، ${Math.round(cutSecs)} ثانیه مکث حذف شد. برای دیدن، Play را بزن.`));
+    const es = vstudio._editStats || {};
+    vsAutoStatus(L(`Edited your video: ${vstudio.slides.length} cuts, ${Math.round(cutSecs)}s cut${es.dropped ? `, ${es.dropped} weak or repeated line${es.dropped > 1 ? "s" : ""} dropped` : ""}${es.broll ? `, ${es.broll} B-roll cutaway${es.broll > 1 ? "s" : ""}` : ""}. Press Play to watch it.`,
+      `ویدیوت ادیت شد: ${vstudio.slides.length} برش، ${Math.round(cutSecs)} ثانیه حذف${es.dropped ? `، ${es.dropped} جملهٔ ضعیف یا تکراری کنار رفت` : ""}${es.broll ? `، ${es.broll} B-roll` : ""}. برای دیدن، Play را بزن.`));
     try { vsTrackGen("editmine", "whisper", Math.round(total) + "s"); } catch (e) {}
   } finally {
     vstudio._buildHold = false;
@@ -10433,6 +10550,34 @@ function vsElementFields(s, i, id) {
     return F;
   }
 
+  if (id === "footage" && s._ownSpeech) {
+    // A clip of the customer's own video, or B-roll laid over it while their
+    // voice carries on.
+    F.push({ type: "text", label: L("B-roll search", "جست‌وجوی B-roll"), get: () => s._brollQuery != null ? s._brollQuery : (s._broll || ""), set: (v) => { s._brollQuery = v; } });
+    const btns = [{ t: s._broll ? L("Find another B-roll", "B-roll دیگر") : L("Put B-roll here", "B-roll بگذار"), act: async (btn) => {
+      const q = String(s._brollQuery || s._broll || s._narration || "").trim().split(/\s+/).slice(0, 5).join(" ");
+      if (!q) return;
+      btn.disabled = true; const old = btn.textContent; btn.textContent = L("Searching…", "در حال جست‌وجو…");
+      const used = new Set(vstudio.slides.map((x) => x.mediaEl && (x.mediaEl.currentSrc || x.mediaEl.src)).filter(Boolean));
+      let clip = null;
+      try { clip = await vsFetchPexelsClip(q, VS_PEXELS_KEY, vsVal("#vsAspect", "9:16"), Math.floor(Math.random() * 6), used, 12000); } catch (e) {}
+      btn.disabled = false; btn.textContent = old;
+      if (!clip) { vsToast(L("No clip found for that - try other words.", "کلیپی پیدا نشد؛ کلمات دیگری امتحان کن.")); return; }
+      if (!s._broll) { s._ownEl = s.mediaEl; s._ownClipIn = s._clipIn; s._ownSettings = { _mediaScale: vstudio.mediaScale, _mediaDX: vstudio.mediaDX }; }
+      s.mediaEl = clip; s._clipIn = 0; s._broll = q; vstudio.mediaScale = 1; vstudio.mediaDX = 0; vsSaveActiveSlide();
+      vsInspRedraw(true); vsRenderInspector();
+    } }];
+    if (s._broll && s._ownEl) btns.push({ t: L("Back to my clip", "برگشت به کلیپ خودم"), act: () => {
+      s.mediaEl = s._ownEl; s._clipIn = s._ownClipIn || 0; delete s._broll;
+      if (s._ownSettings) { vstudio.mediaScale = s._ownSettings._mediaScale || 1; vstudio.mediaDX = s._ownSettings._mediaDX || 0; vsSaveActiveSlide(); }
+      vsInspRedraw(true); vsRenderInspector();
+    } });
+    F.push({ type: "buttons", buttons: btns });
+    F.push({ type: "range", label: L("Zoom", "زوم"), min: 1, max: 3, step: 0.02, fmt: (v) => Math.round(v * 100) + "%", ...vsViaLive("mediaScale", 1) });
+    const dx2 = vsViaLive("mediaDX", 0), dy2 = vsViaLive("mediaDY", 0);
+    F.push({ type: "xy", label: L("Framing", "کادربندی"), get: () => [dx2.get(), dy2.get()], set: ([x, y]) => { dx2.set(x); dy2.set(y); } });
+    return F;
+  }
   if (id === "footage") {
     F.push({ type: "range", label: L("Zoom", "زوم"), min: 1, max: 3, step: 0.02, fmt: (v) => Math.round(v * 100) + "%", ...vsViaLive("mediaScale", 1) });
     const dx = vsViaLive("mediaDX", 0), dy = vsViaLive("mediaDY", 0);
@@ -13158,6 +13303,7 @@ function selectSlide(i) {
     vsApplySettings(s.settings);
     syncStudioControls();          // refresh dependent UI (template chips etc.)
   }
+  vstudio._liveSlide = s;          // the controls now belong to this scene
   // show which slide the other tabs are now editing
   const tag = $("#vsActiveSlideTag");
   if (tag) {
@@ -13885,7 +14031,11 @@ function vsApplySettings(s) {
 // Save the current control state into the active slide.
 function vsSaveActiveSlide() {
   const s = vstudio.slides[vstudio.activeSlide];
-  if (s) s.settings = vsCaptureSettings();
+  // Only into the scene the controls were loaded from. After a rebuild the
+  // controls still hold the last video's values, and saving them here wiped
+  // the new opening scene's framing and zoom (an edit's centred, zoomed
+  // teaser came out uncropped at 100%).
+  if (s && vstudio._liveSlide === s) s.settings = vsCaptureSettings();
 }
 
 function vsInfoData(val) {
