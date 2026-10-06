@@ -4609,6 +4609,29 @@ function vsStatus(msg) {
     setTimeout(() => { t.style.transition = "opacity .25s"; t.style.opacity = "0"; setTimeout(() => { try { t.remove(); } catch (e) {} }, 260); }, 4200);
   } catch (e) {}
 }
+// A short message floating above the page, for results that must be seen.
+function vsToast(msg, ms) {
+  if (!msg) return;
+  try {
+    if (!document.getElementById("vsToastKf")) {
+      const st = document.createElement("style"); st.id = "vsToastKf";
+      st.textContent = "@keyframes vsToastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}";
+      document.head.appendChild(st);
+    }
+    let host = document.getElementById("vsToastHost");
+    if (!host) {
+      host = document.createElement("div"); host.id = "vsToastHost";
+      host.style.cssText = "position:fixed;left:50%;bottom:26px;z-index:200000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;transform:translateX(-50%)";
+      document.body.appendChild(host);
+    }
+    const t = document.createElement("div");
+    t.setAttribute("role", "status");
+    t.style.cssText = "pointer-events:auto;max-width:min(460px,92vw);background:#0e1014;border:1px solid rgba(37,99,255,.45);color:#f4f5f7;font:600 13.5px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;padding:12px 18px;border-radius:14px;box-shadow:0 14px 34px -10px rgba(0,0,0,.6);text-align:center";
+    t.textContent = msg;
+    host.appendChild(t);
+    setTimeout(() => { t.style.transition = "opacity .25s"; t.style.opacity = "0"; setTimeout(() => { try { t.remove(); } catch (e) {} }, 260); }, ms || 4200);
+  } catch (e) {}
+}
 function vsVal(id, fallback) {
   const el = $(id);
   return el ? el.value : fallback;
@@ -4968,6 +4991,11 @@ function vsAutoStatus(msg) {
   if (el) el.textContent = msg || "";
   // mirror the stage text into the loading popup while a build is running
   const ov = document.getElementById("vsBuildOverlay");
+  // With no build popup up, this is a result or the reason a build stopped -
+  // and the status line sits under the Realtor card, below the fold on a
+  // laptop, so "The article could not be read" looked like a dead button.
+  // Float it where it is seen.
+  if (msg && (!ov || ov.style.display === "none")) vsToast(msg, /could not|failed|stopped|no voice|ناموفق|نشد/i.test(msg) ? 8000 : 4200);
   if (ov && ov.style.display !== "none") {
     const t = ov.querySelector(".vsbo-msg");
     if (t && msg) t.textContent = msg;
@@ -7318,8 +7346,8 @@ async function buildAutoVideo(useAI) {
       text = fetched;
     } else if (!text) {
       vsAutoStatus(state.lang === "fa"
-        ? "متن مقاله خوانده نشد. برای جلوگیری از ساخت اطلاعات اشتباه، ویدئو ساخته نشد."
-        : "The article could not be read. Generation stopped to prevent invented facts.");
+        ? "متن مقاله خوانده نشد (این سایت جلوی خواندن را می‌گیرد)، پس ویدیو ساخته نشد تا اطلاعات ساختگی در آن نیاید. متن مقاله را در «از متن» بگذار."
+        : "The article could not be read (the site blocks readers), so nothing was built rather than invent facts. Paste the article's text under \"From text\" instead.");
       return;
     }
   }
