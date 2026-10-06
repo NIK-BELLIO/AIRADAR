@@ -10480,7 +10480,7 @@ async function vsPrepareEditSfx() {
   // to the same peak and timed by its loudest moment.
   await Promise.all(VS_SFX_FILES.map(async (n) => {
     try {
-      const r = await fetch("/sfx/edit/" + n + ".mp3");
+      const r = await fetch("/sfx/edit/" + n + ".mp3?v=" + VS_SFX_VER);
       if (!r.ok) return;
       const b = await vstudio._playCtx.decodeAudioData(await r.arrayBuffer());
       const d = b.getChannelData(0);
@@ -10492,6 +10492,8 @@ async function vsPrepareEditSfx() {
   }));
   return vstudio._sfx;
 }
+// bump when the files change: the CDN keeps a file (or its 404) for hours
+const VS_SFX_VER = 1;
 const VS_SFX_FILES = ["whoosh", "riser", "sparkle", "digital", "boom", "impact", "button1", "button2", "button3", "pluck", "pluck2", "tick", "tick2", "hit", "hit2", "bloop", "texture"];
 // a made sound standing in for each recorded one
 const VS_SFX_STANDIN = { whoosh: "whoosh", riser: "sweep", sparkle: "sparkle", digital: "texture", boom: "boom", impact: "boom", button1: "button", button2: "button", button3: "button",
