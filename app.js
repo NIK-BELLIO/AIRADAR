@@ -9262,7 +9262,7 @@ function vsMixVoiceTrack(force) {
         for (let k = 0; k < src.length; k++) {
           const j = at + k;
           if (j < 0 || j >= dst.length) continue;
-          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * 0.85));
+          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * 0.6));
         }
       }
       t += Number(sl.duration) || 4;
@@ -27635,15 +27635,14 @@ async function exportStudioVideo() {
       vsStatus(state.lang === "fa" ? "در حال آماده‌سازی موسیقی برای خروجی…" : "Preparing music for export…");
       vstudio._musicBuffer = await vsDecodeAudioUrl(vstudio.musicEl.currentSrc || vstudio.musicEl.src);
     }
-    const voTog = document.querySelector("#vsVoiceover");
-    if (false && voTog && voTog.checked) {
-      if (cur && !cur._narrationEl) {
-        vsStatus(state.lang === "fa" ? "در حال ساخت روایت صوتی…" : "Recording voiceover…");
-        const nar = await vsGenerateNarration(cur.data);
-        if (nar) { cur._narrationEl = nar.el; cur._narrationUrl = nar.url; cur._narrationBuffer = nar.buffer || null; }
-      }
-      vstudio.narrationEl = (cur && cur._narrationEl) || vstudio.narrationEl || null;
-      vstudio._narrationBuffer = (cur && cur._narrationBuffer) || vstudio._narrationBuffer || null;
+    // The voice track belongs to the video being exported: the studio's own
+    // voice-over (vsAddVoiceover) or the speaker's voice in an edited clip.
+    // This block used to clear it whenever the old #vsVoiceover switch was
+    // absent - and that switch was removed in v758 - so every export since
+    // came out without the voice and, with it, without the captions.
+    const ownVoice = (vstudio.slides || []).some((x) => x && x._ownSpeech);
+    if (ownVoice || vsNarrateOn()) {
+      if ((vstudio.slides || []).some((x) => x && x._voice)) { try { vsMixVoiceTrack(!vstudio._narrationBuffer); } catch (e) {} }
     } else {
       vstudio.narrationEl = null; vstudio._narrationBuffer = null;
     }
