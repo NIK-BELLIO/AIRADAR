@@ -8151,7 +8151,7 @@ async function vsAssembleFromSections(data, skipFootage) {
       set["#vsInfoStyle"] = infoStyle;
       set["#vsInfoMotion"] = motion;
       set["#vsInfoJson"] = JSON.stringify({
-        title: String(sec.title || data.title || "Key numbers").slice(0, 34),
+        title: String(sec.title || data.title || "Key numbers").slice(0, 60),
         subtitle: "", stats: sec.stats });
       set["#vsNewsOn"] = false;
       vstudio.slides.push({
@@ -9262,8 +9262,22 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const fit = lineW > maxW ? maxW / lineW : 1;
   // Below the headline band (titles end near two-thirds down) and above the
   // strip a phone app covers with its own buttons.
-  const cy = H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86);
+  let cy = H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86);
+  // Never over the scene's own words: an editorial cover block, or a headline
+  // that reaches down into the caption band, pushes the captions above it.
+  {
+    const band = [cy - base * 0.9, cy + base * 0.9];
+    const hits = vstudio._hits || {};
+    const blocks = [s._editorial ? hits.edText : null, vstudio.textBox, vstudio.newsBox].filter((b) => b && b.h > 0 && b.h < H * 0.7);
+    for (const b of blocks) {
+      if (b.y < band[1] && b.y + b.h > band[0]) cy = Math.max(H * 0.22, b.y - base * 1.1);
+    }
+  }
 
+  const capHost = vsCapHost();
+  vsElTransform(ctx, W, H, capHost, "captions", W / 2, cy);
+  if (look === "news") vsElHit(W, H, capHost, "captions", 0, cy - base * 0.95, W, base * 1.9, W / 2, cy);
+  else vsElHit(W, H, capHost, "captions", W / 2 - (lineW * fit) / 2, cy - base * 0.75, lineW * fit, base * 1.5, W / 2, cy);
   if (look === "news") {
     // lower-third bar: full-bleed dark band with an accent edge
     const bh = base * 1.9;
@@ -9325,6 +9339,607 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   ctx.restore();
 }
 
+// ── Scene editor ─────────────────────────────────────────────────────────────
+// Every element on a scene can be clicked on the preview, moved, resized and
+// edited, and the Slides panel shows the controls for exactly what THAT scene
+// was built with - a motion-graphic chart's rows, an editorial cover word, a
+// title card's lines, the voice line under it - instead of one long form that
+// only reached a few of them.
+//
+// Elements that already had a position of their own (headline, chart card,
+// news banner, logo, footage) keep it. The rest store a move and a size per
+// scene in s._els[id] = { dx, dy, scale }, dx/dy as a share of the frame.
+// While a frame is drawn each element records where it landed in
+// vstudio._hits, which is what a click on the preview is tested against.
+
+const VS_EL_OWN = { graphic: 1, title: 1, label: 1, edKicker: 1, edText: 1, captions: 1 };
+const VS_GRAPHIC_SCALE = 1.08;
+// Accents a scene can take - the brand's own colours, plus white.
+const VS_ACCENTS = ["#f5c451", "#12d6f5", "#2563ff", "#5fe0b0", "#f87171", "#ffffff"];
+// The brand colour that answers the template's accent: cyan against a warm
+// accent, gold against a cool one.
+function vsSecondAccent() {
+  let a = "#c99a46";
+  try { const t = vsTemplate(); if (t && t.accent) a = t.accent; } catch (e) {}
+  const h = String(a).replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const r = parseInt(full.slice(0, 2), 16) || 0, b = parseInt(full.slice(4, 6), 16) || 0;
+  return r >= b ? "#12d6f5" : "#f5c451";
+}
+
+function vsEl(host, id) {
+  if (!host) return { dx: 0, dy: 0, scale: 1 };
+  host._els = host._els || {};
+  return host._els[id] || (host._els[id] = { dx: 0, dy: 0, scale: 1 });
+}
+function vsElPeek(host, id) { return (host && host._els && host._els[id]) || null; }
+// Captions sit in one place for the whole video, so their position lives on
+// the project, not on a scene.
+function vsCapHost() { return vstudio._capHost || (vstudio._capHost = {}); }
+
+// Move and size an element around its own centre (cx, cy).
+function vsElTransform(ctx, W, H, host, id, cx, cy) {
+  const e = vsElPeek(host, id);
+  if (!e || (!e.dx && !e.dy && (e.scale || 1) === 1)) return;
+  ctx.translate(cx + e.dx * W, cy + e.dy * H);
+  ctx.scale(e.scale || 1, e.scale || 1);
+  ctx.translate(-cx, -cy);
+}
+// Record where an element landed, after its move and size.
+function vsElHit(W, H, host, id, x, y, w, h, cx, cy) {
+  if (vstudio.rendering) return;
+  const e = vsElPeek(host, id) || { dx: 0, dy: 0, scale: 1 };
+  const sc = e.scale || 1;
+  const nx = cx + e.dx * W + (x - cx) * sc, ny = cy + e.dy * H + (y - cy) * sc;
+  vstudio._hits = vstudio._hits || {};
+  vstudio._hits[id] = { x: nx, y: ny, w: w * sc, h: h * sc };
+}
+
+// What a scene is, for the panel's heading and its element list.
+function vsSceneType(s, i) {
+  if (!s) return "";
+  if (s._editorial) return "editorial";
+  const n = vstudio.slides.length;
+  const titleCard = s.isIntro && !s._standaloneInfo && !s._standaloneNews;
+  if (titleCard) return (s.isOutro || (i === n - 1 && n > 1)) ? "outro" : "intro";
+  if (s.sceneGraphic || s.panelLayout || (s.motionBg && !s.isIntro)) return "motion";
+  if (s._standaloneInfo || (s.settings && s.settings["#vsInfoOn"])) return "chart";
+  if (s._standaloneNews || (s.settings && s.settings["#vsNewsOn"])) return "text";
+  return "media";
+}
+const VS_SCENE_TYPE_NAME = {
+  editorial: ["Editorial scene", "صحنهٔ ادیتوریال"], intro: ["Intro", "اینترو"], outro: ["Outro", "اوترو"],
+  motion: ["Motion graphic", "موشن‌گرافیک"], chart: ["Data chart", "نمودار داده"], text: ["Headline scene", "صحنهٔ تیتر"],
+  media: ["Footage scene", "صحنهٔ فوتیج"]
+};
+const VS_EL_NAME = {
+  scene: ["Scene", "صحنه"], title: ["Title", "عنوان"], label: ["Label", "برچسب"], text: ["Headline", "تیتر"],
+  news: ["Headline", "تیتر"], info: ["Chart", "نمودار"], graphic: ["Graphic", "گرافیک"],
+  edKicker: ["Section tab", "برچسب بخش"], edText: ["Cover text", "متن جلد"], captions: ["Voice & captions", "صدا و زیرنویس"],
+  footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"]
+};
+const vsT = (pair) => (state.lang === "fa" ? pair[1] : pair[0]);
+
+// The elements a scene actually has, in the order they read on screen.
+function vsSceneElements(s, i) {
+  const t = vsSceneType(s, i);
+  const out = ["scene"];
+  if (t === "editorial") out.push("edKicker", "edText");
+  else if (t === "intro" || t === "outro") { out.push("title"); if (s._caption) out.push("label"); }
+  else if (t === "motion") { out.push("text"); if (s.sceneGraphic) out.push("graphic"); }
+  else if (t === "chart") { out.push("info"); if (s._caption) out.push("label"); }
+  else if (t === "text") { out.push("news"); if (s._caption) out.push("label"); }
+  else { out.push("text"); }
+  if (s.mediaEl && t !== "editorial") out.push("footage");
+  if (s._voice || (s._narration && vsNarrateOn())) out.push("captions");
+  if (vstudio.logoEl) out.push("logo");
+  return out;
+}
+
+// Where an element is on the current frame, for the selection outline.
+function vsElBox(id, W, H) {
+  if (id === "text") return vstudio.textBox;
+  if (id === "info") return vstudio.infoBox;
+  if (id === "news") return vstudio.newsBox;
+  if (id === "logo") return vstudio.logoBox;
+  if (id === "footage") return vstudio._frameHasMedia ? { x: 0, y: 0, w: W, h: H } : null;
+  return (vstudio._hits || {})[id] || null;
+}
+
+// The selection outline - preview only, never in an export or a cover.
+function vsDrawSelection(ctx, W, H, elapsed) {
+  if (vstudio.rendering || vstudio._noSelection || !vstudio.slides.length) return;
+  const sel = vstudio._sel;
+  if (!sel || !sel.id || sel.id === "scene") return;
+  const at = slideAtTime(elapsed);
+  if (at.index !== sel.slide) return;
+  const b = vsElBox(sel.id, W, H);
+  if (!b || !(b.w > 0) || !(b.h > 0)) return;
+  const U = Math.min(W, H), pad = U * 0.012;
+  const x = b.x - pad, y = b.y - pad, w = b.w + pad * 2, h = b.h + pad * 2;
+  ctx.save();
+  ctx.strokeStyle = "#2563ff";
+  ctx.lineWidth = Math.max(2, U * 0.0035);
+  ctx.setLineDash([U * 0.014, U * 0.009]);
+  ctx.strokeRect(x, y, w, h);
+  ctx.setLineDash([]);
+  const hs = U * 0.016;
+  ctx.fillStyle = "#ffffff";
+  [[x, y], [x + w, y], [x, y + h], [x + w, y + h]].forEach(([px, py]) => {
+    ctx.fillRect(px - hs / 2, py - hs / 2, hs, hs);
+    ctx.strokeRect(px - hs / 2, py - hs / 2, hs, hs);
+  });
+  const name = vsT(VS_EL_NAME[sel.id] || [sel.id, sel.id]);
+  const fpx = Math.round(U * 0.026);
+  ctx.font = `700 ${fpx}px "Space Grotesk", system-ui, sans-serif`;
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  try { ctx.direction = "ltr"; } catch (e) {}
+  const tw = ctx.measureText(name).width + fpx;
+  const ty = y - fpx * 1.5 > 0 ? y - fpx * 1.5 : y + h + fpx * 0.3;
+  ctx.fillStyle = "#2563ff";
+  ctx.fillRect(x, ty, tw, fpx * 1.3);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(name, x + fpx / 2, ty + fpx * 0.66);
+  ctx.restore();
+}
+
+// ── The inspector panel ─────────────────────────────────────────────────────
+function vsInspRedraw(listToo) {
+  if (listToo) renderSlideList();
+  if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  clearTimeout(vstudio._inspHistT);
+  vstudio._inspHistT = setTimeout(() => { try { vsPushHistory(); } catch (e) {} }, 700);
+}
+
+// A field that writes through one of the studio's own controls. The scene
+// being edited reads its settings from the live controls, so writing the
+// setting directly would be overwritten the next time the scene is saved.
+function vsViaControl(sel) {
+  return {
+    get: () => { const el = $(sel); return el ? (el.type === "checkbox" ? el.checked : el.value) : ""; },
+    set: (v) => {
+      const el = $(sel); if (!el) return;
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      vsSaveActiveSlide();
+    }
+  };
+}
+// A field on the studio's live drag/zoom state for this scene.
+function vsViaLive(key, def) {
+  return {
+    get: () => (vstudio[key] == null ? def : vstudio[key]),
+    set: (v) => { vstudio[key] = v; vsSaveActiveSlide(); }
+  };
+}
+// The options of one of the studio's own selects, flattened.
+function vsOptsFrom(sel) {
+  const el = $(sel);
+  return el ? Array.from(el.options).map((o) => ({ v: o.value, t: o.textContent.trim() })) : [];
+}
+function vsBgOpts() {
+  return introBackgrounds.map((b) => ({ v: b.id, t: (b.name && (b.name[state.lang] || b.name.en)) || b.id }));
+}
+
+const VS_NUMERIC_GRAPHICS = { bars: 1, donut: 1, compare: 1, gauge: 1, area: 1, progress: 1, stat: 1, funnel: 1, chart: 1 };
+function vsNum(v) { const n = parseFloat(String(v == null ? "" : v).replace(/[^0-9.\-]/g, "")); return isFinite(n) ? n : 0; }
+
+// Turn a typed place name into a point on the scene's map.
+function vsPlaceFor(name, scope) {
+  const key = String(name || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  if (!key) return null;
+  const table = scope === "world" ? VS_WORLD_PLACES : VS_US_PLACES;
+  const ll = table[key];
+  if (!ll) return null;
+  const [x, y] = scope === "world" ? vsWorldGeo(ll[0], ll[1]) : vsGeoToMap(ll[0], ll[1]);
+  return { name: key.replace(/\b\w/g, (c) => c.toUpperCase()), x, y };
+}
+
+// One scene's line, spoken again after it was edited.
+async function vsRevoiceScene(s) {
+  const text = vsSpeakable(s._narration || "");
+  if (!text) { s._voice = null; vsMixVoiceTrack(true); return false; }
+  const lang = vsVoiceLang(vstudio.storyData, text);
+  if (!VS_TTS_LANGS[lang]) return false;
+  let headers = { "Content-Type": "application/json" };
+  try { Object.assign(headers, await arGuestHeaders()); } catch (e) {}
+  const buf = await vsFetchSceneVoice(text, lang, headers);
+  if (!buf) return false;
+  const TP = vstudio._toneProfile || vsToneProfile();
+  const lead = TP.lead != null ? TP.lead : VS_VOICE_LEAD, tail = TP.tail != null ? TP.tail : VS_VOICE_TAIL;
+  const b = vsSpeechBounds(buf), len = b.end - b.start;
+  const words = vsWordTimes(text, lead, lead + len);
+  s._voice = { buf, cut: b.start, len, at: lead, words, chunks: vsCaptionChunks(words), _byMax: {} };
+  s.duration = Math.max(Number(s.duration) || 0, lead + len + tail);
+  vsMixVoiceTrack(true);
+  return true;
+}
+
+// The fields for one element of one scene. Each is { type, label, get, set }
+// plus what its type needs; the panel builds itself from these.
+function vsElementFields(s, i, id) {
+  const fa = state.lang === "fa";
+  const L = (en, faTxt) => (fa ? faTxt : en);
+  const type = vsSceneType(s, i);
+  const F = [];
+  const own = (key) => ({ get: () => s[key] || "", set: (v) => { s[key] = v; } });
+  const moveSize = (host, elId, min, max) => {
+    const e = () => vsEl(host, elId);
+    F.push({ type: "range", label: L("Size", "اندازه"), min: min || 0.4, max: max || 2.4, step: 0.02, fmt: (v) => Math.round(v * 100) + "%",
+      get: () => e().scale || 1, set: (v) => { e().scale = v; } });
+    F.push({ type: "xy", label: L("Position", "موقعیت"),
+      get: () => [e().dx || 0, e().dy || 0], set: ([x, y]) => { e().dx = x; e().dy = y; } });
+  };
+  const liveMoveSize = (dxKey, dyKey, scKey, min, max) => {
+    const sx = vsViaLive(scKey, 1), dx = vsViaLive(dxKey, 0), dy = vsViaLive(dyKey, 0);
+    F.push({ type: "range", label: L("Size", "اندازه"), min: min || 0.55, max: max || 1.6, step: 0.02, fmt: (v) => Math.round(v * 100) + "%", get: sx.get, set: sx.set });
+    F.push({ type: "xy", label: L("Position", "موقعیت"), get: () => [dx.get(), dy.get()], set: ([x, y]) => { dx.set(x); dy.set(y); } });
+  };
+
+  if (id === "scene") {
+    F.push({ type: "number", label: L("Duration (seconds)", "مدت (ثانیه)"), min: 1, max: 120, step: 0.5, list: true,
+      get: () => Math.round((Number(s.duration) || 4) * 100) / 100, set: (v) => { s.duration = Math.max(1, Math.min(120, Number(v) || 4)); } });
+    if (type === "motion" || (s.motionBg && type !== "editorial")) {
+      F.push({ type: "select", label: L("Animated background", "پس‌زمینهٔ متحرک"), options: vsBgOpts(),
+        get: () => s.motionBg || "", set: (v) => { s.motionBg = v; } });
+    } else if ((type === "intro" || type === "outro" || type === "chart" || type === "text") && !s.mediaEl) {
+      F.push({ type: "select", label: L("Background", "پس‌زمینه"), options: vsBgOpts(),
+        get: () => s.introBg || "", set: (v) => { s.introBg = v; } });
+    }
+    if (type === "motion" || type === "editorial") {
+      let tplAccent = "#c99a46";
+      try { const t = vsTemplate(); if (t && t.accent) tplAccent = t.accent; } catch (e) {}
+      F.push({ type: "swatch", label: L("Accent colour", "رنگ تأکید"),
+        options: [{ v: "", t: L("Template", "قالب"), c: tplAccent }].concat(VS_ACCENTS.map((c) => ({ v: c, t: c, c }))),
+        get: () => s._accent || "", set: (v) => { s._accent = v; } });
+    }
+    if (type === "motion") {
+      F.push({ type: "select", label: L("Layout", "چیدمان"),
+        options: [{ v: "", t: L("Full frame", "تمام‌صفحه") }].concat(Object.keys(VS_PANELS).map((k) => ({ v: k, t: k }))),
+        get: () => s.panelLayout || "", set: (v) => { s.panelLayout = v; } });
+    }
+    if (type === "editorial") {
+      F.push({ type: "textarea", label: L("Image description", "توضیح تصویر"), rows: 2, ...own("_edPrompt") });
+      F.push({ type: "buttons", buttons: [
+        { t: L("New AI image", "تصویر جدید با هوش مصنوعی"), act: async (btn) => {
+          btn.disabled = true; const old = btn.textContent; btn.textContent = L("Making…", "در حال ساخت…");
+          try {
+            const topic = [vstudio.storyData && vstudio.storyData.title].filter(Boolean).join(" ");
+            const img = await vsGenerateImage(vsEditorialImagePrompt(s._edPrompt || s._edHeadline || "", topic), null);
+            if (img) { s.mediaEl = img; s._edImage = img; s.isVideo = false; s._edStyle = "full"; s.url = img.src; }
+            else vsToast(L("The image could not be made - try again.", "تصویر ساخته نشد، دوباره امتحان کن."));
+          } catch (e) {}
+          btn.disabled = false; btn.textContent = old; vsInspRedraw(true);
+        } },
+        { t: L("Upload image or video", "آپلود تصویر یا ویدیو"), act: () => { const u = $("#vsSlideMediaUpload"); if (u) u.click(); } }
+      ] });
+    } else {
+      F.push({ type: "buttons", buttons: [
+        { t: s.mediaEl ? L("Replace footage", "جایگزینی فوتیج") : L("Add footage", "افزودن فوتیج"), act: () => { const u = $("#vsSlideMediaUpload"); if (u) u.click(); } }
+      ].concat(s.mediaEl ? [{ t: L("Remove footage", "حذف فوتیج"), danger: true, act: () => { const r = $("#vsSlideMediaRemove"); if (r) r.click(); vsRenderInspector(); } }] : []) });
+      F.push({ type: "select", label: L("Camera move", "حرکت دوربین"), options: vsOptsFrom("#vsMotion"), ...vsViaControl("#vsMotion") });
+    }
+    F.push({ type: "select", label: L("Texture", "بافت روی تصویر"), options: vsOptsFrom("#vsOverlay"), ...vsViaControl("#vsOverlay") });
+    F.push({ type: "select", label: L("Cut between scenes (whole video)", "برش بین صحنه‌ها (کل ویدیو)"), options: vsOptsFrom("#vsTransition"), ...vsViaControl("#vsTransition") });
+    return F;
+  }
+
+  if (id === "title") {
+    F.push({ type: "textarea", label: L("Title", "عنوان"), rows: 2, ...own("introMain"), list: true });
+    if (type === "outro" || s.introSub) F.push({ type: "text", label: L("Subtitle", "زیرعنوان"), ...own("introSub") });
+    if (type === "intro") {
+      F.push({ type: "text", label: L("Small line above", "خط کوچک بالا"), get: () => s._kicker || "",
+        set: (v) => { s._kicker = v; const k = $("#vsNewsKicker"); if (k) { k.value = v; vsSaveActiveSlide(); } } });
+      F.push({ type: "text", label: L("Source line", "خط منبع"), ...own("_sourceLine") });
+    }
+    if (vstudio._motionGfxMode || s._heroWord) F.push({ type: "text", label: L("Big background word", "کلمهٔ بزرگ پس‌زمینه"),
+      get: () => s._heroWord || "", set: (v) => { s._heroWord = String(v).replace(/\s+/g, "").slice(0, 14); } });
+    if (!vstudio._motionGfxMode) F.push({ type: "select", label: L("Entrance", "ورود"), options: vsOptsFrom("#vsIntroMotionInput"), ...own("introMotion") });
+    moveSize(s, "title");
+    return F;
+  }
+
+  if (id === "label") {
+    F.push({ type: "text", label: L("Label text", "متن برچسب"), ...own("_caption"), list: true });
+    moveSize(s, "label");
+    return F;
+  }
+
+  if (id === "text") {
+    // Motion-graphic and footage scenes both draw the scene's own headline.
+    F.push({ type: "textarea", label: L("Headline", "تیتر"), rows: 2, ...own("headline"), list: true });
+    F.push({ type: "select", label: L("Text entrance", "ورود متن"), options: vsOptsFrom("#vsTextAnim"), ...vsViaControl("#vsTextAnim") });
+    F.push({ type: "select", label: L("Place", "جای متن"), options: vsOptsFrom("#vsTextPos"), ...vsViaControl("#vsTextPos") });
+    liveMoveSize("textDX", "textDY", "textScale");
+    return F;
+  }
+
+  if (id === "news") {
+    F.push({ type: "textarea", label: L("Headline", "تیتر"), rows: 3, ...vsViaControl("#vsNewsHeadline"), list: true });
+    F.push({ type: "text", label: L("Source", "منبع"), ...vsViaControl("#vsNewsSource") });
+    F.push({ type: "select", label: L("Style", "سبک"), options: vsOptsFrom("#vsNewsStyle"), ...vsViaControl("#vsNewsStyle") });
+    F.push({ type: "select", label: L("Entrance", "ورود"), options: vsOptsFrom("#vsNewsMotion"), ...vsViaControl("#vsNewsMotion") });
+    F.push({ type: "select", label: L("Accent", "رنگ تأکید"), options: vsOptsFrom("#vsNewsAccent"), ...vsViaControl("#vsNewsAccent") });
+    liveMoveSize("newsDX", "newsDY", "newsScale");
+    return F;
+  }
+
+  if (id === "info") {
+    const read = () => { try { return JSON.parse(($("#vsInfoJson") || {}).value || "{}") || {}; } catch (e) { return {}; } };
+    const write = (d) => { const el = $("#vsInfoJson"); if (!el) return; el.value = JSON.stringify(d); el.dispatchEvent(new Event("input", { bubbles: true })); try { syncStudioControls(); } catch (e) {} vsSaveActiveSlide(); };
+    F.push({ type: "text", label: L("Chart title", "عنوان نمودار"), list: true, get: () => read().title || "", set: (v) => { const d = read(); d.title = v; write(d); } });
+    F.push({ type: "rows", label: L("Data", "داده‌ها"), max: 6,
+      get: () => (read().stats || []).map((r) => ({ label: r.label || "", value: r.value != null ? String(r.value) : "" })),
+      set: (rows) => { const d = read(); d.stats = rows.map((r) => ({ label: r.label, value: r.value, num: vsNum(r.value) })); write(d); } });
+    F.push({ type: "select", label: L("Chart style", "سبک نمودار"), options: vsOptsFrom("#vsInfoStyle"), ...vsViaControl("#vsInfoStyle") });
+    F.push({ type: "select", label: L("Entrance", "ورود"), options: vsOptsFrom("#vsInfoMotion"), ...vsViaControl("#vsInfoMotion") });
+    liveMoveSize("infoDX", "infoDY", "infoScale");
+    return F;
+  }
+
+  if (id === "graphic") {
+    const g = s.sceneGraphic || (s.sceneGraphic = { kind: "network", items: [] });
+    const kinds = vsOptsFrom("#vsSlideGraphic").filter((o) => o.v !== "auto");
+    if (g.places && g.places.length && !kinds.some((k) => k.v === "map")) kinds.push({ v: "map", t: L("Map", "نقشه") });
+    if (!kinds.some((k) => k.v === g.kind)) kinds.unshift({ v: g.kind, t: g.kind });
+    F.push({ type: "select", label: L("Graphic type", "نوع گرافیک"), options: kinds, rebuild: true,
+      get: () => g.kind, set: (v) => { g.kind = v; s._graphicManual = true; } });
+    if (g.kind === "map") {
+      const scope = g.scope || "us";
+      F.push({ type: "list", label: L("Places on the map", "مکان‌ها روی نقشه"), max: 8,
+        note: L(scope === "world" ? "Country or big-city names in English." : "US city or state names in English.",
+                scope === "world" ? "نام کشور یا شهر بزرگ به انگلیسی." : "نام شهر یا ایالت آمریکا به انگلیسی."),
+        get: () => (g.places || []).map((p) => p.name),
+        set: (names) => { g.places = names.map((n) => vsPlaceFor(n, scope)).filter(Boolean); } });
+    } else if (VS_NUMERIC_GRAPHICS[g.kind]) {
+      F.push({ type: "rows", label: L("Data", "داده‌ها"), max: 6,
+        get: () => (g.data || []).map((d) => ({ label: d.label || "", value: d.value != null ? String(d.value) : "" })),
+        set: (rows) => {
+          g.data = rows.map((r) => ({ label: r.label, value: r.value, num: vsNum(r.value) }));
+          g.items = rows.map((r) => r.label).filter(Boolean);
+          const first = g.data.find((d) => d.num);
+          g.hasRealValue = !!first;
+          g.value = first ? Math.min(100, Math.round(Math.abs(first.num))) : null;
+          g.suffix = g.data.some((d) => /%/.test(d.value)) ? "%" : "";
+          if (first) g.valueLabel = first.label;
+        } });
+      if (g.kind === "gauge" || g.kind === "stat" || g.kind === "progress") {
+        F.push({ type: "text", label: L("Big number shown", "عدد بزرگ"), get: () => g.valueText || (g.value != null ? String(g.value) + (g.suffix || "") : ""),
+          set: (v) => { g.valueText = v; const n = vsNum(v); g.value = n ? Math.min(100, Math.round(Math.abs(n))) : g.value; g.hasRealValue = !!n; g.suffix = /%/.test(v) ? "%" : ""; } });
+        F.push({ type: "text", label: L("What the number is", "توضیح عدد"), get: () => g.valueLabel || "", set: (v) => { g.valueLabel = v; } });
+      }
+      F.push({ type: "select", label: L("Direction", "جهت"), options: [{ v: "1", t: L("Rising", "صعودی") }, { v: "-1", t: L("Falling", "نزولی") }],
+        get: () => String(g.trend || 1), set: (v) => { g.trend = Number(v) || 1; } });
+    } else {
+      F.push({ type: "list", label: L("Nodes", "گره‌ها"), max: 6, get: () => (g.items || []).slice(), set: (arr) => { g.items = arr; } });
+    }
+    F.push({ type: "text", label: L("Caption under it", "زیرنویس زیر گرافیک"), get: () => g.caption || "", set: (v) => { g.caption = v; } });
+    moveSize(s, "graphic", 0.4, 1.8);
+    return F;
+  }
+
+  if (id === "edKicker") {
+    F.push({ type: "text", label: L("Tab text", "متن برچسب"), list: true,
+      get: () => (s._edIsTitle ? s._edKicker : (s._caption || s._edKicker)) || "",
+      set: (v) => { if (s._edIsTitle) s._edKicker = v; else { s._caption = v; s._edKicker = v; } } });
+    moveSize(s, "edKicker", 0.5, 2);
+    return F;
+  }
+
+  if (id === "edText") {
+    F.push({ type: "text", label: L("Cover word", "کلمهٔ بزرگ"), get: () => s._edBigWord || s._heroWord || "",
+      set: (v) => { const w = String(v).toUpperCase().replace(/[^\p{L}\p{N}]/gu, "").slice(0, 16); s._edBigWord = w; s._heroWord = w; } });
+    F.push({ type: "textarea", label: L("Headline", "تیتر"), rows: 3, list: true,
+      get: () => (s.settings && s.settings["#vsNewsHeadline"]) || s._edHeadline || "",
+      set: (v) => { s._edHeadline = v; s.settings = s.settings || {}; s.settings["#vsNewsHeadline"] = v; const el = $("#vsNewsHeadline"); if (el) el.value = v; } });
+    F.push({ type: "text", label: L("Source line", "خط منبع"), ...own("_edSource") });
+    if (s._edCutout) F.push({ type: "select", label: L("Look", "ظاهر"),
+      options: [{ v: "full", t: L("Full-bleed photo", "عکس تمام‌صفحه") }, { v: "cutout", t: L("Cut-out on paper", "سوژهٔ جدا روی کاغذ") }], ...own("_edStyle") });
+    moveSize(s, "edText", 0.5, 1.6);
+    return F;
+  }
+
+  if (id === "captions") {
+    F.push({ type: "textarea", label: L("What the voice says in this scene", "متنی که گوینده در این صحنه می‌خواند"), rows: 3, ...own("_narration") });
+    F.push({ type: "buttons", buttons: [{ t: L("Record this line again", "ضبط دوبارهٔ این جمله"), act: async (btn) => {
+      btn.disabled = true; const old = btn.textContent; btn.textContent = L("Recording…", "در حال ضبط…");
+      const ok = await vsRevoiceScene(s).catch(() => false);
+      btn.disabled = false; btn.textContent = old;
+      if (!ok) vsToast(L("The voice could not be recorded for this line.", "صدای این جمله ضبط نشد."));
+      vsInspRedraw(true);
+    } }] });
+    const TP = vstudio._toneProfile || (vstudio._toneProfile = vsToneProfile());
+    F.push({ type: "select", label: L("Caption look (whole video)", "ظاهر زیرنویس (کل ویدیو)"),
+      options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
+      get: () => TP.captions || "pop", set: (v) => { TP.captions = v; } });
+    F.push({ type: "toggle", label: L("Show voice-over and captions", "نمایش صدا و زیرنویس"), ...vsViaControl("#vsNarrate") });
+    moveSize(vsCapHost(), "captions", 0.5, 1.8);
+    return F;
+  }
+
+  if (id === "footage") {
+    F.push({ type: "range", label: L("Zoom", "زوم"), min: 1, max: 3, step: 0.02, fmt: (v) => Math.round(v * 100) + "%", ...vsViaLive("mediaScale", 1) });
+    const dx = vsViaLive("mediaDX", 0), dy = vsViaLive("mediaDY", 0);
+    F.push({ type: "xy", label: L("Framing", "کادربندی"), get: () => [dx.get(), dy.get()], set: ([x, y]) => { dx.set(x); dy.set(y); } });
+    F.push({ type: "buttons", buttons: [
+      { t: L("Replace footage", "جایگزینی فوتیج"), act: () => { const u = $("#vsSlideMediaUpload"); if (u) u.click(); } },
+      { t: L("Remove footage", "حذف فوتیج"), danger: true, act: () => { const r = $("#vsSlideMediaRemove"); if (r) r.click(); vstudio._sel = { slide: vstudio.activeSlide, id: "scene" }; vsRenderInspector(); } }
+    ] });
+    return F;
+  }
+
+  if (id === "logo") {
+    F.push({ type: "buttons", buttons: [{ t: L("Open logo settings", "باز کردن تنظیمات لوگو"), act: () => { const tab = document.querySelector('.vtab[data-vtab="logo"]'); if (tab) tab.click(); } }] });
+    F.push({ type: "note", text: L("Drag the logo on the preview to move it, scroll over it to resize.", "لوگو را روی پیش‌نمایش بکش تا جابه‌جا شود و با اسکرول اندازه‌اش را عوض کن.") });
+    return F;
+  }
+  return F;
+}
+
+// Build one field's controls.
+function vsInspFieldEl(f, s) {
+  const fa = state.lang === "fa";
+  const wrap = document.createElement("div");
+  wrap.className = "vsi-field vsi-" + f.type;
+  const head = (txt) => { const h = document.createElement("div"); h.className = "vsi-lbl"; h.textContent = txt; return h; };
+  const commit = (v) => { try { f.set(v); } catch (e) {} vsInspRedraw(!!f.list); if (f.rebuild) vsRenderInspector(); };
+
+  if (f.type === "note") { wrap.textContent = f.text; return wrap; }
+  if (f.type === "buttons") {
+    f.buttons.forEach((b) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "vsi-btn" + (b.danger ? " vsi-danger" : "");
+      btn.textContent = b.t;
+      btn.addEventListener("click", () => b.act(btn));
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+  if (f.label) wrap.appendChild(head(f.label));
+
+  if (f.type === "text" || f.type === "number") {
+    const inp = document.createElement("input");
+    inp.type = f.type; if (f.min != null) inp.min = f.min; if (f.max != null) inp.max = f.max; if (f.step != null) inp.step = f.step;
+    inp.value = f.get();
+    inp.addEventListener(f.type === "number" ? "change" : "input", () => commit(f.type === "number" ? Number(inp.value) : inp.value));
+    wrap.appendChild(inp);
+  } else if (f.type === "textarea") {
+    const ta = document.createElement("textarea");
+    ta.rows = f.rows || 2; ta.value = f.get();
+    ta.addEventListener("input", () => commit(ta.value));
+    wrap.appendChild(ta);
+  } else if (f.type === "select") {
+    const sel = document.createElement("select");
+    (f.options || []).forEach((o) => { const op = document.createElement("option"); op.value = o.v; op.textContent = o.t; sel.appendChild(op); });
+    sel.value = f.get();
+    sel.addEventListener("change", () => commit(sel.value));
+    wrap.appendChild(sel);
+  } else if (f.type === "swatch") {
+    const row = document.createElement("div"); row.className = "vsi-swatches"; row.setAttribute("role", "radiogroup");
+    const cur = f.get();
+    (f.options || []).forEach((o) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "vsi-sw" + (o.v === cur ? " on" : "") + (o.v === "" ? " vsi-sw-tpl" : "");
+      b.style.setProperty("--sw", o.c);
+      b.setAttribute("role", "radio"); b.setAttribute("aria-checked", o.v === cur ? "true" : "false");
+      b.setAttribute("aria-label", o.t); b.title = o.t;
+      b.addEventListener("click", () => { commit(o.v); vsRenderInspector(); });
+      row.appendChild(b);
+    });
+    wrap.appendChild(row);
+  } else if (f.type === "toggle") {
+    const lab = document.createElement("label"); lab.className = "vsi-switch";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!f.get();
+    cb.addEventListener("change", () => commit(cb.checked));
+    lab.appendChild(cb); lab.appendChild(document.createElement("span"));
+    wrap.insertBefore(lab, wrap.firstChild);
+  } else if (f.type === "range") {
+    const row = document.createElement("div"); row.className = "vsi-range";
+    const r = document.createElement("input"); r.type = "range"; r.min = f.min; r.max = f.max; r.step = f.step; r.value = f.get();
+    const out = document.createElement("output"); out.textContent = f.fmt ? f.fmt(Number(r.value)) : r.value;
+    r.addEventListener("input", () => { out.textContent = f.fmt ? f.fmt(Number(r.value)) : r.value; commit(Number(r.value)); });
+    row.appendChild(r); row.appendChild(out); wrap.appendChild(row);
+  } else if (f.type === "xy") {
+    const [x0, y0] = f.get();
+    const mk = (lbl, val, idx) => {
+      const row = document.createElement("div"); row.className = "vsi-range";
+      const t = document.createElement("span"); t.className = "vsi-axis"; t.textContent = lbl;
+      const r = document.createElement("input"); r.type = "range"; r.min = -0.45; r.max = 0.45; r.step = 0.005; r.value = val;
+      r.addEventListener("input", () => { const cur = f.get(); cur[idx] = Number(r.value); commit(cur); });
+      row.appendChild(t); row.appendChild(r); return row;
+    };
+    wrap.appendChild(mk(fa ? "افقی" : "X", x0, 0));
+    wrap.appendChild(mk(fa ? "عمودی" : "Y", y0, 1));
+    const reset = document.createElement("button"); reset.type = "button"; reset.className = "vsi-link";
+    reset.textContent = fa ? "برگرداندن به جای اول" : "Reset position";
+    reset.addEventListener("click", () => { commit([0, 0]); vsRenderInspector(); });
+    wrap.appendChild(reset);
+  } else if (f.type === "rows" || f.type === "list") {
+    const isRows = f.type === "rows";
+    const box = document.createElement("div"); box.className = "vsi-rows";
+    let data = f.get();
+    const save = () => commit(isRows
+      ? data.filter((r) => r.label || r.value)
+      : data.map((x) => String(x).trim()).filter(Boolean));
+    const draw = () => {
+      box.innerHTML = "";
+      data.forEach((r, k) => {
+        const line = document.createElement("div"); line.className = "vsi-row";
+        if (isRows) {
+          const a = document.createElement("input"); a.placeholder = fa ? "برچسب" : "Label"; a.value = r.label;
+          const b = document.createElement("input"); b.placeholder = fa ? "مقدار" : "Value"; b.value = r.value; b.className = "vsi-val";
+          a.addEventListener("input", () => { data[k].label = a.value; save(); });
+          b.addEventListener("input", () => { data[k].value = b.value; save(); });
+          line.appendChild(a); line.appendChild(b);
+        } else {
+          const a = document.createElement("input"); a.value = r;
+          a.addEventListener("input", () => { data[k] = a.value; save(); });
+          line.appendChild(a);
+        }
+        const del = document.createElement("button"); del.type = "button"; del.className = "vsi-del";
+        del.setAttribute("aria-label", fa ? "حذف" : "Remove"); del.textContent = "×";
+        del.addEventListener("click", () => { data.splice(k, 1); save(); draw(); });
+        line.appendChild(del);
+        box.appendChild(line);
+      });
+      if (data.length < (f.max || 6)) {
+        const add = document.createElement("button"); add.type = "button"; add.className = "vsi-link";
+        add.textContent = isRows ? (fa ? "+ افزودن ردیف" : "+ Add a row") : (fa ? "+ افزودن" : "+ Add");
+        add.addEventListener("click", () => { data.push(isRows ? { label: "", value: "" } : ""); draw(); const ins = box.querySelectorAll("input"); if (ins.length) ins[ins.length - (isRows ? 2 : 1)].focus(); });
+        box.appendChild(add);
+      }
+    };
+    draw();
+    wrap.appendChild(box);
+    if (f.note) { const n = document.createElement("div"); n.className = "vsi-note"; n.textContent = f.note; wrap.appendChild(n); }
+  }
+  return wrap;
+}
+
+// Render the panel for the active scene and the selected element.
+function vsRenderInspector() {
+  const root = document.getElementById("vsInspector");
+  if (!root) return;
+  const i = vstudio.activeSlide || 0;
+  const s = vstudio.slides[i];
+  if (!s) { root.hidden = true; return; }
+  root.hidden = false;
+  const els = vsSceneElements(s, i);
+  let sel = vstudio._sel && vstudio._sel.slide === i && els.includes(vstudio._sel.id) ? vstudio._sel.id : "scene";
+  vstudio._sel = { slide: i, id: sel };
+  const type = vsSceneType(s, i);
+  const fa = state.lang === "fa";
+  root.querySelector(".vsi-type").textContent = vsT(VS_SCENE_TYPE_NAME[type] || ["Scene", "صحنه"]);
+  root.querySelector(".vsi-num").textContent = (fa ? "صحنهٔ " : "Scene ") + (i + 1) + (fa ? " از " : " of ") + vstudio.slides.length;
+  const chips = root.querySelector(".vsi-chips");
+  chips.innerHTML = "";
+  els.forEach((id) => {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "vsi-chip" + (id === sel ? " on" : "");
+    c.setAttribute("aria-pressed", id === sel ? "true" : "false");
+    c.textContent = vsT(VS_EL_NAME[id] || [id, id]);
+    c.addEventListener("click", () => { vstudio._sel = { slide: i, id }; vsRenderInspector(); if (!vstudio.looping) drawStudioFrame(vstudio.position || 0); });
+    chips.appendChild(c);
+  });
+  const body = root.querySelector(".vsi-body");
+  body.innerHTML = "";
+  vsElementFields(s, i, sel).forEach((f) => { try { body.appendChild(vsInspFieldEl(f, s)); } catch (e) {} });
+  const hint = root.querySelector(".vsi-hint");
+  if (hint) hint.textContent = fa
+    ? "روی هر چیز در پیش‌نمایش کلیک کن تا انتخاب شود؛ بکش تا جابه‌جا شود و با اسکرول اندازه‌اش را عوض کن."
+    : "Click anything on the preview to select it; drag to move it, scroll over it to resize.";
+}
+
+// Select an element of the scene showing on the preview, and open its panel.
+function vsSelectElement(slideIdx, id) {
+  if (slideIdx !== vstudio.activeSlide) selectSlide(slideIdx);
+  vstudio._sel = { slide: slideIdx, id: id || "scene" };
+  if (vstudio.activeVtab !== "slides") { const tab = document.querySelector('.vtab[data-vtab="slides"]'); if (tab) tab.click(); }
+  vsRenderInspector();
+  if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+}
+
 // A per-topic colour system for the Editorial mode (keeps one
 // palette across a whole video: finance→maroon/gold, nature→green, tech→noir…).
 function vsEditorialPalette(topic) {
@@ -9380,7 +9995,9 @@ function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
     // said nothing. "The free image service is out of quota for today" and
     // "it timed out" need different advice, and the worker knows which.
     const fail = (why) => { try { vstudio._lastImgError = why; } catch (e) {} resolve(null); };
-    const to = setTimeout(() => fail({ kind: "timeout" }), 40000);
+    // The worker answers within about 30s now (a slow FLUX hands over to the
+    // fast model at 22s); a cut-out still waits on FLUX, so it gets longer.
+    const to = setTimeout(() => fail({ kind: "timeout" }), fluxOnly ? 75000 : 45000);
     if (window.__arGuestWall) { clearTimeout(to); fail({ kind: "needLogin" }); return; }
     arGuestHeaders().then((gh) => fetch(url, { headers: gh })).then(async (r) => {
       if (!r.ok) {
@@ -9601,6 +10218,11 @@ async function vsEditorialBackgrounds(data) {
         const img = await vsEdLoadImage(s._edPrompt, IW, IH);
         if (img) { s.mediaEl = img; s._edImage = img; }
       }
+      // No AI picture: a real photo of the scene's subject beats a dark card.
+      if (!s.mediaEl && !vstudio._batchCancel) {
+        const photo = await vsStockPhoto(s._visual || s._edHeadline || topic, IW > IH).catch(() => null);
+        if (photo) { s._edStyle = "full"; s.mediaEl = photo; s._edImage = photo; }
+      }
       s.ready = true; doneN++;
       vsAutoStatus(state.lang === "fa" ? `تصاویر: ${doneN}/${slides.length}` : `Images: ${doneN}/${slides.length}`);
       drawStudioFrame(vstudio.position || 0);
@@ -9734,6 +10356,9 @@ async function vsAutoGenerateBackgrounds(data) {
       s.mediaEl = null; s.isVideo = false; s.url = null; s.ready = true;
       s.settings = s.settings || {};
       s.motionBg = pool[i % pool.length];   // on the slide, not settings (survives capture)
+      // Every scene in the template's one accent read as one long slide. Every
+      // other content scene takes the brand colour that answers it instead.
+      s._accent = (i % 2 === 0 && i > 0 && i < slides.length - 1) ? vsSecondAccent() : "";
 
       const isEnd = s.isOutro || i === slides.length - 1;
       const isTitleCard = (i === 0) || isEnd;   // real intro / outro
@@ -11869,6 +12494,7 @@ function selectSlide(i) {
       : `Editing slide ${i + 1} of ${vstudio.slides.length}`;
   }
   renderSlideList();
+  try { vsRenderInspector(); } catch (e) {}
   if (!vstudio.looping && vstudio.mediaEl || vstudio.slides.length) {
     drawStudioFrame(vstudio.position || 0);
   }
@@ -11895,57 +12521,90 @@ function renderSlideList() {
     heraRenderTimeline();
     return;
   }
-  const n = vstudio.slides.length;
-  let contentNo = 0;   // running number for the middle (content) slides
+  // Each row is the scene itself: a painted thumbnail of its frame, what kind
+  // of scene it is, the words on it and its length - not an emoji and a number.
   list.innerHTML = vstudio.slides.map((s, i) => {
-    const isFirst = i === 0;
-    const isLast = i === n - 1 && n > 1;
-    let icon, label;
-    if (s.isOutro || (isLast && s.isIntro)) {
-      // last scene (or an explicit outro) → Outro
-      icon = "🏁";
-      label = s.introMain
-        ? escapeHtml(s.introMain)
-        : (state.lang === "fa" ? "اوترو" : "Outro");
-    } else if (isFirst && s.isIntro) {
-      // first scene that's a title scene → Intro
-      icon = "✨";
-      label = s.introMain
-        ? escapeHtml(s.introMain)
-        : (state.lang === "fa" ? "اینترو" : "Intro");
-    } else {
-      // a numbered middle slide — show its number plus a short hint of
-      // its own content, and an icon matching the slide type.
-      contentNo++;
-      icon = s._standaloneInfo ? "📊"
-        : s._standaloneNews ? "📰"
-        : s.isIntro ? "✨"
-        : s.isVideo ? "" : "🖼";
-      const num = state.lang === "fa" ? `اسلاید ${contentNo}` : `Slide ${contentNo}`;
-      // pull a short hint from whatever text the slide carries
-      let hint = s.introMain
-        || (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"]))
-        || s._caption || "";
-      if (s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
-        try { hint = JSON.parse(s.settings["#vsInfoJson"]).title || hint; } catch {}
-      }
-      hint = String(hint).trim();
-      label = hint
-        ? `${num} · ${escapeHtml(hint.slice(0, 26))}`
-        : num;
+    const type = vsSceneType(s, i);
+    let hint = s.introMain || s._edHeadline || s.headline
+      || (s.settings && (s.settings["#vsNewsHeadline"] || s.settings["#vsHeadline"])) || s._caption || "";
+    if (s._standaloneInfo && s.settings && s.settings["#vsInfoJson"]) {
+      try { hint = JSON.parse(s.settings["#vsInfoJson"]).title || hint; } catch (e) {}
     }
+    hint = String(hint).replace(/\s+/g, " ").trim();
+    const dur = Math.round((Number(s.duration) || 4) * 10) / 10;
     return `
     <div class="vs-slide-row ${i === vstudio.activeSlide ? "active" : ""}" data-slide="${i}">
       <span class="vs-slide-num">${i + 1}</span>
+      <canvas class="vs-slide-thumb" data-thumb="${i}" width="54" height="96" aria-hidden="true"></canvas>
       <span class="vs-slide-info">
-        ${icon} ${label}
-        <em>${s.duration}s</em>
+        <b class="vs-slide-type">${escapeHtml(vsT(VS_SCENE_TYPE_NAME[type] || ["Scene", "صحنه"]))}</b>
+        <span class="vs-slide-hint">${escapeHtml(hint.slice(0, 60)) || "&nbsp;"}</span>
+        <em>${dur}s</em>
       </span>
-      <button class="vs-slide-del" data-del="${i}" type="button" aria-label="Remove">✕</button>
+      <button class="vs-slide-del" data-del="${i}" type="button" aria-label="${state.lang === "fa" ? "حذف صحنه" : "Remove scene"}">✕</button>
     </div>`;
   }).join("");
+  vsPaintThumbsSoon();
   // Also refresh Hera scene timeline blocks
   heraRenderTimeline();
+}
+
+// Paint each row's thumbnail from the scene's own frame. Drawn on the preview
+// canvas and copied down, then the preview is put back. A scene is painted
+// again only when something on it changed - the list is rebuilt on every edit
+// and repainting all of them each time would seek every scene's clip.
+function vsPaintThumbsSoon() {
+  vsPaintThumbs(true);   // cached ones straight away, so the list never flickers
+  clearTimeout(vstudio._thumbT);
+  vstudio._thumbT = setTimeout(() => {
+    vsPaintThumbs(false);
+    // A build changes what scenes ARE (a skill turns them editorial or motion
+    // graphic after they are first listed), so the panel catches up here -
+    // unless someone is typing in it, where a rebuild would eat their cursor.
+    const insp = document.getElementById("vsInspector");
+    if (insp && !insp.contains(document.activeElement)) { try { vsRenderInspector(); } catch (e) {} }
+  }, 450);
+}
+function vsThumbSig(sl) {
+  let g = "";
+  try { g = JSON.stringify([sl.sceneGraphic || null, sl._els || null, sl.settings && sl.settings["#vsNewsHeadline"], sl.settings && sl.settings["#vsInfoJson"]]); } catch (e) {}
+  return [sl.url || "", sl.ready ? 1 : 0, sl.mediaEl ? 1 : 0, sl.introMain || "", sl.headline || "", sl._edHeadline || "",
+    sl._edBigWord || "", sl.motionBg || "", sl.panelLayout || "", sl.introBg || "", vstudio.templateId || "", g].join("|");
+}
+function vsPaintThumbs(cachedOnly) {
+  const c = $("#vsCanvas");
+  const thumbs = document.querySelectorAll(".vs-slide-thumb");
+  if (!c || !thumbs.length || !vstudio.slides.length) return;
+  const ratio = c.width / c.height;
+  const tw = ratio >= 1 ? 96 : Math.round(96 * ratio), th = ratio >= 1 ? Math.round(96 / ratio) : 96;
+  let starts = null, drew = false;
+  vstudio._noSelection = true;
+  try {
+    thumbs.forEach((el) => {
+      const i = Number(el.dataset.thumb), sl = vstudio.slides[i];
+      if (!sl) return;
+      if (el.width !== tw) el.width = tw;
+      if (el.height !== th) el.height = th;
+      const sig = vsThumbSig(sl);
+      if (sl._thumb && sl._thumbSig === sig && sl._thumb.width === tw) {
+        try { el.getContext("2d").drawImage(sl._thumb, 0, 0); } catch (e) {}
+        return;
+      }
+      // The preview canvas is not ours to borrow while playing or exporting.
+      if (cachedOnly || vstudio.looping || vstudio.rendering || vstudio._footageBusy) return;
+      if (!starts) { let t = 0; starts = vstudio.slides.map((x) => { const t0 = t; t += Number(x.duration) || 4; return t0; }); }
+      try { drawStudioFrame(starts[i] + (Number(sl.duration) || 4) * 0.62); drew = true; } catch (e) {}
+      const tc = sl._thumb && sl._thumb.width === tw ? sl._thumb : document.createElement("canvas");
+      tc.width = tw; tc.height = th;
+      try { tc.getContext("2d").drawImage(c, 0, 0, tw, th); el.getContext("2d").drawImage(tc, 0, 0); } catch (e) {}
+      sl._thumb = tc; sl._thumbSig = sig;
+    });
+  } finally {
+    vstudio._noSelection = false;
+    if (drew) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
+  }
+  // Scenes still loading, or a busy canvas: come back for them.
+  if (!cachedOnly && (vstudio.looping || vstudio._footageBusy)) { clearTimeout(vstudio._thumbT); vstudio._thumbT = setTimeout(() => vsPaintThumbs(false), 1500); }
 }
 
 function escapeHtml(str) {
@@ -12284,7 +12943,13 @@ function buildPreviewCanvas(exportLongEdge) {
 function setupTextDrag() {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
-  let dragging = null;   // which element: 'text' | 'info' | 'news'
+  // Every element on the preview can be clicked to select it (the Slides panel
+  // then shows its controls), dragged to move it, scrolled over to resize it
+  // and double-clicked to put it back. Headline, chart card, news banner,
+  // logo and footage keep their own offsets; the rest - graphic, title card,
+  // label, editorial blocks, captions - keep a move/size in the scene editor.
+  let dragging = null;   // the element id being moved
+  let moved = false;
   let startX = 0, startY = 0, baseDX = 0, baseDY = 0;
 
   // convert a pointer event to canvas-pixel coordinates
@@ -12298,99 +12963,103 @@ function setupTextDrag() {
   };
   // is a point inside a recorded bounding box (with padding)?
   const inBox = (pt, b) => {
-    if (!b) return false;
-    const pad = canvas.width * 0.03;
+    if (!b || !(b.w > 0)) return false;
+    const pad = canvas.width * 0.02;
     return pt.x >= b.x - pad && pt.x <= b.x + b.w + pad &&
            pt.y >= b.y - pad && pt.y <= b.y + b.h + pad;
   };
-  // which draggable element is under the pointer? (news/info on top of text)
+  const hits = () => vstudio._hits || {};
+  // which element is under the pointer? Small, specific boxes first, so a
+  // full-frame banner or graphic never swallows a click meant for a label.
   const pick = (pt) => {
-    // When the user is on the "Logo & cards" tab, only the logo is draggable —
-    // so they can position it without accidentally moving text/news/info.
+    // On the Logo tab only the logo moves, so it can be placed without
+    // nudging anything else.
     if (vstudio.activeVtab === "logo") {
       if (vstudio.logoEl && inBox(pt, vstudio.logoBox)) return "logo";
       return null;
     }
-    // info & text are smaller, more specific boxes — check them FIRST so a
-    // full-frame cinematic news banner doesn't swallow every click.
+    const h = hits();
+    for (const id of ["captions", "label", "edKicker"]) if (inBox(pt, h[id])) return id;
     if (inBox(pt, vstudio.infoBox)) return "info";
     if (inBox(pt, vstudio.textBox)) return "text";
     if (vstudio.logoEl && inBox(pt, vstudio.logoBox)) return "logo";
+    for (const id of ["edText", "title", "graphic"]) if (inBox(pt, h[id])) return id;
     if (inBox(pt, vstudio.newsBox)) return "news";
-    // the footage fills the whole frame, so it's the LAST resort — only when
-    // the click isn't on any overlay. Lets you drag/reframe the background
-    // without ever stealing drags from the infographic, news or text.
+    // the footage fills the whole frame, so it is the last resort
     if (vstudio._frameHasMedia) return "footage";
     return null;
   };
-  const offsetsFor = (kind) => {
-    if (kind === "news") return ["newsDX", "newsDY"];
-    if (kind === "info") return ["infoDX", "infoDY"];
-    if (kind === "logo") return ["logoDX", "logoDY"];
-    if (kind === "footage") return ["mediaDX", "mediaDY"];
-    return ["textDX", "textDY"];
+  // Read and write an element's offset and size, wherever it keeps them.
+  const handle = (kind) => {
+    if (VS_EL_OWN[kind]) {
+      const host = kind === "captions" ? vsCapHost() : vstudio.slides[vstudio.activeSlide];
+      const e = vsEl(host, kind);
+      return {
+        x: () => e.dx || 0, y: () => e.dy || 0, setXY: (x, y) => { e.dx = x; e.dy = y; },
+        sc: () => e.scale || 1, setSc: (v) => { e.scale = v; }, min: 0.35, max: 2.6, fit: 1.4
+      };
+    }
+    const keys = { news: ["newsDX", "newsDY", "newsScale"], info: ["infoDX", "infoDY", "infoScale"],
+      logo: ["logoDX", "logoDY", "logoScaleManual"], footage: ["mediaDX", "mediaDY", "mediaScale"] }[kind]
+      || ["textDX", "textDY", "textScale"];
+    return {
+      x: () => vstudio[keys[0]] || 0, y: () => vstudio[keys[1]] || 0,
+      setXY: (x, y) => { vstudio[keys[0]] = x; vstudio[keys[1]] = y; },
+      sc: () => vstudio[keys[2]] || 1, setSc: (v) => { vstudio[keys[2]] = v; },
+      min: kind === "footage" ? 1 : 0.55, max: kind === "footage" ? 3 : 1.6, fit: 1.6
+    };
   };
-  const scaleKeyFor = (kind) => {
-    if (kind === "news") return "newsScale";
-    if (kind === "info") return "infoScale";
-    if (kind === "logo") return "logoScaleManual";
-    if (kind === "footage") return "mediaScale";
-    return "textScale";
+  const redraw = () => { if (!vstudio.looping) drawStudioFrame(vstudio.position || 0); };
+  const save = () => { if (vstudio.slides.length) vsSaveActiveSlide(); };
+  // The scene on the preview becomes the scene being edited, so a move lands
+  // on what is showing - the panel used to edit whichever scene was selected
+  // in the list while the preview showed another.
+  const focusShown = () => {
+    if (!vstudio.slides.length) return;
+    const at = slideAtTime(vstudio.position || 0);
+    if (at.index !== vstudio.activeSlide) { selectSlide(at.index); redraw(); }
   };
 
-  // Scroll wheel over an element resizes it — manual scaling, real time.
+  // Scroll wheel over an element resizes it.
   const wheel = (e) => {
     const pt = toCanvas(e);
-    const kind = pick(pt);
+    let kind = pick(pt);
     if (!kind) return;          // not over an element — let the page scroll
     e.preventDefault();
-    const sk = scaleKeyFor(kind);
+    focusShown(); kind = pick(pt) || kind;
+    const hd = handle(kind);
     const step = e.deltaY < 0 ? 1.06 : 1 / 1.06;
-    const maxScale = kind === "footage" ? 3 : 1.6;
-    const minScale = kind === "footage" ? 1 : 0.55;
-    vstudio[sk] = Math.max(minScale, Math.min(maxScale, (vstudio[sk] || 1) * step));
-    if (vstudio.slides.length) vsSaveActiveSlide();
-    if (!vstudio.looping) {
-      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
-        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
-        || ($("#vsNewsOn") && $("#vsNewsOn").checked) || vstudio.logoEl;
-      if (hasContent) drawStudioFrame(vstudio.position || 0);
-    }
+    hd.setSc(Math.max(hd.min, Math.min(hd.max, hd.sc() * step)));
+    save(); redraw();
+    if (vstudio._sel && vstudio._sel.id === kind) vsRenderInspector();
   };
 
-  // Double-click an element to toggle "fit to frame" — it grows to fill
-  // the frame nicely, or snaps back to normal size if already fitted.
+  // Double-click: fit it large, or put it back as it was built.
   const dbl = (e) => {
     const pt = toCanvas(e);
     const kind = pick(pt);
     if (!kind) return;
     e.preventDefault();
-    const sk = scaleKeyFor(kind);
-    const ox = offsetsFor(kind)[0], oy = offsetsFor(kind)[1];
-    const isFitted = Math.abs((vstudio[sk] || 1) - 1.6) < 0.01
-      && vstudio[ox] === 0 && vstudio[oy] === 0;
-    if (isFitted) {
-      vstudio[sk] = 1; vstudio[ox] = 0; vstudio[oy] = 0;
-    } else {
-      vstudio[sk] = 1.6; vstudio[ox] = 0; vstudio[oy] = 0;
-    }
-    if (vstudio.slides.length) vsSaveActiveSlide();
-    if (!vstudio.looping) {
-      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
-        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
-        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
-      if (hasContent) drawStudioFrame(vstudio.position || 0);
-    }
+    const hd = handle(kind);
+    const fitted = Math.abs(hd.sc() - hd.fit) < 0.01 && !hd.x() && !hd.y();
+    hd.setSc(fitted ? 1 : (VS_EL_OWN[kind] ? 1 : hd.fit)); hd.setXY(0, 0);
+    save(); redraw(); vsRenderInspector();
   };
 
   const down = (e) => {
+    if (!vstudio.slides.length && !vstudio.mediaEl) return;
+    // Clicking the picture means editing it: stop on this frame so the scene
+    // being edited does not play away from under the pointer.
+    if (vstudio.looping && vstudio.slides.length) { try { stopStudioPreview(); } catch (err) {} }
+    focusShown();
     const pt = toCanvas(e);
     const kind = pick(pt);
+    if (vstudio.slides.length && vstudio.activeVtab !== "logo") vsSelectElement(vstudio.activeSlide, kind || "scene");
     if (!kind) return;
-    dragging = kind;
-    const [kx, ky] = offsetsFor(kind);
+    dragging = kind; moved = false;
+    const hd = handle(kind);
     startX = pt.x; startY = pt.y;
-    baseDX = vstudio[kx]; baseDY = vstudio[ky];
+    baseDX = hd.x(); baseDY = hd.y();
     canvas.style.cursor = "grabbing";
     if (e.cancelable) e.preventDefault();
   };
@@ -12398,33 +13067,29 @@ function setupTextDrag() {
   const move = (e) => {
     const pt = toCanvas(e);
     if (!dragging) {
-      canvas.style.cursor = pick(pt) ? "grab" : "default";
+      if (e.target === canvas) canvas.style.cursor = pick(pt) ? "grab" : "default";
       return;
     }
-    const [kx, ky] = offsetsFor(dragging);
     let dx = baseDX + (pt.x - startX) / canvas.width;
     let dy = baseDY + (pt.y - startY) / canvas.height;
+    if (Math.abs(pt.x - startX) + Math.abs(pt.y - startY) > 3) moved = true;
     // ── AUTO-ALIGN: snap to center when close ──
     vstudio.snapGuideX = null; vstudio.snapGuideY = null;
     if (Math.abs(dx) < SNAP_THRESHOLD) { dx = 0; vstudio.snapGuideX = true; }
     if (Math.abs(dy) < SNAP_THRESHOLD) { dy = 0; vstudio.snapGuideY = true; }
-    vstudio[kx] = Math.max(-0.45, Math.min(0.45, dx));
-    vstudio[ky] = Math.max(-0.45, Math.min(0.45, dy));
-    // redraw at the CURRENT position so the frame never jumps
-    if (!vstudio.looping) {
-      const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready)
-        || ($("#vsInfoOn") && $("#vsInfoOn").checked)
-        || ($("#vsNewsOn") && $("#vsNewsOn").checked);
-      if (hasContent) drawStudioFrame(vstudio.position || 0);
-    }
+    handle(dragging).setXY(Math.max(-0.45, Math.min(0.45, dx)), Math.max(-0.45, Math.min(0.45, dy)));
+    redraw();
     if (e.cancelable) e.preventDefault();
   };
   const up = () => {
     vstudio.snapGuideX = null; vstudio.snapGuideY = null;
-    if (dragging && vstudio.slides.length) vsSaveActiveSlide();
+    if (dragging) {
+      save();
+      if (moved) { vsRenderInspector(); try { vsPushHistory(); } catch (e) {} }
+    }
     dragging = null;
     canvas.style.cursor = "default";
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    redraw();
   };
 
   canvas.addEventListener("mousedown", down);
@@ -15938,10 +16603,12 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   // at generation) so switching templates recolours all editorial slides live —
   // even after they were generated.
   let accent = pal.spine || "#f5c451";
+  const _sceneAccent = s._accent || "";
   try {
     const tpl = (typeof vsTemplate === "function") ? vsTemplate() : null;
     if (tpl && tpl.accent && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tpl.accent)) accent = tpl.accent;
   } catch (e) {}
+  if (_sceneAccent) accent = _sceneAccent;
   // Live text: read the headline/kicker from the scene's CURRENT fields so edits
   // in "Slide text" / "Caption" / News banner show immediately on editorial
   // scenes (they otherwise render from a value baked in at generation).
@@ -15986,6 +16653,8 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
     const tw = ctx.measureText(kick).width, padX = W * 0.02, padY = W * 0.013;
     const bw = tw + padX * 2, bh = kp + padY * 2;
     const kx = M - (1 - ease) * W * 0.03;
+    vsElTransform(ctx, W, H, s, "edKicker", W / 2, topY + bh / 2);
+    vsElHit(W, H, s, "edKicker", M, topY, W - M * 2, bh, W / 2, topY + bh / 2);
     // auto-contrast ink from the accent's luminance
     let _hx = String(accent).replace("#", ""); if (_hx.length === 3) _hx = _hx.split("").map(c => c + c).join("");
     const _r = parseInt(_hx.slice(0, 2), 16) || 20, _g = parseInt(_hx.slice(2, 4), 16) || 20, _b = parseInt(_hx.slice(4, 6), 16) || 20;
@@ -16049,6 +16718,10 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
   const headTopRef = nLines ? (headFirstBase - hlPx) : (ruleY - H * 0.03);
   const accentY = headTopRef - H * 0.03;
 
+  // The cover word, headline, rule and source move and size as one block.
+  ctx.save();
+  vsElTransform(ctx, W, H, s, "edText", W / 2, H * 0.72);
+  let heroTopY = headTopRef;
   // ── HERO WORD — auto-fit, top-safe (never clipped by the frame) ──
   const hero = (s._edBigWord || (headline.split(/\s+/)[0] || "")).toUpperCase();
   if (hero) {
@@ -16068,6 +16741,7 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
     ctx.font = `${fs}px ${serif}`;
     mw = ctx.measureText(hero).width;
     const heroBase = accentY - H * 0.014;
+    heroTopY = heroBase - fs * 0.78;
     ctx.save();
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     ctx.globalAlpha = Math.min(1, ease * 1.12);
@@ -16119,6 +16793,8 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
     try { ctx.letterSpacing = "0px"; } catch (e) {}
   }
   ctx.restore();
+  ctx.restore();
+  vsElHit(W, H, s, "edText", M, heroTopY, W - M * 2, srcY + H * 0.012 - heroTopY, W / 2, H * 0.72);
 }
 
 // ── Editorial (editorial-style) scene renderer ─────────────────────────────────
@@ -16179,6 +16855,11 @@ function drawStudioFrame(elapsed) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   vstudio._frameHasMedia = false;   // set true only when footage is drawn
+  // Where each element lands this frame, for clicks on the preview. The text
+  // box is cleared too: left over from an earlier scene it made a click on an
+  // empty part of this one grab text that is not there.
+  if (!vstudio.rendering) { vstudio._hits = {}; vstudio.textBox = null; }
+  const dsSlideObj = vstudio.slides.length ? vstudio.slides[slideAtTime(elapsed).index] : null;
 
   // When slides exist, pick the slide active at this time.
   // IMPORTANT: when slides are present, we NEVER use vstudio.mediaEl as a
@@ -16336,7 +17017,9 @@ function drawStudioFrame(elapsed) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   ctx.clearRect(0, 0, W, H);
-  const tpl = vsTemplate();
+  // A scene with its own accent wears it everywhere on the frame - the
+  // headline's highlighted word too, not only the graphic.
+  const tpl = (dsSlideObj && dsSlideObj._accent) ? Object.assign({}, vsTemplate(), { accent: dsSlideObj._accent }) : vsTemplate();
 
   // ── INTRO SLIDE — self-contained background + dual animated text ──
   if (introSlide) {
@@ -16456,6 +17139,8 @@ function drawStudioFrame(elapsed) {
         const cw = ctx.measureText(cap).width + padX * 2;
         const ch = capPx + padY * 2;
         const cxC = W / 2, cyC = H * 0.12;
+        vsElTransform(ctx, W, H, introSlide, "label", cxC, cyC);
+        vsElHit(W, H, introSlide, "label", cxC - cw / 2, cyC - ch / 2, cw, ch, cxC, cyC);
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         roundRectPath(ctx, cxC - cw / 2, cyC - ch / 2, cw, ch, ch / 2);
         ctx.fill();
@@ -16488,6 +17173,8 @@ function drawStudioFrame(elapsed) {
     };
     // Skip color filter for animated motion backgrounds — only apply to footage
     if (hasFootage) vsApplyBgFilter(ctx, canvas, W, H);
+    ctx.save();
+    vsElTransform(ctx, W, H, introSlide, "title", W / 2, H / 2);
     if (vstudio._motionGfxMode) {
       // motion-graphic title cards get their own dramatic, animated treatment
       drawMotionIntro(ctx, W, H, introTpl, introSlide, k, !!introSlide.isOutro, dsLocal);
@@ -16498,6 +17185,8 @@ function drawStudioFrame(elapsed) {
         introSlide.isOutro ? "outro" : "intro",
         introSlide.isOutro ? "" : (introSlide._sourceLine || ""));
     }
+    ctx.restore();
+    vsElHit(W, H, introSlide, "title", W * 0.07, H * 0.3, W * 0.86, H * 0.4, W / 2, H / 2);
     drawStudioOverlay(ctx, W, H, elapsed, vsVal("#vsOverlay", "none"));
     vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
     return;
@@ -16548,7 +17237,7 @@ function drawStudioFrame(elapsed) {
         const _mbg = introBackgrounds.find(b => b.id === motionBg) || introBackgrounds[0];
         // The SELECTED TEMPLATE drives the graphic accent too (not just the bg),
         // so changing the template visibly recolours every motion-graphic element.
-        const _acc = (tpl && tpl.accent) || _mbg.accent || "#2563ff";
+        const _acc = (dsSlideObj && dsSlideObj._accent) || (tpl && tpl.accent) || _mbg.accent || "#2563ff";
         // On a panel scene the solid band carries the composition, so the
         // vector graphic is skipped — otherwise it collides with the band.
         if (dsGraphic && dsGraphic.kind && !dsPanelLayout) {
@@ -16556,11 +17245,18 @@ function drawStudioFrame(elapsed) {
           // UI / network / chart). Calm technical base instead of the drifting
           // motif layers — the graphic itself carries the motion.
           vsGraphicBase(ctx, W, H, _acc, dsLocal);
+          ctx.save();
+          vsElTransform(ctx, W, H, dsSlideObj, "graphic", W / 2, H * 0.56);
+          // A little larger than the graphics were drawn: they sat in the
+          // middle two-fifths of the frame with empty space above and below.
+          ctx.translate(W / 2, H * 0.56); ctx.scale(VS_GRAPHIC_SCALE, VS_GRAPHIC_SCALE); ctx.translate(-W / 2, -H * 0.56);
           drawSceneGraphic(ctx, W, H, dsGraphic.kind, dsLocal, {
             accent: _acc,
             font: vsGetFont((tpl && tpl.headlineFont) || "Inter, sans-serif"),
             ...dsGraphic
           });
+          ctx.restore();
+          vsElHit(W, H, dsSlideObj, "graphic", W * 0.04, H * 0.25, W * 0.92, H * 0.64, W / 2, H * 0.56);
         } else {
           drawIntroGraphics(ctx, W, H, _mbg, elapsed, bgMotionT);
           drawCinematicLayers(ctx, W, H, elapsed, bgMotionT, _acc);
@@ -17471,6 +18167,7 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     vsDrawLogo(ctx, W, H, elapsed, dsLocal, _tpl);
   }
   try { vsDrawCaptions(ctx, W, H, elapsed); } catch (e) {}
+  try { vsDrawSelection(ctx, W, H, elapsed); } catch (e) {}
   // ── AUTO-ALIGN GUIDES — gold dashed lines when an element snaps to center ──
   if (vstudio.snapGuideX || vstudio.snapGuideY) {
     ctx.save();
@@ -17723,7 +18420,11 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
 
   // ── 2) GIANT ghost topic word bleeding off the frame edge ──
   const words = main.toUpperCase().replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 3);
-  const big = words.sort((a, b) => b.length - a.length)[0] || (isOutro ? "THANKS" : "RADAR");
+  // The scene's own big word when it has one (editable in the scene editor),
+  // else the title's longest word. Never our name: "RADAR" was the fallback,
+  // stamped faintly behind the title of somebody else's video.
+  const big = String((slide && slide._heroWord) || "").toUpperCase().trim()
+    || words.sort((a, b) => b.length - a.length)[0] || "";
   ctx.save();
   ctx.font = `${Math.round(U * 0.36)}px ${serif}`;
   const drift = Math.sin(t * 0.4) * U * 0.012;
@@ -19543,11 +20244,14 @@ async function vsSaveToDashboard(blob, ext, name) {
         const cv = document.querySelector("#vsCanvas");
         if (cv && cv.width) {
           // render a representative frame first so we don't capture a blank canvas
+          // (without the editor's selection outline - this frame is the poster)
+          vstudio._noSelection = true;
           try { const d = (typeof studioDuration === "function" ? studioDuration() : 0) || 0; if (d > 0) drawStudioFrame(Math.min(d - 0.1, Math.max(0.4, d * 0.4))); } catch (e) {}
           const tc = document.createElement("canvas");
           const scale = Math.min(1, 640 / Math.max(1, cv.width));
           tc.width = Math.round(cv.width * scale); tc.height = Math.round(cv.height * scale);
           tc.getContext("2d").drawImage(cv, 0, 0, tc.width, tc.height);
+          vstudio._noSelection = false;
           thumb = await new Promise(r => tc.toBlob(r, "image/jpeg", 0.74));
         }
       } catch (e) {}

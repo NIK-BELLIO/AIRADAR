@@ -5471,3 +5471,75 @@ b, strong { font-weight: 600; }
 .am-links svg,.am-out svg{flex:none;width:16px;height:16px;opacity:.55}
 .am-foot{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)}
 .am .auth-menu-credits{display:none}
+
+/* ── Video Studio scene editor (vsRenderInspector) ─────────────────────────
+   The panel for the scene on the preview: its type, one chip per element it
+   has, and that element's own fields. Instrument-panel tokens only. */
+#videoStudio .vsi{margin:4px 0 14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0e1014;overflow:hidden}
+#videoStudio .vsi[hidden]{display:none}
+#videoStudio .vsi-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px 8px}
+#videoStudio .vsi-type{font:700 15px/1.2 "Space Grotesk",ui-sans-serif,system-ui,sans-serif;color:#f4f5f7;letter-spacing:.01em}
+#videoStudio .vsi-num{font:500 11px/1 "JetBrains Mono",ui-monospace,monospace;color:#8a919c;letter-spacing:.04em;white-space:nowrap}
+#videoStudio .vsi-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;border-bottom:1px solid rgba(255,255,255,.07)}
+#videoStudio .vsi-chip{appearance:none;border:1px solid rgba(255,255,255,.1);background:#14171d;color:#c9ced6;font:600 12px/1 Manrope,ui-sans-serif,system-ui,sans-serif;padding:7px 11px;border-radius:999px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+#videoStudio .vsi-chip:hover{border-color:rgba(255,255,255,.22);color:#fff}
+#videoStudio .vsi-chip.on{background:#2563ff;border-color:#2563ff;color:#fff}
+#videoStudio .vsi-chip:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+#videoStudio .vsi-body{display:flex;flex-direction:column;gap:12px;padding:14px}
+#videoStudio .vsi-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+#videoStudio .vsi-lbl{font:600 10.5px/1.2 "JetBrains Mono",ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;color:#8a919c}
+#videoStudio .vsi-field input[type=text],#videoStudio .vsi-field input[type=number],#videoStudio .vsi-field input:not([type]),#videoStudio .vsi-field textarea,#videoStudio .vsi-field select{width:100%;box-sizing:border-box;background:#08090c;border:1px solid rgba(255,255,255,.1);border-radius:9px;color:#f4f5f7;font:500 13.5px/1.4 Manrope,ui-sans-serif,system-ui,sans-serif;padding:9px 11px;min-height:38px}
+#videoStudio .vsi-field textarea{resize:vertical;min-height:58px}
+#videoStudio .vsi-field input:focus,#videoStudio .vsi-field textarea:focus,#videoStudio .vsi-field select:focus{outline:none;border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.22)}
+#videoStudio .vsi-range{display:flex;align-items:center;gap:10px}
+#videoStudio .vsi-range input[type=range]{flex:1;accent-color:#2563ff;min-height:24px}
+#videoStudio .vsi-range output{font:500 11.5px/1 "JetBrains Mono",ui-monospace,monospace;color:#c9ced6;min-width:42px;text-align:end}
+#videoStudio .vsi-axis{font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;color:#8a919c;min-width:38px}
+#videoStudio .vsi-rows{display:flex;flex-direction:column;gap:6px}
+#videoStudio .vsi-row{display:grid;grid-template-columns:1fr 34px;gap:6px;align-items:center}
+#videoStudio .vsi-rows .vsi-row:has(.vsi-val){grid-template-columns:1fr 92px 34px}
+#videoStudio .vsi-row input{min-height:36px}
+#videoStudio .vsi-row .vsi-val{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px}
+#videoStudio .vsi-del{width:34px;height:36px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:#14171d;color:#8a919c;font-size:18px;line-height:1;cursor:pointer}
+#videoStudio .vsi-del:hover{color:#f87171;border-color:rgba(248,113,113,.45)}
+#videoStudio .vsi-link{align-self:flex-start;appearance:none;border:0;background:none;color:#12d6f5;font:600 12.5px/1 Manrope,ui-sans-serif,system-ui,sans-serif;padding:6px 0;cursor:pointer}
+#videoStudio .vsi-link:hover{text-decoration:underline}
+#videoStudio .vsi-buttons{flex-direction:row;flex-wrap:wrap;gap:8px}
+#videoStudio .vsi-btn{flex:1 1 auto;appearance:none;border:1px solid rgba(255,255,255,.12);background:#14171d;color:#f4f5f7;font:600 12.5px/1.2 Manrope,ui-sans-serif,system-ui,sans-serif;padding:10px 12px;border-radius:10px;cursor:pointer;min-height:40px}
+#videoStudio .vsi-btn:hover{border-color:#2563ff;color:#fff}
+#videoStudio .vsi-btn:disabled{opacity:.55;cursor:progress}
+#videoStudio .vsi-btn.vsi-danger{color:#f87171;border-color:rgba(248,113,113,.35)}
+#videoStudio .vsi-switch{position:relative;display:inline-block;width:38px;height:22px;flex:none}
+#videoStudio .vsi-switch input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+#videoStudio .vsi-switch span{position:absolute;inset:0;border-radius:999px;background:#2a2f38;transition:background .15s}
+#videoStudio .vsi-switch span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+#videoStudio .vsi-switch input:checked+span{background:#2563ff}
+#videoStudio .vsi-switch input:checked+span::after{transform:translateX(16px)}
+#videoStudio .vsi-switch input:focus-visible+span{outline:2px solid #12d6f5;outline-offset:2px}
+#videoStudio .vsi-field.vsi-toggle{flex-direction:row-reverse;justify-content:flex-end;align-items:center;gap:10px}
+#videoStudio .vsi-note,#videoStudio .vsi-field.vsi-note{font:500 12px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}
+#videoStudio .vsi-hint{margin:0;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.07);font:500 11.5px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}
+/* The old quick fields: replaced by the editor above, kept in the page only
+   because their file input is what "Add / replace footage" clicks. */
+#videoStudio #vsSlideOnlyFields{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+#videoStudio #vsCanvas{cursor:default}
+/* Scene list: thumbnail rows (renderSlideList / vsPaintThumbs). */
+#videoStudio .vs-slide-list{display:flex;flex-direction:column;gap:6px}
+#videoStudio .vs-slide-row{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 6px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#0e1014;transition:border-color .15s,background .15s}
+#videoStudio .vs-slide-row:hover{border-color:rgba(255,255,255,.2)}
+#videoStudio .vs-slide-row.active{border-color:#2563ff;background:rgba(37,99,255,.1)}
+#videoStudio .vs-slide-num{width:auto;height:auto;background:none;color:#8a919c;font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;border-radius:0;min-width:16px;text-align:center}
+#videoStudio .vs-slide-row.active .vs-slide-num{color:#fff}
+#videoStudio .vs-slide-thumb{flex:none;width:auto;height:52px;border-radius:6px;background:#08090c;border:1px solid rgba(255,255,255,.08)}
+#videoStudio .vs-slide-info{display:flex;flex-direction:column;gap:3px;white-space:normal;overflow:hidden;min-width:0}
+#videoStudio .vs-slide-type{font:700 12.5px/1.2 "Space Grotesk",ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
+#videoStudio .vs-slide-hint{font:500 11.5px/1.35 Manrope,ui-sans-serif,system-ui,sans-serif;color:#9aa1ac;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#videoStudio .vs-slide-info em{margin:0;font:500 10.5px/1 "JetBrains Mono",ui-monospace,monospace;color:#8a919c}
+#videoStudio .vs-slide-del{align-self:center;background:transparent;color:#8a919c;width:28px;height:28px;border-radius:8px}
+#videoStudio .vs-slide-del:hover{background:rgba(248,113,113,.14);color:#f87171}
+#videoStudio .vsi-field{text-align:start}
+#videoStudio .vsi-swatches{display:flex;flex-wrap:wrap;gap:8px}
+#videoStudio .vsi-sw{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.14);background:var(--sw);cursor:pointer;padding:0;position:relative}
+#videoStudio .vsi-sw.vsi-sw-tpl::after{content:"";position:absolute;inset:9px;border-radius:50%;border:2px solid rgba(8,9,12,.7)}
+#videoStudio .vsi-sw.on{border-color:#fff;box-shadow:0 0 0 2px #2563ff}
+#videoStudio .vsi-sw:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}

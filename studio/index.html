@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v761" />
+    <link rel="stylesheet" href="/styles.css?v=v762" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1093,6 +1093,18 @@
               <div class="vstudio-block vtab-hidden" data-vtab-panel="slides">
                 <span class="vstudio-label" data-i18n="vSlidesLabel">Slides &amp; scenes</span>
                 <p class="vstudio-note" data-i18n="vSlidesHint">Add one or more scenes. Each scene has its own media, headline, duration and settings. They play one after another as a single video.</p>
+
+                <!-- Scene editor: what the selected scene was built with, element by
+                     element. Filled by vsRenderInspector(); hidden until a video exists. -->
+                <section id="vsInspector" class="vsi" hidden aria-label="Scene editor">
+                  <header class="vsi-head">
+                    <span class="vsi-type"></span>
+                    <span class="vsi-num"></span>
+                  </header>
+                  <div class="vsi-chips" role="toolbar"></div>
+                  <div class="vsi-body"></div>
+                  <p class="vsi-hint"></p>
+                </section>
 
                 <label class="vs-global-filter"><span data-i18n="vFilterLabel">Filter / grade</span>
                   <select id="vsFilter">
@@ -2667,7 +2679,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v761"></script>
+    <script src="/app.js?v=v762"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
