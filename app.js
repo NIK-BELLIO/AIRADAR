@@ -25689,7 +25689,7 @@ async function vsBuildCarousel(script, opts) {
   // Cover title: an explicit hook if given, else the first scene (then dropped
   // from the content list so it isn't repeated).
   const coverTitle = opts.coverTitle || scenes[0].headline;
-  const content = (opts.coverTitle ? scenes : scenes.slice(1)).slice(0, 5);
+  const content = (opts.coverTitle ? scenes : scenes.slice(1)).slice(0, opts.maxSlides || 5);
   const iconTopic = opts.topic || coverTitle || "";
   const specs = [{ kind: "cover", title: coverTitle, subtitle: opts.subtitle || opts.topic || "", handle, topic: iconTopic }];
   content.forEach((s, i) => specs.push({ kind: "content", n: String(i + 1).padStart(2, "0"), heading: s.headline, body: s.narration, handle, topic: iconTopic }));
@@ -26809,6 +26809,21 @@ async function vsLoadDeckFromUrl() {
     return;
   }
   if (j.skill === "reel") { await vsOpenReelDeck(j.script); return; }
+  if (j.skill === "carousel") {
+    // A carousel the customer's own AI wrote (create_carousel): their exact
+    // slides, laid out by the same maker Spark uses - nothing rewritten.
+    const c = j.script || {};
+    const slides = Array.isArray(c.slides) ? c.slides : [];
+    const script = slides.map((x, i) => `${i + 1}. HEADLINE: ${String(x.heading || x.body || "")}
+NARRATION: ${x.heading ? String(x.body || "") : ""}
+`).join("");
+    let photo = null;
+    if (c.image && /^\/api\/decks\//.test(c.image)) { try { const r = await fetch(c.image); if (r.ok) photo = await r.blob(); } catch (e) {} }
+    vsAutoStatus(fa ? "کاروسلی که AIِ تو فرستاد…" : "The carousel your AI sent…");
+    await vsBuildCarousel(script, { topic: c.cover, coverTitle: c.cover, subtitle: c.subtitle || "", cta: c.cta || "", noCta: !c.cta,
+      handle: c.handle || "", photo, maxSlides: 8 });
+    return;
+  }
   if (j.skill === "thumbnail") {
     const t = j.script || {};
     const image = t.image ? await vsLoadOwnImage(t.image) : null;
