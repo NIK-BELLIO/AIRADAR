@@ -1806,6 +1806,27 @@ const state = {
   slides: []
 };
 
+// Every <audio> the studio makes is kept here. A new build or a new music bed
+// replaced vstudio.musicEl without stopping the old element, which went on
+// playing where no Pause could reach it - "the music plays and cannot be
+// stopped". Pause now stops all of them, and starting playback silences any
+// that no longer belong to the video on screen.
+function vsAudio(src) {
+  const el = new Audio(src);
+  (vstudio._audioEls || (vstudio._audioEls = new Set())).add(el);
+  return el;
+}
+function vsSilenceAudio(keepCurrent) {
+  const set = vstudio._audioEls;
+  if (!set) return;
+  set.forEach((el) => {
+    if (keepCurrent && (el === vstudio.musicEl || el === vstudio.narrationEl)) return;
+    try { el.pause(); } catch (e) {}
+  });
+  // Elements no longer in use are dropped once silent, so the set stays small.
+  set.forEach((el) => { if (el !== vstudio.musicEl && el !== vstudio.narrationEl && el.paused) set.delete(el); });
+}
+
 // Voice-over was removed from the product. Also remove legacy controls at
 // runtime so an older cached index.html cannot make the switch visible again.
 function vsRemoveLegacyVoiceControls() {
@@ -7358,6 +7379,12 @@ async function buildAutoVideo(useAI) {
     return;
   }
   vsSaveActiveSlide();
+  // The video being replaced stops first - its music used to play on, out of
+  // reach of the Pause button, under the new one.
+  try { stopStudioPreview(); } catch (e) {}
+  // Nobody closes the popup until the whole video exists; vsBuildFromScript
+  // lowers this when music and voice are in.
+  vstudio._buildHold = true;
   vstudio._batchCancel = false;   // fresh cancel state for this build
   vsBuildOverlay(true, state.lang === "fa" ? "شروع…" : "Starting…", null, 120000,
     { onCancel: () => { vstudio._batchCancel = true; } });
@@ -7366,11 +7393,12 @@ async function buildAutoVideo(useAI) {
   // build and leaves the analyst path untouched.
   if (vstudio._realtorMode) {
     try { await vsBuildRealtorReel(text); }
-    finally { vsBuildOverlay(false); }
+    finally { vstudio._buildHold = false; vsBuildOverlay(false); }
     return;
   }
 
   if (!useAI) {
+    vstudio._buildHold = false;
     vsAutoStatus(state.lang === "fa" ? "در حال ساخت…" : "Building…");
     vsBuildStoryLocal(text);
     vsAutoStatus(state.lang === "fa"
@@ -7393,8 +7421,11 @@ async function buildAutoVideo(useAI) {
   // ── BATCH MODE: build ONE separate video per item (city/product/person)
   //    the article profiles. Falls through to a single video if <2 items. ──
   if (document.querySelector("#vsAutoBatch") && document.querySelector("#vsAutoBatch").checked) {
+    // A batch runs its own popup and progress; it does not wait on this hold.
+    vstudio._buildHold = false;
     const handled = await vsBuildBatchFromArticle(text, tone, lenChoice);
     if (handled) return;
+    vstudio._buildHold = true;   // no list after all: one video, held to the end
   }
 
   // Do we actually have a real SOURCE to ground facts in (a fetched article
@@ -7700,6 +7731,16 @@ function vsOpenOwnAi() {
  * basic local version from `text`.
  */
 async function vsBuildFromScript(data, text, lenChoice) {
+  try { return await vsBuildFromScriptInner(data, text, lenChoice); }
+  finally {
+    // The build is over, whatever happened: the popup closes on the finished
+    // video, which waits on its first frame for the user to press Play.
+    vstudio._buildHold = false;
+    vsOverlayRelease();
+    vsShowBuiltVideo();
+  }
+}
+async function vsBuildFromScriptInner(data, text, lenChoice) {
   let _usedLocalFallback = false;
   try {
     if (!data) {
@@ -7735,16 +7776,11 @@ async function vsBuildFromScript(data, text, lenChoice) {
       vsAutoStatus(state.lang === "fa" ? "ساخت موسیقی…" : "Building music…");
       const dm = await vsEnsureDefaultMusic(data);
       if (dm) {
+        if (vstudio.musicEl && vstudio.musicEl !== dm) { try { vstudio.musicEl.pause(); } catch (e) {} }
         vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
         vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
         vsAttachMusicLoopTrim(dm);
-        // Footage generation (kicked off inside vsAssembleFromSections above)
-        // runs in the background and may have already started the preview
-        // before this music finished — if so, start it now rather than
-        // waiting for a preview restart that may never come.
-        if (vstudio.looping) {
-          try { dm.currentTime = vstudio.position || 0; dm.play().catch(() => {}); } catch (e) {}
-        }
+        // (Playback starts when the user presses Play - not here.)
       } else {
         vstudio._musicBuffer = null;
       }
@@ -8700,7 +8736,7 @@ async function vsEnsureDefaultMusic(data) {
       vstudio._defaultMusicUrl = generated.url;
       // where the AI track's real content actually stops — see vsFindContentEnd.
       vstudio._defaultMusicContentEnd = generated.contentEnd || generated.buffer.duration;
-      const aiEl = new Audio(generated.url);
+      const aiEl = vsAudio(generated.url);
       aiEl.loop = true; aiEl.preload = "auto";
       return aiEl;
     }
@@ -8871,7 +8907,7 @@ async function vsEnsureDefaultMusic(data) {
     }
     // Return a FRESH element each time so createMediaElementSource (which can only
     // run once per element) always succeeds for every video's export.
-    const el = new Audio(vstudio._defaultMusicUrl);
+    const el = vsAudio(vstudio._defaultMusicUrl);
     el.loop = true; el.preload = "auto";
     return el;
   } catch (e) { return null; }
@@ -8919,7 +8955,7 @@ async function vsGenerateNarration(data, voice) {
     return null;
   }
   const objUrl = URL.createObjectURL(blob);
-  const el = new Audio(objUrl); el.preload = "auto";
+  const el = vsAudio(objUrl); el.preload = "auto";
   let buffer = null;
   try {
     if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -8972,7 +9008,7 @@ async function vsGenerateNarrationLegacy(data, voice) {
     }
     if (!blob) return null;
     const objUrl = URL.createObjectURL(blob);
-    const el = new Audio(objUrl);
+    const el = vsAudio(objUrl);
     el.preload = "auto";
     try { el.load(); } catch {}
     // Also decode to a raw AudioBuffer — buffer sources are never "tainted" and
@@ -9198,7 +9234,7 @@ function vsMixVoiceTrack(force) {
   if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch (e) {} }
   if (vstudio._voiceUrl) { try { URL.revokeObjectURL(vstudio._voiceUrl); } catch (e) {} }
   vstudio._voiceUrl = URL.createObjectURL(vsAudioBufferToWav(out));
-  const el = new Audio(vstudio._voiceUrl); el.preload = "auto";
+  const el = vsAudio(vstudio._voiceUrl); el.preload = "auto";
   vstudio.narrationEl = el;
   vstudio._narrationBuffer = out;
   vstudio._voiceSig = sig;
@@ -9783,7 +9819,7 @@ function vsInspFieldEl(f, s) {
   const wrap = document.createElement("div");
   wrap.className = "vsi-field vsi-" + f.type;
   const head = (txt) => { const h = document.createElement("div"); h.className = "vsi-lbl"; h.textContent = txt; return h; };
-  const commit = (v) => { try { f.set(v); } catch (e) {} vsInspRedraw(!!f.list); if (f.rebuild) vsRenderInspector(); };
+  const commit = (v) => { try { vsHistoryBaseline(); } catch (e) {} try { f.set(v); } catch (e) {} vsInspRedraw(!!f.list); if (f.rebuild) vsRenderInspector(); };
 
   if (f.type === "note") { wrap.textContent = f.text; return wrap; }
   if (f.type === "buttons") {
@@ -10753,7 +10789,6 @@ async function vsAutoGenerateBackgrounds(data) {
             (bare ? ` ${bare} stay${bare === 1 ? "s" : ""} on the template background.` : "")
           : "No footage found - every scene renders on the template background."));
   }
-  if (!vstudio.looping) previewStudioVideo(false);
   } finally {
     vstudio._footageBusy = false;
     // Every exit, not just the last line. The /motion_graphic and /editorial
@@ -10762,9 +10797,7 @@ async function vsAutoGenerateBackgrounds(data) {
     // calls were refused because this flag was still up. The video was built
     // and the customer was left behind "Building your video..." for good.
     vsOverlayRelease();   // every scene is in; whoever owns the popup may close it
-    if (!vstudio.looping && !vstudio.rendering && (vstudio.slides || []).length) {
-      try { previewStudioVideo(false); } catch (e) {}
-    }
+    if (!vstudio._buildHold) vsShowBuiltVideo();
   }
 }
 
@@ -11256,7 +11289,7 @@ function vsOverlayRelease() {
   // Footage generation has several exits that do not agree about who closes
   // this, so a video could look finished while scenes were still filling in
   // behind the operator. While the flag is up, nobody closes it.
-  if (vstudio._batchExporting || vstudio._batchBusy || vstudio._footageBusy) return;
+  if (vstudio._batchExporting || vstudio._batchBusy || vstudio._footageBusy || vstudio._buildHold) return;
   vsBuildOverlay(false);
 }
 
@@ -11853,7 +11886,7 @@ async function vsLoadBatchVideo(i) {
     renderSlideList();
     drawStudioFrame(vstudio.position || 0);
     if (!vstudio.looping) {
-      previewStudioVideo(false);
+      vsShowBuiltVideo();
     } else if (vstudio.musicEl) {
       // preview kept running across the switch (new slides just dropped in) —
       // the fresh music element still needs an explicit play() to be heard.
@@ -12699,7 +12732,7 @@ function loadStudioMusic(file) {
   vstudio._musicSrc = null;
   vstudio._musicDest = null;
   vstudio.musicUrl = URL.createObjectURL(file);
-  const audio = new Audio(vstudio.musicUrl);
+  const audio = vsAudio(vstudio.musicUrl);
   audio.loop = true;
   vstudio.musicEl = audio;
   vstudio._userMusic = true;          // user's own track — don't override with default
@@ -13056,6 +13089,7 @@ function setupTextDrag() {
     const kind = pick(pt);
     if (vstudio.slides.length && vstudio.activeVtab !== "logo") vsSelectElement(vstudio.activeSlide, kind || "scene");
     if (!kind) return;
+    try { vsHistoryBaseline(); } catch (err) {}
     dragging = kind; moved = false;
     const hd = handle(kind);
     startX = pt.x; startY = pt.y;
@@ -17067,10 +17101,18 @@ function drawStudioFrame(elapsed) {
                              crot = Math.sin(cClock * 1.4) * 0.012; break;
         default:             cz = 1.0 + cLc * 0.08;
       }
-      const scale = Math.max(W / mw, H / mh) * cz;
+      // The scene's own zoom and framing (Footage in the scene editor, or a
+      // drag / scroll on the preview). This path drew every chart and headline
+      // scene's footage and never read them, so both controls did nothing.
+      const userZ = Math.max(1, Number(vsOff.mediaScale) || 1);
+      const scale = Math.max(W / mw, H / mh) * cz * userZ;
       const dw = mw * scale, dh = mh * scale;
+      // Framing moves only within what overflows the frame - never to an edge.
+      const fx = Math.max(-(dw - W) / 2, Math.min((dw - W) / 2, (Number(vsOff.mediaDX) || 0) * W * 2));
+      const fy = Math.max(-(dh - H) / 2, Math.min((dh - H) / 2, (Number(vsOff.mediaDY) || 0) * H * 2));
+      vstudio._frameHasMedia = true;
       ctx.save();
-      ctx.translate(W / 2 + cox, H / 2 + coy);
+      ctx.translate(W / 2 + cox + fx, H / 2 + coy + fy);
       if (crot) ctx.rotate(crot);
       try { ctx.drawImage(m, -dw / 2, -dh / 2, dw, dh); } catch {}
       ctx.restore();
@@ -17223,9 +17265,12 @@ function drawStudioFrame(elapsed) {
       if (_mv) {
         const mw2 = media.videoWidth || media.naturalWidth || media.width;
         const mh2 = media.videoHeight || media.naturalHeight || media.height;
-        const cover = Math.max(W / mw2, H / mh2);
+        const cover = Math.max(W / mw2, H / mh2) * Math.max(1, Number(vsOff.mediaScale) || 1);
         const iw = mw2 * cover, ih = mh2 * cover;
-        try { ctx.drawImage(media, (W - iw) / 2, (H - ih) / 2, iw, ih); } catch (e) {}
+        const fx2 = Math.max(-(iw - W) / 2, Math.min((iw - W) / 2, (Number(vsOff.mediaDX) || 0) * W * 2));
+        const fy2 = Math.max(-(ih - H) / 2, Math.min((ih - H) / 2, (Number(vsOff.mediaDY) || 0) * H * 2));
+        vstudio._frameHasMedia = true;
+        try { ctx.drawImage(media, (W - iw) / 2 + fx2, (H - ih) / 2 + fy2, iw, ih); } catch (e) {}
         const dg = ctx.createLinearGradient(0, 0, 0, H);
         dg.addColorStop(0, "rgba(6,9,16,0.66)"); dg.addColorStop(0.5, "rgba(6,9,16,0.52)"); dg.addColorStop(1, "rgba(4,6,11,0.74)");
         ctx.fillStyle = dg; ctx.fillRect(0, 0, W, H);
@@ -18337,7 +18382,9 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
   const TXT = (tpl && tpl.text) || "#ffffff";
   const serif = vsGetFont((tpl && tpl.headlineFont) || "Prata, serif", true);
   const sans = vsGetFont("Inter, sans-serif", true);
-  const main = String((slide && slide.introMain) || "").trim() || (isOutro ? "" : "AI Radar");
+  // An empty title stays empty - this used to print "AI Radar" on the
+  // opening card of somebody else's video.
+  const main = String((slide && slide.introMain) || "").trim();
   const sub = String((slide && slide.introSub) || "").trim();
   const eyebrow = String((tpl && tpl._eyebrow) || "").trim();
   const e = Math.max(0, Math.min(1, k));
@@ -18353,60 +18400,66 @@ function drawMotionIntro(ctx, W, H, tpl, slide, k, isOutro, t) {
   ctx.save();
   ctx.textBaseline = "alphabetic";
 
-  // ── 0) PREMIUM animated title background — painted opaque so intro/outro
-  //    never look "ordinary". A deep base, two drifting accent nebulae, flowing
-  //    aurora ribbons, a soft perspective grid and a top light. ──
-  const shade = (hex, m) => {
-    const h = String(hex || "#2563ff").replace("#", "");
-    const n = h.length === 3 ? h.split("").map(c => c + c).join("") : h.padEnd(6, "0");
-    const r = Math.round(parseInt(n.slice(0, 2), 16) * m), gg2 = Math.round(parseInt(n.slice(2, 4), 16) * m), b = Math.round(parseInt(n.slice(4, 6), 16) * m);
-    return `rgb(${Math.min(255, r)},${Math.min(255, gg2)},${Math.min(255, b)})`;
-  };
-  // deep vertical base tinted slightly toward the accent
-  let base = ctx.createLinearGradient(0, 0, W, H);
-  base.addColorStop(0, "#0e1014");
-  base.addColorStop(0.5, shade(A, 0.16));
-  base.addColorStop(1, "#08090c");
-  ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
-  // two large drifting nebulae (accent + complementary blue)
-  const neb = [
-    { x: 0.24 + Math.sin(t * 0.16) * 0.05, y: 0.30 + Math.cos(t * 0.13) * 0.04, c: A, a: 0.42 },
-    { x: 0.78 + Math.cos(t * 0.11) * 0.05, y: 0.70 + Math.sin(t * 0.15) * 0.04, c: "#2563ff", a: 0.36 }
-  ];
-  neb.forEach(nb => {
-    const rgn = ctx.createRadialGradient(W * nb.x, H * nb.y, 0, W * nb.x, H * nb.y, U * 0.7);
-    rgn.addColorStop(0, vsHexA(nb.c, nb.a)); rgn.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = rgn; ctx.fillRect(0, 0, W, H);
-  });
-  // flowing aurora ribbons
-  ctx.save();
-  ctx.globalCompositeOperation = "screen";
-  for (let r = 0; r < 3; r++) {
-    const yb = H * (0.32 + r * 0.2);
-    const amp = U * (0.05 + r * 0.02);
-    ctx.beginPath();
-    for (let xx = -20; xx <= W + 20; xx += W / 16) {
-      const yy = yb + Math.sin(xx / W * 5 + t * 0.5 + r * 1.7) * amp + Math.cos(xx / W * 2.3 - t * 0.32) * amp * 0.5;
-      xx === -20 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+  // Footage the user put on this title scene IS its background - the opaque
+  // animated one below used to paint straight over it, so footage added to a
+  // motion-graphic intro or outro never showed. Only the scrim stays.
+  const _ownFootage = !!(slide && slide.mediaEl && (slide.mediaEl.videoWidth || slide.mediaEl.naturalWidth));
+  if (!_ownFootage) {
+    // ── 0) PREMIUM animated title background — painted opaque so intro/outro
+    //    never look "ordinary". A deep base, two drifting accent nebulae, flowing
+    //    aurora ribbons, a soft perspective grid and a top light. ──
+    const shade = (hex, m) => {
+      const h = String(hex || "#2563ff").replace("#", "");
+      const n = h.length === 3 ? h.split("").map(c => c + c).join("") : h.padEnd(6, "0");
+      const r = Math.round(parseInt(n.slice(0, 2), 16) * m), gg2 = Math.round(parseInt(n.slice(2, 4), 16) * m), b = Math.round(parseInt(n.slice(4, 6), 16) * m);
+      return `rgb(${Math.min(255, r)},${Math.min(255, gg2)},${Math.min(255, b)})`;
+    };
+    // deep vertical base tinted slightly toward the accent
+    let base = ctx.createLinearGradient(0, 0, W, H);
+    base.addColorStop(0, "#0e1014");
+    base.addColorStop(0.5, shade(A, 0.16));
+    base.addColorStop(1, "#08090c");
+    ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+    // two large drifting nebulae (accent + complementary blue)
+    const neb = [
+      { x: 0.24 + Math.sin(t * 0.16) * 0.05, y: 0.30 + Math.cos(t * 0.13) * 0.04, c: A, a: 0.42 },
+      { x: 0.78 + Math.cos(t * 0.11) * 0.05, y: 0.70 + Math.sin(t * 0.15) * 0.04, c: "#2563ff", a: 0.36 }
+    ];
+    neb.forEach(nb => {
+      const rgn = ctx.createRadialGradient(W * nb.x, H * nb.y, 0, W * nb.x, H * nb.y, U * 0.7);
+      rgn.addColorStop(0, vsHexA(nb.c, nb.a)); rgn.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = rgn; ctx.fillRect(0, 0, W, H);
+    });
+    // flowing aurora ribbons
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    for (let r = 0; r < 3; r++) {
+      const yb = H * (0.32 + r * 0.2);
+      const amp = U * (0.05 + r * 0.02);
+      ctx.beginPath();
+      for (let xx = -20; xx <= W + 20; xx += W / 16) {
+        const yy = yb + Math.sin(xx / W * 5 + t * 0.5 + r * 1.7) * amp + Math.cos(xx / W * 2.3 - t * 0.32) * amp * 0.5;
+        xx === -20 ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy);
+      }
+      const rg2 = ctx.createLinearGradient(0, yb - amp, W, yb + amp);
+      rg2.addColorStop(0, "rgba(255,255,255,0)");
+      rg2.addColorStop(0.5, vsHexA(r === 1 ? "#2563ff" : A, 0.16));
+      rg2.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = rg2; ctx.lineWidth = U * (0.02 + r * 0.006); ctx.stroke();
     }
-    const rg2 = ctx.createLinearGradient(0, yb - amp, W, yb + amp);
-    rg2.addColorStop(0, "rgba(255,255,255,0)");
-    rg2.addColorStop(0.5, vsHexA(r === 1 ? "#2563ff" : A, 0.16));
-    rg2.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.strokeStyle = rg2; ctx.lineWidth = U * (0.02 + r * 0.006); ctx.stroke();
+    ctx.restore();
+    // soft perspective grid on the lower third (floor)
+    ctx.save();
+    ctx.strokeStyle = vsHexA(A, 0.07); ctx.lineWidth = 1;
+    const horizon = H * 0.66;
+    for (let i = 1; i <= 7; i++) { const gy = horizon + (H - horizon) * (i / 7) * (i / 7); ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+    for (let i = -6; i <= 6; i++) { const vx = W / 2 + i * (W / 6); ctx.beginPath(); ctx.moveTo(W / 2 + i * (W / 22), horizon); ctx.lineTo(vx, H); ctx.stroke(); }
+    ctx.restore();
+    // top light bloom
+    const top = ctx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, -H * 0.1, U * 0.9);
+    top.addColorStop(0, vsHexA(A, 0.14)); top.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = top; ctx.fillRect(0, 0, W, H);
   }
-  ctx.restore();
-  // soft perspective grid on the lower third (floor)
-  ctx.save();
-  ctx.strokeStyle = vsHexA(A, 0.07); ctx.lineWidth = 1;
-  const horizon = H * 0.66;
-  for (let i = 1; i <= 7; i++) { const gy = horizon + (H - horizon) * (i / 7) * (i / 7); ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
-  for (let i = -6; i <= 6; i++) { const vx = W / 2 + i * (W / 6); ctx.beginPath(); ctx.moveTo(W / 2 + i * (W / 22), horizon); ctx.lineTo(vx, H); ctx.stroke(); }
-  ctx.restore();
-  // top light bloom
-  const top = ctx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, -H * 0.1, U * 0.9);
-  top.addColorStop(0, vsHexA(A, 0.14)); top.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = top; ctx.fillRect(0, 0, W, H);
 
   // ── 1) cinematic scrim + vignette so text always pops over the bg ──
   let g = ctx.createLinearGradient(0, 0, 0, H);
@@ -19008,6 +19061,21 @@ function vsApplyMusicFade(elapsed, duration) {
   catch {}
 }
 
+// A finished build: the video on its first frame, paused, with Export showing.
+// The owner's rule: the popup closes only on a complete video - footage, voice
+// and music in - and the user presses Play; nothing starts on its own.
+function vsShowBuiltVideo() {
+  if (vstudio.rendering || !(vstudio.slides || []).some((s) => s.ready)) return;
+  try { stopStudioPreview(); } catch (e) {}
+  buildPreviewCanvas();
+  try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
+  try { const _cb = document.getElementById("vsCoverBtn"); if (_cb) _cb.style.display = ""; } catch {}
+  try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
+  vstudio.position = 0;
+  try { drawStudioFrame(0); updateTimeline(0, studioDuration()); } catch (e) {}
+  setPlayBtn(false);
+}
+
 function previewStudioVideo(fromStart) {
   // works with media, a slide sequence, OR a standalone infographic/news
   const hasSlides = vstudio.slides.some(s => s.ready);
@@ -19046,6 +19114,7 @@ function previewStudioVideo(fromStart) {
       media.play().catch(() => {});
     } catch {}
   }
+  vsSilenceAudio(true);
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
   }
@@ -19110,6 +19179,7 @@ function stopStudioPreview() {
   });
   if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch {} }
   if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch {} }
+  vsSilenceAudio(false);
   setPlayBtn(false);
 }
 
@@ -19542,6 +19612,32 @@ const VS_CONTROLS = [
 ];
 const vsHistory = { stack: [], index: -1, suspended: false };
 
+// What the scene editor can change on a scene, copied by value. The snapshot
+// held the scene objects themselves, so after an edit inside a scene the
+// "previous" snapshot pointed at the already-edited object and undo put back
+// nothing.
+const VS_SCENE_FIELDS = ["duration", "headline", "introMain", "introSub", "introBg", "introMotion", "_caption", "_kicker",
+  "_sourceLine", "_heroWord", "_edBigWord", "_edHeadline", "_edSource", "_edStyle", "_edPrompt", "_edKicker",
+  "_narration", "_accent", "motionBg", "panelLayout", "_graphicManual"];
+const vsClone = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
+function vsSceneState(s) {
+  const o = {};
+  VS_SCENE_FIELDS.forEach((k) => { if (k in s) o[k] = s[k]; });
+  try {
+    o.sceneGraphic = vsClone(s.sceneGraphic || null);
+    o._els = vsClone(s._els || null);
+    o.settings = s.settings ? Object.assign({}, s.settings) : null;
+  } catch (e) {}
+  return o;
+}
+function vsSceneRestore(s, o) {
+  if (!s || !o) return;
+  VS_SCENE_FIELDS.forEach((k) => { if (k in o) s[k] = o[k]; else delete s[k]; });
+  if (o.sceneGraphic) s.sceneGraphic = vsClone(o.sceneGraphic); else if (s.sceneGraphic) s.sceneGraphic = null;
+  if (o._els) s._els = vsClone(o._els); else delete s._els;
+  if (o.settings) s.settings = Object.assign({}, o.settings);
+}
+
 function vsSnapshot() {
   const snap = { templateId: vstudio.templateId };
   // The scene list too. Undo used to hold only the form controls, so adding,
@@ -19549,6 +19645,11 @@ function vsSnapshot() {
   // with its build: an undo must never reach back past a fresh AI build to the
   // empty project the page opened with and wipe the video.
   snap._slides = (vstudio.slides || []).slice();
+  // The live controls belong to the scene being edited; fold them in first so
+  // its copy is current.
+  try { if (vstudio.slides && vstudio.slides[vstudio.activeSlide]) vsSaveActiveSlide(); } catch (e) {}
+  snap._scenes = snap._slides.map(vsSceneState);
+  snap._cap = vsClone((vstudio._capHost && vstudio._capHost._els) || null);
   snap._active = vstudio.activeSlide || 0;
   snap._build = vstudio._buildSeq || 0;
   VS_CONTROLS.forEach(sel => {
@@ -19592,11 +19693,14 @@ function vsApplySnapshot(snap) {
   if (snap._slides && snap._build === (vstudio._buildSeq || 0)) {
     const cur = vstudio.slides || [];
     const same = cur.length === snap._slides.length && cur.every((x, k) => x === snap._slides[k]);
-    if (!same) {
-      vstudio.slides = snap._slides.slice();
-      vstudio.activeSlide = Math.min(snap._active || 0, Math.max(0, vstudio.slides.length - 1));
-      try { renderSlideList(); if (vstudio.slides.length) selectSlide(vstudio.activeSlide); } catch (e) {}
-    }
+    if (!same) vstudio.slides = snap._slides.slice();
+    // What was inside each scene, too - an edit made in the scene editor.
+    if (snap._scenes) snap._slides.forEach((sl, k) => vsSceneRestore(sl, snap._scenes[k]));
+    if (vstudio._capHost || snap._cap) vsCapHost()._els = vsClone(snap._cap) || {};
+    // Point at the scene first, so selecting it loads its restored settings
+    // instead of saving the live controls over them.
+    vstudio.activeSlide = Math.min(snap._active || 0, Math.max(0, vstudio.slides.length - 1));
+    try { renderSlideList(); if (vstudio.slides.length) selectSlide(vstudio.activeSlide); } catch (e) {}
   }
   Object.keys(snap).forEach(sel => {
     if (sel === "templateId" || sel[0] === "_") return;
