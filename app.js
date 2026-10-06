@@ -9232,7 +9232,9 @@ function vsClearVoiceTrack() {
 function vsMixVoiceTrack(force) {
   const slides = vstudio.slides;
   if (!slides.some((s) => s._voice)) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); return; }
-  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "");
+  const fxEvents = vstudio._editSfxOn ? vsEditSfxEvents(slides) : [];
+  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "") +
+    fxEvents.map((e) => e.n + e.t.toFixed(2)).join(",");
   if (!force && sig === vstudio._voiceSig) return;
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
   const sr = vstudio._playCtx.sampleRate;
@@ -9263,21 +9265,19 @@ function vsMixVoiceTrack(force) {
     }
     start += d;
   });
-  // a transition's sound, its loudest moment on the cut
+  // the edit's sounds, each with its loudest moment on its beat
   if (vstudio._editSfxOn && vstudio._sfx && vstudio._sfx.sr === sr) {
-    let t = 0;
-    slides.forEach((sl) => {
-      const fx = sl._transIn && vstudio._sfx[sl._transIn];
-      if (fx) {
-        const src = fx.buf.getChannelData(0);
-        const at = Math.floor((t - fx.peak) * sr);
-        for (let k = 0; k < src.length; k++) {
-          const j = at + k;
-          if (j < 0 || j >= dst.length) continue;
-          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * VS_SFX_GAIN));
-        }
+    fxEvents.forEach((ev) => {
+      const fx = vstudio._sfx[ev.n];
+      if (!fx) return;
+      const src = fx.buf.getChannelData(0);
+      const at = Math.floor((ev.t - fx.peak) * sr);
+      const g = VS_SFX_GAIN * (ev.g || 1);
+      for (let k = 0; k < src.length; k++) {
+        const j = at + k;
+        if (j < 0 || j >= dst.length) continue;
+        dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * g));
       }
-      t += Number(sl.duration) || 4;
     });
   }
   const wasPlaying = !!(vstudio.narrationEl && !vstudio.narrationEl.paused);
@@ -9306,7 +9306,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const at = slideAtTime(elapsed);
   const s = vstudio.slides[at.index];
   const v = s && s._voice;
-  if (!v || !v.words.length) return;
+  if (!v || !v.words.length || s._gfx) return;   // a graphic card writes its own words
   const t = at.local;
   const first = v.words[0], last = v.words[v.words.length - 1];
   if (t < first.t0 - 0.04 || t > last.t1 + 0.3 || t > at.dur - 0.08) return;
@@ -9698,6 +9698,8 @@ async function vsEditStylePlan(scenes, lang) {
 // teaser and B-roll): whip, zoom-through, glitch or flash, each with its own
 // sound mixed into the voice track.
 const VS_EDIT_TRANSITIONS = ["whip", "zoom", "glitch", "flash"];
+// the sound each transition makes
+const VS_TRANS_SFX = { whip: "whoosh", zoom: "sweep", glitch: "texture", flash: "sparkle", wipe: "whoosh" };
 const vsEase = {
   out: (p) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3),
   inOut: (p) => { p = Math.max(0, Math.min(1, p)); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
@@ -9732,6 +9734,7 @@ function vsEditAccent(s) {
 
 // The scene's picture (background + card or full frame), without overlays.
 function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
+  if (s._gfx) { vsDrawGfxCard(ctx, W, H, s, local, dur); return; }
   const media = s.mediaEl;
   const layout = vstudio._editLayout || "card";
   // smooth zoom: emphasis eases in from its moment, otherwise a slow push
@@ -9789,7 +9792,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 
 // The transition at this scene's edges, applied to the picture in `src`.
 function vsEditTransition(ctx, W, H, src, inType, outType, local, dur) {
-  const IN = 0.26, OUT = 0.2;
+  const IN = inType === "wipe" ? 0.3 : 0.26, OUT = outType === "wipe" ? 0.3 : 0.2;
   let type = "", phase = 0, dir = 0;     // dir -1 = leaving, +1 = arriving
   if (inType && local < IN) { type = inType; phase = 1 - local / IN; dir = 1; }
   else if (outType && local > dur - OUT) { type = outType; phase = (local - (dur - OUT)) / OUT; dir = -1; }
@@ -9822,6 +9825,20 @@ function vsEditTransition(ctx, W, H, src, inType, outType, local, dur) {
     ctx.drawImage(src, W * 0.015 * e, 0);
     ctx.fillStyle = "rgba(255,0,80,0.18)"; ctx.fillRect(0, 0, W, H);
     ctx.restore();
+  } else if (type === "wipe") {
+    // a panel of the accent sweeps across and the cut happens under it
+    ctx.drawImage(src, 0, 0);
+    const acc = vsEditAccent(null);
+    const e2 = vsEase.inOut(phase);
+    ctx.save();
+    if (dir < 0) {
+      ctx.fillStyle = "#141414"; ctx.fillRect(W - W * Math.min(1, e2 * 1.15), 0, W * Math.min(1, e2 * 1.15), H);
+      ctx.fillStyle = acc; ctx.fillRect(W - W * e2, 0, W * e2, H);
+    } else {
+      ctx.fillStyle = "#141414"; ctx.fillRect(0, 0, W * e2 * 0.9, H);
+      ctx.fillStyle = acc; ctx.fillRect(0, 0, W * e2, H);
+    }
+    ctx.restore();
   } else {   // flash
     ctx.drawImage(src, 0, 0);
     ctx.save();
@@ -9836,11 +9853,12 @@ function vsEditTransition(ctx, W, H, src, inType, outType, local, dur) {
 // progress. Captions are drawn later by vsDrawCaptions at vstudio._capY.
 function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
   const layout = vstudio._editLayout || "card";
+  if (s._gfx) { vsEditProgress(ctx, W, H, s, elapsed); return; }
   const U = Math.min(W, H), accent = vsEditAccent(s);
   const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
   const c = vsEditCardRect(W, H);
   const title = String(vstudio._editTitle || "").trim();
-  vstudio._capY = layout === "card" ? Math.min(H * 0.9, c.y + c.h + (H - c.y - c.h) * 0.36) : null;
+  vstudio._capY = layout === "card" ? Math.min(H * 0.9, c.y + c.h + (H - c.y - c.h) * 0.36) : (H > W ? H * 0.7 : null);
 
   const wrap = (text, px, maxW, weight) => {
     ctx.font = `${weight} ${px}px ${FAM}`;
@@ -9929,7 +9947,7 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
     const p = vsEase.out((local - (Number(st.at) || 0)) / 0.4);
     const exitP = Math.max(0, Math.min(1, (dur - 0.08 - local) / 0.25));
     const vis = p * exitP;
-    const isStat = /\d/.test(st.text || "");
+    const isStat = vsIsStatText(st.text);
     let lum = 0.5;
     try { const hx = accent.replace("#", ""); lum = (0.299 * parseInt(hx.slice(0, 2), 16) + 0.587 * parseInt(hx.slice(2, 4), 16) + 0.114 * parseInt(hx.slice(4, 6), 16)) / 255; } catch (e) {}
     const ink = lum > 0.55 ? "#0b0d12" : "#ffffff";
@@ -10011,11 +10029,194 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
     ctx.restore();
   }
 
-  // ── progress along the top ──
+  vsEditProgress(ctx, W, H, s, elapsed);
+}
+function vsEditProgress(ctx, W, H, s, elapsed) {
   const total = slidesTotalDuration() || 1;
   ctx.save();
-  ctx.fillStyle = "rgba(255,255,255,0.14)"; ctx.fillRect(0, 0, W, Math.max(4, H * 0.004));
-  ctx.fillStyle = accent; ctx.fillRect(0, 0, W * Math.max(0, Math.min(1, elapsed / total)), Math.max(4, H * 0.004));
+  ctx.fillStyle = s && s._gfx ? "rgba(20,20,20,0.1)" : "rgba(255,255,255,0.14)"; ctx.fillRect(0, 0, W, Math.max(4, H * 0.004));
+  ctx.fillStyle = vsEditAccent(s); ctx.fillRect(0, 0, W * Math.max(0, Math.min(1, elapsed / total)), Math.max(4, H * 0.004));
+  ctx.restore();
+}
+
+// When each key word of a graphic card lands. In order, always: on the
+// moment it is said when that comes early in the card, otherwise in an even
+// sequence from the start - a word said at the very end must not leave the
+// card half-written for most of its length.
+function vsGfxKeyTimes(s) {
+  const g = s._gfx || {};
+  const keys = String(g.text || "").trim().split(/\s+/).filter(Boolean);
+  const words = (s._voice && s._voice.words) || [];
+  const dur = Number(s.duration) || 4;
+  const norm = (w) => String(w || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const out = [];
+  let lastSaid = -1, prev = 0;
+  keys.forEach((k, j) => {
+    const w = words.find((x) => norm(x.w) === norm(k) && x.t0 > lastSaid);
+    const seq = 0.3 + j * 0.14;
+    let t = seq;
+    if (w) { lastSaid = w.t0; if (w.t0 < dur * 0.55) t = Math.max(0.18, w.t0); }
+    t = Math.min(t, seq + 0.9);
+    if (j && t < prev + 0.08) t = prev + 0.08;
+    out.push(t); prev = t;
+  });
+  return out;
+}
+
+// A quantity worth a chart and a count-up: a price, a percentage, an amount.
+// A year ("2027 outlook") is a date, not a number to count up to.
+function vsIsStatText(t) {
+  const x = String(t || "");
+  if (!/\d/.test(x)) return false;
+  if (/[%$€£]|\d\s*(k|m|bn|million|billion|thousand|percent)\b/i.test(x)) return true;
+  const nums = x.match(/\d[\d.,]*/g) || [];
+  return nums.some((n) => !/^(19|20)\d{2}$/.test(n));
+}
+
+// A motion-graphic card (Edit my video): the key point of the moment as a
+// full-screen editorial frame while the speaker's voice carries on - paper,
+// a block of the accent wiping in, a big icon (or a chart for a number) and
+// the key words landing in heavy type the instant they are said, with the
+// line being spoken written small underneath. Everything eases in once and
+// then holds still: nothing moves without a reason.
+function vsDrawGfxCard(ctx, W, H, s, local, dur) {
+  const g = s._gfx || {};
+  const U = Math.min(W, H), INK = "#141414", PAPER = "#F3F1EC";
+  const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  let accent = vsEditAccent(s);
+  if (!/^#[0-9a-f]{6}$/i.test(accent)) accent = "#F5C451";
+  const hx = accent.slice(1);
+  const lum = (0.299 * parseInt(hx.slice(0, 2), 16) + 0.587 * parseInt(hx.slice(2, 4), 16) + 0.114 * parseInt(hx.slice(4, 6), 16)) / 255;
+  // a dark accent would swallow black type: it becomes a tint instead
+  const block = lum > 0.5 ? accent : accent + "55";
+  const norm = (w) => String(w || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const ease = (x) => vsEase.out(Math.max(0, Math.min(1, x)));
+  const v = Number(g.v) || 0;
+  const iconY = H > W ? H * 0.34 : H * 0.36;
+  const iconR = U * (H > W ? 0.2 : 0.17);
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+  // a faint grid, like a layout sheet
+  ctx.strokeStyle = "rgba(20,20,20,0.045)"; ctx.lineWidth = Math.max(1, U * 0.0015);
+  const step = U * 0.09;
+  ctx.beginPath();
+  for (let x = step; x < W; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = step; y < H; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  // the accent shape wipes in over the first half second
+  const pB = ease(local / 0.5);
+  ctx.fillStyle = block;
+  if (v === 0) ctx.fillRect(0, 0, W * 0.42, H * pB);
+  else if (v === 1) ctx.fillRect(0, 0, W * pB, H * 0.44);
+  else { ctx.beginPath(); ctx.arc(W / 2, iconY, iconR * 1.45 * pB, 0, Math.PI * 2); ctx.fill(); }
+
+  // the words: which of them are the key words, and when each is said
+  const text = String(g.text || "").trim();
+  const isStat = vsIsStatText(text);
+  const words = (s._voice && s._voice.words) || [];
+  const keys = text.split(/\s+/).filter(Boolean);
+  const keyTimes = vsGfxKeyTimes(s);
+
+  // ── icon, or a chart that grows for a number ──
+  const pI = ease((local - 0.12) / 0.45);
+  if (isStat) {
+    const baseY = iconY + iconR * 0.95, bw = U * 0.13, gap = U * 0.05;
+    const hA = iconR * 0.9 * pI, hB = iconR * 1.9 * vsEase.inOut(Math.max(0, Math.min(1, (local - 0.3) / 0.9)));
+    ctx.fillStyle = INK; ctx.fillRect(W / 2 - bw - gap / 2, baseY - hA, bw, hA);
+    ctx.fillStyle = lum > 0.5 ? accent : INK;
+    ctx.fillRect(W / 2 + gap / 2, baseY - hB, bw, hB);
+    if (lum <= 0.5) { ctx.fillStyle = accent; ctx.fillRect(W / 2 + gap / 2, baseY - hB, bw, Math.min(hB, U * 0.012)); }
+    ctx.fillStyle = INK; ctx.fillRect(W / 2 - bw * 1.6, baseY, bw * 3.2, Math.max(2, U * 0.004));
+  } else if (g.icon) {
+    ctx.save();
+    ctx.globalAlpha = pI;
+    ctx.translate(W / 2, iconY); ctx.scale(0.86 + 0.14 * pI, 0.86 + 0.14 * pI);
+    ctx.shadowColor = "rgba(0,0,0,0.16)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.015;
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, iconR, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = "transparent";
+    vsStickerIcon(ctx, 0, 0, iconR * 0.78, g.icon, INK);
+    ctx.restore();
+  }
+
+  // ── the key words, heavy, each landing as it is said ──
+  if (text) {
+    const label = (w) => w.toUpperCase();
+    let px = U * 0.15;
+    const maxW = W * 0.86;
+    const lay = () => {
+      ctx.font = `900 ${px}px ${FAM}`;
+      const lines = []; let cur = [];
+      keys.forEach((k, j) => {
+        const test = cur.concat([j]).map((x) => label(keys[x])).join(" ");
+        if (cur.length && ctx.measureText(test).width > maxW) { lines.push(cur); cur = [j]; } else cur.push(j);
+      });
+      if (cur.length) lines.push(cur);
+      return lines;
+    };
+    let lines = lay();
+    while (px > U * 0.07 && (lines.length > 2 || lines.some((ln) => ctx.measureText(ln.map((x) => label(keys[x])).join(" ")).width > maxW))) { px *= 0.92; lines = lay(); }
+    const lh = px * 1.02;
+    const top = (H > W ? H * 0.6 : H * 0.66) - (lines.length * lh) / 2;
+    ctx.textBaseline = "top"; ctx.textAlign = "left";
+    try { ctx.direction = "ltr"; } catch (e) {}
+    const sp = ctx.measureText(" ").width;
+    lines.forEach((ln, li) => {
+      const ws = ln.map((x) => label(keys[x]));
+      const widths = ws.map((w) => ctx.measureText(w).width);
+      let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + sp * (ws.length - 1)) / 2;
+      ln.forEach((kIdx, j) => {
+        const p = ease((local - keyTimes[kIdx]) / 0.28);
+        if (p > 0) {
+          let shown = ws[j];
+          // a number counts up to its value as it lands
+          const m = shown.match(/-?[\d.,]+/);
+          if (m && isStat) {
+            const target = parseFloat(m[0].replace(/,/g, ""));
+            if (isFinite(target)) {
+              const dec = (m[0].split(".")[1] || "").length;
+              const cur = target * vsEase.out(Math.max(0, Math.min(1, (local - keyTimes[kIdx]) / 0.9)));
+              shown = shown.replace(m[0], cur.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: m[0].includes(",") || target >= 10000 }));
+            }
+          }
+          ctx.globalAlpha = p;
+          ctx.fillStyle = INK;
+          ctx.fillText(shown, x, top + li * lh + (1 - p) * px * 0.32);
+          // the last key word gets the accent underline as it lands
+          if (kIdx === keys.length - 1) {
+            ctx.fillStyle = lum > 0.5 ? accent : INK;
+            ctx.fillRect(x, top + li * lh + px * 0.9, widths[j] * vsEase.inOut(Math.max(0, Math.min(1, (local - keyTimes[kIdx] - 0.1) / 0.35))), Math.max(4, px * 0.09));
+          }
+        }
+        x += widths[j] + sp;
+      });
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── the line being said, small, word by word ──
+  if (words.length) {
+    let cur = 0;
+    for (let k = 0; k < words.length; k++) if (words[k].t0 <= local) cur = k;
+    const chunks = vsCaptionChunks(words, 4);
+    const chunk = chunks.find((c) => c.includes(cur)) || chunks[0];
+    if (chunk && local >= words[chunk[0]].t0 - 0.05 && local < dur - 0.1) {
+      const fs = Math.round(U * 0.052);
+      ctx.font = `700 ${fs}px ${FAM}`;
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      const ws = chunk.map((k) => words[k].w);
+      const widths = ws.map((w) => ctx.measureText(w).width), sp2 = fs * 0.32;
+      let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + sp2 * (ws.length - 1)) / 2;
+      const y = H > W ? H * 0.8 : H * 0.86;
+      chunk.forEach((k, j) => {
+        ctx.fillStyle = k <= cur ? INK : "rgba(20,20,20,0.32)";
+        ctx.fillText(ws[j], x, y);
+        x += widths[j] + sp2;
+      });
+    }
+  }
   ctx.restore();
 }
 
@@ -10039,10 +10240,10 @@ async function vsClipLuma(el) {
 // The whole frame for an edited clip. Returns true when it drew.
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
-  if (!media || !(media.videoWidth || media.naturalWidth)) return false;
+  if (!s._gfx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
   const next = vstudio.slides[idx + 1];
   const inT = s._transIn || "", outT = (next && next._transIn) || "";
-  const needSrc = !!((inT && local < 0.26) || (outT && local > dur - 0.2));
+  const needSrc = !!((inT && local < (inT === "wipe" ? 0.3 : 0.26)) || (outT && local > dur - (outT === "wipe" ? 0.3 : 0.2)));
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -10068,56 +10269,104 @@ const VS_SFX_GAIN = 0.3;
 async function vsPrepareEditSfx() {
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
   const sr = vstudio._playCtx.sampleRate;
-  if (vstudio._sfx && vstudio._sfx.sr === sr) return vstudio._sfx;
+  if (vstudio._sfx && vstudio._sfx.sr === sr && vstudio._sfx.v === 2) return vstudio._sfx;
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const noise = (ctx, len) => { const b = ctx.createBuffer(1, Math.ceil(len * sr), sr); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; };
   const render = async (len, build) => { const ctx = new OAC(1, Math.ceil(len * sr), sr); build(ctx); return await ctx.startRendering(); };
-  // whoosh: noise through a band-pass sweeping up then down, peak at 0.25s
-  const whoosh = await render(0.6, (ctx) => {
-    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.6);
-    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.4;
-    bp.frequency.setValueAtTime(350, 0); bp.frequency.exponentialRampToValueAtTime(3200, 0.25); bp.frequency.exponentialRampToValueAtTime(600, 0.58);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.55, 0.24); g.gain.exponentialRampToValueAtTime(0.0001, 0.58);
-    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(0);
-  });
-  // zoom: a whoosh with a low thump at the cut
-  const zoom = await render(0.7, (ctx) => {
-    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.7);
-    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(200, 0); hp.frequency.exponentialRampToValueAtTime(4000, 0.24);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.45, 0.23); g.gain.exponentialRampToValueAtTime(0.0001, 0.4);
-    src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
-    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(110, 0.24); o.frequency.exponentialRampToValueAtTime(40, 0.6);
-    const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, 0.23); og.gain.exponentialRampToValueAtTime(0.7, 0.25); og.gain.exponentialRampToValueAtTime(0.0001, 0.65);
-    o.connect(og); og.connect(ctx.destination); o.start(0.23); o.stop(0.7);
-  });
-  // glitch: chopped square bursts and noise crackle
-  const glitch = await render(0.45, (ctx) => {
-    for (let k = 0; k < 7; k++) {
-      const t = 0.12 + k * 0.035;
-      const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = 160 + Math.random() * 520;
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.006); g.gain.linearRampToValueAtTime(0.0001, t + 0.028);
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2200;
-      o.connect(g); g.connect(lp); lp.connect(ctx.destination); o.start(t); o.stop(t + 0.035);
-    }
-    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.45);
-    const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001, 0.1); g2.gain.linearRampToValueAtTime(0.25, 0.2); g2.gain.linearRampToValueAtTime(0.0001, 0.34);
-    src.connect(g2); g2.connect(ctx.destination); src.start(0);
-  });
-  // flash: a short riser into a shimmer
-  const flash = await render(0.8, (ctx) => {
+  // a tone with a quick attack and an exponential tail
+  const tone = (ctx, type, f, t0, peak, decay, dest, f2) => {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + decay * 0.8);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+    o.connect(g); g.connect(dest || ctx.destination); o.start(t0); o.stop(t0 + decay + 0.02);
+  };
+  // Modern, soft and low: a deep whoosh (no hiss), tonal plucks and ticks,
+  // a pitched digital sweep, a sparkle and a sub boom. The cut, the word and
+  // the icon each get the sound that fits them.
+  const whoosh = await render(0.8, (ctx) => {
     const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.8);
-    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(600, 0); hp.frequency.exponentialRampToValueAtTime(3800, 0.26);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.35, 0.25); g.gain.exponentialRampToValueAtTime(0.0001, 0.42);
-    src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
-    [1318.5, 1760, 2637].forEach((f, k) => {
-      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
-      const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, 0.25); og.gain.exponentialRampToValueAtTime(0.08 / (k + 1), 0.27); og.gain.exponentialRampToValueAtTime(0.0001, 0.78);
-      o.connect(og); og.connect(ctx.destination); o.start(0.25); o.stop(0.8);
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 0.9;
+    lp.frequency.setValueAtTime(180, 0); lp.frequency.exponentialRampToValueAtTime(1300, 0.38); lp.frequency.exponentialRampToValueAtTime(220, 0.78);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.9, 0.38); g.gain.exponentialRampToValueAtTime(0.0001, 0.78);
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination); src.start(0);
+    tone(ctx, "sine", 70, 0.3, 0.35, 0.45, null, 42);
+  });
+  const sweep = await render(0.6, (ctx) => {
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(500, 0); lp.frequency.exponentialRampToValueAtTime(3200, 0.3); lp.connect(ctx.destination);
+    [1, 2.01].forEach((m, k) => {
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.setValueAtTime(190 * m, 0); o.frequency.exponentialRampToValueAtTime(760 * m, 0.3);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(k ? 0.08 : 0.22, 0.26); g.gain.exponentialRampToValueAtTime(0.0001, 0.55);
+      o.connect(g); g.connect(lp); o.start(0); o.stop(0.58);
     });
   });
-  // each sound's loudest moment, so it lands on the cut
-  vstudio._sfx = { sr, whip: { buf: whoosh, peak: 0.25 }, zoom: { buf: zoom, peak: 0.24 }, glitch: { buf: glitch, peak: 0.2 }, flash: { buf: flash, peak: 0.26 } };
+  const texture = await render(0.45, (ctx) => {
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.45);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2600; bp.Q.value = 1.6;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0);
+    for (let k = 0; k < 9; k++) { const t = 0.03 + k * 0.035; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.32 * (1 - k / 11), t + 0.006); g.gain.linearRampToValueAtTime(0.0001, t + 0.024); }
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(0);
+    [880, 1320, 990].forEach((f, k) => tone(ctx, "triangle", f, 0.12 + k * 0.05, 0.12, 0.05));
+  });
+  const sparkle = await render(1.3, (ctx) => {
+    [2637, 3520, 4186, 5274, 3136, 6272].forEach((f, k) => tone(ctx, "sine", f, 0.02 + k * 0.045, 0.07, 0.7));
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 1.3);
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 6500;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.035, 0.1); g.gain.exponentialRampToValueAtTime(0.0001, 1.1);
+    src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
+  });
+  const pluck = await render(0.3, (ctx) => {
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4200; lp.connect(ctx.destination);
+    tone(ctx, "triangle", 1318.5, 0.005, 0.5, 0.18, lp);
+    tone(ctx, "sine", 2637, 0.005, 0.12, 0.09, lp);
+  });
+  const tick = await render(0.08, (ctx) => { tone(ctx, "sine", 1900, 0.002, 0.45, 0.045, null, 1250); });
+  const button = await render(0.12, (ctx) => {
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.12);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = 1.1;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.4, 0.003); g.gain.exponentialRampToValueAtTime(0.0001, 0.025);
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(0);
+    tone(ctx, "sine", 330, 0.003, 0.4, 0.07, null, 240);
+  });
+  const boom = await render(1.1, (ctx) => {
+    tone(ctx, "sine", 78, 0.005, 0.95, 1.0, null, 36);
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.06);
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5, 0); g.gain.exponentialRampToValueAtTime(0.0001, 0.05);
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination); src.start(0);
+  });
+  const hit = await render(0.9, (ctx) => {
+    tone(ctx, "sine", 1046.5, 0.004, 0.32, 0.65);
+    tone(ctx, "sine", 659.3, 0.004, 0.28, 0.75);
+    tone(ctx, "triangle", 1568, 0.004, 0.06, 0.3);
+    tone(ctx, "sine", 90, 0.004, 0.4, 0.3, null, 50);
+  });
+  // `peak` is the moment that lands on the beat: the cut, the word, the pop
+  vstudio._sfx = { sr, v: 2,
+    whoosh: { buf: whoosh, peak: 0.38 }, sweep: { buf: sweep, peak: 0.3 }, texture: { buf: texture, peak: 0.15 }, sparkle: { buf: sparkle, peak: 0.03 },
+    pluck: { buf: pluck, peak: 0.006 }, tick: { buf: tick, peak: 0.003 }, button: { buf: button, peak: 0.004 }, boom: { buf: boom, peak: 0.008 }, hit: { buf: hit, peak: 0.005 } };
   return vstudio._sfx;
+}
+
+// Every timed sound of an edit: the cut's sound on each transition, a sub
+// boom under the hook, a pluck when a key word pops on, and on a graphic card
+// a button-click for the icon and a soft tick as each big word lands.
+function vsEditSfxEvents(slides) {
+  const ev = [];
+  let t = 0;
+  const norm = (w) => String(w || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  (slides || []).forEach((sl, i) => {
+    const d = Number(sl.duration) || 4;
+    if (sl._transIn && VS_TRANS_SFX[sl._transIn]) ev.push({ n: VS_TRANS_SFX[sl._transIn], t, g: 1 });
+    if (i === 0 && sl._hook && sl._hook.text) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "sparkle", t: t + Math.max(0.6, (Number(sl._hook.until) || 2.6) - 0.5), g: 0.6 }); }
+    if (sl._sticker && (sl._sticker.text || sl._sticker.icon)) ev.push({ n: vsIsStatText(sl._sticker.text) ? "hit" : "pluck", t: t + (Number(sl._sticker.at) || 0), g: 0.8 });
+    if (sl._gfx) {
+      ev.push({ n: "button", t: t + 0.14, g: 0.7 });
+      vsGfxKeyTimes(sl).slice(0, 4).forEach((kt) => { if (kt < d - 0.2) ev.push({ n: "tick", t: t + kt, g: 0.55 }); });
+      if (vsIsStatText(sl._gfx.text)) ev.push({ n: "sweep", t: t + 0.55, g: 0.45 });
+    }
+    t += d;
+  });
+  return ev.sort((a, b) => a.t - b.t);
 }
 
 // ── Edit my video ───────────────────────────────────────────────────────────
@@ -10175,11 +10424,13 @@ function vsEditMineDialog(file) {
       ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
       ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
       ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
+      ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true)}
       ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
       ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
       ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
       <label class="vsem-row"><span>${L("Look", "ظاهر")}</span>
         <select id="vsEmLook">
+          <option value="auto">${L("Automatic - full frame for a tall video, framed card for a square or wide one", "خودکار - تمام‌صفحه برای ویدیوی عمودی، کارت برای مربع یا افقی")}</option>
           <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
           <option value="full">${L("Full frame", "تمام‌صفحه")}</option>
         </select></label>
@@ -10192,7 +10443,7 @@ function vsEditMineDialog(file) {
           <option value="4:5">4:5 · ${L("Feed", "فید")}</option>
           <option value="16:9">16:9 · YouTube</option>
         </select></label>
-      <p class="vsem-note">${L("Free. Your video stays on this device; only its sound is sent to be transcribed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش برای متن‌شدن فرستاده می‌شود.")}</p>
+      <p class="vsem-note">${L("Free. Your video stays on this device; its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.")}</p>
       <div class="vsem-btns">
         <button type="button" class="vsem-go">${L("Edit it", "ادیتش کن")}</button>
         <button type="button" class="vsem-x">${L("Cancel", "انصراف")}</button>
@@ -10208,6 +10459,7 @@ function vsEditMineDialog(file) {
       title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
       stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
       broll: d.querySelector("#vsEmBroll").checked, trans: d.querySelector("#vsEmTrans").checked, layout: d.querySelector("#vsEmLook").value,
+      gfx: d.querySelector("#vsEmGfx").checked,
       aspect: d.querySelector("#vsEmAspect").value
     };
     close();
@@ -10517,7 +10769,22 @@ async function vsEditMyVideo(file, o) {
       music: { mood: String(mu.mood || "upbeat"), energy: String(mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
-    vstudio._editLayout = o.aspect === "16:9" ? "full" : (o.layout || "card");
+    const lay = o.layout && o.layout !== "auto" ? o.layout : ((vstudio._editSrcAspect || 1) < 0.8 ? "full" : "card");
+    vstudio._editLayout = o.aspect === "16:9" ? "full" : lay;
+    // Motion-graphic cards: the key point of a moment becomes a full-screen
+    // card (big words as they are said, an icon or a chart) while the voice
+    // carries on - never the opening, never two in a row, under half the cuts.
+    if (o.gfx !== false && o.stickers) {
+      let lastG = -9, nG = 0;
+      const maxG = Math.max(1, Math.round(vstudio.slides.length * 0.4));
+      vstudio.slides.forEach((sl, i) => {
+        const st = sl._sticker;
+        if (i === 0 || sl._teaser || sl._broll || nG >= maxG || i - lastG < 2 || !st || !st.text) return;
+        sl._gfx = { text: st.text, icon: st.icon || "", v: nG % 3 };
+        delete sl._sticker; delete sl._emph;
+        lastG = i; nG++;
+      });
+    }
     vstudio._editTitle = hookText || "";
     // transitions where the talk moves on: out of the teaser, into and out of
     // B-roll, and at each new point the analysis marked
@@ -10530,7 +10797,8 @@ async function vsEditMyVideo(file, o) {
       const prev = vstudio.slides[i - 1];
       const k2 = sentOf(sl._clipIn != null && !sl._broll ? sl._clipIn + 0.1 : (sl._ownClipIn || 0) + 0.1);
       const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
-      if (prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = VS_EDIT_TRANSITIONS[tk++ % VS_EDIT_TRANSITIONS.length];
+      if (sl._gfx || prev._gfx) sl._transIn = "wipe";
+      else if (prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = VS_EDIT_TRANSITIONS[tk++ % VS_EDIT_TRANSITIONS.length];
     });
     vstudio._editSfxOn = !!o.trans;
     if (o.trans) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
@@ -10829,12 +11097,33 @@ function vsElementFields(s, i, id) {
       get: () => Math.round((Number(s.duration) || 1) * 10) / 10, set: (v) => recut(s._clipIn || 0, Number(v) || 1) });
     F.push({ type: "select", label: L("Transition into this clip", "ترنزیشن ورود به این کلیپ"), list: true,
       options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Whip pan + whoosh", "حرکت سریع + صدای ووش") },
-        { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") }],
+        { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") },
+        { v: "wipe", t: L("Colour wipe + whoosh", "پردهٔ رنگی + صدای ووش") }],
       get: () => s._transIn || "", set: async (v) => {
         s._transIn = v;
         if (v) { vstudio._editSfxOn = true; try { await vsPrepareEditSfx(); } catch (e) {} }
         vsMixVoiceTrack(true);
       } });
+    F.push({ type: "select", label: L("This clip shows", "این کلیپ نشان می‌دهد"), list: true,
+      options: [{ v: "", t: L("You speaking", "خودت در حال صحبت") }, { v: "gfx", t: L("A motion-graphic card (your voice carries on)", "کارت موشن‌گرافیک (صدایت ادامه دارد)") }],
+      get: () => (s._gfx ? "gfx" : ""), set: (v) => {
+        if (v === "gfx" && !s._gfx) {
+          const ws = ((s._voice && s._voice.words) || []).map((w) => w.w);
+          const longest = ws.slice().sort((x, y) => y.length - x.length)[0] || "";
+          s._gfx = { text: (s._sticker && s._sticker.text) || longest.replace(/[^\p{L}\p{N}%$]/gu, ""), icon: (s._sticker && s._sticker.icon) || "", v: 0 };
+          delete s._sticker;
+        } else if (!v && s._gfx) { delete s._gfx; }
+        vsMixVoiceTrack(true);
+        vsInspRedraw(true);
+      } });
+    if (s._gfx) {
+      F.push({ type: "text", label: L("Big words on the card", "کلمات درشت روی کارت"), get: () => s._gfx.text || "", set: (v) => { s._gfx.text = String(v).slice(0, 40); vsMixVoiceTrack(true); } });
+      F.push({ type: "select", label: L("Icon", "آیکون"), options: [{ v: "", t: L("None", "بدون آیکون") }].concat(VS_STICKER_ICONS.map((k) => ({ v: k, t: k }))),
+        get: () => s._gfx.icon || "", set: (v) => { s._gfx.icon = v; } });
+      F.push({ type: "select", label: L("Card layout", "چیدمان کارت"),
+        options: [{ v: "0", t: L("Colour panel on the side", "پنل رنگی کنار") }, { v: "1", t: L("Colour band on top", "نوار رنگی بالا") }, { v: "2", t: L("Colour circle behind the icon", "دایرهٔ رنگی پشت آیکون") }],
+        get: () => String(s._gfx.v || 0), set: (v) => { s._gfx.v = Number(v) || 0; } });
+    }
     F.push({ type: "select", label: L("Look (whole video)", "ظاهر (کل ویدیو)"),
       options: [{ v: "card", t: L("Graphic card", "کارت گرافیکی") }, { v: "full", t: L("Full frame", "تمام‌صفحه") }],
       get: () => vstudio._editLayout || "card", set: (v) => { vstudio._editLayout = v; } });
@@ -21399,14 +21688,23 @@ function vsAudioBufferToWavBytes(buf) {
 // a hard timeout so a slow/remote clip can never HANG the offline render (it
 // just draws whatever frame is currently decoded). This is what lets footage
 // decks be rendered deterministically instead of played in real time.
-function _vsSeekVideo(vid, target) {
+function _vsSeekVideo(vid, target, patient) {
   return new Promise(res => {
     let done = false;
     const fin = () => { if (done) return; done = true; try { vid.removeEventListener("seeked", fin); } catch (e) {} res(); };
     try { vid.addEventListener("seeked", fin, { once: true }); } catch (e) {}
     try { vid.currentTime = target; } catch (e) { fin(); return; }
-    setTimeout(fin, 180);
+    setTimeout(fin, patient ? 4000 : 180);
   });
+}
+// A file on this device (Edit my video) or a clip already buffered at the
+// target never waits on the network, so the export waits for its real frame.
+// The 180ms cut-off drew the previous frame whenever a seek ran long - the
+// customer's own video then stuttered ("lag") in the exported reel.
+function _vsSeekPatient(vid, target) {
+  if (/^blob:/.test(vid.currentSrc || vid.src || "")) return true;
+  try { const b = vid.buffered; for (let i = 0; i < b.length; i++) if (b.start(i) <= target && b.end(i) >= target + 0.1) return true; } catch (e) {}
+  return false;
 }
 // For the slide active at logical time t, seek its footage video to the matching
 // moment (clip stretched across the scene) so the export shows real motion —
@@ -21415,7 +21713,7 @@ async function _vsSeekActiveFootage(t) {
   if (!vstudio.slides.length) return;
   const at = slideAtTime(t);
   const slide = vstudio.slides[at.index];
-  if (!slide || !slide.isVideo || !slide.mediaEl) return;
+  if (!slide || !slide.isVideo || !slide.mediaEl || slide._gfx) return;
   const vid = slide.mediaEl;
   const clipIn = slide._clipIn || 0;
   const vdur = (vid.duration && isFinite(vid.duration)) ? Math.max(0.05, vid.duration - clipIn) : at.dur;
@@ -21433,7 +21731,7 @@ async function _vsSeekActiveFootage(t) {
   let target = span > vdur ? (Math.min(at.local, span) / span) * vdur : at.local;
   target = Math.max(0, Math.min(vdur - 0.05, target)) + clipIn;
   if (Math.abs((vid.currentTime || 0) - target) < 0.008) return;
-  await _vsSeekVideo(vid, target);
+  await _vsSeekVideo(vid, target, _vsSeekPatient(vid, target));
 }
 
 async function vsExportOfflineEncode(canvas, duration, fps) {
