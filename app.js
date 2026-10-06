@@ -13,6 +13,7 @@ const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 // and direct Pollinations is Turnstile-gated. Costs only the account's free
 // daily neuron allowance.
 const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
+const VS_AI_BUILD_GATE = "https://airadar-ai.aliniashyn-9b4.workers.dev/gate/build";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
@@ -40,7 +41,7 @@ function arGuestWall(kind) {
   if (document.getElementById("arGuestWall")) return;
   const fa = document.documentElement.lang === "fa" || /[\u0600-\u06FF]/.test(document.body ? document.body.innerText.slice(0, 400) : "");
   const next = encodeURIComponent(location.pathname + location.search);
-  const what = kind === "image" ? (fa ? "تصویرهای رایگان" : "free AI images") : (fa ? "استفاده‌های رایگان" : "free AI uses");
+  const what = kind === "image" ? (fa ? "تصویرهای رایگان" : "free AI images") : kind === "build" ? (fa ? "ویدیوی رایگان" : "free video") : (fa ? "استفاده‌های رایگان" : "free AI uses");
   const w = document.createElement("div");
   w.id = "arGuestWall";
   w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "arGwT");
@@ -52,7 +53,9 @@ function arGuestWall(kind) {
     '#arGuestWall .gwp{background:#e9edf3;color:#0b0d11;border:0}#arGuestWall .gws{background:transparent;color:#e9edf3;border:1px solid #333b47}' +
     '#arGuestWall .gwx{display:block;margin:14px auto 0;background:none;border:0;color:#7f8a99;flex:none;padding:4px}</style>' +
     '<div class="gw" ' + (fa ? 'dir="rtl"' : '') + '><h2 id="arGwT">' + (fa ? "برای ادامه، یک حساب رایگان بسازید" : "Create a free account to keep going") + '</h2>' +
-    '<p>' + (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. ساخت حساب رایگان یک دقیقه طول می‌کشد و محدودیت مهمان را برمی‌دارد." : "You've used today's " + what + " for guests. A free account takes a minute and lifts the guest limit.") + '</p>' +
+    '<p>' + (kind === "build"
+      ? (fa ? "مهمان‌ها روزی یک ویدیو رایگان می‌سازند و ویدیوی امروزت را ساختی. با حساب رایگان، Video Studio برایت کاملاً رایگان و بدون محدودیت است." : "Guests get one free video a day, and you've made today's. With a free account Video Studio is completely free, with no daily limit.")
+      : (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. ساخت حساب رایگان یک دقیقه طول می‌کشد و محدودیت مهمان را برمی‌دارد." : "You've used today's " + what + " for guests. A free account takes a minute and lifts the guest limit.")) + '</p>' +
     '<div class="gwb"><a class="gwp" href="/login?mode=signup&next=' + next + '">' + (fa ? "ثبت‌نام رایگان" : "Create free account") + '</a>' +
     '<a class="gws" href="/login?next=' + next + '">' + (fa ? "ورود" : "Sign in") + '</a></div>' +
     '<button type="button" class="gwx">' + (fa ? "بعداً" : "Not now") + '</button></div>';
@@ -7378,6 +7381,13 @@ async function buildAutoVideo(useAI) {
       ? "یک لینک، متن، یا حتی فقط یک موضوع وارد کن." : "Enter a link, some text, or even just a topic.");
     return;
   }
+  // One video a day for a visitor who is not signed in; members are never
+  // counted. Asked of the server, so clearing the browser does not reset it.
+  // If the check itself cannot be reached, the build goes ahead.
+  try {
+    const r = await fetch(VS_AI_BUILD_GATE, { method: "POST", headers: await arGuestHeaders() });
+    if (r.status === 401 && await arIsGuestWall(r)) return;
+  } catch (e) {}
   vsSaveActiveSlide();
   // The video being replaced stops first - its music used to play on, out of
   // reach of the Pause button, under the new one.
