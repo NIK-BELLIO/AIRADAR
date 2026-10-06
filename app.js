@@ -9220,7 +9220,7 @@ function vsClearVoiceTrack() {
 function vsMixVoiceTrack(force) {
   const slides = vstudio.slides;
   if (!slides.some((s) => s._voice)) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); return; }
-  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "")).join("|");
+  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "");
   if (!force && sig === vstudio._voiceSig) return;
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
   const sr = vstudio._playCtx.sampleRate;
@@ -9251,6 +9251,23 @@ function vsMixVoiceTrack(force) {
     }
     start += d;
   });
+  // a transition's sound, its loudest moment on the cut
+  if (vstudio._editSfxOn && vstudio._sfx && vstudio._sfx.sr === sr) {
+    let t = 0;
+    slides.forEach((sl) => {
+      const fx = sl._transIn && vstudio._sfx[sl._transIn];
+      if (fx) {
+        const src = fx.buf.getChannelData(0);
+        const at = Math.floor((t - fx.peak) * sr);
+        for (let k = 0; k < src.length; k++) {
+          const j = at + k;
+          if (j < 0 || j >= dst.length) continue;
+          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * 0.85));
+        }
+      }
+      t += Number(sl.duration) || 4;
+    });
+  }
   const wasPlaying = !!(vstudio.narrationEl && !vstudio.narrationEl.paused);
   if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch (e) {} }
   if (vstudio._voiceUrl) { try { URL.revokeObjectURL(vstudio._voiceUrl); } catch (e) {} }
@@ -9322,6 +9339,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   // Below the headline band (titles end near two-thirds down) and above the
   // strip a phone app covers with its own buttons.
   let cy = H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86);
+  if (s._ownSpeech && vstudio._editLayout && vstudio._capY) cy = vstudio._capY;
   // Never over the scene's own words: an editorial cover block, or a headline
   // that reaches down into the caption band, pushes the captions above it.
   {
@@ -9503,6 +9521,7 @@ function vsDrawEditOverlays(ctx, W, H, elapsed) {
   const at = slideAtTime(elapsed);
   const s = vstudio.slides[at.index];
   if (!s || (!s._hook && !s._sticker)) return;
+  if (s._ownSpeech && vstudio._editLayout) return;   // vsDrawEditChrome draws these
   const t = at.local, U = Math.min(W, H);
   let accent = "#f5c451";
   try { const tp = vsTemplate(); if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
@@ -9654,6 +9673,411 @@ async function vsEditStylePlan(scenes, lang) {
   return { hook: String(j.hook || "").replace(/^["'«“]+|["'»”]+$/g, "").trim().slice(0, 80), scenes: Array.isArray(j.scenes) ? j.scenes : [] };
 }
 
+// ── Edit my video: the renderer ────────────────────────────────────────────
+// An edited clip is drawn here, not by the generic footage stage, so the look
+// is one designed thing and every movement has a reason:
+//   card  - the speaker in a rounded card over a blurred, darkened copy of
+//           their own video, a title bar above, captions below;
+//   full  - the speaker full-frame.
+// Motion is slow and eased: a gentle push-in through each clip, a smooth
+// zoom only where the analysis marked emphasis. Nothing pulses on its own.
+// Transitions sit only where the talk moves to a new point (and around the
+// teaser and B-roll): whip, zoom-through, glitch or flash, each with its own
+// sound mixed into the voice track.
+const VS_EDIT_TRANSITIONS = ["whip", "zoom", "glitch", "flash"];
+const vsEase = {
+  out: (p) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3),
+  inOut: (p) => { p = Math.max(0, Math.min(1, p)); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
+  in: (p) => Math.pow(Math.max(0, Math.min(1, p)), 3),
+};
+
+// The card's rectangle for this frame size.
+function vsEditCardRect(W, H) {
+  const w = W * 0.88;
+  const h = Math.min(H * 0.6, w * 1.3);
+  return { x: (W - w) / 2, y: H * 0.175, w, h, r: Math.min(W, H) * 0.045 };
+}
+
+// Draw media cover-fit into a rectangle, centred on the subject, at zoom z.
+function vsDrawCover(ctx, media, rx, ry, rw, rh, z, focusX, nudgeX, nudgeY) {
+  const mw = media.videoWidth || media.naturalWidth || rw, mh = media.videoHeight || media.naturalHeight || rh;
+  const sc = Math.max(rw / mw, rh / mh) * z;
+  const dw = mw * sc, dh = mh * sc;
+  const maxX = Math.max(0, (dw - rw) / 2), maxY = Math.max(0, (dh - rh) / 2);
+  let ox = -((focusX == null ? 0.5 : focusX) - 0.5) * dw + (nudgeX || 0) * rw;
+  let oy = (nudgeY || 0) * rh;
+  ox = Math.max(-maxX, Math.min(maxX, ox)); oy = Math.max(-maxY, Math.min(maxY, oy));
+  try { ctx.drawImage(media, rx + (rw - dw) / 2 + ox, ry + (rh - dh) / 2 + oy, dw, dh); } catch (e) {}
+}
+
+function vsEditAccent(s) {
+  let a = "#f5c451";
+  try { const t = vsTemplate(); if (t && /^#[0-9a-f]{6}$/i.test(t.accent || "")) a = t.accent; } catch (e) {}
+  return (s && s._accent) || a;
+}
+
+// The scene's picture (background + card or full frame), without overlays.
+function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
+  const media = s.mediaEl;
+  const layout = vstudio._editLayout || "card";
+  // smooth zoom: emphasis eases in from its moment, otherwise a slow push
+  const userZ = Math.max(1, Number(off && off.mediaScale) || 1);
+  let z = 1 + 0.03 * (dur > 0 ? local / dur : 0);
+  if (s._emph != null) z = 1.02 + 0.11 * vsEase.inOut((local - s._emph) / 0.8);
+  z *= userZ;
+  const focusX = s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
+  const nx = Number(off && off.mediaDX) || 0, ny = Number(off && off.mediaDY) || 0;
+  if (layout === "card") {
+    // background: the same picture, tiny and stretched - a free, soft blur
+    const tw = Math.max(8, Math.round(W / 18)), th = Math.max(8, Math.round(H / 18));
+    const tiny = vstudio._edTiny || (vstudio._edTiny = document.createElement("canvas"));
+    if (tiny.width !== tw || tiny.height !== th) { tiny.width = tw; tiny.height = th; }
+    const tx = tiny.getContext("2d");
+    vsDrawCover(tx, media, 0, 0, tw, th, 1.1, focusX, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(tiny, -W * 0.05, -H * 0.05, W * 1.1, H * 1.1);
+    ctx.fillStyle = "rgba(8,9,12,0.58)"; ctx.fillRect(0, 0, W, H);
+    const vg = ctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.2, W / 2, H * 0.5, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    // the card
+    const c = vsEditCardRect(W, H);
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = W * 0.05; ctx.shadowOffsetY = H * 0.012;
+    ctx.fillStyle = "#0b0d12";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(c.x, c.y, c.w, c.h, c.r); else ctx.rect(c.x, c.y, c.w, c.h); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(c.x, c.y, c.w, c.h, c.r); else ctx.rect(c.x, c.y, c.w, c.h); ctx.clip();
+    vsDrawCover(ctx, media, c.x, c.y, c.w, c.h, z, focusX, nx, ny);
+    // a soft inner shade at the foot of the card, where a stat can sit
+    const sg = ctx.createLinearGradient(0, c.y + c.h * 0.6, 0, c.y + c.h);
+    sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = sg; ctx.fillRect(c.x, c.y, c.w, c.h);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = Math.max(1, W * 0.002);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(c.x, c.y, c.w, c.h, c.r); else ctx.rect(c.x, c.y, c.w, c.h); ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+    vsDrawCover(ctx, media, 0, 0, W, H, z, focusX, nx, ny);
+  }
+}
+
+// The transition at this scene's edges, applied to the picture in `src`.
+function vsEditTransition(ctx, W, H, src, inType, outType, local, dur) {
+  const IN = 0.26, OUT = 0.2;
+  let type = "", phase = 0, dir = 0;     // dir -1 = leaving, +1 = arriving
+  if (inType && local < IN) { type = inType; phase = 1 - local / IN; dir = 1; }
+  else if (outType && local > dur - OUT) { type = outType; phase = (local - (dur - OUT)) / OUT; dir = -1; }
+  if (!type || phase <= 0) { ctx.drawImage(src, 0, 0); return; }
+  const e = dir > 0 ? vsEase.in(phase) : vsEase.in(phase);
+  if (type === "whip") {
+    const off = (dir > 0 ? 1 : -1) * W * 0.6 * e;
+    const n = 6, spread = W * 0.06 * e;
+    for (let k = 0; k < n; k++) {
+      ctx.globalAlpha = 1 / (k + 1) * 0.9 + 0.1;
+      ctx.drawImage(src, off - spread * (k / n) * (dir > 0 ? 1 : -1), 0);
+    }
+    ctx.globalAlpha = 1;
+  } else if (type === "zoom") {
+    const zz = 1 + 0.45 * e;
+    ctx.save();
+    try { ctx.filter = `blur(${Math.round(e * Math.min(W, H) * 0.012)}px)`; } catch (er) {}
+    ctx.translate(W / 2, H / 2); ctx.scale(zz, zz); ctx.translate(-W / 2, -H / 2);
+    ctx.drawImage(src, 0, 0);
+    ctx.restore();
+    try { ctx.filter = "none"; } catch (er) {}
+  } else if (type === "glitch") {
+    const bands = 9, bh = H / bands;
+    for (let b = 0; b < bands; b++) {
+      const jitter = ((Math.sin(b * 12.9898 + local * 78.233) * 43758.5453) % 1) * W * 0.08 * e;
+      ctx.drawImage(src, 0, b * bh, W, bh, jitter, b * bh, W, bh);
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.45 * e;
+    ctx.drawImage(src, W * 0.015 * e, 0);
+    ctx.fillStyle = "rgba(255,0,80,0.18)"; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  } else {   // flash
+    ctx.drawImage(src, 0, 0);
+    ctx.save();
+    const g = ctx.createRadialGradient(W * 0.75, H * 0.25, 0, W * 0.75, H * 0.25, Math.max(W, H));
+    g.addColorStop(0, `rgba(255,248,230,${0.95 * e})`); g.addColorStop(0.5, `rgba(255,200,140,${0.55 * e})`); g.addColorStop(1, `rgba(255,255,255,${0.35 * e})`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+// Overlays that do not move with a transition: title, hook, sticker or stat,
+// progress. Captions are drawn later by vsDrawCaptions at vstudio._capY.
+function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
+  const layout = vstudio._editLayout || "card";
+  const U = Math.min(W, H), accent = vsEditAccent(s);
+  const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  const c = vsEditCardRect(W, H);
+  const title = String(vstudio._editTitle || "").trim();
+  vstudio._capY = layout === "card" ? Math.min(H * 0.93, c.y + c.h + (H - c.y - c.h) * 0.42) : null;
+
+  const wrap = (text, px, maxW, weight) => {
+    ctx.font = `${weight} ${px}px ${FAM}`;
+    const out = []; let cur = "";
+    String(text).split(/\s+/).filter(Boolean).forEach((w) => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; });
+    if (cur) out.push(cur);
+    return out;
+  };
+
+  // ── hook: big over the opening, then it settles into the title bar ──
+  const hook = s._hook && s._hook.text ? s._hook : null;
+  const until = hook ? (Number(hook.until) || 2.6) : 0;
+  const settle = hook ? vsEase.inOut((local - (until - 0.5)) / 0.5) : 1;     // 0 = big, 1 = in the title bar
+  if (layout === "card" && (title || hook)) {
+    const text = (hook && settle < 1) ? hook.text : title;
+    const bigPx = U * 0.1, smallPx = U * 0.052;
+    const px = bigPx + (smallPx - bigPx) * settle;
+    const lines = wrap(text.toUpperCase(), px, W * 0.86, 900).slice(0, 3);
+    const lh = px * 1.08;
+    const bigY = c.y + c.h * 0.42 - (lines.length * lh) / 2;
+    const smallY = H * 0.035 + (c.y - H * 0.035 - lines.length * lh) / 2;
+    const top = bigY + (smallY - bigY) * settle;
+    ctx.save();
+    if (hook && settle < 1) {
+      vsElTransform(ctx, W, H, s, "hook", W / 2, top + lines.length * lh / 2);
+      vsElHit(W, H, s, "hook", W * 0.07, top, W * 0.86, lines.length * lh, W / 2, top + lines.length * lh / 2);
+      const shade = 0.5 * (1 - settle);
+      ctx.fillStyle = `rgba(0,0,0,${shade})`; ctx.fillRect(0, 0, W, H);
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    try { ctx.direction = "ltr"; } catch (e) {}
+    ctx.font = `900 ${px}px ${FAM}`;
+    let wordIdx = 0;
+    lines.forEach((ln, li) => {
+      const y = top + li * lh;
+      if (hook && settle < 1 && settle <= 0) {
+        // words arrive one by one, eased - no bounce
+        const ws = ln.split(" "), sp = ctx.measureText(" ").width;
+        const widths = ws.map((w) => ctx.measureText(w).width);
+        let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + sp * (ws.length - 1)) / 2;
+        ctx.textAlign = "left";
+        ws.forEach((w, j) => {
+          const p = vsEase.out((local - wordIdx * 0.09) / 0.35);
+          ctx.globalAlpha = p;
+          ctx.fillStyle = j === ws.length - 1 && li === lines.length - 1 ? accent : "#ffffff";
+          ctx.fillText(w, x, y + (1 - p) * px * 0.35);
+          x += widths[j] + sp; wordIdx++;
+        });
+        ctx.globalAlpha = 1; ctx.textAlign = "center";
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(ln, W / 2, y);
+      }
+    });
+    // the accent rule under the title bar
+    if (settle >= 1 || !hook) {
+      ctx.fillStyle = accent;
+      const rw = W * 0.12;
+      ctx.fillRect(W / 2 - rw / 2, Math.min(c.y - H * 0.018, top + lines.length * lh + H * 0.008), rw, Math.max(3, H * 0.003));
+    }
+    ctx.restore();
+  } else if (hook && local < until) {
+    // full frame: the hook over the picture, then away
+    const out = Math.max(0, Math.min(1, (until - local) / 0.35));
+    const px = U * 0.1, lines = wrap(hook.text.toUpperCase(), px, W * 0.86, 900).slice(0, 3), lh = px * 1.08;
+    const top = H * 0.33 - (lines.length * lh) / 2;
+    ctx.save();
+    vsElTransform(ctx, W, H, s, "hook", W / 2, H * 0.33);
+    vsElHit(W, H, s, "hook", W * 0.07, top, W * 0.86, lines.length * lh, W / 2, H * 0.33);
+    ctx.fillStyle = `rgba(0,0,0,${0.4 * out})`; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.font = `900 ${px}px ${FAM}`;
+    lines.forEach((ln, li) => {
+      const p = vsEase.out((local - li * 0.12) / 0.4);
+      ctx.globalAlpha = p * out;
+      ctx.lineJoin = "round"; ctx.lineWidth = px * 0.14; ctx.strokeStyle = "rgba(0,0,0,0.85)";
+      ctx.strokeText(ln, W / 2, top + li * lh + (1 - p) * px * 0.3);
+      ctx.fillStyle = li === lines.length - 1 ? accent : "#fff";
+      ctx.fillText(ln, W / 2, top + li * lh + (1 - p) * px * 0.3);
+    });
+    ctx.restore();
+  }
+
+  // ── sticker, or a stat card when the key words are a number ──
+  const st = s._sticker;
+  if (st && (st.text || st.icon) && local >= (Number(st.at) || 0) && local < dur - 0.08) {
+    const p = vsEase.out((local - (Number(st.at) || 0)) / 0.4);
+    const exitP = Math.max(0, Math.min(1, (dur - 0.08 - local) / 0.25));
+    const vis = p * exitP;
+    const isStat = /\d/.test(st.text || "");
+    let lum = 0.5;
+    try { const hx = accent.replace("#", ""); lum = (0.299 * parseInt(hx.slice(0, 2), 16) + 0.587 * parseInt(hx.slice(2, 4), 16) + 0.114 * parseInt(hx.slice(4, 6), 16)) / 255; } catch (e) {}
+    const ink = lum > 0.55 ? "#0b0d12" : "#ffffff";
+    ctx.save();
+    if (isStat) {
+      // a glass stat card across the foot of the card (or of the frame)
+      const bx = layout === "card" ? c.x + c.w * 0.06 : W * 0.08, bw = layout === "card" ? c.w * 0.88 : W * 0.84;
+      const bh = U * 0.2, by = (layout === "card" ? c.y + c.h - bh - c.w * 0.06 : H * 0.62);
+      const cx2 = bx + bw / 2, cy2 = by + bh / 2;
+      vsElTransform(ctx, W, H, s, "sticker", cx2, cy2);
+      vsElHit(W, H, s, "sticker", bx, by, bw, bh, cx2, cy2);
+      ctx.globalAlpha = vis;
+      ctx.translate(0, (1 - p) * bh * 0.25);
+      ctx.fillStyle = "rgba(11,13,18,0.78)";
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, U * 0.03); else ctx.rect(bx, by, bw, bh); ctx.fill();
+      ctx.fillStyle = accent; ctx.fillRect(bx, by, Math.max(4, U * 0.008), bh);
+      // the number counts up to its value
+      const txt = String(st.text);
+      const m = txt.match(/-?[\d.,]+/);
+      let shown = txt;
+      if (m) {
+        const target = parseFloat(m[0].replace(/,/g, ""));
+        if (isFinite(target)) {
+          const cur = target * vsEase.out((local - (Number(st.at) || 0)) / 0.9);
+          const dec = (m[0].split(".")[1] || "").length;
+          const fmt = cur.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+          shown = txt.replace(m[0], fmt);
+        }
+      }
+      const iconR = st.icon ? bh * 0.3 : 0;
+      let x = bx + bw * 0.07;
+      if (iconR) {
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x + iconR, cy2, iconR, 0, Math.PI * 2); ctx.fill();
+        vsStickerIcon(ctx, x + iconR, cy2, iconR * 0.7, st.icon, ink);
+        x += iconR * 2 + bw * 0.05;
+      }
+      let fs = Math.round(bh * 0.5);
+      ctx.font = `900 ${fs}px ${FAM}`;
+      while (fs > bh * 0.25 && ctx.measureText(shown).width > bx + bw - x - bw * 0.05) { fs -= 2; ctx.font = `900 ${fs}px ${FAM}`; }
+      ctx.fillStyle = "#ffffff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      try { ctx.direction = "ltr"; } catch (e) {}
+      ctx.fillText(shown, x, cy2 + fs * 0.04);
+    } else {
+      // a pill sitting on the card's top edge, sliding in from its side
+      const fs = Math.round(U * 0.056);
+      ctx.font = `900 ${fs}px ${FAM}`;
+      const label = String(st.text || "").toUpperCase();
+      const tw = label ? ctx.measureText(label).width : 0;
+      const iconR = st.icon ? fs * 0.9 : 0, padX = fs * 0.5, bh2 = fs * 1.5, gap = label && iconR ? fs * 0.25 : 0;
+      const total = (label ? tw + padX * 2 : 0) + (iconR ? iconR * 2 + gap : 0);
+      const side = st.side === "right" ? 1 : st.side === "left" ? -1 : 0;
+      const cx2 = W / 2 + side * W * 0.12;
+      const cy2 = layout === "card" ? c.y : H * (st.y || 0.2);
+      vsElTransform(ctx, W, H, s, "sticker", cx2, cy2);
+      vsElHit(W, H, s, "sticker", cx2 - total / 2, cy2 - bh2 / 2, total, bh2, cx2, cy2);
+      ctx.globalAlpha = vis;
+      ctx.translate(cx2 + (1 - p) * (side || 1) * W * 0.06, cy2);
+      ctx.rotate((side >= 0 ? -2.5 : 2.5) * Math.PI / 180);
+      ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.45; ctx.shadowOffsetY = fs * 0.1;
+      let x0 = -total / 2;
+      if (iconR) {
+        ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(x0 + iconR, 0, iconR, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        vsStickerIcon(ctx, x0 + iconR, 0, iconR * 0.72, st.icon, accent);
+        x0 += iconR * 2 + gap;
+        ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = fs * 0.45; ctx.shadowOffsetY = fs * 0.1;
+      }
+      if (label) {
+        ctx.fillStyle = accent;
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, -bh2 / 2, tw + padX * 2, bh2, bh2 * 0.24); else ctx.rect(x0, -bh2 / 2, tw + padX * 2, bh2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.fillStyle = ink; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+        try { ctx.direction = "ltr"; } catch (e) {}
+        ctx.fillText(label, x0 + padX, fs * 0.04);
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── progress along the top ──
+  const total = slidesTotalDuration() || 1;
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.14)"; ctx.fillRect(0, 0, W, Math.max(4, H * 0.004));
+  ctx.fillStyle = accent; ctx.fillRect(0, 0, W * Math.max(0, Math.min(1, elapsed / total)), Math.max(4, H * 0.004));
+  ctx.restore();
+}
+
+// The whole frame for an edited clip. Returns true when it drew.
+function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
+  const media = s.mediaEl;
+  if (!media || !(media.videoWidth || media.naturalWidth)) return false;
+  const next = vstudio.slides[idx + 1];
+  const inT = s._transIn || "", outT = (next && next._transIn) || "";
+  const needSrc = !!((inT && local < 0.26) || (outT && local > dur - 0.2));
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, W, H);
+  if (needSrc) {
+    const sc = vsScratchCanvas(W, H), sx = sc.getContext("2d");
+    sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, W, H);
+    vsDrawEditScene(sx, W, H, s, local, dur, off);
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+    vsEditTransition(ctx, W, H, sc, inT, outT, local, dur);
+  } else {
+    vsDrawEditScene(ctx, W, H, s, local, dur, off);
+  }
+  ctx.restore();
+  vstudio._frameHasMedia = true;
+  vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed);
+  return true;
+}
+
+// ── transition sounds, made in the browser (free, nothing downloaded) ──
+async function vsPrepareEditSfx() {
+  if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const sr = vstudio._playCtx.sampleRate;
+  if (vstudio._sfx && vstudio._sfx.sr === sr) return vstudio._sfx;
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const noise = (ctx, len) => { const b = ctx.createBuffer(1, Math.ceil(len * sr), sr); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; };
+  const render = async (len, build) => { const ctx = new OAC(1, Math.ceil(len * sr), sr); build(ctx); return await ctx.startRendering(); };
+  // whoosh: noise through a band-pass sweeping up then down, peak at 0.25s
+  const whoosh = await render(0.6, (ctx) => {
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.6);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.4;
+    bp.frequency.setValueAtTime(350, 0); bp.frequency.exponentialRampToValueAtTime(3200, 0.25); bp.frequency.exponentialRampToValueAtTime(600, 0.58);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.55, 0.24); g.gain.exponentialRampToValueAtTime(0.0001, 0.58);
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(0);
+  });
+  // zoom: a whoosh with a low thump at the cut
+  const zoom = await render(0.7, (ctx) => {
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.7);
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(200, 0); hp.frequency.exponentialRampToValueAtTime(4000, 0.24);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.45, 0.23); g.gain.exponentialRampToValueAtTime(0.0001, 0.4);
+    src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
+    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(110, 0.24); o.frequency.exponentialRampToValueAtTime(40, 0.6);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, 0.23); og.gain.exponentialRampToValueAtTime(0.7, 0.25); og.gain.exponentialRampToValueAtTime(0.0001, 0.65);
+    o.connect(og); og.connect(ctx.destination); o.start(0.23); o.stop(0.7);
+  });
+  // glitch: chopped square bursts and noise crackle
+  const glitch = await render(0.45, (ctx) => {
+    for (let k = 0; k < 7; k++) {
+      const t = 0.12 + k * 0.035;
+      const o = ctx.createOscillator(); o.type = "square"; o.frequency.value = 180 + Math.random() * 900;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.18, t + 0.004); g.gain.linearRampToValueAtTime(0.0001, t + 0.025);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.03);
+    }
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.45);
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001, 0.1); g2.gain.linearRampToValueAtTime(0.25, 0.2); g2.gain.linearRampToValueAtTime(0.0001, 0.34);
+    src.connect(g2); g2.connect(ctx.destination); src.start(0);
+  });
+  // flash: a short riser into a shimmer
+  const flash = await render(0.8, (ctx) => {
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.8);
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(800, 0); hp.frequency.exponentialRampToValueAtTime(7000, 0.26);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.35, 0.25); g.gain.exponentialRampToValueAtTime(0.0001, 0.42);
+    src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
+    [1318.5, 1760, 2637].forEach((f, k) => {
+      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
+      const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, 0.25); og.gain.exponentialRampToValueAtTime(0.08 / (k + 1), 0.27); og.gain.exponentialRampToValueAtTime(0.0001, 0.78);
+      o.connect(og); og.connect(ctx.destination); o.start(0.25); o.stop(0.8);
+    });
+  });
+  // each sound's loudest moment, so it lands on the cut
+  vstudio._sfx = { sr, whip: { buf: whoosh, peak: 0.25 }, zoom: { buf: zoom, peak: 0.24 }, glitch: { buf: glitch, peak: 0.2 }, flash: { buf: flash, peak: 0.26 } };
+  return vstudio._sfx;
+}
+
 // ── Edit my video ───────────────────────────────────────────────────────────
 // The customer's own video in, an edited reel out, for free: the speech is
 // transcribed (Whisper on our worker, /transcribe) into words with times; the
@@ -9711,7 +10135,13 @@ function vsEditMineDialog(file) {
       ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
       ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
       ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
-      ${opt("vsEmZoom", "Punch-in zoom on every other cut", "زوم ضربه‌ای یکی در میان", true)}
+      ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
+      <label class="vsem-row"><span>${L("Look", "ظاهر")}</span>
+        <select id="vsEmLook">
+          <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
+          <option value="full">${L("Full frame", "تمام‌صفحه")}</option>
+        </select></label>
+      ${opt("vsEmZoom", "Smooth zoom on the key moments", "زوم نرم روی لحظه‌های مهم", true)}
       ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
       <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
         <select id="vsEmAspect">
@@ -9735,7 +10165,7 @@ function vsEditMineDialog(file) {
       captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
       title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
       stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
-      broll: d.querySelector("#vsEmBroll").checked,
+      broll: d.querySelector("#vsEmBroll").checked, trans: d.querySelector("#vsEmTrans").checked, layout: d.querySelector("#vsEmLook").value,
       aspect: d.querySelector("#vsEmAspect").value
     };
     close();
@@ -9959,9 +10389,8 @@ async function vsEditMyVideo(file, o) {
       if (!p.teaser) seenSentence[k] = true;
       const dur = Math.round((p.end - p.start) * 100) / 100;
       const local = p.words.map((w) => ({ w: w.w, t0: Math.max(0, w.s - p.start), t1: Math.max(0.05, w.e - p.start) }));
-      const zoomed = o.zoom && (ai ? sp.zoom === "tight" || !!p.teaser : i % 2 === 1);
-      const z = zoomed ? 1.15 : 1;
-      const settings = Object.assign({}, base, { _mediaScale: z, _mediaDX: fr.length ? dxFor(focusAt((p.start + p.end) / 2), z) : 0 });
+      const zoomed = o.zoom && (ai ? sp.zoom === "tight" || !!p.teaser : i % 3 === 2);
+      const settings = Object.assign({}, base, { _mediaScale: 1, _mediaDX: 0 });
       const slide = {
         url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "",
         duration: dur, settings, _clipIn: p.start, _ownSpeech: true,
@@ -9970,6 +10399,10 @@ async function vsEditMyVideo(file, o) {
         _timelineLabel: (p.teaser ? L("Teaser · ", "تیزر · ") : "") + ((p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ"))
       };
       if (p.teaser) slide._teaser = true;
+      // the speaker's place in the frame (the renderer centres it) and, on a
+      // key moment, when the smooth zoom starts
+      slide._focusX = fr.length ? focusAt((p.start + p.end) / 2) : 0.5;
+      if (zoomed) slide._emph = Math.min(Math.max(0.2, dur * 0.25), 1.2);
       if (o.stickers && ai && sp.text && firstOfSentence) {
         const txt = String(sp.text).replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
         const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
@@ -10021,7 +10454,7 @@ async function vsEditMyVideo(file, o) {
         const sl = bj.slide;
         sl._ownEl = sl.mediaEl; sl._ownClipIn = sl._clipIn; sl._ownSettings = { _mediaScale: sl.settings._mediaScale, _mediaDX: sl.settings._mediaDX };
         sl.mediaEl = clip; sl._clipIn = 0; sl._broll = bj.q;
-        sl.settings._mediaScale = 1; sl.settings._mediaDX = 0;
+        sl.settings._mediaScale = 1; sl.settings._mediaDX = 0; delete sl._emph;
       }));
     }
 
@@ -10030,9 +10463,28 @@ async function vsEditMyVideo(file, o) {
       music: { mood: String(mu.mood || "upbeat"), energy: String(mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
+    vstudio._editLayout = o.aspect === "16:9" ? "full" : (o.layout || "card");
+    vstudio._editTitle = hookText || "";
+    // transitions where the talk moves on: out of the teaser, into and out of
+    // B-roll, and at each new point the analysis marked
+    const newPoint = {};
+    Object.values(sPlan).forEach((x) => { if (x.new_point) newPoint[Number(x.i)] = true; });
+    let tk = 0;
+    vstudio.slides.forEach((sl, i) => {
+      delete sl._transIn;
+      if (!o.trans || i === 0) return;
+      const prev = vstudio.slides[i - 1];
+      const k2 = sentOf(sl._clipIn != null && !sl._broll ? sl._clipIn + 0.1 : (sl._ownClipIn || 0) + 0.1);
+      const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
+      if (prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = VS_EDIT_TRANSITIONS[tk++ % VS_EDIT_TRANSITIONS.length];
+    });
+    vstudio._editSfxOn = !!o.trans;
+    if (o.trans) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
+
     // cuts on the beat of the bed the music step is about to make
     if (o.beat) vsSnapCutsToBeat(vstudio.slides, vstudio.storyData.music.bpm);
-    const tsel = $("#vsTransition"); if (tsel) { tsel.value = "punch"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "punch"; }); }
+    // the edit's own transitions only: no fade or punch on every cut
+    const tsel = $("#vsTransition"); if (tsel) { tsel.value = "none"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "none"; }); }
 
     // their own voice, laid under the cuts; captions read from the same words
     vstudio._voiceSig = "edit";
@@ -10048,7 +10500,6 @@ async function vsEditMyVideo(file, o) {
         vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
       }
     } else if (!o.music && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
-    vstudio._editBeatPulse = !!(o.beat && o.music);
 
     vstudio.activeSlide = 0;
     renderSlideList();
@@ -10323,8 +10774,18 @@ function vsElementFields(s, i, id) {
       get: () => Math.round((s._clipIn || 0) * 10) / 10, set: (v) => recut(Number(v) || 0, s.duration) });
     F.push({ type: "number", label: L("Length (seconds)", "طول (ثانیه)"), min: 0.3, max: Math.ceil(total), step: 0.1, list: true,
       get: () => Math.round((Number(s.duration) || 1) * 10) / 10, set: (v) => recut(s._clipIn || 0, Number(v) || 1) });
-    F.push({ type: "select", label: L("Texture", "بافت روی تصویر"), options: vsOptsFrom("#vsOverlay"), ...vsViaControl("#vsOverlay") });
-    F.push({ type: "select", label: L("Cut between scenes (whole video)", "برش بین صحنه‌ها (کل ویدیو)"), options: vsOptsFrom("#vsTransition"), ...vsViaControl("#vsTransition") });
+    F.push({ type: "select", label: L("Transition into this clip", "ترنزیشن ورود به این کلیپ"), list: true,
+      options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Whip pan + whoosh", "حرکت سریع + صدای ووش") },
+        { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") }],
+      get: () => s._transIn || "", set: async (v) => {
+        s._transIn = v;
+        if (v) { vstudio._editSfxOn = true; try { await vsPrepareEditSfx(); } catch (e) {} }
+        vsMixVoiceTrack(true);
+      } });
+    F.push({ type: "select", label: L("Look (whole video)", "ظاهر (کل ویدیو)"),
+      options: [{ v: "card", t: L("Graphic card", "کارت گرافیکی") }, { v: "full", t: L("Full frame", "تمام‌صفحه") }],
+      get: () => vstudio._editLayout || "card", set: (v) => { vstudio._editLayout = v; } });
+    F.push({ type: "text", label: L("Title above the card (whole video)", "تیتر بالای کارت (کل ویدیو)"), get: () => vstudio._editTitle || "", set: (v) => { vstudio._editTitle = v; } });
     return F;
   }
   if (id === "scene") {
@@ -17836,6 +18297,14 @@ function drawStudioFrame(elapsed) {
       media.play().catch(() => {});
     }
   }
+  // An edited clip ("Edit my video") has its own designed frame.
+  if (dsSlideObj && dsSlideObj._ownSpeech && vstudio._editLayout) {
+    const at3 = slideAtTime(elapsed);
+    if (vsDrawEditFrame(ctx, canvas, W, H, dsSlideObj, at3.index, dsLocal, dsDur, elapsed, vsOff)) {
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+      return;
+    }
+  }
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -18265,13 +18734,7 @@ function drawStudioFrame(elapsed) {
   // ratio. Math.max scales so the smaller side still covers the frame;
   // overflow is cropped. One uniform `fit` factor → never stretched.
   // `mediaScale` is the user's manual zoom (scroll wheel on the footage).
-  let manualZoom = Math.max(1, vsOff.mediaScale || 1);   // never below cover
-  // An edited talk punches in on every beat of its music: a quick 3% push
-  // that falls away in a tenth of a second, on the grid the cuts land on.
-  if (vstudio._editBeatPulse && vstudio._beat && dsSlideObj && dsSlideObj._ownSpeech && (vstudio.looping || vstudio.rendering)) {
-    const bt = vstudio._beat, ph = ((elapsed - bt.grid0) % bt.beat + bt.beat) % bt.beat;
-    manualZoom *= 1 + 0.03 * Math.exp(-ph / 0.09);
-  }
+  const manualZoom = Math.max(1, vsOff.mediaScale || 1);   // never below cover
   const fit = Math.max(W / mw, H / mh) * zoom * manualZoom;
   const dw = mw * fit, dh = mh * fit;
 
