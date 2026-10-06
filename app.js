@@ -27140,6 +27140,79 @@ async function exportStudioVideo() {
  * else. The id is dropped from the address afterwards so a reload does not
  * build it a second time over whatever they have changed since.
  */
+// Finished images on one sheet: each with its own download, and all of them
+// as a ZIP when there is more than one. Used for graphics the customer's own
+// AI asked for through the MCP connector (quote card, social post, logo,
+// infographic) - the same renderers Spark uses, fed their words.
+function vsShowGraphics(title, items) {
+  const fa = state.lang === "fa";
+  document.getElementById("vsGfxView")?.remove();
+  const ov = document.createElement("div");
+  ov.id = "vsGfxView";
+  ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", title);
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.86);backdrop-filter:blur(6px);padding:16px";
+  const urls = items.map((it) => URL.createObjectURL(it.blob));
+  ov.innerHTML = `<div style="width:min(760px,97vw);max-height:94vh;overflow:auto;background:#0e1014;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px">
+      <div style="font:700 18px 'Space Grotesk',system-ui,sans-serif;color:#f4f5f7;margin-bottom:4px">${escapeHtml(title)}</div>
+      <div style="font:500 12px 'JetBrains Mono',monospace;color:#8a919c;margin-bottom:14px">${fa ? "ساخته‌شده از متنی که AIِ تو فرستاد" : "Made from the words your AI sent"}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${items.length > 1 ? 200 : 320}px,1fr));gap:12px">
+        ${items.map((it, i) => `<figure style="margin:0;display:flex;flex-direction:column;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px">
+          <img src="${urls[i]}" alt="${escapeHtml(it.name)}" style="width:100%;height:auto;border-radius:6px;background:repeating-conic-gradient(#1a1e26 0% 25%, #14171d 0% 50%) 50%/16px 16px"/>
+          <figcaption style="font:500 11px 'JetBrains Mono',monospace;color:#8a919c">${escapeHtml(it.label || it.name)}</figcaption>
+          <a href="${urls[i]}" download="${escapeHtml(it.name)}" style="text-align:center;font:700 13px Manrope,system-ui,sans-serif;padding:9px;border-radius:9px;background:#2563ff;color:#fff;text-decoration:none">${fa ? "دانلود" : "Download"}</a>
+        </figure>`).join("")}
+      </div>
+      <div style="display:flex;gap:9px;margin-top:14px">
+        <button type="button" class="gfx-close" style="flex:1;font:700 14px Manrope,system-ui,sans-serif;padding:11px;border-radius:10px;cursor:pointer;background:transparent;color:#f4f5f7;border:1px solid rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
+        ${items.length > 1 ? `<button type="button" class="gfx-zip" style="flex:1.4;font:800 14px Manrope,system-ui,sans-serif;padding:11px;border-radius:10px;cursor:pointer;color:#fff;background:#14171d;border:1px solid #2563ff">${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>` : ""}
+      </div></div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.remove(); urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
+  ov.querySelector(".gfx-close").onclick = close;
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  const zip = ov.querySelector(".gfx-zip");
+  if (zip) zip.onclick = async () => {
+    const old = zip.textContent; zip.disabled = true; zip.textContent = "…";
+    try {
+      const JSZip = await vsLoadJSZip(); const z = new JSZip();
+      items.forEach((it) => z.file(it.name, it.blob));
+      const b = await z.generateAsync({ type: "blob" }); const u = URL.createObjectURL(b);
+      const a = document.createElement("a"); a.href = u; a.download = "airadar-graphics.zip"; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 2000);
+    } catch (e) { vsStatus(fa ? "بسته‌بندی ناموفق — جدا دانلود کن." : "Zip failed — download them one by one."); }
+    zip.disabled = false; zip.textContent = old;
+  };
+}
+
+// A graphic the customer's AI asked for through MCP, rendered by Spark's own renderer.
+async function vsOpenGraphicDeck(g) {
+  const fa = state.lang === "fa";
+  g = g || {};
+  const items = [];
+  try {
+    if (g.kind === "quote") {
+      items.push({ blob: await vsRenderQuoteCard(g.text, { handle: g.handle }), name: "quote-card.jpg", label: "1080 × 1350" });
+    } else if (g.kind === "social") {
+      const img = g.image ? await vsLoadOwnImage(g.image) : null;
+      for (const size of (g.sizes || ["ig_square"])) {
+        const dims = VS_SOCIAL_SIZES[size] || VS_SOCIAL_SIZES.ig_square;
+        const blob = await vsRenderSocialPost({ size, style: g.style, eyebrow: g.eyebrow, headline: g.headline, subtext: g.subtext, handle: g.handle, img });
+        if (blob) items.push({ blob, name: "social-" + size + ".jpg", label: size.replace("_", " ") + " · " + dims[0] + " × " + dims[1] });
+      }
+    } else if (g.kind === "logo") {
+      const blob = await vsRenderWordmark({ name: g.name, tagline: g.tagline, style: g.style, mark: g.mark });
+      if (blob) items.push({ blob, name: String(g.name || "logo").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-wordmark.png", label: fa ? "PNG شفاف" : "Transparent PNG" });
+    } else if (g.kind === "infographic") {
+      items.push({ blob: await vsRenderInfographic({ title: g.title, subtitle: g.subtitle, points: g.points || [], footer: g.footer || "Follow for more  |  Repost ♻" }, {}), name: "infographic.jpg", label: "1080 × 1350" });
+    }
+  } catch (e) {}
+  const ok = items.filter((it) => it.blob);
+  if (!ok.length) { vsAutoStatus(fa ? "این گرافیک ساخته نشد." : "That graphic could not be made."); return; }
+  const titles = { quote: ["Quote card", "کارت نقل‌قول"], social: ["Social post", "پست سوشال"], logo: ["Logo", "لوگو"], infographic: ["Infographic", "اینفوگرافیک"] };
+  vsShowGraphics(vsT(titles[g.kind] || ["Your graphic", "گرافیک تو"]), ok);
+  vsAutoStatus(fa ? "گرافیکی که AIِ تو فرستاد آماده است." : "The graphic your AI sent is ready.");
+}
+
 async function vsLoadDeckFromUrl() {
   const m = /[?&]deck=(deck_[0-9a-f]{32})/.exec(location.search);
   if (!m) return;
@@ -27154,6 +27227,7 @@ async function vsLoadDeckFromUrl() {
     return;
   }
   if (j.skill === "reel") { await vsOpenReelDeck(j.script); return; }
+  if (j.skill === "graphic") { await vsOpenGraphicDeck(j.script); return; }
   if (j.skill === "carousel") {
     // A carousel the customer's own AI wrote (create_carousel): their exact
     // slides, laid out by the same maker Spark uses - nothing rewritten.
