@@ -1856,8 +1856,9 @@ if (document.readyState === "loading") {
 // (template `introFont`) and must not be overridden by the "all slides" picker.
 function vsGetFont(fallback, forceFamily){
   var el=document.querySelector("#vsHeadlineFont");
+  var sceneFont = (!forceFamily && typeof vsSceneFont === "function") ? vsSceneFont(vstudio._drawSlide) : "";
   var fam = forceFamily ? (fallback||"Prata, serif")
-          : ((el&&el.value) ? el.value : (fallback||"Prata, serif"));
+          : (sceneFont || ((el&&el.value) ? el.value : (fallback||"Prata, serif")));
   // CRITICAL: canvas measureText and fillText MUST use the same loaded font,
   // otherwise letters overlap (measured narrow, rendered wide) or get cut.
   try {
@@ -4600,15 +4601,23 @@ function vsEasePro(t) {
 }
 
 function vsTemplate() {
-  const tpl = videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
-  const _fontEl = document.querySelector("#vsHeadlineFont");
-  if (_fontEl && _fontEl.value) return Object.assign({}, tpl, { headlineFont: _fontEl.value });
-  // Override headlineFont if user has picked one manually
+  const ds = vstudio._drawSlide;
+  const own = ds && ds._templateId && videoTemplates.find((t) => t.id === ds._templateId);
+  const tpl = own || videoTemplates.find(t => t.id === vstudio.templateId) || videoTemplates[0];
+  const out = Object.assign({}, tpl);
+  // the font: this scene's own, else its own template's, else the menu's
   const fontEl = document.querySelector("#vsHeadlineFont");
-  if (fontEl && fontEl.value) {
-    return Object.assign({}, tpl, { headlineFont: fontEl.value });
-  }
-  return tpl;
+  const font = vsSceneFont(ds) || (fontEl && fontEl.value);
+  if (font) out.headlineFont = font;
+  if (ds && ds._accent && /^#[0-9a-f]{6}$/i.test(ds._accent)) out.accent = ds._accent;
+  return out;
+}
+// The font a scene asks for itself (its own pick, or its own template's).
+function vsSceneFont(ds) {
+  if (!ds) return "";
+  if (ds._font) return ds._font;
+  const t = ds._templateId && videoTemplates.find((x) => x.id === ds._templateId);
+  return (t && t.headlineFont) || "";
 }
 function vsStatus(msg) {
   const el = $("#vsStatus");
@@ -9328,7 +9337,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const base = Math.round(unit * ({ pop: portrait ? 0.074 : 0.062, clean: portrait ? 0.07 : 0.058, news: portrait ? 0.06 : 0.05, subtitle: portrait ? 0.072 : 0.06 })[look] * (ownTalk ? 1.12 : 1));
   const font = look === "subtitle"
     ? `400 ${base}px "Viaoda Libre", Alice, Georgia, serif`
-    : `${look === "pop" ? 900 : 800} ${base}px Archivo, "Vazirmatn", system-ui, sans-serif`;
+    : `${look === "pop" ? 900 : 800} ${base}px ${s._ownSpeech ? vsEditFam(s) : (vsSceneFont(s) ? vsGetFont(vsSceneFont(s) + ', "Vazirmatn", system-ui, sans-serif', true) : 'Archivo, "Vazirmatn", system-ui, sans-serif')}`;
   // pop lands from 86% to full size in a tenth of a second; the others fade
   const pIn = look === "subtitle" ? 0.22 : look === "pop" ? 0.1 : 0.14;
   const pop = Math.min(1, Math.max(0, sinceChunk / pIn));
@@ -9767,6 +9776,12 @@ function vsDrawCover(ctx, media, rx, ry, rw, rh, z, focusX, nudgeX, nudgeY) {
   try { ctx.drawImage(media, rx + (rw - dw) / 2 + ox, ry + (rh - dh) / 2 + oy, dw, dh); } catch (e) {}
 }
 
+// The family an edited clip writes in: the clip's own font, the edit's
+// font, or Archivo. Loaded through vsGetFont so measuring matches drawing.
+function vsEditFam(s) {
+  const f = (s && s._font) || vstudio._editFont;
+  return f ? vsGetFont(f + ', "Vazirmatn", system-ui, sans-serif', true) : '"Archivo", "Vazirmatn", system-ui, sans-serif';
+}
 function vsEditAccent(s) {
   let a = "#f5c451";
   try { const t = vsTemplate(); if (t && /^#[0-9a-f]{6}$/i.test(t.accent || "")) a = t.accent; } catch (e) {}
@@ -9775,7 +9790,7 @@ function vsEditAccent(s) {
 
 // The scene's picture (background + card or full frame), without overlays.
 function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
-  if (s._gfx) { vsDrawGfxCard(ctx, W, H, s, local, dur); return; }
+  if (s._gfx) { vsDrawGfxCard(ctx, W, H, s, local, dur, off); return; }
   const media = s.mediaEl;
   const layout = vstudio._editLayout || "card";
   // smooth zoom: emphasis eases in from its moment, otherwise a slow push
@@ -9924,7 +9939,7 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
   const layout = vstudio._editLayout || "card";
   if (s._gfx) { vsEditProgress(ctx, W, H, s, elapsed); return; }
   const U = Math.min(W, H), accent = vsEditAccent(s);
-  const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  const FAM = vsEditFam(s);
   const c = vsEditCardRect(W, H);
   const title = String(vstudio._editTitle || "").trim();
   vstudio._capY = layout === "card" ? Math.min(H * 0.9, c.y + c.h + (H - c.y - c.h) * 0.36) : (H > W ? H * 0.7 : null);
@@ -10066,6 +10081,7 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
       if (bk && local < bk.to) {
         const outA = Math.max(0, Math.min(1, (bk.to - local) / 0.25));
         const ws = String(st.text || "").toUpperCase().split(/\s+/).filter(Boolean);
+        const iconOnly = !ws.length;
         const maxW = W * 0.88;
         let px = U * 0.15, lines = [];
         const layWords = () => {
@@ -10090,10 +10106,10 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
         ctx.fillStyle = shade; ctx.fillRect(0, top - px * 1.6, W, lines.length * lh + px * 3);
         // the icon, popping in just before the words
         if (st.icon) {
-          const ir = U * 0.068, pI = vsEase.out((local - bk.from + 0.05) / 0.35);
+          const ir = U * (iconOnly ? 0.13 : 0.068), pI = vsEase.out((local - bk.from + 0.05) / 0.35);
           ctx.save();
           ctx.globalAlpha = pI * outA;
-          ctx.translate(W / 2, top - ir * 1.25); ctx.scale(0.7 + 0.3 * pI, 0.7 + 0.3 * pI);
+          ctx.translate(W / 2, iconOnly ? cy0 : top - ir * 1.25); ctx.scale(0.7 + 0.3 * pI, 0.7 + 0.3 * pI);
           ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, 0, ir, 0, Math.PI * 2); ctx.fill();
           vsStickerIcon(ctx, 0, 0, ir * 0.72, st.icon, ink);
           ctx.restore();
@@ -10168,7 +10184,7 @@ function vsGfxDelay(s) { return s && s._transIn ? 0.24 : 0; }
 // number): from the moment they are said, for about two seconds.
 function vsBigKeyWindow(s) {
   const st = s && s._sticker;
-  if (!st || !st.text || vsIsStatText(st.text) || s._gfx) return null;
+  if (!st || (!st.text && !st.icon) || vsIsStatText(st.text) || s._gfx) return null;
   const from = Number(st.at) || 0, d = Number(s.duration) || 4;
   return { from, to: Math.min(d - 0.05, from + 2.3) };
 }
@@ -10189,10 +10205,10 @@ function vsIsStatText(t) {
 // the key words landing in heavy type the instant they are said, with the
 // line being spoken written small underneath. Everything eases in once and
 // then holds still: nothing moves without a reason.
-function vsDrawGfxCard(ctx, W, H, s, local, dur) {
+function vsDrawGfxCard(ctx, W, H, s, local, dur, off) {
   const g = s._gfx || {};
   const U = Math.min(W, H), INK = "#141414", PAPER = "#F3F1EC";
-  const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  const FAM = vsEditFam(s);
   let accent = vsEditAccent(s);
   if (!/^#[0-9a-f]{6}$/i.test(accent)) accent = "#F5C451";
   const hx = accent.slice(1);
@@ -10242,7 +10258,8 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur) {
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.fill();
     ctx.shadowColor = "transparent";
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.clip();
-    vsDrawCover(ctx, s.mediaEl, win.x, win.y, win.w, win.h, 1 + 0.03 * (dur > 0 ? local / dur : 0), s._focusX != null ? s._focusX : 0.5, 0, 0);
+    vsDrawCover(ctx, s.mediaEl, win.x, win.y, win.w, win.h, (1 + 0.03 * (dur > 0 ? local / dur : 0)) * Math.max(1, Number(off && off.mediaScale) || 1),
+      s._focusX != null ? s._focusX : 0.5, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0);
     ctx.restore();
   }
 
@@ -11085,9 +11102,9 @@ function vsSceneElements(s, i) {
   else if (t === "motion") { out.push("text"); if (s.sceneGraphic) out.push("graphic"); }
   else if (t === "chart") { out.push("info"); if (s._caption) out.push("label"); }
   else if (t === "text") { out.push("news"); if (s._caption) out.push("label"); }
-  else if (t === "own") { if (s._hook) out.push("hook"); out.push("sticker"); }
+  else if (t === "own") { if (s._hook) out.push("hook"); if (!s._gfx) out.push("sticker"); }
   else { out.push("text"); }
-  if (s.mediaEl && t !== "editorial") out.push("footage");
+  if (s.mediaEl && t !== "editorial" && !(s._gfx && Number(s._gfx.v) !== 3)) out.push("footage");
   if (s._voice || (s._narration && vsVoiceOn())) out.push("captions");
   if (vstudio.logoEl) out.push("logo");
   return out;
@@ -11171,6 +11188,27 @@ function vsViaLive(key, def) {
   };
 }
 // The options of one of the studio's own selects, flattened.
+// Font, template and accent for one scene - "same as the video" by default.
+function vsLookFields(s, F, L, ownClip) {
+  const fonts = vsOptsFrom("#vsHeadlineFont");
+  F.push({ type: "select", label: ownClip ? L("Font (this clip)", "فونت (این کلیپ)") : L("Font (this scene)", "فونت (این صحنه)"),
+    options: [{ v: "", t: L("Same as the video", "مثل کل ویدیو") }].concat(fonts),
+    get: () => s._font || "", set: (v) => { if (v) s._font = v; else delete s._font; } });
+  if (!ownClip) {
+    F.push({ type: "select", label: L("Template (this scene)", "قالب (این صحنه)"),
+      options: [{ v: "", t: L("Same as the video", "مثل کل ویدیو") }].concat(videoTemplates.map((t) => ({ v: t.id, t: text(t.name) }))),
+      get: () => s._templateId || "", set: (v) => { if (v) s._templateId = v; else delete s._templateId; } });
+  }
+  let tplAccent = "#c99a46";
+  try {
+    const keep = vstudio._drawSlide; vstudio._drawSlide = Object.assign({}, s, { _accent: "" });
+    const t = vsTemplate(); vstudio._drawSlide = keep;
+    if (t && t.accent) tplAccent = t.accent;
+  } catch (e) {}
+  F.push({ type: "swatch", label: ownClip ? L("Accent colour (this clip)", "رنگ تأکید (این کلیپ)") : L("Accent colour", "رنگ تأکید"),
+    options: [{ v: "", t: L("Template", "قالب"), c: tplAccent }].concat(VS_ACCENTS.map((c) => ({ v: c, t: c, c }))),
+    get: () => s._accent || "", set: (v) => { if (v) s._accent = v; else delete s._accent; } });
+}
 function vsOptsFrom(sel) {
   const el = $(sel);
   return el ? Array.from(el.options).map((o) => ({ v: o.value, t: o.textContent.trim() })) : [];
@@ -11281,29 +11319,27 @@ function vsElementFields(s, i, id) {
         options: [{ v: "0", t: L("Colour panel on the side", "پنل رنگی کنار") }, { v: "1", t: L("Colour band on top", "نوار رنگی بالا") }, { v: "2", t: L("Colour circle behind the icon", "دایرهٔ رنگی پشت آیکون") }, { v: "3", t: L("You in a window, words below", "خودت در یک قاب، کلمات زیرش") }],
         get: () => String(s._gfx.v || 0), set: (v) => { s._gfx.v = Number(v) || 0; } });
     }
+    vsLookFields(s, F, L, true);
+    F.push({ type: "select", label: L("Font (whole video)", "فونت (کل ویدیو)"),
+      options: [{ v: "", t: "Archivo" }].concat(vsOptsFrom("#vsHeadlineFont").filter((o) => !/^Archivo/.test(o.v))),
+      get: () => vstudio._editFont || "", set: (v) => { if (v) vstudio._editFont = v; else delete vstudio._editFont; } });
     F.push({ type: "select", label: L("Look (whole video)", "ظاهر (کل ویدیو)"),
       options: [{ v: "card", t: L("Graphic card", "کارت گرافیکی") }, { v: "full", t: L("Full frame", "تمام‌صفحه") }],
       get: () => vstudio._editLayout || "card", set: (v) => { vstudio._editLayout = v; } });
-    F.push({ type: "text", label: L("Title above the card (whole video)", "تیتر بالای کارت (کل ویدیو)"), get: () => vstudio._editTitle || "", set: (v) => { vstudio._editTitle = v; } });
+    if (!s._gfx) F.push({ type: "text", label: L("Title above the card (whole video)", "تیتر بالای کارت (کل ویدیو)"), get: () => vstudio._editTitle || "", set: (v) => { vstudio._editTitle = v; } });
     return F;
   }
   if (id === "scene") {
     F.push({ type: "number", label: L("Duration (seconds)", "مدت (ثانیه)"), min: 1, max: 120, step: 0.5, list: true,
       get: () => Math.round((Number(s.duration) || 4) * 100) / 100, set: (v) => { s.duration = Math.max(1, Math.min(120, Number(v) || 4)); } });
-    if (type === "motion" || (s.motionBg && type !== "editorial")) {
+    if (type === "motion" || (s.motionBg && type !== "editorial" && type !== "intro" && type !== "outro")) {
       F.push({ type: "select", label: L("Animated background", "پس‌زمینهٔ متحرک"), options: vsBgOpts(),
         get: () => s.motionBg || "", set: (v) => { s.motionBg = v; } });
     } else if ((type === "intro" || type === "outro" || type === "chart" || type === "text") && !s.mediaEl) {
       F.push({ type: "select", label: L("Background", "پس‌زمینه"), options: vsBgOpts(),
         get: () => s.introBg || "", set: (v) => { s.introBg = v; } });
     }
-    if (type === "motion" || type === "editorial") {
-      let tplAccent = "#c99a46";
-      try { const t = vsTemplate(); if (t && t.accent) tplAccent = t.accent; } catch (e) {}
-      F.push({ type: "swatch", label: L("Accent colour", "رنگ تأکید"),
-        options: [{ v: "", t: L("Template", "قالب"), c: tplAccent }].concat(VS_ACCENTS.map((c) => ({ v: c, t: c, c }))),
-        get: () => s._accent || "", set: (v) => { s._accent = v; } });
-    }
+    vsLookFields(s, F, L, false);
     if (type === "motion") {
       F.push({ type: "select", label: L("Layout", "چیدمان"),
         options: [{ v: "", t: L("Full frame", "تمام‌صفحه") }].concat(Object.keys(VS_PANELS).map((k) => ({ v: k, t: k }))),
@@ -11328,9 +11364,10 @@ function vsElementFields(s, i, id) {
       F.push({ type: "buttons", buttons: [
         { t: s.mediaEl ? L("Replace footage", "جایگزینی فوتیج") : L("Add footage", "افزودن فوتیج"), act: () => { const u = $("#vsSlideMediaUpload"); if (u) u.click(); } }
       ].concat(s.mediaEl ? [{ t: L("Remove footage", "حذف فوتیج"), danger: true, act: () => { const r = $("#vsSlideMediaRemove"); if (r) r.click(); vsRenderInspector(); } }] : []) });
-      F.push({ type: "select", label: L("Camera move", "حرکت دوربین"), options: vsOptsFrom("#vsMotion"), ...vsViaControl("#vsMotion") });
+      if (s.mediaEl) F.push({ type: "select", label: L("Camera move", "حرکت دوربین"), options: vsOptsFrom("#vsMotion"), ...vsViaControl("#vsMotion") });
     }
-    F.push({ type: "select", label: L("Texture", "بافت روی تصویر"), options: vsOptsFrom("#vsOverlay"), ...vsViaControl("#vsOverlay") });
+    // an editorial scene has its own grade and paper: no texture over it
+    if (type !== "editorial") F.push({ type: "select", label: L("Texture", "بافت روی تصویر"), options: vsOptsFrom("#vsOverlay"), ...vsViaControl("#vsOverlay") });
     F.push({ type: "select", label: L("Cut between scenes (whole video)", "برش بین صحنه‌ها (کل ویدیو)"), options: vsOptsFrom("#vsTransition"), ...vsViaControl("#vsTransition") });
     return F;
   }
@@ -11343,8 +11380,7 @@ function vsElementFields(s, i, id) {
         set: (v) => { s._kicker = v; const k = $("#vsNewsKicker"); if (k) { k.value = v; vsSaveActiveSlide(); } } });
       F.push({ type: "text", label: L("Source line", "خط منبع"), ...own("_sourceLine") });
     }
-    if (vstudio._motionGfxMode || s._heroWord) F.push({ type: "text", label: L("Big background word", "کلمهٔ بزرگ پس‌زمینه"),
-      get: () => s._heroWord || "", set: (v) => { s._heroWord = String(v).replace(/\s+/g, "").slice(0, 14); } });
+    // the big cover word is drawn only by editorial scenes, and edited there as Cover word
     if (!vstudio._motionGfxMode) F.push({ type: "select", label: L("Entrance", "ورود"), options: vsOptsFrom("#vsIntroMotionInput"), ...own("introMotion") });
     moveSize(s, "title");
     return F;
@@ -11360,7 +11396,8 @@ function vsElementFields(s, i, id) {
     // Motion-graphic and footage scenes both draw the scene's own headline.
     F.push({ type: "textarea", label: L("Headline", "تیتر"), rows: 2, ...own("headline"), list: true });
     F.push({ type: "select", label: L("Text entrance", "ورود متن"), options: vsOptsFrom("#vsTextAnim"), ...vsViaControl("#vsTextAnim") });
-    F.push({ type: "select", label: L("Place", "جای متن"), options: vsOptsFrom("#vsTextPos"), ...vsViaControl("#vsTextPos") });
+    // a motion-graphic layout places its own headline; move it with Position
+    if (type !== "motion") F.push({ type: "select", label: L("Place", "جای متن"), options: vsOptsFrom("#vsTextPos"), ...vsViaControl("#vsTextPos") });
     liveMoveSize("textDX", "textDY", "textScale");
     return F;
   }
@@ -11419,8 +11456,10 @@ function vsElementFields(s, i, id) {
           set: (v) => { g.valueText = v; const n = vsNum(v); g.value = n ? Math.min(100, Math.round(Math.abs(n))) : g.value; g.hasRealValue = !!n; g.suffix = /%/.test(v) ? "%" : ""; } });
         F.push({ type: "text", label: L("What the number is", "توضیح عدد"), get: () => g.valueLabel || "", set: (v) => { g.valueLabel = v; } });
       }
-      F.push({ type: "select", label: L("Direction", "جهت"), options: [{ v: "1", t: L("Rising", "صعودی") }, { v: "-1", t: L("Falling", "نزولی") }],
-        get: () => String(g.trend || 1), set: (v) => { g.trend = Number(v) || 1; } });
+      // the direction draws only where a trend line has no numbers to follow
+      if ((g.kind === "area" || s.panelLayout) && !(Array.isArray(g.data) && g.data.length >= 2))
+        F.push({ type: "select", label: L("Direction", "جهت"), options: [{ v: "1", t: L("Rising", "صعودی") }, { v: "-1", t: L("Falling", "نزولی") }],
+          get: () => String(g.trend || 1), set: (v) => { g.trend = Number(v) || 1; } });
     } else {
       F.push({ type: "list", label: L("Nodes", "گره‌ها"), max: 6, get: () => (g.items || []).slice(), set: (arr) => { g.items = arr; } });
     }
@@ -11461,13 +11500,25 @@ function vsElementFields(s, i, id) {
   }
   if (id === "sticker") {
     const st = () => s._sticker || (s._sticker = { text: "", icon: "", at: 0.3, side: "", y: 0.2 });
-    F.push({ type: "text", label: L("Words on screen", "کلمات روی تصویر"), list: true, get: () => (s._sticker && s._sticker.text) || "", set: (v) => { st().text = v; } });
+    const tidy = () => { if (s._sticker && !s._sticker.text && !s._sticker.icon) delete s._sticker; vsMixVoiceTrack(true); };
+    F.push({ type: "text", label: L("Words on screen", "کلمات روی تصویر"), list: true, get: () => (s._sticker && s._sticker.text) || "", set: (v) => { if (!v && !s._sticker) return; st().text = v; tidy(); } });
     F.push({ type: "select", label: L("Icon", "آیکون"), options: [{ v: "", t: L("No icon", "بدون آیکون") }].concat(VS_STICKER_ICONS.map((k) => ({ v: k, t: k }))),
-      get: () => (s._sticker && s._sticker.icon) || "", set: (v) => { st().icon = v; } });
+      get: () => (s._sticker && s._sticker.icon) || "", set: (v) => { if (!v && !s._sticker) return; st().icon = v; tidy(); } });
     F.push({ type: "range", label: L("Appears at", "زمان ظاهر شدن"), min: 0, max: Math.max(0.5, (Number(s.duration) || 2) - 0.5), step: 0.05, fmt: (v) => v.toFixed(2) + "s",
       get: () => (s._sticker && Number(s._sticker.at)) || 0, set: (v) => { st().at = v; } });
     moveSize(s, "sticker", 0.5, 2);
     if (s._sticker) F.push({ type: "buttons", buttons: [{ t: L("Remove", "حذف"), danger: true, act: () => { delete s._sticker; vsInspRedraw(true); vsRenderInspector(); } }] });
+    return F;
+  }
+  if (id === "captions" && s._ownSpeech && s._gfx) {
+    const v = s._voice || {};
+    F.push({ type: "textarea", label: L("The line written under the card (fix any mistake)", "جملهٔ زیر کارت (اشتباه را درست کن)"), rows: 3, list: true,
+      get: () => (v.words || []).map((w) => w.w).join(" "),
+      set: (val) => {
+        const ws = String(val).split(/\s+/).filter(Boolean);
+        (v.words || []).forEach((w, k) => { if (ws[k] != null) w.w = ws[k]; });
+        v.chunks = vsCaptionChunks(v.words || []); v._byMax = {};
+      } });
     return F;
   }
   if (id === "captions" && s._ownSpeech) {
@@ -15116,7 +15167,48 @@ function vsHexA(hex, a) {
 }
 
 // Draw a broadcast-style news banner over the footage.
+// The headline's entrance (#vsNewsMotion): how the whole block arrives over
+// its first 0.7s. It was saved with every scene and offered in the editor but
+// never read, so changing it did nothing.
 function drawNewsBanner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
+  const val = dsVal || vsVal;
+  const m = String(val("#vsNewsMotion", "") || "");
+  const playing = vstudio.looping || vstudio.rendering;
+  const p = playing ? Math.max(0, Math.min(1, elapsed / 0.7)) : 1;
+  if (!m || m === "none" || p >= 1) { drawNewsBannerInner(ctx, W, H, elapsed, dsVal, vsOff, dsDur); vsNewsSourceLine(ctx, W, H, val); return; }
+  const e = vsEasePro(p);
+  ctx.save();
+  if (m === "slide-up" || m === "rise") { ctx.translate(0, (1 - e) * H * 0.06); ctx.globalAlpha *= Math.min(1, 0.2 + e); }
+  else if (m === "slide-left" || m === "glide") { ctx.translate(-(1 - e) * W * 0.12, 0); ctx.globalAlpha *= Math.min(1, 0.2 + e); }
+  else if (m === "slide-right") { ctx.translate((1 - e) * W * 0.12, 0); ctx.globalAlpha *= Math.min(1, 0.2 + e); }
+  else if (m === "drift") { ctx.translate(0, (1 - e) * H * 0.025); ctx.globalAlpha *= e; }
+  else if (m === "fade") ctx.globalAlpha *= e;
+  else if (m === "blur") { ctx.globalAlpha *= e; try { ctx.filter = `blur(${Math.round((1 - e) * Math.min(W, H) * 0.012)}px)`; } catch (er) {} }
+  else if (m === "pop" || m === "zoom" || m === "expand") { const z = (m === "expand" ? 1.12 - 0.12 * e : 0.88 + 0.12 * e); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2); ctx.globalAlpha *= Math.min(1, 0.2 + e); }
+  else if (m === "vox") { ctx.beginPath(); ctx.rect(0, 0, W * e, H); ctx.clip(); }
+  drawNewsBannerInner(ctx, W, H, elapsed, dsVal, vsOff, dsDur);
+  vsNewsSourceLine(ctx, W, H, val);
+  ctx.restore();
+  try { ctx.filter = "none"; } catch (er) {}
+}
+// Styles with no place of their own for the source: one quiet line at the
+// foot of the frame, so a source typed in the editor always shows.
+const VS_NEWS_NO_SOURCE = { topbar: 1, caption: 1, split: 1, badge: 1, "neon-title": 1, "reveal-words": 1, "minimal-line": 1 };
+function vsNewsSourceLine(ctx, W, H, val) {
+  if (!vstudio.newsBox) return;
+  const style = String(val("#vsNewsStyle", "") || ""), source = String(val("#vsNewsSource", "") || "").trim();
+  if (!source || !VS_NEWS_NO_SOURCE[style]) return;
+  const U = Math.min(W, H);
+  ctx.save();
+  ctx.font = `600 ${Math.round(U * 0.032)}px ${vsGetFont("Inter, sans-serif")}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  try { ctx.direction = /[؀-ۿ]/.test(source) ? "rtl" : "ltr"; } catch (e) {}
+  ctx.shadowColor = "rgba(0,0,0,0.7)"; ctx.shadowBlur = U * 0.02;
+  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.fillText(source, W / 2, H * 0.955);
+  ctx.restore();
+}
+function drawNewsBannerInner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
   vsOff = vsOff || vstudio;
   const val = dsVal || vsVal;
   const onVal = val("#vsNewsOn", false);
@@ -18644,6 +18736,9 @@ function drawStudioFrame(elapsed) {
   // empty part of this one grab text that is not there.
   if (!vstudio.rendering) { vstudio._hits = {}; vstudio.textBox = null; }
   const dsSlideObj = vstudio.slides.length ? vstudio.slides[slideAtTime(elapsed).index] : null;
+  // vsTemplate() and vsGetFont() read this: a scene can carry its own
+  // template, font and accent; otherwise it follows the video's.
+  vstudio._drawSlide = dsSlideObj;
 
   // When slides exist, pick the slide active at this time.
   // IMPORTANT: when slides are present, we NEVER use vstudio.mediaEl as a
@@ -21382,7 +21477,7 @@ const vsHistory = { stack: [], index: -1, suspended: false };
 // nothing.
 const VS_SCENE_FIELDS = ["duration", "headline", "introMain", "introSub", "introBg", "introMotion", "_caption", "_kicker",
   "_sourceLine", "_heroWord", "_edBigWord", "_edHeadline", "_edSource", "_edStyle", "_edPrompt", "_edKicker",
-  "_narration", "_accent", "motionBg", "panelLayout", "_graphicManual"];
+  "_narration", "_accent", "motionBg", "panelLayout", "_graphicManual", "_font", "_templateId", "_transIn", "_clipIn"];
 const vsClone = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
 function vsSceneState(s) {
   const o = {};
@@ -21391,6 +21486,7 @@ function vsSceneState(s) {
     o.sceneGraphic = vsClone(s.sceneGraphic || null);
     o._els = vsClone(s._els || null);
     o.settings = s.settings ? Object.assign({}, s.settings) : null;
+    ["_hook", "_sticker", "_gfx"].forEach((k) => { o[k] = vsClone(s[k] || null); });
   } catch (e) {}
   return o;
 }
@@ -21400,6 +21496,7 @@ function vsSceneRestore(s, o) {
   if (o.sceneGraphic) s.sceneGraphic = vsClone(o.sceneGraphic); else if (s.sceneGraphic) s.sceneGraphic = null;
   if (o._els) s._els = vsClone(o._els); else delete s._els;
   if (o.settings) s.settings = Object.assign({}, o.settings);
+  ["_hook", "_sticker", "_gfx"].forEach((k) => { if (k in o) { if (o[k]) s[k] = vsClone(o[k]); else delete s[k]; } });
 }
 
 function vsSnapshot() {
