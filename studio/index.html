@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v771" />
+    <link rel="stylesheet" href="/styles.css?v=v772" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1540,7 +1540,12 @@
                       <label class="vs-switch">
                         <input id="vsNarrate" type="checkbox" checked />
                         <span class="vs-switch-track"></span>
-                        <span class="vs-switch-txt" id="vsNarrateLbl" data-i18n="vNarrateLbl">Voice-over + word-by-word captions</span>
+                        <span class="vs-switch-txt" id="vsNarrateLbl" data-i18n="vNarrateLbl">Voice-over</span>
+                      </label>
+                      <label class="vs-switch vs-switch-sub">
+                        <input id="vsCaptions" type="checkbox" checked />
+                        <span class="vs-switch-track"></span>
+                        <span class="vs-switch-txt" id="vsCaptionsLbl" data-i18n="vCaptionsLbl">Word-by-word captions on screen</span>
                       </label>
                     </div>
                     <input id="vsPexelsKey" type="hidden" value="" />
@@ -2183,6 +2188,8 @@
       .vs-auto-opts{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}
       .vs-switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:13px;color:#f4f5f7;line-height:1.35}
       .vs-switch input{position:absolute;opacity:0;width:0;height:0}
+      .vs-switch-sub{margin-top:-4px;padding-inline-start:20px;font-weight:500;color:#c9ccd3}
+      .vs-switch:has(#vsNarrate:not(:checked)) + .vs-switch-sub{opacity:.4;pointer-events:none}
       .vs-switch-track{position:relative;flex-shrink:0;width:42px;height:24px;border-radius:999px;
         background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);transition:background .2s,border-color .2s}
       .vs-switch-track::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
@@ -2681,7 +2688,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v771"></script>
+    <script src="/app.js?v=v772"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page

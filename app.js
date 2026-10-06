@@ -96,7 +96,8 @@ const i18n = {
     navMedia: "Caption AI",
     navStudio: "Video studio",
     vsEditMine: "Edit my video",
-    vNarrateLbl: "Voice-over + word-by-word captions",
+    vNarrateLbl: "Voice-over",
+    vCaptionsLbl: "Word-by-word captions on screen",
     reTitle: "Build from a reference",
     reSub: "Paste a link, add your info, then pick how to render it.",
     reH2: "Turn any post into yours",
@@ -565,7 +566,8 @@ const i18n = {
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
     vsEditMine: "ادیت ویدیوی من",
-    vNarrateLbl: "صدای گوینده + زیرنویس کلمه‌به‌کلمه",
+    vNarrateLbl: "صدای گوینده",
+    vCaptionsLbl: "زیرنویس کلمه‌به‌کلمه روی تصویر",
     reTitle: "ساختن از روی یک نمونه",
     reSub: "لینک را بگذار، اطلاعات خودت را اضافه کن، بعد نحوهٔ ساخت را انتخاب کن.",
     reH2: "هر پستی را مال خودت کن",
@@ -9052,6 +9054,16 @@ function vsNarrateOn() {
   const t = document.querySelector("#vsNarrate");
   return !t || !!t.checked;
 }
+// Captions are their own choice: a voice-over can run with or without them.
+function vsCaptionsOn() {
+  const t = document.querySelector("#vsCaptions");
+  return !t || !!t.checked;
+}
+// The user's own voice (Edit my video) is the video's sound, not a
+// voice-over: the voice-over switch never mutes it.
+function vsVoiceOn() {
+  return vsNarrateOn() || (vstudio.slides || []).some((x) => x && x._ownSpeech);
+}
 
 // The script's language when the writer gave one, checked against the letters
 // actually used - a Persian script tagged "en" must not be read as English.
@@ -9262,7 +9274,7 @@ function vsMixVoiceTrack(force) {
         for (let k = 0; k < src.length; k++) {
           const j = at + k;
           if (j < 0 || j >= dst.length) continue;
-          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * 0.6));
+          dst[j] = Math.max(-1, Math.min(1, dst[j] + src[k] * VS_SFX_GAIN));
         }
       }
       t += Number(sl.duration) || 4;
@@ -9290,7 +9302,7 @@ function vsMixVoiceTrack(force) {
 // timings in preview and export.
 const VS_CAPTION_MAX = { pop: 3, clean: 4, news: 5, subtitle: 5 };
 function vsDrawCaptions(ctx, W, H, elapsed) {
-  if (!vstudio.slides.length || !vstudio._narrationBuffer || !vsNarrateOn()) return;
+  if (!vstudio.slides.length || !vstudio._narrationBuffer || !vsVoiceOn() || !vsCaptionsOn()) return;
   const at = slideAtTime(elapsed);
   const s = vstudio.slides[at.index];
   const v = s && s._voice;
@@ -9309,7 +9321,8 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const sinceChunk = t - words[0].t0;
   const portrait = H > W;
   const unit = Math.min(W, H);
-  const base = Math.round(unit * ({ pop: portrait ? 0.074 : 0.062, clean: portrait ? 0.07 : 0.058, news: portrait ? 0.06 : 0.05, subtitle: portrait ? 0.072 : 0.06 })[look]);
+  const ownTalk = !!(s._ownSpeech && vstudio._editLayout);
+  const base = Math.round(unit * ({ pop: portrait ? 0.074 : 0.062, clean: portrait ? 0.07 : 0.058, news: portrait ? 0.06 : 0.05, subtitle: portrait ? 0.072 : 0.06 })[look] * (ownTalk ? 1.12 : 1));
   const font = look === "subtitle"
     ? `400 ${base}px "Viaoda Libre", Alice, Georgia, serif`
     : `${look === "pop" ? 900 : 800} ${base}px Archivo, "Vazirmatn", system-ui, sans-serif`;
@@ -9329,7 +9342,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
     const x = w.w.replace(/^["'(]+|["')]+$/g, "");
     return look === "pop" ? x.toUpperCase() : x;
   };
-  const space = base * (look === "subtitle" ? 0.28 : 0.3);
+  const space = base * (look === "subtitle" ? 0.28 : look === "pop" ? 0.42 : 0.3);
   const widths = words.map((w) => ctx.measureText(label(w)).width);
   const lineW = widths.reduce((n, w) => n + w, 0) + space * (words.length - 1);
   // Persian and Arabic run right to left: the first word goes on the right.
@@ -9693,9 +9706,10 @@ const vsEase = {
 
 // The card's rectangle for this frame size.
 function vsEditCardRect(W, H) {
-  const w = W * 0.88;
-  const h = Math.min(H * 0.6, w * 1.3);
-  return { x: (W - w) / 2, y: H * 0.175, w, h, r: Math.min(W, H) * 0.045 };
+  const wide = (vstudio._editSrcAspect || 0.56) >= 0.9;
+  const w = W * (wide ? 0.92 : 0.88);
+  const h = Math.min(H * 0.6, w * (wide ? 1 : 1.3));
+  return { x: (W - w) / 2, y: H * (wide ? 0.19 : 0.175), w, h, r: Math.min(W, H) * 0.04 };
 }
 
 // Draw media cover-fit into a rectangle, centred on the subject, at zoom z.
@@ -9737,13 +9751,19 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
     ctx.save();
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
     ctx.drawImage(tiny, -W * 0.05, -H * 0.05, W * 1.1, H * 1.1);
-    ctx.fillStyle = "rgba(8,9,12,0.58)"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(7,8,11,0.7)"; ctx.fillRect(0, 0, W, H);
     const vg = ctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.2, W / 2, H * 0.5, Math.max(W, H) * 0.75);
-    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)");
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.55)");
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
     ctx.restore();
-    // the card
+    // the card, with the accent glowing faintly behind it
     const c = vsEditCardRect(W, H);
+    if (/^#[0-9a-f]{6}$/i.test(vsEditAccent(s))) {
+      const acc = vsEditAccent(s);
+      const gl = ctx.createRadialGradient(W / 2, c.y + c.h * 0.55, c.w * 0.2, W / 2, c.y + c.h * 0.55, c.w * 0.85);
+      gl.addColorStop(0, acc + "38"); gl.addColorStop(1, acc + "00");
+      ctx.save(); ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = W * 0.05; ctx.shadowOffsetY = H * 0.012;
     ctx.fillStyle = "#0b0d12";
@@ -9820,7 +9840,7 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
   const FAM = '"Archivo", "Vazirmatn", system-ui, sans-serif';
   const c = vsEditCardRect(W, H);
   const title = String(vstudio._editTitle || "").trim();
-  vstudio._capY = layout === "card" ? Math.min(H * 0.93, c.y + c.h + (H - c.y - c.h) * 0.42) : null;
+  vstudio._capY = layout === "card" ? Math.min(H * 0.9, c.y + c.h + (H - c.y - c.h) * 0.36) : null;
 
   const wrap = (text, px, maxW, weight) => {
     ctx.font = `${weight} ${px}px ${FAM}`;
@@ -9961,7 +9981,9 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
       const iconR = st.icon ? fs * 0.9 : 0, padX = fs * 0.5, bh2 = fs * 1.5, gap = label && iconR ? fs * 0.25 : 0;
       const total = (label ? tw + padX * 2 : 0) + (iconR ? iconR * 2 + gap : 0);
       const side = st.side === "right" ? 1 : st.side === "left" ? -1 : 0;
-      const cx2 = W / 2 + side * W * 0.12;
+      // inside the frame with a margin, however long the words are
+      const half = Math.min(total / 2, W * 0.46);
+      const cx2 = Math.max(W * 0.04 + half, Math.min(W * 0.96 - half, W / 2 + side * W * 0.12));
       const cy2 = layout === "card" ? c.y : H * (st.y || 0.2);
       vsElTransform(ctx, W, H, s, "sticker", cx2, cy2);
       vsElHit(W, H, s, "sticker", cx2 - total / 2, cy2 - bh2 / 2, total, bh2, cx2, cy2);
@@ -9997,6 +10019,23 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
   ctx.restore();
 }
 
+// How bright a clip is a second in, 0-1. A clip that cannot be read (no CORS)
+// counts as bright enough: the check only ever turns down a clip it has seen.
+async function vsClipLuma(el) {
+  try {
+    const at = Math.min(1, (isFinite(el.duration) ? el.duration : 2) / 3);
+    await new Promise((res) => { const t = setTimeout(res, 3000); el.addEventListener("seeked", () => { clearTimeout(t); res(); }, { once: true }); el.currentTime = at; });
+    const c = document.createElement("canvas"); c.width = 16; c.height = 16;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(el, 0, 0, 16, 16);
+    const d = x.getImageData(0, 0, 16, 16).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    try { el.currentTime = 0; } catch (e) {}
+    return sum / (d.length / 4) / 255;
+  } catch (e) { return 1; }
+}
+
 // The whole frame for an edited clip. Returns true when it drew.
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
@@ -10024,6 +10063,8 @@ function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
 }
 
 // ── transition sounds, made in the browser (free, nothing downloaded) ──
+// Kept well under the voice: a cut is felt, not heard over the words.
+const VS_SFX_GAIN = 0.3;
 async function vsPrepareEditSfx() {
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
   const sr = vstudio._playCtx.sampleRate;
@@ -10053,9 +10094,10 @@ async function vsPrepareEditSfx() {
   const glitch = await render(0.45, (ctx) => {
     for (let k = 0; k < 7; k++) {
       const t = 0.12 + k * 0.035;
-      const o = ctx.createOscillator(); o.type = "square"; o.frequency.value = 180 + Math.random() * 900;
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.18, t + 0.004); g.gain.linearRampToValueAtTime(0.0001, t + 0.025);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.03);
+      const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = 160 + Math.random() * 520;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.006); g.gain.linearRampToValueAtTime(0.0001, t + 0.028);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2200;
+      o.connect(g); g.connect(lp); lp.connect(ctx.destination); o.start(t); o.stop(t + 0.035);
     }
     const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.45);
     const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001, 0.1); g2.gain.linearRampToValueAtTime(0.25, 0.2); g2.gain.linearRampToValueAtTime(0.0001, 0.34);
@@ -10064,7 +10106,7 @@ async function vsPrepareEditSfx() {
   // flash: a short riser into a shimmer
   const flash = await render(0.8, (ctx) => {
     const src = ctx.createBufferSource(); src.buffer = noise(ctx, 0.8);
-    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(800, 0); hp.frequency.exponentialRampToValueAtTime(7000, 0.26);
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(600, 0); hp.frequency.exponentialRampToValueAtTime(3800, 0.26);
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.35, 0.25); g.gain.exponentialRampToValueAtTime(0.0001, 0.42);
     src.connect(hp); hp.connect(g); g.connect(ctx.destination); src.start(0);
     [1318.5, 1760, 2637].forEach((f, k) => {
@@ -10265,6 +10307,7 @@ async function vsEditMyVideo(file, o) {
     const probe = await vsEditVideoEl(url);
     if (!probe) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد"));
     let total = isFinite(probe.duration) ? probe.duration : 0;
+    vstudio._editSrcAspect = probe.videoWidth && probe.videoHeight ? probe.videoWidth / probe.videoHeight : 0.56;
     if (total > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the video under 12 minutes", "ویدیو باید زیر ۱۲ دقیقه باشد"));
 
     vsAutoStatus(L("Listening to your video…", "در حال گوش‌دادن به ویدیو…"));
@@ -10365,9 +10408,11 @@ async function vsEditMyVideo(file, o) {
     // the shape first, so the scenes are captured in it
     const asp = $("#vsAspect");
     if (asp && o.aspect) { asp.value = o.aspect; asp.dispatchEvent(new Event("change", { bubbles: true })); }
-    const narr = $("#vsNarrate"); if (narr) narr.checked = !!o.captions;
+    const narr = $("#vsNarrate"); if (narr) narr.checked = true;
+    const capsEl = $("#vsCaptions"); if (capsEl) capsEl.checked = !!o.captions;
     vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
     vstudio._toneProfile = vsToneProfile();
+    vstudio._toneProfile.captions = "pop";
     vstudio.slides = [];
     vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
     vstudio._editSrc = { url, mono, words, name: file.name };
@@ -10447,8 +10492,17 @@ async function vsEditMyVideo(file, o) {
       vsAutoStatus(L("Finding B-roll…", "در حال پیدا کردن B-roll…"));
       const used = new Set();
       await Promise.all(brollJobs.map(async (bj, n) => {
+        // A night shot reads as a black hole between two bright talking
+        // shots: up to three tries for a clip with light in it.
         let clip = null;
-        try { clip = await vsFetchPexelsClip(bj.q, VS_PEXELS_KEY, o.aspect, n, used, 12000); } catch (e) {}
+        for (let k = 0; k < 3 && !clip; k++) {
+          let c2 = null;
+          try { c2 = await vsFetchPexelsClip(bj.q, VS_PEXELS_KEY, o.aspect, n + k * 3, used, 12000); } catch (e) {}
+          if (!c2) break;
+          used.add(c2.currentSrc || c2.src);
+          if (await vsClipLuma(c2) >= 0.24) clip = c2;
+          else { try { c2.removeAttribute("src"); c2.load(); } catch (e) {} }
+        }
         if (!clip) return;
         used.add(clip.currentSrc || clip.src);
         const sl = bj.slide;
@@ -10489,7 +10543,6 @@ async function vsEditMyVideo(file, o) {
     // their own voice, laid under the cuts; captions read from the same words
     vstudio._voiceSig = "edit";
     vsMixVoiceTrack(true);
-    if (!o.captions) { const n2 = $("#vsNarrate"); if (n2) n2.checked = false; }
 
     if (o.music && !vstudio._userMusic) {
       vsAutoStatus(L("Adding music…", "در حال افزودن موسیقی…"));
@@ -10610,7 +10663,7 @@ function vsSceneElements(s, i) {
   else if (t === "own") { if (s._hook) out.push("hook"); out.push("sticker"); }
   else { out.push("text"); }
   if (s.mediaEl && t !== "editorial") out.push("footage");
-  if (s._voice || (s._narration && vsNarrateOn())) out.push("captions");
+  if (s._voice || (s._narration && vsVoiceOn())) out.push("captions");
   if (vstudio.logoEl) out.push("logo");
   return out;
 }
@@ -10989,7 +11042,7 @@ function vsElementFields(s, i, id) {
     F.push({ type: "select", label: L("Caption look (whole video)", "ظاهر زیرنویس (کل ویدیو)"),
       options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
       get: () => TP2.captions || "pop", set: (val) => { TP2.captions = val; } });
-    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsNarrate") });
+    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsCaptions") });
     moveSize(vsCapHost(), "captions", 0.5, 1.8);
     return F;
   }
@@ -11006,7 +11059,8 @@ function vsElementFields(s, i, id) {
     F.push({ type: "select", label: L("Caption look (whole video)", "ظاهر زیرنویس (کل ویدیو)"),
       options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
       get: () => TP.captions || "pop", set: (v) => { TP.captions = v; } });
-    F.push({ type: "toggle", label: L("Show voice-over and captions", "نمایش صدا و زیرنویس"), ...vsViaControl("#vsNarrate") });
+    F.push({ type: "toggle", label: L("Voice-over", "صدای گوینده"), ...vsViaControl("#vsNarrate") });
+    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsCaptions") });
     moveSize(vsCapHost(), "captions", 0.5, 1.8);
     return F;
   }
@@ -20381,7 +20435,7 @@ function previewStudioVideo(fromStart) {
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
   }
-  if (vstudio.narrationEl) {
+  if (vstudio.narrationEl && vsVoiceOn()) {
     try {
       vstudio.narrationEl.playbackRate = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
       vstudio.narrationEl.currentTime = startElapsed; vstudio.narrationEl.play().catch(() => {});
