@@ -11934,6 +11934,54 @@ function vsEditorialPalette(topic) {
   return P.noir;
 }
 // Turn a scene's B-roll query into a cinematic, symbolic image prompt.
+// ── Events and holidays: a styled, festive scene, not a documentary close-up ──
+// "Happy Thanksgiving" came back as a tight, glossy turkey with stray sticks
+// around it - the documentary brief ("the subject fills the frame") is right
+// for news and wrong for an occasion. An occasion is a scene: the table, the
+// decorations, the light, and room for the title.
+const VS_EVENTS = [
+  [/thanksgiving|شکرگزاری/i, "a warm Thanksgiving dinner table seen from a low three-quarter angle: a golden roast turkey on a platter as the centrepiece, bowls of side dishes, small pumpkins, autumn leaves and lit candles, soft bokeh of warm string lights behind"],
+  [/christmas|xmas|کریسمس/i, "a cosy living room on Christmas eve: a decorated Christmas tree glowing with warm fairy lights, wrapped presents beneath it, a crackling fireplace, snow falling outside the window"],
+  [/new year'?s? eve|happy new year|nye|سال نو میلادی/i, "New Year's Eve: golden fireworks bursting over a city at night, two champagne glasses raised in the foreground with sparkling bokeh"],
+  [/halloween|هالووین/i, "a moody Halloween porch at dusk: carved jack-o'-lanterns glowing orange, autumn leaves, candles and a soft mist"],
+  [/easter|عید پاک/i, "an Easter spring table: pastel painted eggs in a woven basket, tulips and soft morning light"],
+  [/valentine|ولنتاین/i, "a romantic Valentine's Day table: red roses, a heart-shaped box of chocolates and candlelight with soft pink bokeh"],
+  [/mother'?s day|روز مادر/i, "a Mother's Day morning: a bouquet of pink peonies and a wrapped gift with a satin ribbon on a sunlit table"],
+  [/father'?s day|روز پدر/i, "a Father's Day morning: a wrapped gift box with a ribbon, a classic watch and a cup of coffee on a wooden table in warm light"],
+  [/4th of july|fourth of july|independence day/i, "a Fourth of July evening: fireworks over a lake at dusk and flag bunting on a wooden porch, warm summer light"],
+  [/nowruz|norooz|nowrooz|نوروز|عید نوروز|سال نو مبارک|سال نو/i, "a Persian Nowruz haft-sin table in bright spring light: sprouted wheat sabzeh, painted eggs, a goldfish in a glass bowl, red apples, hyacinths, a mirror and candles"],
+  [/yalda|یلدا/i, "a Persian Yalda night table: halved pomegranates, sliced watermelon, nuts and dried fruit and lit candles in warm red and gold candlelight"],
+  [/chaharshanbe|چهارشنبه ?سوری/i, "small bonfires in a courtyard at night for Chaharshanbe Suri, sparks rising into the dark, warm orange glow"],
+  [/sizdah|سیزده ?به ?در/i, "a spring picnic on fresh green grass under blossoming trees, a basket with sabzeh greens, bright daylight"],
+  [/ramadan|رمضان|افطار|iftar/i, "an iftar table at sunset: dates, glasses of water and tea, glowing lanterns and a crescent moon in the window"],
+  [/eid|عید فطر|عید قربان/i, "an Eid celebration table: glowing lanterns, sweets and pastries on decorated plates, warm golden bokeh"],
+  [/diwali|دیوالی/i, "Diwali night: rows of glowing clay diya oil lamps, marigold flowers and colourful rangoli, warm bokeh"],
+  [/lunar new year|chinese new year|سال نو چینی/i, "Lunar New Year: rows of red paper lanterns glowing over a street, gold decorations, festive warm light"],
+  [/hanukkah|حنوکا/i, "a lit menorah by a window at night with blue and gold decorations and warm candlelight"],
+  [/black friday|cyber monday|بلک ?فرایدی/i, "bold coloured shopping bags and gift boxes on a dark glossy surface under a dramatic spotlight"],
+  [/birthday|تولد/i, "a birthday celebration: a cake with lit candles, balloons and confetti, warm bokeh"],
+  [/wedding|عروسی|سالگرد ازدواج|anniversary/i, "an elegant wedding table with white flowers, crystal glasses and candles in soft golden light"],
+  [/graduation|فارغ ?التحصیلی/i, "graduation caps tossed into a bright blue sky at a campus ceremony"],
+  [/back to school|بازگشت به مدرسه|مهر ماه/i, "a fresh school backpack, notebooks and pencils on a wooden desk in morning sunlight"],
+  [/women'?s day|روز زن/i, "a bouquet of spring tulips and mimosa flowers on a table in soft morning light"],
+  [/st\.? patrick/i, "a festive green table with shamrocks, gold coins and warm pub light"],
+];
+function vsEventScene(text) {
+  const t = String(text || "");
+  for (const [re, scene] of VS_EVENTS) if (re.test(t)) return scene;
+  return "";
+}
+function vsEventImagePrompt(scene, tall) {
+  return `festive editorial lifestyle photograph of ${scene}. Beautifully styled and real, ${tall ? "a vertical frame" : "a wide frame"} with the scene set back so the whole occasion is visible, rich warm colour, shallow depth of field, soft cinematic light, fine natural detail, ultra realistic. The lower third of the frame is calmer and darker, with nothing important in it. No text, letters or numbers anywhere, no greeting cards or signs with writing, no watermark; not an illustration, not a 3d render`;
+}
+// The picture for a thumbnail: an occasion gets its festive scene and more
+// detail (8 steps instead of 4); anything else the documentary brief.
+async function vsCoverImage(imgPrompt, topic, w, h) {
+  const scene = vsEventScene(topic);
+  if (scene) return vsEdLoadImage(vsEventImagePrompt(scene, h > w), w, h, true, null, 8);
+  return vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), w, h);
+}
+
 function vsEditorialImagePrompt(visual, topic) {
   // Lead with the CONCRETE scene subject and demand a literal photo. The old
   // prompt said "conceptual and symbolic", which pushed the model toward abstract
@@ -11958,10 +12006,10 @@ function vsEditorialImagePrompt(visual, topic) {
 // Fetched (not a bare <img>) so we can read the X-Image-Source header — WHICH
 // model actually served (gemini / cf-flux / hf-flux / sdxl) — for admin tracking.
 // A blob: URL keeps the canvas untainted, same as crossOrigin did.
-function vsEdLoadImage(prompt, w, h, fluxOnly, seed) {
+function vsEdLoadImage(prompt, w, h, fluxOnly, seed, steps) {
   return new Promise((resolve) => {
     const sd = seed != null ? seed : Math.floor(Math.random() * 1e9);
-    const url = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "");
+    const url = VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&seed=" + sd + (fluxOnly ? "&flux=1" : "") + (steps ? "&steps=" + steps : "");
     // Every way this can come back empty is recorded, because the callers
     // turn an empty result into a card with no picture on it and, until now,
     // said nothing. "The free image service is out of quota for today" and
@@ -22532,7 +22580,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   }
   let img = null;
   try { vstudio._lastImgError = null; } catch (e) {}
-  if (imgPrompt) { try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {} }
+  if (imgPrompt) { try { img = await vsCoverImage(imgPrompt, topic, imgW || 1024, imgH || 1024); } catch (e) {} }
   // A dropped connection, a server hiccup or a broken file is often gone a
   // moment later: one more try before the text-only card (a guest limit, a
   // timeout or the day's quota would only fail again).
@@ -22541,7 +22589,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
     const passing = e1.kind === "network" || e1.kind === "decode" || (e1.kind === "http" && e1.status >= 500 && e1.status !== 502);
     if (passing) {
       await new Promise((r) => setTimeout(r, 1500));
-      try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
+      try { img = await vsCoverImage(imgPrompt, topic, imgW || 1024, imgH || 1024); } catch (e) {}
     }
   }
   // The AI picture failed: record why, then try a real photograph of the same
@@ -22633,6 +22681,10 @@ function vsThumbWrap(ctx, words, px, maxW, weight, fam) {
     else { cur.push({ w, i }); curW += ww; }
   });
   if (cur.length) out.push(cur);
+  // Every template lays a line's words out left to right. A Persian or Arabic
+  // title reads right to left, so each line goes to the screen in reverse:
+  // "نوروز مبارک" was printed as "مبارک نوروز". The lines keep their order.
+  if (words.some((w) => /[֐-ࣿ]/.test(w))) return out.map((ln) => ln.slice().reverse());
   return out;
 }
 // Shrink the font until the wrapped title fits both the width AND the height box.
@@ -22664,8 +22716,15 @@ function vsThumbKicker(ctx, W, H, M, accent, source, pos) {
   try { ctx.letterSpacing = "0px"; } catch (e) {}
   ctx.restore();
 }
+// Where a title line starts: at the left margin, or - for a right-to-left
+// line - so that it ends at the right margin, as Persian is set.
+function vsThumbIsRTL(ln) { return ln.some((o) => /[֐-ࣿ]/.test(o.w)); }
+function vsThumbLineX(ctx, ln, left, right) {
+  return vsThumbIsRTL(ln) ? right - ctx.measureText(ln.map((o) => o.w).join(" ")).width : left;
+}
 // Draw one wrapped title line word-by-word, colouring the emphasis word.
-function vsThumbDrawLine(ctx, ln, x, y, emph, accent, base) {
+function vsThumbDrawLine(ctx, ln, x, y, emph, accent, base, right) {
+  if (right != null) x = vsThumbLineX(ctx, ln, x, right);
   ln.forEach(({ w, i }) => {
     ctx.fillStyle = (i === emph) ? accent : (base || "#ffffff");
     ctx.fillText(w, x, y);
@@ -22690,13 +22749,14 @@ function vsTplBold(R) {
   const maxW = W - M * 2;
   const fit = vsThumbFitBox(ctx, words, maxW, H * 0.5, W * (landscape ? 0.1 : 0.13), W * 0.05, "900", VS_TPL_FAM);
   const px = fit.px, lines = fit.lines, lh = px * 1.05, blockH = lines.length * lh, startY = H * 0.945 - blockH;
-  ctx.fillStyle = accent; ctx.fillRect(M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
+  const rtl = lines.some(vsThumbIsRTL);
+  ctx.fillStyle = accent; ctx.fillRect(rtl ? W - M - W * 0.14 : M, startY - W * 0.05, W * 0.14, Math.max(7, H * 0.011));
   ctx.save();
   ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.lineJoin = "round";
   ctx.font = `900 ${px}px ${VS_TPL_FAM}`;
   lines.forEach((ln, li) => {
     const y = startY + px * 0.86 + li * lh;
-    let x = M;
+    let x = vsThumbLineX(ctx, ln, M, W - M);
     ln.forEach(({ w, i }) => {
       ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = px * 0.085;
       ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = W * 0.018; ctx.shadowOffsetY = H * 0.003;
@@ -22729,7 +22789,7 @@ function vsTplBand(R) {
   const availH = (bandY + bandH * 0.9) - ty;
   const fit = vsThumbFitBox(ctx, words, W - M * 2, availH, bandH * 0.4, W * 0.04, "800", VS_TPL_FAM);
   ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `800 ${fit.px}px ${VS_TPL_FAM}`;
-  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, ty + li * fit.px * 1.06, emph, accent, "#fff"));
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, ty + li * fit.px * 1.06, emph, accent, "#fff", W - M));
   ctx.restore();
 }
 
@@ -22790,7 +22850,7 @@ function vsTplSidebar(R) {
   const availH = (landscape ? H * 0.86 : panelY + panelH * 0.88) - topY;
   const fit = vsThumbFitBox(ctx, words, innerW, availH, W * 0.09, W * 0.04, "800", VS_TPL_FAM);
   ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `800 ${fit.px}px ${VS_TPL_FAM}`;
-  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, padX, topY + li * fit.px * 1.08, emph, accent, "#fff"));
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, padX, topY + li * fit.px * 1.08, emph, accent, "#fff", panelW - padX));
   ctx.restore();
 }
 
@@ -22820,7 +22880,7 @@ function vsTplMinimal(R) {
   }
   ctx.save(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = `600 ${fit.px}px ${VS_TPL_FAM}`;
   ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = W * 0.012; ctx.shadowOffsetY = H * 0.002;
-  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, startY + li * lh, emph, accent, "#f4f5f7"));
+  fit.lines.forEach((ln, li) => vsThumbDrawLine(ctx, ln, M, startY + li * lh, emph, accent, "#f4f5f7", W - M));
   ctx.restore();
 }
 
@@ -22839,8 +22899,9 @@ function vsTplStamp(R) {
   fit.lines.forEach((ln, li) => {
     const tw = ctx.measureText(ln.map(o => o.w).join(" ")).width;
     const boxY = startY + li * lh;
-    ctx.fillStyle = accent; ctx.fillRect(M, boxY, tw + padH * 2, px + padV * 2);
-    let x = M + padH;
+    const bx = vsThumbIsRTL(ln) ? W - M - (tw + padH * 2) : M;
+    ctx.fillStyle = accent; ctx.fillRect(bx, boxY, tw + padH * 2, px + padV * 2);
+    let x = bx + padH;
     ln.forEach(({ w, i }) => { ctx.fillStyle = (i === emph) ? "#0e1014" : "#ffffff"; ctx.fillText(w, x, boxY + padV); x += ctx.measureText(w + " ").width; });
   });
   ctx.restore();
@@ -22886,7 +22947,7 @@ async function vsComposeCover(topic, source, aspect, size) {
   const ih = H >= W ? 1024 : Math.round(1024 * H / W);
   let img = null;
   imgPrompt = await vsImageSubjectEN(topic, imgPrompt);
-  if (imgPrompt) { try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), iw, ih); } catch (e) {} }
+  if (imgPrompt) { try { img = await vsCoverImage(imgPrompt, topic, iw, ih); } catch (e) {} }
   // Same fallback as the thumbnails: a real photo before a blank background.
   if (!img && imgPrompt) { try { img = await vsStockPhoto(imgPrompt, iw >= ih) || (vsIsLatinPrompt(topic) ? await vsStockPhoto(topic, iw >= ih) : null); } catch (e) {} }
 
