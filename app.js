@@ -7630,8 +7630,29 @@ async function vsBuildFromReadyScript(data, opts) {
   vsBuildOverlay(true, fa ? "ساختِ ویدیو از فیلم‌نامهٔ تو…" : "Building your video from your script…", null, 120000,
     { onCancel: () => { vstudio._batchCancel = true; } });
   vsAutoStatus(fa ? "ساختِ ویدیو از فیلم‌نامهٔ تو…" : "Building your video from your script…");
+  // the looks the script asked for, kept aside: the build may rework data
+  const looks = { font: data.font, intro: data.intro && data.intro.look, outro: data.outro && data.outro.look,
+    sections: data.sections.map((x) => x && x.look) };
   await vsBuildFromScript(data, [data.title, data.subtitle].filter(Boolean).join(". "), lenChoice);
+  try { vsApplyScriptLooks(looks); } catch (e) {}
   return true;
+}
+// The whole video's font, then each scene's own look. Scenes are matched in
+// order: intro, one per section, outro - only when the count agrees, so a
+// build that merged or added scenes never puts a look on the wrong one.
+function vsApplyScriptLooks(looks) {
+  const sl = vstudio.slides || [];
+  if (!sl.length || !looks) return;
+  const fam = VS_FONT_IDS[looks.font];
+  const fontSel = $("#vsHeadlineFont");
+  if (fam && fontSel) { fontSel.value = fam; sl.forEach((x) => { if (x.settings) x.settings["#vsHeadlineFont"] = fam; }); }
+  const first = sl[0], last = sl[sl.length - 1];
+  if (first && first.isIntro && !first.isOutro) vsApplyLook(first, looks.intro);
+  if (last && last.isOutro) vsApplyLook(last, looks.outro);
+  const mid = sl.slice(first && first.isIntro && !first.isOutro ? 1 : 0, last && last.isOutro ? -1 : sl.length);
+  if (mid.length === (looks.sections || []).length) mid.forEach((x, k) => vsApplyLook(x, looks.sections[k]));
+  try { drawStudioFrame(vstudio.position || 0); } catch (e) {}
+  try { vsRenderInspector(); } catch (e) {}
 }
 
 /**
@@ -10593,7 +10614,12 @@ async function vsSampleFrames(el, total, n) {
 const VS_FILLERS = { um: 1, umm: 1, uh: 1, uhm: 1, uhh: 1, erm: 1, er: 1, hmm: 1, mm: 1, ah: 1, "اوم": 1, "اِ": 1, "اه": 1 };
 const VS_EDIT_MAX_SECONDS = 12 * 60;
 
-function vsEditMineDialog(file) {
+const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zoom: "vsEmZoom", title: "vsEmTitle", music: "vsEmMusic",
+  stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
+const VS_EM_DEFAULTS = { cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
+  trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
+function vsEditMineDialog(file, preset) {
+  preset = preset || {};
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
   document.getElementById("vsEditMineDlg")?.remove();
@@ -10647,12 +10673,16 @@ function vsEditMineDialog(file) {
       gfx: d.querySelector("#vsEmGfx").checked,
       aspect: d.querySelector("#vsEmAspect").value
     };
+    ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     close();
     vsEditMyVideo(file, o).catch((e) => {
       vsBuildOverlay(false);
       vsAutoStatus((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(e && e.message || e).slice(0, 140));
     });
   };
+  Object.keys(VS_EM_IDS).forEach((k) => { if (typeof preset[k] === "boolean") { const c = d.querySelector("#" + VS_EM_IDS[k]); if (c) c.checked = preset[k]; } });
+  if (preset.layout) { const l = d.querySelector("#vsEmLook"); if (l && [...l.options].some((x) => x.value === preset.layout)) l.value = preset.layout; }
+  if (preset.aspect) { const a2 = d.querySelector("#vsEmAspect"); if (a2 && [...a2.options].some((x) => x.value === preset.aspect)) a2.value = preset.aspect; }
   try { d.querySelector(".vsem-go").focus(); } catch (e) {}
 }
 
@@ -10899,7 +10929,8 @@ async function vsEditMyVideo(file, o) {
     if (!vstudio.slides.length) throw new Error(L("nothing to keep was found", "چیزی برای نگه‌داشتن پیدا نشد"));
 
     // the hook, over the opening (the teaser when there is one)
-    let hookText = ai && ai.hook && ai.hook.text ? String(ai.hook.text).trim().slice(0, 80) : "";
+    let hookText = o.hookText ? String(o.hookText).replace(/\s+/g, " ").trim().slice(0, 80)
+      : ai && ai.hook && ai.hook.text ? String(ai.hook.text).trim().slice(0, 80) : "";
     if (!ai && (o.title || o.stickers)) {
       // the analysis was unavailable: the words alone still give a hook and key words
       vsAutoStatus(L("Writing the hook and picking the key words…", "در حال نوشتن هوک و انتخاب کلمات کلیدی…"));
@@ -10972,6 +11003,9 @@ async function vsEditMyVideo(file, o) {
       });
     }
     vstudio._editTitle = hookText || "";
+    // a font and a colour for the whole edit (sent by the customer's AI)
+    if (VS_FONT_IDS[o.font]) vstudio._editFont = VS_FONT_IDS[o.font]; else delete vstudio._editFont;
+    if (/^#[0-9a-f]{6}$/i.test(String(o.accent || ""))) vstudio.slides.forEach((x) => { x._accent = String(o.accent).toLowerCase(); });
     // transitions where the talk moves on: out of the teaser, into and out of
     // B-roll, and at each new point the analysis marked
     const newPoint = {};
@@ -11200,6 +11234,22 @@ function vsViaLive(key, def) {
   };
 }
 // The options of one of the studio's own selects, flattened.
+// The fonts by the short ids the MCP connector uses (lib/video-script.ts
+// FONTS); each value is exactly an option of #vsHeadlineFont, so a scene set
+// by the customer's AI shows its font in the scene editor too.
+const VS_FONT_IDS = {
+  archivo: "Archivo, ui-sans-serif, sans-serif", "space-grotesk": "'Space Grotesk', ui-sans-serif, sans-serif",
+  alice: "Alice, serif", viaoda: "'Viaoda Libre', serif", inter: "Inter, sans-serif", georgia: "Georgia, serif",
+  prata: "Prata, serif", manrope: "Manrope, sans-serif", "jetbrains-mono": "'JetBrains Mono', monospace"
+};
+// A look sent with a script scene: { font, template, accent } → the scene.
+function vsApplyLook(s, look) {
+  if (!s || !look || typeof look !== "object") return;
+  if (VS_FONT_IDS[look.font]) s._font = VS_FONT_IDS[look.font];
+  if (look.template && videoTemplates.some((t) => t.id === look.template)) s._templateId = look.template;
+  if (/^#[0-9a-f]{6}$/i.test(String(look.accent || ""))) s._accent = String(look.accent).toLowerCase();
+}
+
 // Font, template and accent for one scene - "same as the video" by default.
 function vsLookFields(s, F, L, ownClip) {
   const fonts = vsOptsFrom("#vsHeadlineFont");
@@ -28768,6 +28818,7 @@ async function vsLoadDeckFromUrl() {
     return;
   }
   if (j.skill === "reel") { await vsOpenReelDeck(j.script); return; }
+  if (j.skill === "edit") { await vsOpenEditDeck(j.script); return; }
   if (j.skill === "graphic") { await vsOpenGraphicDeck(j.script); return; }
   if (j.skill === "carousel") {
     // A carousel the customer's own AI wrote (create_carousel): their exact
@@ -28792,6 +28843,50 @@ NARRATION: ${x.heading ? String(x.body || "") : ""}
     return;
   }
   await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
+}
+
+/**
+ * An edit set up by the customer's own AI (edit_my_video). With their video
+ * already sent (kept beside the deck for two days) it starts at once, with
+ * the choices the AI made; without it, the same choices wait in the Edit my
+ * video window and one button asks for the file on this device.
+ */
+async function vsOpenEditDeck(e) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  e = e || {};
+  const preset = Object.assign({}, e.options || {});
+  vstudio._mcpEditPreset = preset;
+  let file = null;
+  if (e.video && /^\/api\/decks\//.test(e.video)) {
+    vsAutoStatus(L("Opening the video your AI sent…", "باز کردن ویدیویی که AIِ تو فرستاد…"));
+    try {
+      const r = await fetch(e.video, { credentials: "include" });
+      if (r.ok) { const b = await r.blob(); file = new File([b], e.name || "video.mp4", { type: b.type || "video/mp4" }); }
+    } catch (er) {}
+  }
+  if (file) {
+    try { await vsEditMyVideo(file, Object.assign({}, VS_EM_DEFAULTS, preset)); }
+    catch (er) { vsBuildOverlay(false); vsAutoStatus(L("The edit failed: ", "ادیت ناموفق بود: ") + String(er && er.message || er).slice(0, 140)); }
+    return;
+  }
+  // no file to hand: one tap opens this device's picker (a browser only
+  // allows that from a tap), and the window opens with the AI's choices
+  document.getElementById("vsMcpEditAsk")?.remove();
+  const box = document.createElement("div");
+  box.id = "vsMcpEditAsk";
+  box.setAttribute("role", "dialog"); box.setAttribute("aria-label", L("Choose your video", "ویدیوی خودت را انتخاب کن"));
+  box.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
+      <h2>${L("Your AI set up an edit", "AIِ تو یک ادیت آماده کرد")}</h2>
+      <p class="vsem-file">${e.note ? escapeHtml(String(e.note).slice(0, 200)) + "<br/>" : ""}${L("Choose the video on this device - it stays here; only its sound and a few frames are analysed.", "ویدیو را از همین دستگاه انتخاب کن؛ روی دستگاه می‌ماند و فقط صدا و چند فریمش تحلیل می‌شود.")}</p>
+      <div class="vsem-btns"><button type="button" class="vsem-go">${L("Choose video", "انتخاب ویدیو")}</button>
+      <button type="button" class="vsem-x">${L("Not now", "فعلاً نه")}</button></div></div>`;
+  box.className = "vsem-ask";
+  document.body.appendChild(box);
+  box.querySelector(".vsem-x").onclick = () => box.remove();
+  box.querySelector(".vsem-go").onclick = () => { box.remove(); const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } };
+  try { box.querySelector(".vsem-go").focus(); } catch (er) {}
+  vsAutoStatus(L("Your AI set up an edit - choose the video to start.", "AIِ تو ادیت را آماده کرد؛ ویدیو را انتخاب کن تا شروع شود."));
 }
 
 /**
@@ -29722,7 +29817,7 @@ function bindEvents() {
 
   // Timeline: play/pause button + scrubbing by dragging the track area.
   on("#vsEditMineBtn", "click", () => { const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } });
-  on("#vsEditMineFile", "change", (e) => { const f = e.target.files && e.target.files[0]; if (f) vsEditMineDialog(f); });
+  on("#vsEditMineFile", "change", (e) => { const f = e.target.files && e.target.files[0]; if (f) vsEditMineDialog(f, vstudio._mcpEditPreset); });
   on("#vsPlayBtn", "click", () => {
     if (vstudio.playing) {
       stopStudioPreview();
