@@ -5558,3 +5558,14 @@ b, strong { font-weight: 600; }
 :is(#vsEditMineDlg,#vsMcpEditAsk) .vsem-go{background:#2563ff;color:#fff;border:0}
 :is(#vsEditMineDlg,#vsMcpEditAsk) .vsem-x{background:transparent;color:#f4f5f7;border:1px solid rgba(255,255,255,.18)}
 :is(#vsEditMineDlg,#vsMcpEditAsk) button:focus-visible,#vsEditMineDlg input:focus-visible,#vsEditMineDlg select:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+
+/* Edit my video: several clips, in the order they play */
+#vsEditMineDlg .vsem-list{margin:0 0 12px;padding:0;list-style:none;counter-reset:vsem;max-height:180px;overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:10px}
+#vsEditMineDlg .vsem-list li{counter-increment:vsem;display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.06);font:500 12.5px/1.3 Manrope,ui-sans-serif,system-ui,sans-serif}
+#vsEditMineDlg .vsem-list li:last-child{border-bottom:0}
+#vsEditMineDlg .vsem-list li::before{content:counter(vsem);flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:rgba(37,99,255,.18);color:#8fb4ff;font:700 11px/1 "JetBrains Mono",monospace}
+#vsEditMineDlg .vsem-list li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vsEditMineDlg .vsem-list li em{font-style:normal;color:#8a919c;margin-inline-start:6px}
+#vsEditMineDlg .vsem-list button{flex:none;width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;cursor:pointer}
+#vsEditMineDlg .vsem-list button:disabled{opacity:.3;cursor:default}
+#vsEditMineDlg .vsem-list button:focus-visible{outline:2px solid #2563ff;outline-offset:2px}

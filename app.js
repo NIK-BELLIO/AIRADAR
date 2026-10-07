@@ -10618,8 +10618,10 @@ const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zo
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
 const VS_EM_DEFAULTS = { cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
-function vsEditMineDialog(file, preset) {
+function vsEditMineDialog(fileIn, preset) {
   preset = preset || {};
+  const files = (Array.isArray(fileIn) ? fileIn : [fileIn]).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
+  const file = files[0];
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
   document.getElementById("vsEditMineDlg")?.remove();
@@ -10629,7 +10631,9 @@ function vsEditMineDialog(file, preset) {
   const opt = (id, en, f, on) => `<label class="vsem-opt"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
   d.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
       <h2 id="vsEmT">${L("Edit my video", "ادیت ویدیوی من")}</h2>
-      <p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>
+      ${files.length > 1
+        ? `<p class="vsem-file">${L(files.length + " videos, edited as one - in this order:", files.length + " ویدیو، به‌صورت یک ویدیو ادیت می‌شوند - به این ترتیب:")}</p><ol class="vsem-list"></ol>`
+        : `<p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>`}
       ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
       ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
       ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
@@ -10675,11 +10679,29 @@ function vsEditMineDialog(file, preset) {
     };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     close();
-    vsEditMyVideo(file, o).catch((e) => {
+    vsEditMyVideo(files.length > 1 ? files : file, o).catch((e) => {
       vsBuildOverlay(false);
       vsAutoStatus((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(e && e.message || e).slice(0, 140));
     });
   };
+  // the order list: move a clip up or down; that is the order they play in
+  const list = d.querySelector(".vsem-list");
+  const drawList = () => {
+    if (!list) return;
+    list.innerHTML = files.map((f, k) => `<li><span>${escapeHtml(f.name)} <em>${Math.round(f.size / 1048576 * 10) / 10} MB</em></span>
+      <button type="button" data-up="${k}" ${k ? "" : "disabled"} aria-label="${L("Move up", "بالا")}">↑</button>
+      <button type="button" data-down="${k}" ${k < files.length - 1 ? "" : "disabled"} aria-label="${L("Move down", "پایین")}">↓</button></li>`).join("");
+  };
+  if (list) {
+    drawList();
+    list.addEventListener("click", (ev) => {
+      const b = ev.target.closest("button"); if (!b) return;
+      const k = Number(b.dataset.up != null ? b.dataset.up : b.dataset.down), j = b.dataset.up != null ? k - 1 : k + 1;
+      if (j < 0 || j >= files.length) return;
+      [files[k], files[j]] = [files[j], files[k]];
+      drawList();
+    });
+  }
   Object.keys(VS_EM_IDS).forEach((k) => { if (typeof preset[k] === "boolean") { const c = d.querySelector("#" + VS_EM_IDS[k]); if (c) c.checked = preset[k]; } });
   if (preset.layout) { const l = d.querySelector("#vsEmLook"); if (l && [...l.options].some((x) => x.value === preset.layout)) l.value = preset.layout; }
   if (preset.aspect) { const a2 = d.querySelector("#vsEmAspect"); if (a2 && [...a2.options].some((x) => x.value === preset.aspect)) a2.value = preset.aspect; }
@@ -10759,39 +10781,64 @@ function vsEditVideoEl(url) {
   });
 }
 
-async function vsEditMyVideo(file, o) {
+// Several clips are edited as one video: their sound is laid end to end on
+// one timeline (a short gap between files), transcribed and planned once,
+// and every cut plays from its own original file - nothing is re-encoded.
+const VS_EDIT_MAX_FILES = 10, VS_EDIT_FILE_GAP = 0.4;
+async function vsEditMyVideo(fileIn, o) {
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
-  if (!file || !/^video\//.test(file.type || "") && !/\.(mp4|mov|webm|m4v|mkv)$/i.test(file.name || "")) {
+  const files = (Array.isArray(fileIn) ? fileIn : [fileIn]).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
+  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "");
+  if (!files.length || !files.every(isVideo)) {
     vsAutoStatus(L("Pick a video file.", "یک فایل ویدیو انتخاب کن.")); return;
   }
-  if (file.size > 400 * 1048576) { vsAutoStatus(L("That file is over 400 MB - trim it first.", "این فایل بیشتر از ۴۰۰ مگابایت است؛ اول کوتاهش کن.")); return; }
+  const file = files[0];
+  if (files.reduce((n, f) => n + f.size, 0) > 400 * 1048576) { vsAutoStatus(L("Those files are over 400 MB together - trim them first.", "این فایل‌ها روی هم بیشتر از ۴۰۰ مگابایت‌اند؛ اول کوتاهشان کن.")); return; }
   try { stopStudioPreview(); } catch (e) {}
   vstudio._buildHold = true;
   vsBuildOverlay(true, L("Reading your video…", "در حال خواندن ویدیوی تو…"), L("Editing your video", "در حال ادیت ویدیوی تو"), 600000);
   try {
-    const url = URL.createObjectURL(file);
-    const probe = await vsEditVideoEl(url);
-    if (!probe) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد"));
-    let total = isFinite(probe.duration) ? probe.duration : 0;
-    vstudio._editSrcAspect = probe.videoWidth && probe.videoHeight ? probe.videoWidth / probe.videoHeight : 0.56;
-    if (total > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the video under 12 minutes", "ویدیو باید زیر ۱۲ دقیقه باشد"));
-
-    vsAutoStatus(L("Listening to your video…", "در حال گوش‌دادن به ویدیو…"));
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    let decoded;
-    try { decoded = await new OAC(1, 1, 24000).decodeAudioData(await file.arrayBuffer()); }
-    catch (e) { throw new Error(L("this video has no sound we can read", "صدای این ویدیو خوانده نشد")); }
-    // one channel, 24 kHz: enough for a voice, a quarter of the memory
-    const mono = new AudioBuffer({ length: decoded.length, numberOfChannels: 1, sampleRate: decoded.sampleRate });
-    const md = mono.getChannelData(0);
-    for (let c = 0; c < decoded.numberOfChannels; c++) {
-      const ch = decoded.getChannelData(c);
-      for (let k = 0; k < ch.length; k++) md[k] += ch[k] / decoded.numberOfChannels;
+    const many = files.length > 1;
+    // each file: its own player, its length, its sound (one channel, 24 kHz:
+    // enough for a voice, a quarter of the memory), and where it starts on
+    // the shared timeline
+    const srcs = [], monos = [];
+    let offset = 0;
+    for (let k = 0; k < files.length; k++) {
+      const f = files[k];
+      vsAutoStatus(many ? L(`Reading video ${k + 1} of ${files.length}…`, `در حال خواندن ویدیوی ${k + 1} از ${files.length}…`) : L("Listening to your video…", "در حال گوش‌دادن به ویدیو…"));
+      const u = URL.createObjectURL(f);
+      const el = await vsEditVideoEl(u);
+      const nm = many ? " (" + f.name + ")" : "";
+      if (!el) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد") + nm);
+      let decoded;
+      try { decoded = await new OAC(1, 1, 24000).decodeAudioData(await f.arrayBuffer()); }
+      catch (e) { throw new Error(L("this video has no sound we can read", "صدای این ویدیو خوانده نشد") + nm); }
+      const m1 = new AudioBuffer({ length: decoded.length, numberOfChannels: 1, sampleRate: decoded.sampleRate });
+      const d1 = m1.getChannelData(0);
+      for (let c = 0; c < decoded.numberOfChannels; c++) {
+        const ch = decoded.getChannelData(c);
+        for (let j = 0; j < ch.length; j++) d1[j] += ch[j] / decoded.numberOfChannels;
+      }
+      decoded = null;
+      const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : m1.duration;
+      srcs.push({ url: u, el, dur, offset, name: f.name, used: false });
+      monos.push(m1);
+      offset += dur + (k < files.length - 1 ? VS_EDIT_FILE_GAP : 0);
+      if (offset > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the videos under 12 minutes together", "ویدیوها روی هم باید زیر ۱۲ دقیقه باشند"));
     }
-    decoded = null;
-    if (!total) total = mono.duration;
-    if (total > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the video under 12 minutes", "ویدیو باید زیر ۱۲ دقیقه باشد"));
+    const total = offset;
+    const probe = srcs[0].el, url = srcs[0].url;
+    vstudio._editSrcAspect = probe.videoWidth && probe.videoHeight ? probe.videoWidth / probe.videoHeight : 0.56;
+    const sr0 = monos[0].sampleRate;
+    const mono = new AudioBuffer({ length: Math.max(1, Math.ceil(total * sr0)), numberOfChannels: 1, sampleRate: sr0 });
+    const md = mono.getChannelData(0);
+    monos.forEach((m1, k) => { md.set(m1.getChannelData(0).subarray(0, Math.max(0, Math.min(m1.length, md.length - Math.round(srcs[k].offset * sr0)))), Math.round(srcs[k].offset * sr0)); });
+    monos.length = 0;
+    // which file a moment of the shared timeline belongs to
+    const srcOf = (t) => { let k = 0; for (let j = 0; j < srcs.length; j++) if (t >= srcs[j].offset - 0.05) k = j; return k; };
 
     // The edit is a build - one a day for a guest, free for members - counted
     // only now, once the file has opened and been read, so a video that will
@@ -10831,7 +10878,14 @@ async function vsEditMyVideo(file, o) {
     const sentences = (tr.segments || []).map((sg, i) => ({ i, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text: String(sg.text || "").trim() }))
       .filter((x) => x.text);
     vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
-    const frames = await vsSampleFrames(probe, total, Math.max(6, Math.min(12, Math.round(total / 3))));
+    const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
+    let frames = [];
+    for (const sx of srcs) {
+      const fr = await vsSampleFrames(sx.el, sx.dur, many ? Math.max(2, Math.round(nFrames * sx.dur / total)) : nFrames);
+      fr.forEach((f) => { f.t = Math.round((f.t + sx.offset) * 10) / 10; });
+      frames = frames.concat(fr);
+    }
+    frames = frames.slice(0, 16);
     vsAutoStatus(L("Deciding the edit…", "در حال تصمیم‌گیری برای ادیت…"));
     let ai = null;
     // At most a minute: without the analysis the edit still runs, from the
@@ -10869,7 +10923,19 @@ async function vsEditMyVideo(file, o) {
         if (plan[0] && Math.abs(plan[0].start - teaser.start) < 0.6) teaser = null;   // it already opens the video
       }
     }
-    const parts = teaser ? [teaser].concat(plan) : plan;
+    const parts = [];
+    (teaser ? [teaser].concat(plan) : plan).forEach((p) => {
+      const a = srcOf(p.start), b = srcOf(Math.max(p.start, p.end - 0.01));
+      if (a === b) { parts.push(p); return; }
+      for (let k = a; k <= b; k++) {
+        const s0 = Math.max(p.start, srcs[k].offset), e0 = Math.min(p.end, srcs[k].offset + srcs[k].dur);
+        // a word stamped in the gap between two files is the next file's first
+        const from = k > a ? srcs[k].offset - VS_EDIT_FILE_GAP - 0.02 : s0 - 0.02;
+        const to = k < b ? srcs[k + 1].offset - VS_EDIT_FILE_GAP : e0;
+        const ws = (p.words || []).filter((w) => w.s >= from && w.s < to);
+        if (ws.length && e0 - s0 > 0.3) parts.push(Object.assign({}, p, { start: s0, end: e0, words: ws }));
+      }
+    });
 
     // the speaker stays centred in the new frame
     const fr = ai && Array.isArray(ai.frames) ? ai.frames.filter((f) => f && isFinite(f.t)) : [];
@@ -10893,7 +10959,7 @@ async function vsEditMyVideo(file, o) {
     vstudio._toneProfile.captions = "pop";
     vstudio.slides = [];
     vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
-    vstudio._editSrc = { url, mono, words, name: file.name };
+    vstudio._editSrc = { url, mono, words, name: file.name, srcs: srcs.map((x) => ({ url: x.url, dur: x.dur, offset: x.offset, name: x.name })) };
     const base = vsCaptureSettings();
     ["#vsInfoOn", "#vsNewsOn"].forEach((k) => { base[k] = false; });
     Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none" });
@@ -10904,7 +10970,8 @@ async function vsEditMyVideo(file, o) {
     let side = 0, lastBroll = -9;
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
-      const el = i === 0 ? probe : await vsEditVideoEl(url);
+      const sx = srcs[srcOf(p.start)];
+      const el = !sx.used ? (sx.used = true, sx.el) : await vsEditVideoEl(sx.url);
       if (!el) continue;
       const k = sentOf(p.words[0] ? p.words[0].s : p.start);
       const sp = sPlan[k] || {};
@@ -10915,8 +10982,8 @@ async function vsEditMyVideo(file, o) {
       const zoomed = o.zoom && (ai ? sp.zoom === "tight" || !!p.teaser : i % 3 === 2);
       const settings = Object.assign({}, base, { _mediaScale: 1, _mediaDX: 0 });
       const slide = {
-        url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "",
-        duration: dur, settings, _clipIn: p.start, _ownSpeech: true,
+        url: sx.url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "",
+        duration: dur, settings, _clipIn: p.start - sx.offset, _srcOffset: sx.offset, _ownSpeech: true,
         _narration: p.words.map((w) => w.w).join(" "),
         _voice: { buf: mono, cut: p.start, len: dur, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} },
         _timelineLabel: (p.teaser ? L("Teaser · ", "تیزر · ") : "") + ((p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ"))
@@ -10992,7 +11059,7 @@ async function vsEditMyVideo(file, o) {
     }
 
     const mu = (ai && ai.music) || {};
-    vstudio.storyData = { title: hookText || file.name, language: lang2, summary: (ai && ai.summary) || "",
+    vstudio.storyData = { title: hookText || file.name.replace(/\.[a-z0-9]+$/i, ""), language: lang2, summary: (ai && ai.summary) || "",
       music: { mood: String(mu.mood || "upbeat"), energy: String(mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
@@ -11025,8 +11092,8 @@ async function vsEditMyVideo(file, o) {
       delete sl._transIn;
       if (!o.trans || i === 0) return;
       const prev = vstudio.slides[i - 1];
-      const k2 = sentOf(sl._clipIn != null && !sl._broll ? sl._clipIn + 0.1 : (sl._ownClipIn || 0) + 0.1);
-      const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
+      const k2 = sentOf((sl._srcOffset || 0) + (sl._clipIn != null && !sl._broll ? sl._clipIn : (sl._ownClipIn || 0)) + 0.1);
+      const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._srcOffset || 0) + (x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
       if (sl._gfx || prev._gfx || prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = ["wipe", "whip", "zoom", "wipe", "flash"][tk++ % 5];
     });
     vstudio._editSfxOn = !!o.trans;
@@ -11352,9 +11419,10 @@ function vsElementFields(s, i, id) {
     const recut = (start, dur) => {
       s._clipIn = Math.max(0, Math.min(total - 0.3, start));
       s.duration = Math.max(0.3, Math.min(total - s._clipIn, dur));
-      const local = src.words.filter((w) => w.s >= s._clipIn - 0.05 && w.e <= s._clipIn + s.duration + 0.05)
-        .map((w) => ({ w: w.w, t0: Math.max(0, w.s - s._clipIn), t1: Math.max(0.05, w.e - s._clipIn) }));
-      s._voice = { buf: src.mono, cut: s._clipIn, len: s.duration, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} };
+      const at0 = (s._srcOffset || 0) + s._clipIn;   // where this clip sits on the shared timeline
+      const local = src.words.filter((w) => w.s >= at0 - 0.05 && w.e <= at0 + s.duration + 0.05)
+        .map((w) => ({ w: w.w, t0: Math.max(0, w.s - at0), t1: Math.max(0.05, w.e - at0) }));
+      s._voice = { buf: src.mono, cut: at0, len: s.duration, at: 0, words: local, chunks: vsCaptionChunks(local), _byMax: {} };
       s._narration = local.map((w) => w.w).join(" ");
       vsMixVoiceTrack(true);
     };
@@ -28868,12 +28936,26 @@ async function vsOpenEditDeck(e) {
   const preset = Object.assign({}, e.options || {});
   vstudio._mcpEditPreset = preset;
   let file = null;
-  if (e.video && /^\/api\/decks\//.test(e.video)) {
-    vsAutoStatus(L("Opening the video your AI sent…", "باز کردن ویدیویی که AIِ تو فرستاد…"));
+  const fetchOne = async (path, name) => {
     try {
-      const r = await fetch(e.video, { credentials: "include" });
-      if (r.ok) { const b = await r.blob(); file = new File([b], e.name || "video.mp4", { type: b.type || "video/mp4" }); }
+      const r = await fetch(path, { credentials: "include" });
+      if (r.ok) { const b = await r.blob(); return new File([b], name || "video.mp4", { type: b.type || "video/mp4" }); }
     } catch (er) {}
+    return null;
+  };
+  if (Array.isArray(e.videos) && e.videos.length > 1) {
+    // several clips: all of them, in the AI's order, or none
+    vsAutoStatus(L("Opening the clips your AI sent…", "باز کردن کلیپ‌هایی که AIِ تو فرستاد…"));
+    const got = [];
+    for (const v of e.videos) {
+      const f = v && /^\/api\/decks\//.test(v.path) ? await fetchOne(v.path, v.name) : null;
+      if (!f) { got.length = 0; break; }
+      got.push(f);
+    }
+    if (got.length) file = got;
+  } else if (e.video && /^\/api\/decks\//.test(e.video)) {
+    vsAutoStatus(L("Opening the video your AI sent…", "باز کردن ویدیویی که AIِ تو فرستاد…"));
+    file = await fetchOne(e.video, e.name);
   }
   if (file) {
     try { await vsEditMyVideo(file, Object.assign({}, VS_EM_DEFAULTS, preset)); }
@@ -29827,7 +29909,11 @@ function bindEvents() {
 
   // Timeline: play/pause button + scrubbing by dragging the track area.
   on("#vsEditMineBtn", "click", () => { const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } });
-  on("#vsEditMineFile", "change", (e) => { const f = e.target.files && e.target.files[0]; if (f) vsEditMineDialog(f, vstudio._mcpEditPreset); });
+  on("#vsEditMineFile", "change", (e) => {
+    // several clips, sorted by name to start with (cameras number them in order); the window lets you reorder
+    const fs = Array.from((e.target.files) || []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    if (fs.length) vsEditMineDialog(fs.length > 1 ? fs : fs[0], vstudio._mcpEditPreset);
+  });
   on("#vsPlayBtn", "click", () => {
     if (vstudio.playing) {
       stopStudioPreview();

@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v779" />
+    <link rel="stylesheet" href="/styles.css?v=v780" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1574,7 +1574,7 @@
                       <button id="vsAutoAiBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;"><span id="vsAutoAiBtnTxt" data-i18n="vsGenerate">Generate my video</span></button>
                       <button id="vsOwnAiBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;" aria-haspopup="dialog" data-i18n="vsOwnAi">Write it with your own AI</button>
                       <button id="vsEditMineBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;" aria-haspopup="dialog" data-i18n="vsEditMine">Edit my video</button>
-                      <input id="vsEditMineFile" type="file" accept="video/*" hidden />
+                      <input id="vsEditMineFile" type="file" accept="video/*" multiple hidden />
                       <button id="vsExportBtn" class="button primary" type="button" style="width:100%;min-height:46px;font-weight:800;margin-top:10px;display:none;" data-i18n="vExportBtn">⬇ <span id="vsExportBtnTxt">Export video</span></button>
                       <button id="vsCoverBtn" class="button ghost" type="button" style="width:100%;min-height:42px;font-weight:700;margin-top:8px;"><span id="vsCoverBtnTxt" data-i18n="vsThumbStudioBtn">Thumbnail Studio</span></button>
 
@@ -2697,7 +2697,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v779"></script>
+    <script src="/app.js?v=v780"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
