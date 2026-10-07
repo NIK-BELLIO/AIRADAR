@@ -9344,6 +9344,14 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const scale = look === "pop" ? 0.86 + 0.14 * (1 - Math.pow(1 - pop, 3)) : 1;
   let accent = "#f5c451";
   try { const tp = typeof vsTemplate === "function" ? vsTemplate() : null; if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
+  // A dark accent (a light template's ink) would vanish on the dark caption
+  // shade: lift it towards white until it reads.
+  try {
+    if (vsHexLuma(accent) < 120) {
+      const n = parseInt(accent.slice(1), 16), mix = (c) => Math.round(c + (255 - c) * 0.6);
+      accent = "#" + [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)].map((c) => c.toString(16).padStart(2, "0")).join("");
+    }
+  } catch (e) {}
 
   ctx.save();
   ctx.font = font;
@@ -9372,7 +9380,11 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
     const hits = vstudio._hits || {};
     const blocks = [s._editorial ? hits.edText : null, vstudio.textBox, vstudio.newsBox].filter((b) => b && b.h > 0 && b.h < H * 0.7);
     for (const b of blocks) {
-      if (b.y < band[1] && b.y + b.h > band[0]) cy = Math.max(H * 0.22, b.y - base * 1.1);
+      if (b.y < band[1] && b.y + b.h > band[0]) {
+        // under the block when the frame has room for it, else above it
+        const below = b.y + b.h + base * 0.95;
+        cy = below < H * 0.93 ? below : Math.max(H * 0.22, b.y - base * 1.1);
+      }
     }
   }
 
@@ -15532,6 +15544,8 @@ function drawNewsBannerInner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const lines = fit.lines, mainPx = fit.px;
     const lineH = mainPx * 1.18, blockH = lines.length * lineH;
     const top = H*0.48 - blockH/2;
+    // the real text block, so the captions can keep clear of a long headline
+    vstudio.newsBox = { x: 0, y: top - U * 0.08, w: W, h: blockH + U * 0.2 };
     // scrim
     const scrimG = ctx.createLinearGradient(0, top-U*0.08, 0, top+blockH+U*0.18);
     scrimG.addColorStop(0,"rgba(0,0,0,0)"); scrimG.addColorStop(0.15,"rgba(0,0,0,0.68)");
@@ -15571,6 +15585,7 @@ function drawNewsBannerInner(ctx, W, H, elapsed, dsVal, vsOff, dsDur) {
     const bsFit = fitWrap(mainTxt.toUpperCase(), "900", "Inter, sans-serif", U*0.2, Math.round(U*0.04), W*0.9, H*0.7, 1.05);
     const lines = bsFit.lines, px2 = bsFit.px;
     const lH = px2*1.05, topY = H/2-(lines.length-1)*lH/2;
+    vstudio.newsBox = { x: 0, y: topY - px2, w: W, h: lines.length * lH + px2 * 0.4 };
     lines.forEach((ln, li) => {
       const le = Math.max(0,Math.min(1,e*(lines.length+1.5)-li)), le3=1-Math.pow(1-le,3);
       ctx.save(); ctx.globalAlpha=le3;
@@ -19061,7 +19076,8 @@ function drawStudioFrame(elapsed) {
       accent: (tpl && tpl.accent) || bg.accent,
       // Intro/outro cards get their OWN face (templates may set `introFont`),
       // so title cards read differently from the middle slides.
-      headlineFont: (tpl && (tpl.introFont || tpl.headlineFont)) || "Prata, serif",
+      // A font picked for THIS scene in the editor wins over both.
+      headlineFont: (vstudio._drawSlide && vstudio._drawSlide._font) || (tpl && (tpl.introFont || tpl.headlineFont)) || "Prata, serif",
       // eyebrow label above the intro title (uses the AI kicker if present)
       // Same rule as the thumbnail templates: when there is nothing to put
       // here, put nothing. This used to fall back to "AI RADAR", so any
