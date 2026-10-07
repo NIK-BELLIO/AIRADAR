@@ -22533,6 +22533,17 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   let img = null;
   try { vstudio._lastImgError = null; } catch (e) {}
   if (imgPrompt) { try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {} }
+  // A dropped connection, a server hiccup or a broken file is often gone a
+  // moment later: one more try before the text-only card (a guest limit, a
+  // timeout or the day's quota would only fail again).
+  if (!img && imgPrompt) {
+    const e1 = (typeof vstudio !== "undefined" && vstudio._lastImgError) || {};
+    const passing = e1.kind === "network" || e1.kind === "decode" || (e1.kind === "http" && e1.status >= 500 && e1.status !== 502);
+    if (passing) {
+      await new Promise((r) => setTimeout(r, 1500));
+      try { img = await vsEdLoadImage(vsEditorialImagePrompt(imgPrompt, topic), imgW || 1024, imgH || 1024); } catch (e) {}
+    }
+  }
   // The AI picture failed: record why, then try a real photograph of the same
   // subject before settling for text on a gradient.
   const aiError = img ? null : ((typeof vstudio !== "undefined" && vstudio._lastImgError) || { kind: "unknown" });
@@ -24022,6 +24033,24 @@ function vsThumbNoImageReason(err) {
   if (quota) {
     return fa2 ? "سهمیهٔ رایگانِ ساخت تصویر برای امروز تمام شده، پس این نسخه بدون تصویر پس‌زمینه است. فردا دوباره امتحان کن."
                : "Today's free image quota is used up, so this one has no background picture. Try again tomorrow.";
+  }
+  // the reason itself, so the next screenshot says what went wrong
+  const k = err && err.kind;
+  if (k === "needLogin" || (k === "http" && (err.status === 401 || err.status === 403))) {
+    return fa2 ? "تصویرهای رایگانِ امروز برای مهمان تمام شده. وارد حسابت شو (رایگان) تا تصویر پس‌زمینه ساخته شود."
+               : "Today's free pictures for guests are used up. Sign in (free) to get the background picture.";
+  }
+  if (k === "network") {
+    return fa2 ? "به سرویس ساخت تصویر وصل نشد (اینترنت یا VPN). اتصال را چک کن و «دوباره بساز» را بزن."
+               : "Could not reach the image service (internet or VPN). Check the connection and press Generate again.";
+  }
+  if (k === "http") {
+    return fa2 ? `سرویس تصویر خطا داد (HTTP ${err.status}). یک دقیقهٔ دیگر «دوباره بساز» را بزن.`
+               : `The image service answered with an error (HTTP ${err.status}). Press Generate again in a minute.`;
+  }
+  if (k === "decode") {
+    return fa2 ? "تصویر خراب رسید. «دوباره بساز» را بزن."
+               : "The picture arrived broken. Press Generate again.";
   }
   return fa2 ? "تصویر پس‌زمینه ساخته نشد. این نسخهٔ فقط‌متن است — «دوباره بساز» را بزن."
              : "The background image could not be made. This is the text-only version — press Generate again.";
