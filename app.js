@@ -10803,12 +10803,17 @@ async function vsEditMyVideo(file, o) {
     vsAutoStatus(L("Writing down every word…", "در حال نوشتن کلمه‌به‌کلمه…"));
     const wav = await vsSpeechWav(mono);
     let tr = null;
+    const trCtrl = new AbortController();
+    const trTimer = setTimeout(() => trCtrl.abort(), 120000);
     try {
-      const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav });
+      const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav, signal: trCtrl.signal });
       if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
       tr = await r.json();
       if (!r.ok) throw new Error(tr && tr.error || ("HTTP " + r.status));
-    } catch (e) { throw new Error(L("the speech could not be transcribed", "متن صحبت‌ها گرفته نشد") + (e && e.message ? " (" + e.message + ")" : "")); }
+    } catch (e) {
+      if (e && e.name === "AbortError") throw new Error(L("listening to the video took too long - try again in a minute", "گوش‌دادن به ویدیو خیلی طول کشید؛ یک دقیقهٔ دیگر دوباره امتحان کن"));
+      throw new Error(L("the speech could not be transcribed", "متن صحبت‌ها گرفته نشد") + (e && e.message ? " (" + e.message + ")" : ""));
+    } finally { clearTimeout(trTimer); }
     const words = [];
     (tr.segments || []).forEach((sg) => (sg.words || []).forEach((w) => {
       const t = String(w.word || "").trim();
@@ -10829,13 +10834,18 @@ async function vsEditMyVideo(file, o) {
     const frames = await vsSampleFrames(probe, total, Math.max(6, Math.min(12, Math.round(total / 3))));
     vsAutoStatus(L("Deciding the edit…", "در حال تصمیم‌گیری برای ادیت…"));
     let ai = null;
+    // At most a minute: without the analysis the edit still runs, from the
+    // words alone (the hook and key words come from vsEditStylePlan below).
+    const planCtrl = new AbortController();
+    const planTimer = setTimeout(() => planCtrl.abort(), 60000);
     try {
       const r = await fetch(VS_EDIT_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
-        body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }) });
+        body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }), signal: planCtrl.signal });
       if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
       const j = await r.json();
       if (j && j.ok && j.plan) ai = j.plan;
     } catch (e) {}
+    clearTimeout(planTimer);
     vstudio._editPlan = ai;
     const sPlan = {};
     ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
