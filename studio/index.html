@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v788" />
+    <link rel="stylesheet" href="/styles.css?v=v789" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1546,16 +1546,20 @@
                            Kept as a hidden, permanently-checked input so all the
                            build/export code that reads #vsMusic keeps working. -->
                       <input id="vsMusic" type="checkbox" checked hidden />
-                      <label class="vs-switch">
-                        <input id="vsNarrate" type="checkbox" checked />
-                        <span class="vs-switch-track"></span>
-                        <span class="vs-switch-txt" id="vsNarrateLbl" data-i18n="vNarrateLbl">Voice-over</span>
-                      </label>
-                      <label class="vs-switch vs-switch-sub">
-                        <input id="vsCaptions" type="checkbox" checked />
-                        <span class="vs-switch-track"></span>
-                        <span class="vs-switch-txt" id="vsCaptionsLbl" data-i18n="vCaptionsLbl">Word-by-word captions on screen</span>
-                      </label>
+                      <!-- Voice-over and its captions, one group: the captions row
+                           is a sub-choice and only shows while there is a voice -->
+                      <div class="vs-voice-group">
+                        <label class="vs-switch">
+                          <input id="vsNarrate" type="checkbox" checked />
+                          <span class="vs-switch-track"></span>
+                          <span class="vs-switch-txt" id="vsNarrateLbl" data-i18n="vNarrateLbl">Voice-over</span>
+                        </label>
+                        <label class="vs-switch vs-switch-sub">
+                          <input id="vsCaptions" type="checkbox" checked />
+                          <span class="vs-switch-track"></span>
+                          <span class="vs-switch-txt" id="vsCaptionsLbl" data-i18n="vCaptionsLbl">Word-by-word captions</span>
+                        </label>
+                      </div>
                     </div>
                     <input id="vsPexelsKey" type="hidden" value="" />
                     <details class="vs-smart-model" style="margin-top:10px;border:1px solid rgba(37,99,255,0.25);border-radius:10px;padding:8px 10px;">
@@ -2197,8 +2201,16 @@
       .vs-auto-opts{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}
       .vs-switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:13px;color:#f4f5f7;line-height:1.35}
       .vs-switch input{position:absolute;opacity:0;width:0;height:0}
-      .vs-switch-sub{margin-top:-4px;padding-inline-start:20px;font-weight:500;color:#c9ccd3}
-      .vs-switch:has(#vsNarrate:not(:checked)) + .vs-switch-sub{opacity:.4;pointer-events:none}
+      /* voice-over + captions: one card, the captions a nested sub-row tied to
+         the voice-over switch by a thin elbow line; hidden while there is no voice */
+      .vs-voice-group{display:flex;flex-direction:column;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025)}
+      .vs-voice-group:has(#vsNarrate:checked){border-color:rgba(53,208,127,.28)}
+      .vs-switch-sub{position:relative;margin-inline-start:20px;padding-inline-start:22px;gap:10px;font-weight:500;font-size:12.5px;color:#c9ccd3}
+      .vs-switch-sub::before{content:"";position:absolute;inset-inline-start:0;top:-12px;width:14px;height:22px;border-inline-start:1.5px solid rgba(255,255,255,.2);border-bottom:1.5px solid rgba(255,255,255,.2);border-end-start-radius:8px}
+      .vs-voice-group .vs-switch-sub .vs-switch-track{width:34px;height:20px}
+      .vs-voice-group .vs-switch-sub .vs-switch-track::after{width:14px;height:14px}
+      .vs-voice-group .vs-switch-sub input:checked + .vs-switch-track::after{transform:translateX(14px)}
+      .vs-voice-group:has(#vsNarrate:not(:checked)) .vs-switch-sub{display:none}
       .vs-switch-track{position:relative;flex-shrink:0;width:42px;height:24px;border-radius:999px;
         background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);transition:background .2s,border-color .2s}
       .vs-switch-track::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
@@ -2697,7 +2709,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v788"></script>
+    <script src="/app.js?v=v789"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
