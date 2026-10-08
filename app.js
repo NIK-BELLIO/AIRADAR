@@ -11491,29 +11491,14 @@ function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather, hardTop, hardBot) {
   }
   ctx.putImageData(img, X, Y);
 }
-// Over a photo, take away only the old letters: their own pixels (the text
-// colour), grown by a few pixels for the soft edge and the drop shadow, each
-// filled from the photo just beside it - across the row and down the column,
-// the nearer side counting more. Rebuilding the whole box from its edges
-// smeared a face or a sky across it.
-function vsSwapEraseStrokes(ctx, W, H, X, Y, WW, HH, tc, grow) {
-  X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
-  if (WW < 2 || HH < 2) return;
-  const img = ctx.getImageData(X, Y, WW, HH), d = img.data, n = WW * HH;
-  const ink = new Uint8Array(n);
-  for (let p = 0, i = 0; p < n; p++, i += 4) if (vsSwapDist(d, i, tc[0], tc[1], tc[2]) < 150) ink[p] = 1;
-  // grow (a square, done as a row pass then a column pass)
-  const r = Math.max(1, Math.round(grow)), tmp = new Uint8Array(n), hole = new Uint8Array(n);
-  for (let y = 0; y < HH; y++) { let last = -1e9; for (let x = 0; x < WW; x++) { if (ink[y * WW + x]) last = x; if (x - last <= r) tmp[y * WW + x] = 1; } last = 1e9; for (let x = WW - 1; x >= 0; x--) { if (ink[y * WW + x]) last = x; if (last - x <= r) tmp[y * WW + x] = 1; } }
-  for (let x = 0; x < WW; x++) { let last = -1e9; for (let y = 0; y < HH; y++) { if (tmp[y * WW + x]) last = y; if (y - last <= r) hole[y * WW + x] = 1; } last = 1e9; for (let y = HH - 1; y >= 0; y--) { if (tmp[y * WW + x]) last = y; if (last - y <= r) hole[y * WW + x] = 1; } }
-  // the shadow falls down and to the right: grow that way a little more
-  const sh = r * 2;
-  for (let y = HH - 1; y >= 0; y--) for (let x = WW - 1; x >= 0; x--) { const p = y * WW + x; if (!hole[p] && ((x >= sh && hole[p - sh] === 1) || (y >= sh && hole[p - sh * WW] === 1) || (x >= sh && y >= sh && hole[p - sh - sh * WW] === 1))) hole[p] = 2; }
+// Fill the hole pixels of an image from the known ones by "push-pull" (see
+// below); returns the filled pixel data. Shared by the text erasers.
+function vsPushPullFill(d, WW, HH, hole) {
   // Fill by "push-pull": average the known pixels into ever smaller copies of
   // the box, then fill each hole from the next-coarser copy on the way back
   // up. Long holes (a whole old word) fill smoothly; filling along rows and
   // columns left blocky streaks there.
-  const out = new Uint8ClampedArray(d);
+  const n = WW * HH, out = new Uint8ClampedArray(d);
   const lv = [{ w: WW, h: HH, c: new Float32Array(n * 3), k: new Float32Array(n) }];
   for (let p = 0; p < n; p++) if (!hole[p]) { lv[0].k[p] = 1; for (let c = 0; c < 3; c++) lv[0].c[p * 3 + c] = d[p * 4 + c]; }
   while (lv[lv.length - 1].w > 1 || lv[lv.length - 1].h > 1) {
@@ -11544,6 +11529,27 @@ function vsSwapEraseStrokes(ctx, W, H, X, Y, WW, HH, tc, grow) {
     }
   }
   for (let p = 0; p < n; p++) if (hole[p]) for (let c = 0; c < 3; c++) out[p * 4 + c] = lv[0].c[p * 3 + c];
+  return out;
+}
+// Over a photo, take away only the old letters: their own pixels (the text
+// colour), grown by a few pixels for the soft edge and the drop shadow, each
+// filled from the photo just beside it - across the row and down the column,
+// the nearer side counting more. Rebuilding the whole box from its edges
+// smeared a face or a sky across it.
+function vsSwapEraseStrokes(ctx, W, H, X, Y, WW, HH, tc, grow) {
+  X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
+  if (WW < 2 || HH < 2) return;
+  const img = ctx.getImageData(X, Y, WW, HH), d = img.data, n = WW * HH;
+  const ink = new Uint8Array(n);
+  for (let p = 0, i = 0; p < n; p++, i += 4) if (vsSwapDist(d, i, tc[0], tc[1], tc[2]) < 150) ink[p] = 1;
+  // grow (a square, done as a row pass then a column pass)
+  const r = Math.max(1, Math.round(grow)), tmp = new Uint8Array(n), hole = new Uint8Array(n);
+  for (let y = 0; y < HH; y++) { let last = -1e9; for (let x = 0; x < WW; x++) { if (ink[y * WW + x]) last = x; if (x - last <= r) tmp[y * WW + x] = 1; } last = 1e9; for (let x = WW - 1; x >= 0; x--) { if (ink[y * WW + x]) last = x; if (last - x <= r) tmp[y * WW + x] = 1; } }
+  for (let x = 0; x < WW; x++) { let last = -1e9; for (let y = 0; y < HH; y++) { if (tmp[y * WW + x]) last = y; if (y - last <= r) hole[y * WW + x] = 1; } last = 1e9; for (let y = HH - 1; y >= 0; y--) { if (tmp[y * WW + x]) last = y; if (last - y <= r) hole[y * WW + x] = 1; } }
+  // the shadow falls down and to the right: grow that way a little more
+  const sh = r * 2;
+  for (let y = HH - 1; y >= 0; y--) for (let x = WW - 1; x >= 0; x--) { const p = y * WW + x; if (!hole[p] && ((x >= sh && hole[p - sh] === 1) || (y >= sh && hole[p - sh * WW] === 1) || (x >= sh && y >= sh && hole[p - sh - sh * WW] === 1))) hole[p] = 2; }
+  const out = vsPushPullFill(d, WW, HH, hole);
   img.data.set(out);
   ctx.putImageData(img, X, Y);
 }
@@ -25323,6 +25329,60 @@ async function vsThumbCutout(frame) {
   cut._touchBottom = (y1 + 1) / mh > 0.96;
   return cut;
 }
+// Frames for the thumbnail, from 6% to 94% of the video: the first and last
+// moments are usually a fade (a blank white first frame was picked once)
+async function vsThumbSample(el, dur, n) {
+  const out = [];
+  const c = document.createElement("canvas");
+  const vw = el.videoWidth || 640, vh = el.videoHeight || 360;
+  c.width = 384; c.height = Math.max(1, Math.round(384 * vh / vw));
+  const x = c.getContext("2d");
+  for (let k = 0; k < n; k++) {
+    const t = dur * (0.06 + 0.88 * (k / Math.max(1, n - 1)));
+    await new Promise((res) => {
+      let done = false;
+      const fin = () => { if (!done) { done = true; el.removeEventListener("seeked", fin); res(); } };
+      el.addEventListener("seeked", fin);
+      try { el.currentTime = t; } catch (e) { fin(); }
+      setTimeout(fin, 3000);
+    });
+    try { x.drawImage(el, 0, 0, c.width, c.height); out.push({ t: Math.round(t * 10) / 10, jpeg: c.toDataURL("image/jpeg", 0.7).split(",")[1] }); } catch (e) {}
+  }
+  return out;
+}
+// Take the words burned into a frame off it (the user's own words go on the
+// thumbnail): letters in their colour, or a whole plate when the words sit on
+// one, filled from the picture around them.
+function vsThumbEraseText(canvas, texts) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true }), W = canvas.width, H = canvas.height;
+  for (const t of texts || []) {
+    const b = Array.isArray(t.box_2d) && t.box_2d.length === 4 ? t.box_2d.map(Number) : null;
+    if (!b || !b.every(isFinite)) continue;
+    let y0 = b[0] / 1000 * H, x0 = b[1] / 1000 * W, y1 = b[2] / 1000 * H, x1 = b[3] / 1000 * W;
+    if (y1 <= y0 || x1 <= x0) continue;
+    const bh = y1 - y0, pad = Math.max(4, bh * 0.15), mg = Math.max(10, bh * 0.45);
+    // the box grown a little (the plan's box is tight), and known picture round it
+    const ix0 = Math.max(0, Math.floor(x0 - pad)), iy0 = Math.max(0, Math.floor(y0 - pad)), ix1 = Math.min(W - 1, Math.ceil(x1 + pad)), iy1 = Math.min(H - 1, Math.ceil(y1 + pad));
+    const X = Math.max(0, Math.floor(ix0 - mg)), Y = Math.max(0, Math.floor(iy0 - mg)), X1 = Math.min(W - 1, Math.ceil(ix1 + mg)), Y1 = Math.min(H - 1, Math.ceil(iy1 + mg));
+    const WW = X1 - X + 1, HH = Y1 - Y + 1;
+    if (WW < 4 || HH < 4) continue;
+    const img = ctx.getImageData(X, Y, WW, HH), d = img.data, hole = new Uint8Array(WW * HH);
+    const hx = /^#?([0-9a-f]{6})$/i.exec(String(t.color || "")), tc = hx ? [0, 2, 4].map((k) => parseInt(hx[1].slice(k, k + 2), 16)) : null;
+    if (t.plate || !tc) {
+      for (let y = iy0 - Y; y <= iy1 - Y; y++) for (let x = ix0 - X; x <= ix1 - X; x++) hole[y * WW + x] = 1;
+    } else {
+      // the letters, grown for their soft edge and outline, inside the box
+      const r = Math.max(2, Math.round(bh * 0.08)), ink = new Uint8Array(WW * HH);
+      for (let y = iy0 - Y; y <= iy1 - Y; y++) for (let x = ix0 - X; x <= ix1 - X; x++) { const i = (y * WW + x) * 4; if (vsSwapDist(d, i, tc[0], tc[1], tc[2]) < 95) ink[y * WW + x] = 1; }   // tight: light skin under white words is not a letter
+      for (let y = 0; y < HH; y++) for (let x = 0; x < WW; x++) {
+        if (!ink[y * WW + x]) continue;
+        for (let yy = Math.max(0, y - r); yy <= Math.min(HH - 1, y + r); yy++) for (let xx = Math.max(0, x - r); xx <= Math.min(WW - 1, x + r); xx++) hole[yy * WW + xx] = 1;
+      }
+    }
+    img.data.set(vsPushPullFill(d, WW, HH, hole));
+    ctx.putImageData(img, X, Y);
+  }
+}
 // How sharp a small frame is (variance of a Laplacian over its grey values)
 async function vsThumbSharpness(b64) {
   try {
@@ -25337,8 +25397,10 @@ async function vsThumbSharpness(b64) {
       sum += v; sum2 += v * v; n++; lum += g(i);
     }
     const varL = sum2 / n - (sum / n) ** 2, mean = lum / n;
-    // a frame that is nearly black or blown out is no thumbnail either
-    return varL * (mean < 35 || mean > 235 ? 0.2 : 1);
+    // a nearly blank frame (a fade, a flash, a black hold) is no thumbnail
+    let dev = 0; for (let i = 0; i < d.length; i += 16) { const v = g(i) - mean; dev += v * v; }
+    const std = Math.sqrt(dev / (d.length / 16));
+    return varL * (mean < 35 || mean > 225 ? 0.2 : 1) * (std < 22 ? 0.05 : 1);
   } catch (e) { return 0; }
 }
 // One frame of the video at full size (up to 1920 across)
@@ -25365,7 +25427,7 @@ async function vsThumbReadVideo(file, topic, say) {
   const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
   if (!dur) throw new Error(L("the video's length could not be read", "طول ویدیو خوانده نشد"));
   say(L("Looking through your video…", "در حال نگاه کردن به ویدیوی تو…"));
-  const frames = await vsSampleFrames(el, dur, Math.max(6, Math.min(12, Math.round(dur / 2))));
+  const frames = await vsThumbSample(el, dur, Math.max(6, Math.min(12, Math.round(dur / 2))));
   if (!frames.length) throw new Error(L("no frame could be read from this video", "هیچ فریمی از این ویدیو خوانده نشد"));
   // what is said, the first minute and a half (the title comes from it; a
   // silent video, or one too big to decode here, still gets its thumbnail)
@@ -25404,7 +25466,7 @@ async function vsThumbReadVideo(file, topic, say) {
   // never a blurred, black or blown-out frame, whatever was picked
   const sharp = await Promise.all(frames.map((f) => vsThumbSharpness(f.jpeg)));
   const mx = Math.max(1, ...sharp);
-  let best = [...new Set(((plan && plan.best) || []).map(Number).filter((i) => i >= 0 && i < frames.length))].filter((i) => sharp[i] >= mx * 0.4);
+  let best = [...new Set(((plan && plan.best) || []).map(Number).filter((i) => i >= 0 && i < frames.length))].filter((i) => sharp[i] >= mx * 0.25);
   frames.map((f, i) => i).sort((a, b) => sharp[b] - sharp[a]).forEach((i) => { if (best.length < 3 && !best.includes(i)) best.push(i); });
   const out = { el, url, dur, frames, plan: plan || {}, best, transcript };
   vstudio._thumbVidLast = { transcript: transcript.slice(0, 300), plan: out.plan };   // for support
@@ -25543,6 +25605,7 @@ function vsThumbStudio(prefillTopic, preset) {
            <span id="tsVidInfo" style="flex:1;min-width:200px;font-size:12.5px;line-height:1.45;color:#c9ccd3">${fa ? "ویدیو را بده: بهترین فریم را پیدا می‌کنیم، خودت را از پس‌زمینه جدا می‌کنیم و عنوان را از حرف‌هایت می‌نویسیم." : "Give it your video: it finds the best frame, cuts you out and writes the title from what you say."}</span>
            <input id="tsVidFile" type="file" accept="video/*" hidden/>
          </div>
+         <label class="chip" style="align-self:flex-start;padding:8px 12px"><input type="checkbox" id="tsVidClean" checked/> ${fa ? "متن‌هایی را که روی ویدیو هست پاک کن (متن خودت می‌آید)" : "Remove the text that is on the video (your own words go on it)"}</label>
          <div id="tsVidFrames" style="display:none;gap:7px;overflow-x:auto;padding-bottom:4px"></div>
          <div id="tsVidAlts" style="display:none;gap:7px;flex-wrap:wrap"></div>
        </div>
@@ -25603,6 +25666,10 @@ function vsThumbStudio(prefillTopic, preset) {
     let p = vid.picks.find((q) => q.i === i);
     if (p) return p;
     const canvas = await vsThumbFrameAt(d.el, d.frames[i].t);
+    if ($$("tsVidClean") && $$("tsVidClean").checked) {
+      const own = ((d.plan && d.plan.texts) || []).filter((t) => Number(t.frame) === i);
+      try { vsThumbEraseText(canvas, own); } catch (e) {}
+    }
     let cut = null; try { cut = await vsThumbCutout(canvas); } catch (e) {}
     const side = cut ? ((cut._box.x + cut._box.w / 2) / canvas.width < 0.4 ? "left" : "right") : "right";
     p = { i, canvas, cut, side };
@@ -25632,8 +25699,9 @@ function vsThumbStudio(prefillTopic, preset) {
     });
   };
   $$("tsVidBtn").onclick = () => { if (!vid.busy) { $$("tsVidFile").value = ""; $$("tsVidFile").click(); } };
-  $$("tsVidFile").onchange = async () => {
-    const file = $$("tsVidFile").files && $$("tsVidFile").files[0];
+  $$("tsVidClean").onchange = () => { vid.picks = []; };   // frames are made again, with or without their words
+  $$("tsVidFile").onchange = () => loadVideo($$("tsVidFile").files && $$("tsVidFile").files[0]);
+  const loadVideo = async (file) => {
     if (!file || vid.busy) return;
     vid.busy = true; vid.picks = [];
     // the person segmenter loads while the video is read (its first load is
@@ -25650,7 +25718,15 @@ function vsThumbStudio(prefillTopic, preset) {
       if (pl.title) $$("tsTopic").value = String(pl.title).slice(0, 90);
       // the person cut out of the best frame decides the look
       say(L2("Cutting you out of the frame…", "در حال جدا کردن تو از پس‌زمینه…"));
-      const first = await pickFrame(vid.data.best[0]);
+      // of the picks, one with a person in it goes first (the Cut-out look
+      // needs one; a frame with nobody in it was first once)
+      let first = null;
+      for (const i of vid.data.best.slice(0, 3)) {
+        const p = await pickFrame(i);
+        if (p && p.cut) { first = p; break; }
+        if (!first) first = p;
+      }
+      if (first) { const b0 = vid.data.best; b0.splice(b0.indexOf(first.i), 1); b0.unshift(first.i); }
       let chip = ov.querySelector('.tstpl[value="cutout"]');
       if (!chip) {
         const t = VS_THUMB_TEMPLATES.find((x) => x.id === "cutout");
@@ -25680,6 +25756,7 @@ function vsThumbStudio(prefillTopic, preset) {
     } finally { vid.busy = false; btn.disabled = false; btn.style.opacity = "1"; }
   };
   $$("tsGen").onclick = async () => {
+    if (!($$("tsTopic").value || "").trim() && vid.data && vid.data.plan && vid.data.plan.title) $$("tsTopic").value = String(vid.data.plan.title).slice(0, 90);
     const topic = ($$("tsTopic").value || "").trim() || topic0 || "AI Radar";
     // collect the checked sizes (same banner is rendered at each)
     let sizes = Array.from(ov.querySelectorAll(".tssz:checked")).map(cb => {
@@ -25787,6 +25864,26 @@ function vsThumbStudio(prefillTopic, preset) {
       lab.innerHTML = '<input type="checkbox" class="tssz" value="' + w + "x" + h + '" checked/> <b>' + w + " × " + h + "</b>";
       $$("tsSizes").appendChild(lab);
     });
+  }
+  // From the user's video, sent by their AI (MCP): read it, keep their own
+  // words if they gave any, then make the thumbnails
+  if (preset.video) {
+    if (preset.removeText === false && $$("tsVidClean")) $$("tsVidClean").checked = false;
+    if (preset.variations) $$("tsCount").value = String(Math.max(1, Math.min(3, Number(preset.variations) || 1)));
+    (async () => {
+      await loadVideo(preset.video);
+      if (!vid.data) return;
+      if (preset.text) $$("tsTopic").value = String(preset.text).slice(0, 90);
+      if (preset.template) { const r = ov.querySelector('.tstpl[value="' + preset.template + '"]'); if (r) r.checked = true; }
+      if (preset.autoGenerate) $$("tsGen").click();
+    })();
+    return;
+  }
+  if (preset.askVideo) {
+    $$("tsVidInfo").textContent = (preset.note ? preset.note + " " : "") + (fa ? "AIِ تو خواست تامبنیل از ویدیوی خودت ساخته شود: «از ویدیوی خودم» را بزن و ویدیو را انتخاب کن." : "Your AI set this up from your own video: press From my video and choose it.");
+    if (preset.text) $$("tsTopic").value = String(preset.text).slice(0, 90);
+    setTimeout(() => { try { $$("tsVidBtn").focus(); } catch (e) {} }, 50);
+    return;
   }
   if (preset.autoGenerate) { setTimeout(() => { try { $$("tsGen").click(); } catch (e) {} }, 80); return; }
   setTimeout(() => { try { $$("tsTopic").focus(); } catch (e) {} }, 50);
@@ -30482,6 +30579,19 @@ NARRATION: ${x.heading ? String(x.body || "") : ""}
     vsAutoStatus(fa ? "کاروسلی که AIِ تو فرستاد…" : "The carousel your AI sent…");
     await vsBuildCarousel(script, { topic: c.cover, coverTitle: c.cover, subtitle: c.subtitle || "", cta: c.cta || "", noCta: !c.cta,
       handle: c.handle || "", photo, maxSlides: 8 });
+    return;
+  }
+  if (j.skill === "thumbnail" && j.script && j.script.fromVideo) {
+    // a thumbnail from the user's own video (MCP create_thumbnail_from_video)
+    const t = j.script;
+    let file = null;
+    if (t.video && /^\/api\/decks\//.test(t.video)) {
+      vsAutoStatus(fa ? "باز کردن ویدیویی که AIِ تو فرستاد…" : "Opening the video your AI sent…");
+      try { const r = await fetch(t.video, { credentials: "include" }); if (r.ok) { const b = await r.blob(); file = new File([b], t.name || "video.mp4", { type: b.type || "video/mp4" }); } } catch (e) {}
+    }
+    vsThumbStudio(t.text || "", file
+      ? { video: file, text: t.text || "", template: t.template, sizes: t.sizes, removeText: t.removeText !== false, variations: t.variations, autoGenerate: true }
+      : { askVideo: true, text: t.text || "", template: t.template, sizes: t.sizes, removeText: t.removeText !== false, variations: t.variations, note: t.note || "" });
     return;
   }
   if (j.skill === "thumbnail") {
