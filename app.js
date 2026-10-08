@@ -10639,30 +10639,34 @@ function vsEditMineDialog(fileIn, preset) {
       ${files.length > 1
         ? `<p class="vsem-file">${L(files.length + " videos, edited as one - in this order:", files.length + " ویدیو، به‌صورت یک ویدیو ادیت می‌شوند - به این ترتیب:")}</p><ol class="vsem-list"></ol>`
         : `<p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>`}
-      ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
-      ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
-      ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
-      ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
-      ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
-      ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true)}
-      ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
-      ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
-      ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
-      <label class="vsem-row"><span>${L("Look", "ظاهر")}</span>
-        <select id="vsEmLook">
-          <option value="auto">${L("Automatic - full frame for a tall video, framed card for a square or wide one", "خودکار - تمام‌صفحه برای ویدیوی عمودی، کارت برای مربع یا افقی")}</option>
-          <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
-          <option value="full">${L("Full frame", "تمام‌صفحه")}</option>
-        </select></label>
-      ${opt("vsEmZoom", "Smooth zoom on the key moments", "زوم نرم روی لحظه‌های مهم", true)}
-      ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
-      <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
-        <select id="vsEmAspect">
-          <option value="9:16">9:16 · Reels / TikTok / Shorts</option>
-          <option value="1:1">1:1 · ${L("Square", "مربع")}</option>
-          <option value="4:5">4:5 · ${L("Feed", "فید")}</option>
-          <option value="16:9">16:9 · YouTube</option>
-        </select></label>
+      <div class="vsem-grid">
+        ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
+        ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
+        ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
+        ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
+        ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
+        ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true)}
+        ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
+        ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
+        ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
+        ${opt("vsEmZoom", "Smooth zoom on the key moments", "زوم نرم روی لحظه‌های مهم", true)}
+        ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
+      </div>
+      <div class="vsem-sels">
+        <label class="vsem-row"><span>${L("Look", "ظاهر")}</span>
+          <select id="vsEmLook">
+            <option value="auto">${L("Automatic - full frame for a tall video, framed card for a square or wide one", "خودکار - تمام‌صفحه برای ویدیوی عمودی، کارت برای مربع یا افقی")}</option>
+            <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
+            <option value="full">${L("Full frame", "تمام‌صفحه")}</option>
+          </select></label>
+        <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
+          <select id="vsEmAspect">
+            <option value="9:16">9:16 · Reels / TikTok / Shorts</option>
+            <option value="1:1">1:1 · ${L("Square", "مربع")}</option>
+            <option value="4:5">4:5 · ${L("Feed", "فید")}</option>
+            <option value="16:9">16:9 · YouTube</option>
+          </select></label>
+      </div>
       <p class="vsem-note">${L("Free. Your video stays on this device; its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.")}</p>
       <div class="vsem-btns">
         <button type="button" class="vsem-go">${L("Edit it", "ادیتش کن")}</button>

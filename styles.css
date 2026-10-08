@@ -5587,3 +5587,21 @@ b, strong { font-weight: 600; }
 #vsEditMineDlg .vsem-swapnote{display:none;margin:0 0 12px;color:#c9ccd3;font:500 13px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif}
 #vsEditMineDlg .vsem.swap .vsem-swapnote{display:block}
 #vsEditMineDlg .vsem.swap .vsem-opt,#vsEditMineDlg .vsem.swap .vsem-row,#vsEditMineDlg .vsem.swap .vsem-list,#vsEditMineDlg .vsem.swap .vsem-file + .vsem-list{display:none}
+
+/* Edit my video: wide, not tall - the options in two columns, the two
+   choices side by side, so the whole window fits without scrolling */
+#vsEditMineDlg .vsem{width:min(780px,100%)}
+#vsEditMineDlg .vsem.swap{width:min(480px,100%)}
+#vsEditMineDlg .vsem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+#vsEditMineDlg .vsem-sels{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+#vsEditMineDlg .vsem-sels select{width:100%;min-width:0;text-overflow:ellipsis}
+#vsEditMineDlg .vsem.swap .vsem-grid,#vsEditMineDlg .vsem.swap .vsem-sels{display:none}
+@media (max-width:640px){
+  #vsEditMineDlg .vsem-grid,#vsEditMineDlg .vsem-sels{grid-template-columns:minmax(0,1fr)}
+  #vsEditMineDlg .vsem-sels{gap:0}
+}
+@media (min-width:1000px){
+  #vsEditMineDlg .vsem{width:min(940px,100%)}
+  #vsEditMineDlg .vsem.swap{width:min(480px,100%)}
+  #vsEditMineDlg .vsem-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
