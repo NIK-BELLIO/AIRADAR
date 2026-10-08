@@ -10925,19 +10925,22 @@ async function vsSwapMeasureFootage(el, f) {
   // per row: how far the pixels sit from the page colour (taken below the box)
   const yB = Math.min(H - 2, Math.ceil((f.box.y + f.box.h) * H) + 4);
   const page = vsSwapRing(frames[1], W, H, 0, yB, W - 1, Math.min(H - 1, yB + 6), 0);
+  // per row: the median distance (the drawing reads rows the same way)
   const prof = [];
   for (let y = 0; y < H; y++) {
     let s = 0;
-    for (const d of frames) for (let x = 0; x < W; x += 2) s += vsSwapDist(d, (y * W + x) * 4, page[0], page[1], page[2]);
-    prof.push(s / (frames.length * Math.ceil(W / 2)));
+    for (const d of frames) { const c = []; for (let x = 0; x < W; x++) c.push(vsSwapDist(d, (y * W + x) * 4, page[0], page[1], page[2])); c.sort((p, q) => p - q); s += c[c.length >> 1]; }
+    prof.push(s / frames.length);
   }
   let yA = Math.max(0, Math.floor(f.box.y * H)), yZ = Math.min(H - 1, Math.ceil((f.box.y + f.box.h) * H));
   let peak = 1; for (let y = yA; y <= yZ; y++) peak = Math.max(peak, prof[y]);
   // grow the area over every row that still carries picture (the soft fade
   // into the page usually runs past the box the model drew)
   const mid = Math.round((yA + yZ) / 2);
-  while (yA > 0 && prof[yA - 1] > peak * 0.06 && mid - yA < H) yA--;
-  while (yZ < H - 1 && prof[yZ + 1] > peak * 0.06) yZ++;
+  while (yA > 0 && prof[yA - 1] > peak * 0.02 && mid - yA < H) yA--;
+  while (yZ < H - 1 && prof[yZ + 1] > peak * 0.02) yZ++;
+  // a little room each side: the picture may grow into it as it animates
+  yA = Math.max(0, yA - Math.round(H * 0.02)); yZ = Math.min(H - 1, yZ + Math.round(H * 0.01));
   // rows of the box carrying picture, as an alpha ramp (the fade into the page)
   const alpha = [];
   for (let y = yA; y <= yZ; y++) alpha.push(Math.max(0, Math.min(1, prof[y] / (peak * 0.6))));
@@ -11114,7 +11117,7 @@ async function vsSwapSetMedia(f, file) {
 // bottom), trusting the one whose two ends agree: where a photo ends inside
 // the box and the page begins, the rows below that line are page at both
 // ends, so they fill as page instead of carrying the photo down in streaks.
-function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather) {
+function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather, hardTop, hardBot) {
   X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
   if (WW < 2 || HH < 2) return;
   const d = ctx.getImageData(X, Y, WW, HH).data;
@@ -11131,7 +11134,9 @@ function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather) {
   for (let yy = 0; yy < HH; yy++) for (let xx = 0; xx < WW; xx++) {
     const i = (yy * WW + xx) * 4, tx = xx / (WW - 1), ty = yy / (HH - 1);
     const wH = cRow[yy] / Math.min(xx + 1, WW - xx), wV = cCol[xx] / Math.min(yy + 1, HH - yy), ws = wH + wV;
-    const edge = Math.min(xx, WW - 1 - xx, yy, HH - 1 - yy), wgt = Math.min(1, (edge + 1) / Math.max(2, feather));
+    // an edge against new footage is not softened: what lies under it is
+    // the old words (their lower halves showed through)
+    const edge = Math.min(xx, WW - 1 - xx, hardTop ? 1e9 : yy, hardBot ? 1e9 : HH - 1 - yy), wgt = Math.min(1, (edge + 1) / Math.max(2, feather));
     for (let c = 0; c < 3; c++) {
       const h = Lf[yy * 3 + c] + (R[yy * 3 + c] - Lf[yy * 3 + c]) * tx, v = U[xx * 3 + c] + (D[xx * 3 + c] - U[xx * 3 + c]) * ty;
       o[i + c] = d[i + c] * (1 - wgt) + ((h * wH + v * wV) / ws) * wgt;
@@ -11165,40 +11170,91 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
   const dw = vw * sc, dh = vh * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
   try { ctx.drawImage(media, ox, oy, dw, dh); } catch (e) {}
   const playing = vstudio.looping || vstudio.rendering;
+  // How much of each old text shows now (its own fade in and out), read from
+  // the original before any new footage is laid over it - new footage behind
+  // a headline hid the old words and the new headline came out faint.
+  const live = sw.texts.filter((b) => b.newText && b.m && local >= b.t0 - 0.3 && local <= b.t1 + 0.3);
+  const seen = new Map();
+  for (const b of live) {
+    const m = b.m, bx = ox + m.x * dw, by = oy + m.y * dh, bw = m.w * dw, bh = m.h * dh;
+    const pad = m.photo ? Math.max(6, m.px * dh * 0.22) : Math.max(3, m.px * dh * 0.07);
+    let ink = 0, bgNow = m.bg;
+    try {
+      const X = Math.max(0, Math.round(bx - pad)), Y = Math.max(0, Math.round(by - pad)), WW = Math.round(bw + pad * 2), HH = Math.round(bh + pad * 2);
+      const d = ctx.getImageData(X, Y, WW, HH).data;
+      bgNow = vsSwapRing(d, WW, HH, 2, 2, WW - 3, HH - 3, 1);
+      const mc = m.hint || [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+      let n = 0, tot = 0;
+      const ix0 = Math.round(bx - X), iy0 = Math.round(by - Y), ix1 = Math.min(WW - 1, Math.round(bx + bw - X)), iy1 = Math.min(HH - 1, Math.round(by + bh - Y));
+      for (let yy = Math.max(0, iy0); yy <= iy1; yy += 2) for (let xx = Math.max(0, ix0); xx <= ix1; xx += 2) {
+        const i = (yy * WW + xx) * 4; tot++;
+        if (vsSwapDist(d, i, bgNow[0], bgNow[1], bgNow[2]) > (m.photo ? 60 : 70) && (!m.photo || vsSwapDist(d, i, mc[0], mc[1], mc[2]) < 150)) n++;
+      }
+      ink = n / Math.max(1, tot);
+    } catch (e) {}
+    seen.set(b, { ink, bgNow });
+  }
+  // rows the new footage covers outright (the old words there are gone already)
+  const covered = [];
   // footage first (text may sit near it)
   for (const f of sw.footage) {
     if (!f.newEl || local < f.t0 || local > f.t1 || !f.m) continue;
     const y0 = oy + f.m.y0 * dh, y1 = oy + f.m.y1 * dh, hh = y1 - y0;
-    // how much picture the original shows now (its own fade in and out)
-    let pres = 1;
+    // Where and how strongly the original shows its picture in THIS frame,
+    // row by row: the median of each row's distance from the page (words on
+    // the page are a minority of a row, so they do not count). That follows
+    // the original's own reveal, zoom, fade in and fade out exactly - one
+    // fixed ramp left the old sky showing above a new photo with a hard top.
+    const RS = 3, nR = Math.max(1, Math.ceil(hh / RS));
+    const raw = new Float32Array(nR), med = new Float32Array(nR), alpha = new Float32Array(nR);
     try {
-      const sy = Math.round(y0 + hh * 0.15), sh = Math.max(4, Math.round(hh * 0.3));
-      const d = ctx.getImageData(Math.round(ox), sy, Math.round(dw), sh).data;
-      let sum = 0, n = 0;
-      for (let i = 0; i < d.length; i += 4 * 16) { sum += vsSwapDist(d, i, f.m.page[0], f.m.page[1], f.m.page[2]); n++; }
-      pres = Math.max(0, Math.min(1, (sum / Math.max(1, n)) / (f.m.ref * 0.7)));
-    } catch (e) {}
+      const X = Math.round(ox), Y = Math.round(y0), WW = Math.max(1, Math.round(dw)), HH = Math.max(1, Math.round(hh));
+      const d = ctx.getImageData(X, Y, WW, HH).data, step = Math.max(1, Math.floor(WW / 100)), col = new Float32Array(Math.ceil(WW / step));
+      for (let k = 0; k < nR; k++) {
+        const yy = Math.min(HH - 1, k * RS); let n = 0;
+        for (let x = 0; x < WW; x += step) col[n++] = vsSwapDist(d, (yy * WW + x) * 4, f.m.page[0], f.m.page[1], f.m.page[2]);
+        med[k] = col.subarray(0, n).sort()[n >> 1];
+        raw[k] = Math.max(0, Math.min(1, med[k] / (f.m.ref * 0.6)));
+      }
+      // A light part of the picture (a sky) reads like a fade into the page,
+      // and the new picture stopped there with a hard line. Rows that are
+      // plainly picture stay full and rows that are plainly page stay empty
+      // (a hard edge stays hard); everything between is smoothed, so the new
+      // picture fades out the way the old one did.
+      const r = Math.max(2, Math.round((dh * 0.04) / RS)), tmp = new Float32Array(nR);
+      const box = (src, dst) => { let acc = 0, n = 0; for (let k = -r; k < nR + r; k++) { if (k + r < nR) { acc += src[k + r]; n++; } if (k - r - 1 >= 0) { acc -= src[k - r - 1]; n--; } if (k >= 0 && k < nR) dst[k] = acc / Math.max(1, n); } };
+      box(raw, tmp); box(tmp, alpha);
+      for (let k = 0; k < nR; k++) alpha[k] = raw[k] >= 0.9 ? 1 : med[k] < 3 ? 0 : Math.min(1, Math.max(raw[k], alpha[k]));
+    } catch (e) { raw.fill(1); alpha.fill(1); }
+    let kA = -1, kZ = -1, sA = -1, sZ = -1;
+    for (let k = 0; k < nR; k++) { if (raw[k] >= 0.9) { if (kA < 0) kA = k; kZ = k; } if (alpha[k] > 0.02) { if (sA < 0) sA = k; sZ = k; } }
+    if (sA < 0) continue;   // the original shows no picture here now
+    if (kA >= 0) covered.push([y0 + kA * RS, y0 + Math.min(hh, (kZ + 1) * RS)]);
     if (f.newEl.tagName === "VIDEO") {
       const v = f.newEl, target = ((local - f.t0) % Math.max(0.1, v.duration || 1));
       if (!vstudio.rendering && playing && v.paused) v.play().catch(() => {});
       if (!vstudio.rendering && (!playing || Math.abs((v.currentTime || 0) - target) > 0.35)) { try { v.currentTime = target; } catch (e) {} }
     }
-    // the page under it, then the new picture through the original's fade
-    ctx.fillStyle = `rgb(${f.m.page.join(",")})`; ctx.fillRect(ox, y0, dw, hh);
+    // the page under the rows that carry picture, then the new picture
+    // through the same row-by-row strength (one gradient - row-by-row
+    // drawing overlapped the rows and striped the fade)
+    ctx.fillStyle = `rgb(${f.m.page.join(",")})`; ctx.fillRect(ox, y0 + sA * RS, dw, Math.min(hh, (sZ + 1) * RS) - sA * RS);
     const mw = f.newEl.videoWidth || f.newEl.naturalWidth || 16, mh = f.newEl.videoHeight || f.newEl.naturalHeight || 9;
     const cs = Math.max(dw / mw, hh / mh), cw = mw * cs, ch = mh * cs;
-    const rows = f.m.alpha.length, rh = hh / rows;
-    for (let k = 0; k < rows; k++) {
-      const a = f.m.alpha[k] * pres; if (a <= 0.01) continue;
-      ctx.globalAlpha = a;
-      const srcY = (k * rh + (ch - hh) / 2) / cs, srcH = (rh + 1) / cs;
-      try { ctx.drawImage(f.newEl, ((cw - dw) / 2) / cs, srcY, dw / cs, srcH, ox, y0 + k * rh, dw, rh + 1); } catch (e) {}
-    }
-    ctx.globalAlpha = 1;
+    const fw = Math.max(1, Math.round(dw)), fh = Math.max(1, Math.round(hh));
+    const oc = vstudio._swapFootCanvas || (vstudio._swapFootCanvas = document.createElement("canvas"));
+    if (oc.width !== fw || oc.height !== fh) { oc.width = fw; oc.height = fh; }
+    const ox2 = oc.getContext("2d");
+    ox2.globalCompositeOperation = "source-over"; ox2.clearRect(0, 0, fw, fh);
+    try { ox2.drawImage(f.newEl, (fw - cw) / 2, (fh - ch) / 2, cw, ch); } catch (e) {}
+    const gr = ox2.createLinearGradient(0, 0, 0, fh);
+    for (let k = 0; k < nR; k++) gr.addColorStop(Math.min(1, (k * RS) / Math.max(1, fh - 1)), `rgba(0,0,0,${alpha[k].toFixed(3)})`);
+    ox2.globalCompositeOperation = "destination-in"; ox2.fillStyle = gr; ox2.fillRect(0, 0, fw, fh);
+    ox2.globalCompositeOperation = "source-over";
+    ctx.drawImage(oc, ox, y0, dw, hh);
   }
   // texts the user rewrote
-  for (const b of sw.texts) {
-    if (!b.newText || !b.m || local < b.t0 - 0.3 || local > b.t1 + 0.3) continue;
+  for (const b of live) {
     const m = b.m;
     const caps = b.text === b.text.toUpperCase() && /[A-Z]/.test(b.text);
     let txt = caps ? b.newText.toUpperCase() : b.newText;
@@ -11217,25 +11273,32 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
     const numOnly = !!(m.num && nNew && nOld && !nNew[1] && !nOld[1] && nNew[3].trim().toLowerCase() === nOld[3].trim().toLowerCase());
     const bx = ox + m.x * dw, by = oy + m.y * dh, bw = m.w * dw, bh = m.h * dh;
     const pad = m.photo ? Math.max(6, m.px * dh * 0.22) : Math.max(3, m.px * dh * 0.07);
-    // how much of the old text shows now: its own fade in and out
-    let ink = 0, bgNow = m.bg;
+    const { ink, bgNow } = seen.get(b);
+    // still moving in (or out): the old words are not where they settle, so
+    // the erase reaches a line further each way (they peeked out under the new ones)
+    const moving = ink < m.inkMax * 0.9 ? m.pitch * dh : 0;
+    // ...but never into another block's words
+    let upR = moving, dnR = moving;
+    if (moving) for (const o of sw.texts) {
+      if (o === b || !o.m || local < o.t0 - 0.3 || local > o.t1 + 0.3) continue;
+      const oy0 = oy + o.m.y * dh, oy1 = oy0 + o.m.h * dh, ox0 = ox + o.m.x * dw, ox1 = ox0 + o.m.w * dw;
+      if (ox1 < bx - pad || ox0 > bx + bw + pad) continue;
+      if (oy1 <= by - pad) upR = Math.max(0, Math.min(upR, by - pad - oy1 - 2));
+      if (oy0 >= by + bh + pad) dnR = Math.max(0, Math.min(dnR, oy0 - (by + bh + pad) - 2));
+    }
     try {
-      const X = Math.max(0, Math.round(bx - pad)), Y = Math.max(0, Math.round(by - pad)), WW = Math.round(bw + pad * 2), HH = Math.round(bh + pad * 2);
-      const d = ctx.getImageData(X, Y, WW, HH).data;
-      bgNow = vsSwapRing(d, WW, HH, 2, 2, WW - 3, HH - 3, 1);
-      const mc = m.hint || [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
-      let n = 0, tot = 0;
-      const ix0 = Math.round(bx - X), iy0 = Math.round(by - Y), ix1 = Math.min(WW - 1, Math.round(bx + bw - X)), iy1 = Math.min(HH - 1, Math.round(by + bh - Y));
-      for (let yy = Math.max(0, iy0); yy <= iy1; yy += 2) for (let xx = Math.max(0, ix0); xx <= ix1; xx += 2) {
-        const i = (yy * WW + xx) * 4; tot++;
-        if (vsSwapDist(d, i, bgNow[0], bgNow[1], bgNow[2]) > (m.photo ? 60 : 70) && (!m.photo || vsSwapDist(d, i, mc[0], mc[1], mc[2]) < 150)) n++;
+      const X = Math.max(0, Math.round(bx - pad)), Y = Math.max(0, Math.round(by - pad - upR)), WW = Math.round(bw + pad * 2), HH = Math.round(bh + pad * 2 + upR + dnR);
+      // erase only the rows the new footage left showing (erasing over the
+      // new picture smeared it)
+      let segs = [[Y, Y + HH]];
+      for (const [cA, cZ] of covered) segs = segs.flatMap(([a, z]) => (cZ <= a || cA >= z) ? [[a, z]] : [[a, Math.floor(cA)], [Math.ceil(cZ), z]].filter(([p, q]) => q - p >= 2));
+      for (const [sA, sZ] of segs) {
+        if (numOnly) {
+          // just the digits (a little past them - their soft edge reaches the sign)
+          const nx0 = ox + m.num.x0 * dw, nx1 = ox + m.num.x1 * dw, mc2 = [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+          vsSwapEraseInk(ctx, W, H, Math.round(nx0 - pad), sA, Math.round(nx1 - nx0 + pad * 2.5), sZ - sA, mc2, bgNow);
+        } else vsSwapErase(ctx, W, H, X, sA, WW, sZ - sA, pad * (m.photo ? 0.95 : 0.7), sA !== Y, sZ !== Y + HH);
       }
-      ink = n / Math.max(1, tot);
-      if (numOnly) {
-        // just the digits (a little past them - their soft edge reaches the sign)
-        const nx0 = ox + m.num.x0 * dw, nx1 = ox + m.num.x1 * dw, mc2 = [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
-        vsSwapEraseInk(ctx, W, H, Math.round(nx0 - pad), Y, Math.round(nx1 - nx0 + pad * 2.5), HH, mc2, bgNow);
-      } else vsSwapErase(ctx, W, H, X, Y, WW, HH, pad * (m.photo ? 0.95 : 0.7));
     } catch (e) {
       ctx.fillStyle = `rgb(${bgNow.join(",")})`; ctx.fillRect(bx - pad, by - pad, bw + pad * 2, bh + pad * 2);
     }
@@ -29627,7 +29690,7 @@ async function vsOpenEditDeck(e) {
   box.setAttribute("role", "dialog"); box.setAttribute("aria-label", L("Choose your video", "ویدیوی خودت را انتخاب کن"));
   box.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
       <h2>${swap ? L("Your AI set up the changes", "AIِ تو تغییرها را آماده کرد") : L("Your AI set up an edit", "AIِ تو یک ادیت آماده کرد")}</h2>
-      <p class="vsem-file">${e.note ? escapeHtml(String(e.note).slice(0, 200)) + "<br/>" : ""}${L("Choose the video on this device - it stays here; only its sound and a few frames are analysed.", "ویدیو را از همین دستگاه انتخاب کن؛ روی دستگاه می‌ماند و فقط صدا و چند فریمش تحلیل می‌شود.")}</p>
+      <p class="vsem-file">${e.note ? escapeHtml(String(e.note).slice(0, 200)) + "<br/>" : ""}${swap ? L("Choose the finished video on this device - it stays here; only a few frames are analysed.", "ویدیوی آماده را از همین دستگاه انتخاب کن؛ روی دستگاه می‌ماند و فقط چند فریمش تحلیل می‌شود.") : L("Choose the video on this device - it stays here; only its sound and a few frames are analysed.", "ویدیو را از همین دستگاه انتخاب کن؛ روی دستگاه می‌ماند و فقط صدا و چند فریمش تحلیل می‌شود.")}</p>
       <div class="vsem-btns"><button type="button" class="vsem-go">${L("Choose video", "انتخاب ویدیو")}</button>
       <button type="button" class="vsem-x">${L("Not now", "فعلاً نه")}</button></div></div>`;
   box.className = "vsem-ask";
