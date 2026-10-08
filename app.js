@@ -9338,7 +9338,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const at = slideAtTime(elapsed);
   const s = vstudio.slides[at.index];
   const v = s && s._voice;
-  if (!v || !v.words.length || s._gfx) return;   // a graphic card writes its own words
+  if (!v || !v.words.length || s._gfx || s._noCaps) return;   // a graphic card writes its own words; a clip may have none
   const t = at.local;
   { const bk = vsBigKeyWindow(s); if (bk && t >= bk.from - 0.05 && t < bk.to) return; }   // the big words speak for themselves
   const first = v.words[0], last = v.words[v.words.length - 1];
@@ -9798,13 +9798,13 @@ function vsEditCardRect(W, H) {
 }
 
 // Draw media cover-fit into a rectangle, centred on the subject, at zoom z.
-function vsDrawCover(ctx, media, rx, ry, rw, rh, z, focusX, nudgeX, nudgeY) {
+function vsDrawCover(ctx, media, rx, ry, rw, rh, z, focusX, nudgeX, nudgeY, focusY) {
   const mw = media.videoWidth || media.naturalWidth || rw, mh = media.videoHeight || media.naturalHeight || rh;
   const sc = Math.max(rw / mw, rh / mh) * z;
   const dw = mw * sc, dh = mh * sc;
   const maxX = Math.max(0, (dw - rw) / 2), maxY = Math.max(0, (dh - rh) / 2);
   let ox = -((focusX == null ? 0.5 : focusX) - 0.5) * dw + (nudgeX || 0) * rw;
-  let oy = (nudgeY || 0) * rh;
+  let oy = -((focusY == null ? 0.5 : focusY) - 0.5) * dh + (nudgeY || 0) * rh;
   ox = Math.max(-maxX, Math.min(maxX, ox)); oy = Math.max(-maxY, Math.min(maxY, oy));
   try { ctx.drawImage(media, rx + (rw - dw) / 2 + ox, ry + (rh - dh) / 2 + oy, dw, dh); } catch (e) {}
 }
@@ -9821,13 +9821,53 @@ function vsEditAccent(s) {
   return (s && s._accent) || a;
 }
 
+// How the user's own clip sits in a frame of another shape. "fill" crops it
+// to cover the frame; "whole" shows all of it over a soft blurred copy.
+// Automatic: the whole video when the shapes differ a lot (a tall phone clip
+// in a 16:9 or square frame lost its head and feet to the crop, and the
+// zoom could not go below 100% to bring them back).
+function vsEditFitMode(s, rw, rh, media, autoWhole) {
+  if (s && s._broll) return "fill";
+  if (s && (s._fit === "fill" || s._fit === "whole")) return s._fit;
+  if (!autoWhole) return "fill";
+  const mw = media.videoWidth || media.naturalWidth || rw, mh = media.videoHeight || media.naturalHeight || rh;
+  const r = (mw / mh) / (rw / rh);
+  return r > 1.3 || r < 1 / 1.3 ? "whole" : "fill";
+}
+function vsDrawFramed(ctx, media, rx, ry, rw, rh, s, z, focusX, nx, ny, autoWhole) {
+  const mw = media.videoWidth || media.naturalWidth || rw, mh = media.videoHeight || media.naturalHeight || rh;
+  // a clip taller than its frame keeps its upper part - where the face is
+  const fy = (s && s._focusY != null) ? s._focusY : (mh / mw > rh / rw ? 0.32 : 0.5);
+  const mode = vsEditFitMode(s, rw, rh, media, autoWhole);
+  const base = mode === "whole" ? Math.min(rw / mw, rh / mh) : Math.max(rw / mw, rh / mh);
+  const sc = base * z, dw = mw * sc, dh = mh * sc;
+  if (dw >= rw - 0.5 && dh >= rh - 0.5) { vsDrawCover(ctx, media, rx, ry, rw, rh, sc / Math.max(rw / mw, rh / mh), focusX, nx, ny, fy); return; }
+  // not covering: a soft, darkened copy of the clip fills the frame behind it
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip();
+  const tw = Math.max(8, Math.round(rw / 16)), th = Math.max(8, Math.round(rh / 16));
+  const tiny = vstudio._edFitTiny || (vstudio._edFitTiny = document.createElement("canvas"));
+  if (tiny.width !== tw || tiny.height !== th) { tiny.width = tw; tiny.height = th; }
+  vsDrawCover(tiny.getContext("2d"), media, 0, 0, tw, th, 1.15, focusX, 0, 0, fy);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(tiny, rx - rw * 0.05, ry - rh * 0.05, rw * 1.1, rh * 1.1);
+  ctx.fillStyle = "rgba(6,7,10,0.38)"; ctx.fillRect(rx, ry, rw, rh);
+  // the clip itself, moved by the framing control, never wholly out of view
+  let ox = (nx || 0) * rw, oy = (ny || 0) * rh;
+  const lx = Math.abs(dw - rw) / 2 + rw * 0.3, ly = Math.abs(dh - rh) / 2 + rh * 0.3;
+  ox = Math.max(-lx, Math.min(lx, ox)); oy = Math.max(-ly, Math.min(ly, oy));
+  ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = Math.min(rw, rh) * 0.03;
+  try { ctx.drawImage(media, rx + (rw - dw) / 2 + ox, ry + (rh - dh) / 2 + oy, dw, dh); } catch (e) {}
+  ctx.restore();
+}
+
 // The scene's picture (background + card or full frame), without overlays.
 function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
   if (s._gfx) { vsDrawGfxCard(ctx, W, H, s, local, dur, off); return; }
   const media = s.mediaEl;
   const layout = vstudio._editLayout || "card";
   // smooth zoom: emphasis eases in from its moment, otherwise a slow push
-  const userZ = Math.max(1, Number(off && off.mediaScale) || 1);
+  const userZ = Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1));
   let z = 1 + 0.03 * (dur > 0 ? local / dur : 0);
   if (s._emph != null) z = 1.02 + 0.11 * vsEase.inOut((local - s._emph) / 0.8);
   z *= userZ;
@@ -9863,7 +9903,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
     ctx.restore();
     ctx.save();
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(c.x, c.y, c.w, c.h, c.r); else ctx.rect(c.x, c.y, c.w, c.h); ctx.clip();
-    vsDrawCover(ctx, media, c.x, c.y, c.w, c.h, z, focusX, nx, ny);
+    vsDrawFramed(ctx, media, c.x, c.y, c.w, c.h, s, z, focusX, nx, ny, false);
     // a soft inner shade at the foot of the card, where a stat can sit
     const sg = ctx.createLinearGradient(0, c.y + c.h * 0.6, 0, c.y + c.h);
     sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.35)");
@@ -9875,7 +9915,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
     ctx.restore();
   } else {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
-    vsDrawCover(ctx, media, 0, 0, W, H, z, focusX, nx, ny);
+    vsDrawFramed(ctx, media, 0, 0, W, H, s, z, focusX, nx, ny, true);
   }
 }
 
@@ -10291,7 +10331,7 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur, off) {
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.fill();
     ctx.shadowColor = "transparent";
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(win.x, win.y, win.w, win.h, win.r); else ctx.rect(win.x, win.y, win.w, win.h); ctx.clip();
-    vsDrawCover(ctx, s.mediaEl, win.x, win.y, win.w, win.h, (1 + 0.03 * (dur > 0 ? local / dur : 0)) * Math.max(1, Number(off && off.mediaScale) || 1),
+    vsDrawFramed(ctx, s.mediaEl, win.x, win.y, win.w, win.h, s, (1 + 0.03 * (dur > 0 ? local / dur : 0)) * Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1)),
       s._focusX != null ? s._focusX : 0.5, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0);
     ctx.restore();
   }
@@ -10390,7 +10430,9 @@ function vsDrawGfxCard(ctx, W, H, s, local, dur, off) {
   }
 
   // ── the line being said, small, word by word ──
-  if (words.length) {
+  // (it is a caption: the captions switch and this clip's own switch hide it -
+  // it used to stay on with captions turned off)
+  if (words.length && vsCaptionsOn() && !s._noCaps) {
     let cur = 0;
     for (let k = 0; k < words.length; k++) if (words[k].t0 <= local) cur = k;
     const chunks = vsCaptionChunks(words, 4);
@@ -10821,7 +10863,83 @@ function vsEditVideoEl(url) {
 // original, pixel for pixel.
 const VS_SWAP_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/swap-plan";
 const VS_SWAP_FONTS = { serif: "'Libre Caslon Text', Georgia, serif", sans: "Manrope, 'Helvetica Neue', Arial, sans-serif",
-  mono: "'JetBrains Mono', monospace", script: "'Libre Caslon Text', Georgia, serif" };
+  mono: "'JetBrains Mono', monospace", script: "'Great Vibes', 'Libre Caslon Text', cursive" };
+// The closest face we have for each kind of lettering the plan names. A bold
+// sans is Archivo (heavier and rounder than Manrope, like the Montserrat and
+// Arial Black of most reels); Roman capitals are Cinzel.
+function vsSwapFam(kind, weight, caps) {
+  const k = String(kind || "sans").toLowerCase();
+  if (k === "display-serif") return caps ? "Cinzel, Prata, Georgia, serif" : "Prata, 'Libre Caslon Text', Georgia, serif";
+  if (k === "serif") return "'Libre Caslon Text', Georgia, serif";
+  if (k === "condensed") return "Oswald, Impact, 'Arial Narrow', sans-serif";
+  if (k === "slab") return "'Zilla Slab', Georgia, serif";
+  if (k === "mono") return "'JetBrains Mono', monospace";
+  if (k === "script") return "'Great Vibes', cursive";
+  if (k === "handwritten") return "Caveat, cursive";
+  return weight >= 700 ? "Archivo, Manrope, Arial, sans-serif" : "Manrope, 'Helvetica Neue', Arial, sans-serif";
+}
+// The faces a line can be matched against, by what its pixels look like
+const VS_SWAP_FIT = [
+  ["Archivo, Manrope, Arial, sans-serif", 900], ["Archivo, Manrope, Arial, sans-serif", 700], ["Archivo, Manrope, Arial, sans-serif", 500],
+  ["Manrope, 'Helvetica Neue', Arial, sans-serif", 400], ["Manrope, 'Helvetica Neue', Arial, sans-serif", 700],
+  ["'Libre Caslon Text', Georgia, serif", 400], ["'Libre Caslon Text', Georgia, serif", 700],
+  ["Prata, Georgia, serif", 400], ["Cinzel, Prata, serif", 700], ["Cinzel, Prata, serif", 400],
+  ["Oswald, Impact, sans-serif", 600], ["'Zilla Slab', Georgia, serif", 700], ["'JetBrains Mono', monospace", 500],
+];
+// Draw the line's own words in every face, stretched over the old line's ink
+// box with the baseline on its bottom edge, and keep the face whose letters
+// cover the old ones best - Gemini's word for the face was wrong too often
+// (a bold sans "On" called a serif; a bold body called regular). A face that
+// had to be stretched far to fit is marked down.
+function vsSwapFitFace(text, band, hintKind) {
+  const all = vsSwapFitScores(text, band, hintKind);
+  if (!all) return null;
+  const top = all.reduce((a, c) => (c.score > a.score ? c : a), all[0]);
+  if (top.iou >= 0.4) return top;
+  const same = all.filter((c) => c.kind === hintKind);
+  return same.length ? same.reduce((a, c) => (c.score > a.score ? c : a), same[0]) : top;
+}
+function vsSwapFitScores(text, band, hintKind) {
+  if (!band || !band.mask || band.mw < 6 || band.mh < 4 || !text) return null;
+  const out = [];
+  const cv = vstudio._swapFitCanvas || (vstudio._swapFitCanvas = document.createElement("canvas"));
+  cv.width = band.mw; cv.height = band.mh;
+  const x = cv.getContext("2d", { willReadFrequently: true });
+  let best = null;
+  for (const [fam, w] of VS_SWAP_FIT) {
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
+    x.font = w + " 100px " + fam;
+    const mm = x.measureText(text), asc = mm.actualBoundingBoxAscent || 70, wd = (mm.actualBoundingBoxLeft || 0) + (mm.actualBoundingBoxRight || mm.width);
+    if (!(asc > 1 && wd > 1)) continue;
+    const sx = band.mw / wd, sy = band.mh / asc;
+    x.setTransform(sx, 0, 0, sy, 0, 0); x.fillStyle = "#000"; x.textBaseline = "alphabetic";
+    x.fillText(text, mm.actualBoundingBoxLeft || 0, asc);
+    const d = x.getImageData(0, 0, cv.width, cv.height).data;
+    let both = 0, any = 0;
+    for (let i = 0, p = 0; p < band.mask.length; p++, i += 4) { const a = d[i + 3] > 110 ? 1 : 0; if (a && band.mask[p]) both++; if (a || band.mask[p]) any++; }
+    const iou = both / Math.max(1, any);
+    const kindOf = /Caslon|Prata/.test(fam) ? "serif" : /Cinzel/.test(fam) ? "display-serif" : /Oswald/.test(fam) ? "condensed" : /Zilla/.test(fam) ? "slab" : /Mono/.test(fam) ? "mono" : "sans";
+    // the plan's word for the kind of face counts for more when the shapes
+    // hardly match (a misread word - "REMEMBERANCE" - throws the letters off)
+    const score = iou - 0.35 * Math.abs(Math.log(sx / sy)) + (kindOf === hintKind ? 0.03 + 0.12 * Math.max(0, 0.5 - iou) : 0);
+    out.push({ fam, weight: w, score, iou, kind: kindOf });
+  }
+  return out.length ? out : null;
+}
+const VS_SWAP_FONT_CSS = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Oswald:wght@400;600;700&family=Zilla+Slab:wght@400;700&family=Great+Vibes&family=Caveat:wght@400;700&display=swap";
+// the faces a plan asks for, loaded before the first frame is drawn
+async function vsSwapLoadFonts(texts) {
+  if (!document.getElementById("vsSwapFontCss")) {
+    const l = document.createElement("link"); l.id = "vsSwapFontCss"; l.rel = "stylesheet"; l.href = VS_SWAP_FONT_CSS; document.head.appendChild(l);
+    await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); });
+  }
+  const want = new Set();
+  for (const b of texts) for (const ln of (b.lines && b.lines.length ? b.lines : [b])) {
+    const caps = /[A-Z]/.test(ln.text || "") && ln.text === String(ln.text).toUpperCase();
+    want.add(ln.weight + " 40px " + vsSwapFam(ln.font, ln.weight, caps).split(",")[0]);
+  }
+  try { await Promise.race([Promise.all([...want].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 5000))]); } catch (e) {}
+}
 
 // a frame of the video at time t, drawn into a small canvas for measuring
 async function vsSwapGrab(el, t, cw) {
@@ -10852,9 +10970,10 @@ async function vsSwapMeasureText(el, b) {
   // and fades late); several moments, the one with the most ink wins
   let best = null;
   for (const p of [0.45, 0.65, 0.8, 0.92]) {
-    const g = await vsSwapGrab(el, b.t0 + (b.t1 - b.t0) * p, 540);
+    const t = b.t0 + (b.t1 - b.t0) * p;
+    const g = await vsSwapGrab(el, t, 540);
     const ok = vsSwapMeasureTextAt(g, b);
-    if (ok && (!best || ok.n > best.n)) best = ok;
+    if (ok && (!best || ok.n > best.n)) { best = ok; best.m.at = t; }
   }
   if (!best) return false;
   b.m = best.m;
@@ -10893,6 +11012,93 @@ function vsSwapMeasureTextAt(g, b) {
   const lines = Math.max(1, big.length);
   const pitch = lines > 1 ? (big[big.length - 1][0] - big[0][0]) / (lines - 1) : 0;
   const bandH = big.length ? Math.max(...big.map((bd) => bd[1] - bd[0] + 1)) : (iy1 - iy0 + 1);
+  // every line on its own: where its ink sits and what colour it is (a block
+  // can mix a small bold word, a big serif title and body lines)
+  // Where the plan saw several lines, they are found inside the block's own
+  // box (its margin reached the next block's lines) by cutting at the deepest
+  // gaps in the ink, as many cuts as there are lines; close lines with a
+  // shadow often touch, so the bands of empty rows were not enough.
+  let segs = big;
+  const nL = (b.lines || []).length;
+  // the words' own colour: a divider rule or an arrow in another colour is
+  // not a line of text (a blue rule above a bullet was taken for its first line)
+  const srt = ink.slice().sort((p, q) => q[3] - p[3]).slice(0, Math.max(1, Math.floor(ink.length * 0.4)));
+  const wc = [0, 1, 2].map((k) => vsSwapMedian(srt.map((p) => p[k])));
+  // a pixel of the words is the words' colour or a blend of it with the
+  // ground (the soft grey edge of a small letter); a blue rule is neither
+  const seg = [wc[0] - bg[0], wc[1] - bg[1], wc[2] - bg[2]], segL = Math.max(1, seg[0] * seg[0] + seg[1] * seg[1] + seg[2] * seg[2]);
+  const isText = (i) => {
+    if (!isInk(i)) return false;
+    const q = [d[i] - bg[0], d[i + 1] - bg[1], d[i + 2] - bg[2]];
+    const t = Math.max(0, Math.min(1, (q[0] * seg[0] + q[1] * seg[1] + q[2] * seg[2]) / segL));
+    return Math.hypot(q[0] - seg[0] * t, q[1] - seg[1] * t, q[2] - seg[2] * t) < 60;
+  };
+  if (nL >= 2) {
+    const gy0 = Math.max(y0, Math.floor((b.box.y - 0.004) * H)), gy1 = Math.min(y1, Math.ceil((b.box.y + b.box.h + 0.004) * H));
+    const prof = [];
+    for (let y = gy0; y <= gy1; y++) { let c = 0; for (let x = x0; x <= x1; x++) if (isText((y * W + x) * 4)) c++; prof.push(c); }
+    const sm = prof.map((v, k) => (prof[k - 1] ?? v) * 0.25 + v * 0.5 + (prof[k + 1] ?? v) * 0.25);
+    // Cut where the ink dips furthest below the lines on BOTH sides of the
+    // dip: a small "On" over a big title has little ink per row, so measured
+    // against the whole block its rows looked empty and the cut fell inside
+    // the title.
+    const pk = Math.max(1, ...prof), thr = Math.max(1, pk * 0.01);
+    const firstInk = sm.findIndex((v) => v > thr);
+    let lastInk = sm.length - 1; while (lastInk > 0 && sm[lastInk] <= thr) lastInk--;
+    const lMax = sm.map(() => 0), rMax = sm.map(() => 0);
+    for (let k = firstInk, mx = 0; k <= lastInk; k++) { mx = Math.max(mx, sm[k]); lMax[k] = mx; }
+    for (let k = lastInk, mx = 0; k >= firstInk; k--) { mx = Math.max(mx, sm[k]); rMax[k] = mx; }
+    const cand = [];
+    for (let k = firstInk + 1; k < lastInk; k++) {
+      if (!(sm[k] <= sm[k - 1] && sm[k] <= sm[k + 1])) continue;
+      let e = k; while (e + 1 < lastInk && Math.abs(sm[e + 1] - sm[k]) < 0.6) e++;
+      cand.push({ at: Math.round((k + e) / 2), r: sm[k] / Math.max(1, Math.min(lMax[k], rMax[e])) });
+      k = e;
+    }
+    cand.sort((p, q) => p.r - q.r);
+    const minSep = Math.max(2, Math.round((lastInk - firstInk) / nL * 0.25));
+    const cuts = [];
+    // two cuts need a line of text between them (two dips in one wide gap are one gap)
+    const lineBetween = (p, q) => { let mx = 0; for (let k = Math.min(p, q); k <= Math.max(p, q); k++) mx = Math.max(mx, sm[k]); return mx > 3 * Math.max(sm[p], sm[q], thr); };
+    for (const c of cand) { if (cuts.length >= nL - 1) break; if (c.r < 0.6 && cuts.every((q) => Math.abs(q - c.at) >= minSep && lineBetween(q, c.at))) cuts.push(c.at); }
+    if (cuts.length === nL - 1) {
+      cuts.sort((p, q) => p - q);
+      const edges = [0, ...cuts, sm.length - 1];
+      segs = [];
+      for (let k = 0; k < nL; k++) {
+        const a0 = edges[k], z0 = edges[k + 1];
+        // the line grows out from its densest row and stops at the first
+        // near-empty one (trimming from the edges cut the tops of tall letters,
+        // or kept stray bright rows of a photo under the last line)
+        let mx = 0, pkY = a0; for (let y = a0; y <= z0; y++) if (prof[y] > mx) { mx = prof[y]; pkY = y; }
+        let a = pkY, z = pkY;
+        // up to the tops of tall letters (thin, few per row: a lower bar), down
+        // only to the baseline (the tails of g and y stay out)
+        while (a > a0 && prof[a - 1] >= mx * 0.04) a--;
+        while (z < z0 && prof[z + 1] >= mx * 0.09) z++;
+        segs.push([gy0 - y0 + a, gy0 - y0 + z]);
+      }
+    }
+  }
+  const lineBands = segs.map(([a, z]) => {
+    let lx0 = W, lx1 = -1; const smp = [];
+    for (let y = y0 + a; y <= y0 + z; y++) for (let x = x0; x <= x1; x++) {
+      const i = (y * W + x) * 4;
+      if (!(nL >= 2 ? isText(i) : isInk(i))) continue;
+      if (x < lx0) lx0 = x; if (x > lx1) lx1 = x;
+      if ((x + y) % 2 === 0) smp.push([d[i], d[i + 1], d[i + 2], vsSwapDist(d, i, bg[0], bg[1], bg[2])]);
+    }
+    smp.sort((p, q) => q[3] - p[3]);
+    const tp = smp.slice(0, Math.max(1, Math.floor(smp.length * 0.4)));
+    const c = [0, 1, 2].map((k) => Math.round(vsSwapMedian(tp.map((p) => p[k]))));
+    // the mask keeps only the solid core of the strokes (past half way from
+    // the ground to the letter colour): with the soft edges in, a regular
+    // face read as bold
+    const mw = Math.max(1, lx1 - lx0 + 1), mh = z - a + 1, mask = new Uint8Array(mw * mh);
+    const half = Math.abs(c[0] - bg[0]) + Math.abs(c[1] - bg[1]) + Math.abs(c[2] - bg[2]);
+    for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) { const i = ((y0 + a + y) * W + lx0 + x) * 4; if (isText(i) && vsSwapDist(d, i, bg[0], bg[1], bg[2]) >= half * 0.5) mask[y * mw + x] = 1; }
+    return { y0: (y0 + a) / H, y1: (y0 + z + 1) / H, x0: lx0 / W, x1: (lx1 + 1) / W, color: "#" + c.map((v) => v.toString(16).padStart(2, "0")).join(""), mask, mw, mh };
+  });
   ink.sort((p, q) => q[3] - p[3]);
   const top = ink.slice(0, Math.max(1, Math.floor(ink.length * 0.4)));
   const col = [vsSwapMedian(top.map((p) => p[0])), vsSwapMedian(top.map((p) => p[1])), vsSwapMedian(top.map((p) => p[2]))];
@@ -10913,13 +11119,50 @@ function vsSwapMeasureTextAt(g, b) {
       if (by2 > ty) num = { x0: (ix0 + a) / W, x1: (ix0 + z + 1) / W, y0: ty / H, y1: (by2 + 1) / H };
     }
   }
-  return { n, m: { num,
+  return { n, m: { num, bands: lineBands,
     x: ix0 / W, y: iy0 / H, w: (ix1 - ix0 + 1) / W, h: (iy1 - iy0 + 1) / H,
     px: (lines > 1 ? pitch / 1.16 : bandH / 0.92) / H,     // font size as a fraction of the frame height
     pitch: (lines > 1 ? pitch : bandH * 1.2) / H, lines,
     color: "#" + col.map((v) => Math.round(v).toString(16).padStart(2, "0")).join(""),
     bg, photo, hint, inkMax: n / Math.max(1, (ix1 - ix0 + 1) * (iy1 - iy0 + 1)),
   } };
+}
+// The ink of a block at one moment, as a mask over its box (same rules as the measuring)
+function vsSwapMaskAt(g, b) {
+  const { w: W, h: H } = g, d = g.x.getImageData(0, 0, W, H).data, m = b.m;
+  const x0 = Math.max(0, Math.floor(m.x * W) - 1), y0 = Math.max(0, Math.floor(m.y * H) - 1);
+  const x1 = Math.min(W - 1, Math.ceil((m.x + m.w) * W) + 1), y1 = Math.min(H - 1, Math.ceil((m.y + m.h) * H) + 1);
+  const bw = x1 - x0 + 1, out = new Uint8Array(bw * (y1 - y0 + 1));
+  const hint = m.photo ? m.hint : null; let n = 0;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = (y * W + x) * 4;
+    if (vsSwapDist(d, i, m.bg[0], m.bg[1], m.bg[2]) > (hint ? 60 : 70) && (!hint || vsSwapDist(d, i, hint[0], hint[1], hint[2]) < 150)) { out[(y - y0) * bw + (x - x0)] = 1; n++; }
+  }
+  return { mask: out, n };
+}
+async function vsSwapExtendTime(el, b, dur) {
+  if (!b.m || b.m.at == null) return;
+  const ref = vsSwapMaskAt(await vsSwapGrab(el, b.m.at, 270), b);
+  if (ref.n < 8) return;
+  const same = async (t) => {
+    const cur = vsSwapMaskAt(await vsSwapGrab(el, t, 270), b);
+    let both = 0; for (let i = 0; i < ref.mask.length; i++) if (ref.mask[i] && cur.mask[i]) both++;
+    // most of the old ink is there, and clearly more there than around it:
+    // on a bright sky the letters' places "light up" after the words are
+    // gone too, but so does everything around them
+    const recall = both / ref.n, noise = (cur.n - both) / Math.max(1, ref.mask.length - ref.n);
+    return recall >= 0.55 && recall - noise >= 0.4;
+  };
+  // the plan's own end may be late, too: back it up to where the words still are
+  for (let k = 0; k < 40 && b.t1 - 0.2 > b.m.at && !(await same(b.t1 - 0.05)); k++) b.t1 -= 0.2;
+  for (let k = 0; k < 40 && b.t0 + 0.2 < b.m.at && !(await same(b.t0 + 0.05)); k++) b.t0 += 0.2;
+  for (let t = b.t1 + 0.4, k = 0; t < dur - 0.05 && k < 30; t += 0.4, k++) { if (await same(t)) b.t1 = t; else break; }
+  // to the tenth of a second where it ends
+  for (let t = b.t1 + 0.1, k = 0; t < dur && k < 3; t += 0.1, k++) { if (await same(t)) b.t1 = t; else break; }
+  if (b.t1 > dur - 0.15) b.t1 = dur;
+  b.timed = true;
+  for (let t = b.t0 - 0.4, k = 0; t > 0.02 && k < 20; t -= 0.4, k++) { if (await same(t)) b.t0 = t; else break; }
+  for (let t = b.t0 - 0.1, k = 0; t > 0.02 && k < 3; t -= 0.1, k++) { if (await same(t)) b.t0 = t; else break; }
 }
 // Measure a footage area: where the picture really is, and how it fades out.
 async function vsSwapMeasureFootage(el, f, texts) {
@@ -11051,8 +11294,12 @@ async function vsSwapStart(file, o) {
       const bx = box(t.box_2d); if (!bx || !t.text) return null;
       const [t0, t1] = span(t.start, t.end);
       const hx = /^#?([0-9a-f]{6})$/i.exec(String(t.color || "")), hint = hx ? [0, 2, 4].map((k) => parseInt(hx[1].slice(k, k + 2), 16)) : null;
+      const wt = (w) => /black|heavy|extra/i.test(w) ? 900 : /bold|semi/i.test(w) ? 700 : 400;
+      const lines = (Array.isArray(t.lines) ? t.lines : []).slice(0, 12)
+        .map((l) => ({ text: String(l && l.text || "").trim(), font: String(l && l.font || t.font || "sans"), weight: wt(l && l.weight || t.weight), italic: !!(l && l.italic) }))
+        .filter((l) => l.text);
       return { id: "t" + i, text: String(t.text).slice(0, 400), newText: "", t0, t1, box: bx, hint, font: String(t.font || "sans"), italic: !!t.italic,
-        weight: /bold/i.test(t.weight) ? 700 : 400, align: /center|right/.test(t.align) ? t.align : "left", role: String(t.role || "text") };
+        weight: wt(t.weight), align: /center|right/.test(t.align) ? t.align : "left", role: String(t.role || "text"), shadow: !!t.shadow, lines };
     }).filter(Boolean);
     const footage = (plan.footage || []).map((f, i) => {
       const bx = box(f.box_2d); if (!bx) return null;
@@ -11076,6 +11323,8 @@ async function vsSwapStart(file, o) {
         if (touch && (over(a.box, b.box) > 0.5 || sameTop)) {
           const last = a.t1 >= b.t1 ? a : b;
           a.text = (last.text.length >= Math.min(a.text.length, b.text.length)) ? last.text : (a.text.length > b.text.length ? a.text : b.text);
+          if (last.lines && last.lines.length) a.lines = last.lines;
+          a.shadow = a.shadow || b.shadow;
           a.t0 = Math.min(a.t0, b.t0); a.t1 = Math.max(a.t1, b.t1);
           const bx = Math.min(a.box.x, b.box.x), by = Math.min(a.box.y, b.box.y);
           a.box = { x: bx, y: by, w: Math.max(a.box.x + a.box.w, b.box.x + b.box.w) - bx, h: Math.max(a.box.y + a.box.h, b.box.y + b.box.h) - by };
@@ -11087,6 +11336,52 @@ async function vsSwapStart(file, o) {
     vsAutoStatus(L("Measuring each one…", "در حال اندازه‌گیری دقیق هر کدام…"));
     const keepT = [];
     for (const b of texts) { try { if (await vsSwapMeasureText(el, b)) keepT.push(b); } catch (e) {} }
+    for (const b of keepT) { try { await vsSwapExtendTime(el, b, dur); } catch (e) {} }
+    try { await vsSwapLoadFonts(keepT); } catch (e) {}
+    try {
+      await Promise.race([Promise.all(VS_SWAP_FIT.map(([f, w]) => document.fonts.load(w + " 40px " + f.split(",")[0]))), new Promise((r) => setTimeout(r, 5000))]);
+    } catch (e) {}
+    for (const b of keepT) {
+      let bands = (b.m && b.m.bands) || [];
+      // the faces are matched on the video's own full-size frame: small
+      // lines at the measuring size were a few pixels tall, too coarse to
+      // tell a regular face from a bold one
+      try {
+        const full = Math.min(1440, el.videoWidth || 1080);
+        if (b.m && b.m.at != null && full > 560) {
+          const hi = vsSwapMeasureTextAt(await vsSwapGrab(el, b.m.at, full), b);
+          if (hi && hi.m.bands && hi.m.bands.length === bands.length) bands = hi.m.bands;
+        }
+      } catch (e) {}
+      if (b.lines && b.lines.length >= 2 && bands.length === b.lines.length) {
+        // lines the plan calls the same style, about the same size, vote
+        // together: one noisy line (a photo behind it) cannot pull its own way
+        const sc = b.lines.map((ln, i) => vsSwapFitScores(ln.text, bands[i], ln.font));
+        const hgt = bands.map((bd) => bd.y1 - bd.y0);
+        const done = new Set();
+        b.lines.forEach((ln, i) => {
+          if (done.has(i) || !sc[i]) return;
+          const grp = b.lines.map((l2, j) => j).filter((j) => !done.has(j) && sc[j] && b.lines[j].font === ln.font && b.lines[j].weight === ln.weight);
+          let best = 0, bestSum = -1e9;
+          for (let c = 0; c < sc[i].length; c++) { const sum = grp.reduce((a, j) => a + sc[j][c].score, 0); if (sum > bestSum) { bestSum = sum; best = c; } }
+          // a weak match means the plan misread the words (the shapes cannot line
+          // up): then its word for the kind of face decides, the pixels the weight
+          // (and its word for the weight: of that kind, the nearest weight)
+          if (sc[i][best].iou < 0.4) {
+            let alt = -1, altKey = 1e9;
+            for (let c = 0; c < sc[i].length; c++) {
+              if (sc[i][c].kind !== ln.font) continue;
+              const sum = grp.reduce((a, j) => a + sc[j][c].score, 0), key = Math.abs(sc[i][c].weight - ln.weight) * 10 - sum;
+              if (key < altKey) { altKey = key; alt = c; }
+            }
+            if (alt >= 0) best = alt;
+          }
+          grp.forEach((j) => { b.lines[j].fit = sc[i][best]; done.add(j); });
+        });
+      }
+      else if (bands.length === 1 && !/\n/.test(b.text.trim())) { const f = vsSwapFitFace(b.text.trim(), bands[0], b.font); if (f) b.fit = f; }
+      for (const bd of bands) { delete bd.mask; }
+    }
     for (const f of footage) { try { await vsSwapMeasureFootage(el, f, keepT); } catch (e) {} }
     // the shape of the video, so nothing is cropped
     const ar = (el.videoWidth || 9) / (el.videoHeight || 16);
@@ -11196,6 +11491,62 @@ function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather, hardTop, hardBot) {
   }
   ctx.putImageData(img, X, Y);
 }
+// Over a photo, take away only the old letters: their own pixels (the text
+// colour), grown by a few pixels for the soft edge and the drop shadow, each
+// filled from the photo just beside it - across the row and down the column,
+// the nearer side counting more. Rebuilding the whole box from its edges
+// smeared a face or a sky across it.
+function vsSwapEraseStrokes(ctx, W, H, X, Y, WW, HH, tc, grow) {
+  X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
+  if (WW < 2 || HH < 2) return;
+  const img = ctx.getImageData(X, Y, WW, HH), d = img.data, n = WW * HH;
+  const ink = new Uint8Array(n);
+  for (let p = 0, i = 0; p < n; p++, i += 4) if (vsSwapDist(d, i, tc[0], tc[1], tc[2]) < 150) ink[p] = 1;
+  // grow (a square, done as a row pass then a column pass)
+  const r = Math.max(1, Math.round(grow)), tmp = new Uint8Array(n), hole = new Uint8Array(n);
+  for (let y = 0; y < HH; y++) { let last = -1e9; for (let x = 0; x < WW; x++) { if (ink[y * WW + x]) last = x; if (x - last <= r) tmp[y * WW + x] = 1; } last = 1e9; for (let x = WW - 1; x >= 0; x--) { if (ink[y * WW + x]) last = x; if (last - x <= r) tmp[y * WW + x] = 1; } }
+  for (let x = 0; x < WW; x++) { let last = -1e9; for (let y = 0; y < HH; y++) { if (tmp[y * WW + x]) last = y; if (y - last <= r) hole[y * WW + x] = 1; } last = 1e9; for (let y = HH - 1; y >= 0; y--) { if (tmp[y * WW + x]) last = y; if (last - y <= r) hole[y * WW + x] = 1; } }
+  // the shadow falls down and to the right: grow that way a little more
+  const sh = r * 2;
+  for (let y = HH - 1; y >= 0; y--) for (let x = WW - 1; x >= 0; x--) { const p = y * WW + x; if (!hole[p] && ((x >= sh && hole[p - sh] === 1) || (y >= sh && hole[p - sh * WW] === 1) || (x >= sh && y >= sh && hole[p - sh - sh * WW] === 1))) hole[p] = 2; }
+  // Fill by "push-pull": average the known pixels into ever smaller copies of
+  // the box, then fill each hole from the next-coarser copy on the way back
+  // up. Long holes (a whole old word) fill smoothly; filling along rows and
+  // columns left blocky streaks there.
+  const out = new Uint8ClampedArray(d);
+  const lv = [{ w: WW, h: HH, c: new Float32Array(n * 3), k: new Float32Array(n) }];
+  for (let p = 0; p < n; p++) if (!hole[p]) { lv[0].k[p] = 1; for (let c = 0; c < 3; c++) lv[0].c[p * 3 + c] = d[p * 4 + c]; }
+  while (lv[lv.length - 1].w > 1 || lv[lv.length - 1].h > 1) {
+    const a = lv[lv.length - 1], w2 = Math.max(1, Math.ceil(a.w / 2)), h2 = Math.max(1, Math.ceil(a.h / 2));
+    const b = { w: w2, h: h2, c: new Float32Array(w2 * h2 * 3), k: new Float32Array(w2 * h2) };
+    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) {
+      const p = y * a.w + x, q = (y >> 1) * w2 + (x >> 1), kk = a.k[p];
+      if (!kk) continue;
+      b.k[q] += kk; for (let c = 0; c < 3; c++) b.c[q * 3 + c] += a.c[p * 3 + c] * kk;
+    }
+    for (let q = 0; q < w2 * h2; q++) if (b.k[q]) { for (let c = 0; c < 3; c++) b.c[q * 3 + c] /= b.k[q]; b.k[q] = Math.min(1, b.k[q]); }
+    lv.push(b);
+    if (lv.length > 14) break;
+  }
+  for (let L = lv.length - 2; L >= 0; L--) {
+    const a = lv[L], b = lv[L + 1];
+    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) {
+      const p = y * a.w + x; if (a.k[p] >= 1) continue;
+      // bilinear from the coarser copy
+      const fx = Math.min(b.w - 1, Math.max(0, (x - 0.5) / 2)), fy = Math.min(b.h - 1, Math.max(0, (y - 0.5) / 2));
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(b.w - 1, x0 + 1), y1 = Math.min(b.h - 1, y0 + 1), tx = fx - x0, ty = fy - y0;
+      for (let c = 0; c < 3; c++) {
+        const v = (b.c[(y0 * b.w + x0) * 3 + c] * (1 - tx) + b.c[(y0 * b.w + x1) * 3 + c] * tx) * (1 - ty)
+                + (b.c[(y1 * b.w + x0) * 3 + c] * (1 - tx) + b.c[(y1 * b.w + x1) * 3 + c] * tx) * ty;
+        a.c[p * 3 + c] = a.c[p * 3 + c] * a.k[p] + v * (1 - a.k[p]);
+      }
+      a.k[p] = 1;
+    }
+  }
+  for (let p = 0; p < n; p++) if (hole[p]) for (let c = 0; c < 3; c++) out[p * 4 + c] = lv[0].c[p * 3 + c];
+  img.data.set(out);
+  ctx.putImageData(img, X, Y);
+}
 // On a plain page, lift only the old digits: every pixel that is a shade
 // between the text colour and the page goes back to the page, and anything
 // in another colour (a gold "%", a green arrow) is left untouched.
@@ -11224,7 +11575,10 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
   // How much of each old text shows now (its own fade in and out), read from
   // the original before any new footage is laid over it - new footage behind
   // a headline hid the old words and the new headline came out faint.
-  const live = sw.texts.filter((b) => b.newText && b.m && local >= b.t0 - 0.3 && local <= b.t1 + 0.3);
+  // (a block whose time was followed frame by frame needs no margin: the
+  // margin erased a box of moving footage after the words were gone)
+  const mg = (b) => (b.timed ? 0.06 : 0.3);
+  const live = sw.texts.filter((b) => b.newText && b.m && local >= b.t0 - mg(b) && local <= b.t1 + mg(b));
   const seen = new Map();
   for (const b of live) {
     const m = b.m, bx = ox + m.x * dw, by = oy + m.y * dh, bw = m.w * dw, bh = m.h * dh;
@@ -11336,13 +11690,18 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
       txt = nNew[1] + digits + nNew[3];
     }
     // same sign after it ("6%" -> "7%"): only the digits change
-    const numOnly = !!(m.num && nNew && nOld && !nNew[1] && !nOld[1] && nNew[3].trim().toLowerCase() === nOld[3].trim().toLowerCase());
+    // (arrows and other marks after the sign do not count: "6% ↑" -> "7%")
+    const sfx = (x) => String(x || "").toLowerCase().replace(/[\s←-⇿■-◿⬀-⯿]/g, "");
+    const numOnly = !!(m.num && nNew && nOld && !nNew[1] && !nOld[1] && sfx(nNew[3]) === sfx(nOld[3]));
     const bx = ox + m.x * dw, by = oy + m.y * dh, bw = m.w * dw, bh = m.h * dh;
     const pad = m.photo ? Math.max(6, m.px * dh * 0.22) : Math.max(3, m.px * dh * 0.07);
     const { ink, bgNow } = seen.get(b);
+    // the old words are not showing now: nothing to take away (erasing an
+    // empty box over moving footage left a blur)
+    if (ink / Math.max(0.0005, m.inkMax * 0.8) <= 0.01) continue;
     // still moving in (or out): the old words are not where they settle, so
     // the erase reaches a line further each way (they peeked out under the new ones)
-    const moving = ink < m.inkMax * 0.9 ? m.pitch * dh : 0;
+    const moving = ink < m.inkMax * 0.6 ? m.pitch * dh : 0;
     // ...but never into another block's words
     let upR = moving, dnR = moving;
     if (moving) for (const o of sw.texts) {
@@ -11363,11 +11722,12 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
           // just the digits (a little past them - their soft edge reaches the sign)
           const nx0 = ox + m.num.x0 * dw, nx1 = ox + m.num.x1 * dw, mc2 = [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
           vsSwapEraseInk(ctx, W, H, Math.round(nx0 - pad), sA, Math.round(nx1 - nx0 + pad * 2.5), sZ - sA, mc2, bgNow);
-        } else if (!m.photo) {
-          // a plain page is just its colour (borrowing from the edges pulled a
-          // neighbouring line's colour in as streaks)
-          ctx.fillStyle = `rgb(${bgNow.map((v) => Math.round(v)).join(",")})`; ctx.fillRect(X, sA, WW, sZ - sA);
-        } else vsSwapErase(ctx, W, H, X, sA, WW, sZ - sA, pad * 0.95, sA !== Y, sZ !== Y + HH);
+        } else {
+          // on a page or a photo alike, only the old letters go (a flat fill
+          // of the box took a divider line above a bullet with it)
+          const tc = m.hint || [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+          vsSwapEraseStrokes(ctx, W, H, X, sA, WW, sZ - sA, tc, Math.max(3, m.px * dh * 0.12));
+        }
       }
     } catch (e) {
       ctx.fillStyle = `rgb(${bgNow.join(",")})`; ctx.fillRect(bx - pad, by - pad, bw + pad * 2, bh + pad * 2);
@@ -11376,9 +11736,16 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
     if (shown <= 0.01) continue;
     // set the new words in the old place, size, face and colour
     let px = m.px * dh;
-    const fam = VS_SWAP_FONTS[b.font] || VS_SWAP_FONTS.sans;
+    const fam = b.fit ? b.fit.fam : vsSwapFam(b.font, b.weight, caps);
+    if (b.fit) b.weight = b.fit.weight;
     ctx.save();
     ctx.globalAlpha = shown;
+    if (b.shadow) { ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = Math.max(2, px * 0.08); ctx.shadowOffsetY = Math.max(1, px * 0.04); }
+    if (!numOnly && b.lines && b.lines.length >= 2 && m.bands && m.bands.length === b.lines.length) {
+      vsSwapDrawStyled(ctx, b, txt, ox, oy, dw, dh, bx, bw);
+      ctx.restore();
+      continue;
+    }
     ctx.font = `${b.italic ? "italic " : ""}${b.weight} ${px}px ${fam}`;
     ctx.fillStyle = m.color;
     if (numOnly) {
@@ -11418,6 +11785,68 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
   ctx.restore();
   vstudio._frameHasMedia = true;
   return true;
+}
+// A block whose lines are set in different styles: every new line takes the
+// style of the old line in its place - its face, weight, capitals, colour and
+// the exact ink height of the old line - and sits where the old one sat,
+// pushed down only if the lines above it now need more room.
+function vsSwapDrawStyled(ctx, b, txt, ox, oy, dw, dh, bx, bw) {
+  const m = b.m;
+  const sty = b.lines.map((ln, i) => {
+    const bd = m.bands[i], caps = /[A-Z]/.test(ln.text) && ln.text === ln.text.toUpperCase();
+    const s = { fam: ln.fit ? ln.fit.fam : vsSwapFam(ln.font, ln.weight, caps), w: ln.fit ? ln.fit.weight : ln.weight, it: ln.italic, caps, color: bd.color || m.color, top: oy + bd.y0 * dh, bot: oy + bd.y1 * dh, ref: ln.text };
+    // a line's measured ink runs from its letter tops to the baseline (the
+    // few pixels of a descender are too thin to count), so the size is
+    // matched on the ascent alone and the baseline sits on its bottom edge
+    ctx.font = `${s.it ? "italic " : ""}${s.w} 100px ${s.fam}`;
+    const mm = ctx.measureText(s.ref), asc = mm.actualBoundingBoxAscent || 70;
+    s.px = Math.max(6, ((s.bot - s.top) * 100) / asc);
+    s.asc = s.bot - s.top;
+    s.key = s.fam + s.w + s.it + s.caps;
+    return s;
+  });
+  // lines of one style in a row are a group; its line pitch is the old one
+  const groups = [];
+  sty.forEach((s, i) => {
+    const g = groups[groups.length - 1];
+    if (g && g.key === s.key && Math.abs(g.s.px - s.px) / g.s.px < 0.18) { g.idx.push(i); return; }
+    groups.push({ key: s.key, s, idx: [i] });
+  });
+  groups.forEach((g) => { g.pitch = g.idx.length > 1 ? (sty[g.idx[g.idx.length - 1]].top - sty[g.idx[0]].top) / (g.idx.length - 1) : g.s.px * 1.22; });
+  const paras = txt.split(/\n/).map((p) => p.trim()).filter(Boolean);
+  // which old line (and so which style) each new paragraph takes
+  const anchor = paras.map((p, j) => {
+    if (paras.length === sty.length) return j;
+    // one paragraph: the style most lines share, the first on a tie (a short
+    // last line measured a little taller and took a one-line bullet down a line)
+    if (paras.length === 1) { const big = groups.reduce((a, g) => (g.idx.length > a.idx.length ? g : a), groups[0]); return big.idx[0]; }
+    return groups[Math.min(j, groups.length - 1)].idx[0];
+  });
+  const margin = Math.max(0, Math.min(bx - ox, ox + dw - (bx + bw)));
+  const maxW = b.align === "center" ? Math.max(bw, dw - margin * 2) : b.align === "right" ? bw : Math.max(bw, dw - (bx - ox) * 2);
+  const used = {};
+  let lastBase = -1e9, lastDesc = 0;
+  paras.forEach((p, j) => {
+    const k = anchor[j], s = sty[k], g = groups.find((gg) => gg.idx.includes(k));
+    ctx.font = `${s.it ? "italic " : ""}${s.w} ${s.px}px ${s.fam}`;
+    try { ctx.letterSpacing = "0px"; ctx.direction = "ltr"; } catch (e) {}
+    const words = (s.caps ? p.toUpperCase() : p).split(/\s+/).filter(Boolean), out = [];
+    let cur = "";
+    words.forEach((wd) => { const t2 = cur ? cur + " " + wd : wd; if (ctx.measureText(t2).width > maxW && cur) { out.push(cur); cur = wd; } else cur = t2; });
+    if (cur) out.push(cur);
+    // a group fills its own old lines first, in order
+    used[g.key + g.idx[0]] = used[g.key + g.idx[0]] || 0;
+    out.forEach((ln) => {
+      const slot = g.idx[Math.min(used[g.key + g.idx[0]], g.idx.length - 1)], over = Math.max(0, used[g.key + g.idx[0]] - (g.idx.length - 1));
+      let base = (paras.length === sty.length ? s.top : sty[slot].top) + s.asc + over * g.pitch;
+      base = Math.max(base, lastBase + lastDesc + s.asc + s.px * 0.12);
+      const lw = ctx.measureText(ln).width;
+      const x = b.align === "center" ? bx + bw / 2 - lw / 2 : b.align === "right" ? bx + bw - lw : bx;
+      ctx.fillStyle = s.color; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.fillText(ln, x, base);
+      lastBase = base; lastDesc = s.px * 0.24; used[g.key + g.idx[0]]++;
+    });
+  });
 }
 // keep the replacement clips on time in an export
 async function vsSwapSeekExport(s, local) {
@@ -12145,6 +12574,27 @@ function vsElementFields(s, i, id) {
         options: [{ v: "0", t: L("Colour panel on the side", "پنل رنگی کنار") }, { v: "1", t: L("Colour band on top", "نوار رنگی بالا") }, { v: "2", t: L("Colour circle behind the icon", "دایرهٔ رنگی پشت آیکون") }, { v: "3", t: L("You in a window, words below", "خودت در یک قاب، کلمات زیرش") }],
         get: () => String(s._gfx.v || 0), set: (v) => { s._gfx.v = Number(v) || 0; } });
     }
+    if (!s._gfx || Number(s._gfx.v) === 3) {
+      F.push({ type: "select", label: L("Picture in the frame", "تصویر در کادر"), list: true,
+        options: [{ v: "", t: L("Automatic - the whole video when its shape differs", "خودکار - اگر شکلش فرق دارد، کل ویدیو") },
+          { v: "whole", t: L("Whole video (soft blurred sides)", "کل ویدیو (کناره‌های محو)") },
+          { v: "fill", t: L("Fill the frame (crops the edges)", "پر کردن کادر (لبه‌ها بریده می‌شوند)") }],
+        get: () => s._fit || "", set: (v) => { if (v) s._fit = v; else delete s._fit; } });
+      F.push({ type: "range", label: L("Zoom", "زوم"), min: 0.5, max: 3, step: 0.02, fmt: (v) => Math.round(v * 100) + "%", ...vsViaLive("mediaScale", 1) });
+      const fdx = vsViaLive("mediaDX", 0), fdy = vsViaLive("mediaDY", 0);
+      F.push({ type: "xy", label: L("Framing", "کادربندی"), get: () => [fdx.get(), fdy.get()], set: ([x, y]) => { fdx.set(x); fdy.set(y); } });
+      F.push({ type: "buttons", buttons: [{ t: L("Use this framing for every clip", "همین کادربندی برای همهٔ کلیپ‌ها"), act: () => {
+        vsSaveActiveSlide();
+        const me = s.settings || {};
+        for (const o of vstudio.slides) {
+          if (!o || o === s || !o._ownSpeech || o._broll) continue;
+          if (s._fit) o._fit = s._fit; else delete o._fit;
+          o.settings = Object.assign({}, o.settings || {}, { _mediaScale: me._mediaScale || 1, _mediaDX: me._mediaDX || 0, _mediaDY: me._mediaDY || 0 });
+        }
+        vsToast(L("Every clip now uses this framing.", "همهٔ کلیپ‌ها همین کادربندی را گرفتند."));
+        vsInspRedraw(true);
+      } }] });
+    }
     vsLookFields(s, F, L, true);
     F.push({ type: "select", label: L("Font (whole video)", "فونت (کل ویدیو)"),
       options: [{ v: "", t: "Archivo" }].concat(vsOptsFrom("#vsHeadlineFont").filter((o) => !/^Archivo/.test(o.v))),
@@ -12345,6 +12795,8 @@ function vsElementFields(s, i, id) {
         (v.words || []).forEach((w, k) => { if (ws[k] != null) w.w = ws[k]; });
         v.chunks = vsCaptionChunks(v.words || []); v._byMax = {};
       } });
+    F.push({ type: "toggle", label: L("Captions on this clip", "زیرنویس در همین کلیپ"), get: () => !s._noCaps, set: (on) => { if (on) delete s._noCaps; else s._noCaps = true; } });
+    F.push({ type: "toggle", label: L("Captions in the whole video", "زیرنویس در کل ویدیو"), ...vsViaControl("#vsCaptions") });
     return F;
   }
   if (id === "captions" && s._ownSpeech) {
@@ -12365,7 +12817,8 @@ function vsElementFields(s, i, id) {
     F.push({ type: "select", label: L("Caption look (whole video)", "ظاهر زیرنویس (کل ویدیو)"),
       options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
       get: () => TP2.captions || "pop", set: (val) => { TP2.captions = val; } });
-    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsCaptions") });
+    F.push({ type: "toggle", label: L("Captions on this clip", "زیرنویس در همین کلیپ"), get: () => !s._noCaps, set: (on) => { if (on) delete s._noCaps; else s._noCaps = true; } });
+    F.push({ type: "toggle", label: L("Captions in the whole video", "زیرنویس در کل ویدیو"), ...vsViaControl("#vsCaptions") });
     moveSize(vsCapHost(), "captions", 0.5, 1.8);
     return F;
   }
@@ -12383,7 +12836,8 @@ function vsElementFields(s, i, id) {
       options: [{ v: "pop", t: L("Bold pop", "درشت و پرانرژی") }, { v: "clean", t: L("Clean", "ساده") }, { v: "news", t: L("News bar", "نوار خبری") }, { v: "subtitle", t: L("Film subtitle", "زیرنویس فیلم") }],
       get: () => TP.captions || "pop", set: (v) => { TP.captions = v; } });
     F.push({ type: "toggle", label: L("Voice-over", "صدای گوینده"), ...vsViaControl("#vsNarrate") });
-    F.push({ type: "toggle", label: L("Show captions", "نمایش زیرنویس"), ...vsViaControl("#vsCaptions") });
+    F.push({ type: "toggle", label: L("Captions in this scene", "زیرنویس در همین صحنه"), get: () => !s._noCaps, set: (on) => { if (on) delete s._noCaps; else s._noCaps = true; } });
+    F.push({ type: "toggle", label: L("Captions in the whole video", "زیرنویس در کل ویدیو"), ...vsViaControl("#vsCaptions") });
     moveSize(vsCapHost(), "captions", 0.5, 1.8);
     return F;
   }
@@ -15710,7 +16164,7 @@ function setupTextDrag() {
       x: () => vstudio[keys[0]] || 0, y: () => vstudio[keys[1]] || 0,
       setXY: (x, y) => { vstudio[keys[0]] = x; vstudio[keys[1]] = y; },
       sc: () => vstudio[keys[2]] || 1, setSc: (v) => { vstudio[keys[2]] = v; },
-      min: kind === "footage" ? 1 : 0.55, max: kind === "footage" ? 3 : 1.6, fit: 1.6
+      min: kind === "footage" ? ((vstudio.slides[vstudio.activeSlide] || {})._ownSpeech ? 0.5 : 1) : 0.55, max: kind === "footage" ? 3 : 1.6, fit: 1.6
     };
   };
   const redraw = () => { if (!vstudio.looping) drawStudioFrame(vstudio.position || 0); };
