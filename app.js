@@ -10918,33 +10918,80 @@ function vsSwapMeasureTextAt(g, b) {
   } };
 }
 // Measure a footage area: where the picture really is, and how it fades out.
-async function vsSwapMeasureFootage(el, f) {
-  const ts = [0.25, 0.5, 0.75].map((p) => f.t0 + (f.t1 - f.t0) * p);
-  const frames = [];
-  for (const t of ts) { const g = await vsSwapGrab(el, t, 135); frames.push(g.x.getImageData(0, 0, g.w, g.h).data); var W = g.w, H = g.h; }
-  // per row: how far the pixels sit from the page colour (taken below the box)
+async function vsSwapMeasureFootage(el, f, texts) {
+  // several moments: the picture may pan, zoom or fade while the design
+  // around it (a fade into the page, the area it sits in) stays put
+  const ts = [0.15, 0.32, 0.5, 0.68, 0.85].map((p) => f.t0 + (f.t1 - f.t0) * p);
+  const frames = []; let W = 0, H = 0;
+  for (const t of ts) { const g = await vsSwapGrab(el, t, 135); frames.push({ t, d: g.x.getImageData(0, 0, g.w, g.h).data }); W = g.w; H = g.h; }
   const yB = Math.min(H - 2, Math.ceil((f.box.y + f.box.h) * H) + 4);
-  const page = vsSwapRing(frames[1], W, H, 0, yB, W - 1, Math.min(H - 1, yB + 6), 0);
-  // per row: the median distance (the drawing reads rows the same way)
-  const prof = [];
+  const page = vsSwapRing(frames[2].d, W, H, 0, yB, W - 1, Math.min(H - 1, yB + 6), 0);
+  // words are left out of every reading (a line of text on the page is not picture)
+  const skip = (t) => {
+    const m = new Uint8Array(W * H);
+    for (const b of texts || []) {
+      if (!b.box || t < b.t0 - 0.3 || t > b.t1 + 0.3) continue;
+      const x0 = Math.max(0, Math.floor((b.box.x - 0.01) * W)), x1 = Math.min(W - 1, Math.ceil((b.box.x + b.box.w + 0.01) * W));
+      const y0 = Math.max(0, Math.floor((b.box.y - 0.006) * H)), y1 = Math.min(H - 1, Math.ceil((b.box.y + b.box.h + 0.006) * H));
+      for (let y = y0; y <= y1; y++) m.fill(1, y * W + x0, y * W + x1 + 1);
+    }
+    return m;
+  };
+  const masks = frames.map((fr) => skip(fr.t));
+  const pct = (arr, p) => { if (!arr.length) return 0; arr.sort((a, b) => a - b); return arr[Math.min(arr.length - 1, Math.floor(arr.length * p))]; };
+  // per row: how far its darker part sits from the page (the 90th percentile -
+  // a bright wall in a photo still has darker things in its row, a fade into
+  // the page never does), the most any moment shows. The median read a bright
+  // wall as page and left a strip of the old photo showing.
+  // A row mostly under words is read from what shows beside them; a row
+  // with nothing beside them takes its neighbours' reading (a headline across
+  // the bottom of a photo left those rows out, and the old photo showed there).
+  const prof = new Float32Array(H).fill(-1);
   for (let y = 0; y < H; y++) {
-    let s = 0;
-    for (const d of frames) { const c = []; for (let x = 0; x < W; x++) c.push(vsSwapDist(d, (y * W + x) * 4, page[0], page[1], page[2])); c.sort((p, q) => p - q); s += c[c.length >> 1]; }
-    prof.push(s / frames.length);
+    let best = -1;
+    frames.forEach((fr, k) => {
+      const c = [];
+      for (let x = 0; x < W; x++) { if (masks[k][y * W + x]) continue; c.push(vsSwapDist(fr.d, (y * W + x) * 4, page[0], page[1], page[2])); }
+      if (c.length >= Math.max(4, W * 0.05)) best = Math.max(best, pct(c, 0.9));
+    });
+    prof[y] = best;
+  }
+  for (let y = 0; y < H; y++) {
+    if (prof[y] >= 0) continue;
+    let u = y - 1; while (u >= 0 && prof[u] < 0) u--;
+    let v = y + 1; while (v < H && prof[v] < 0) v++;
+    const pu = u >= 0 ? prof[u] : -1, pv = v < H ? prof[v] : -1;
+    prof[y] = pu >= 0 && pv >= 0 ? Math.max(pu, pv) : Math.max(0, pu, pv);
   }
   let yA = Math.max(0, Math.floor(f.box.y * H)), yZ = Math.min(H - 1, Math.ceil((f.box.y + f.box.h) * H));
   let peak = 1; for (let y = yA; y <= yZ; y++) peak = Math.max(peak, prof[y]);
-  // grow the area over every row that still carries picture (the soft fade
-  // into the page usually runs past the box the model drew)
   const mid = Math.round((yA + yZ) / 2);
-  while (yA > 0 && prof[yA - 1] > peak * 0.02 && mid - yA < H) yA--;
-  while (yZ < H - 1 && prof[yZ + 1] > peak * 0.02) yZ++;
-  // a little room each side: the picture may grow into it as it animates
-  yA = Math.max(0, yA - Math.round(H * 0.02)); yZ = Math.min(H - 1, yZ + Math.round(H * 0.01));
-  // rows of the box carrying picture, as an alpha ramp (the fade into the page)
+  while (yA > 0 && prof[yA - 1] > peak * 0.05 && mid - yA < H) yA--;
+  while (yZ < H - 1 && prof[yZ + 1] > peak * 0.05) yZ++;
+  // the fade into the page, row by row
   const alpha = [];
-  for (let y = yA; y <= yZ; y++) alpha.push(Math.max(0, Math.min(1, prof[y] / (peak * 0.6))));
-  f.m = { y0: yA / H, y1: (yZ + 1) / H, alpha, page, ref: peak };
+  for (let y = yA; y <= yZ; y++) alpha.push(Math.max(0, Math.min(1, prof[y] / (peak * 0.85))));
+  // How strongly the picture is laid on the page: a photo nearly always has
+  // deep shadows, so if its darkest points stay far from the page's opposite
+  // it was set paler on purpose - the new one is set just as pale.
+  const all = [], core = [];
+  frames.forEach((fr, k) => {
+    let sum = 0, n = 0;
+    for (let y = yA; y <= yZ; y++) {
+      const a = alpha[y - yA]; if (a < 0.5) continue;
+      for (let x = 0; x < W; x += 2) {
+        if (masks[k][y * W + x]) continue;
+        const v = vsSwapDist(fr.d, (y * W + x) * 4, page[0], page[1], page[2]);
+        all.push(v); if (a >= 0.9) { sum += v; n++; }
+      }
+    }
+    core.push(n ? sum / n : 0);
+  });
+  let far = 0;
+  for (const c of [[0, 0, 0], [255, 255, 255], [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0], [255, 0, 255], [0, 255, 255]]) far = Math.max(far, Math.abs(c[0] - page[0]) + Math.abs(c[1] - page[1]) + Math.abs(c[2] - page[2]));   // same measure as vsSwapDist
+  const reach = pct(all, 0.995);
+  const op = Math.max(0.3, Math.min(1, reach / (far * 0.85)));
+  f.m = { y0: yA / H, y1: (yZ + 1) / H, alpha, page, ref: peak, op, coreMean: Math.max(1, ...core) };
   return true;
 }
 
@@ -11036,7 +11083,7 @@ async function vsSwapStart(file, o) {
     vsAutoStatus(L("Measuring each one…", "در حال اندازه‌گیری دقیق هر کدام…"));
     const keepT = [];
     for (const b of texts) { try { if (await vsSwapMeasureText(el, b)) keepT.push(b); } catch (e) {} }
-    for (const f of footage) { try { await vsSwapMeasureFootage(el, f); } catch (e) {} }
+    for (const f of footage) { try { await vsSwapMeasureFootage(el, f, keepT); } catch (e) {} }
     // the shape of the video, so nothing is cropped
     const ar = (el.videoWidth || 9) / (el.videoHeight || 16);
     const shape = ar < 0.66 ? "9:16" : ar < 0.9 ? "4:5" : ar < 1.3 ? "1:1" : "16:9";
@@ -11197,61 +11244,76 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
   // rows the new footage covers outright (the old words there are gone already)
   const covered = [];
   // footage first (text may sit near it)
+  const rewritten = new Set(live);
   for (const f of sw.footage) {
     if (!f.newEl || local < f.t0 || local > f.t1 || !f.m) continue;
-    const y0 = oy + f.m.y0 * dh, y1 = oy + f.m.y1 * dh, hh = y1 - y0;
-    // Where and how strongly the original shows its picture in THIS frame,
-    // row by row: the median of each row's distance from the page (words on
-    // the page are a minority of a row, so they do not count). That follows
-    // the original's own reveal, zoom, fade in and fade out exactly - one
-    // fixed ramp left the old sky showing above a new photo with a hard top.
-    const RS = 3, nR = Math.max(1, Math.ceil(hh / RS));
-    const raw = new Float32Array(nR), med = new Float32Array(nR), alpha = new Float32Array(nR);
+    const y0 = oy + f.m.y0 * dh, y1 = oy + f.m.y1 * dh, hh = y1 - y0, rows = f.m.alpha.length, rh = hh / rows;
+    const X = Math.round(ox), WW = Math.max(1, Math.round(dw));
+    // how much picture the original shows now (its own fade in and out): its
+    // strongest rows now against the same rows when measured, words left out
+    let pres = 1;
     try {
-      const X = Math.round(ox), Y = Math.round(y0), WW = Math.max(1, Math.round(dw)), HH = Math.max(1, Math.round(hh));
-      const d = ctx.getImageData(X, Y, WW, HH).data, step = Math.max(1, Math.floor(WW / 100)), col = new Float32Array(Math.ceil(WW / step));
-      for (let k = 0; k < nR; k++) {
-        const yy = Math.min(HH - 1, k * RS); let n = 0;
-        for (let x = 0; x < WW; x += step) col[n++] = vsSwapDist(d, (yy * WW + x) * 4, f.m.page[0], f.m.page[1], f.m.page[2]);
-        med[k] = col.subarray(0, n).sort()[n >> 1];
-        raw[k] = Math.max(0, Math.min(1, med[k] / (f.m.ref * 0.6)));
+      const Y = Math.round(y0), HH = Math.max(1, Math.round(hh));
+      const d = ctx.getImageData(X, Y, WW, HH).data, step = Math.max(2, Math.floor(WW / 90));
+      const boxes = sw.texts.filter((b) => b.m && local >= b.t0 - 0.3 && local <= b.t1 + 0.3).map((b) => [ox + (b.m.x - 0.01) * dw - X, oy + (b.m.y - 0.006) * dh - Y, ox + (b.m.x + b.m.w + 0.01) * dw - X, oy + (b.m.y + b.m.h + 0.006) * dh - Y]);
+      let sum = 0, n = 0;
+      for (let k = 0; k < rows; k += 2) {
+        if (f.m.alpha[k] < 0.9) continue;
+        const yy = Math.min(HH - 1, Math.round((k + 0.5) * rh));
+        for (let x = 0; x < WW; x += step) { if (boxes.some((q) => x >= q[0] && x <= q[2] && yy >= q[1] && yy <= q[3])) continue; sum += vsSwapDist(d, (yy * WW + x) * 4, f.m.page[0], f.m.page[1], f.m.page[2]); n++; }
       }
-      // A light part of the picture (a sky) reads like a fade into the page,
-      // and the new picture stopped there with a hard line. Rows that are
-      // plainly picture stay full and rows that are plainly page stay empty
-      // (a hard edge stays hard); everything between is smoothed, so the new
-      // picture fades out the way the old one did.
-      const r = Math.max(2, Math.round((dh * 0.04) / RS)), tmp = new Float32Array(nR);
-      const box = (src, dst) => { let acc = 0, n = 0; for (let k = -r; k < nR + r; k++) { if (k + r < nR) { acc += src[k + r]; n++; } if (k - r - 1 >= 0) { acc -= src[k - r - 1]; n--; } if (k >= 0 && k < nR) dst[k] = acc / Math.max(1, n); } };
-      box(raw, tmp); box(tmp, alpha);
-      for (let k = 0; k < nR; k++) alpha[k] = raw[k] >= 0.9 ? 1 : med[k] < 3 ? 0 : Math.min(1, Math.max(raw[k], alpha[k]));
-    } catch (e) { raw.fill(1); alpha.fill(1); }
-    let kA = -1, kZ = -1, sA = -1, sZ = -1;
-    for (let k = 0; k < nR; k++) { if (raw[k] >= 0.9) { if (kA < 0) kA = k; kZ = k; } if (alpha[k] > 0.02) { if (sA < 0) sA = k; sZ = k; } }
-    if (sA < 0) continue;   // the original shows no picture here now
-    if (kA >= 0) covered.push([y0 + kA * RS, y0 + Math.min(hh, (kZ + 1) * RS)]);
+      if (n) pres = Math.max(0, Math.min(1, (sum / n) / ((f.m.coreMean || f.m.ref) * 0.7)));
+    } catch (e) {}
+    if (pres <= 0.02) continue;   // the original shows no picture here now
+    let kA = -1, kZ = -1;
+    for (let k = 0; k < rows; k++) if (f.m.alpha[k] > 0.02) { if (kA < 0) kA = k; kZ = k; }
+    if (kA < 0) continue;
+    const fA = y0 + kA * rh, fZ = y0 + (kZ + 1) * rh;
+    // the old picture under the words nobody rewrote: they are put back after
+    const keep = sw.texts.filter((b) => b.m && !rewritten.has(b) && local >= b.t0 - 0.3 && local <= b.t1 + 0.3 && oy + (b.m.y + b.m.h) * dh > fA && oy + b.m.y * dh < fZ);
+    const snaps = keep.map((b) => {
+      const bx = Math.max(0, Math.round(ox + b.m.x * dw - 3)), by = Math.max(0, Math.round(oy + b.m.y * dh - 3));
+      const bw = Math.min(W - bx, Math.round(b.m.w * dw + 6)), bh = Math.min(H - by, Math.round(b.m.h * dh + 6));
+      try { return { b, bx, by, bw, bh, img: ctx.getImageData(bx, by, bw, bh) }; } catch (e) { return null; }
+    }).filter(Boolean);
+    covered.push([fA, fZ]);
     if (f.newEl.tagName === "VIDEO") {
       const v = f.newEl, target = ((local - f.t0) % Math.max(0.1, v.duration || 1));
       if (!vstudio.rendering && playing && v.paused) v.play().catch(() => {});
       if (!vstudio.rendering && (!playing || Math.abs((v.currentTime || 0) - target) > 0.35)) { try { v.currentTime = target; } catch (e) {} }
     }
-    // the page under the rows that carry picture, then the new picture
-    // through the same row-by-row strength (one gradient - row-by-row
-    // drawing overlapped the rows and striped the fade)
-    ctx.fillStyle = `rgb(${f.m.page.join(",")})`; ctx.fillRect(ox, y0 + sA * RS, dw, Math.min(hh, (sZ + 1) * RS) - sA * RS);
-    const mw = f.newEl.videoWidth || f.newEl.naturalWidth || 16, mh = f.newEl.videoHeight || f.newEl.naturalHeight || 9;
+    // the page under it, then the new picture through the original's fade,
+    // at its strength now and the paleness it was set at (one gradient -
+    // row-by-row drawing overlapped the rows and striped the fade)
+    ctx.fillStyle = `rgb(${f.m.page.join(",")})`; ctx.fillRect(ox, fA, dw, fZ - fA);
+    const mw = f.newEl.videoWidth || f.newEl.naturalWidth || f.newEl.width || 16, mh = f.newEl.videoHeight || f.newEl.naturalHeight || f.newEl.height || 9;
     const cs = Math.max(dw / mw, hh / mh), cw = mw * cs, ch = mh * cs;
-    const fw = Math.max(1, Math.round(dw)), fh = Math.max(1, Math.round(hh));
+    const fw = WW, fh = Math.max(1, Math.round(hh));
     const oc = vstudio._swapFootCanvas || (vstudio._swapFootCanvas = document.createElement("canvas"));
     if (oc.width !== fw || oc.height !== fh) { oc.width = fw; oc.height = fh; }
     const ox2 = oc.getContext("2d");
     ox2.globalCompositeOperation = "source-over"; ox2.clearRect(0, 0, fw, fh);
     try { ox2.drawImage(f.newEl, (fw - cw) / 2, (fh - ch) / 2, cw, ch); } catch (e) {}
     const gr = ox2.createLinearGradient(0, 0, 0, fh);
-    for (let k = 0; k < nR; k++) gr.addColorStop(Math.min(1, (k * RS) / Math.max(1, fh - 1)), `rgba(0,0,0,${alpha[k].toFixed(3)})`);
+    for (let k = 0; k < rows; k++) gr.addColorStop(rows > 1 ? k / (rows - 1) : 0, `rgba(0,0,0,${Math.max(0, Math.min(1, f.m.alpha[k])).toFixed(3)})`);
     ox2.globalCompositeOperation = "destination-in"; ox2.fillStyle = gr; ox2.fillRect(0, 0, fw, fh);
     ox2.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = Math.max(0, Math.min(1, pres * (f.m.op || 1)));
     ctx.drawImage(oc, ox, y0, dw, hh);
+    ctx.globalAlpha = 1;
+    // the words that stay, back on top exactly as they were: every pixel of
+    // their own colour from the original frame (the new picture hid them)
+    for (const sn of snaps) {
+      const m = sn.b.m, tc = m.hint || [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+      const cur = ctx.getImageData(sn.bx, sn.by, sn.bw, sn.bh), o = cur.data, src = sn.img.data;
+      for (let i = 0; i < o.length; i += 4) {
+        const dd = vsSwapDist(src, i, tc[0], tc[1], tc[2]);
+        const a = dd < 40 ? 1 : dd > 110 ? 0 : (110 - dd) / 70;
+        if (a <= 0) continue;
+        for (let c = 0; c < 3; c++) o[i + c] = o[i + c] * (1 - a) + src[i + c] * a;
+      }
+      ctx.putImageData(cur, sn.bx, sn.by);
+    }
   }
   // texts the user rewrote
   for (const b of live) {
