@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v789" />
+    <link rel="stylesheet" href="/styles.css?v=v790" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -600,6 +600,31 @@
       .vs-reel-cta-tx strong{font-size:13px;font-weight:800;letter-spacing:-.01em;}
       .vs-reel-cta-tx small{font-size:11px;color:var(--muted);}
       .vs-reel-cta-go{flex:none;color:#5b9bff;font-size:15px;font-weight:800;}
+      /* The owner asked for the "AI is thinking" look on this button: a
+         multicolour border that slowly turns, with a soft glow of the same
+         colours behind it. Still when the system asks for less motion. */
+      @property --vsReelA{syntax:"<angle>";inherits:false;initial-value:0deg}
+      @keyframes vsReelSpin{to{--vsReelA:360deg}}
+      .vs-reel-cta{position:relative;isolation:isolate;border:1.5px solid transparent;
+        background:linear-gradient(135deg,rgba(37,99,255,.16),rgba(37,99,255,.05)) padding-box,
+          linear-gradient(#0c0f17,#0c0f17) padding-box,
+          conic-gradient(from var(--vsReelA),#2563ff,#12d6f5,#5af0c0,#ff5ec4,#2563ff) border-box;
+        animation:vsReelSpin 3.6s linear infinite;}
+      .vs-reel-cta::before{content:"";position:absolute;inset:-2px;z-index:-1;border-radius:14px;pointer-events:none;
+        background:conic-gradient(from var(--vsReelA),#2563ff,#12d6f5,#5af0c0,#ff5ec4,#2563ff);
+        filter:blur(9px);opacity:.42;animation:vsReelSpin 3.6s linear infinite;transition:opacity .2s;}
+      .vs-reel-cta:hover{border-color:transparent;
+        background:linear-gradient(135deg,rgba(37,99,255,.24),rgba(37,99,255,.09)) padding-box,
+          linear-gradient(#0c0f17,#0c0f17) padding-box,
+          conic-gradient(from var(--vsReelA),#2563ff,#12d6f5,#5af0c0,#ff5ec4,#2563ff) border-box;}
+      .vs-reel-cta:hover::before{opacity:.65;}
+      /* the inside stays solid: in its own layer the glow painted over the
+         button's background and hazed the words */
+      .vs-reel-cta::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:10.5px;pointer-events:none;
+        background:linear-gradient(135deg,rgba(37,99,255,.16),rgba(37,99,255,.05)),#0c0f17;transition:background .15s;}
+      .vs-reel-cta:hover::after{background:linear-gradient(135deg,rgba(37,99,255,.24),rgba(37,99,255,.09)),#0c0f17;}
+      .vs-reel-cta:focus-visible{outline:2px solid #12d6f5;outline-offset:3px;}
+      @media (prefers-reduced-motion:reduce){.vs-reel-cta,.vs-reel-cta::before{animation:none;}}
       
     </style>
   <style id="vs-editor-shell">
@@ -2709,7 +2734,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v789"></script>
+    <script src="/app.js?v=v790"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
