@@ -23775,8 +23775,9 @@ async function vsCoverRenderAt(assets, W, H, opts) {
     accent = accent || tplDef.accent || "#2563ff";
   }
   const meta = vsThumbTitleMeta(coverTitle);
-  const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)) };
-  const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp }[template] || vsTplBold;
+  const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)),
+    img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side };
+  const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout }[template] || vsTplBold;
   try { draw(R); } catch (e) { try { vsTplBold(R); } catch (_) {} }
   const toBlob = (mime, q) => new Promise(r => c.toBlob(r, mime, q));
   // Size-capped output: JPEG, dropping quality until it fits under maxBytes.
@@ -23804,6 +23805,7 @@ const VS_THUMB_TEMPLATES = [
   { id: "sidebar", name: "Sidebar", fa: "کناری",   accent: "#5b9bff" },
   { id: "minimal", name: "Minimal", fa: "مینیمال", accent: "#f4f5f7" },
   { id: "stamp",   name: "Stamp",   fa: "مهر",     accent: "#5fe0b0" },
+  { id: "cutout",  name: "Cut-out", fa: "سوژهٔ جدا", accent: "#ffcc00", video: true },
 ];
 const VS_TPL_FAM = '"Archivo", system-ui, sans-serif';
 
@@ -25265,6 +25267,238 @@ function vsThumbNoImageReason(err) {
 // Standalone Thumbnail Studio — generate ONE or several thumbnails at any size
 // (including a 486×279 thumbnail or a fully custom W×H), from a topic, WITHOUT
 // needing to build a video first. Each result has its own Download.
+// ══ Thumbnail from the user's own video ═════════════════════════════════════
+// The best frames (Gemini picks them from a dozen, a sharpness check throws out
+// the blurred ones), the title from what is said, and the person cut out of
+// the frame in the browser (MediaPipe's free person segmenter) for the
+// "Cut-out" template: the person large on one side with a white outline and
+// a glow, the frame blurred behind, big words on the other side.
+const VS_THUMB_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/thumb-plan";
+const VS_MP_VER = "0.10.14";
+let vsThumbSegP = null;
+function vsThumbSegmenter() {
+  if (!vsThumbSegP) vsThumbSegP = (async () => {
+    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
+    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    return await V.ImageSegmenter.createFromOptions(files, {
+      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
+      runningMode: "IMAGE", outputCategoryMask: false, outputConfidenceMasks: true,
+    });
+  })().catch((e) => { vsThumbSegP = null; throw e; });
+  return vsThumbSegP;
+}
+// The person in a frame, on a transparent canvas the frame's size, with the
+// box they fill; null when there is no one (or the segmenter would not load).
+async function vsThumbCutout(frame) {
+  let seg = null;
+  try { seg = await vsThumbSegmenter(); } catch (e) { return null; }
+  const sc = Math.min(1, 1024 / Math.max(frame.width, frame.height));
+  const work = document.createElement("canvas");
+  work.width = Math.max(1, Math.round(frame.width * sc)); work.height = Math.max(1, Math.round(frame.height * sc));
+  work.getContext("2d").drawImage(frame, 0, 0, work.width, work.height);
+  let res = null;
+  try { res = seg.segment(work); } catch (e) { return null; }
+  const bg = res && res.confidenceMasks && res.confidenceMasks[0];
+  if (!bg) { try { res.close(); } catch (e) {} return null; }
+  const mw = bg.width, mh = bg.height, a = bg.getAsFloat32Array();
+  const alpha = document.createElement("canvas"); alpha.width = mw; alpha.height = mh;
+  const ax = alpha.getContext("2d"), id = ax.createImageData(mw, mh);
+  let n = 0, x0 = mw, y0 = mh, x1 = -1, y1 = -1;
+  for (let p = 0; p < mw * mh; p++) {
+    const v = Math.max(0, Math.min(1, ((1 - a[p]) - 0.35) / 0.3));
+    id.data[p * 4 + 3] = Math.round(v * 255);
+    if (v > 0.5) { n++; const x = p % mw, y = (p / mw) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  try { res.close(); } catch (e) {}
+  if (n < mw * mh * 0.04) return null;   // nobody there, or too small to carry a thumbnail
+  ax.putImageData(id, 0, 0);
+  const cut = document.createElement("canvas"); cut.width = frame.width; cut.height = frame.height;
+  const cx = cut.getContext("2d");
+  cx.drawImage(frame, 0, 0);
+  cx.globalCompositeOperation = "destination-in";
+  cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+  cx.drawImage(alpha, 0, 0, cut.width, cut.height);
+  const k = cut.width / mw;
+  cut._box = { x: x0 * k, y: y0 * k, w: (x1 - x0 + 1) * k, h: (y1 - y0 + 1) * k };
+  cut._touchBottom = (y1 + 1) / mh > 0.96;
+  return cut;
+}
+// How sharp a small frame is (variance of a Laplacian over its grey values)
+async function vsThumbSharpness(b64) {
+  try {
+    const bmp = await createImageBitmap(await (await fetch("data:image/jpeg;base64," + b64)).blob());
+    const c = document.createElement("canvas"); c.width = 192; c.height = Math.max(1, Math.round(192 * bmp.height / bmp.width));
+    const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(bmp, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height).data, W = c.width, H = c.height;
+    const g = (i) => d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    let sum = 0, sum2 = 0, n = 0, lum = 0;
+    for (let y = 1; y < H - 1; y++) for (let xx = 1; xx < W - 1; xx++) {
+      const i = (y * W + xx) * 4, v = 4 * g(i) - g(i - 4) - g(i + 4) - g(i - W * 4) - g(i + W * 4);
+      sum += v; sum2 += v * v; n++; lum += g(i);
+    }
+    const varL = sum2 / n - (sum / n) ** 2, mean = lum / n;
+    // a frame that is nearly black or blown out is no thumbnail either
+    return varL * (mean < 35 || mean > 235 ? 0.2 : 1);
+  } catch (e) { return 0; }
+}
+// One frame of the video at full size (up to 1920 across)
+async function vsThumbFrameAt(el, t) {
+  await new Promise((res) => {
+    let done = false;
+    const fin = () => { if (!done) { done = true; el.removeEventListener("seeked", fin); res(); } };
+    el.addEventListener("seeked", fin);
+    try { el.currentTime = Math.max(0, t); } catch (e) { fin(); }
+    setTimeout(fin, 4000);
+  });
+  const vw = el.videoWidth || 1280, vh = el.videoHeight || 720, k = Math.min(1, 1920 / Math.max(vw, vh));
+  const c = document.createElement("canvas"); c.width = Math.round(vw * k); c.height = Math.round(vh * k);
+  c.getContext("2d").drawImage(el, 0, 0, c.width, c.height);
+  return c;
+}
+// Read the video: frames, what is said, and the plan for the thumbnail
+async function vsThumbReadVideo(file, topic, say) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  const url = URL.createObjectURL(file);
+  const el = await vsEditVideoEl(url);
+  if (!el) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد"));
+  const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+  if (!dur) throw new Error(L("the video's length could not be read", "طول ویدیو خوانده نشد"));
+  say(L("Looking through your video…", "در حال نگاه کردن به ویدیوی تو…"));
+  const frames = await vsSampleFrames(el, dur, Math.max(6, Math.min(12, Math.round(dur / 2))));
+  if (!frames.length) throw new Error(L("no frame could be read from this video", "هیچ فریمی از این ویدیو خوانده نشد"));
+  // what is said, the first minute and a half (the title comes from it; a
+  // silent video, or one too big to decode here, still gets its thumbnail)
+  let transcript = "";
+  if (file.size < 150 * 1048576) {
+    try {
+      say(L("Listening to what is said…", "در حال گوش دادن به صحبت‌ها…"));
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const dec = await new OAC(1, 1, 16000).decodeAudioData(await file.arrayBuffer());
+      const len = Math.min(dec.length, Math.round(90 * dec.sampleRate));
+      const mono = new AudioBuffer({ length: len, numberOfChannels: 1, sampleRate: dec.sampleRate });
+      const md = mono.getChannelData(0);
+      for (let c = 0; c < dec.numberOfChannels; c++) { const ch = dec.getChannelData(c); for (let k = 0; k < len; k++) md[k] += ch[k] / dec.numberOfChannels; }
+      let e = 0, m = 0; for (let k = 0; k < len; k += 40) { e += Math.abs(md[k]); m++; }
+      if (m && e / m > 0.003) {
+        const wav = await vsSpeechWav(mono);
+        const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 60000);
+        try {
+          const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav, signal: ctrl.signal });
+          if (r.ok) { const tr = await r.json(); transcript = String(tr.text || (tr.segments || []).map((x) => x.text || "").join(" ") || "").replace(/\s+/g, " ").trim(); }
+        } finally { clearTimeout(tm); }
+      }
+    } catch (e) {}
+  }
+  say(L("Choosing the best frames and the words…", "در حال انتخاب بهترین فریم‌ها و عنوان…"));
+  let plan = null;
+  const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
+  try {
+    const r = await fetch(VS_THUMB_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+      body: JSON.stringify({ frames, transcript, topic: topic || "", lang: fa ? "fa" : "en" }), signal: ctrl.signal });
+    if (r.status === 401 && await arIsGuestWall(r)) throw new Error(L("sign in to make more thumbnails from video today", "برای ساخت تامبنیل بیشتر از ویدیو امروز وارد حسابت شو"));
+    const j = await r.json().catch(() => null);
+    if (j && j.ok && j.plan) plan = j.plan;
+  } catch (e) { if (/sign in|وارد حسابت/.test(String(e && e.message))) throw e; }
+  finally { clearTimeout(tm); }
+  // never a blurred, black or blown-out frame, whatever was picked
+  const sharp = await Promise.all(frames.map((f) => vsThumbSharpness(f.jpeg)));
+  const mx = Math.max(1, ...sharp);
+  let best = [...new Set(((plan && plan.best) || []).map(Number).filter((i) => i >= 0 && i < frames.length))].filter((i) => sharp[i] >= mx * 0.4);
+  frames.map((f, i) => i).sort((a, b) => sharp[b] - sharp[a]).forEach((i) => { if (best.length < 3 && !best.includes(i)) best.push(i); });
+  const out = { el, url, dur, frames, plan: plan || {}, best, transcript };
+  vstudio._thumbVidLast = { transcript: transcript.slice(0, 300), plan: out.plan };   // for support
+  return out;
+}
+
+// CUT-OUT — the person cut from the video frame, large, outlined in white
+// with a glow of the accent; the frame itself blurred and darkened behind;
+// big heavy words on the free side. Without a person it falls back to Bold.
+function vsTplCutout(R) {
+  const { ctx, W, H, M, accent } = R;
+  const cut = R.cut, img = R.img;
+  if (!cut || !cut._box || !img) { vsTplBold(R); return; }
+  const fam = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+  const portrait = H > W * 1.15;
+  // the frame behind, soft and dark, washed with the accent on the words' side
+  ctx.save();
+  const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh) * 1.12;
+  ctx.filter = "blur(" + Math.round(Math.max(W, H) * 0.014) + "px) brightness(0.5) saturate(1.25)";
+  ctx.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+  ctx.restore();
+  const personLeft = R.side === "left";
+  if (portrait) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, accent + "99"); g.addColorStop(0.45, accent + "22"); g.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  } else {
+    const g = personLeft ? ctx.createLinearGradient(W, 0, 0, 0) : ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, accent + "aa"); g.addColorStop(0.5, accent + "26"); g.addColorStop(1, "rgba(0,0,0,0.2)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.8);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  // the person: as tall as the space allows, standing on the bottom edge
+  const b = cut._box;
+  const maxH = portrait ? H * 0.6 : H * 0.98, maxW = portrait ? W * 0.95 : W * (W / H > 1.4 ? 0.5 : 0.46);
+  const k = Math.min(maxH / b.h, maxW / b.w);
+  const pw = b.w * k, ph = b.h * k;
+  const px = portrait ? (W - pw) / 2 : (personLeft ? W * 0.02 : W - pw - W * 0.02);
+  const py = H - ph + (cut._touchBottom ? 0 : -H * 0.02);
+  const sil = document.createElement("canvas"); sil.width = cut.width; sil.height = cut.height;
+  const sx = sil.getContext("2d"); sx.drawImage(cut, 0, 0); sx.globalCompositeOperation = "source-in"; sx.fillStyle = "#fff"; sx.fillRect(0, 0, sil.width, sil.height);
+  const draw = (src, dx, dy) => ctx.drawImage(src, b.x, b.y, b.w, b.h, px + dx, py + dy, pw, ph);
+  // glow of the accent, then a white outline, then the person
+  ctx.save(); ctx.shadowColor = accent; ctx.shadowBlur = Math.min(W, H) * 0.06; ctx.globalAlpha = 0.85; draw(sil, 0, 0); ctx.restore();
+  const r = Math.max(3, Math.min(W, H) * 0.008);
+  for (let a = 0; a < 16; a++) draw(sil, Math.cos(a / 16 * Math.PI * 2) * r, Math.sin(a / 16 * Math.PI * 2) * r);
+  draw(cut, 0, 0);
+  // the words on the free side
+  const title = String(R.title || "").trim();
+  const rtl = /[\u0590-\u08ff]/.test(title);
+  const words = rtl ? title.split(/\s+/).filter(Boolean) : title.toUpperCase().split(/\s+/).filter(Boolean);
+  let emph = words.findIndex((w) => /\d/.test(w));
+  if (emph < 0) { let m = -1; words.forEach((w, i) => { const c = w.replace(/[^\p{L}\p{N}]/gu, "").length; if (c > m) { m = c; emph = i; } }); }
+  // the words keep clear of the person (they ran over a square's person)
+  const tx0 = portrait ? M : (personLeft ? Math.max(W * 0.45, px + pw + W * 0.025) : M);
+  const tx1 = portrait ? W - M : (personLeft ? W - M : Math.min(W * 0.55, px - W * 0.025));
+  const ty0 = portrait ? H * 0.07 : H * 0.12, tyH = portrait ? H * 0.3 : H * 0.72;
+  const fit = vsThumbFitBox(ctx, words, tx1 - tx0, tyH, (portrait ? W * 0.16 : H * 0.2), Math.max(14, H * 0.05), 900, fam);
+  const lh = fit.px * 1.06;
+  // a small label above the words
+  let top = ty0 + Math.max(0, (tyH - fit.lines.length * lh) / (portrait ? 3 : 2));
+  const kick = String(R.kicker || "").trim().slice(0, 24);
+  if (kick) {
+    const kp = Math.round(fit.px * 0.34);
+    ctx.save(); ctx.font = "800 " + kp + "px " + fam; ctx.textBaseline = "middle";
+    const kt = rtl ? kick : kick.toUpperCase(), kw = ctx.measureText(kt).width, padX = kp * 0.7, bh = kp * 1.7;
+    const kx = portrait ? (W - kw - padX * 2) / 2 : (rtl ? tx1 - kw - padX * 2 : tx0);
+    const ky = top - bh - fit.px * 0.18;
+    const hx = accent.replace("#", ""), lum = (0.299 * parseInt(hx.slice(0, 2), 16) + 0.587 * parseInt(hx.slice(2, 4), 16) + 0.114 * parseInt(hx.slice(4, 6), 16)) / 255;
+    ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(kx, ky, kw + padX * 2, bh, bh / 2); else ctx.rect(kx, ky, kw + padX * 2, bh); ctx.fill();
+    ctx.fillStyle = lum > 0.6 ? "#111" : "#fff"; ctx.textAlign = "left"; ctx.fillText(kt, kx + padX, ky + bh / 2 + kp * 0.04);
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.font = "900 " + fit.px + "px " + fam; ctx.textBaseline = "top"; ctx.textAlign = "left";
+  ctx.lineJoin = "round"; ctx.lineWidth = Math.max(3, fit.px * 0.1); ctx.strokeStyle = "rgba(0,0,0,0.85)";
+  ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = fit.px * 0.18; ctx.shadowOffsetY = fit.px * 0.05;
+  fit.lines.forEach((ln, li) => {
+    const lw = ctx.measureText(ln.map((o) => o.w).join(" ")).width;
+    let x = portrait ? (W - lw) / 2 : (rtl ? tx1 - lw : tx0);
+    const y = top + li * lh;
+    ln.forEach(({ w }) => { ctx.strokeText(w, x, y); x += ctx.measureText(w + " ").width; });
+  });
+  ctx.shadowColor = "transparent";
+  fit.lines.forEach((ln, li) => {
+    const lw = ctx.measureText(ln.map((o) => o.w).join(" ")).width;
+    let x = portrait ? (W - lw) / 2 : (rtl ? tx1 - lw : tx0);
+    const y = top + li * lh;
+    ln.forEach(({ w, i }) => { ctx.fillStyle = i === emph ? accent : "#ffffff"; ctx.fillText(w, x, y); x += ctx.measureText(w + " ").width; });
+  });
+  ctx.restore();
+}
+
 function vsThumbStudio(prefillTopic, preset) {
   preset = preset || {};
   const fa = state.lang === "fa";
@@ -25276,7 +25510,7 @@ function vsThumbStudio(prefillTopic, preset) {
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
   const sizeChips = [["496x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
     .map((s, i) => `<label class="chip"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""}/> <b>${s[0].replace("x", " × ")}</b> <span class="mut">${s[1]}</span></label>`).join("");
-  const tplChips = VS_THUMB_TEMPLATES
+  const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video)
     .map((t, i) => `<label class="chip"><input type="radio" name="tstpl" class="tstpl" value="${t.id}"${i === 0 ? " checked" : ""}/> <span class="swatch" style="background:${t.accent}"></span> <b>${fa ? t.fa : t.name}</b></label>`).join("");
   ov.innerHTML =
     `<div id="tsModal" style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:15px;background:#0e1014;border:1px solid rgba(91,155,255,.26);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
@@ -25301,7 +25535,16 @@ function vsThumbStudio(prefillTopic, preset) {
        <div style="display:flex;align-items:center;gap:10px">
          <span style="font-size:22px">🖼</span>
          <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#f4f5f7">${fa ? "استودیوی تصویر بندانگشتی" : "Thumbnail Studio"}</span>
-         <span style="font-size:11px;color:#8a919c;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:20px">${fa ? "بدون نیاز به ویدیو" : "no video needed"}</span>
+         <span style="font-size:11px;color:#8a919c;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:20px">${fa ? "با ویدیو یا بدون آن" : "with or without a video"}</span>
+       </div>
+       <div id="tsVid" style="display:flex;flex-direction:column;gap:10px;padding:13px;border-radius:12px;border:1px dashed rgba(91,155,255,.4);background:rgba(37,99,255,.05)">
+         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+           <button id="tsVidBtn" type="button" class="btn" style="padding:11px 16px;color:#fff;background:rgba(37,99,255,.22);box-shadow:inset 0 0 0 1px rgba(91,155,255,.5)">🎬 ${fa ? "از ویدیوی خودم" : "From my video"}</button>
+           <span id="tsVidInfo" style="flex:1;min-width:200px;font-size:12.5px;line-height:1.45;color:#c9ccd3">${fa ? "ویدیو را بده: بهترین فریم را پیدا می‌کنیم، خودت را از پس‌زمینه جدا می‌کنیم و عنوان را از حرف‌هایت می‌نویسیم." : "Give it your video: it finds the best frame, cuts you out and writes the title from what you say."}</span>
+           <input id="tsVidFile" type="file" accept="video/*" hidden/>
+         </div>
+         <div id="tsVidFrames" style="display:none;gap:7px;overflow-x:auto;padding-bottom:4px"></div>
+         <div id="tsVidAlts" style="display:none;gap:7px;flex-wrap:wrap"></div>
        </div>
        <div><div class="lbl">${fa ? "موضوع" : "Topic"}</div>
          <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="margin-top:7px"/>
@@ -25351,6 +25594,91 @@ function vsThumbStudio(prefillTopic, preset) {
     $$("tsSizes").appendChild(lab);
     $$("tsW").value = ""; $$("tsH").value = "";
   };
+  // ── from my video ──
+  const vid = { data: null, picks: [], busy: false };
+  const L2 = (en, f) => (fa ? f : en);
+  const pickFrame = async (i) => {
+    // a frame at full size, with the person cut out of it (once)
+    const d = vid.data; if (!d) return null;
+    let p = vid.picks.find((q) => q.i === i);
+    if (p) return p;
+    const canvas = await vsThumbFrameAt(d.el, d.frames[i].t);
+    let cut = null; try { cut = await vsThumbCutout(canvas); } catch (e) {}
+    const side = cut ? ((cut._box.x + cut._box.w / 2) / canvas.width < 0.4 ? "left" : "right") : "right";
+    p = { i, canvas, cut, side };
+    vid.picks.push(p);
+    return p;
+  };
+  const drawStrip = () => {
+    const d = vid.data, box = $$("tsVidFrames");
+    box.style.display = "flex"; box.innerHTML = "";
+    d.frames.forEach((f, i) => {
+      const order = d.best.indexOf(i);
+      const b = document.createElement("button");
+      b.type = "button"; b.title = f.t + "s";
+      b.setAttribute("aria-label", L2("Use the frame at ", "استفاده از فریم ثانیهٔ ") + f.t + "s");
+      b.setAttribute("aria-pressed", String(order >= 0));
+      b.style.cssText = "flex:none;position:relative;padding:0;border-radius:8px;overflow:hidden;cursor:pointer;background:#000;border:2px solid " + (order >= 0 ? "#2563ff" : "rgba(255,255,255,.12)");
+      b.innerHTML = '<img alt="" src="data:image/jpeg;base64,' + f.jpeg + '" style="display:block;height:64px;width:auto"/>' +
+        (order >= 0 ? '<span style="position:absolute;top:3px;left:3px;font:800 10px/1 Manrope,sans-serif;color:#fff;background:#2563ff;border-radius:5px;padding:3px 5px">' + (order + 1) + "</span>" : "");
+      b.onclick = () => {
+        // a click makes this frame the first; a second click takes it out
+        const at = d.best.indexOf(i);
+        if (at === 0 && d.best.length > 1) d.best.splice(0, 1);
+        else { if (at > 0) d.best.splice(at, 1); d.best.unshift(i); d.best = d.best.slice(0, 3); }
+        drawStrip();
+      };
+      box.appendChild(b);
+    });
+  };
+  $$("tsVidBtn").onclick = () => { if (!vid.busy) { $$("tsVidFile").value = ""; $$("tsVidFile").click(); } };
+  $$("tsVidFile").onchange = async () => {
+    const file = $$("tsVidFile").files && $$("tsVidFile").files[0];
+    if (!file || vid.busy) return;
+    vid.busy = true; vid.picks = [];
+    // the person segmenter loads while the video is read (its first load is
+    // the slowest part)
+    try { vsThumbSegmenter().catch(() => {}); } catch (e) {}
+    const info = $$("tsVidInfo"), btn = $$("tsVidBtn");
+    btn.disabled = true; btn.style.opacity = ".6";
+    const say = (t) => { info.textContent = t; };
+    try {
+      if (vid.data) { try { URL.revokeObjectURL(vid.data.url); } catch (e) {} }
+      const userTopic = ($$("tsTopic").value || "").trim();
+      vid.data = await vsThumbReadVideo(file, userTopic === topic0 ? "" : userTopic, say);
+      const pl = vid.data.plan;
+      if (pl.title) $$("tsTopic").value = String(pl.title).slice(0, 90);
+      // the person cut out of the best frame decides the look
+      say(L2("Cutting you out of the frame…", "در حال جدا کردن تو از پس‌زمینه…"));
+      const first = await pickFrame(vid.data.best[0]);
+      let chip = ov.querySelector('.tstpl[value="cutout"]');
+      if (!chip) {
+        const t = VS_THUMB_TEMPLATES.find((x) => x.id === "cutout");
+        const lab = document.createElement("label"); lab.className = "chip";
+        lab.innerHTML = '<input type="radio" name="tstpl" class="tstpl" value="cutout"/> <span class="swatch" style="background:' + (pl.accent || t.accent) + '"></span> <b>' + (fa ? t.fa : t.name) + "</b>";
+        $$("tsTpls").prepend(lab);
+        chip = lab.querySelector("input");
+      }
+      if (first && first.cut) chip.checked = true;
+      drawStrip();
+      const alts = [pl.title].concat(Array.isArray(pl.alt_titles) ? pl.alt_titles : []).filter(Boolean).slice(0, 3);
+      const ab = $$("tsVidAlts"); ab.innerHTML = "";
+      if (alts.length > 1) {
+        ab.style.display = "flex";
+        alts.forEach((a) => {
+          const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = String(a).slice(0, 60);
+          c.onclick = () => { $$("tsTopic").value = String(a).slice(0, 90); };
+          ab.appendChild(c);
+        });
+      }
+      say(first && first.cut
+        ? L2("Ready: the frames picked are numbered (click another to use it), the title is in the box - press Generate.", "آماده است: فریم‌های انتخاب‌شده شماره دارند (روی فریم دیگری بزنی جایش می‌نشیند)، عنوان در کادر است - «بساز» را بزن.")
+        : L2("Ready. No person was found to cut out, so the frame itself is used - press Generate.", "آماده است. کسی برای جدا کردن پیدا نشد، پس خود فریم استفاده می‌شود - «بساز» را بزن."));
+    } catch (e) {
+      vid.data = null;
+      say(L2("The video could not be read: ", "ویدیو خوانده نشد: ") + String(e && e.message || e).slice(0, 140));
+    } finally { vid.busy = false; btn.disabled = false; btn.style.opacity = "1"; }
+  };
   $$("tsGen").onclick = async () => {
     const topic = ($$("tsTopic").value || "").trim() || topic0 || "AI Radar";
     // collect the checked sizes (same banner is rendered at each)
@@ -25380,12 +25708,20 @@ function vsThumbStudio(prefillTopic, preset) {
         grid.appendChild(cell); return cell;
       });
       let assets = null;
-      try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {}
+      if (vid.data) {
+        // from the video: its frames in the order picked, its words as given
+        const d = vid.data, at = d.best[v % Math.max(1, d.best.length)];
+        let p = null; try { p = await pickFrame(at); } catch (e) {}
+        if (p) assets = { coverTitle: topic.slice(0, 64), img: p.canvas, source: "", imgModel: "video", imgError: null,
+          cut: p.cut, side: p.side, kicker: String(d.plan.kicker || "").slice(0, 24), accent: /^#[0-9a-f]{6}$/i.test(d.plan.accent || "") ? d.plan.accent : "" };
+      }
+      if (!assets) { try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {} }
       for (let k = 0; k < sizes.length; k++) {
         const sz = sizes[k], cell = cells[k];
         // ALL banners are JPEG; the 496×279 thumbnail is additionally capped <50KB.
         const capOpts = (sz.w === 496 && sz.h === 279) ? { maxBytes: 50 * 1024 } : { jpeg: true };
         capOpts.template = template;
+        if (template === "cutout" && assets && assets.accent) capOpts.accent = assets.accent;
         let blob = null;
         try { if (assets) blob = await vsCoverRenderAt(assets, sz.w, sz.h, capOpts); } catch (e) {}
         if (blob) {
