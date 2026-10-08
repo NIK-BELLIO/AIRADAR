@@ -11297,7 +11297,11 @@ function vsDrawSwapFrame(ctx, W, H, s, local) {
           // just the digits (a little past them - their soft edge reaches the sign)
           const nx0 = ox + m.num.x0 * dw, nx1 = ox + m.num.x1 * dw, mc2 = [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
           vsSwapEraseInk(ctx, W, H, Math.round(nx0 - pad), sA, Math.round(nx1 - nx0 + pad * 2.5), sZ - sA, mc2, bgNow);
-        } else vsSwapErase(ctx, W, H, X, sA, WW, sZ - sA, pad * (m.photo ? 0.95 : 0.7), sA !== Y, sZ !== Y + HH);
+        } else if (!m.photo) {
+          // a plain page is just its colour (borrowing from the edges pulled a
+          // neighbouring line's colour in as streaks)
+          ctx.fillStyle = `rgb(${bgNow.map((v) => Math.round(v)).join(",")})`; ctx.fillRect(X, sA, WW, sZ - sA);
+        } else vsSwapErase(ctx, W, H, X, sA, WW, sZ - sA, pad * 0.95, sA !== Y, sZ !== Y + HH);
       }
     } catch (e) {
       ctx.fillStyle = `rgb(${bgNow.join(",")})`; ctx.fillRect(bx - pad, by - pad, bw + pad * 2, bh + pad * 2);
