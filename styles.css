@@ -5578,3 +5578,12 @@ b, strong { font-weight: 600; }
   #vsEditMineDlg .vsem-opt{padding:6px 0}
   #vsEditMineDlg .vsem-btns{position:sticky;bottom:-14px;background:#0e1014;padding:10px 0 4px;margin-bottom:-4px}
 }
+
+/* Edit my video: the two ways */
+#vsEditMineDlg .vsem-modes{display:flex;gap:6px;margin:4px 0 12px;padding:4px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#08090c}
+#vsEditMineDlg .vsem-modes button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;color:#8a919c;font:700 13px/1.25 Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;padding:8px 10px}
+#vsEditMineDlg .vsem-modes button[aria-selected="true"]{background:#2563ff;color:#fff}
+#vsEditMineDlg .vsem-modes button:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+#vsEditMineDlg .vsem-swapnote{display:none;margin:0 0 12px;color:#c9ccd3;font:500 13px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif}
+#vsEditMineDlg .vsem.swap .vsem-swapnote{display:block}
+#vsEditMineDlg .vsem.swap .vsem-opt,#vsEditMineDlg .vsem.swap .vsem-row,#vsEditMineDlg .vsem.swap .vsem-list,#vsEditMineDlg .vsem.swap .vsem-file + .vsem-list{display:none}

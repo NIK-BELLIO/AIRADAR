@@ -10631,6 +10631,11 @@ function vsEditMineDialog(fileIn, preset) {
   const opt = (id, en, f, on) => `<label class="vsem-opt"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
   d.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
       <h2 id="vsEmT">${L("Edit my video", "ادیت ویدیوی من")}</h2>
+      <div class="vsem-modes" role="tablist" aria-label="${L("What to do", "چه کاری")}">
+        <button type="button" role="tab" data-mode="edit" aria-selected="true">${L("Edit my raw video", "ادیت ویدیوی خامم")}</button>
+        <button type="button" role="tab" data-mode="swap" aria-selected="false">${L("Change only text or footage", "فقط متن یا فوتیج را عوض کن")}</button>
+      </div>
+      <p class="vsem-swapnote">${L("For a finished video: we find every text and footage in it; you change the ones you want and everything else - design, motion, sound - stays exactly as it is.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش را پیدا می‌کنیم؛ هر کدام را خواستی عوض کن و بقیه - طراحی، حرکت، صدا - دقیقاً همان می‌ماند.")}${files.length > 1 ? " " + L("(Only the first video is used.)", "(فقط ویدیوی اول استفاده می‌شود.)") : ""}</p>
       ${files.length > 1
         ? `<p class="vsem-file">${L(files.length + " videos, edited as one - in this order:", files.length + " ویدیو، به‌صورت یک ویدیو ادیت می‌شوند - به این ترتیب:")}</p><ol class="vsem-list"></ol>`
         : `<p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>`}
@@ -10667,7 +10672,25 @@ function vsEditMineDialog(fileIn, preset) {
   const close = () => d.remove();
   d.querySelector(".vsem-x").onclick = close;
   d.addEventListener("click", (e) => { if (e.target === d) close(); });
+  // the two ways
+  const vsem = d.querySelector(".vsem"), goBtn = d.querySelector(".vsem-go"), goLabel = goBtn.textContent;
+  let mode = preset.mode === "swap" ? "swap" : "edit";
+  const setMode = (m) => {
+    mode = m; vsem.classList.toggle("swap", m === "swap");
+    d.querySelectorAll(".vsem-modes button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
+    goBtn.textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : goLabel;
+  };
+  d.querySelectorAll(".vsem-modes button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  setMode(mode);
   d.querySelector(".vsem-go").onclick = () => {
+    if (mode === "swap") {
+      close();
+      vsSwapStart(file, preset.swap || {}).catch((e) => {
+        vsBuildOverlay(false);
+        vsAutoStatus((fa ? "خواندن ویدیو ناموفق بود: " : "Reading the video failed: ") + String(e && e.message || e).slice(0, 140));
+      });
+      return;
+    }
     const o = {
       cut: d.querySelector("#vsEmCut").checked, fillers: d.querySelector("#vsEmFill").checked,
       captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
@@ -10779,6 +10802,499 @@ function vsEditVideoEl(url) {
     setTimeout(() => fin(!!el.videoWidth), 20000);
     el.src = url;
   });
+}
+
+// ── Edit my video, the second way: keep the design, change text or footage ──
+// A FINISHED video comes in (a designed explainer, an ad, a template video).
+// Gemini lists its text blocks and footage areas (/swap-plan); each is then
+// measured from the pixels - its exact edges, line height, ink colour, the
+// background around it, the footage's fade. The original video stays the
+// picture: only a text the user rewrites is erased (with the background
+// around it) and set again in its place, size and colour, appearing and
+// fading exactly as the old one did (read from the original frames); only a
+// footage area the user replaces gets the new clip, under the same fade.
+// Everything else - layout, motion, the other words, the sound - is the
+// original, pixel for pixel.
+const VS_SWAP_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/swap-plan";
+const VS_SWAP_FONTS = { serif: "'Libre Caslon Text', Georgia, serif", sans: "Manrope, 'Helvetica Neue', Arial, sans-serif",
+  mono: "'JetBrains Mono', monospace", script: "'Libre Caslon Text', Georgia, serif" };
+
+// a frame of the video at time t, drawn into a small canvas for measuring
+async function vsSwapGrab(el, t, cw) {
+  await new Promise((res) => {
+    let done = false;
+    const fin = () => { if (!done) { done = true; el.removeEventListener("seeked", fin); res(); } };
+    el.addEventListener("seeked", fin); el.currentTime = Math.max(0, Math.min((el.duration || t) - 0.05, t)); setTimeout(fin, 4000);
+  });
+  const vw = el.videoWidth || 1080, vh = el.videoHeight || 1920;
+  const c = document.createElement("canvas"); c.width = cw; c.height = Math.round(cw * vh / vw);
+  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(el, 0, 0, c.width, c.height);
+  return { c, x, w: c.width, h: c.height };
+}
+const vsSwapDist = (d, i, r, g, b) => Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b);
+function vsSwapMedian(arr) { if (!arr.length) return 0; const a = arr.slice().sort((p, q) => p - q); return a[Math.floor(a.length / 2)]; }
+// the background colour around a box: the median of a thin ring outside it
+function vsSwapRing(d, W, H, x0, y0, x1, y1, pad) {
+  const R = [], G = [], B = [];
+  const add = (x, y) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = (y * W + x) * 4; R.push(d[i]); G.push(d[i + 1]); B.push(d[i + 2]); };
+  for (let x = x0 - pad; x <= x1 + pad; x += 2) { add(x, y0 - pad); add(x, y1 + pad); }
+  for (let y = y0 - pad; y <= y1 + pad; y += 2) { add(x0 - pad, y); add(x1 + pad, y); }
+  return [vsSwapMedian(R), vsSwapMedian(G), vsSwapMedian(B)];
+}
+
+// Measure a text block on the frame where it is fully shown.
+async function vsSwapMeasureText(el, b) {
+  // the moment it shows most (an animated block is half-written early on,
+  // and fades late); several moments, the one with the most ink wins
+  let best = null;
+  for (const p of [0.45, 0.65, 0.8, 0.92]) {
+    const g = await vsSwapGrab(el, b.t0 + (b.t1 - b.t0) * p, 540);
+    const ok = vsSwapMeasureTextAt(g, b);
+    if (ok && (!best || ok.n > best.n)) best = ok;
+  }
+  if (!best) return false;
+  b.m = best.m;
+  return true;
+}
+function vsSwapMeasureTextAt(g, b) {
+  const { w: W, h: H } = g, d = g.x.getImageData(0, 0, W, H).data;
+  const ex = 0.02;
+  let x0 = Math.max(0, Math.floor((b.box.x - ex) * W)), y0 = Math.max(0, Math.floor((b.box.y - ex * 0.6) * H));
+  let x1 = Math.min(W - 1, Math.ceil((b.box.x + b.box.w + ex) * W)), y1 = Math.min(H - 1, Math.ceil((b.box.y + b.box.h + ex * 0.6) * H));
+  const bg = vsSwapRing(d, W, H, x0, y0, x1, y1, 3);
+  // a plain page has a quiet ring; a photo behind the words does not
+  let spread = 0, sn = 0;
+  for (let x = x0; x <= x1; x += 3) for (const yy of [y0 - 3, y1 + 3]) { if (yy < 0 || yy >= H) continue; spread += vsSwapDist(d, (yy * W + x) * 4, bg[0], bg[1], bg[2]); sn++; }
+  const photo = sn > 0 && spread / sn > 24;
+  let ix0 = W, iy0 = H, ix1 = -1, iy1 = -1, n = 0;
+  const rows = new Array(y1 - y0 + 1).fill(0), ink = [];
+  // On a plain page everything that is not the page is the text (a two-colour
+  // "6%" kept its brown "%" when only the black counted). On a photo, the
+  // text's own colour tells it from the picture.
+  const hint = photo ? b.hint : null;
+  const isInk = (i) => vsSwapDist(d, i, bg[0], bg[1], bg[2]) > (hint ? 60 : 70) && (!hint || vsSwapDist(d, i, hint[0], hint[1], hint[2]) < 150);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = (y * W + x) * 4;
+    if (isInk(i)) {
+      n++; rows[y - y0]++; if (x < ix0) ix0 = x; if (x > ix1) ix1 = x; if (y < iy0) iy0 = y; if (y > iy1) iy1 = y;
+      if (n % 3 === 0) ink.push([d[i], d[i + 1], d[i + 2], vsSwapDist(d, i, bg[0], bg[1], bg[2])]);
+    }
+  }
+  if (n < 6) return null;   // nothing readable there
+  // lines: bands of rows with ink
+  const bands = []; let on = false, st = 0;
+  rows.forEach((v, k) => { if (v > 0 && !on) { on = true; st = k; } else if (!v && on) { on = false; bands.push([st, k - 1]); } });
+  if (on) bands.push([st, rows.length - 1]);
+  const big = bands.filter((bd) => bd[1] - bd[0] >= 2);
+  const lines = Math.max(1, big.length);
+  const pitch = lines > 1 ? (big[big.length - 1][0] - big[0][0]) / (lines - 1) : 0;
+  const bandH = big.length ? Math.max(...big.map((bd) => bd[1] - bd[0] + 1)) : (iy1 - iy0 + 1);
+  ink.sort((p, q) => q[3] - p[3]);
+  const top = ink.slice(0, Math.max(1, Math.floor(ink.length * 0.4)));
+  const col = [vsSwapMedian(top.map((p) => p[0])), vsSwapMedian(top.map((p) => p[1])), vsSwapMedian(top.map((p) => p[2]))];
+  // A number with a sign after it ("6%"): where its digits alone sit, so a
+  // new number swaps only them - a "%" in another colour, or an arrow beside
+  // it, stays as it was (both were lost when the whole block was redrawn).
+  let num = null;
+  if (!photo && /^-?[\d,]*\.?\d+\D+$/.test(String(b.text || "").trim())) {
+    const isDig = (i) => vsSwapDist(d, i, col[0], col[1], col[2]) < 60;
+    const cols = new Array(ix1 - ix0 + 1).fill(0);
+    for (let y = iy0; y <= iy1; y++) for (let x = ix0; x <= ix1; x++) if (isDig((y * W + x) * 4)) cols[x - ix0]++;
+    const a = cols.findIndex((v) => v > 0), maxGap = Math.max(2, bandH * 0.3);
+    let z = a, gap = 0;
+    if (a >= 0) for (let k = a; k < cols.length; k++) { if (cols[k] > 0) { z = k; gap = 0; } else if (++gap > maxGap) break; }
+    if (a >= 0 && a <= 2 && z - a + 1 < (ix1 - ix0 + 1) * 0.85) {
+      let ty = H, by2 = -1;
+      for (let y = iy0; y <= iy1; y++) for (let x = ix0 + a; x <= ix0 + z; x++) if (isDig((y * W + x) * 4)) { if (y < ty) ty = y; if (y > by2) by2 = y; }
+      if (by2 > ty) num = { x0: (ix0 + a) / W, x1: (ix0 + z + 1) / W, y0: ty / H, y1: (by2 + 1) / H };
+    }
+  }
+  return { n, m: { num,
+    x: ix0 / W, y: iy0 / H, w: (ix1 - ix0 + 1) / W, h: (iy1 - iy0 + 1) / H,
+    px: (lines > 1 ? pitch / 1.16 : bandH / 0.92) / H,     // font size as a fraction of the frame height
+    pitch: (lines > 1 ? pitch : bandH * 1.2) / H, lines,
+    color: "#" + col.map((v) => Math.round(v).toString(16).padStart(2, "0")).join(""),
+    bg, photo, hint, inkMax: n / Math.max(1, (ix1 - ix0 + 1) * (iy1 - iy0 + 1)),
+  } };
+}
+// Measure a footage area: where the picture really is, and how it fades out.
+async function vsSwapMeasureFootage(el, f) {
+  const ts = [0.25, 0.5, 0.75].map((p) => f.t0 + (f.t1 - f.t0) * p);
+  const frames = [];
+  for (const t of ts) { const g = await vsSwapGrab(el, t, 135); frames.push(g.x.getImageData(0, 0, g.w, g.h).data); var W = g.w, H = g.h; }
+  // per row: how far the pixels sit from the page colour (taken below the box)
+  const yB = Math.min(H - 2, Math.ceil((f.box.y + f.box.h) * H) + 4);
+  const page = vsSwapRing(frames[1], W, H, 0, yB, W - 1, Math.min(H - 1, yB + 6), 0);
+  const prof = [];
+  for (let y = 0; y < H; y++) {
+    let s = 0;
+    for (const d of frames) for (let x = 0; x < W; x += 2) s += vsSwapDist(d, (y * W + x) * 4, page[0], page[1], page[2]);
+    prof.push(s / (frames.length * Math.ceil(W / 2)));
+  }
+  let yA = Math.max(0, Math.floor(f.box.y * H)), yZ = Math.min(H - 1, Math.ceil((f.box.y + f.box.h) * H));
+  let peak = 1; for (let y = yA; y <= yZ; y++) peak = Math.max(peak, prof[y]);
+  // grow the area over every row that still carries picture (the soft fade
+  // into the page usually runs past the box the model drew)
+  const mid = Math.round((yA + yZ) / 2);
+  while (yA > 0 && prof[yA - 1] > peak * 0.06 && mid - yA < H) yA--;
+  while (yZ < H - 1 && prof[yZ + 1] > peak * 0.06) yZ++;
+  // rows of the box carrying picture, as an alpha ramp (the fade into the page)
+  const alpha = [];
+  for (let y = yA; y <= yZ; y++) alpha.push(Math.max(0, Math.min(1, prof[y] / (peak * 0.6))));
+  f.m = { y0: yA / H, y1: (yZ + 1) / H, alpha, page, ref: peak };
+  return true;
+}
+
+// The analysis: frames to Gemini, then every block measured.
+async function vsSwapStart(file, o) {
+  o = o || {};
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  try { stopStudioPreview(); } catch (e) {}
+  vstudio._buildHold = true;
+  vsBuildOverlay(true, L("Reading your video…", "در حال خواندن ویدیوی تو…"), L("Finding the text and footage", "پیدا کردن متن‌ها و فوتیج"), 300000);
+  try {
+    const url = URL.createObjectURL(file);
+    const el = await vsEditVideoEl(url);
+    if (!el) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد"));
+    const dur = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+    if (!dur) throw new Error(L("the video's length could not be read", "طول ویدیو خوانده نشد"));
+    if (dur > 180) throw new Error(L("keep the video under 3 minutes", "ویدیو باید زیر ۳ دقیقه باشد"));
+    try {
+      const g = await fetch(VS_AI_BUILD_GATE, { method: "POST", headers: await arGuestHeaders() });
+      if (g.status === 401 && await arIsGuestWall(g)) { vsBuildOverlay(false); return; }
+    } catch (e) {}
+    // its sound, kept as it is
+    let mono = null;
+    try {
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const dec = await new OAC(1, 1, 24000).decodeAudioData(await file.arrayBuffer());
+      mono = new AudioBuffer({ length: dec.length, numberOfChannels: 1, sampleRate: dec.sampleRate });
+      const md = mono.getChannelData(0);
+      for (let c = 0; c < dec.numberOfChannels; c++) { const ch = dec.getChannelData(c); for (let k = 0; k < ch.length; k++) md[k] += ch[k] / dec.numberOfChannels; }
+    } catch (e) { mono = null; }
+    vsAutoStatus(L("Reading every text and footage…", "در حال خواندن همهٔ متن‌ها و فوتیج‌ها…"));
+    const frames = await vsSampleFrames(el, dur, Math.max(8, Math.min(20, Math.round(dur / 1.2))));
+    let plan = null;
+    const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
+    try {
+      const r = await fetch(VS_SWAP_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+        body: JSON.stringify({ frames, duration: dur }), signal: ctrl.signal });
+      if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+      const j = await r.json();
+      if (j && j.ok && j.plan) plan = j.plan;
+    } catch (e) {}
+    clearTimeout(tm);
+    if (!plan) throw new Error(L("the video could not be read right now - try again in a minute", "الان ویدیو خوانده نشد؛ یک دقیقهٔ دیگر دوباره امتحان کن"));
+    const box = (b2) => {
+      const a = (Array.isArray(b2) ? b2 : []).map(Number);
+      if (a.length !== 4 || a.some((v) => !isFinite(v))) return null;
+      const [y0, x0, y1, x1] = a.map((v) => Math.max(0, Math.min(1000, v)) / 1000);
+      return y1 > y0 && x1 > x0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+    };
+    const span = (s, e) => [Math.max(0, Number(s) || 0), Math.min(dur, Math.max(Number(e) || 0, (Number(s) || 0) + 0.3))];
+    const texts = (plan.texts || []).map((t, i) => {
+      const bx = box(t.box_2d); if (!bx || !t.text) return null;
+      const [t0, t1] = span(t.start, t.end);
+      const hx = /^#?([0-9a-f]{6})$/i.exec(String(t.color || "")), hint = hx ? [0, 2, 4].map((k) => parseInt(hx[1].slice(k, k + 2), 16)) : null;
+      return { id: "t" + i, text: String(t.text).slice(0, 400), newText: "", t0, t1, box: bx, hint, font: String(t.font || "sans"), italic: !!t.italic,
+        weight: /bold/i.test(t.weight) ? 700 : 400, align: /center|right/.test(t.align) ? t.align : "left", role: String(t.role || "text") };
+    }).filter(Boolean);
+    const footage = (plan.footage || []).map((f, i) => {
+      const bx = box(f.box_2d); if (!bx) return null;
+      const [t0, t1] = span(f.start, f.end);
+      return { id: "f" + i, t0, t1, box: bx, desc: String(f.desc || "footage").slice(0, 80), fade: String(f.fade || "none"), newEl: null, newName: "" };
+    }).filter(Boolean);
+    // An animated block is seen half-written at one moment and whole at the
+    // next ("Pay", "Pay Down", "Pay Down Debt or Save..."; "2%", "6%"): the
+    // states that sit in the same place, one after the other, are one block,
+    // known by its final words.
+    const over = (a, b) => {
+      const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)), iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+      return (ix * iy) / Math.max(1e-6, Math.min(a.w * a.h, b.w * b.h));
+    };
+    for (let i = 0; i < texts.length; i++) {
+      for (let j = i + 1; j < texts.length; j++) {
+        const a = texts[i], b = texts[j];
+        if (!a || !b || a.role !== b.role) continue;
+        const touch = b.t0 <= a.t1 + 0.6 && a.t0 <= b.t1 + 0.6;
+        const sameTop = Math.abs(a.box.y - b.box.y) < 0.03 && Math.abs(a.box.x - b.box.x) < 0.06;
+        if (touch && (over(a.box, b.box) > 0.5 || sameTop)) {
+          const last = a.t1 >= b.t1 ? a : b;
+          a.text = (last.text.length >= Math.min(a.text.length, b.text.length)) ? last.text : (a.text.length > b.text.length ? a.text : b.text);
+          a.t0 = Math.min(a.t0, b.t0); a.t1 = Math.max(a.t1, b.t1);
+          const bx = Math.min(a.box.x, b.box.x), by = Math.min(a.box.y, b.box.y);
+          a.box = { x: bx, y: by, w: Math.max(a.box.x + a.box.w, b.box.x + b.box.w) - bx, h: Math.max(a.box.y + a.box.h, b.box.y + b.box.h) - by };
+          texts[j] = null; j = i;   // look again with the grown block
+        }
+      }
+    }
+    for (let i = texts.length - 1; i >= 0; i--) if (!texts[i]) texts.splice(i, 1);
+    vsAutoStatus(L("Measuring each one…", "در حال اندازه‌گیری دقیق هر کدام…"));
+    const keepT = [];
+    for (const b of texts) { try { if (await vsSwapMeasureText(el, b)) keepT.push(b); } catch (e) {} }
+    for (const f of footage) { try { await vsSwapMeasureFootage(el, f); } catch (e) {} }
+    // the shape of the video, so nothing is cropped
+    const ar = (el.videoWidth || 9) / (el.videoHeight || 16);
+    const shape = ar < 0.66 ? "9:16" : ar < 0.9 ? "4:5" : ar < 1.3 ? "1:1" : "16:9";
+    const asp = $("#vsAspect"); if (asp) { asp.value = shape; asp.dispatchEvent(new Event("change", { bubbles: true })); }
+    vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
+    vstudio._editLayout = null;
+    vstudio.musicEl = null; vstudio._musicBuffer = null;
+    const base = vsCaptureSettings();
+    Object.assign(base, { "#vsMotion": "none", "#vsOverlay": "none", "#vsTransition": "none", _mediaScale: 1, _mediaDX: 0, _mediaDY: 0 });
+    vstudio.slides = [{
+      url, isVideo: true, mediaEl: el, ready: true, isIntro: false, headline: "", duration: Math.round(dur * 100) / 100, settings: base,
+      _clipIn: 0, _swap: { texts: keepT, footage, vw: el.videoWidth, vh: el.videoHeight, name: file.name },
+      ...(mono ? { _ownSpeech: true, _voice: { buf: mono, cut: 0, len: dur, at: 0, words: [], chunks: [], _byMax: {} } } : {}),
+      _timelineLabel: L("Your video", "ویدیوی تو"),
+    }];
+    vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
+    vstudio._voiceSig = "swap";
+    if (mono) vsMixVoiceTrack(true);
+    vstudio.activeSlide = 0;
+    renderSlideList();
+    selectSlide(0);
+    // the user's AI may have said what to change already (MCP)
+    const asked = o.texts || o.footage ? await vsSwapApply(vstudio.slides[0], o) : null;
+    try { vsSelectElement(0, keepT.length ? "swapText" : "swapFootage"); } catch (e) {}
+    if (asked) {
+      const miss = asked.missed.length ? L(` Not found on screen: ${asked.missed.map((x) => "“" + x + "”").join(", ")} - change it by hand in the scene editor.`, ` روی صفحه پیدا نشد: ${asked.missed.map((x) => "«" + x + "»").join("، ")}؛ در ویرایشگر صحنه دستی عوضش کن.`) : "";
+      vsAutoStatus(L(`Your AI's changes are in: ${asked.texts} text${asked.texts === 1 ? "" : "s"} and ${asked.footage} footage area${asked.footage === 1 ? "" : "s"}. Everything else is as it was - press Export for the MP4.`,
+        `تغییرهای AIِ تو اعمال شد: ${asked.texts} متن و ${asked.footage} فوتیج. بقیه همان است که بود؛ برای MP4 دکمهٔ Export را بزن.`) + miss);
+    } else vsAutoStatus(L(`Found ${keepT.length} text${keepT.length === 1 ? "" : "s"} and ${footage.length} footage area${footage.length === 1 ? "" : "s"}. Change any of them in the scene editor below - the rest of the video stays exactly as it is.`,
+      `${keepT.length} متن و ${footage.length} فوتیج پیدا شد. هر کدام را در ویرایشگر صحنه پایین عوض کن؛ بقیهٔ ویدیو دقیقاً همان می‌ماند.`));
+    try { vsTrackGen("swap", "gemini", Math.round(dur) + "s"); } catch (e) {}
+  } finally {
+    vstudio._buildHold = false;
+    vsBuildOverlay(false);
+    vsShowBuiltVideo();
+  }
+}
+
+// Changes sent along (MCP): texts matched by what they say, footage by number
+// or by what it shows.
+async function vsSwapApply(s, o) {
+  const sw = s && s._swap, out = { texts: 0, footage: 0, missed: [] }; if (!sw) return out;
+  const norm = (x) => String(x || "").toLowerCase().replace(/\s+/g, " ").replace(/[^\p{L}\p{N} ]/gu, "").trim();
+  (o.texts || []).forEach((r) => {
+    const f = norm(r.find); if (!f || r.replace == null) return;
+    const b = sw.texts.find((t) => norm(t.text) === f) || sw.texts.find((t) => norm(t.text).includes(f) || f.includes(norm(t.text)));
+    if (b) { b.newText = String(r.replace).slice(0, 400); out.texts++; } else out.missed.push(String(r.find).slice(0, 40));
+  });
+  for (const r of (o.footage || [])) {
+    let f = null;
+    if (r.index) f = sw.footage[Number(r.index) - 1];
+    if (!f && r.find) { const q = norm(r.find); f = sw.footage.find((x) => norm(x.desc).includes(q) || q.includes(norm(x.desc))); }
+    if (!f) { out.missed.push(String(r.find || "footage " + r.index).slice(0, 40)); continue; }
+    try {
+      if (r.path) { const b = await (await fetch(r.path, { credentials: "include" })).blob(); await vsSwapSetMedia(f, new File([b], "clip.mp4", { type: b.type || "video/mp4" })); }
+      else if (r.stock) { const clip = await vsFetchPexelsClip(String(r.stock).slice(0, 60), VS_PEXELS_KEY, "16:9", 0, null, 15000); if (clip) { f.newEl = clip; f.newName = r.stock; } }
+    } catch (e) {}
+    if (f.newEl) out.footage++; else out.missed.push(String(r.stock || r.find || "footage " + r.index).slice(0, 40));
+  }
+  return out;
+}
+// a replacement for one footage area: a video or a picture from this device
+async function vsSwapSetMedia(f, file) {
+  const u = URL.createObjectURL(file);
+  if (/^image\//.test(file.type)) {
+    const im = new Image(); im.src = u; await im.decode(); f.newEl = im;
+  } else {
+    const v = document.createElement("video"); v.src = u; v.muted = true; v.loop = true; v.playsInline = true; v.preload = "auto";
+    await new Promise((res) => { v.onloadeddata = res; v.onerror = res; setTimeout(res, 15000); });
+    f.newEl = v;
+  }
+  f.newName = file.name;
+}
+
+// One frame: the original, then only what changed.
+// Erase a box from the picture just outside it. Each pixel blends a fill
+// across the row (left edge to right edge) with one down the column (top to
+// bottom), trusting the one whose two ends agree: where a photo ends inside
+// the box and the page begins, the rows below that line are page at both
+// ends, so they fill as page instead of carrying the photo down in streaks.
+function vsSwapErase(ctx, W, H, X, Y, WW, HH, feather) {
+  X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
+  if (WW < 2 || HH < 2) return;
+  const d = ctx.getImageData(X, Y, WW, HH).data;
+  const up = ctx.getImageData(X, Math.max(0, Y - 3), WW, 1).data, dn = ctx.getImageData(X, Math.min(H - 1, Y + HH + 2), WW, 1).data;
+  const lf = ctx.getImageData(Math.max(0, X - 3), Y, 1, HH).data, rt = ctx.getImageData(Math.min(W - 1, X + WW + 2), Y, 1, HH).data;
+  // a little smoothing along each edge, so one odd pixel does not run a line
+  const smooth = (row, len) => { const o = new Float32Array(len * 3); for (let k = 0; k < len; k++) for (let c = 0; c < 3; c++) { let t = 0, n = 0; for (let j = Math.max(0, k - 3); j <= Math.min(len - 1, k + 3); j++) { t += row[j * 4 + c]; n++; } o[k * 3 + c] = t / n; } return o; };
+  const U = smooth(up, WW), D = smooth(dn, WW), Lf = smooth(lf, HH), R = smooth(rt, HH);
+  const gap = (A, B, k) => Math.hypot(A[k * 3] - B[k * 3], A[k * 3 + 1] - B[k * 3 + 1], A[k * 3 + 2] - B[k * 3 + 2]);
+  const cRow = new Float32Array(HH), cCol = new Float32Array(WW);
+  for (let y = 0; y < HH; y++) cRow[y] = Math.exp(-gap(Lf, R, y) / 20) + 0.01;
+  for (let x = 0; x < WW; x++) cCol[x] = Math.exp(-gap(U, D, x) / 20) + 0.01;
+  const img = ctx.createImageData(WW, HH), o = img.data;
+  for (let yy = 0; yy < HH; yy++) for (let xx = 0; xx < WW; xx++) {
+    const i = (yy * WW + xx) * 4, tx = xx / (WW - 1), ty = yy / (HH - 1);
+    const wH = cRow[yy] / Math.min(xx + 1, WW - xx), wV = cCol[xx] / Math.min(yy + 1, HH - yy), ws = wH + wV;
+    const edge = Math.min(xx, WW - 1 - xx, yy, HH - 1 - yy), wgt = Math.min(1, (edge + 1) / Math.max(2, feather));
+    for (let c = 0; c < 3; c++) {
+      const h = Lf[yy * 3 + c] + (R[yy * 3 + c] - Lf[yy * 3 + c]) * tx, v = U[xx * 3 + c] + (D[xx * 3 + c] - U[xx * 3 + c]) * ty;
+      o[i + c] = d[i + c] * (1 - wgt) + ((h * wH + v * wV) / ws) * wgt;
+    }
+    o[i + 3] = 255;
+  }
+  ctx.putImageData(img, X, Y);
+}
+// On a plain page, lift only the old digits: every pixel that is a shade
+// between the text colour and the page goes back to the page, and anything
+// in another colour (a gold "%", a green arrow) is left untouched.
+function vsSwapEraseInk(ctx, W, H, X, Y, WW, HH, ink, page) {
+  X = Math.max(0, X); Y = Math.max(0, Y); WW = Math.min(W - X, WW); HH = Math.min(H - Y, HH);
+  if (WW < 1 || HH < 1) return;
+  const img = ctx.getImageData(X, Y, WW, HH), d = img.data;
+  const v = [ink[0] - page[0], ink[1] - page[1], ink[2] - page[2]], vv = Math.max(1, v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  for (let i = 0; i < d.length; i += 4) {
+    const q = [d[i] - page[0], d[i + 1] - page[1], d[i + 2] - page[2]];
+    const t = Math.max(0, Math.min(1, (q[0] * v[0] + q[1] * v[1] + q[2] * v[2]) / vv));
+    if (Math.hypot(q[0] - v[0] * t, q[1] - v[1] * t, q[2] - v[2] * t) < 28) { d[i] = page[0]; d[i + 1] = page[1]; d[i + 2] = page[2]; }
+  }
+  ctx.putImageData(img, X, Y);
+}
+function vsDrawSwapFrame(ctx, W, H, s, local) {
+  const sw = s._swap, media = s.mediaEl;
+  if (!media || !(media.videoWidth || media.naturalWidth)) return false;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = "none";
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  // the original, fitted whole (letterboxed if its shape differs)
+  const vw = media.videoWidth, vh = media.videoHeight, sc = Math.min(W / vw, H / vh);
+  const dw = vw * sc, dh = vh * sc, ox = (W - dw) / 2, oy = (H - dh) / 2;
+  try { ctx.drawImage(media, ox, oy, dw, dh); } catch (e) {}
+  const playing = vstudio.looping || vstudio.rendering;
+  // footage first (text may sit near it)
+  for (const f of sw.footage) {
+    if (!f.newEl || local < f.t0 || local > f.t1 || !f.m) continue;
+    const y0 = oy + f.m.y0 * dh, y1 = oy + f.m.y1 * dh, hh = y1 - y0;
+    // how much picture the original shows now (its own fade in and out)
+    let pres = 1;
+    try {
+      const sy = Math.round(y0 + hh * 0.15), sh = Math.max(4, Math.round(hh * 0.3));
+      const d = ctx.getImageData(Math.round(ox), sy, Math.round(dw), sh).data;
+      let sum = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4 * 16) { sum += vsSwapDist(d, i, f.m.page[0], f.m.page[1], f.m.page[2]); n++; }
+      pres = Math.max(0, Math.min(1, (sum / Math.max(1, n)) / (f.m.ref * 0.7)));
+    } catch (e) {}
+    if (f.newEl.tagName === "VIDEO") {
+      const v = f.newEl, target = ((local - f.t0) % Math.max(0.1, v.duration || 1));
+      if (!vstudio.rendering && playing && v.paused) v.play().catch(() => {});
+      if (!vstudio.rendering && (!playing || Math.abs((v.currentTime || 0) - target) > 0.35)) { try { v.currentTime = target; } catch (e) {} }
+    }
+    // the page under it, then the new picture through the original's fade
+    ctx.fillStyle = `rgb(${f.m.page.join(",")})`; ctx.fillRect(ox, y0, dw, hh);
+    const mw = f.newEl.videoWidth || f.newEl.naturalWidth || 16, mh = f.newEl.videoHeight || f.newEl.naturalHeight || 9;
+    const cs = Math.max(dw / mw, hh / mh), cw = mw * cs, ch = mh * cs;
+    const rows = f.m.alpha.length, rh = hh / rows;
+    for (let k = 0; k < rows; k++) {
+      const a = f.m.alpha[k] * pres; if (a <= 0.01) continue;
+      ctx.globalAlpha = a;
+      const srcY = (k * rh + (ch - hh) / 2) / cs, srcH = (rh + 1) / cs;
+      try { ctx.drawImage(f.newEl, ((cw - dw) / 2) / cs, srcY, dw / cs, srcH, ox, y0 + k * rh, dw, rh + 1); } catch (e) {}
+    }
+    ctx.globalAlpha = 1;
+  }
+  // texts the user rewrote
+  for (const b of sw.texts) {
+    if (!b.newText || !b.m || local < b.t0 - 0.3 || local > b.t1 + 0.3) continue;
+    const m = b.m;
+    const caps = b.text === b.text.toUpperCase() && /[A-Z]/.test(b.text);
+    let txt = caps ? b.newText.toUpperCase() : b.newText;
+    // a number counts up to its new value, as numbers do in these videos
+    const numRe = /^(\D*?)(-?[\d,]*\.?\d+)(\D*)$/;
+    const nNew = numRe.exec(txt.trim()), nOld = numRe.exec(b.text.trim());
+    let digits = "";
+    if (nNew && nOld) {
+      const target = parseFloat(nNew[2].replace(/,/g, "")), dec = (nNew[2].split(".")[1] || "").length;
+      const p = Math.max(0, Math.min(1, (local - b.t0) / Math.max(0.6, Math.min(1.5, (b.t1 - b.t0) * 0.25))));
+      const e = 1 - Math.pow(1 - p, 3);
+      digits = (target * e).toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: /,/.test(nNew[2]) });
+      txt = nNew[1] + digits + nNew[3];
+    }
+    // same sign after it ("6%" -> "7%"): only the digits change
+    const numOnly = !!(m.num && nNew && nOld && !nNew[1] && !nOld[1] && nNew[3].trim().toLowerCase() === nOld[3].trim().toLowerCase());
+    const bx = ox + m.x * dw, by = oy + m.y * dh, bw = m.w * dw, bh = m.h * dh;
+    const pad = m.photo ? Math.max(6, m.px * dh * 0.22) : Math.max(3, m.px * dh * 0.07);
+    // how much of the old text shows now: its own fade in and out
+    let ink = 0, bgNow = m.bg;
+    try {
+      const X = Math.max(0, Math.round(bx - pad)), Y = Math.max(0, Math.round(by - pad)), WW = Math.round(bw + pad * 2), HH = Math.round(bh + pad * 2);
+      const d = ctx.getImageData(X, Y, WW, HH).data;
+      bgNow = vsSwapRing(d, WW, HH, 2, 2, WW - 3, HH - 3, 1);
+      const mc = m.hint || [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+      let n = 0, tot = 0;
+      const ix0 = Math.round(bx - X), iy0 = Math.round(by - Y), ix1 = Math.min(WW - 1, Math.round(bx + bw - X)), iy1 = Math.min(HH - 1, Math.round(by + bh - Y));
+      for (let yy = Math.max(0, iy0); yy <= iy1; yy += 2) for (let xx = Math.max(0, ix0); xx <= ix1; xx += 2) {
+        const i = (yy * WW + xx) * 4; tot++;
+        if (vsSwapDist(d, i, bgNow[0], bgNow[1], bgNow[2]) > (m.photo ? 60 : 70) && (!m.photo || vsSwapDist(d, i, mc[0], mc[1], mc[2]) < 150)) n++;
+      }
+      ink = n / Math.max(1, tot);
+      if (numOnly) {
+        // just the digits (a little past them - their soft edge reaches the sign)
+        const nx0 = ox + m.num.x0 * dw, nx1 = ox + m.num.x1 * dw, mc2 = [1, 3, 5].map((k) => parseInt(m.color.slice(k, k + 2), 16));
+        vsSwapEraseInk(ctx, W, H, Math.round(nx0 - pad), Y, Math.round(nx1 - nx0 + pad * 2.5), HH, mc2, bgNow);
+      } else vsSwapErase(ctx, W, H, X, Y, WW, HH, pad * (m.photo ? 0.95 : 0.7));
+    } catch (e) {
+      ctx.fillStyle = `rgb(${bgNow.join(",")})`; ctx.fillRect(bx - pad, by - pad, bw + pad * 2, bh + pad * 2);
+    }
+    const shown = Math.max(0, Math.min(1, ink / Math.max(0.0005, m.inkMax * 0.8)));
+    if (shown <= 0.01) continue;
+    // set the new words in the old place, size, face and colour
+    let px = m.px * dh;
+    const fam = VS_SWAP_FONTS[b.font] || VS_SWAP_FONTS.sans;
+    ctx.save();
+    ctx.globalAlpha = shown;
+    ctx.font = `${b.italic ? "italic " : ""}${b.weight} ${px}px ${fam}`;
+    ctx.fillStyle = m.color;
+    if (numOnly) {
+      // the new digits stand as tall as the old ones, on the same line, and
+      // end where they ended (against the sign)
+      const asc = ctx.measureText("0123456789").actualBoundingBoxAscent || px * 0.7;
+      px *= ((m.num.y1 - m.num.y0) * dh) / asc;
+      ctx.font = `${b.italic ? "italic " : ""}${b.weight} ${px}px ${fam}`;
+      try { ctx.letterSpacing = "0px"; ctx.direction = "ltr"; } catch (e) {}
+      ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      ctx.fillText(digits, ox + m.num.x1 * dw - ctx.measureText(digits).width, oy + m.num.y1 * dh);
+      ctx.restore();
+      continue;
+    }
+    try { ctx.letterSpacing = caps && b.role === "kicker" ? `${px * 0.12}px` : "0px"; } catch (e) {}
+    ctx.textBaseline = "top";
+    const rtl = /[\u0590-\u08ff]/.test(txt);
+    try { ctx.direction = rtl ? "rtl" : "ltr"; } catch (e) {}
+    // room: the old block's width, or to the far margin for a left-set block
+    const maxW = Math.max(bw, (b.align === "left" && !rtl) ? (dw - (bx - ox) * 2) : bw);
+    const lines = [];
+    txt.split("\n").forEach((para) => {
+      let cur = "";
+      para.split(/\s+/).filter(Boolean).forEach((wd) => { const t2 = cur ? cur + " " + wd : wd; if (ctx.measureText(t2).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = t2; });
+      lines.push(cur);
+    });
+    const pitch = m.pitch * dh;
+    lines.forEach((ln, i) => {
+      const lw = ctx.measureText(ln).width;
+      const x = b.align === "center" ? bx + bw / 2 - lw / 2 : (b.align === "right" || rtl) ? bx + bw - lw : bx;
+      ctx.textAlign = "left";
+      try { ctx.direction = "ltr"; } catch (e) {}
+      ctx.fillText(ln, x, by + i * pitch);
+    });
+    ctx.restore();
+  }
+  ctx.restore();
+  vstudio._frameHasMedia = true;
+  return true;
+}
+// keep the replacement clips on time in an export
+async function vsSwapSeekExport(s, local) {
+  const sw = s && s._swap; if (!sw) return;
+  for (const f of sw.footage) {
+    if (!f.newEl || f.newEl.tagName !== "VIDEO" || local < f.t0 || local > f.t1) continue;
+    const v = f.newEl, target = (local - f.t0) % Math.max(0.1, v.duration || 1);
+    if (Math.abs((v.currentTime || 0) - target) < 0.01) continue;
+    await _vsSeekVideo(v, target, _vsSeekPatient(v, target));
+  }
 }
 
 // Several clips are edited as one video: their sound is laid end to end on
@@ -11194,6 +11710,7 @@ function vsElHit(W, H, host, id, x, y, w, h, cx, cy) {
 function vsSceneType(s, i) {
   if (!s) return "";
   if (s._editorial) return "editorial";
+  if (s._swap) return "swap";
   if (s._ownSpeech) return "own";
   const n = vstudio.slides.length;
   const titleCard = s.isIntro && !s._standaloneInfo && !s._standaloneNews;
@@ -11206,19 +11723,21 @@ function vsSceneType(s, i) {
 const VS_SCENE_TYPE_NAME = {
   editorial: ["Editorial scene", "صحنهٔ ادیتوریال"], intro: ["Intro", "اینترو"], outro: ["Outro", "اوترو"],
   motion: ["Motion graphic", "موشن‌گرافیک"], chart: ["Data chart", "نمودار داده"], text: ["Headline scene", "صحنهٔ تیتر"],
-  media: ["Footage scene", "صحنهٔ فوتیج"], own: ["Your clip", "کلیپ تو"]
+  media: ["Footage scene", "صحنهٔ فوتیج"], own: ["Your clip", "کلیپ تو"], swap: ["Your finished video", "ویدیوی آمادهٔ تو"]
 };
 const VS_EL_NAME = {
   scene: ["Scene", "صحنه"], title: ["Title", "عنوان"], label: ["Label", "برچسب"], text: ["Headline", "تیتر"],
   news: ["Headline", "تیتر"], info: ["Chart", "نمودار"], graphic: ["Graphic", "گرافیک"],
   edKicker: ["Section tab", "برچسب بخش"], edText: ["Cover text", "متن جلد"], captions: ["Voice & captions", "صدا و زیرنویس"],
-  footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"], hook: ["Hook", "هوک"], sticker: ["Key words & icon", "کلمه کلیدی و آیکون"]
+  footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"], hook: ["Hook", "هوک"], sticker: ["Key words & icon", "کلمه کلیدی و آیکون"],
+  swapText: ["Change text", "تغییر متن"], swapFootage: ["Change footage", "تغییر فوتیج"]
 };
 const vsT = (pair) => (state.lang === "fa" ? pair[1] : pair[0]);
 
 // The elements a scene actually has, in the order they read on screen.
 function vsSceneElements(s, i) {
   const t = vsSceneType(s, i);
+  if (t === "swap") return [s._swap.texts.length ? "swapText" : null, s._swap.footage.length ? "swapFootage" : null].filter(Boolean).concat(["scene"]);
   const out = ["scene"];
   if (t === "editorial") out.push("edKicker", "edText");
   else if (t === "intro" || t === "outro") { out.push("title"); if (s._caption) out.push("label"); }
@@ -11398,6 +11917,40 @@ function vsElementFields(s, i, id) {
   const type = vsSceneType(s, i);
   const F = [];
   const own = (key) => ({ get: () => s[key] || "", set: (v) => { s[key] = v; } });
+  if (s._swap) {
+    const sw = s._swap, mm = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+    if (id === "swapText") {
+      sw.texts.forEach((b, k) => {
+        F.push({ type: "textarea", rows: Math.min(4, Math.max(1, (b.text.match(/\n/g) || []).length + 1)), list: true,
+          label: `${k + 1}. ${b.role} · ${mm(b.t0)}–${mm(b.t1)}${b.newText ? L(" · changed", " · عوض شد") : ""}`,
+          get: () => b.newText || b.text,
+          set: (v) => { const t2 = String(v || "").trim(); b.newText = t2 && t2 !== b.text.trim() ? t2 : ""; } });
+      });
+      return F;
+    }
+    if (id === "swapFootage") {
+      sw.footage.forEach((f, k) => {
+        f.query = f.query || f.desc;
+        F.push({ type: "text", label: `${L("Footage", "فوتیج")} ${k + 1} · ${mm(f.t0)}–${mm(f.t1)} · ${f.newName ? L("now: ", "الان: ") + f.newName : f.desc}`,
+          get: () => f.query, set: (v) => { f.query = String(v || "").slice(0, 60); } });
+        F.push({ type: "buttons", buttons: [
+          { t: L("Find stock footage", "پیدا کردن فوتیج آماده"), act: async (btn) => {
+            btn.disabled = true; const old = btn.textContent; btn.textContent = L("Searching…", "در حال جستجو…");
+            let clip = null; try { clip = await vsFetchPexelsClip(f.query || f.desc, VS_PEXELS_KEY, "16:9", Math.floor(Math.random() * 4), null, 15000); } catch (e) {}
+            if (clip) { f.newEl = clip; f.newName = f.query || f.desc; } else vsToast(L("No clip found for that - try other words.", "برای این، کلیپی پیدا نشد؛ کلمات دیگری امتحان کن."));
+            btn.disabled = false; btn.textContent = old; vsRenderInspector(); vsInspRedraw(true);
+          } },
+          { t: L("Use my own video or photo", "ویدیو یا عکس خودم"), act: () => {
+            const inp = document.createElement("input"); inp.type = "file"; inp.accept = "video/*,image/*";
+            inp.onchange = async () => { const fl = inp.files && inp.files[0]; if (!fl) return; try { await vsSwapSetMedia(f, fl); } catch (e) {} vsRenderInspector(); vsInspRedraw(true); };
+            inp.click();
+          } },
+        ].concat(f.newEl ? [{ t: L("Put the original back", "برگرداندن نسخهٔ اصلی"), danger: true, act: () => { f.newEl = null; f.newName = ""; vsRenderInspector(); vsInspRedraw(true); } }] : []) });
+      });
+      return F;
+    }
+    if (id === "scene") return F;   // the design stays as it is
+  }
   const moveSize = (host, elId, min, max) => {
     const e = () => vsEl(host, elId);
     F.push({ type: "range", label: L("Size", "اندازه"), min: min || 0.4, max: max || 2.4, step: 0.02, fmt: (v) => Math.round(v * 100) + "%",
@@ -19083,6 +19636,10 @@ function drawStudioFrame(elapsed) {
       media.play().catch(() => {});
     }
   }
+  // A finished video with its text or footage swapped (Edit my video, way 2).
+  if (dsSlideObj && dsSlideObj._swap) {
+    if (vsDrawSwapFrame(ctx, W, H, dsSlideObj, dsLocal)) { vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur); return; }
+  }
   // An edited clip ("Edit my video") has its own designed frame.
   if (dsSlideObj && dsSlideObj._ownSpeech && vstudio._editLayout) {
     const at3 = slideAtTime(elapsed);
@@ -22161,6 +22718,7 @@ async function _vsSeekActiveFootage(t) {
   const at = slideAtTime(t);
   const slide = vstudio.slides[at.index];
   if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
+  if (slide._swap) await vsSwapSeekExport(slide, at.local);
   const vid = slide.mediaEl;
   const clipIn = slide._clipIn || 0;
   const vdur = (vid.duration && isFinite(vid.duration)) ? Math.max(0.05, vid.duration - clipIn) : at.dur;
@@ -29024,6 +29582,10 @@ async function vsOpenEditDeck(e) {
   const L = (en, f) => (fa ? f : en);
   e = e || {};
   const preset = Object.assign({}, e.options || {});
+  // swap_text_or_footage: a finished video whose named texts and footage
+  // change while the rest stays (Edit my video, the second way)
+  const swap = e.kind === "swap" ? { texts: Array.isArray(e.texts) ? e.texts : [], footage: Array.isArray(e.footage) ? e.footage : [] } : null;
+  if (swap) { preset.mode = "swap"; preset.swap = swap; }
   vstudio._mcpEditPreset = preset;
   let file = null;
   const fetchOne = async (path, name) => {
@@ -29047,6 +29609,11 @@ async function vsOpenEditDeck(e) {
     vsAutoStatus(L("Opening the video your AI sent…", "باز کردن ویدیویی که AIِ تو فرستاد…"));
     file = await fetchOne(e.video, e.name);
   }
+  if (file && swap) {
+    try { await vsSwapStart(Array.isArray(file) ? file[0] : file, swap); }
+    catch (er) { vsBuildOverlay(false); vsAutoStatus(L("Reading the video failed: ", "خواندن ویدیو ناموفق بود: ") + String(er && er.message || er).slice(0, 140)); }
+    return;
+  }
   if (file) {
     try { await vsEditMyVideo(file, Object.assign({}, VS_EM_DEFAULTS, preset)); }
     catch (er) { vsBuildOverlay(false); vsAutoStatus(L("The edit failed: ", "ادیت ناموفق بود: ") + String(er && er.message || er).slice(0, 140)); }
@@ -29059,7 +29626,7 @@ async function vsOpenEditDeck(e) {
   box.id = "vsMcpEditAsk";
   box.setAttribute("role", "dialog"); box.setAttribute("aria-label", L("Choose your video", "ویدیوی خودت را انتخاب کن"));
   box.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
-      <h2>${L("Your AI set up an edit", "AIِ تو یک ادیت آماده کرد")}</h2>
+      <h2>${swap ? L("Your AI set up the changes", "AIِ تو تغییرها را آماده کرد") : L("Your AI set up an edit", "AIِ تو یک ادیت آماده کرد")}</h2>
       <p class="vsem-file">${e.note ? escapeHtml(String(e.note).slice(0, 200)) + "<br/>" : ""}${L("Choose the video on this device - it stays here; only its sound and a few frames are analysed.", "ویدیو را از همین دستگاه انتخاب کن؛ روی دستگاه می‌ماند و فقط صدا و چند فریمش تحلیل می‌شود.")}</p>
       <div class="vsem-btns"><button type="button" class="vsem-go">${L("Choose video", "انتخاب ویدیو")}</button>
       <button type="button" class="vsem-x">${L("Not now", "فعلاً نه")}</button></div></div>`;
