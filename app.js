@@ -25569,80 +25569,68 @@ function vsThumbStudio(prefillTopic, preset) {
   const source = String(sd.source || "").replace(/^by\s+/i, "").trim();
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.80);backdrop-filter:blur(6px);padding:16px";
-  const sizeChips = [["496x279", fa ? "بندانگشتی" : "thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
-    .map((s, i) => `<label class="chip"><input type="checkbox" class="tssz" value="${s[0]}"${i === 0 ? " checked" : ""}/> <b>${s[0].replace("x", " × ")}</b> <span class="mut">${s[1]}</span></label>`).join("");
-  const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video)
-    .map((t, i) => `<label class="chip"><input type="radio" name="tstpl" class="tstpl" value="${t.id}"${i === 0 ? " checked" : ""}/> <span class="swatch" style="background:${t.accent}"></span> <b>${fa ? t.fa : t.name}</b></label>`).join("");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
+  // a size is a row with the shape of its frame; a look is a small preview of itself
+  const sizeRow = (val, name, on) => {
+    const [w, h] = String(val).split("x").map(Number), k = 18 / Math.max(w, h);
+    return '<label class="ts-size"><input type="checkbox" class="tssz" value="' + val + '"' + (on ? " checked" : "") + '/>' +
+      '<span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span>' +
+      '<span class="ts-size-n">' + name + '</span><span class="ts-size-d">' + w + "×" + h + "</span></label>";
+  };
+  const tplTile = (t, on) => '<label class="ts-tpl"><input type="radio" name="tstpl" class="tstpl" value="' + t.id + '"' + (on ? " checked" : "") + '/>' +
+    '<span class="ts-tpl-pv" data-tpl="' + t.id + '"></span><span class="ts-tpl-n">' + (fa ? t.fa : t.name) + "</span></label>";
+  const sizeChips = [["496x279", fa ? "بندانگشتی کوچک" : "Small thumbnail"], ["1280x720", "YouTube"], ["1080x1920", fa ? "عمودی" : "Vertical"], ["1080x1080", fa ? "مربع" : "Square"]]
+    .map((x, i) => sizeRow(x[0], x[1], i === 0)).join("");
+  const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video).map((t, i) => tplTile(t, i === 0)).join("");
   ov.innerHTML =
-    `<div id="tsModal" style="width:min(680px,97vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:15px;background:#0e1014;border:1px solid rgba(91,155,255,.26);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.62)">
-       <style>
-         #tsModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a919c}
-         #tsModal input[type=text],#tsModal input[type=number],#tsModal select{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:inherit;border-radius:10px;outline:none;box-sizing:border-box}
-         #tsModal input[type=text]{width:100%;padding:12px 13px}
-         #tsModal input[type=text]:focus,#tsModal input[type=number]:focus,#tsModal select:focus{border-color:#2563ff}
-         #tsModal input[type=number]{width:66px;padding:10px;text-align:center}
-         #tsModal select{padding:9px 10px}
-         #tsModal input[type=checkbox],#tsModal input[type=radio]{appearance:auto !important;-webkit-appearance:checkbox !important;width:17px !important;height:17px !important;min-width:17px !important;max-width:17px !important;min-height:17px !important;max-height:17px !important;flex:none !important;margin:0 !important;padding:0 !important;box-shadow:none !important;background:none !important;accent-color:#2563ff;cursor:pointer}
-         #tsModal input[type=radio]{-webkit-appearance:radio !important;border-radius:50% !important}
-         #tsModal .swatch{width:12px;height:12px;border-radius:6px;display:inline-block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-         #tsModal .chip{display:inline-flex;align-items:center;gap:9px;padding:11px 13px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:13px;color:#f4f5f7;cursor:pointer;transition:.14s;user-select:none;line-height:1.1}
-         #tsModal .chip:hover{border-color:rgba(91,155,255,.5);background:rgba(37,99,255,.09)}
-         #tsModal .chip:has(input:checked){border-color:#2563ff;background:rgba(37,99,255,.17);color:#fff;box-shadow:inset 0 0 0 1px rgba(59,130,246,.45)}
-         #tsModal .chip b{font-weight:800;color:#fff}
-         #tsModal .chip .mut{color:#8a919c}
-         #tsModal .btn{font:inherit;font-weight:800;padding:13px;border-radius:14px;cursor:pointer;transition:.14s;border:none}
-         #tsModal .btn:hover{filter:brightness(1.08)}
-       </style>
-       <div style="display:flex;align-items:center;gap:10px">
-         <span style="font-size:22px">🖼</span>
-         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#f4f5f7">${fa ? "استودیوی تصویر بندانگشتی" : "Thumbnail Studio"}</span>
-         <span style="font-size:11px;color:#8a919c;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:20px">${fa ? "با ویدیو یا بدون آن" : "with or without a video"}</span>
-       </div>
-       <div id="tsVid" style="display:flex;flex-direction:column;gap:10px;padding:13px;border-radius:12px;border:1px dashed rgba(91,155,255,.4);background:rgba(37,99,255,.05)">
-         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-           <button id="tsVidBtn" type="button" class="btn" style="padding:11px 16px;color:#fff;background:rgba(37,99,255,.22);box-shadow:inset 0 0 0 1px rgba(91,155,255,.5)">🎬 ${fa ? "از ویدیوی خودم" : "From my video"}</button>
-           <span id="tsVidInfo" style="flex:1;min-width:200px;font-size:12.5px;line-height:1.45;color:#c9ccd3">${fa ? "ویدیو را بده: بهترین فریم را پیدا می‌کنیم، خودت را از پس‌زمینه جدا می‌کنیم و عنوان را از حرف‌هایت می‌نویسیم." : "Give it your video: it finds the best frame, cuts you out and writes the title from what you say."}</span>
-           <input id="tsVidFile" type="file" accept="video/*" hidden/>
-         </div>
-         <label class="chip" style="align-self:flex-start;padding:8px 12px"><input type="checkbox" id="tsVidClean" checked/> ${fa ? "متن‌هایی را که روی ویدیو هست پاک کن (متن خودت می‌آید)" : "Remove the text that is on the video (your own words go on it)"}</label>
-         <div id="tsVidFrames" style="display:none;gap:7px;overflow-x:auto;padding-bottom:4px"></div>
-         <div id="tsVidAlts" style="display:none;gap:7px;flex-wrap:wrap"></div>
-       </div>
-       <div><div class="lbl">${fa ? "موضوع" : "Topic"}</div>
-         <input id="tsTopic" type="text" value="${esc(topic0)}" placeholder="${fa ? "موضوع تصویر…" : "What it's about…"}" style="margin-top:7px"/>
-       </div>
-       <div><div class="lbl">${fa ? "قالب آماده" : "Template style"}</div>
-         <div id="tsTpls" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:9px">${tplChips}</div>
-       </div>
-       <div><div class="lbl">${fa ? "سایزها — همون بنر در چند سایز" : "Sizes — same banner, several sizes"}</div>
-         <div id="tsSizes" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:9px">${sizeChips}</div>
-       </div>
-       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-         <span class="lbl">${fa ? "دلخواه" : "Custom"}</span>
-         <input id="tsW" type="number" min="64" max="4096" placeholder="W"/>
-         <span style="color:#8a919c">×</span>
-         <input id="tsH" type="number" min="64" max="4096" placeholder="H"/>
-         <button id="tsAddSize" type="button" class="btn" style="font-size:12.5px;padding:10px 14px;color:#f4f5f7;background:rgba(37,99,255,.18);box-shadow:inset 0 0 0 1px rgba(91,155,255,.4)">+ ${fa ? "افزودن" : "Add"}</button>
-         <span style="flex:1"></span>
-         <span class="lbl">${fa ? "نسخه" : "Variations"}</span>
-         <select id="tsCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
-       </div>
-       <label class="chip" style="align-self:flex-start"><input type="checkbox" id="tsAuto"/> ${fa ? "عنوان جذاب خودکار (به‌جای متن خودم)" : "Auto-write a catchy title (instead of my text)"}</label>
-       <div id="tsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px"></div>
-       <div style="display:flex;gap:9px">
-         <button id="tsClose" type="button" class="btn" style="flex:1;background:transparent;color:#f4f5f7;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)">${fa ? "بستن" : "Close"}</button>
-         <button id="tsZip" type="button" class="btn" style="display:none;flex:1.4;color:#f5c451;background:rgba(201,162,74,.14);box-shadow:inset 0 0 0 1px rgba(201,162,74,.5)">⬇ ${fa ? "دانلود همه (ZIP)" : "Download all (ZIP)"}</button>
-         <button id="tsGen" type="button" class="btn" style="flex:2;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">✨ ${fa ? "بساز" : "Generate"}</button>
-       </div>
-     </div>`;
+    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
+    '<aside class="ts-side">' +
+      '<div><div class="ts-eye">Thumbnail Studio</div><h2 id="tsTitle">' + (fa ? "ساخت تامبنیل" : "Make a thumbnail") + '</h2></div>' +
+      '<div class="ts-seg" role="tablist" aria-label="' + (fa ? "منبع" : "Source") + '">' +
+        '<button type="button" role="tab" data-src="topic" aria-selected="true">' + (fa ? "از یک موضوع" : "From a topic") + '</button>' +
+        '<button type="button" role="tab" data-src="video" aria-selected="false">' + (fa ? "از ویدیوی خودم" : "From my video") + '</button>' +
+      '</div>' +
+      '<div id="tsVid" class="ts-vid" hidden>' +
+        '<button id="tsVidBtn" type="button" class="ts-drop">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>' +
+          '<span class="ts-drop-t">' + (fa ? "انتخاب ویدیو" : "Choose a video") + '</span>' +
+          '<span class="ts-drop-s">' + (fa ? "یا اینجا رها کن · MP4، MOV، WebM" : "or drop it here · MP4, MOV, WebM") + '</span>' +
+        '</button>' +
+        '<input id="tsVidFile" type="file" accept="video/*" hidden/>' +
+        '<p id="tsVidInfo" class="ts-note">' + (fa ? "بهترین فریم را پیدا می‌کند، تو را از پس‌زمینه جدا می‌کند و کلمات را از حرف‌هایت می‌نویسد." : "It finds the best frame, cuts you out and writes the words from what you say.") + '</p>' +
+        '<div id="tsVidFrames" class="ts-frames" style="display:none"></div>' +
+        '<label class="ts-switch"><input type="checkbox" id="tsVidClean" checked/><span class="ts-sw"></span><span>' + (fa ? "متن‌هایی را که روی ویدیو هست پاک کن" : "Remove the text already on the video") + '</span></label>' +
+      '</div>' +
+      '<div class="ts-field"><label class="ts-lbl" for="tsTopic">' + (fa ? "کلمات روی تامبنیل" : "Words on the thumbnail") + '</label>' +
+        '<input id="tsTopic" type="text" value="' + esc(topic0) + '" placeholder="' + (fa ? "مثلاً: بازار مسکن ۲۰۲۷" : "e.g. Housing in 2027") + '"/>' +
+        '<div id="tsVidAlts" class="ts-alts" style="display:none"></div>' +
+        '<label class="ts-switch"><input type="checkbox" id="tsAuto"/><span class="ts-sw"></span><span>' + (fa ? "یک عنوان جذاب برایم بنویس" : "Write a catchy title for me") + '</span></label>' +
+      '</div>' +
+      '<div class="ts-field"><div class="ts-lbl">' + (fa ? "ظاهر" : "Look") + '</div><div id="tsTpls" class="ts-tpls">' + tplChips + '</div></div>' +
+      '<div class="ts-field"><div class="ts-lbl">' + (fa ? "سایزها" : "Sizes") + '</div><div id="tsSizes" class="ts-sizes">' + sizeChips + '</div>' +
+        '<div class="ts-custom"><input id="tsW" type="number" min="64" max="4096" placeholder="W" aria-label="' + (fa ? "عرض" : "Width") + '"/><span>×</span>' +
+        '<input id="tsH" type="number" min="64" max="4096" placeholder="H" aria-label="' + (fa ? "ارتفاع" : "Height") + '"/>' +
+        '<button id="tsAddSize" type="button" class="ts-ghost">' + (fa ? "افزودن سایز" : "Add size") + '</button></div></div>' +
+      '<div class="ts-field ts-row"><div class="ts-lbl">' + (fa ? "تعداد نسخه" : "Versions") + '</div>' +
+        '<div class="ts-seg ts-seg-s" id="tsCountSeg">' + [1, 2, 3].map((n) => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === 1) + '">' + n + "</button>").join("") + '</div>' +
+        '<select id="tsCount" hidden><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>' +
+      '<div class="ts-foot"><button id="tsGen" type="button" class="ts-primary">' + (fa ? "بساز" : "Generate") + '</button></div>' +
+    '</aside>' +
+    '<section class="ts-main" aria-live="polite">' +
+      '<div class="ts-main-h"><div class="ts-eye">' + (fa ? "نتیجه‌ها" : "Results") + '</div><span style="flex:1"></span>' +
+        '<button id="tsZip" type="button" class="ts-ghost" style="display:none">' + (fa ? "دانلود همه (ZIP)" : "Download all (ZIP)") + '</button>' +
+        '<button id="tsClose" type="button" class="ts-x" aria-label="' + (fa ? "بستن" : "Close") + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+      '<div id="tsEmpty" class="ts-empty"><div class="ts-empty-f"><span>1280 × 720</span></div><p>' + (fa ? "تامبنیل‌ها اینجا می‌آیند، برای هر سایز و هر نسخه." : "Your thumbnails appear here, one for each size and version.") + '</p></div>' +
+      '<div id="tsGrid" class="ts-grid"></div>' +
+    '</section></div>';
   document.body.appendChild(ov);
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
-  const spinHTML = (w, h) => `<div style="aspect-ratio:${w}/${h};display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px"><div style="width:26px;height:26px;border:3px solid rgba(255,255,255,.15);border-top-color:#2563ff;border-radius:50%;animation:vsspin .8s linear infinite"></div></div>`;
+  const spinHTML = (w, h) => `<div class="ts-skel" style="aspect-ratio:${w}/${h}" role="status" aria-label="${fa ? "در حال ساخت" : "Making"} ${w}×${h}"></div><div class="ts-meta"><span>${w}×${h}</span></div>`;
   const $$ = (id) => ov.querySelector("#" + id);
   const urls = [];
   const results = [];   // {blob, name} for the ZIP
-  const close = () => { try { ov.remove(); } catch (e) {} urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
+  const close = () => { try { ov.remove(); } catch (e) {} urls.concat(pvUrls).forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); };
+  ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
   ov.addEventListener("click", e => { if (e.target === ov) close(); });
   $$("tsClose").onclick = close;
   // "+ Add" appends a custom-size chip (checked) to the size list.
@@ -25651,12 +25639,44 @@ function vsThumbStudio(prefillTopic, preset) {
     if (!(w >= 64 && h >= 64)) { vsStatus(fa ? "سایز معتبر وارد کن (۶۴ تا ۴۰۹۶)." : "Enter a valid size (64–4096)."); return; }
     const val = Math.round(w) + "x" + Math.round(h);
     if (ov.querySelector('.tssz[value="' + val + '"]')) return;
-    const lab = document.createElement("label");
-    lab.className = "chip";
-    lab.innerHTML = '<input type="checkbox" class="tssz" value="' + val + '" checked/> <b>' + Math.round(w) + " × " + Math.round(h) + "</b>";
-    $$("tsSizes").appendChild(lab);
+    $$("tsSizes").insertAdjacentHTML("beforeend", sizeRow(val, fa ? "دلخواه" : "Custom", true));
     $$("tsW").value = ""; $$("tsH").value = "";
   };
+  // ── source: a topic, or the user's own video ──
+  const setSrc = (m) => {
+    ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.src === m)));
+    $$("tsVid").hidden = m !== "video";
+  };
+  ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setSrc(b.dataset.src); });
+  // versions: three buttons in front of the (hidden) list the generator reads
+  const syncCount = () => ov.querySelectorAll("#tsCountSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.n === $$("tsCount").value)));
+  ov.querySelectorAll("#tsCountSeg button").forEach((b) => { b.onclick = () => { $$("tsCount").value = b.dataset.n; syncCount(); }; });
+  // each look shows itself: drawn with the words in the box (and, once a video
+  // is in, its own frame) by the same renderer the thumbnails use
+  const pvUrls = [];
+  let pvBase = null, pvTimer = 0;
+  const renderPreviews = async (base) => {
+    if (base) pvBase = base;
+    const words = ($$("tsTopic").value || "").trim() || (fa ? "کلمات تو اینجا" : "Your words here");
+    const a0 = Object.assign({ source: "" }, pvBase || { img: null }, { coverTitle: words.slice(0, 64) });
+    for (const el of ov.querySelectorAll(".ts-tpl-pv")) {
+      const id = el.dataset.tpl;
+      if (id === "cutout" && !(a0.cut && a0.img)) continue;
+      let b = null;
+      try { b = await vsCoverRenderAt(a0, 320, 180, { template: id, jpeg: true, jpegQ: 0.8, accent: id === "cutout" ? (a0.accent || undefined) : undefined }); } catch (e) {}
+      if (!b) continue;
+      const u = URL.createObjectURL(b); pvUrls.push(u);
+      el.style.backgroundImage = "url(" + u + ")";
+    }
+    while (pvUrls.length > 40) { try { URL.revokeObjectURL(pvUrls.shift()); } catch (e) {} }
+  };
+  $$("tsTopic").addEventListener("input", () => { clearTimeout(pvTimer); pvTimer = setTimeout(() => renderPreviews(), 450); });
+  setTimeout(() => renderPreviews(), 30);
+  // a video dropped on the panel goes the same way as one chosen
+  const drop = $$("tsVidBtn");
+  ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("drag")));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f && /^video\//.test(f.type)) loadVideo(f); });
   // ── from my video ──
   const vid = { data: null, picks: [], busy: false };
   const L2 = (en, f) => (fa ? f : en);
@@ -25729,14 +25749,14 @@ function vsThumbStudio(prefillTopic, preset) {
       if (first) { const b0 = vid.data.best; b0.splice(b0.indexOf(first.i), 1); b0.unshift(first.i); }
       let chip = ov.querySelector('.tstpl[value="cutout"]');
       if (!chip) {
-        const t = VS_THUMB_TEMPLATES.find((x) => x.id === "cutout");
-        const lab = document.createElement("label"); lab.className = "chip";
-        lab.innerHTML = '<input type="radio" name="tstpl" class="tstpl" value="cutout"/> <span class="swatch" style="background:' + (pl.accent || t.accent) + '"></span> <b>' + (fa ? t.fa : t.name) + "</b>";
-        $$("tsTpls").prepend(lab);
-        chip = lab.querySelector("input");
+        $$("tsTpls").insertAdjacentHTML("afterbegin", tplTile(VS_THUMB_TEMPLATES.find((x) => x.id === "cutout"), false));
+        chip = ov.querySelector('.tstpl[value="cutout"]');
       }
       if (first && first.cut) chip.checked = true;
       drawStrip();
+      // every look, previewed with this video's own frame and words
+      if (first) renderPreviews({ coverTitle: ($$("tsTopic").value || pl.title || "").slice(0, 64), img: first.canvas, cut: first.cut, side: first.side,
+        kicker: String(pl.kicker || "").slice(0, 24), accent: /^#[0-9a-f]{6}$/i.test(pl.accent || "") ? pl.accent : "" });
       const alts = [pl.title].concat(Array.isArray(pl.alt_titles) ? pl.alt_titles : []).filter(Boolean).slice(0, 3);
       const ab = $$("tsVidAlts"); ab.innerHTML = "";
       if (alts.length > 1) {
@@ -25771,6 +25791,7 @@ function vsThumbStudio(prefillTopic, preset) {
     const zipBtn = $$("tsZip"); if (zipBtn) zipBtn.style.display = "none";
     results.length = 0;
     const grid = $$("tsGrid"); grid.innerHTML = "";
+    if ($$("tsEmpty")) $$("tsEmpty").hidden = true;
     for (let v = 0; v < variations; v++) {
       // assets (title + image) made ONCE per variation, so every size shares the
       // exact same banner — the biggest size decides the image resolution.
@@ -25780,7 +25801,7 @@ function vsThumbStudio(prefillTopic, preset) {
       // one spinner cell per size, up front, so the whole batch shows it's working
       const cells = sizes.map(sz => {
         const cell = document.createElement("div");
-        cell.style.cssText = "display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px";
+        cell.className = "ts-cell";
         cell.innerHTML = spinHTML(sz.w, sz.h);
         grid.appendChild(cell); return cell;
       });
@@ -25815,15 +25836,16 @@ function vsThumbStudio(prefillTopic, preset) {
           const noPic = !(assets && assets.img);
           const why = noPic ? vsThumbNoImageReason(assets && assets.imgError) : "";
           cell.innerHTML =
-            `<img src="${u}" style="width:100%;border-radius:6px;background:#000;display:block"/>` +
-            (noPic ? `<div role="status" style="font-size:11.5px;line-height:1.45;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:8px;padding:7px 9px">${why}</div>` : "") +
-            `<a href="${u}" download="${name}" style="text-align:center;font:inherit;font-weight:700;font-size:12px;padding:8px;border-radius:10px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff)">${fa ? "⬇ دانلود" : "⬇ Download"} ${sz.w}×${sz.h} · ${kb}KB${noPic ? (fa ? " (بدون تصویر)" : " (text only)") : ""}</a>`;
+            `<img src="${u}" alt="${fa ? "تامبنیل" : "Thumbnail"} ${sz.w}×${sz.h}"/>` +
+            (noPic ? `<div role="status" class="ts-warn">${why}</div>` : "") +
+            `<div class="ts-meta"><span>${sz.w}×${sz.h}</span><span>${kb} KB${noPic ? (fa ? " · بدون تصویر" : " · text only") : ""}</span>` +
+            `<a class="ts-dl" href="${u}" download="${name}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${fa ? "دانلود" : "Download"}</a></div>`;
         } else {
-          cell.innerHTML = `<div style="aspect-ratio:${sz.w}/${sz.h};display:flex;align-items:center;justify-content:center;background:#0e1014;border-radius:6px;color:#f87171;font-size:12px">${fa ? "ناموفق" : "failed"}</div>`;
+          cell.innerHTML = `<div class="ts-fail" style="aspect-ratio:${sz.w}/${sz.h}">${fa ? "ساخته نشد" : "Could not be made"}</div><div class="ts-meta"><span>${sz.w}×${sz.h}</span></div>`;
         }
       }
     }
-    gen.disabled = false; gen.style.opacity = "1"; gen.textContent = "↻ " + (fa ? "دوباره بساز" : "Generate again");
+    gen.disabled = false; gen.style.opacity = "1"; gen.textContent = fa ? "دوباره بساز" : "Generate again";
     if (zipBtn && results.length) zipBtn.style.display = "";
   };
   // Download all generated thumbnails as a single ZIP.
@@ -25859,17 +25881,15 @@ function vsThumbStudio(prefillTopic, preset) {
       if (hit) { hit.checked = true; return; }
       const [w, h] = String(val).split("x").map(Number);
       if (!(w >= 64 && h >= 64)) return;
-      const lab = document.createElement("label");
-      lab.className = "chip";
-      lab.innerHTML = '<input type="checkbox" class="tssz" value="' + w + "x" + h + '" checked/> <b>' + w + " × " + h + "</b>";
-      $$("tsSizes").appendChild(lab);
+      $$("tsSizes").insertAdjacentHTML("beforeend", sizeRow(w + "x" + h, fa ? "دلخواه" : "Custom", true));
     });
   }
   // From the user's video, sent by their AI (MCP): read it, keep their own
   // words if they gave any, then make the thumbnails
   if (preset.video) {
+    setSrc("video");
     if (preset.removeText === false && $$("tsVidClean")) $$("tsVidClean").checked = false;
-    if (preset.variations) $$("tsCount").value = String(Math.max(1, Math.min(3, Number(preset.variations) || 1)));
+    if (preset.variations) { $$("tsCount").value = String(Math.max(1, Math.min(3, Number(preset.variations) || 1))); syncCount(); }
     (async () => {
       await loadVideo(preset.video);
       if (!vid.data) return;
@@ -25880,6 +25900,7 @@ function vsThumbStudio(prefillTopic, preset) {
     return;
   }
   if (preset.askVideo) {
+    setSrc("video");
     $$("tsVidInfo").textContent = (preset.note ? preset.note + " " : "") + (fa ? "AIِ تو خواست تامبنیل از ویدیوی خودت ساخته شود: «از ویدیوی خودم» را بزن و ویدیو را انتخاب کن." : "Your AI set this up from your own video: press From my video and choose it.");
     if (preset.text) $$("tsTopic").value = String(preset.text).slice(0, 90);
     setTimeout(() => { try { $$("tsVidBtn").focus(); } catch (e) {} }, 50);
