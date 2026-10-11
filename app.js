@@ -7502,6 +7502,9 @@ async function buildAutoVideo(useAI) {
   // real outlet ("by Reuters") on a video that outlet never wrote - never put
   // a newsroom's name on something it did not publish.
   if (data && !hasSource) data.source = "";
+  // A bare topic has no figures to show either: a chart of "4% annual gain
+  // vs 2.5% inflation" went on screen from nothing but the model's guess.
+  if (data && !hasSource) vsStripUnsourcedFigures(data);
 
   await vsBuildFromScript(data, text, lenChoice);
 }
@@ -7515,6 +7518,26 @@ async function buildAutoVideo(useAI) {
  * "advisor" - the studio's default tone - so every default build was briefed
  * as a broadcast-news director.
  */
+// A script written from a bare topic (no article, no link) keeps its words
+// but loses every figure: charts become text scenes, metrics go, and a
+// headline that states a number is replaced by the scene's own point.
+function vsStripUnsourcedFigures(data) {
+  const fig = /\d|%|\$|€|£|\bpercent\b|درصد/i;
+  const firstWords = (t, n) => String(t || "").split(/(?<=[.!?؟])\s/)[0].split(/\s+/).slice(0, n).join(" ").replace(/[,;:]$/, "");
+  (data.sections || []).forEach((sec, i) => {
+    if (!sec || typeof sec !== "object") return;
+    delete sec.metrics;
+    if (sec.type === "infographic") {
+      const title = String(sec.title || "");
+      data.sections[i] = Object.assign({}, sec, { type: "text", headline: fig.test(title) ? firstWords(sec.narration, 7) : title, style: sec.style || "title-left" });
+      delete data.sections[i].stats; delete data.sections[i].chartType; delete data.sections[i].title;
+    } else if (fig.test(String(sec.headline || ""))) {
+      sec.headline = firstWords(sec.narration, 7) || sec.headline;
+    }
+  });
+  return data;
+}
+
 function vsScriptPrompt(o) {
   o = o || {};
   const text = String(o.text || "");
@@ -7553,7 +7576,7 @@ Return ONLY valid compact JSON (no markdown, no commentary):
 RULES:
 0. Add narration to intro, every section and outro. It is READ ALOUD by a voice-over, so write for the ear: 1-2 short sentences per content scene (max 24 words), everyday words, in the voice above. In NARRATION only, say numbers the way people say them ("100 dollars", "40 percent"); on-screen headlines, titles and stats always use digits ("$100", "40%"). Keep the top-level music exactly as given. Narration must interpret evidence and explain what it means going forward — never merely repeat the headline.
 1. Produce EXACTLY ${sectionRange} content sections (besides intro/outro). Open on the strongest, most surprising fact.
-2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
+${hasSource ? "" : "2a. NO SOURCE WAS SUPPLIED, SO THERE ARE NO FIGURES: every section is type \"text\" - no infographic, no stats, no metrics, and no percentages, prices, counts or dates you were not given, in any headline, title or narration. Make the point with reasons and consequences instead.\n"}2. INFOGRAPHIC: use it whenever a scene presents 2 or more comparable numbers (prices, rates, ranks, shares, counts). Data ALWAYS renders as a chart, NEVER as a plain text sentence. 2-5 stats, realistic values, copied exactly from the SOURCE when one is supplied. chartType: bars=comparison, donut=percentages, pills=progress, comparison=two values, ranking=ordered. If a scene has data but you write it as "text", you MUST fill its "metrics" array so it still renders as a chart — numbers are never left as a bare sentence.
 3. TEXT: narrative/quotes/context. headline = max ${hlMax} words a 12-year-old understands, in the tone's headline style, concrete and specific — never jargon ("maturation", "accelerates availability", "leverage", "paradigm") and never vague filler like "a new era" or "the future is here". The narration explains; the headline only lands the point.
 4. Never two infographics in a row. Vary text styles for rhythm.
 4b. "visual" on every section: 2-4 common, filmable words a stock-video site would actually have for THAT scene (e.g. "server room engineer", "electric car charging", "factory robot arm") — never "technology" or "innovation concept", and never a long phrase stock libraries cannot match.
@@ -24531,62 +24554,102 @@ function vsCreatorTools(opts) {
   const ov = page ? opts.mount : document.createElement("div");
   if (!page) ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
-    `<div id="ctModal" style="${page ? "width:min(920px,100%);margin:0 auto;background:transparent;border:none;box-shadow:none;padding:0" : "width:min(760px,97vw);max-height:94vh;overflow:auto;background:#0e1014;border:1px solid rgba(16,185,129,.28);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)"};display:flex;flex-direction:column;gap:14px">
+    `<div id="ctModal" style="${page ? "width:min(920px,100%);margin:0 auto;background:transparent;border:none;box-shadow:none;padding:0" : "width:min(760px,97vw);max-height:94vh;overflow:auto;background:#0e1014;border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)"};display:flex;flex-direction:column;gap:14px">
        <style>
-         #ctModal .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a919c;margin-bottom:6px}
-         #ctModal input[type=text],#ctModal textarea,#ctModal select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:inherit;border-radius:10px;padding:11px 12px;outline:none;box-sizing:border-box}
-         #ctModal input:focus,#ctModal textarea:focus,#ctModal select:focus{border-color:#5fe0b0}
+         #ctModal{color:#f4f5f7;font:500 14px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif}
+         #ctModal .lbl{font:600 12.5px/1.3 Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3;margin-bottom:7px;letter-spacing:0;text-transform:none}
+         #ctModal input[type=text],#ctModal input:not([type]),#ctModal textarea,#ctModal select{width:100%;background:#08090c;border:1px solid rgba(255,255,255,.12);color:#f4f5f7;font:500 14px Manrope,ui-sans-serif,system-ui,sans-serif;border-radius:10px;padding:11px 12px;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
+         #ctModal input::placeholder,#ctModal textarea::placeholder{color:#5d636d}
+         #ctModal input:focus,#ctModal textarea:focus,#ctModal select:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}
          #ctModal textarea{resize:vertical;line-height:1.5}
-         #ctModal .btn{font:inherit;font-weight:800;padding:12px 14px;border-radius:14px;cursor:pointer;transition:.14s;border:none}
-         #ctModal .btn:hover{filter:brightness(1.08)}
-         #ctModal .card{position:relative;text-align:left;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px 46px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s;overflow:hidden;min-height:158px}
-         #ctModal .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac,#5b9bff);opacity:0;transition:.18s}
-         #ctModal .card:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.05)}
-         #ctModal .card:hover::before{opacity:1}
-         #ctModal .card .idx{position:absolute;top:12px;right:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:26px;font-weight:800;color:rgba(255,255,255,.08);letter-spacing:-.02em;transition:.18s}
-         #ctModal .card:hover .idx{color:var(--ac,#5b9bff);opacity:.55}
-         /* Muted by default, the tool's own accent only on hover.
-            Nineteen tiles each wearing a different brand colour turns the
-            palette into a decoration: gold stops meaning money and green
-            stops meaning success when they are just tile identity. The
-            reference keeps its tile icons monochrome for the same reason. */
-         #ctModal .card .ic{width:28px;height:28px;margin-bottom:13px;color:#5e646e;transition:color .15s}
-         #ctModal .card:hover .ic{color:var(--ac,#5b9bff)}
-         #ctModal .card .ic svg{width:100%;height:100%;display:block}
-         #ctModal .card .nm{font-weight:800;color:#f4f5f7;font-size:15.5px;letter-spacing:-.01em}
-         #ctModal .card .ds{font-size:12.5px;color:#8a919c;margin-top:5px;line-height:1.5;max-width:92%}
-         #ctModal .card .tag{position:absolute;left:18px;bottom:14px;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#8a919c}
-         #ctModal .card .tag b{color:#5fe0b0}
-         #ctModal .row{display:flex;gap:10px;flex-wrap:wrap}
+         #ctModal .btn{font:700 14px Manrope,ui-sans-serif,system-ui,sans-serif;padding:12px 14px;border-radius:11px;cursor:pointer;transition:background .15s,border-color .15s,color .15s;border:none}
+         #ctModal .btn:disabled{opacity:.6;cursor:default}
+         #ctModal .btn:focus-visible,#ctModal .card:focus-visible,#ctModal .cp:focus-visible,#ctModal .sp-back:focus-visible,#ctModal .sp-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+         #ctModal .btn.sp-go{width:100%;min-height:46px;background:#2563ff;color:#fff}
+         #ctModal .btn.sp-go:hover{background:#3a72ff}
+         #ctModal .btn.sp-ghost{background:transparent;color:#f4f5f7;border:1px solid rgba(255,255,255,.14);font-size:13px;padding:9px 13px}
+         #ctModal .btn.sp-ghost:hover{border-color:rgba(255,255,255,.32)}
+         #ctModal .sp-head{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:20px}
+         #ctModal .sp-back{display:inline-flex;align-items:center;gap:6px;padding:6px 10px 6px 7px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s,color .15s}
+         #ctModal .sp-back:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+         #ctModal [dir="rtl"] .sp-back svg,[dir="rtl"] #ctModal .sp-back svg{transform:scaleX(-1)}
+         #ctModal .sp-eye{font:500 10.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:#8a919c}
+         #ctModal .sp-title{margin:6px 0 0;font:600 26px/1.15 "Space Grotesk",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.015em;color:#fff}
+         #ctModal .card{position:relative;text-align:start;background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 18px 46px;cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden}
+         #ctModal .card:hover{border-color:rgba(255,255,255,.22);background:#12151b}
+         #ctModal .card .idx{position:absolute;top:16px;inset-inline-end:16px;font:500 11px/1 "JetBrains Mono",ui-monospace,monospace;color:#5d636d;letter-spacing:.06em}
+         #ctModal .card .ic{width:34px;height:34px;margin-bottom:14px;display:grid;place-items:center;border-radius:10px;background:#14171d;border:1px solid rgba(255,255,255,.07);color:#c9ccd3;transition:color .15s,border-color .15s}
+         #ctModal .card .ic svg{width:18px;height:18px;display:block}
+         #ctModal .card:hover .ic{color:#fff;border-color:rgba(255,255,255,.18)}
+         #ctModal .card .nm{font:600 15.5px/1.3 "Space Grotesk",ui-sans-serif,system-ui,sans-serif;color:#f4f5f7;letter-spacing:-.01em}
+         #ctModal .card .ds{font-size:12.5px;color:#8a919c;margin-top:5px;line-height:1.5;max-width:94%}
+         #ctModal .card .tag{position:absolute;inset-inline-start:18px;bottom:15px;font:500 10px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;color:#8a919c}
+         #ctModal .card .tag b{color:#5fe0b0;font-weight:500}
+         #ctModal .row{display:flex;gap:12px;flex-wrap:wrap}
          #ctModal .row>div{flex:1;min-width:120px}
-         #ctModal .cp{font:inherit;font-size:11px;font-weight:700;padding:5px 10px;border-radius:10px;cursor:pointer;border:none;background:rgba(16,185,129,.16);color:#5fe0b0}
-         #ctModal .cp:hover{background:rgba(16,185,129,.28)}
-         #ctModal pre{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:13.5px;line-height:1.55;color:#f4f5f7;margin:0}
-         #ctModal .tbl{border-collapse:collapse;font-size:11.5px;min-width:760px}
-         #ctModal .tbl th,#ctModal .tbl td{border:1px solid rgba(255,255,255,.12);padding:7px 8px;vertical-align:top;text-align:left}
-         #ctModal .tbl th{background:rgba(16,185,129,.14);color:#5fe0b0;font-weight:800;white-space:nowrap}
-         #ctModal .tbl td:first-child{background:rgba(255,255,255,.05);font-weight:800;color:#f4f5f7;white-space:nowrap}
-         #ctModal .tbl td{color:#f4f5f7}
+         #ctModal .cp{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;padding:6px 11px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;transition:border-color .15s}
+         #ctModal .cp:hover{border-color:#2563ff}
+         #ctModal .sp-card{background:#0e1014;border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px 20px}
+         #ctModal pre{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:14px;line-height:1.6;color:#f4f5f7;margin:0}
+         #ctModal .sp-md{font-size:14px;line-height:1.65;color:#e6e8ec;word-break:break-word}
+         #ctModal .sp-md h4{margin:16px 0 6px;font:600 12px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a919c}
+         #ctModal .sp-md h4:first-child{margin-top:0}
+         #ctModal .sp-md p{margin:0 0 10px}
+         #ctModal .sp-md ul,#ctModal .sp-md ol{margin:0 0 10px;padding-inline-start:20px}
+         #ctModal .sp-md li{margin:3px 0}
+         #ctModal .sp-md strong{color:#fff;font-weight:700}
+         #ctModal .sp-md em{color:#8a919c;font-style:italic}
+         #ctModal .sp-md blockquote{margin:0 0 10px;padding-inline-start:12px;border-inline-start:2px solid rgba(255,255,255,.18);color:#c9ccd3}
+         #ctModal .sp-md hr{border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0}
+         #ctModal .sp-dl{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none;transition:border-color .15s}
+         #ctModal .sp-dl:hover{border-color:#2563ff}
+         #ctModal .tbl{border-collapse:collapse;font-size:12px;min-width:760px}
+         #ctModal .tbl th,#ctModal .tbl td{border:1px solid rgba(255,255,255,.1);padding:8px 9px;vertical-align:top;text-align:start}
+         #ctModal .tbl th{background:#14171d;color:#c9ccd3;font-weight:700;white-space:nowrap}
+         #ctModal .tbl td:first-child{background:#0e1014;font-weight:700;color:#f4f5f7;white-space:nowrap}
+         #ctModal .tbl td{color:#e6e8ec}
        </style>
        ${page ? "" : `<div style="display:flex;align-items:center;gap:10px">
-         <span style="font-size:22px">🧰</span>
-         <span style="font-family:'Prata',Georgia,serif;font-size:20px;color:#f4f5f7">Spark</span>
+         <span style="font:600 20px 'Space Grotesk',ui-sans-serif,system-ui,sans-serif;color:#fff;letter-spacing:-.01em">Spark</span>
          <span style="flex:1"></span>
-         <button id="ctClose" type="button" class="btn" style="background:transparent;color:#f4f5f7;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);padding:8px 14px">${fa ? "بستن" : "Close"}</button>
+         <button id="ctClose" type="button" class="btn sp-ghost">${fa ? "بستن" : "Close"}</button>
        </div>`}
        <div id="ctBody"></div>
      </div>`;
   if (!page) document.body.appendChild(ov);
   if (!document.getElementById("vsSpinKf")) { const st = document.createElement("style"); st.id = "vsSpinKf"; st.textContent = "@keyframes vsspin{to{transform:rotate(360deg)}}"; document.head.appendChild(st); }
-  const $$ = (id) => ov.querySelector("#" + id);
+  // (a result that lands after its tool was left writes into a stand-in, not into null)
+  const $$ = (id) => ov.querySelector("#" + id) || (/(Out|List|Gfx|Txt|Slides)$/.test(id) ? document.createElement("div") : null);
   const body = $$("ctBody");
   const close = () => { if (page) { location.href = opts.home || "/"; return; } try { ov.remove(); } catch (e) {} };
   if (!page) ov.addEventListener("click", e => { if (e.target === ov) close(); });
   if ($$("ctClose")) $$("ctClose").onclick = close;
-  const spin = (t) => `<div style="display:flex;align-items:center;gap:10px;color:#8a919c;font-size:13px;padding:6px 0"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:#5fe0b0;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>${t}</div>`;
-  const copy = (str, btn) => { try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
+  const spin = (t) => `<div style="display:flex;align-items:center;gap:10px;color:#8a919c;font-size:13px;padding:6px 0"><span style="width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:#2563ff;border-radius:50%;display:inline-block;animation:vsspin .8s linear infinite"></span>${t}</div>`;
+  // AI answers come back in markdown; a post must be copied as plain text
+  // (LinkedIn and Instagram print the asterisks) and read formatted on screen.
+  const mdPlain = (str) => String(str || "").replace(/^\s*#{1,6}\s+/gm, "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1").replace(/(^|[^*\w])\*([^*\n]+?)\*(?![\w*])/g, "$1$2").replace(/^\s*>\s?/gm, "").replace(/^\s*[-*]\s+/gm, "• ").replace(/^\s*([-*_])\1{2,}\s*$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+  const spMd = (str) => {
+    const lines = esc(String(str || "")).split(/\r?\n/);
+    let html = "", list = "";
+    const inline = (l) => l.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/__([^_]+)__/g, "<strong>$1</strong>").replace(/(^|[^*\w])\*([^*\n]+?)\*(?![\w*])/g, "$1<em>$2</em>");
+    const close = () => { if (list) { html += "</" + list + ">"; list = ""; } };
+    for (const raw of lines) {
+      const l = raw.trim();
+      if (!l) { close(); continue; }
+      let m;
+      if ((m = /^#{1,6}\s+(.*)$/.exec(l))) { close(); html += "<h4>" + inline(m[1]) + "</h4>"; continue; }
+      if (/^([-*_])\1{2,}$/.test(l)) { close(); html += "<hr/>"; continue; }
+      if ((m = /^[-*•]\s+(.*)$/.exec(l))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
+      if ((m = /^\d+[.)]\s+(.*)$/.exec(l))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
+      if ((m = /^&gt;\s?(.*)$/.exec(l))) { close(); html += "<blockquote>" + inline(m[1]) + "</blockquote>"; continue; }
+      close(); html += "<p>" + inline(l) + "</p>";
+    }
+    close();
+    return html;
+  };
+  const copy = (str, btn) => { str = mdPlain(str); try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
   const platSel = (id) => `<select id="${id}"><option value="Instagram">Instagram</option><option value="LinkedIn">LinkedIn</option><option value="X (Twitter)">X / Twitter</option><option value="TikTok">TikTok</option></select>`;
-  const langSel = (id) => `<select id="${id}"><option value="English">English</option><option value="Spanish">Español</option></select>`;
+  const langSel = (id) => `<select id="${id}"><option value="English"${fa ? "" : " selected"}>English</option><option value="Persian"${fa ? " selected" : ""}>فارسی</option><option value="Spanish">Español</option></select>`;
   const langLine = (v) => v === "Spanish" ? "Write ALL output in Spanish." : "Write ALL output in English.";
 
   const TOOLS = [
@@ -24646,7 +24709,7 @@ function vsCreatorTools(opts) {
     const catOf = (id) => id === "thumb" ? (fa ? "تصویر" : "IMAGE") : GRAPHIC[id] ? (fa ? "گرافیک" : "GRAPHIC") : (fa ? "متن" : "TEXT");
     body.innerHTML =
       `<div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 14px">
-         <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:#12d6f5">${state.lang === "fa" ? "// ابزارها" : "// TOOLKIT"}</span>
+         <span class="sp-eye">${state.lang === "fa" ? "همهٔ ابزارها" : "All tools"}</span>
          <span style="font-size:12px;color:#8a919c">${fa ? `${TOOLS.length} ابزار` : `${TOOLS.length} tools`}</span>
          <span style="flex:1;height:1px;background:rgba(255,255,255,.08)"></span>
        </div>
@@ -24665,9 +24728,23 @@ function vsCreatorTools(opts) {
       c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTool(c.getAttribute("data-tool")); } };
     });
   }
-  const backBar = (title) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button id="ctBack" type="button" class="btn" style="background:rgba(255,255,255,.06);color:#f4f5f7;padding:7px 12px;font-size:13px">← ${fa ? "برگشت" : "Back"}</button><span style="font-weight:800;color:#f4f5f7;font-size:16px">${title}</span></div>`;
+  const backBar = (title) => `<div class="sp-head"><button id="ctBack" type="button" class="sp-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>${fa ? "همهٔ ابزارها" : "All tools"}</button><div><div class="sp-eye">Spark</div><h2 class="sp-title">${String(title).replace(/^[^\p{L}\p{N}]+/u, "")}</h2></div></div>`;
 
+  // the page's side list (Spark page): every tool, the open one marked
+  const nav = page && document.getElementById("spkNav");
+  const markNav = (id) => { if (!nav) return; nav.querySelectorAll("[data-nav]").forEach((b) => { const on = b.dataset.nav === id; b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }); };
+  if (nav) {
+    const groups = [[fa ? "نوشتن" : "Writing", ["hook", "post", "matrix", "score", "profile", "pinned", "news", "voice", "xopt", "meeting", "adcopy", "bio"]],
+      [fa ? "گرافیک" : "Graphics", ["quote", "info", "carousel", "graphic", "social", "logo"]], [fa ? "تصویر" : "Image", ["thumb"]]];
+    nav.innerHTML = groups.map(([g, ids]) => '<div class="spk-navsec">' + g + "</div>" + ids.map((id) => {
+      const tl = TOOLS.find((x) => x.id === id); if (!tl) return "";
+      return '<button type="button" class="spk-navitem" data-nav="' + id + '"><span class="spk-navic">' + toolIcon(id) + "</span><span>" + esc(tl.name) + "</span></button>";
+    }).join("")).join("");
+    nav.querySelectorAll("[data-nav]").forEach((b) => { b.onclick = () => { openTool(b.dataset.nav); try { (document.querySelector(".spk-main") || ov).scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) {} }; });
+  }
   function openTool(id) {
+    markNav(id);
+    if (page) { try { history.replaceState(null, "", "#" + id); } catch (e) {} }
     if (id === "hook") toolHook();
     else if (id === "post") toolPost();
     else if (id === "matrix") toolMatrix();
@@ -24687,20 +24764,20 @@ function vsCreatorTools(opts) {
     else if (id === "logo") toolLogo();
     else if (id === "adcopy") toolText("adcopy");
     else if (id === "bio") toolText("bio");
-    setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = hub; }, 0);
+    setTimeout(() => { const b = $$("ctBack"); if (b) b.onclick = () => { markNav(""); if (page) { try { history.replaceState(null, "", location.pathname); } catch (e) {} } hub(); }; }, 0);
   }
   const showImg = (outEl, blob, name) => {
     const u = URL.createObjectURL(blob);
     outEl.innerHTML = `<img src="${u}" style="width:min(360px,100%);border-radius:14px;display:block;margin:0 auto;background:#000"/>
-      <a href="${u}" download="${name}" style="display:block;max-width:360px;margin:10px auto 0;text-align:center;font:inherit;font-weight:800;padding:11px;border-radius:10px;text-decoration:none;color:#0e1014;background:linear-gradient(135deg,#5b9bff,#5fe0b0)">⬇ ${fa ? "دانلود" : "Download"}</a>`;
+      <div style="display:flex;justify-content:center;margin-top:12px"><a class="sp-dl" href="${u}" download="${name}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${fa ? "دانلود" : "Download"}</a></div>`;
   };
 
   // ---- Hook Generator ----
   function toolHook() {
-    body.innerHTML = backBar("🪝 " + (fa ? "هوک‌ساز" : "Hook Generator")) +
+    body.innerHTML = backBar((fa ? "هوک‌ساز" : "Hook Generator")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("hkPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("hkLang")}</div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="hkTopic" type="text" placeholder="${fa ? "موضوعِ پست…" : "What's the post about?"}"/></div>
-       <button id="hkGo" type="button" class="btn" style="width:100%;color:#0e1014;background:linear-gradient(135deg,#f5c451,#f5c451)">✨ ${fa ? "ساختِ ۶ هوک" : "Generate 6 hooks"}</button>
+       <button id="hkGo" type="button" class="btn sp-go">${fa ? "ساختِ ۶ هوک" : "Generate 6 hooks"}</button>
        <div id="hkOut" style="margin-top:14px"></div>`;
     $$("hkGo").onclick = async () => {
       const topic = ($$("hkTopic").value || "").trim(); if (!topic) { $$("hkTopic").focus(); return; }
@@ -24729,11 +24806,11 @@ function vsCreatorTools(opts) {
 
   // ---- Post Writer (framework) ----
   function toolPost() {
-    body.innerHTML = backBar("📝 " + (fa ? "پست‌نویس" : "Post Writer")) +
+    body.innerHTML = backBar((fa ? "پست‌نویس" : "Post Writer")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("psPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("psLang")}</div><div><div class="lbl">${fa ? "فریم‌ورک" : "Framework"}</div><select id="psFw"><option value="Auto">${fa ? "خودکار" : "Pick for me"}</option><option>PAS</option><option>AIDA</option><option>BAB</option><option>STAR</option><option>SLAY</option></select></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="psTopic" type="text" placeholder="${fa ? "موضوع یا خلاصهٔ پست…" : "Topic or a context dump…"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "جزئیاتِ اضافه (اختیاری)" : "Extra notes (optional)"}</div><textarea id="psNotes" rows="2" placeholder="${fa ? "آمار، لحن، مخاطب…" : "Facts, stats, tone, who it's for…"}"></textarea></div>
-       <button id="psGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#2563ff,#2563ff)">✨ ${fa ? "نوشتنِ پست" : "Write the post"}</button>
+       <button id="psGo" type="button" class="btn sp-go">${fa ? "نوشتنِ پست" : "Write the post"}</button>
        <div id="psOut" style="margin-top:14px"></div>`;
     $$("psGo").onclick = async () => {
       const topic = ($$("psTopic").value || "").trim(); if (!topic) { $$("psTopic").focus(); return; }
@@ -24751,18 +24828,18 @@ function vsCreatorTools(opts) {
       const post = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
       $$("psOut").innerHTML =
         `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پستِ آماده" : "Ready to post"}</span><span style="flex:1"></span><button id="psCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div>
-         <div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(post)}</pre></div>`;
+         <div class="sp-card"><div class="sp-md">${spMd(post)}</div></div>`;
       $$("psCopy").onclick = () => copy(post, $$("psCopy"));
     };
   }
 
   // ---- Content Matrix ----
   function toolMatrix() {
-    body.innerHTML = backBar("🗂️ " + (fa ? "ماتریسِ محتوا" : "Content Matrix")) +
+    body.innerHTML = backBar((fa ? "ماتریسِ محتوا" : "Content Matrix")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("mxPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("mxLang")}</div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "دربارهٔ تو / کسب‌وکارت" : "About you / your business"}</div><textarea id="mxAbout" rows="3" placeholder="${fa ? "کی هستی، چه‌کار می‌کنی، دربارهٔ چی حرف می‌زنی…" : "Who you are, what you do, what you talk about…"}"></textarea></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "ستون‌های محتوا (اختیاری — خالی بذاری خودم پیشنهاد می‌دم)" : "Content pillars (optional — leave blank and I'll suggest)"}</div><input id="mxPillars" type="text" placeholder="${fa ? "مثلاً: بازاریابی، سازندگی، رشد" : "e.g. marketing, building, growth"}"/></div>
-       <button id="mxGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#12d6f5,#12d6f5)">✨ ${fa ? "ساختِ ماتریس (۳۲+ ایده)" : "Build matrix (32+ ideas)"}</button>
+       <button id="mxGo" type="button" class="btn sp-go">${fa ? "ساختِ ماتریس (۳۲+ ایده)" : "Build matrix (32+ ideas)"}</button>
        <div id="mxOut" style="margin-top:14px"></div>`;
     $$("mxGo").onclick = async () => {
       const about = ($$("mxAbout").value || "").trim(); if (!about) { $$("mxAbout").focus(); return; }
@@ -24796,10 +24873,10 @@ function vsCreatorTools(opts) {
 
   // ---- Quote Post (free canvas graphic) ----
   function toolQuote() {
-    body.innerHTML = backBar("❝ " + (fa ? "پستِ نقلِ‌قول" : "Quote Post")) +
+    body.innerHTML = backBar((fa ? "پستِ نقلِ‌قول" : "Quote Post")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("qtPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("qtLang")}</div><div><div class="lbl">${fa ? "هندل (اختیاری)" : "Handle (optional)"}</div><input id="qtHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع / کپشن" : "Topic / caption"}</div><textarea id="qtCap" rows="2" placeholder="${fa ? "نقلِ‌قول باید پیامِ این را تقویت کند…" : "The quote should reinforce this message…"}"></textarea></div>
-       <button id="qtGo" type="button" class="btn" style="width:100%;color:#0e1014;background:linear-gradient(135deg,#5b9bff,#5fe0b0)">✨ ${fa ? "ساختِ ۹ نقلِ‌قول" : "Generate 9 quotes"}</button>
+       <button id="qtGo" type="button" class="btn sp-go">${fa ? "ساختِ ۹ نقلِ‌قول" : "Generate 9 quotes"}</button>
        <div id="qtList" style="margin-top:14px"></div><div id="qtGfx" style="margin-top:12px"></div>`;
     const makeGfx = async (q) => {
       $$("qtGfx").innerHTML = spin(fa ? "در حال رندر…" : "Rendering…");
@@ -24821,7 +24898,7 @@ function vsCreatorTools(opts) {
       $$("qtList").innerHTML = data.groups.map(gr =>
         `<div style="margin-bottom:12px"><div class="lbl" style="color:#5b9bff">${esc(gr.name || "")}</div>` +
         (gr.quotes || []).map(q => `<div style="display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px;margin-bottom:7px"><div style="flex:1;font-size:14px;color:#f4f5f7;font-weight:600">${esc(q)}</div><button class="cp" data-q="${esc(q)}">🎨 ${fa ? "گرافیک" : "Graphic"}</button></div>`).join("") + `</div>`).join("") +
-        `<div style="display:flex;gap:8px;margin-top:6px"><input id="qtOwn" type="text" placeholder="${fa ? "یا نقلِ‌قولِ خودت…" : "…or your own quote"}"/><button id="qtOwnGo" class="btn" style="white-space:nowrap;color:#0e1014;background:linear-gradient(135deg,#5b9bff,#5fe0b0)">🎨</button></div>`;
+        `<div style="display:flex;gap:8px;margin-top:6px"><input id="qtOwn" type="text" placeholder="${fa ? "یا نقلِ‌قولِ خودت…" : "…or your own quote"}"/><button id="qtOwnGo" class="btn sp-ghost" style="white-space:nowrap">${fa ? "گرافیک" : "Graphic"}</button></div>`;
       $$("qtList").querySelectorAll(".cp").forEach(b => b.onclick = () => makeGfx(b.getAttribute("data-q").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')));
       $$("qtOwnGo").onclick = () => { const v = ($$("qtOwn").value || "").trim(); if (v) makeGfx(v); };
     };
@@ -24829,10 +24906,10 @@ function vsCreatorTools(opts) {
 
   // ---- Infographic (free canvas, whiteboard style) ----
   function toolInfographic() {
-    body.innerHTML = backBar("📊 " + (fa ? "اینفوگرافیک" : "Infographic")) +
+    body.innerHTML = backBar((fa ? "اینفوگرافیک" : "Infographic")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("igLang")}</div><div><div class="lbl">${fa ? "فوتر (نام/تگ‌لاین)" : "Footer (name/tagline)"}</div><input id="igFoot" type="text" placeholder="${fa ? "مثلاً @yourname برای محتوای بیشتر" : "e.g. @yourname for more"}"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "محتوا (پست، خبرنامه، بولت…)" : "Content (post, newsletter, bullets…)"}</div><textarea id="igSrc" rows="4" placeholder="${fa ? "متنی که می‌خوای به اینفوگرافیک تبدیل شود…" : "Paste what you want turned into an infographic…"}"></textarea></div>
-       <button id="igGo" type="button" class="btn" style="width:100%;color:#0e1014;background:linear-gradient(135deg,#5fe0b0,#5b9bff)">✨ ${fa ? "ساختِ اینفوگرافیک" : "Build infographic"}</button>
+       <button id="igGo" type="button" class="btn sp-go">${fa ? "ساختِ اینفوگرافیک" : "Build infographic"}</button>
        <div id="igOut" style="margin-top:14px"></div>`;
     $$("igGo").onclick = async () => {
       const src = ($$("igSrc").value || "").trim(); if (!src) { $$("igSrc").focus(); return; }
@@ -24853,10 +24930,10 @@ function vsCreatorTools(opts) {
 
   // ---- Post Scorer (free) ----
   function toolScore() {
-    body.innerHTML = backBar("🎯 " + (fa ? "امتیازِ پست" : "Post Scorer")) +
+    body.innerHTML = backBar((fa ? "امتیازِ پست" : "Post Scorer")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("scPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("scLang")}</div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "پست را پیست کن" : "Paste the post"}</div><textarea id="scPost" rows="6" placeholder="${fa ? "پستی که می‌خوای نمره بگیره…" : "The post you want scored…"}"></textarea></div>
-       <button id="scGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#f87171,#f5c451)">✨ ${fa ? "نمره بده" : "Score it"}</button>
+       <button id="scGo" type="button" class="btn sp-go">${fa ? "نمره بده" : "Score it"}</button>
        <div id="scOut" style="margin-top:14px"></div>`;
     $$("scGo").onclick = async () => {
       let post = ($$("scPost").value || "").trim(); if (!post) { $$("scPost").focus(); return; }
@@ -24898,18 +24975,18 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("scOut").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span>${readNote ? `<span style="font-size:11px;color:#8a919c">${esc(readNote)}</span>` : ""}<span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span>${readNote ? `<span style="font-size:11px;color:#8a919c">${esc(readNote)}</span>` : ""}<span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
       $$("scCopy").onclick = () => copy(txt, $$("scCopy"));
     };
   }
 
   // ---- Profile Optimizer (free) ----
   function toolProfile() {
-    body.innerHTML = backBar("👤 " + (fa ? "بهینهٔ پروفایل" : "Profile Optimizer")) +
+    body.innerHTML = backBar((fa ? "بهینهٔ پروفایل" : "Profile Optimizer")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("pfPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("pfLang")}</div><div><div class="lbl">${fa ? "هدف" : "Goal"}</div><select id="pfGoal"><option value="Booked calls">${fa ? "تماس/دمو" : "Booked calls"}</option><option value="Inbound leads">${fa ? "لیدِ ورودی" : "Inbound leads"}</option><option value="Newsletter subscribers">${fa ? "مشترکِ خبرنامه" : "Newsletter subs"}</option><option value="Job opportunities">${fa ? "فرصتِ شغلی" : "Job offers"}</option></select></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "نام و نقش" : "Name & role"}</div><input id="pfWho" type="text" placeholder="${fa ? "مثلاً سارا — مشاورِ املاک" : "e.g. Sara — real estate agent"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "آفر + مدرکِ اجتماعی (اختیاری)" : "Offer + social proof (optional)"}</div><textarea id="pfProof" rows="2" placeholder="${fa ? "چه کمکی می‌کنی، به کی، با چه نتیجه‌ای…" : "What you offer, to whom, with what results…"}"></textarea></div>
-       <button id="pfGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#12d6f5,#5b9bff)">✨ ${fa ? "بازنویسیِ پروفایل" : "Rebuild profile"}</button>
+       <button id="pfGo" type="button" class="btn sp-go">${fa ? "بازنویسیِ پروفایل" : "Rebuild profile"}</button>
        <div id="pfOut" style="margin-top:14px"></div>`;
     $$("pfGo").onclick = async () => {
       const who = ($$("pfWho").value || "").trim(); if (!who) { $$("pfWho").focus(); return; }
@@ -24922,29 +24999,29 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("pfOut").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
       $$("pfCopy").onclick = () => copy(txt, $$("pfCopy"));
     };
   }
 
   // ---- Carousel (branded slides from a topic) ----
   function toolCarousel() {
-    body.innerHTML = backBar("🎠 " + (fa ? "کاروسل" : "Carousel")) +
+    body.innerHTML = backBar((fa ? "کاروسل" : "Carousel")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel("caPlat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("caLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="caHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:6px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="caTopic" type="text" placeholder="${fa ? "موضوعِ کاروسل…" : "What's the carousel about?"}"/></div>
        <div style="font-size:12px;color:#5fe0b0;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);border-radius:10px;padding:8px 11px;margin-bottom:12px">✦ ${fa ? "فقط موضوع رو بده و «ساختِ کاروسل» رو بزن — خودم همهٔ اسلایدها رو می‌نویسم. اگه دوست داری خودت کنترل کنی، پایین اسلاید اضافه کن." : "Just enter a topic and hit Build — I'll write all the slides for you. Want full control? Add your own slides below (optional)."}</div>
        <div style="margin-bottom:6px"><div class="lbl">${fa ? "اسلایدهای خودت (اختیاری — دستی)" : "Your own slides (optional — manual)"}</div>
          <div id="caSlides" style="display:flex;flex-direction:column;gap:8px"></div>
-         <button id="caAdd" type="button" class="btn" style="margin-top:8px;background:rgba(34,211,238,.08);color:#12d6f5;box-shadow:inset 0 0 0 1px rgba(34,211,238,.32);font-weight:700;font-size:13px;padding:8px 12px">＋ ${fa ? "افزودنِ اسلاید" : "Add slide"}</button>
+         <button id="caAdd" type="button" class="btn sp-ghost" style="margin-top:8px">+ ${fa ? "افزودنِ اسلاید" : "Add slide"}</button>
        </div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "CTA (اختیاری)" : "CTA (optional)"}</div><input id="caCta" type="text" placeholder="${fa ? "مثلاً: پیام بده" : "e.g. DM me to start"}"/></div>
        <div style="font-size:11.5px;color:#8a919c;margin-bottom:10px">${fa ? "اسلاید اضافه کنی → دقیقاً همون‌ها ساخته می‌شن. هیچ اسلایدی نذاری → از روی موضوع خودکار می‌سازم." : "Add slides → exactly those are built (no auto count). Add none → I auto-write from the topic."}</div>
        <label id="caPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#f4f5f7;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-         <span style="font-size:16px">🖼</span>
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:#8a919c;flex:none"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg>
          <span id="caPhotoTxt">${fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"}</span>
          <input id="caPhoto" type="file" accept="image/*" style="display:none"/>
        </label>
-       <button id="caGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#12d6f5,#2563ff)">✨ ${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
+       <button id="caGo" type="button" class="btn sp-go">${fa ? "ساختِ کاروسل" : "Build carousel"}</button>
        <div id="caOut" style="margin-top:12px"></div>`;
     let caPhoto = null;
     $$("caPhoto").onchange = (e) => { caPhoto = (e.target.files && e.target.files[0]) || null; $$("caPhotoTxt").textContent = caPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + caPhoto.name.slice(0, 30) : (fa ? "عکسِ خودت برای اسلایدِ کاور (اختیاری) — به‌جای عکسِ AI" : "Your own photo for the cover slide (optional) — instead of an AI person"); };
@@ -25005,10 +25082,10 @@ function vsCreatorTools(opts) {
 
   // ---- Post Graphic (bold statement card, canvas, free) ----
   function toolGraphic() {
-    body.innerHTML = backBar("🎨 " + (fa ? "گرافیکِ پست" : "Post Graphic")) +
+    body.innerHTML = backBar((fa ? "گرافیکِ پست" : "Post Graphic")) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("grLang")}</div><div><div class="lbl">${fa ? "هندل" : "Handle"}</div><input id="grHandle" type="text" placeholder="@yourname"/></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع" : "Topic"}</div><input id="grTopic" type="text" placeholder="${fa ? "یک جملهٔ محکم می‌سازم…" : "I'll craft one bold statement…"}"/></div>
-       <button id="grGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#f87171,#12d6f5)">✨ ${fa ? "ساختِ گرافیک" : "Make graphic"}</button>
+       <button id="grGo" type="button" class="btn sp-go">${fa ? "ساختِ گرافیک" : "Make graphic"}</button>
        <div id="grOut" style="margin-top:12px"></div>`;
     $$("grGo").onclick = async () => {
       const topic = ($$("grTopic").value || "").trim(); if (!topic) { $$("grTopic").focus(); return; }
@@ -25040,10 +25117,10 @@ function vsCreatorTools(opts) {
       bio: { icon: "🔗", name: fa ? "بایو و لینک‌این‌بایو" : "Bio / Link-in-bio", ph: fa ? "تو کی هستی و چی‌کار می‌کنی؟…" : "Who are you and what do you do?…", label: fa ? "دربارهٔ تو" : "About you", accent: "#5fe0b0",
         prompt: (v, plat, lang) => `For "${v}", craft an optimised ${plat} profile. Output, clearly labelled: 3 BIO OPTIONS (each within the platform's character limit — ~150 for Instagram/X, ~220 for LinkedIn headline; front-load who-you-help + outcome, add 1 credibility proof and a soft CTA), and a LINK-IN-BIO layout: 4-6 button labels in priority order (each ≤22 chars) with a one-line purpose for each. ${lang}` },
     }[kind];
-    body.innerHTML = backBar(M.icon + " " + M.name) +
+    body.innerHTML = backBar(M.name) +
       `<div class="row" style="margin-bottom:10px"><div><div class="lbl">${fa ? "پلتفرم" : "Platform"}</div>${platSel(kind + "Plat")}</div><div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel(kind + "Lang")}</div></div>
        <div style="margin-bottom:10px"><div class="lbl">${M.label}</div>${M.area ? `<textarea id="${kind}In" rows="5" placeholder="${M.ph}"></textarea>` : `<input id="${kind}In" type="text" placeholder="${M.ph}"/>`}</div>
-       <button id="${kind}Go" type="button" class="btn" style="width:100%;color:#fff;background:${M.accent}">✨ ${fa ? "بساز" : "Generate"}</button>
+       <button id="${kind}Go" type="button" class="btn sp-go">${fa ? "بساز" : "Generate"}</button>
        <div id="${kind}Out" style="margin-top:14px"></div>`;
     $$(kind + "Go").onclick = async () => {
       const v = ($$(kind + "In").value || "").trim(); if (!v) { $$(kind + "In").focus(); return; }
@@ -25052,14 +25129,14 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$(kind + "Out").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:15px"><pre>${esc(txt)}</pre></div>`;
+      $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
       $$(kind + "Copy").onclick = () => copy(txt, $$(kind + "Copy"));
     };
   }
 
   // ---- YouTube Thumbnail (dedicated 1280x720 high-CTR generator) ----
   function toolThumb() {
-    body.innerHTML = backBar("🖼️ " + (fa ? "تامبنیلِ یوتیوب" : "YouTube Thumbnail")) +
+    body.innerHTML = backBar((fa ? "تامبنیلِ یوتیوب" : "YouTube Thumbnail")) +
       `<div style="font-size:12px;color:#8a919c;margin-bottom:10px">${fa ? "۱۲۸۰×۷۲۰ (۱۶:۹) · سبکِ پرکلیک" : "1280×720 (16:9) · high-CTR style"}</div>
        <div class="row" style="margin-bottom:10px">
          <div><div class="lbl">${fa ? "زبان" : "Language"}</div>${langSel("ytLang")}</div>
@@ -25069,9 +25146,9 @@ function vsCreatorTools(opts) {
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "عنوانِ ویدیو" : "Video title"}</div><input id="ytTitle" type="text" placeholder="${fa ? "عنوانِ ویدیوی یوتیوب…" : "Your YouTube video title…"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "متنِ روی تامبنیل (اختیاری — جملهٔ خودت)" : "Thumbnail text (optional — your own words)"}</div><input id="ytHook" type="text" maxlength="40" placeholder="${fa ? "خالی بذار تا خودم یه هوکِ پرکلیک بسازم" : "Leave empty — I'll write a high-CTR hook"}"/></div>
        <label id="ytPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#f4f5f7;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-         <span style="font-size:16px">🖼</span><span id="ytPhotoTxt">${fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"}</span>
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:#8a919c;flex:none"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span id="ytPhotoTxt">${fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"}</span>
          <input id="ytPhoto" type="file" accept="image/*" style="display:none"/></label>
-       <button id="ytGo" type="button" class="btn" style="width:100%;color:#0e1014;background:linear-gradient(135deg,#f87171,#f5c451);font-weight:800">✨ ${fa ? "ساختِ تامبنیل" : "Generate thumbnail"}</button>
+       <button id="ytGo" type="button" class="btn sp-go">${fa ? "ساختِ تامبنیل" : "Generate thumbnail"}</button>
        <div id="ytOut" style="margin-top:14px"></div>`;
     let ytPhoto = null;
     $$("ytPhoto").onchange = (e) => { ytPhoto = (e.target.files && e.target.files[0]) || null; $$("ytPhotoTxt").textContent = ytPhoto ? (fa ? "✓ عکسِ تو: " : "✓ Your photo: ") + ytPhoto.name.slice(0, 28) : (fa ? "عکسِ خودت (اختیاری) — به‌جای عکسِ AI" : "Your own photo (optional) — instead of an AI image"); };
@@ -25108,8 +25185,8 @@ function vsCreatorTools(opts) {
       const u = URL.createObjectURL(blob);
       $$("ytOut").innerHTML = `<img src="${u}" style="width:100%;border-radius:10px;background:#000;display:block"/>
         <div style="display:flex;gap:9px;margin-top:10px">
-          <a href="${u}" download="youtube-thumbnail-1280x720.jpg" style="flex:2;text-align:center;font:inherit;font-weight:800;padding:12px;border-radius:10px;text-decoration:none;color:#0e1014;background:linear-gradient(135deg,#f87171,#f5c451)">⬇ ${fa ? "دانلود (۱۲۸۰×۷۲۰)" : "Download (1280×720)"}</a>
-          <button id="ytAgain" class="btn" style="flex:1;color:#f4f5f7;background:rgba(255,255,255,.06)">↻ ${fa ? "دوباره" : "Again"}</button>
+          <a href="${u}" download="youtube-thumbnail-1280x720.jpg" class="sp-dl" style="flex:2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${fa ? "دانلود (۱۲۸۰×۷۲۰)" : "Download (1280×720)"}</a>
+          <button id="ytAgain" class="btn sp-ghost" style="flex:1">${fa ? "دوباره" : "Again"}</button>
         </div>`;
       vsTrackGen("ytthumb", (img && img._imgModel) || "canvas", "tone:" + tone);
       $$("ytAgain").onclick = () => $$("ytGo").click();
@@ -25118,7 +25195,7 @@ function vsCreatorTools(opts) {
 
   // ---- Social Post Maker (Canva-style, any size, free) ----
   function toolSocial() {
-    body.innerHTML = backBar("🖼️ " + (fa ? "پست‌سازِ سوشال" : "Social Post Maker")) +
+    body.innerHTML = backBar((fa ? "پست‌سازِ سوشال" : "Social Post Maker")) +
       `<div class="row" style="margin-bottom:10px">
          <div><div class="lbl">${fa ? "سایز" : "Size"}</div><select id="soSize">
            <option value="ig_square">Instagram · 1080×1080</option>
@@ -25139,15 +25216,15 @@ function vsCreatorTools(opts) {
        </div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "موضوع (برای نوشتنِ خودکار)" : "Topic (for AI copy)"}</div>
          <div style="display:flex;gap:8px"><input id="soTopic" type="text" style="flex:1" placeholder="${fa ? "مثلاً: تخفیفِ آخرِ هفته…" : "e.g. weekend flash sale…"}"/>
-         <button id="soAI" type="button" class="btn" style="background:rgba(139,92,246,.16);box-shadow:inset 0 0 0 1px rgba(139,92,246,.5);color:#f4f5f7;white-space:nowrap">✨ ${fa ? "بنویس" : "Write"}</button></div></div>
+         <button id="soAI" type="button" class="btn sp-ghost" style="white-space:nowrap">${fa ? "بنویس" : "Write"}</button></div></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "لیبلِ بالا (اختیاری)" : "Eyebrow (optional)"}</div><input id="soEye" type="text" maxlength="34" placeholder="${fa ? "مثلاً NEW DROP" : "e.g. NEW DROP"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "تیترِ اصلی" : "Headline"}</div><input id="soHead" type="text" placeholder="${fa ? "جملهٔ اصلیِ پست…" : "Your main line…"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "زیرمتن (اختیاری)" : "Subtext (optional)"}</div><input id="soSub" type="text" placeholder="${fa ? "یک خط توضیح…" : "one supporting line…"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "هندل (اختیاری)" : "Handle (optional)"}</div><input id="soHandle" type="text" maxlength="30" placeholder="@yourbrand"/></div>
        <label id="soPhotoLbl" style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12.5px;color:#f4f5f7;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18);border-radius:10px;padding:9px 11px;cursor:pointer">
-         <span style="font-size:16px">🖼</span><span id="soPhotoTxt">${fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"}</span>
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:#8a919c;flex:none"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span id="soPhotoTxt">${fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"}</span>
          <input id="soPhoto" type="file" accept="image/*" style="display:none"/></label>
-       <button id="soGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#12d6f5,#2563ff);font-weight:800">✨ ${fa ? "ساختِ پست" : "Generate post"}</button>
+       <button id="soGo" type="button" class="btn sp-go">${fa ? "ساختِ پست" : "Generate post"}</button>
        <div id="soOut" style="margin-top:14px"></div>`;
     let soPhoto = null;
     $$("soPhoto").onchange = (e) => { soPhoto = (e.target.files && e.target.files[0]) || null; $$("soPhotoTxt").textContent = soPhoto ? (fa ? "✓ عکس: " : "✓ Photo: ") + soPhoto.name.slice(0, 26) : (fa ? "عکسِ پس‌زمینه (اختیاری)" : "Background photo (optional)"); };
@@ -25187,7 +25264,7 @@ function vsCreatorTools(opts) {
 
   // ---- Logo / Wordmark maker (transparent PNG) ----
   function toolLogo() {
-    body.innerHTML = backBar("✳️ " + (fa ? "لوگو / وردمارک" : "Logo / Wordmark")) +
+    body.innerHTML = backBar((fa ? "لوگو / وردمارک" : "Logo / Wordmark")) +
       `<div style="font-size:12px;color:#8a919c;margin-bottom:10px">${fa ? "PNGِ شفاف · ۱۶۰۰×۶۰۰" : "Transparent PNG · 1600×600"}</div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "نامِ برند" : "Brand name"}</div><input id="lgName" type="text" maxlength="26" placeholder="${fa ? "اسمِ برندت…" : "Your brand name…"}"/></div>
        <div style="margin-bottom:10px"><div class="lbl">${fa ? "شعار (اختیاری)" : "Tagline (optional)"}</div><input id="lgTag" type="text" maxlength="42" placeholder="${fa ? "یک خطِ کوتاه…" : "a short line…"}"/></div>
@@ -25202,7 +25279,7 @@ function vsCreatorTools(opts) {
            <option value="none">${fa ? "بدونِ نشان" : "No mark"}</option>
          </select></div>
        </div>
-       <button id="lgGo" type="button" class="btn" style="width:100%;color:#fff;background:linear-gradient(135deg,#5b9bff,#2563ff);font-weight:800">✨ ${fa ? "ساختِ لوگو" : "Generate logo"}</button>
+       <button id="lgGo" type="button" class="btn sp-go">${fa ? "ساختِ لوگو" : "Generate logo"}</button>
        <div id="lgOut" style="margin-top:14px"></div>`;
     $$("lgGo").onclick = async () => {
       const name = ($$("lgName").value || "").trim(); if (!name) { $$("lgName").focus(); return; }
@@ -25218,12 +25295,14 @@ function vsCreatorTools(opts) {
            <div style="background:#0e1014;padding:14px;display:flex;justify-content:center"><img src="${u}" style="width:min(320px,100%)"/></div>
            <div style="background:#f4f5f7;padding:14px;display:flex;justify-content:center"><img src="${u}" style="width:min(320px,100%)"/></div>
          </div>
-         <a href="${u}" download="logo.png" style="display:block;max-width:340px;margin:12px auto 0;text-align:center;font:inherit;font-weight:800;padding:11px;border-radius:10px;text-decoration:none;color:#0e1014;background:linear-gradient(135deg,#5b9bff,#5fe0b0)">⬇ ${fa ? "دانلودِ PNG" : "Download PNG"}</a>`;
+         <a href="${u}" download="logo.png" class="sp-dl" style="display:flex;max-width:340px;margin:12px auto 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${fa ? "دانلودِ PNG" : "Download PNG"}</a>`;
       vsTrackGen("logo", "canvas", "style:" + $$("lgStyle").value + " mark:" + $$("lgMark").value);
     };
   }
 
   hub();
+  // a link straight to one tool (/spark/#post) opens it
+  if (page) { const want = (location.hash || "").slice(1); if (want && TOOLS.some((x) => x.id === want)) openTool(want); }
 }
 
 /**
