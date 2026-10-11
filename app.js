@@ -24240,10 +24240,34 @@ async function vsGenerateCover() {
 // A high-CTR YouTube THUMBNAIL (exactly 1280x720, 16:9) on canvas: bold hook
 // text with a thick outline, an accent word, a punchy colour wash and a focal
 // ring — following YouTube thumbnail best practices (not the editorial covers).
+// Persian on the Spark graphics. Every renderer below lays text out left to
+// right from a left margin. For right-to-left text the whole canvas is
+// mirrored (bars, photo panel, accents all move to the reading side) and each
+// piece of text is drawn un-mirrored at its anchor with left/right swapped, so
+// words come out in reading order and the layouts need no second version.
+function vsCanvasRtl(x, W, ...texts) {
+  if (!texts.some(t => /[؀-ۿ]/.test(String(t || "")))) return false;
+  try { x.direction = "rtl"; } catch (e) {}
+  x.translate(W, 0); x.scale(-1, 1);
+  const flip = { left: "right", right: "left", start: "end", end: "start" };
+  const wrap = (fn) => function (t, px, py, mw) {
+    t = String(t).replace(/→/g, "←");
+    const a = x.textAlign; x.save(); x.translate(px, py); x.scale(-1, 1); x.textAlign = flip[a] || a;
+    // a handle or brand word keeps its own order ("@name", not "name@")
+    if (!/[؀-ۿ]/.test(t)) try { x.direction = "ltr"; } catch (e) {}
+    mw === undefined ? fn.call(x, t, 0, 0) : fn.call(x, t, 0, 0, mw);
+    x.restore();
+  };
+  x.fillText = wrap(CanvasRenderingContext2D.prototype.fillText);
+  x.strokeText = wrap(CanvasRenderingContext2D.prototype.strokeText);
+  return true;
+}
+
 async function vsRenderYTThumb(hook, img, opts) {
   opts = opts || {}; const W = 1280, H = 720, FAM = '"Archivo", system-ui, sans-serif';
   const accent = opts.accent || "#f5c451";
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  vsCanvasRtl(x, W, hook);
   const shade = (hex, amt) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; const f = amt < 0 ? 0 : 255, p = Math.abs(amt); r = Math.round((f - r) * p + r); g = Math.round((f - g) * p + g); b = Math.round((f - b) * p + b); return `rgb(${r},${g},${b})`; };
   const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)); };
   const accDark = shade(accent, -0.62), accInk = lum(accent) > 150 ? "#0e1014" : "#ffffff";
@@ -24381,6 +24405,7 @@ async function vsRenderSocialPost(spec) {
   const st = VS_SOCIAL_STYLES[spec.style] || VS_SOCIAL_STYLES.midnight;
   const FAM = '"Archivo", system-ui, sans-serif', MFAM = '"JetBrains Mono", ui-monospace, monospace';
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  vsCanvasRtl(x, W, spec.headline, spec.subtext);
   const S = Math.min(W, H), M = Math.round(W * 0.085);
   // background: own photo (cover) + scrim, else the palette gradient
   if (spec.img && (spec.img.naturalWidth || spec.img.width)) {
@@ -24445,6 +24470,7 @@ async function vsRenderSocialPost(spec) {
 async function vsRenderQuoteCard(quote, opts) {
   opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  vsCanvasRtl(x, W, quote);
   const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#14171d"); g.addColorStop(1, "#0e1014"); x.fillStyle = g; x.fillRect(0, 0, W, H);
   const M = W * 0.11;
   x.fillStyle = "#f5c451"; x.font = `900 ${Math.round(W * 0.22)}px Georgia, serif`; x.textAlign = "left"; x.textBaseline = "top"; x.globalAlpha = 0.9; x.fillText("“", M - 12, H * 0.09); x.globalAlpha = 1;
@@ -24464,6 +24490,7 @@ async function vsRenderQuoteCard(quote, opts) {
 async function vsRenderInfographic(brief, opts) {
   opts = opts || {}; const W = 1080, H = 1350, FAM = '"Archivo", system-ui, sans-serif';
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  vsCanvasRtl(x, W, brief.title, brief.subtitle, ...(brief.points || []));
   x.fillStyle = "#f5c451"; x.fillRect(0, 0, W, H);
   x.strokeStyle = "rgba(0,0,0,0.045)"; for (let i = 0; i < H; i += 46) { x.beginPath(); x.moveTo(0, i); x.lineTo(W, i); x.stroke(); }
   const M = W * 0.08, ink = "#1a1e26", marker = ["#f87171", "#2563ff", "#5fe0b0", "#f5c451"];
@@ -24635,12 +24662,15 @@ function vsCreatorTools(opts) {
     const close = () => { if (list) { html += "</" + list + ">"; list = ""; } };
     for (const raw of lines) {
       const l = raw.trim();
-      if (!l) { close(); continue; }
+      // a blank line between list items does not end the list (models space
+      // their numbered points out, which restarted every item at "1")
+      if (!l) continue;
+      if (list && !/^([-*•]|\d+[.)])\s+/.test(l)) close();
       let m;
       if ((m = /^#{1,6}\s+(.*)$/.exec(l))) { close(); html += "<h4>" + inline(m[1]) + "</h4>"; continue; }
       if (/^([-*_])\1{2,}$/.test(l)) { close(); html += "<hr/>"; continue; }
       if ((m = /^[-*•]\s+(.*)$/.exec(l))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
-      if ((m = /^\d+[.)]\s+(.*)$/.exec(l))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
+      if ((m = /^(\d+)[.)]\s+(.*)$/.exec(l))) { m = [m[0], m[2], m[1]]; if (list !== "ol") { close(); html += `<ol start="${+m[2]}">`; list = "ol"; } html += "<li>" + inline(m[1]) + "</li>"; continue; }
       if ((m = /^&gt;\s?(.*)$/.exec(l))) { close(); html += "<blockquote>" + inline(m[1]) + "</blockquote>"; continue; }
       close(); html += "<p>" + inline(l) + "</p>";
     }
@@ -24650,7 +24680,7 @@ function vsCreatorTools(opts) {
   const copy = (str, btn) => { str = mdPlain(str); try { navigator.clipboard.writeText(str); const o = btn.textContent; btn.textContent = fa ? "کپی شد ✓" : "Copied ✓"; setTimeout(() => btn.textContent = o, 1400); } catch (e) {} };
   const platSel = (id) => `<select id="${id}"><option value="Instagram">Instagram</option><option value="LinkedIn">LinkedIn</option><option value="X (Twitter)">X / Twitter</option><option value="TikTok">TikTok</option></select>`;
   const langSel = (id) => `<select id="${id}"><option value="English"${fa ? "" : " selected"}>English</option><option value="Persian"${fa ? " selected" : ""}>فارسی</option><option value="Spanish">Español</option></select>`;
-  const langLine = (v) => v === "Spanish" ? "Write ALL output in Spanish." : "Write ALL output in English.";
+  const langLine = (v) => v === "Spanish" ? "Write ALL output in Spanish." : v === "Persian" ? "Write ALL output in natural, fluent Persian (Farsi) in Persian script - keep any JSON keys and the requested labels/shape exactly as given, only the content is Persian." : "Write ALL output in English.";
 
   const TOOLS = [
     { id: "hook", icon: "🪝", name: fa ? "هوک‌ساز" : "Hook Generator", desc: fa ? "۶ هوکِ کلیک‌بیتیِ دوخطی برای هر موضوع" : "6 two-line clickbait hooks for any topic", accent: "#f5c451" },
@@ -24828,7 +24858,7 @@ function vsCreatorTools(opts) {
       const post = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
       $$("psOut").innerHTML =
         `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پستِ آماده" : "Ready to post"}</span><span style="flex:1"></span><button id="psCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div>
-         <div class="sp-card"><div class="sp-md">${spMd(post)}</div></div>`;
+         <div class="sp-card"><div class="sp-md" dir="auto">${spMd(post)}</div></div>`;
       $$("psCopy").onclick = () => copy(post, $$("psCopy"));
     };
   }
@@ -24975,7 +25005,7 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("scOut").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span>${readNote ? `<span style="font-size:11px;color:#8a919c">${esc(readNote)}</span>` : ""}<span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
+      $$("scOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "کارنامه" : "Scorecard"}</span>${readNote ? `<span style="font-size:11px;color:#8a919c">${esc(readNote)}</span>` : ""}<span style="flex:1"></span><button id="scCopy" class="cp">${fa ? "کپی" : "Copy"}</button></div><div class="sp-card"><div class="sp-md" dir="auto">${spMd(txt)}</div></div>`;
       $$("scCopy").onclick = () => copy(txt, $$("scCopy"));
     };
   }
@@ -24999,7 +25029,7 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$("pfOut").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
+      $$("pfOut").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "پروفایلِ بازنویسی‌شده" : "Rebuilt profile"}</span><span style="flex:1"></span><button id="pfCopy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md" dir="auto">${spMd(txt)}</div></div>`;
       $$("pfCopy").onclick = () => copy(txt, $$("pfCopy"));
     };
   }
@@ -25129,7 +25159,7 @@ function vsCreatorTools(opts) {
       g.disabled = false; g.style.opacity = "1";
       if (!raw) { $$(kind + "Out").innerHTML = `<div style="color:#f87171;font-size:13px">${fa ? "نشد. دوباره امتحان کن." : "Failed — try again."}</div>`; return; }
       const txt = raw.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-      $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md">${spMd(txt)}</div></div>`;
+      $$(kind + "Out").innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="lbl" style="margin:0">${fa ? "خروجی" : "Result"}</span><span style="flex:1"></span><button id="${kind}Copy" class="cp">${fa ? "کپیِ همه" : "Copy all"}</button></div><div class="sp-card"><div class="sp-md" dir="auto">${spMd(txt)}</div></div>`;
       $$(kind + "Copy").onclick = () => copy(txt, $$(kind + "Copy"));
     };
   }
@@ -29361,6 +29391,7 @@ async function vsRenderCarouselSlide(spec, W, H, coverImg, theme) {
   };
   const quote = theme.style === "quote";   // editorial text-card look (matches the reference)
   const c = document.createElement("canvas"); c.width = W; c.height = H; const ctx = c.getContext("2d");
+  vsCanvasRtl(ctx, W, spec.title, spec.heading, spec.body, spec.subtitle);
   const M = W * (quote ? 0.11 : 0.075);
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, T.bg1); bg.addColorStop(1, T.bg2);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
