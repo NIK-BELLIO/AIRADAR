@@ -14,6 +14,7 @@ const VS_WORKER_BASE = "https://airadar-api.aliniashyn-9b4.workers.dev";
 // daily neuron allowance.
 const VS_AI_FALLBACK = "https://airadar-ai.aliniashyn-9b4.workers.dev/chat";
 const VS_AI_BUILD_GATE = "https://airadar-ai.aliniashyn-9b4.workers.dev/gate/build";
+const VS_AI_SPARK_GATE = "https://airadar-ai.aliniashyn-9b4.workers.dev/gate/spark";
 // CORS-safe AI image generator (FLUX-schnell) for the Editorial (editorial-style)
 // mode — returns raw bytes with CORS headers so the canvas stays exportable.
 const VS_AI_IMAGE = "https://airadar-ai.aliniashyn-9b4.workers.dev/image";
@@ -55,7 +56,9 @@ function arGuestWall(kind) {
     '<div class="gw" ' + (fa ? 'dir="rtl"' : '') + '><h2 id="arGwT">' + (fa ? "برای ادامه، یک حساب رایگان بسازید" : "Create a free account to keep going") + '</h2>' +
     '<p>' + (kind === "build"
       ? (fa ? "مهمان‌ها روزی یک ویدیو رایگان می‌سازند و ویدیوی امروزت را ساختی. با حساب رایگان، Video Studio برایت کاملاً رایگان و بدون محدودیت است." : "Guests get one free video a day, and you've made today's. With a free account Video Studio is completely free, with no daily limit.")
-      : (fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. ساخت حساب رایگان یک دقیقه طول می‌کشد و محدودیت مهمان را برمی‌دارد." : "You've used today's " + what + " for guests. A free account takes a minute and lifts the guest limit.")) + '</p>' +
+      : kind === "spark"
+      ? (fa ? "مهمان‌ها روزی ۵ نتیجهٔ رایگان از Spark می‌گیرند و سهمیهٔ امروزت تمام شد. با حساب رایگان، Spark برایت کاملاً رایگان و بدون محدودیت است." : "Guests get 5 free Spark results a day, and you've used today's. With a free account Spark is completely free, with no daily limit.")
+      :(fa ? "سهمیهٔ امروز " + what + " برای مهمان‌ها تمام شد. ساخت حساب رایگان یک دقیقه طول می‌کشد و محدودیت مهمان را برمی‌دارد." : "You've used today's " + what + " for guests. A free account takes a minute and lifts the guest limit.")) + '</p>' +
     '<div class="gwb"><a class="gwp" href="/login?mode=signup&next=' + next + '">' + (fa ? "ثبت‌نام رایگان" : "Create free account") + '</a>' +
     '<a class="gws" href="/login?next=' + next + '">' + (fa ? "ورود" : "Sign in") + '</a></div>' +
     '<button type="button" class="gwx">' + (fa ? "بعداً" : "Not now") + '</button></div>';
@@ -24605,6 +24608,38 @@ function vsCreatorTools(opts) {
   const fa = state.lang === "fa";
   const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const ov = page ? opts.mount : document.createElement("div");
+  // Guests get a few Spark results a day; members are never counted. The AI
+  // worker keeps the count, so clearing the browser does not reset it. One
+  // count per button press, however many AI calls that press makes: every
+  // tool below calls vsAutoAiChat, and this one asks the gate first. If the
+  // check cannot be reached, the result goes ahead.
+  let spGate = null, spMember = false;
+  ov.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("button")) spGate = null; }, true);
+  const spCheck = async () => {
+    try {
+      const r = await fetch(VS_AI_SPARK_GATE, { method: "POST", headers: await arGuestHeaders() });
+      if (r.status === 401 && await arIsGuestWall(r)) return false;
+      const j = r.ok ? await r.json().catch(() => null) : null;
+      if (j && j.member) spMember = true;
+    } catch (e) {}
+    return true;
+  };
+  const vsAutoAiChat = async (prompt, o) => {
+    if (!spMember) {
+      if (!spGate) spGate = spCheck();
+      if (!(await spGate)) {
+        spGate = null;
+        // the tool then writes its own "Failed - try again"; under the wall
+        // that is wrong, the result was refused, not broken
+        setTimeout(() => ov.querySelectorAll("div").forEach((d) => {
+          if (!d.children.length && /color:\s*#f87171/i.test(d.getAttribute("style") || ""))
+            d.textContent = fa ? "سهمیهٔ امروزِ مهمان تمام شد. با ثبت‌نام رایگان، بدون محدودیت ادامه بده." : "Today's guest allowance is used up. Sign up free to keep going with no limit.";
+        }), 0);
+        throw new Error("guest limit");
+      }
+    }
+    return window.vsAutoAiChat(prompt, o);
+  };
   if (!page) ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,4,6,.82);backdrop-filter:blur(6px);padding:16px";
   ov.innerHTML =
     `<div id="ctModal" style="${page ? "width:min(920px,100%);margin:0 auto;background:transparent;border:none;box-shadow:none;padding:0" : "width:min(760px,97vw);max-height:94vh;overflow:auto;background:#0e1014;border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.65)"};display:flex;flex-direction:column;gap:14px">
