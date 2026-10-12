@@ -1878,7 +1878,7 @@ function vsGetFont(fallback, forceFamily){
           requestAnimationFrame(function(){
             window._vsFontReloadPending = false;
             if (typeof drawStudioFrame === 'function') {
-              try { drawStudioFrame((typeof vstudio!=='undefined' && vstudio.position)||0); } catch(e){}
+              try { drawStudioFrame(typeof vstudio!=='undefined' ? vsStillTime() : 0); } catch(e){}
             }
           });
         }).catch(function(){});
@@ -4724,7 +4724,7 @@ function setVideoTemplate(id) {
     || ($("#vsInfoOn") && $("#vsInfoOn").checked)
     || ($("#vsNewsOn") && $("#vsNewsOn").checked)
     || vstudio.logoEl;
-  if (hasContent) drawStudioFrame(vstudio.position || 0);
+  if (hasContent) drawStudioFrame(vsStillTime());
 }
 
 // Render the background picker for the active intro slide.
@@ -4752,7 +4752,7 @@ function bindIntroEditor() {
       if (!s || !s.isIntro) return;
       s.introBg = btn.dataset.introbg;
       renderIntroBgPicker(s);
-      drawStudioFrame(vstudio.position || 0);
+      drawStudioFrame(vsStillTime());
     });
   }
   const onIntroInput = () => {
@@ -4764,7 +4764,7 @@ function bindIntroEditor() {
     if (si) s.introSub = si.value;
     if (moi) s.introMotion = moi.value;
     renderSlideList();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
   };
   ["#vsIntroMainInput", "#vsIntroSubInput"].forEach(sel => {
     const el = $(sel);
@@ -4942,10 +4942,23 @@ function bindIntroEditor() {
       // click on the backdrop itself dismisses
       if (e.target && e.target.id === "vsMgGuide") closeGuide(true);
     });
+    document.addEventListener("keydown", (e) => {
+      const g = getGuide();
+      if (e.key === "Escape" && g && !g.hidden) closeGuide(true);
+    });
     // show it once, the first time someone opens the studio
     try {
       // Not over a video someone's AI just sent: the link opens straight on it.
-      if (!localStorage.getItem("vsMgGuideSeen") && !/[?&]deck=/.test(location.search)) setTimeout(openGuide, 1400);
+      // Nor over someone who already got going: a click or a keypress before
+      // the timer means they found their way, and a guide on top of a build
+      // in progress only gets in the way. The help button still opens it.
+      if (!localStorage.getItem("vsMgGuideSeen") && !/[?&]deck=/.test(location.search)) {
+        let started = false;
+        const go = () => { started = true; };
+        document.addEventListener("pointerdown", go, { once: true, capture: true });
+        document.addEventListener("keydown", go, { once: true, capture: true });
+        setTimeout(() => { if (!started) openGuide(); }, 1400);
+      }
     } catch (e) {}
   }
 }
@@ -7676,7 +7689,7 @@ function vsApplyScriptLooks(looks) {
   if (last && last.isOutro) vsApplyLook(last, looks.outro);
   const mid = sl.slice(first && first.isIntro && !first.isOutro ? 1 : 0, last && last.isOutro ? -1 : sl.length);
   if (mid.length === (looks.sections || []).length) mid.forEach((x, k) => vsApplyLook(x, looks.sections[k]));
-  try { drawStudioFrame(vstudio.position || 0); } catch (e) {}
+  try { drawStudioFrame(vsStillTime()); } catch (e) {}
   try { vsRenderInspector(); } catch (e) {}
 }
 
@@ -8369,7 +8382,7 @@ async function vsAssembleFromSections(data, skipFootage) {
   }
   if (voiceJob && await voiceJob) {
     renderSlideList();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
   }
 }
 
@@ -12395,7 +12408,7 @@ function vsDrawSelection(ctx, W, H, elapsed) {
 // ── The inspector panel ─────────────────────────────────────────────────────
 function vsInspRedraw(listToo) {
   if (listToo) renderSlideList();
-  if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  if (!vstudio.looping) drawStudioFrame(vsStillTime());
   clearTimeout(vstudio._inspHistT);
   vstudio._inspHistT = setTimeout(() => { try { vsPushHistory(); } catch (e) {} }, 700);
 }
@@ -13062,7 +13075,7 @@ function vsRenderInspector() {
     c.type = "button"; c.className = "vsi-chip" + (id === sel ? " on" : "");
     c.setAttribute("aria-pressed", id === sel ? "true" : "false");
     c.textContent = vsT(VS_EL_NAME[id] || [id, id]);
-    c.addEventListener("click", () => { vstudio._sel = { slide: i, id }; vsRenderInspector(); if (!vstudio.looping) drawStudioFrame(vstudio.position || 0); });
+    c.addEventListener("click", () => { vstudio._sel = { slide: i, id }; vsRenderInspector(); if (!vstudio.looping) drawStudioFrame(vsStillTime()); });
     chips.appendChild(c);
   });
   const body = root.querySelector(".vsi-body");
@@ -13080,7 +13093,7 @@ function vsSelectElement(slideIdx, id) {
   vstudio._sel = { slide: slideIdx, id: id || "scene" };
   if (vstudio.activeVtab !== "slides") { const tab = document.querySelector('.vtab[data-vtab="slides"]'); if (tab) tab.click(); }
   vsRenderInspector();
-  if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+  if (!vstudio.looping) drawStudioFrame(vsStillTime());
 }
 
 // A per-topic colour system for the Editorial mode (keeps one
@@ -13416,12 +13429,12 @@ async function vsEditorialBackgrounds(data) {
       }
       s.ready = true; doneN++;
       vsAutoStatus(state.lang === "fa" ? `تصاویر: ${doneN}/${slides.length}` : `Images: ${doneN}/${slides.length}`);
-      drawStudioFrame(vstudio.position || 0);
+      drawStudioFrame(vsStillTime());
     }
   };
   await Promise.all(Array.from({ length: conc }, runOne));
   renderSlideList();
-  drawStudioFrame(vstudio.position || 0);
+  drawStudioFrame(vsStillTime());
   vsOverlayRelease();   // a batch keeps it up until the whole run ends
 }
 
@@ -13699,7 +13712,7 @@ async function vsAutoGenerateBackgrounds(data) {
     });
     renderTemplatePicker();
     renderSlideList();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
     vsOverlayRelease();   // a batch keeps it up until the whole run ends
     return;
   }
@@ -13815,7 +13828,7 @@ async function vsAutoGenerateBackgrounds(data) {
       if (own && !vstudio._batchCancel) {
         s.mediaEl = own; s.isVideo = false; s.ready = true; s.url = own.src;
         s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
-        made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+        made++; renderSlideList(); drawStudioFrame(vsStillTime());
         return;
       }
     }
@@ -13833,7 +13846,7 @@ async function vsAutoGenerateBackgrounds(data) {
           used.add(known);
           s.mediaEl = m; s.isVideo = true; s.ready = true; s.url = known;
           s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
-          made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+          made++; renderSlideList(); drawStudioFrame(vsStillTime());
           return;
         }
       }
@@ -13857,7 +13870,7 @@ async function vsAutoGenerateBackgrounds(data) {
             void vsRememberTownClip(data._regionId, s.url);
           }
           s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
-          made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+          made++; renderSlideList(); drawStudioFrame(vsStillTime());
           return;
         }
       } catch (e) { /* fall through to AI image */ }
@@ -13872,7 +13885,7 @@ async function vsAutoGenerateBackgrounds(data) {
       if (img && !vstudio._batchCancel) {
         s.mediaEl = img; s.isVideo = false; s.ready = true; s.url = img.src;
         s.settings = s.settings || {}; s.settings["#vsMotion"] = cam; s.settings["#vsTextAnim"] = txAnim;
-        made++; renderSlideList(); drawStudioFrame(vstudio.position || 0);
+        made++; renderSlideList(); drawStudioFrame(vsStillTime());
       }
     } catch (e) { /* keep colored background on failure */ }
   };
@@ -13925,7 +13938,7 @@ async function vsAutoGenerateBackgrounds(data) {
       });
       await Promise.race([Promise.all(swaps), new Promise((r) => setTimeout(r, 25000))]);
       open = false;
-      renderSlideList(); drawStudioFrame(vstudio.position || 0);
+      renderSlideList(); drawStudioFrame(vsStillTime());
     }
   }
   // N of M, not just N. "Footage ready for 3 scenes" sounds finished when the
@@ -15039,7 +15052,7 @@ async function vsLoadBatchVideo(i) {
       }
     });
     renderSlideList();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
     if (!vstudio.looping) {
       vsShowBuiltVideo();
     } else if (vstudio.musicEl) {
@@ -15399,7 +15412,7 @@ function addFootageToActiveSlide(file) {
     renderSlideList();
     if (nm) nm.textContent = state.lang === "fa"
       ? "فوتیج به این صحنه اضافه شد." : "Footage added to this scene.";
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
   };
   s.url = url; s.isVideo = isVideo;
   if (isVideo) {
@@ -15514,7 +15527,7 @@ async function vsGenerateImageForActiveSlide() {
     const motionSel = $("#vsMotion");
     if (motionSel) motionSel.value = s.settings["#vsMotion"];
     renderSlideList();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
     vsStatus(state.lang === "fa" ? "تصویر ساخته شد و به صحنه اضافه شد." : "Image generated and added to the scene.");
   } catch (e) {
     const msg = (e && e.message) ? e.message : String(e);
@@ -15685,7 +15698,7 @@ function selectSlide(i) {
   renderSlideList();
   try { vsRenderInspector(); } catch (e) {}
   if (!vstudio.looping && vstudio.mediaEl || vstudio.slides.length) {
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
   }
 }
 
@@ -15790,7 +15803,7 @@ function vsPaintThumbs(cachedOnly) {
     });
   } finally {
     vstudio._noSelection = false;
-    if (drew) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
+    if (drew) { try { drawStudioFrame(vsStillTime()); } catch (e) {} }
   }
   // Scenes still loading, or a busy canvas: come back for them.
   if (!cachedOnly && (vstudio.looping || vstudio._footageBusy)) { clearTimeout(vstudio._thumbT); vstudio._thumbT = setTimeout(() => vsPaintThumbs(false), 1500); }
@@ -16023,7 +16036,7 @@ let _vsLogoIdleRAF = null;
 function vsLogoIdleLoop() {
   const isVid = vstudio.logoEl && vstudio.logoIsVideo;
   if (isVid && !vstudio.rendering && !vstudio.playing) {
-    try { drawStudioFrame(vstudio.position || 0); } catch (e) {}
+    try { drawStudioFrame(vsStillTime()); } catch (e) {}
     _vsLogoIdleRAF = requestAnimationFrame(vsLogoIdleLoop);
   } else {
     _vsLogoIdleRAF = null;
@@ -16044,7 +16057,7 @@ function vsRedrawPreview() {
     || ($("#vsNewsOn") && $("#vsNewsOn").checked)
     || vstudio.logoEl;
   if (hasContent) {
-    try { drawStudioFrame(vstudio.position || 0); } catch (e) { console.warn("[logo] redraw failed", e); }
+    try { drawStudioFrame(vsStillTime()); } catch (e) { console.warn("[logo] redraw failed", e); }
   }
   // keep animated logos moving while idle
   if (vstudio.logoEl && vstudio.logoIsVideo) vsStartLogoIdleLoop();
@@ -16198,7 +16211,7 @@ function setupTextDrag() {
       min: kind === "footage" ? ((vstudio.slides[vstudio.activeSlide] || {})._ownSpeech ? 0.5 : 1) : 0.55, max: kind === "footage" ? 3 : 1.6, fit: 1.6
     };
   };
-  const redraw = () => { if (!vstudio.looping) drawStudioFrame(vstudio.position || 0); };
+  const redraw = () => { if (!vstudio.looping) drawStudioFrame(vsStillTime()); };
   const save = () => { if (vstudio.slides.length) vsSaveActiveSlide(); };
   // The scene on the preview becomes the scene being edited, so a move lands
   // on what is showing - the panel used to edit whichever scene was selected
@@ -22298,8 +22311,19 @@ function vsShowBuiltVideo() {
   try { const _cb = document.getElementById("vsCoverBtn"); if (_cb) _cb.style.display = ""; } catch {}
   try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
   vstudio.position = 0;
-  try { drawStudioFrame(0); updateTimeline(0, studioDuration()); } catch (e) {}
+  try { drawStudioFrame(vsStillTime()); updateTimeline(0, studioDuration()); } catch (e) {}
   setPlayBtn(false);
+}
+
+// The moment a paused preview shows. At 0:00 that is 0.6s in, not 0: the
+// intro fades up from black over its first half second, so frame 0 is solid
+// black and a finished video looked like an empty, broken preview until Play.
+// The playhead still reads 0:00 and Play still starts from the fade; playback
+// and export draw their own times and never come through here.
+function vsStillTime() {
+  const p = vstudio.position || 0;
+  if (p > 0) return p;
+  return Math.min(0.6, (typeof studioDuration === "function" ? studioDuration() : 0) || 0);
 }
 
 function previewStudioVideo(fromStart) {
@@ -22655,7 +22679,7 @@ function vsWireLogoBar(actualPx, total) {
     writeField("#vsLogoDur", (to >= tot - 0.05 ? 0 : (to - from)).toFixed(1));
     paint(from, to, tot);
     // live-update the preview frame (logo appears/disappears as window changes)
-    if (!vstudio.rendering) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
+    if (!vstudio.rendering) { try { drawStudioFrame(vsStillTime()); } catch (e) {} }
   };
   const up = () => {
     if (!mode) return;
@@ -22940,7 +22964,7 @@ function vsApplySnapshot(snap) {
   vsHistory.suspended = false;
   if ((vstudio.mediaEl || vstudio.slides.some(s => s.ready)) && !vstudio.rendering) {
     buildPreviewCanvas();
-    drawStudioFrame(vstudio.position || 0);
+    drawStudioFrame(vsStillTime());
   }
   refreshTimelineClips();
 }
@@ -31078,7 +31102,7 @@ function bindEvents() {
   });
   on("#vsFilter", "change", () => {
     vstudio._userPickedFilter = true;   // a chosen grade is not overwritten by the next reel
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   });
   // Camera motion: save to the active slide AND auto-play a short preview so
   // the user actually SEES the movement (a still frame can't show motion).
@@ -31099,7 +31123,7 @@ function bindEvents() {
     if (s) {
       s._caption = e.target.value;
       renderSlideList();
-      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      if (!vstudio.looping) drawStudioFrame(vsStillTime());
     }
   });
   // add / replace footage on the active middle slide
@@ -31121,7 +31145,7 @@ function bindEvents() {
     if (nm) nm.textContent = state.lang === "fa" ? "بدون فوتیج (پس‌زمینه طرح)." : "No footage (uses a background).";
     const rmBtn = $("#vsSlideMediaRemove"); if (rmBtn) rmBtn.style.display = "none";
     renderSlideList();
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
     vsStatus(state.lang === "fa" ? "فوتیج حذف شد." : "Footage removed.");
   });
   // Editorial big cover word — edit it live
@@ -31130,7 +31154,7 @@ function bindEvents() {
     if (!s || !inp) return;
     const v = inp.value.toUpperCase().replace(/[^\p{L}\p{N}]/gu, "").slice(0, 16);
     s._edBigWord = v; s._heroWord = v;
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   });
   // Change / override the scene's graphic element
   on("#vsSlideGraphic", "change", () => {
@@ -31150,7 +31174,7 @@ function bindEvents() {
       s.sceneGraphic.kind = v;
     }
     renderSlideList();
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
     vsStatus(state.lang === "fa" ? "المان صحنه تغییر کرد." : "Scene element changed.");
   });
   // Edit the graphic's element labels (comma-separated) — the quick, simple way
@@ -31164,7 +31188,7 @@ function bindEvents() {
       s.sceneGraphic.data = s.sceneGraphic.data.map((d, i) => ({ ...d, label: labs[i] != null ? labs[i] : d.label }));
     }
     s.sceneGraphic.items = labs;
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   });
   renderSlideList();
   on("#vsMusicFile", "change", (e) => loadStudioMusic(e.target.files[0]));
@@ -31284,7 +31308,7 @@ function bindEvents() {
     if (vstudio.slides.length) vsSaveActiveSlide();
     if (!$("#vsCanvas")) buildPreviewCanvas();
     if (!vstudio.looping) {
-      drawStudioFrame(vstudio.position || 0);
+      drawStudioFrame(vsStillTime());
       updateTimeline(vstudio.position || 0, studioDuration());
     }
   }
@@ -31517,7 +31541,7 @@ function bindEvents() {
       vsInfoFormToJson();
       // persist to the active slide so it doesn't vanish on preview/redraw
       if (vstudio.slides.length) vsSaveActiveSlide();
-      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      if (!vstudio.looping) drawStudioFrame(vsStillTime());
       vsPushHistory();
       if (status) { status.className = "vstudio-note vs-ok";
         status.textContent = state.lang === "fa"
@@ -31570,7 +31594,7 @@ function bindEvents() {
       vsInfoLiveRefresh();
       // persist to the active slide so it doesn't vanish on preview/redraw
       if (vstudio.slides.length) vsSaveActiveSlide();
-      if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      if (!vstudio.looping) drawStudioFrame(vsStillTime());
       vsPushHistory();
       if (status) { status.className = "vstudio-note vs-ok";
         status.textContent = state.lang === "fa"
@@ -31635,7 +31659,7 @@ function bindEvents() {
     // always redraw (even if looping) for news/info text changes so user
     // sees real-time feedback when typing
     if (!vstudio.looping || infoOn || newsOn) {
-      drawStudioFrame(vstudio.position || 0);
+      drawStudioFrame(vsStillTime());
       updateTimeline(vstudio.position || 0, studioDuration());
     }
   };
@@ -31643,7 +31667,7 @@ function bindEvents() {
     const hasContent = vstudio.mediaEl || vstudio.slides.some(s => s.ready);
     if (!hasContent || vstudio.rendering) return;
     buildPreviewCanvas();
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   };
   vsLiveControls.forEach(sel => {
     on(sel, "input", vsRefresh);
@@ -31679,7 +31703,7 @@ function bindEvents() {
       } else {
         as.settings["#vsNewsHeadline"] = txt.value;
       }
-      if (typeof drawStudioFrame === "function" && !vstudio.looping) drawStudioFrame(vstudio.position || 0);
+      if (typeof drawStudioFrame === "function" && !vstudio.looping) drawStudioFrame(vsStillTime());
     }
     const infoOn = $("#vsInfoOn"), infoTitle = $("#vsInfoTitle");
     // Infographic scene → the on-screen text IS the infographic title.
@@ -31710,14 +31734,14 @@ function bindEvents() {
   on("#vsTransition", "change", () => {
     const v = vsVal("#vsTransition", "fade");
     vstudio.slides.forEach(s => { if (s.settings) s.settings["#vsTransition"] = v; });
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   });
   // Transition in is a WHOLE-VIDEO setting: applying it to every slide means
   // switching scenes never reverts it and the whole deck uses one transition.
   on("#vsTransition", "change", () => {
     const v = vsVal("#vsTransition", "fade");
     vstudio.slides.forEach(s => { if (s.settings) s.settings["#vsTransition"] = v; });
-    if (!vstudio.looping) drawStudioFrame(vstudio.position || 0);
+    if (!vstudio.looping) drawStudioFrame(vsStillTime());
   });
 
   // Undo / redo: snapshot studio state after each settled change.
@@ -32778,10 +32802,10 @@ A video is made of one or more SCENES that play one after another. Each scene ha
     if (!url) return;
     if (isVideo) {
       const media = document.createElement("video"); media.src = url; media.muted = true; media.playsInline = true;
-      media.addEventListener("loadedmetadata", () => { scene.mediaEl = media; scene.ready = true; renderSlideList(); drawStudioFrame(vstudio.position || 0); }, { once: true });
+      media.addEventListener("loadedmetadata", () => { scene.mediaEl = media; scene.ready = true; renderSlideList(); drawStudioFrame(vsStillTime()); }, { once: true });
     } else {
       const media = new Image();
-      media.onload = () => { scene.mediaEl = media; scene.ready = true; renderSlideList(); drawStudioFrame(vstudio.position || 0); };
+      media.onload = () => { scene.mediaEl = media; scene.ready = true; renderSlideList(); drawStudioFrame(vsStillTime()); };
       media.src = url;
     }
   }
