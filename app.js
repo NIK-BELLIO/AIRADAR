@@ -12558,6 +12558,7 @@ function vsElHit(W, H, host, id, x, y, w, h, cx, cy) {
 // What a scene is, for the panel's heading and its element list.
 function vsSceneType(s, i) {
   if (!s) return "";
+  if (s._motion) return "kinetic";
   if (s._editorial) return "editorial";
   if (s._swap) return "swap";
   if (s._ownSpeech) return "own";
@@ -12570,12 +12571,14 @@ function vsSceneType(s, i) {
   return "media";
 }
 const VS_SCENE_TYPE_NAME = {
+  kinetic: ["Motion design scene", "صحنهٔ موشن"],
   editorial: ["Editorial scene", "صحنهٔ ادیتوریال"], intro: ["Intro", "اینترو"], outro: ["Outro", "اوترو"],
   motion: ["Motion graphic", "موشن‌گرافیک"], chart: ["Data chart", "نمودار داده"], text: ["Headline scene", "صحنهٔ تیتر"],
   media: ["Footage scene", "صحنهٔ فوتیج"], own: ["Your clip", "کلیپ تو"], swap: ["Your finished video", "ویدیوی آمادهٔ تو"]
 };
 const VS_EL_NAME = {
   scene: ["Scene", "صحنه"], title: ["Title", "عنوان"], label: ["Label", "برچسب"], text: ["Headline", "تیتر"],
+  mwords: ["Words", "متن"], micon: ["Icon", "آیکن"], mlook: ["Look", "سبک"],
   news: ["Headline", "تیتر"], info: ["Chart", "نمودار"], graphic: ["Graphic", "گرافیک"],
   edKicker: ["Section tab", "برچسب بخش"], edText: ["Cover text", "متن جلد"], captions: ["Voice & captions", "صدا و زیرنویس"],
   footage: ["Footage", "فوتیج"], logo: ["Logo", "لوگو"], hook: ["Hook", "هوک"], sticker: ["Key words & icon", "کلمه کلیدی و آیکون"],
@@ -12587,6 +12590,7 @@ const vsT = (pair) => (state.lang === "fa" ? pair[1] : pair[0]);
 function vsSceneElements(s, i) {
   const t = vsSceneType(s, i);
   if (t === "swap") return [s._swap.texts.length ? "swapText" : null, s._swap.footage.length ? "swapFootage" : null].filter(Boolean).concat(["scene"]);
+  if (t === "kinetic") return ["scene", "mwords", s._motion.role === "content" ? "micon" : null, "mlook"].concat(vstudio.logoEl ? ["logo"] : []).filter(Boolean);
   const out = ["scene"];
   if (t === "editorial") out.push("edKicker", "edText");
   else if (t === "intro" || t === "outro") { out.push("title"); if (s._caption) out.push("label"); }
@@ -12764,6 +12768,7 @@ function vsElementFields(s, i, id) {
   const fa = state.lang === "fa";
   const L = (en, faTxt) => (fa ? faTxt : en);
   const type = vsSceneType(s, i);
+  if (type === "kinetic" && id !== "logo") return vsMotionFields(s, i, id, L);
   const F = [];
   const own = (key) => ({ get: () => s[key] || "", set: (v) => { s[key] = v; } });
   if (s._swap) {
@@ -20971,6 +20976,78 @@ function vsMotionDraw(ctx, W, H, s, local, dur, elapsed, index) {
   if (prev && prev._motion && t < T) vsMotionTransition(ctx, W, H, m.trans, 0, t / T, st);
   else if (!prev && t < 0.4) { ctx.fillStyle = st.bg; ctx.globalAlpha = 1 - vsMoClamp(t / 0.4); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
   ctx.restore();
+}
+
+// ── the scene editor for a motion scene: its words, its icon, its look ──
+const VS_MOTION_ICON_NAMES = {
+  house: ["Home", "خانه"], money: ["Money", "پول"], coin: ["Coin", "سکه"], up: ["Rising", "رشد"], down: ["Falling", "کاهش"], bars: ["Chart", "نمودار"],
+  pie: ["Share", "سهم"], phone: ["Phone", "گوشی"], laptop: ["Laptop", "لپ‌تاپ"], globe: ["World", "جهان"], heart: ["Heart", "قلب"], clock: ["Clock", "ساعت"],
+  calendar: ["Calendar", "تقویم"], people: ["People", "مردم"], person: ["Person", "شخص"], car: ["Car", "خودرو"], plane: ["Travel", "سفر"], shield: ["Safety", "امنیت"],
+  lock: ["Lock", "قفل"], bulb: ["Idea", "ایده"], rocket: ["Launch", "پرتاب"], target: ["Goal", "هدف"], check: ["Done", "تیک"], warning: ["Warning", "هشدار"],
+  star: ["Star", "ستاره"], leaf: ["Nature", "طبیعت"], sun: ["Sun", "خورشید"], fire: ["Hot", "داغ"], building: ["City", "شهر"], cart: ["Shop", "خرید"],
+  gift: ["Gift", "هدیه"], chat: ["Chat", "گفتگو"], mail: ["Mail", "ایمیل"], search: ["Search", "جستجو"], book: ["Book", "کتاب"], school: ["Learning", "آموزش"],
+  health: ["Health", "سلامت"], coffee: ["Coffee", "قهوه"], music: ["Music", "موسیقی"], camera: ["Camera", "دوربین"], play: ["Play", "پخش"], battery: ["Battery", "باتری"],
+  wifi: ["Network", "شبکه"], pin: ["Place", "مکان"], trophy: ["Win", "موفقیت"], spark: ["AI / new", "هوش مصنوعی / جدید"], bell: ["Follow", "فالو"],
+  arrow: ["Arrow", "فلش"], gear: ["System", "سیستم"],
+};
+const VS_MOTION_TRANS_NAMES = { bars: ["Bars", "میله‌ها"], stack: ["Layers", "لایه‌ها"], wipe: ["Diagonal wipe", "برش مورب"], iris: ["Circle", "دایره"], split: ["Two halves", "دو نیمه"] };
+function vsMotionFields(s, i, id, L) {
+  const m = s._motion, F = [];
+  const fresh = () => { m._tl = null; m._hl = null; m._big = null; };
+  const name = (pair) => (state.lang === "fa" ? pair[1] : pair[0]);
+  if (id === "scene") {
+    F.push({ type: "number", label: L("Duration (seconds)", "مدت (ثانیه)"), min: 1, max: 120, step: 0.5, list: true,
+      get: () => Math.round((Number(s.duration) || 4) * 100) / 100, set: (v) => { s.duration = Math.max(1, Math.min(120, Number(v) || 4)); fresh(); } });
+    F.push({ type: "note", text: L("A motion scene is drawn from its words: change them, its icon or its look in the other tabs.", "صحنهٔ موشن از متن خودش ساخته می‌شود: متن، آیکن یا سبکش را در زبانه‌های دیگر عوض کن.") });
+    return F;
+  }
+  if (id === "mwords") {
+    if (m.role === "content") {
+      F.push({ type: "text", label: L("Label at the top", "برچسب بالا"),
+        get: () => vsMotionHeadline(s), set: (v) => {
+          s.settings = s.settings || {}; s.settings["#vsNewsHeadline"] = ""; s.settings["#vsHeadline"] = String(v || ""); m.title = String(v || "");
+          // the active scene's settings are read back from the form when the
+          // user moves on, so the form field must hold the new words as well
+          const hi = document.querySelector("#vsHeadline"); if (hi && vstudio.activeSlide === i) hi.value = String(v || "");
+        } });
+      if (s._voice) {
+        F.push({ type: "note", text: L("The big words are what the voice says, word by word. To change them, record the line in your own voice or build again.", "کلمات بزرگ همان چیزی است که گوینده می‌گوید، کلمه‌به‌کلمه. برای عوضش، متن را با صدای خودت ضبط کن یا دوباره بساز.") });
+      } else {
+        F.push({ type: "textarea", rows: 3, label: L("The big words (in order)", "کلمات بزرگ (به ترتیب)"), list: true,
+          get: () => s._narration || "", set: (v) => { s._narration = String(v || ""); fresh(); } });
+      }
+    } else {
+      F.push({ type: "text", label: m.role === "outro" ? L("Closing line", "جملهٔ پایانی") : L("Title", "عنوان"), list: true,
+        get: () => m.title || "", set: (v) => { m.title = String(v || ""); fresh(); } });
+      F.push({ type: "text", label: L("Line under it", "خط زیر آن"),
+        get: () => m.sub || "", set: (v) => { m.sub = String(v || ""); fresh(); } });
+    }
+    F.push({ type: "text", label: L("Word to set apart (optional)", "کلمه‌ای که برجسته شود (اختیاری)"),
+      get: () => m.hero || "", set: (v) => { m.hero = String(v || "").toLowerCase().replace(/[^\p{L}\p{N}‌]/gu, ""); fresh(); } });
+    return F;
+  }
+  if (id === "micon") {
+    F.push({ type: "select", label: L("Icon", "آیکن"),
+      options: Object.keys(VS_MOTION_ICONS).map((k) => ({ v: k, t: name(VS_MOTION_ICON_NAMES[k] || [k, k]) })),
+      get: () => m.icon, set: (v) => { if (VS_MOTION_ICONS[v]) m.icon = v; } });
+    return F;
+  }
+  if (id === "mlook") {
+    F.push({ type: "select", label: L("This scene's look", "سبک این صحنه"),
+      options: Object.keys(VS_MOTION_STYLES).map((k) => ({ v: k, t: name([VS_MOTION_STYLES[k].name, VS_MOTION_STYLES[k].fa]) })),
+      get: () => m.style, set: (v) => { if (VS_MOTION_STYLES[v]) { m.style = v; fresh(); } } });
+    if (i > 0) F.push({ type: "select", label: L("Transition into this scene", "ترنزیشن ورود به این صحنه"),
+      options: Object.keys(VS_MOTION_TRANS_NAMES).map((k) => ({ v: k, t: name(VS_MOTION_TRANS_NAMES[k]) })),
+      get: () => m.trans, set: (v) => { if (VS_MOTION_TRANS_NAMES[v]) m.trans = v; } });
+    F.push({ type: "buttons", buttons: [{ t: L("Use this look on every scene", "این سبک روی همهٔ صحنه‌ها"), act: () => {
+      try { vsHistoryBaseline(); } catch (e) {}
+      const st = VS_MOTION_STYLES[m.style];
+      (vstudio.slides || []).forEach((x, k) => { if (x._motion) { x._motion.style = m.style; x._motion.trans = st.trans[k % st.trans.length]; x._motion._tl = null; x._motion._hl = null; x._motion._big = null; } });
+      vsRemixBuildSound(); vsInspRedraw(true); vsRenderInspector();
+    } }] });
+    return F;
+  }
+  return F;
 }
 
 // ── the picker: real footage, or one of the looks, each shown moving ──
