@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v801" />
+    <link rel="stylesheet" href="/styles.css?v=v802" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1584,6 +1584,26 @@
                           <span class="vs-switch-track"></span>
                           <span class="vs-switch-txt" id="vsCaptionsLbl" data-i18n="vCaptionsLbl">Word-by-word captions</span>
                         </label>
+                        <button id="vsRecVoiceBtn" type="button" class="vs-rec-btn" data-i18n="vRecVoiceBtn">Record it in my own voice</button>
+                      </div>
+                      <!-- The edit itself: sounds on the cuts, several clips per
+                           scene, sharper footage when the connection allows -->
+                      <div class="vs-voice-group">
+                        <label class="vs-switch">
+                          <input id="vsSfx" type="checkbox" checked />
+                          <span class="vs-switch-track"></span>
+                          <span class="vs-switch-txt" data-i18n="vSfxLbl">Sound effects on transitions</span>
+                        </label>
+                        <label class="vs-switch">
+                          <input id="vsMultiClip" type="checkbox" checked />
+                          <span class="vs-switch-track"></span>
+                          <span class="vs-switch-txt" data-i18n="vMultiClipLbl">Several clips in each scene</span>
+                        </label>
+                        <label class="vs-switch">
+                          <input id="vsHdClips" type="checkbox" checked />
+                          <span class="vs-switch-track"></span>
+                          <span class="vs-switch-txt" data-i18n="vHdLbl">HD footage when the connection allows</span>
+                        </label>
                       </div>
                     </div>
                     <input id="vsPexelsKey" type="hidden" value="" />
@@ -2233,6 +2253,11 @@
       .vs-switch-sub{position:relative;margin-inline-start:20px;padding-inline-start:22px;gap:10px;font-weight:500;font-size:12.5px;color:#c9ccd3}
       .vs-switch-sub::before{content:"";position:absolute;inset-inline-start:0;top:-12px;width:14px;height:22px;border-inline-start:1.5px solid rgba(255,255,255,.2);border-bottom:1.5px solid rgba(255,255,255,.2);border-end-start-radius:8px}
       .vs-voice-group .vs-switch-sub .vs-switch-track{width:34px;height:20px}
+      .vs-voice-group+.vs-voice-group{margin-top:8px}
+      .vs-rec-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;cursor:pointer}
+      .vs-rec-btn::before{content:"";width:9px;height:9px;border-radius:50%;background:#ef4444}
+      .vs-rec-btn:hover{border-color:rgba(255,255,255,.34)}
+      .vs-rec-btn:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
       .vs-voice-group .vs-switch-sub .vs-switch-track::after{width:14px;height:14px}
       .vs-voice-group .vs-switch-sub input:checked + .vs-switch-track::after{transform:translateX(14px)}
       .vs-voice-group:has(#vsNarrate:not(:checked)) .vs-switch-sub{display:none}
@@ -2823,7 +2848,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v801"></script>
+    <script src="/app.js?v=v802"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page

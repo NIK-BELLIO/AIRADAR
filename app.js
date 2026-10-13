@@ -216,6 +216,10 @@ const i18n = {
     vsTone: "Tone",
     vsLength: "Length",
     vsSmarter: "Smarter model (optional)",
+    vRecVoiceBtn: "Record it in my own voice",
+    vSfxLbl: "Sound effects on transitions",
+    vMultiClipLbl: "Several clips in each scene",
+    vHdLbl: "HD footage when the connection allows",
     vsSmarterHint: 'Paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#2563ff;">OpenRouter</a> API key to write scripts with a top-tier model. Leave empty to keep using the free model. Your key stays in your browser.',
     vsGenerate: "Generate my video",
     mgBadge: "Skills",
@@ -687,6 +691,10 @@ const i18n = {
     vsTone: "لحن",
     vsLength: "طول",
     vsSmarter: "مدل قوی‌تر (اختیاری)",
+    vRecVoiceBtn: "ضبط با صدای خودم",
+    vSfxLbl: "افکت صوتی روی ترنزیشن‌ها",
+    vMultiClipLbl: "چند کلیپ در هر صحنه",
+    vHdLbl: "فوتیج HD وقتی اینترنت اجازه بدهد",
     vsSmarterHint: 'یک کلید API از <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#2563ff;">OpenRouter</a> بگذار تا متن ویدیو با یک مدل قوی‌تر نوشته شود. خالی بگذاری، همان مدل رایگان کار می‌کند. کلیدت فقط در مرورگر خودت می‌ماند.',
     vsGenerate: "ویدیوی من را بساز",
     mgBadge: "مهارت‌ها",
@@ -8592,6 +8600,21 @@ function vsStockOrder(items, query, variant, extra) {
     .sort((a, b) => (b.sc - a.sc) || (a.k - b.k)).map((x) => x.it);
 }
 
+// Which of a scene's clips is on screen `local` seconds into it, and how far
+// into that clip: a long scene is cut into two or three shots. The cuts are
+// fractions of the scene, so a scene re-timed by its voice keeps them. A set
+// whose first clip is no longer the scene's footage (the user replaced it) is
+// stale and ignored.
+function vsSceneClip(s, local, dur) {
+  const cl = s && s._clips;
+  if (!cl || cl.length < 2 || !(dur > 0) || cl[0].el !== s.mediaEl) return null;
+  let k = 0;
+  for (let i = 1; i < cl.length; i++) if (local >= cl[i].f * dur) k = i;
+  const at = cl[k].f * dur, end = k + 1 < cl.length ? cl[k + 1].f * dur : dur;
+  return { el: cl[k].el, local: Math.max(0, local - at), span: Math.max(0.05, end - at), index: k };
+}
+function vsHdFootageOn() { const t = document.querySelector("#vsHdClips"); return !t || !!t.checked; }
+function vsMultiClipOn() { const t = document.querySelector("#vsMultiClip"); return !!(t && t.checked); }
 async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
@@ -8614,12 +8637,19 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
     files.sort((a, b) => Math.abs((a.height || 0) - 720) - Math.abs((b.height || 0) - 720));
     const file = files[0];
     if (!file) continue;
+    // HD - the 720p rendition (its short side about 720) - when the user wants
+    // it and the CDN is reached directly. Relayed through our worker a file
+    // that size would hold the scene up for many seconds, so there it stays SD.
+    // "When the connection allows": HD gets a short deadline of its own and a
+    // miss simply falls back to the SD file of the same clip.
+    const short = (f) => Math.min(f.width || 0, f.height || 0);
+    const hd = (!_vsPexelsDirectDead && vsHdFootageOn())
+      ? files.filter((f) => short(f) >= 700 && short(f) <= 1100).sort((a, b) => Math.abs(short(a) - 720) - Math.abs(short(b) - 720))[0] || null
+      : null;
     // Decide from the url, not from the bytes: this used to download a clip and
     // only then ask whether another scene had already taken it.
-    if (taken && taken.has(file.link)) continue;
-    // Wait for a slot before pulling several megabytes down.
-    const release = await vsClipGate();
-    const vid = await new Promise((resolve) => {
+    if (taken && (taken.has(file.link) || (hd && taken.has(hd.link)))) continue;
+    const load = (link, ms) => new Promise((resolve) => {
       const el = document.createElement("video");
       el.crossOrigin = "anonymous";
       el.muted = true; el.loop = true; el.playsInline = true; el.preload = "auto";
@@ -8633,12 +8663,7 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
         done = true;
         try { el.removeAttribute("src"); el.load(); } catch (e) {}
         resolve(null);
-      },
-        // Relayed, a clip that arrives does so in under seven seconds; the ones
-        // that miss used to hold the gate for sixteen, two at a time, which is
-        // where a batch lost its minutes. Eight is past the arrivals and well
-        // short of the stragglers.
-        deadline || (_vsPexelsDirectDead ? 8000 : 7000));
+      }, ms);
       el.onloadeddata = () => {
         if (done) return; done = true; clearTimeout(timer);
         // Deliberately NOT played here. A playing, looping element downloads the
@@ -8650,8 +8675,17 @@ async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
         resolve(el.videoWidth ? el : null);
       };
       el.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } };
-      el.src = file.link;
+      el.src = link;
     });
+    // Wait for a slot before pulling several megabytes down.
+    const release = await vsClipGate();
+    let vid = null;
+    if (hd && hd.link !== file.link) { vid = await load(hd.link, 6000); if (vid) vid._hd = true; }
+    // Relayed, a clip that arrives does so in under seven seconds; the ones
+    // that miss used to hold the gate for sixteen, two at a time, which is
+    // where a batch lost its minutes. Eight is past the arrivals and well
+    // short of the stragglers.
+    if (!vid) vid = await load(file.link, deadline || (_vsPexelsDirectDead ? 8000 : 7000));
     release();
     if (vid) return vid;
     if (++misses >= 2) break;
@@ -9251,8 +9285,8 @@ async function vsAddVoiceover(data) {
   if (!VS_TTS_LANGS[lang]) {
     vsClearVoiceTrack();
     vstudio._voiceNote = fa
-      ? "صدای گوینده فعلاً فقط برای انگلیسی، اسپانیایی و فرانسوی است، پس این ویدیو بدون گوینده است."
-      : "Voice-over speaks English, Spanish and French for now, so this one has no voice.";
+      ? "صدای گوینده فعلاً فقط برای انگلیسی، اسپانیایی و فرانسوی است. با «ضبط با صدای خودم» می‌توانی متن را خودت بخوانی."
+      : "Voice-over speaks English, Spanish and French for now - press \"Record it in my own voice\" to read it yourself.";
     return false;
   }
   vsAutoStatus(fa ? "ضبط صدای گوینده…" : "Recording the voice-over…");
@@ -9291,6 +9325,152 @@ async function vsAddVoiceover(data) {
   return true;
 }
 
+// ── The user's own voice, scene by scene ────────────────────────────────────
+// No free voice speaks Persian, and nobody sounds like the person whose video
+// it is. So the user reads each scene's line into the microphone: the line is
+// on screen like a teleprompter, each take can be played back and redone, and
+// the takes become the scenes' voice - trimmed of silence, the scene stretched
+// to fit, the captions timed to it - exactly like the generated voice, so the
+// preview, the captions and the export need nothing new.
+async function vsRecordVoiceStudio() {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  const slides = vstudio.slides || [];
+  if (!slides.length) { vsToast(L("Build a video first - then read its lines in your own voice.", "اول یک ویدیو بساز - بعد متن صحنه‌هایش را با صدای خودت بخوان.")); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
+    vsToast(L("This browser cannot record from a microphone.", "این مرورگر نمی‌تواند از میکروفون ضبط کند.")); return;
+  }
+  const lineOf = (s) => String(s._narration || (s.settings && s.settings["#vsHeadline"]) || s.headline || s.introMain || "").replace(/\s+/g, " ").trim();
+  const takes = slides.map(() => null);   // {buf, url}
+  let cur = 0, stream = null, rec = null, chunks = [], meterRaf = 0, analyser = null, recording = false;
+  const ov = document.createElement("div");
+  ov.id = "vsRecModal";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:16px;background:rgba(4,5,8,.78);backdrop-filter:blur(6px)";
+  ov.innerHTML =
+    '<div role="dialog" aria-modal="true" aria-labelledby="vrT"' + (fa ? ' dir="rtl"' : "") + ' style="width:min(620px,96vw);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px 22px 18px;color:#f4f5f7;font:500 14px/1.5 Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;box-shadow:0 40px 120px -20px rgba(0,0,0,.7)">' +
+    '<style>#vsRecModal .vr-b{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 13px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;cursor:pointer}#vsRecModal .vr-b:hover{border-color:rgba(255,255,255,.32)}#vsRecModal .vr-b:disabled{opacity:.45;cursor:default}#vsRecModal .vr-b:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}#vsRecModal .vr-go{background:#2563ff;border-color:#2563ff;color:#fff}#vsRecModal .vr-rec{display:inline-flex;align-items:center;gap:8px}#vsRecModal .vr-rec::before{content:"";width:10px;height:10px;border-radius:50%;background:#ef4444}#vsRecModal .vr-rec.on::before{border-radius:2px}#vsRecModal .vr-dots{display:flex;gap:6px;flex-wrap:wrap}#vsRecModal .vr-dot{width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.12);background:#14171d;color:#8a919c;font:600 11px "JetBrains Mono",ui-monospace,monospace;cursor:pointer}#vsRecModal .vr-dot.done{background:rgba(37,99,255,.18);border-color:rgba(37,99,255,.6);color:#fff}#vsRecModal .vr-dot.cur{outline:2px solid #fff;outline-offset:1px}</style>' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="flex:1"><div style="font:500 10.5px/1 \'JetBrains Mono\',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c">' + L("Your voice", "صدای خودت") + '</div>' +
+    '<h2 id="vrT" style="margin:6px 0 0;font:600 20px/1.2 \'Space Grotesk\',Vazirmatn,ui-sans-serif,system-ui,sans-serif">' + L("Read each scene in your own voice", "هر صحنه را با صدای خودت بخوان") + '</h2></div>' +
+    '<button type="button" class="vr-b" id="vrX" aria-label="' + L("Close", "بستن") + '">✕</button></div>' +
+    '<div class="vr-dots" id="vrDots"></div>' +
+    '<div id="vrNo" style="margin:16px 0 6px;font:500 11.5px \'JetBrains Mono\',ui-monospace,monospace;color:#8a919c"></div>' +
+    '<p id="vrLine" dir="auto" style="margin:0;min-height:96px;padding:16px;border-radius:12px;background:#08090c;border:1px solid rgba(255,255,255,.08);font:600 20px/1.6 Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif"></p>' +
+    '<div style="height:6px;margin:12px 0 14px;border-radius:3px;background:#14171d;overflow:hidden" aria-hidden="true"><div id="vrMeter" style="height:100%;width:0;background:#2563ff;transition:width .06s linear"></div></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">' +
+    '<button type="button" class="vr-b vr-rec" id="vrRec">' + L("Record", "ضبط") + '</button>' +
+    '<button type="button" class="vr-b" id="vrPlay" disabled>' + L("Play take", "پخش ضبط") + '</button>' +
+    '<span style="flex:1"></span>' +
+    '<button type="button" class="vr-b" id="vrPrev">' + L("Previous", "قبلی") + '</button>' +
+    '<button type="button" class="vr-b" id="vrNext">' + L("Next", "بعدی") + '</button></div>' +
+    '<p id="vrMsg" role="status" style="margin:12px 0 0;font-size:12.5px;color:#8a919c;min-height:18px"></p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="vr-b" id="vrCancel">' + L("Cancel", "انصراف") + '</button>' +
+    '<button type="button" class="vr-b vr-go" id="vrUse" disabled>' + L("Use my voice", "استفاده از صدای من") + '</button></div></div>';
+  document.body.appendChild(ov);
+  const $r = (id) => ov.querySelector("#" + id);
+  const msg = (t) => { $r("vrMsg").textContent = t || ""; };
+  const stopMeter = () => { cancelAnimationFrame(meterRaf); $r("vrMeter").style.width = "0"; };
+  const close = () => {
+    try { if (rec && rec.state !== "inactive") rec.stop(); } catch (e) {}
+    stopMeter();
+    try { stream && stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    takes.forEach((t) => { if (t && t.url) { try { URL.revokeObjectURL(t.url); } catch (e) {} } });
+    ov.remove();
+  };
+  const draw = () => {
+    $r("vrDots").innerHTML = slides.map((s, i) => '<button type="button" class="vr-dot' + (takes[i] ? " done" : "") + (i === cur ? " cur" : "") + '" data-i="' + i + '" aria-label="' + L("Scene ", "صحنهٔ ") + (i + 1) + (takes[i] ? L(", recorded", "، ضبط شده") : "") + '">' + (i + 1) + "</button>").join("");
+    $r("vrDots").querySelectorAll(".vr-dot").forEach((b) => { b.onclick = () => { if (!recording) { cur = Number(b.dataset.i); draw(); } }; });
+    $r("vrNo").textContent = L("Scene " + (cur + 1) + " of " + slides.length, "صحنهٔ " + (cur + 1) + " از " + slides.length);
+    $r("vrLine").textContent = lineOf(slides[cur]) || L("(this scene has no line - record anything, or skip it)", "(این صحنه متنی ندارد - هر چه می‌خواهی بگو، یا از آن بگذر)");
+    $r("vrPlay").disabled = !takes[cur] || recording;
+    $r("vrPrev").disabled = cur === 0 || recording;
+    $r("vrNext").disabled = cur === slides.length - 1 || recording;
+    $r("vrUse").disabled = !takes.some(Boolean) || recording;
+    $r("vrRec").textContent = recording ? L("Stop", "توقف") : (takes[cur] ? L("Record again", "ضبط دوباره") : L("Record", "ضبط"));
+    $r("vrRec").classList.toggle("on", recording);
+  };
+  const meter = () => {
+    if (!analyser) return;
+    const d = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(d);
+    let pk = 0; for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i] - 128));
+    $r("vrMeter").style.width = Math.min(100, Math.round(pk / 128 * 160)) + "%";
+    meterRaf = requestAnimationFrame(meter);
+  };
+  $r("vrRec").onclick = async () => {
+    if (recording) { try { rec.stop(); } catch (e) {} return; }
+    try {
+      if (!stream) {
+        msg(L("Allow the microphone when the browser asks.", "وقتی مرورگر پرسید، اجازهٔ میکروفون را بده."));
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+        if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+        try { const src = vstudio._playCtx.createMediaStreamSource(stream); analyser = vstudio._playCtx.createAnalyser(); analyser.fftSize = 1024; src.connect(analyser); } catch (e) {}
+      }
+    } catch (e) {
+      msg(L("The microphone could not be opened. Check the browser's permission for this site.", "میکروفون باز نشد. اجازهٔ میکروفون این سایت را در مرورگر بررسی کن."));
+      return;
+    }
+    try { if (vstudio._playCtx.state === "suspended") await vstudio._playCtx.resume(); } catch (e) {}
+    chunks = [];
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } });
+    try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); } catch (e) { msg(L("Recording could not start.", "ضبط شروع نشد.")); return; }
+    const at = cur;
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = async () => {
+      recording = false; stopMeter();
+      try {
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        const buf = await vstudio._playCtx.decodeAudioData(await blob.arrayBuffer());
+        const b = vsSpeechBounds(buf);
+        if (!(b.end - b.start > 0.25)) { msg(L("Nothing was heard - try again a little closer to the microphone.", "صدایی شنیده نشد - کمی نزدیک‌تر به میکروفون دوباره امتحان کن.")); draw(); return; }
+        if (takes[at] && takes[at].url) { try { URL.revokeObjectURL(takes[at].url); } catch (e) {} }
+        takes[at] = { buf, url: URL.createObjectURL(blob) };
+        msg(L("Recorded. Play it back, record again, or go to the next scene.", "ضبط شد. گوش بده، دوباره ضبط کن یا برو صحنهٔ بعد."));
+        if (at === cur && cur < slides.length - 1 && !takes[cur + 1]) cur++;
+      } catch (e) { msg(L("That take could not be read - record it again.", "این ضبط خوانده نشد - دوباره ضبط کن.")); }
+      draw();
+    };
+    rec.start(); recording = true; msg(L("Recording - read the line, then press Stop.", "در حال ضبط - متن را بخوان، بعد «توقف» را بزن.")); draw(); meter();
+  };
+  $r("vrPlay").onclick = () => { const t = takes[cur]; if (t) { try { new Audio(t.url).play(); } catch (e) {} } };
+  $r("vrPrev").onclick = () => { if (cur > 0) { cur--; draw(); } };
+  $r("vrNext").onclick = () => { if (cur < slides.length - 1) { cur++; draw(); } };
+  $r("vrX").onclick = close; $r("vrCancel").onclick = close;
+  ov.addEventListener("keydown", (e) => { if (e.key === "Escape" && !recording) close(); });
+  $r("vrUse").onclick = () => {
+    const n = vsApplyOwnVoice(takes.map((t) => (t ? t.buf : null)), slides.map(lineOf));
+    close();
+    vsToast(L("Your voice is on " + n + " scene" + (n === 1 ? "" : "s") + ". Press Play to hear it.", "صدای خودت روی " + n + " صحنه است. «پخش» را بزن تا بشنوی."));
+  };
+  draw();
+  setTimeout(() => { try { $r("vrRec").focus(); } catch (e) {} }, 50);
+}
+// The takes become the scenes' voice, the same shape the generated voice has.
+function vsApplyOwnVoice(bufs, lines) {
+  const slides = vstudio.slides || [];
+  const TP = vstudio._toneProfile || vsToneProfile();
+  const lead = TP.lead != null ? TP.lead : VS_VOICE_LEAD;
+  const tail = TP.tail != null ? TP.tail : VS_VOICE_TAIL;
+  let n = 0;
+  bufs.forEach((buf, i) => {
+    const s = slides[i];
+    if (!buf || !s) return;
+    const b = vsSpeechBounds(buf), len = b.end - b.start;
+    const words = vsWordTimes(vsSpeakable(lines[i] || ""), lead, lead + len);
+    s._voice = { buf, cut: b.start, len, at: lead, words, chunks: vsCaptionChunks(words), _byMax: {}, own: true };
+    // the scene fits THIS voice: a shorter take than the generated one it
+    // replaces must not leave seconds of silence before the cut
+    s.duration = Math.max(2.5, lead + len + tail);
+    n++;
+  });
+  if (!n) return 0;
+  const nt = document.querySelector("#vsNarrate"); if (nt && !nt.checked) nt.checked = true;
+  vstudio._voiceNote = "";
+  try { renderSlideList(); } catch (e) {}
+  vsRemixBuildSound();
+  try { drawStudioFrame(vsStillTime()); updateTimeline(vstudio.position || 0, studioDuration()); } catch (e) {}
+  return n;
+}
+document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#vsRecVoiceBtn")) vsRecordVoiceStudio(); });
+
 function vsClearVoiceTrack() {
   if (vstudio.narrationEl) { try { vstudio.narrationEl.pause(); } catch (e) {} }
   if (vstudio._voiceUrl) { try { URL.revokeObjectURL(vstudio._voiceUrl); } catch (e) {} }
@@ -9302,9 +9482,15 @@ function vsClearVoiceTrack() {
 // from the picture after an edit.
 function vsMixVoiceTrack(force) {
   const slides = vstudio.slides;
-  if (!slides.some((s) => s._voice)) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); return; }
-  const fxEvents = vstudio._editSfxOn ? vsEditSfxEvents(slides) : [];
-  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "") +
+  // The auto build's own cut sounds ride on this track too, so they play in the
+  // preview and land in the export with no second path. They need no voice;
+  // a voice switched off is left out of the mix rather than just not played.
+  const buildFx = !vstudio._editSfxOn && vsBuildSfxOn() && !!vstudio._sfx;
+  const voiceOn = vsVoiceOn();
+  const anyVoice = voiceOn && slides.some((s) => s._voice);
+  if (!anyVoice && !buildFx && !vstudio._editSfxOn) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); vstudio._voiceInMix = false; return; }
+  const fxEvents = vstudio._editSfxOn ? vsEditSfxEvents(slides) : (buildFx ? vsBuildSfxEvents(slides) : []);
+  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "") + (buildFx ? "bfx" : "") + (voiceOn ? "on" : "off") +
     fxEvents.map((e) => e.n + e.t.toFixed(2)).join(",");
   if (!force && sig === vstudio._voiceSig) return;
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -9315,7 +9501,7 @@ function vsMixVoiceTrack(force) {
   let start = 0;
   slides.forEach((s) => {
     const d = Number(s.duration) || 4;
-    const v = s._voice;
+    const v = voiceOn ? s._voice : null;
     if (v && v.buf) {
       const src = v.buf.getChannelData(0);
       const from = v.cut * v.buf.sampleRate;
@@ -9339,7 +9525,7 @@ function vsMixVoiceTrack(force) {
     start += d;
   });
   // the edit's sounds, each with its loudest moment on its beat
-  if (vstudio._editSfxOn && vstudio._sfx && vstudio._sfx.sr === sr) {
+  if ((vstudio._editSfxOn || buildFx) && vstudio._sfx && vstudio._sfx.sr === sr) {
     fxEvents.forEach((ev) => {
       const fx = vsSfxFor(ev.n);
       if (!fx) return;
@@ -9361,6 +9547,7 @@ function vsMixVoiceTrack(force) {
   vstudio.narrationEl = el;
   vstudio._narrationBuffer = out;
   vstudio._voiceSig = sig;
+  vstudio._voiceInMix = anyVoice;
   if (wasPlaying && vstudio.looping) {
     try { el.currentTime = vstudio.position || 0; el.play().catch(() => {}); } catch (e) {}
   }
@@ -10634,6 +10821,31 @@ const VS_SFX_STANDIN = { whoosh: "whoosh", riser: "sweep", sparkle: "sparkle", d
 function vsSfxFor(n) {
   const S = vstudio._sfx || {};
   return S["f_" + n] || S[VS_SFX_STANDIN[n] || n] || null;
+}
+
+// The auto build's sounds: a low hit under the opening, the transition's own
+// sound on every scene change (its loudest moment on the cut), and a soft
+// sparkle as the closing scene comes in. Kept few and under the voice - a cut
+// is felt, not heard over the words.
+const VS_BUILD_TRANS_SFX = { punch: "whoosh", fade: "riser", blur: "riser", zoom: "riser", slide: "whoosh" };
+function vsBuildSfxOn() {
+  const t = document.querySelector("#vsSfx");
+  const sl = vstudio.slides || [];
+  return !!(t && t.checked) && sl.length > 1 && !sl.some((x) => x && (x._ownSpeech || x._swap));
+}
+function vsBuildSfxEvents(slides) {
+  const ev = [];
+  const n = VS_BUILD_TRANS_SFX[vsVal("#vsTransition", "punch")];
+  const hype = /hype|social/i.test(String((vstudio._toneProfile || {}).id || vsVal("#vsAutoTone", "")));
+  let t = 0;
+  (slides || []).forEach((sl, i) => {
+    const d = Number(sl.duration) || 4;
+    if (i === 0) ev.push({ n: "boom", t: t + 0.06, g: hype ? 1 : 0.75 });
+    else if (n) ev.push({ n, t: t + 0.02, g: (n === "whoosh" ? 0.6 : 0.45) * (hype ? 1.2 : 1) });
+    if (i === slides.length - 1 && slides.length > 2) ev.push({ n: "sparkle", t: t + 0.3, g: 0.4 });
+    t += d;
+  });
+  return ev;
 }
 
 // Every timed sound of an edit: the cut's sound on each transition, a sub
@@ -13776,6 +13988,7 @@ async function vsAutoGenerateBackgrounds(data) {
       const src = m && (m.currentSrc || m.src);
       if (m && src && !used.has(src)) {
         used.add(src);
+        m._q = q;   // the search that found it finds the scene's other shots
         return m;
       }
     }
@@ -13865,6 +14078,7 @@ async function vsAutoGenerateBackgrounds(data) {
         if (media && !vstudio._batchCancel) {
           s.mediaEl = media; s.isVideo = (media.tagName === "VIDEO");
           s.ready = true; s.url = media.currentSrc || media.src;
+          s._clipQuery = s.isVideo ? (media._q || query) : ""; s._clips = null;
           // A still is a stand-in: the pass below tries once more for a clip.
           s._stillQuery = s.isVideo ? "" : query;
           // The opening clip is the town's, so keep it. Only a clip: a still is
@@ -13940,6 +14154,43 @@ async function vsAutoGenerateBackgrounds(data) {
         s.mediaEl = m; s.isVideo = true; s.url = src; s._stillQuery = "";
       });
       await Promise.race([Promise.all(swaps), new Promise((r) => setTimeout(r, 25000))]);
+      open = false;
+      renderSlideList(); drawStudioFrame(vsStillTime());
+    }
+  }
+  // A long scene cut into shots: one more clip from the same search for a scene
+  // of four and a half seconds or more, two from nine. Same search, so no extra
+  // API call; downloads only, and the whole pass is capped so a slow
+  // connection costs at most fifteen seconds - a scene whose extra clip does
+  // not arrive keeps its one.
+  if (vsMultiClipOn() && pexelsOn && pexelsKey && !vstudio._batchCancel) {
+    const used = vstudio._batchUsedMedia || (vstudio._batchUsedMedia = new Set());
+    // not the opening and closing title scenes (every scene of the story look
+    // is drawn as an "intro" slide, so that flag cannot tell them apart)
+    // The voice is recorded alongside, so a scene's length is not final yet:
+    // its spoken line says how long it will be (the voice reads about 3.2 words a second).
+    const estDur = (s) => Math.max(Number(s.duration) || 0, String(s._narration || "").split(/\s+/).filter(Boolean).length / 3.2 + 0.65);
+    const cand = slides.filter((s, i) => i > 0 && i < slides.length - 1 && !s.isOutro && s.isVideo && s.mediaEl && s._clipQuery && !s._editorial && !s._gfx && estDur(s) >= 4.5);
+    if (cand.length) {
+      vsAutoStatus(state.lang === "fa" ? "افزودن نماهای بیشتر به صحنه‌ها…" : "Adding more shots to each scene…");
+      let open = true;
+      const jobs = cand.map(async (s, k) => {
+        const want = estDur(s) >= 9 ? 2 : 1;   // a shot under about three seconds reads as nervous
+        const got = [];
+        for (let j = 0; j < want && open && !vstudio._batchCancel; j++) {
+          let m = null;
+          try { m = await vsFetchPexelsClip(s._clipQuery, pexelsKey, aspect, k + 4 + j * 3, used, 7000); } catch (e) {}
+          if (!m) break;
+          const src = m.currentSrc || m.src;
+          if (!open || used.has(src)) { try { m.removeAttribute("src"); m.load(); } catch (e) {} break; }
+          used.add(src); got.push(m);
+        }
+        if (got.length && open) {
+          const all = [s.mediaEl].concat(got);
+          s._clips = all.map((el, idx) => ({ el, f: idx / all.length }));
+        }
+      });
+      await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, 15000))]);
       open = false;
       renderSlideList(); drawStudioFrame(vsStillTime());
     }
@@ -20126,6 +20377,7 @@ function drawStudioFrame(elapsed) {
   let slideHeadline = null;
   let dsSettings = null;          // settings of the slide being displayed
   let dsLocal = 0, dsDur = 0;     // local time within that slide
+  let mLocal = 0, mDur = 0;       // the same for the clip on screen (a scene can hold several)
   let introSlide = null;          // the active intro slide, if any
   // Animated motion-graphic background id for the displayed slide. Kept on the
   // SLIDE OBJECT (not in settings): settings are rebuilt from live DOM controls
@@ -20141,6 +20393,7 @@ function drawStudioFrame(elapsed) {
     const at = slideAtTime(elapsed);
     const slide = vstudio.slides[at.index];
     dsLocal = at.local; dsDur = at.dur;
+    mLocal = dsLocal; mDur = dsDur;
     // ── Editorial (editorial-style) scene owns the whole frame ──
     if (slide && slide._editorial) {
       drawEditorialFrame(ctx, W, H, slide, dsLocal, dsDur);
@@ -20157,9 +20410,20 @@ function drawStudioFrame(elapsed) {
         introSlide = slide;
         // intro/content slides may also carry per-slide footage
         if (slide.mediaEl) media = slide.mediaEl;
+        const sc = vsSceneClip(slide, at.local, at.dur);
+        if (sc) {
+          media = sc.el; mLocal = sc.local; mDur = sc.span;
+          slide._clips.forEach((c) => { if (c.el !== media && !c.el.paused) { try { c.el.pause(); } catch (e) {} } });
+        }
       } else {
         // regular media slide — use only THIS slide's footage
         media = slide.mediaEl || null;
+        // a scene cut into shots: the clip whose turn it is, on its own clock
+        const sc = vsSceneClip(slide, at.local, at.dur);
+        if (sc) {
+          media = sc.el; mLocal = sc.local; mDur = sc.span;
+          slide._clips.forEach((c) => { if (c.el !== media && !c.el.paused) { try { c.el.pause(); } catch (e) {} } });
+        }
         slideHeadline = slide.headline || "";
       }
       // the active slide being edited reads LIVE controls; others read saved
@@ -20239,9 +20503,9 @@ function drawStudioFrame(elapsed) {
     // file into many scenes, each starting where its stretch of speech does.
     const clipIn = (vstudio.slides.length && dsSlideObj && dsSlideObj.mediaEl === media && dsSlideObj._clipIn) || 0;
     let span, clipLen = Math.max(0.05, media.duration - clipIn), targetT;
-    const localTime = vstudio.slides.length ? dsLocal : elapsed;
+    const localTime = vstudio.slides.length ? mLocal : elapsed;
     if (vstudio.slides.length) {
-      span = dsDur > 0 ? dsDur : clipLen;
+      span = mDur > 0 ? mDur : clipLen;
     } else {
       span = Math.max(0.01, studioDuration());
     }
@@ -20309,13 +20573,15 @@ function drawStudioFrame(elapsed) {
     // (intro/outro) slides included; their text card still draws on top.
     const hasFootage = !!introSlide.mediaEl;
     if (hasFootage) {
-      const m = introSlide.mediaEl;
+      // the shot on screen when the scene is cut into several (else its clip)
+      const m = media || introSlide.mediaEl;
       const mw = m.videoWidth || m.naturalWidth || W;
       const mh = m.videoHeight || m.naturalHeight || H;
       // ── camera motion on the photo/footage backdrop ──
       const camMot = (introSlide.settings && introSlide.settings["#vsMotion"]) || "kenburns-in";
       const playingC = vstudio.looping || vstudio.rendering;
-      let cLc = (dsDur > 0) ? dsLocal / dsDur : 0;
+      // each shot makes its own move, from its own start
+      let cLc = (mDur > 0) ? mLocal / mDur : 0;
       cLc = Math.max(0, Math.min(1, cLc));
       if (!playingC) cLc = 0.4; // show the move in a static preview too
       const cClock = playingC ? elapsed : 1.2;
@@ -22298,7 +22564,7 @@ function vsApplyMusicFade(elapsed, duration) {
   // respect a user music-volume setting if one exists
   const base = Number(vsVal("#vsMusicVolume", 1));
   // Under a voice the bed drops to half, as it does in the export mix.
-  const duck = vstudio._narrationBuffer ? 0.5 : 1;
+  const duck = (vstudio._narrationBuffer && vstudio._voiceInMix) ? 0.5 : 1;
   try { m.volume = Math.max(0, Math.min(1, vol * duck * (isNaN(base) ? 1 : base))); }
   catch {}
 }
@@ -22316,7 +22582,19 @@ function vsShowBuiltVideo() {
   vstudio.position = 0;
   try { drawStudioFrame(vsStillTime()); updateTimeline(0, studioDuration()); } catch (e) {}
   setPlayBtn(false);
+  // the cut sounds are made once (in the browser) and laid on the track
+  vsRemixBuildSound();
 }
+function vsRemixBuildSound() {
+  if (!(vstudio.slides || []).length) return;
+  (vsBuildSfxOn() ? vsPrepareEditSfx() : Promise.resolve()).then(() => vsMixVoiceTrack(true)).catch(() => {});
+}
+// A switch that changes what is heard rebuilds the track at once, so the
+// preview and the export never play an old mix.
+document.addEventListener("change", (e) => {
+  const id = e.target && e.target.id;
+  if (id === "vsSfx" || id === "vsNarrate" || id === "vsTransition") vsRemixBuildSound();
+});
 
 // The moment a paused preview shows. At 0:00 that is 0.6s in, not 0: the
 // intro fades up from black over its first half second, so frame 0 is solid
@@ -22371,7 +22649,7 @@ function previewStudioVideo(fromStart) {
   if (vstudio.musicEl) {
     try { vstudio.musicEl.currentTime = startElapsed; vstudio.musicEl.play().catch(() => {}); } catch {}
   }
-  if (vstudio.narrationEl && vsVoiceOn()) {
+  if (vstudio.narrationEl && (vsVoiceOn() || vsBuildSfxOn())) {
     try {
       vstudio.narrationEl.playbackRate = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
       vstudio.narrationEl.currentTime = startElapsed; vstudio.narrationEl.play().catch(() => {});
@@ -23283,7 +23561,7 @@ async function vsRenderMixWav(duration) {
   const end = duration;
   const spd = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
   const vol = parseFloat((document.querySelector("#vsMusicVolume") || {}).value);
-  const musicVol = (isNaN(vol) ? 0.5 : vol) * (nBuf ? 0.5 : 1);
+  const musicVol = (isNaN(vol) ? 0.5 : vol) * (nBuf && vstudio._voiceInMix ? 0.5 : 1);
   if (mBuf) {
     const s = ctx.createBufferSource(); s.buffer = mBuf; s.loop = true;
     const contentEnd = vstudio._musicContentEnd || null;
@@ -23360,12 +23638,15 @@ function _vsSeekPatient(vid, target) {
 // deterministically, frame by frame — instead of a frozen video frame.
 async function _vsSeekActiveFootage(t) {
   if (!vstudio.slides.length) return;
-  const at = slideAtTime(t);
+  let at = slideAtTime(t);
   const slide = vstudio.slides[at.index];
   if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
   if (slide._swap) await vsSwapSeekExport(slide, at.local);
-  const vid = slide.mediaEl;
-  const clipIn = slide._clipIn || 0;
+  // the shot on screen when the scene is cut into several
+  const sc = vsSceneClip(slide, at.local, at.dur);
+  const vid = sc ? sc.el : slide.mediaEl;
+  const clipIn = sc ? 0 : (slide._clipIn || 0);
+  if (sc) at = { index: at.index, local: sc.local, dur: sc.span };
   const vdur = (vid.duration && isFinite(vid.duration)) ? Math.max(0.05, vid.duration - clipIn) : at.dur;
   if (!vdur) return;
   // Real time from the clip's start, the same rule the draw path uses: stretch
@@ -23388,7 +23669,7 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
   if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") return null;
   // Pause every footage video: during offline render we drive them by SEEKING,
   // so live playback must not fight the seek between frames.
-  try { vstudio.slides.forEach(s => { if (s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch (e) {} } }); } catch (e) {}
+  try { vstudio.slides.forEach(s => { if (s.isVideo && s.mediaEl) { try { s.mediaEl.pause(); } catch (e) {} } (s._clips || []).forEach((c) => { try { c.el.pause(); } catch (e) {} }); }); } catch (e) {}
   const W = canvas.width, H = canvas.height;
   if (!W || !H) return null;
   // bitrate mirrors the recorder path
@@ -30635,8 +30916,9 @@ async function exportStudioVideo() {
     // absent - and that switch was removed in v758 - so every export since
     // came out without the voice and, with it, without the captions.
     const ownVoice = (vstudio.slides || []).some((x) => x && x._ownSpeech);
-    if (ownVoice || vsNarrateOn()) {
-      if ((vstudio.slides || []).some((x) => x && x._voice)) { try { vsMixVoiceTrack(!vstudio._narrationBuffer); } catch (e) {} }
+    if (ownVoice || vsNarrateOn() || vsBuildSfxOn()) {
+      if (vsBuildSfxOn()) { try { await vsPrepareEditSfx(); } catch (e) {} }
+      if ((vstudio.slides || []).some((x) => x && x._voice) || vsBuildSfxOn()) { try { vsMixVoiceTrack(!vstudio._narrationBuffer); } catch (e) {} }
     } else {
       vstudio.narrationEl = null; vstudio._narrationBuffer = null;
     }
@@ -30923,7 +31205,7 @@ async function exportStudioVideo() {
       const t0 = actx.currentTime + 0.08, end = t0 + (ea.dur || 20);
       const spd = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
       const vol = parseFloat((document.querySelector("#vsMusicVolume") || {}).value);
-      const musicVol = (isNaN(vol) ? 0.5 : vol) * (ea.nBuf ? 0.5 : 1); // duck under voice
+      const musicVol = (isNaN(vol) ? 0.5 : vol) * (ea.nBuf && vstudio._voiceInMix ? 0.5 : 1); // duck under voice, not under the cut sounds
       if (ea.mBuf) {
         const s = actx.createBufferSource(); s.buffer = ea.mBuf; s.loop = true;
         // The AI music generator sometimes under-fills the requested
