@@ -217,6 +217,30 @@ const i18n = {
     vsLength: "Length",
     vsSmarter: "Smarter model (optional)",
     vRecVoiceBtn: "Record it in my own voice",
+    gdEye: "Video Studio · free",
+    gdTitle: "From an idea to a finished video",
+    gdSub: "Four steps. You never need to know editing or motion design - the studio makes those choices, and you can change any of them.",
+    gdInputEx: "Remote work is changing cities",
+    gdPillSmart: "Smart",
+    gdPillLink: "From link",
+    gdPillText: "From text",
+    gdS1h: "Say what it is about",
+    gdS1p: "A topic, a link to an article, or your own text. It researches the angle and writes the script.",
+    gdS2h: "Choose a look",
+    gdS2p: "Real footage, or one of six motion-design looks: the spoken words move on screen, icons draw themselves, cuts land on the beat.",
+    gdSwVoice: "Voice-over",
+    gdSwOwn: "Your own voice",
+    gdSwCaps: "Word captions",
+    gdSwSfx: "Cut sounds",
+    gdS3h: "Voice and sound",
+    gdS3p: "An AI voice (English, Spanish, French) or record the lines in your own voice - any language, Persian too. Captions, music and cut sounds are added for you.",
+    gdChipThumb: "Thumbnail",
+    gdS4h: "Fine-tune and export",
+    gdS4p: "Click anything on the preview to change it, make a matching thumbnail, then Export the MP4.",
+    gdStart: "Start my first video",
+    gdThumb: "Make a thumbnail",
+    gdEdit: "Edit my own video",
+    gdAdv: "For power users: type <code>/</code> in the box for <b>/motion_graphic</b> (charts and data) or <b>/editorial</b> (a photo magazine).",
     vLookLbl: "Look",
     vLookTip: "Hover a look to see it move",
     vSfxLbl: "Sound effects on transitions",
@@ -694,6 +718,30 @@ const i18n = {
     vsLength: "طول",
     vsSmarter: "مدل قوی‌تر (اختیاری)",
     vRecVoiceBtn: "ضبط با صدای خودم",
+    gdEye: "ویدیو استودیو · رایگان",
+    gdTitle: "از یک ایده تا ویدیوی آماده",
+    gdSub: "چهار قدم. لازم نیست تدوین یا موشن‌دیزاین بلد باشی - استودیو این انتخاب‌ها را می‌کند و هر کدام را می‌توانی عوض کنی.",
+    gdInputEx: "کار از راه دور شهرها را عوض می‌کند",
+    gdPillSmart: "هوشمند",
+    gdPillLink: "از لینک",
+    gdPillText: "از متن",
+    gdS1h: "بگو درباره چیست",
+    gdS1p: "یک موضوع، لینک یک مقاله یا متن خودت. زاویهٔ داستان را پیدا می‌کند و فیلم‌نامه را می‌نویسد.",
+    gdS2h: "ظاهر را انتخاب کن",
+    gdS2p: "فوتیج واقعی، یا یکی از شش سبک موشن‌دیزاین: کلمات گفته‌شده روی تصویر حرکت می‌کنند، آیکن‌ها خودشان کشیده می‌شوند و کات‌ها روی ضرب موسیقی می‌افتند.",
+    gdSwVoice: "صدای گوینده",
+    gdSwOwn: "صدای خودت",
+    gdSwCaps: "زیرنویس کلمه‌به‌کلمه",
+    gdSwSfx: "افکت روی کات‌ها",
+    gdS3h: "صدا و موسیقی",
+    gdS3p: "صدای AI (انگلیسی، اسپانیایی، فرانسوی) یا متن را با صدای خودت ضبط کن - به هر زبانی، فارسی هم. زیرنویس، موسیقی و افکت‌ها خودکار اضافه می‌شوند.",
+    gdChipThumb: "تامبنیل",
+    gdS4h: "ویرایش و خروجی",
+    gdS4p: "روی هر چیزی در پیش‌نمایش کلیک کن تا عوضش کنی، یک تامبنیل هماهنگ بساز و بعد MP4 را خروجی بگیر.",
+    gdStart: "اولین ویدیوام را بسازم",
+    gdThumb: "ساخت تامبنیل",
+    gdEdit: "ویرایش ویدیوی خودم",
+    gdAdv: "برای حرفه‌ای‌ها: در کادر <code>/</code> بزن تا <b>/motion_graphic</b> (نمودار و داده) یا <b>/editorial</b> (مجلهٔ عکس‌محور) را ببینی.",
     vLookLbl: "ظاهر ویدیو",
     vLookTip: "نشانگر را روی هر سبک ببر تا حرکتش را ببینی",
     vSfxLbl: "افکت صوتی روی ترنزیشن‌ها",
@@ -4932,9 +4980,24 @@ function bindIntroEditor() {
     // so look it up lazily and use event delegation — binding to the elements
     // here would silently find nothing.
     const getGuide = () => $("#vsMgGuide");
-    const openGuide = () => { const g = getGuide(); if (g) g.hidden = false; };
+    // The four look previews in step 2 play while the guide is open (the same
+    // renderer the Look picker uses), one frame each when motion is reduced.
+    let gdRaf = 0;
+    const gdLooks = (on) => {
+      cancelAnimationFrame(gdRaf);
+      const cvs = Array.from(document.querySelectorAll("#vsMgGuide .gd-look"));
+      if (!on || !cvs.length || typeof vsMotionPreview !== "function") return;
+      const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cvs.forEach((c, k) => { try { vsMotionPreview(c, c.dataset.look, 1.9 + k * 0.2); } catch (e) {} });
+      if (still) return;
+      const t0 = performance.now();
+      const run = (ts) => { cvs.forEach((c, k) => { try { vsMotionPreview(c, c.dataset.look, (ts - t0) / 1000 + k * 0.8); } catch (e) {} }); gdRaf = requestAnimationFrame(run); };
+      gdRaf = requestAnimationFrame(run);
+    };
+    const openGuide = () => { const g = getGuide(); if (g) { g.hidden = false; gdLooks(true); setTimeout(() => { try { document.getElementById("vsGdStart").focus(); } catch (e) {} }, 30); } };
     const closeGuide = (remember) => {
       const g = getGuide(); if (g) g.hidden = true;
+      gdLooks(false);
       if (remember) { try { localStorage.setItem("vsMgGuideSeen", "1"); } catch (e) {} }
     };
     document.addEventListener("click", (e) => {
@@ -4942,15 +5005,19 @@ function bindIntroEditor() {
       const reelBtn = e.target.closest ? e.target.closest("#vsReelBtn") : null;
       if (reelBtn) { e.preventDefault(); return vsReelPopup(); }
       const t = e.target.closest
-        ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsMgGuideTry,#vsMgGuideTryEd")
+        ? e.target.closest("#vsMgHelpBtn,#vsMgGuideClose,#vsMgGuideDismiss,#vsGdStart,#vsGdThumb,#vsGdEdit")
         : null;
       if (t) {
         if (t.id === "vsMgHelpBtn") return openGuide();
         closeGuide(true);
-        if (t.id === "vsMgGuideTry" || t.id === "vsMgGuideTryEd") {
-          autoTopic.value = (t.id === "vsMgGuideTryEd") ? "/editorial " : "/motion_graphic ";
+        // each way out of the guide goes straight to the work it names
+        if (t.id === "vsGdStart") {
+          try { autoTopic.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (er) {}
           autoTopic.focus();
-          autoTopic.setSelectionRange(autoTopic.value.length, autoTopic.value.length);
+        } else if (t.id === "vsGdThumb") {
+          try { vsThumbStudio(); } catch (er) {}
+        } else if (t.id === "vsGdEdit") {
+          const b = document.getElementById("vsEditMineBtn"); if (b) b.click();
         }
         return;
       }
