@@ -13129,7 +13129,7 @@ function vsEditorialPalette(topic) {
 const VS_EVENTS = [
   [/thanksgiving|شکرگزاری/i, "a warm Thanksgiving dinner table seen from a low three-quarter angle: a golden roast turkey on a platter as the centrepiece, bowls of side dishes, small pumpkins, autumn leaves and lit candles, soft bokeh of warm string lights behind"],
   [/christmas|xmas|کریسمس/i, "a cosy living room on Christmas eve: a decorated Christmas tree glowing with warm fairy lights, wrapped presents beneath it, a crackling fireplace, snow falling outside the window"],
-  [/new year'?s? eve|happy new year|nye|سال نو میلادی/i, "New Year's Eve: golden fireworks bursting over a city at night, two champagne glasses raised in the foreground with sparkling bokeh"],
+  [/new year'?s? eve|happy new year|\bnye\b|سال نو میلادی/i, "New Year's Eve: golden fireworks bursting over a city at night, two champagne glasses raised in the foreground with sparkling bokeh"],
   [/halloween|هالووین/i, "a moody Halloween porch at dusk: carved jack-o'-lanterns glowing orange, autumn leaves, candles and a soft mist"],
   [/easter|عید پاک/i, "an Easter spring table: pastel painted eggs in a woven basket, tulips and soft morning light"],
   [/valentine|ولنتاین/i, "a romantic Valentine's Day table: red roses, a heart-shaped box of chocolates and candlelight with soft pink bokeh"],
@@ -13141,7 +13141,7 @@ const VS_EVENTS = [
   [/chaharshanbe|چهارشنبه ?سوری/i, "small bonfires in a courtyard at night for Chaharshanbe Suri, sparks rising into the dark, warm orange glow"],
   [/sizdah|سیزده ?به ?در/i, "a spring picnic on fresh green grass under blossoming trees, a basket with sabzeh greens, bright daylight"],
   [/ramadan|رمضان|افطار|iftar/i, "an iftar table at sunset: dates, glasses of water and tea, glowing lanterns and a crescent moon in the window"],
-  [/eid|عید فطر|عید قربان/i, "an Eid celebration table: glowing lanterns, sweets and pastries on decorated plates, warm golden bokeh"],
+  [/\beid\b|عید فطر|عید قربان/i, "an Eid celebration table: glowing lanterns, sweets and pastries on decorated plates, warm golden bokeh"],
   [/diwali|دیوالی/i, "Diwali night: rows of glowing clay diya oil lamps, marigold flowers and colourful rangoli, warm bokeh"],
   [/lunar new year|chinese new year|سال نو چینی/i, "Lunar New Year: rows of red paper lanterns glowing over a street, gold decorations, festive warm light"],
   [/hanukkah|حنوکا/i, "a lit menorah by a window at night with blue and gold decorations and warm candlelight"],
@@ -23753,6 +23753,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
       `2) "imagePrompt": ALWAYS IN ENGLISH, whatever language the topic is in. One concrete photo scene that a viewer would instantly connect to THIS topic: name the main subject of the sentence as a visible thing, plus where it is and how it is framed. Read the whole sentence - if it is about a phone, show the phone; about a football match, show the players or the ball on the pitch; about bitcoin, a gold bitcoin coin; about coffee, the cup of coffee; about a city, that city's landmark; about cooking, the dish being cooked.\n` +
       `Do NOT fall back on generic filler: no sky, clouds, sunset or skyline, no generic house or street, no random portrait of a person - use those ONLY when the topic is literally about weather, the sky, a skyline, a house or that person. Show a person only when the topic is about a person or something people do.\n` +
       `No readable text anywhere: no signs, screens, charts, documents or labels. One clear subject, real photograph, cinematic light.\n` +
+      (opts.backdrop ? `This picture goes BEHIND a person who is cut out and placed in front of it, so it must show NO person, face or body at all: only the place and the objects of the topic, with open space on one side.\n` : "") +
       `Examples: "best phones of 2026" -> {"coverTitle":"The Phone To Beat","imagePrompt":"a sleek new smartphone standing upright on a dark stone surface, dramatic rim light, close-up product shot"}; "قیمت بیت‌کوین امروز" -> {"coverTitle":"بیت‌کوین کجا می‌رود؟","imagePrompt":"a shiny gold bitcoin coin on a dark textured surface, dramatic low-key lighting, macro shot"}; "how to make perfect pasta" -> {"coverTitle":"Pasta Done Right","imagePrompt":"a plate of fresh spaghetti with basil and parmesan on a rustic wooden table, overhead shot, warm light"}; "mortgage rates are falling" -> {"coverTitle":"Rates Are Dropping","imagePrompt":"a quiet suburban street of family houses at golden hour, wide shot"}.`,
       { temperature: 0.7 });
     const j = vsParseAiJson(raw);
@@ -23781,6 +23782,9 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
       : /tax|insurance|budget|econom|inflation|stock|invest/.test(t) ? "a neat row of townhouses on a tree-lined street in soft morning light"
       : "a modern house with a manicured front lawn at golden hour";
   }
+  // A backdrop with someone already in it puts a second face behind the
+  // user's: a prompt that still names a person becomes the place alone.
+  if (opts.backdrop && personWords.test(imgPrompt)) imgPrompt = imgPrompt.replace(/\b(a|an|the|two|some)?\s*(young |old |smiling |worried |happy )?(person|people|man|men|woman|women|couple|family|agent|buyer|seller|homeowner|investor|businessman|businesswoman|child|children|kid|kids)\b[^,]*,?/gi, "").replace(/\s+/g, " ").trim() || "an empty modern room with soft window light";
   let img = null;
   try { vstudio._lastImgError = null; } catch (e) {}
   if (imgPrompt) { try { img = await vsCoverImage(imgPrompt, topic, imgW || 1024, imgH || 1024); } catch (e) {} }
@@ -23834,8 +23838,14 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   }
   const meta = vsThumbTitleMeta(coverTitle);
   const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)),
-    img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side };
-  const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout }[template] || vsTplBold;
+    img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side, bg: assets && assets.bg };
+  const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout,
+    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrow, number: vsTplNumber }[template] || vsTplBold;
+  // A canvas draws with a font only once the browser has it: Persian words
+  // came out in the fallback face on the first thumbnail of a visit.
+  if (vsThumbRtlText(coverTitle) && document.fonts && document.fonts.load) {
+    try { await Promise.race([Promise.all([document.fonts.load("900 40px Vazirmatn"), document.fonts.load("800 40px Vazirmatn")]), new Promise((r) => setTimeout(r, 2500))]); } catch (e) {}
+  }
   try { draw(R); } catch (e) { try { vsTplBold(R); } catch (_) {} }
   const toBlob = (mime, q) => new Promise(r => c.toBlob(r, mime, q));
   // Size-capped output: JPEG, dropping quality until it fits under maxBytes.
@@ -23863,6 +23873,10 @@ const VS_THUMB_TEMPLATES = [
   { id: "sidebar", name: "Sidebar", fa: "کناری",   accent: "#5b9bff" },
   { id: "minimal", name: "Minimal", fa: "مینیمال", accent: "#f4f5f7" },
   { id: "stamp",   name: "Stamp",   fa: "مهر",     accent: "#5fe0b0" },
+  { id: "versus",  name: "Versus",  fa: "مقایسه",  accent: "#2563ff" },
+  { id: "beforeafter", name: "Before / After", fa: "قبل و بعد", accent: "#ffd400" },
+  { id: "arrow",   name: "Circle & arrow", fa: "فلش و دایره", accent: "#ff2d2d" },
+  { id: "number",  name: "Big number", fa: "عدد بزرگ", accent: "#ffd400" },
   { id: "cutout",  name: "Cut-out", fa: "سوژهٔ جدا", accent: "#ffcc00", video: true },
 ];
 const VS_TPL_FAM = '"Archivo", system-ui, sans-serif';
@@ -24110,6 +24124,246 @@ function vsTplStamp(R) {
     ln.forEach(({ w, i }) => { ctx.fillStyle = (i === emph) ? "#0e1014" : "#ffffff"; ctx.fillText(w, x, boxY + padV); x += ctx.measureText(w + " ").width; });
   });
   ctx.restore();
+}
+
+// ── Shared pieces for the four looks below ──────────────────────────────────
+const VS_TPL_FAM2 = '"Archivo", "Vazirmatn", system-ui, sans-serif';
+function vsThumbRtlText(s) { return /[֐-ࣿ]/.test(String(s || "")); }
+// The picture again, cover-fitted into one rectangle, with an optional filter
+// (and mirrored, so two halves of one photo do not read as a copy-paste).
+function vsThumbPaint(ctx, img, x, y, w, h, filter, mirror) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  if (!img || !(img.naturalWidth || img.width)) { ctx.fillStyle = "#14171d"; ctx.fillRect(x, y, w, h); ctx.restore(); return; }
+  const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(w / mw, h / mh);
+  if (filter) ctx.filter = filter;
+  if (mirror) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(img, x + (w - mw * cov) / 2, y + (h - mh * cov) / 2, mw * cov, mh * cov);
+  ctx.restore();
+}
+// Heavy outlined words fitted into a box: "start" sets Persian from the right,
+// "center" centres every line.
+function vsThumbHeavy(ctx, text, x0, x1, top, maxH, startPx, opts) {
+  opts = opts || {};
+  const rtl = vsThumbRtlText(text);
+  const words = (rtl ? String(text) : String(text).toUpperCase()).split(/\s+/).filter(Boolean);
+  if (!words.length) return { h: 0, px: 0 };
+  let emph = opts.emph != null ? opts.emph : words.findIndex((w) => /[\d۰-۹٠-٩]/.test(w));
+  const fit = vsThumbFitBox(ctx, words, x1 - x0, maxH, startPx, Math.max(12, startPx * 0.3), opts.weight || 900, VS_TPL_FAM2);
+  const lh = fit.px * 1.06;
+  if (opts.measure) return { h: fit.lines.length * lh, px: fit.px };
+  ctx.save();
+  ctx.font = (opts.weight || 900) + " " + fit.px + "px " + VS_TPL_FAM2; ctx.textBaseline = "top"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  const lineX = (ln) => { const lw = ctx.measureText(ln.map((o) => o.w).join(" ")).width; return opts.align === "center" ? x0 + (x1 - x0 - lw) / 2 : (rtl ? x1 - lw : x0); };
+  ctx.lineWidth = Math.max(3, fit.px * 0.11); ctx.strokeStyle = "rgba(0,0,0,0.88)";
+  ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = fit.px * 0.16; ctx.shadowOffsetY = fit.px * 0.05;
+  fit.lines.forEach((ln, li) => { let x = lineX(ln); ln.forEach(({ w }) => { ctx.strokeText(w, x, top + li * lh); x += ctx.measureText(w + " ").width; }); });
+  ctx.shadowColor = "transparent";
+  fit.lines.forEach((ln, li) => { let x = lineX(ln); ln.forEach(({ w, i }) => { ctx.fillStyle = i === emph ? (opts.accent || "#ffd400") : (opts.color || "#fff"); ctx.fillText(w, x, top + li * lh); x += ctx.measureText(w + " ").width; }); });
+  ctx.restore();
+  return { h: fit.lines.length * lh, px: fit.px };
+}
+// A rounded tag ("BEFORE", "قبل") in a colour.
+function vsThumbTag(ctx, text, cx, y, px, bg, fg) {
+  ctx.save();
+  ctx.font = "900 " + px + "px " + VS_TPL_FAM2; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  const tw = ctx.measureText(text).width, padX = px * 0.6, bh = px * 1.6;
+  ctx.fillStyle = bg; ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(cx - tw / 2 - padX, y, tw + padX * 2, bh, bh * 0.22); else ctx.rect(cx - tw / 2 - padX, y, tw + padX * 2, bh);
+  ctx.fill();
+  ctx.fillStyle = fg || "#fff"; ctx.fillText(text, cx, y + bh / 2 + px * 0.04);
+  ctx.restore();
+}
+// Where the subject is on the canvas: the cut-out person's head when there is
+// one (the picture is cover-fitted by vsCoverRenderAt), else right of centre.
+function vsThumbTarget(R) {
+  const { W, H, img, cut } = R;
+  if (cut && cut._box && img) {
+    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh);
+    const ox = (W - mw * cov) / 2, oy = (H - mh * cov) / 2, k = mw / cut.width, b = cut._box;
+    const bw = b.w * k * cov, bh = b.h * k * cov;
+    return { x: ox + (b.x * k * cov) + bw / 2, y: oy + (b.y * k * cov) + Math.min(bh * 0.22, bw * 0.5), r: Math.max(Math.min(W, H) * 0.09, Math.min(Math.min(W, H) * 0.17, bw * 0.2)) };   // a head, not the whole person
+  }
+  return { x: W * 0.68, y: H * 0.45, r: Math.min(W, H) * 0.2 };
+}
+
+// The cut-out person stood in an AI scene: the scene at its own size, the
+// person as tall as most of it on their own side, a soft shadow and a thin
+// light edge so they sit in it rather than float. `_cutRef` tells the circle
+// & arrow look where they are.
+function vsThumbComposite(bg, cut, side, frame) {
+  if (!bg || !cut || !cut._box) return null;
+  const W = bg.naturalWidth || bg.width, H = bg.naturalHeight || bg.height;
+  if (!W || !H) return null;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.drawImage(bg, 0, 0, W, H);
+  const b = cut._box, k = Math.min((H * 0.94) / b.h, (W * 0.55) / b.w);
+  const pw = b.w * k, ph = b.h * k;
+  const px = side === "left" ? W * 0.04 : W - pw - W * 0.04, py = H - ph + (cut._touchBottom ? 0 : -H * 0.02);
+  x.save(); x.shadowColor = "rgba(0,0,0,0.55)"; x.shadowBlur = Math.min(W, H) * 0.05; x.shadowOffsetY = H * 0.012;
+  x.drawImage(cut, b.x, b.y, b.w, b.h, px, py, pw, ph); x.restore();
+  x.drawImage(cut, b.x, b.y, b.w, b.h, px, py, pw, ph);
+  c._cutRef = { width: W, height: H, _box: { x: px, y: py, w: pw, h: ph } };
+  return c;
+}
+
+// VERSUS — one side against the other: the picture twice, each half in its
+// own colour, a VS badge on the seam, each side's words under it. The title
+// is split at "vs" / "or" / «در برابر» / «یا», else down the middle.
+function vsTplVersus(R) {
+  const { ctx, W, H, accent, img } = R;
+  const raw = String(R.title || "").trim(), rtl = vsThumbRtlText(raw);
+  let parts = raw.split(/\s+(?:vs\.?|v\.s\.|versus|or|against|در برابر|در مقابل|مقابل|یا|علیه)\s+/i).map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 2) { const ws = raw.split(/\s+/).filter(Boolean), h = Math.ceil(ws.length / 2); parts = [ws.slice(0, h).join(" "), ws.slice(h).join(" ")]; }
+  parts = [parts[0] || "", parts.slice(1).join(" ")];
+  const [leftT, rightT] = rtl ? [parts[1], parts[0]] : parts;   // Persian reads from the right: its first side sits there
+  const second = /^#?(f8|f6|ef|e1|ff)[0-6]/i.test(accent) ? "#2563ff" : "#ef4444";
+  const half = W / 2, landscape = W >= H;
+  vsThumbPaint(ctx, img, 0, 0, half, H, "saturate(1.15) brightness(0.78)", false);
+  vsThumbPaint(ctx, img, half, 0, W - half, H, "saturate(1.15) brightness(0.78)", true);
+  ctx.save(); ctx.globalAlpha = 0.34; ctx.fillStyle = accent; ctx.fillRect(0, 0, half, H); ctx.fillStyle = second; ctx.fillRect(half, 0, W - half, H); ctx.restore();
+  const g = ctx.createLinearGradient(0, H * 0.35, 0, H); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.75)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // the seam: a slanted white band
+  const sl = W * 0.035, bw = Math.max(6, W * 0.012);
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(half + sl - bw / 2, 0); ctx.lineTo(half + sl + bw / 2, 0); ctx.lineTo(half - sl + bw / 2, H); ctx.lineTo(half - sl - bw / 2, H); ctx.closePath(); ctx.fill();
+  // each side's words, low in its half
+  const pad = W * 0.04, boxH = landscape ? H * 0.36 : H * 0.22, top = H * (landscape ? 0.58 : 0.7);
+  vsThumbHeavy(ctx, leftT, pad, half - pad * 1.6, top, boxH, landscape ? H * 0.17 : W * 0.12, { align: "center", accent: "#fff" });
+  vsThumbHeavy(ctx, rightT, half + pad * 1.6, W - pad, top, boxH, landscape ? H * 0.17 : W * 0.12, { align: "center", accent: "#fff" });
+  // the VS badge on the seam
+  const r = Math.min(W, H) * (landscape ? 0.13 : 0.1), cy = landscape ? H * 0.36 : H * 0.42;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = r * 0.4;
+  ctx.fillStyle = "#0e1014"; ctx.beginPath(); ctx.arc(half, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowColor = "transparent"; ctx.lineWidth = r * 0.12; ctx.strokeStyle = "#ffd400"; ctx.stroke();
+  ctx.fillStyle = "#ffd400"; ctx.font = "900 " + Math.round(r * 0.85) + "px " + VS_TPL_FAM2; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("VS", half, cy + r * 0.05);
+  ctx.restore();
+}
+
+// BEFORE / AFTER — the same picture twice: dull and grey on one side, vivid
+// on the other, a slider handle on the seam, a tag on each half, the title
+// across the bottom.
+function vsTplBeforeAfter(R) {
+  const { ctx, W, H, M, accent, img } = R;
+  const raw = String(R.title || "").trim(), rtl = vsThumbRtlText(raw);
+  const faTags = rtl || (typeof state !== "undefined" && state.lang === "fa");
+  const half = W / 2, landscape = W >= H;
+  // Persian reads from the right, so "before" is the right half
+  const [bx, ax] = rtl ? [half, 0] : [0, half];
+  vsThumbPaint(ctx, img, bx, 0, W - half, H, "grayscale(1) brightness(0.62) contrast(0.92)", false);
+  vsThumbPaint(ctx, img, ax, 0, half, H, "saturate(1.4) contrast(1.12) brightness(1.06)", false);
+  const g = ctx.createLinearGradient(0, H * 0.45, 0, H); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.85)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // the slider seam and its handle
+  const lw = Math.max(4, W * 0.006), hr = Math.min(W, H) * 0.055, hy = H * 0.42;
+  ctx.fillStyle = "#fff"; ctx.fillRect(half - lw / 2, 0, lw, H);
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = hr * 0.5;
+  ctx.beginPath(); ctx.arc(half, hy, hr, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = "#0e1014"; const t = hr * 0.38;
+  ctx.beginPath(); ctx.moveTo(half - t * 0.3, hy - t); ctx.lineTo(half - t * 1.3, hy); ctx.lineTo(half - t * 0.3, hy + t); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(half + t * 0.3, hy - t); ctx.lineTo(half + t * 1.3, hy); ctx.lineTo(half + t * 0.3, hy + t); ctx.closePath(); ctx.fill();
+  // the two tags
+  const tp = Math.round(Math.min(W, H) * 0.05);
+  vsThumbTag(ctx, faTags ? "قبل" : "BEFORE", bx + (W - half) / 2, H * 0.06, tp, "rgba(14,16,20,0.9)", "#fff");
+  vsThumbTag(ctx, faTags ? "بعد" : "AFTER", ax + half / 2, H * 0.06, tp, accent, "#0e1014");
+  // the title across the bottom
+  const boxH = landscape ? H * 0.3 : H * 0.2;
+  vsThumbHeavy(ctx, raw, M, W - M, H * 0.96 - boxH, boxH, landscape ? H * 0.16 : W * 0.12, { align: "center", accent });
+}
+
+// CIRCLE & ARROW — the YouTube trope: a red ring round the subject (the
+// person's face when one was cut out), a fat arrow pointing at it from the
+// words, the words on the free side.
+function vsTplArrow(R) {
+  const { ctx, W, H, M, accent } = R;
+  const raw = String(R.title || "").trim(), rtl = vsThumbRtlText(raw), landscape = W >= H;
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(0,0,0,0.05)"); vg.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const tg = vsThumbTarget(R);
+  const red = "#ff2d2d";
+  // the words on the side away from the subject
+  const textLeft = landscape ? tg.x > W * 0.5 : true;
+  const x0 = landscape ? (textLeft ? M : W * 0.5) : M, x1 = landscape ? (textLeft ? W * 0.5 : W - M) : W - M;
+  const top = landscape ? H * 0.1 : (tg.y > H * 0.5 ? H * 0.06 : H * 0.62);
+  const g2 = landscape
+    ? (textLeft ? ctx.createLinearGradient(0, 0, W * 0.6, 0) : ctx.createLinearGradient(W, 0, W * 0.4, 0))
+    : ctx.createLinearGradient(0, top, 0, top + H * 0.32);
+  g2.addColorStop(0, "rgba(0,0,0,0.62)"); g2.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  const block = vsThumbHeavy(ctx, raw, x0, x1, top, landscape ? H * 0.5 : H * 0.28, landscape ? H * 0.17 : W * 0.13, { accent: "#ffd400" });
+  // the ring: two slightly different passes read as drawn by hand
+  ctx.save();
+  ctx.lineCap = "round"; ctx.strokeStyle = red; ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = tg.r * 0.12;
+  ctx.lineWidth = Math.max(5, Math.min(W, H) * 0.016);
+  ctx.beginPath(); ctx.ellipse(tg.x, tg.y, tg.r * 1.05, tg.r * 0.92, -0.12, 0.15, Math.PI * 2 + 0.05); ctx.stroke();
+  ctx.lineWidth *= 0.55;
+  ctx.beginPath(); ctx.ellipse(tg.x + tg.r * 0.03, tg.y - tg.r * 0.02, tg.r * 1.1, tg.r * 0.96, -0.05, Math.PI * 1.1, Math.PI * 2.9); ctx.stroke();
+  ctx.restore();
+  // the arrow: from beside the words to the ring's edge
+  const sx = landscape ? (textLeft ? Math.min(x1, x0 + W * 0.36) : Math.max(x0, x1 - W * 0.36)) : (W / 2);
+  const sy = landscape ? Math.min(H * 0.86, top + block.h + H * 0.08) : (top < H * 0.5 ? top + block.h + H * 0.03 : top - H * 0.03);
+  const ang = Math.atan2(tg.y - sy, tg.x - sx), ex = tg.x - Math.cos(ang) * tg.r * 1.18, ey = tg.y - Math.sin(ang) * tg.r * 1.18;
+  const cxp = (sx + ex) / 2 + Math.sin(ang) * Math.min(W, H) * 0.08, cyp = (sy + ey) / 2 - Math.cos(ang) * Math.min(W, H) * 0.08;
+  const aw = Math.max(8, Math.min(W, H) * 0.028);
+  const head = (col, extra) => {
+    const a2 = Math.atan2(ey - cyp, ex - cxp), hl = aw * 2.6 + extra;
+    ctx.fillStyle = col; ctx.beginPath();
+    ctx.moveTo(ex + Math.cos(a2) * extra * 0.6, ey + Math.sin(a2) * extra * 0.6);
+    ctx.lineTo(ex - Math.cos(a2 - 0.5) * hl, ey - Math.sin(a2 - 0.5) * hl);
+    ctx.lineTo(ex - Math.cos(a2 + 0.5) * hl, ey - Math.sin(a2 + 0.5) * hl);
+    ctx.closePath(); ctx.fill();
+  };
+  ctx.save(); ctx.lineCap = "round";
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = aw + Math.max(4, aw * 0.45);
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cxp, cyp, ex, ey); ctx.stroke(); head("#fff", aw * 0.45);
+  ctx.strokeStyle = red; ctx.lineWidth = aw;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cxp, cyp, ex, ey); ctx.stroke(); head(red, 0);
+  ctx.restore();
+}
+
+// BIG NUMBER — for lists and figures: the number in the title huge, in the
+// accent, the rest of the words beside it. With no number in the title the
+// longest word plays its part.
+function vsTplNumber(R) {
+  const { ctx, W, H, M, accent } = R;
+  const raw = String(R.title || "").trim(), rtl = vsThumbRtlText(raw), landscape = W >= H;
+  const words = raw.split(/\s+/).filter(Boolean);
+  const ni = words.findIndex((w) => /[\d۰-۹٠-٩]/.test(w));
+  // a title with no number has nothing to make big: the Bold look carries it
+  if (ni < 0) { vsTplBold(R); return; }
+  const big = words[ni] || "", rest = words.filter((_, i) => i !== ni).join(" ");
+  // dark side for the words, the picture showing on the other
+  const g = landscape
+    ? (rtl ? ctx.createLinearGradient(W, 0, 0, 0) : ctx.createLinearGradient(0, 0, W, 0))
+    : ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(4,6,10,0.92)"); g.addColorStop(landscape ? 0.55 : 0.6, "rgba(4,6,10,0.55)"); g.addColorStop(1, "rgba(4,6,10,0.1)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // the number: as big as its box allows
+  const nBoxW = landscape ? W * 0.42 : W - M * 2, nBoxH = landscape ? H * 0.8 : H * 0.34;
+  let px = Math.round(nBoxH);
+  ctx.font = "900 " + px + "px " + VS_TPL_FAM2;
+  while (px > 20 && ctx.measureText(rtl ? big : big.toUpperCase()).width > nBoxW) { px -= Math.max(2, Math.round(px * 0.05)); ctx.font = "900 " + px + "px " + VS_TPL_FAM2; }
+  const shown = rtl ? big : big.toUpperCase(), nw = ctx.measureText(shown).width;
+  const nx = landscape ? (rtl ? W - M - nw : M) : (W - nw) / 2;
+  const ny = landscape ? (H - px * 0.95) / 2 : H * 0.07;
+  ctx.save();
+  ctx.textBaseline = "top"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = px * 0.08; ctx.shadowOffsetY = px * 0.03;
+  ctx.lineWidth = Math.max(4, px * 0.06); ctx.strokeStyle = "#0e1014"; ctx.strokeText(shown, nx, ny);
+  ctx.shadowColor = "transparent"; ctx.fillStyle = accent; ctx.fillText(shown, nx, ny);
+  ctx.restore();
+  // the rest of the words beside it (below it on a tall frame)
+  if (rest) {
+    const x0 = landscape ? (rtl ? M : nx + nw + W * 0.03) : M, x1 = landscape ? (rtl ? nx - W * 0.03 : W - M) : W - M;
+    const boxH = landscape ? H * 0.6 : H * 0.3, sp = landscape ? H * 0.15 : W * 0.12;
+    // beside the number, the words are centred on it
+    const m = vsThumbHeavy(ctx, rest, x0, x1, 0, boxH, sp, { emph: -1, measure: true });
+    const top = landscape ? Math.max(H * 0.08, ny + px * 0.47 - m.h / 2) : ny + px * 1.02 + H * 0.02;
+    vsThumbHeavy(ctx, rest, x0, x1, top, boxH, sp, { emph: -1 });
+  }
 }
 
 async function vsComposeCover(topic, source, aspect, size) {
@@ -25654,9 +25908,14 @@ function vsTplCutout(R) {
   const portrait = H > W * 1.15;
   // the frame behind, soft and dark, washed with the accent on the words' side
   ctx.save();
-  const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh) * 1.12;
-  ctx.filter = "blur(" + Math.round(Math.max(W, H) * 0.014) + "px) brightness(0.5) saturate(1.25)";
-  ctx.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+  // An AI scene made for the topic, when one was asked for: sharp enough to
+  // read as a place, a touch soft and dark so the person stands in front of it.
+  const back = (R.bg && (R.bg.naturalWidth || R.bg.width)) ? R.bg : img;
+  const mw = back.naturalWidth || back.width, mh = back.naturalHeight || back.height, cov = Math.max(W / mw, H / mh) * (back === img ? 1.12 : 1.02);
+  ctx.filter = back === img
+    ? "blur(" + Math.round(Math.max(W, H) * 0.014) + "px) brightness(0.5) saturate(1.25)"
+    : "blur(" + Math.max(1, Math.round(Math.max(W, H) * 0.0025)) + "px) brightness(0.72) saturate(1.15)";
+  ctx.drawImage(back, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
   ctx.restore();
   const personLeft = R.side === "left";
   if (portrait) {
@@ -25753,7 +26012,7 @@ function vsThumbStudio(prefillTopic, preset) {
     .map((x, i) => sizeRow(x[0], x[1], i === 0)).join("");
   const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video).map((t, i) => tplTile(t, i === 0)).join("");
   ov.innerHTML =
-    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
+    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-ideas-h{display:flex;align-items:center;justify-content:space-between;gap:10px}\n#tsModal .ts-ideas{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-idea{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;color:#f4f5f7;text-align:start;cursor:pointer;font:inherit;transition:border-color .15s}\n#tsModal .ts-idea:hover{border-color:rgba(255,255,255,.26)}\n#tsModal .ts-idea[aria-pressed=\"true\"]{border-color:#2563ff;background:rgba(37,99,255,.08)}\n#tsModal .ts-idea:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-score{grid-row:span 2;min-width:38px;padding:5px 0;border-radius:8px;background:#1b1f27;font:700 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;color:#c9ccd3}\n#tsModal .ts-score.hi{background:#2563ff;color:#fff}\n#tsModal .ts-idea-t{font:700 13.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-idea-w{font-size:11.5px;color:#8a919c}\n#tsModal .ts-photo{display:flex;align-items:center;gap:10px}\n#tsModal .ts-photo img{width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}\n#tsModal .ts-photo .ts-note{flex:1}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
     '<aside class="ts-side">' +
       '<div><div class="ts-eye">Thumbnail Studio</div><h2 id="tsTitle">' + (fa ? "ساخت تامبنیل" : "Make a thumbnail") + '</h2></div>' +
       '<div class="ts-seg" role="tablist" aria-label="' + (fa ? "منبع" : "Source") + '">' +
@@ -25774,8 +26033,18 @@ function vsThumbStudio(prefillTopic, preset) {
       '<div class="ts-field"><label class="ts-lbl" for="tsTopic">' + (fa ? "کلمات روی تامبنیل" : "Words on the thumbnail") + '</label>' +
         '<input id="tsTopic" type="text" value="' + esc(topic0) + '" placeholder="' + (fa ? "مثلاً: بازار مسکن ۲۰۲۷" : "e.g. Housing in 2027") + '"/>' +
         '<div id="tsVidAlts" class="ts-alts" style="display:none"></div>' +
-        '<label class="ts-switch"><input type="checkbox" id="tsAuto"/><span class="ts-sw"></span><span>' + (fa ? "یک عنوان جذاب برایم بنویس" : "Write a catchy title for me") + '</span></label>' +
+        '<div class="ts-ideas-h"><label class="ts-switch"><input type="checkbox" id="tsAuto"/><span class="ts-sw"></span><span>' + (fa ? "یک عنوان جذاب برایم بنویس" : "Write a catchy title for me") + '</span></label>' +
+          '<button id="tsIdeasBtn" type="button" class="ts-ghost">' + (fa ? "ایدهٔ تیتر" : "Title ideas") + '</button></div>' +
+        '<div id="tsIdeas" class="ts-ideas" hidden></div>' +
       '</div>' +
+      '<div id="tsPhotoF" class="ts-field"><div class="ts-lbl">' + (fa ? "عکس خودت (اختیاری)" : "Your photo (optional)") + '</div>' +
+        '<div class="ts-photo"><button id="tsPhotoBtn" type="button" class="ts-ghost">' + (fa ? "انتخاب عکس" : "Choose a photo") + '</button>' +
+          '<img id="tsPhotoPv" alt="" hidden/><span id="tsPhotoInfo" class="ts-note">' + (fa ? "تو را از پس‌زمینه جدا می‌کند و کنار کلمات می‌نشاند." : "You are cut out of the background and set beside the words.") + '</span>' +
+          '<button id="tsPhotoX" type="button" class="ts-x" hidden aria-label="' + (fa ? "حذف عکس" : "Remove the photo") + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+        '<input id="tsPhotoFile" type="file" accept="image/*" hidden/></div>' +
+      '<div id="tsBgF" class="ts-field" hidden><div class="ts-lbl">' + (fa ? "پس‌زمینه پشت تو" : "Behind you") + '</div>' +
+        '<div class="ts-seg" id="tsBgSeg"><button type="button" data-bg="ai" aria-pressed="true">' + (fa ? "صحنهٔ AI از موضوع" : "AI scene of the topic") + '</button>' +
+        '<button type="button" data-bg="own" aria-pressed="false">' + (fa ? "تصویر خودت" : "Your own picture") + '</button></div></div>' +
       '<div class="ts-field"><div class="ts-lbl">' + (fa ? "ظاهر" : "Look") + '</div><div id="tsTpls" class="ts-tpls">' + tplChips + '</div></div>' +
       '<div class="ts-field"><div class="ts-lbl">' + (fa ? "سایزها" : "Sizes") + '</div><div id="tsSizes" class="ts-sizes">' + sizeChips + '</div>' +
         '<div class="ts-custom"><input id="tsW" type="number" min="64" max="4096" placeholder="W" aria-label="' + (fa ? "عرض" : "Width") + '"/><span>×</span>' +
@@ -25816,7 +26085,18 @@ function vsThumbStudio(prefillTopic, preset) {
   const setSrc = (m) => {
     ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.src === m)));
     $$("tsVid").hidden = m !== "video";
+    // the video brings its own person; the photo is for a topic
+    $$("tsPhotoF").hidden = m === "video";
+    syncBg();
   };
+  // what goes behind the person: shown once there is a person to put in front
+  let bgMode = "ai";
+  const syncBg = () => {
+    const vidMode = !$$("tsVid").hidden;
+    $$("tsBgF").hidden = !((vidMode && vid.data) || (!vidMode && photo));
+    ov.querySelectorAll("#tsBgSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.bg === bgMode)));
+  };
+  ov.querySelectorAll("#tsBgSeg button").forEach((b) => { b.onclick = () => { bgMode = b.dataset.bg; syncBg(); }; });
   ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setSrc(b.dataset.src); });
   // versions: three buttons in front of the (hidden) list the generator reads
   const syncCount = () => ov.querySelectorAll("#tsCountSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.n === $$("tsCount").value)));
@@ -25849,6 +26129,92 @@ function vsThumbStudio(prefillTopic, preset) {
   drop.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f && /^video\//.test(f.type)) loadVideo(f); });
   // ── from my video ──
   const vid = { data: null, picks: [], busy: false };
+  // ── the user's own photo (topic mode): cut out like a video frame ──
+  let photo = null;
+  const ensureCutoutChip = () => {
+    let chip = ov.querySelector('.tstpl[value="cutout"]');
+    if (!chip) {
+      $$("tsTpls").insertAdjacentHTML("afterbegin", tplTile(VS_THUMB_TEMPLATES.find((x) => x.id === "cutout"), false));
+      chip = ov.querySelector('.tstpl[value="cutout"]');
+    }
+    return chip;
+  };
+  const loadPhoto = async (file) => {
+    if (!file || !/^image\//.test(file.type)) return;
+    const info = $$("tsPhotoInfo"), btn = $$("tsPhotoBtn");
+    btn.disabled = true;
+    info.textContent = L2("Cutting you out of the photo…", "در حال جدا کردن تو از پس‌زمینهٔ عکس…");
+    try { vsThumbSegmenter().catch(() => {}); } catch (e) {}
+    try {
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 1920 / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement("canvas"); canvas.width = Math.round(bmp.width * k); canvas.height = Math.round(bmp.height * k);
+      canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      let cut = null; try { cut = await vsThumbCutout(canvas); } catch (e) {}
+      const side = cut ? ((cut._box.x + cut._box.w / 2) / canvas.width < 0.4 ? "left" : "right") : "right";
+      photo = { canvas, cut, side };
+      bgMode = "ai";   // a photo's own background is rarely the place the video is about
+      const pv = $$("tsPhotoPv"); pv.src = canvas.toDataURL("image/jpeg", 0.7); pv.hidden = false; $$("tsPhotoX").hidden = false;
+      if (cut) ensureCutoutChip().checked = true;
+      info.textContent = cut
+        ? L2("Done - you are cut out. Pick what goes behind you, then Generate.", "انجام شد - از پس‌زمینه جدا شدی. انتخاب کن پشتت چه باشد، بعد «بساز».")
+        : L2("No person was found in this photo, so it is used as the picture itself.", "کسی در این عکس پیدا نشد، پس خود عکس به‌عنوان تصویر استفاده می‌شود.");
+      syncBg();
+      renderPreviews({ coverTitle: ($$("tsTopic").value || "").slice(0, 64), img: canvas, cut, side });
+    } catch (e) {
+      photo = null;
+      info.textContent = L2("This photo could not be opened.", "این عکس باز نشد.");
+    } finally { btn.disabled = false; }
+  };
+  $$("tsPhotoBtn").onclick = () => { $$("tsPhotoFile").value = ""; $$("tsPhotoFile").click(); };
+  $$("tsPhotoFile").onchange = () => loadPhoto($$("tsPhotoFile").files && $$("tsPhotoFile").files[0]);
+  $$("tsPhotoX").onclick = () => {
+    photo = null; $$("tsPhotoPv").hidden = true; $$("tsPhotoX").hidden = true;
+    $$("tsPhotoInfo").textContent = L2("You are cut out of the background and set beside the words.", "تو را از پس‌زمینه جدا می‌کند و کنار کلمات می‌نشاند.");
+    const chip = ov.querySelector('.tstpl[value="cutout"]');
+    if (chip && !vid.data) { const tile = chip.closest(".ts-tpl"); if (chip.checked) { const first = ov.querySelector('.tstpl[value="bold"]'); if (first) first.checked = true; } if (tile) tile.remove(); }
+    syncBg(); pvBase = null; renderPreviews();
+  };
+  // ── title ideas, each with a score for how well it would pull a click ──
+  $$("tsIdeasBtn").onclick = async () => {
+    const base = ($$("tsTopic").value || "").trim() || topic0;
+    if (!base) { $$("tsTopic").focus(); return; }
+    const said = String((vid.data && vid.data.transcript) || "").slice(0, 700);
+    const box = $$("tsIdeas"), btn = $$("tsIdeasBtn");
+    btn.disabled = true; box.hidden = false;
+    box.innerHTML = '<div class="ts-skel" style="height:46px"></div><div class="ts-skel" style="height:46px"></div><div class="ts-skel" style="height:46px"></div>';
+    let ideas = [];
+    try {
+      const raw = await vsAutoAiChat(
+        `You write the words on YouTube and Instagram thumbnails. The video is about: "${base}".` + (said ? `\nWhat is said in it (the start): "${said}"` : "") + `\n` +
+        `Write 6 DIFFERENT thumbnail lines, 2-5 words each, in the SAME language as the topic (a Persian topic gets Persian lines).\n` +
+        `Use a different hook for each: a curiosity gap, a bold claim, a question, a warning, a contrast, and one built on a number ONLY if a number is in the topic or what is said - never invent a figure, a percentage or a count.\n` +
+        `Score each from 1 to 10 for how likely it is to win the click: short, concrete, emotional, readable at the size of a phone thumbnail, and honest (no promise the video cannot keep). Be strict - most lines are 5-7.\n` +
+        `Give the reason in at most 9 words, in the same language as the lines.\n` +
+        `Return ONLY JSON: {"ideas":[{"text":"","score":7.5,"why":""}]}`, { temperature: 0.9 });
+      const j = vsParseAiJson(raw || "");
+      ideas = (Array.isArray(j) ? j : ((j && (j.ideas || j.titles)) || [])).map((x) => ({ text: String(x.text || "").replace(/\s+/g, " ").trim().slice(0, 60), score: Math.max(1, Math.min(10, Number(x.score) || 0)), why: String(x.why || "").trim().slice(0, 80) }))
+        .filter((x) => x.text).sort((a, b) => b.score - a.score).slice(0, 6);
+    } catch (e) {}
+    btn.disabled = false;
+    if (!ideas.length) { box.innerHTML = '<p class="ts-note">' + L2("No ideas came back - try again.", "ایده‌ای برنگشت - دوباره امتحان کن.") + "</p>"; return; }
+    box.innerHTML = "";
+    ideas.forEach((x) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "ts-idea"; b.setAttribute("aria-pressed", "false");
+      b.innerHTML = '<span class="ts-score' + (x.score >= 8 ? " hi" : "") + '">' + x.score.toFixed(1) + '</span><span class="ts-idea-t" dir="auto"></span><span class="ts-idea-w" dir="auto"></span>';
+      b.querySelector(".ts-idea-t").textContent = x.text;
+      b.querySelector(".ts-idea-w").textContent = x.why;
+      b.setAttribute("aria-label", x.text + " - " + x.score.toFixed(1) + "/10");
+      b.onclick = () => {
+        $$("tsTopic").value = x.text;
+        if ($$("tsAuto")) $$("tsAuto").checked = false;   // these are the words, not a starting point
+        box.querySelectorAll(".ts-idea").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+        renderPreviews();
+      };
+      box.appendChild(b);
+    });
+  };
   const L2 = (en, f) => (fa ? f : en);
   const pickFrame = async (i) => {
     // a frame at full size, with the person cut out of it (once)
@@ -25924,6 +26290,8 @@ function vsThumbStudio(prefillTopic, preset) {
       }
       if (first && first.cut) chip.checked = true;
       drawStrip();
+      // a video's own place is usually the right backdrop; the AI scene is a choice
+      bgMode = "own"; syncBg();
       // every look, previewed with this video's own frame and words
       if (first) renderPreviews({ coverTitle: ($$("tsTopic").value || pl.title || "").slice(0, 64), img: first.canvas, cut: first.cut, side: first.side,
         kicker: String(pl.kicker || "").slice(0, 24), accent: /^#[0-9a-f]{6}$/i.test(pl.accent || "") ? pl.accent : "" });
@@ -25982,6 +26350,21 @@ function vsThumbStudio(prefillTopic, preset) {
         let p = null; try { p = await pickFrame(at); } catch (e) {}
         if (p) assets = { coverTitle: topic.slice(0, 64), img: p.canvas, source: "", imgModel: "video", imgError: null,
           cut: p.cut, side: p.side, kicker: String(d.plan.kicker || "").slice(0, 24), accent: /^#[0-9a-f]{6}$/i.test(d.plan.accent || "") ? d.plan.accent : "" };
+      }
+      if (!assets && photo && $$("tsVid").hidden) {
+        assets = { coverTitle: topic.slice(0, 64), img: photo.canvas, source: "", imgModel: "photo", imgError: null, cut: photo.cut, side: photo.side, kicker: "", accent: "" };
+      }
+      // An AI scene of the topic behind the person: for Cut-out it is the
+      // backdrop; for every other look the person is set into it, so the
+      // whole frame is the scene with them in it.
+      if (assets && assets.cut && bgMode === "ai") {
+        let ai = null;
+        try { ai = await vsCoverAssets(topic, source, iw, ih, { exactTitle, backdrop: true }); } catch (e) {}
+        if (ai && ai.img) {
+          if (template === "cutout") assets.bg = ai.img;
+          else { const comp = vsThumbComposite(ai.img, assets.cut, assets.side, assets.img); if (comp) { assets.img = comp; assets.cut = comp._cutRef; } }
+        }
+        if (ai && !exactTitle && ai.coverTitle) assets.coverTitle = ai.coverTitle;
       }
       if (!assets) { try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {} }
       for (let k = 0; k < sizes.length; k++) {
