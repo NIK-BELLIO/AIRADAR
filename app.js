@@ -217,6 +217,8 @@ const i18n = {
     vsLength: "Length",
     vsSmarter: "Smarter model (optional)",
     vRecVoiceBtn: "Record it in my own voice",
+    vLookLbl: "Look",
+    vLookTip: "Hover a look to see it move",
     vSfxLbl: "Sound effects on transitions",
     vMultiClipLbl: "Several clips in each scene",
     vHdLbl: "HD footage when the connection allows",
@@ -692,6 +694,8 @@ const i18n = {
     vsLength: "طول",
     vsSmarter: "مدل قوی‌تر (اختیاری)",
     vRecVoiceBtn: "ضبط با صدای خودم",
+    vLookLbl: "ظاهر ویدیو",
+    vLookTip: "نشانگر را روی هر سبک ببر تا حرکتش را ببینی",
     vSfxLbl: "افکت صوتی روی ترنزیشن‌ها",
     vMultiClipLbl: "چند کلیپ در هر صحنه",
     vHdLbl: "فوتیج HD وقتی اینترنت اجازه بدهد",
@@ -8395,6 +8399,12 @@ async function vsAssembleFromSections(data, skipFootage) {
     renderSlideList();
     drawStudioFrame(vsStillTime());
   }
+  if (vsMotionActive() && vstudio.slides.some((s) => s._motion)) {
+    vsMotionBeatSnap(vstudio.slides, ((data && data.music) || {}).bpm || VS_MOTION_STYLES[vstudio._motionStyle].music.bpm);
+    try { vsMixVoiceTrack(true); } catch (e) {}
+    renderSlideList();
+    drawStudioFrame(vsStillTime());
+  }
 }
 
 // One search, one request. The rotation offsets in tryPexels() ask for the same
@@ -8851,6 +8861,7 @@ async function vsEnsureDefaultMusic(data) {
   try {
     const generated = await vsGenerateAiMusic(data || vstudio.storyData);
     if (generated) {
+      vstudio._musicBeat = null;   // a generated track's beat is not known
       vstudio._defaultMusicBuffer = generated.buffer;
       vstudio._defaultMusicUrl = generated.url;
       // where the AI track's real content actually stops — see vsFindContentEnd.
@@ -8888,6 +8899,9 @@ async function vsEnsureDefaultMusic(data) {
     const upbeat = /hopeful|inspiring|upbeat|optimistic|excited/.test(mood);
     const energyScale = energyName === "low" ? 0.65 : energyName === "high" ? 1.35 : 1;
     const bpmSpec = Math.max(70, Math.min(132, Math.round(Number(spec.bpm)) || 100));
+    // the beat this bed is built on (its kicks start at 2s): motion looks
+    // breathe on it and cut on it
+    vstudio._musicBeat = { period: 60 / bpmSpec, t0: 2.0 };
     const cacheKey = [targetDur, mood, energyName, bpmSpec].join(":");
     vstudio._defaultMusicCache = vstudio._defaultMusicCache || {};
     const cached = vstudio._defaultMusicCache[cacheKey];
@@ -10840,8 +10854,12 @@ function vsBuildSfxEvents(slides) {
   let t = 0;
   (slides || []).forEach((sl, i) => {
     const d = Number(sl.duration) || 4;
-    if (i === 0) ev.push({ n: "boom", t: t + 0.06, g: hype ? 1 : 0.75 });
+    const mo = sl._motion, mst = mo && VS_MOTION_STYLES[mo.style];
+    if (i === 0) ev.push({ n: "boom", t: t + 0.06, g: (hype ? 1 : 0.75) * (mst ? mst.sfx : 1) });
+    else if (mo) ev.push({ n: VS_MOTION_TRANS_SFX[mo.trans] || "whoosh", t: t + 0.0, g: 0.6 * (mst ? mst.sfx : 1) });
     else if (n) ev.push({ n, t: t + 0.02, g: (n === "whoosh" ? 0.6 : 0.45) * (hype ? 1.2 : 1) });
+    // the icon landing on a motion scene
+    if (mo && mo.role === "content") ev.push({ n: i % 2 ? "pluck2" : "pluck", t: t + 0.32, g: 0.45 * (mst ? mst.sfx : 1) });
     if (i === slides.length - 1 && slides.length > 2) ev.push({ n: "sparkle", t: t + 0.3, g: 0.4 });
     t += d;
   });
@@ -13682,6 +13700,9 @@ async function vsAutoGenerateBackgrounds(data) {
   // A photo-led, editorial-style deck: every scene gets an AI-generated cinematic
   // image matched to the topic, with elegant serif text overlays on top.
   if (vstudio._editorialMode) { await vsEditorialBackgrounds(data); return; }
+
+  // ── A motion look (the Look picker): no footage, every scene composed ──
+  if (vsMotionActive()) { vsMotionPrepare(slides, data); renderSlideList(); drawStudioFrame(vsStillTime()); return; }
 
   // ── Motion-graphic mode (the /motion_graphic skill) ──
   // Instead of stock footage, give every content scene an animated generated
@@ -20306,6 +20327,695 @@ function drawEditorialText(ctx, W, H, s, pal, enter, local, onPaper) {
 // Two looks (both looks are supported): a full-bleed cinematic image with a colour grade,
 // or a cut-out subject on a light "paper" background. Both carry a big cut-off
 // word, the coloured headline card, and a source line / CTA.
+// ══ MOTION DESIGNER ═════════════════════════════════════════════════════════
+// A video made of motion design instead of footage, for people who have never
+// opened a motion tool. They pick a look; the look decides everything a motion
+// designer would - type, colour, how each word enters, the background and its
+// movement, the icon treatment, the transitions between scenes, the tempo of
+// the music and how loud the cut sounds are - and every scene is composed from
+// the script:
+//   - the spoken words are the picture (kinetic typography): phrase by phrase,
+//     each word entering on the moment it is said, the key word set apart;
+//   - the scene's headline rides on top as a small chapter label;
+//   - an icon picked from what the scene is about draws itself in;
+//   - scenes change through shape transitions (bars, iris, split, wipe,
+//     stack), each with its sound on the cut;
+//   - the background breathes on the music's beat and the cuts land on beats.
+// Scenes carry `_motion`; drawStudioFrame hands them to vsMotionDraw, so the
+// voice, the captions switch, the cut sounds and the exporter need nothing new.
+
+const VS_MOTION_STYLES = {
+  kinetic: { name: "Kinetic Bold", fa: "تایپوگرافی پویا", bg: "#f3efe6", ink: "#111114", accent: "#ffd23f", accent2: "#ff5a36", muted: "#6f6a62",
+    font: '"Archivo", "Vazirmatn", system-ui, sans-serif', weight: 900, upper: true, enter: "slam", backdrop: "dots", badge: "fill",
+    trans: ["bars", "stack", "wipe"], chunk: 3, music: { mood: "uplifting", energy: "high", bpm: 118 }, sfx: 1.1 },
+  neon: { name: "Neon Tech", fa: "تک و نئون", bg: "#06070c", ink: "#eaf8ff", accent: "#26e0ff", accent2: "#ff3fd8", muted: "#7e8aa0",
+    font: '"Space Grotesk", "Vazirmatn", system-ui, sans-serif', weight: 700, upper: false, enter: "glide", backdrop: "grid", badge: "ring", glow: true,
+    trans: ["iris", "split", "wipe"], chunk: 4, music: { mood: "inspiring", energy: "high", bpm: 110 }, sfx: 1 },
+  minimal: { name: "Clean Minimal", fa: "مینیمال تمیز", bg: "#f7f7f4", ink: "#141414", accent: "#2563ff", accent2: "#141414", muted: "#85857f",
+    font: '"Manrope", "Vazirmatn", system-ui, sans-serif', weight: 800, upper: false, enter: "mask", backdrop: "soft", badge: "soft",
+    trans: ["wipe", "iris"], chunk: 5, music: { mood: "calm", energy: "low", bpm: 92 }, sfx: 0.7 },
+  news: { name: "News Bold", fa: "خبری بولد", bg: "#0b1630", ink: "#ffffff", accent: "#e1202f", accent2: "#ffffff", muted: "#9fb0d0",
+    font: '"Archivo", "Vazirmatn", system-ui, sans-serif', weight: 800, upper: true, enter: "wipe", backdrop: "stripes", badge: "square",
+    trans: ["split", "bars"], chunk: 4, music: { mood: "investigative", energy: "medium", bpm: 100 }, sfx: 1 },
+  paper: { name: "Paper Craft", fa: "کاغذی دست‌ساز", bg: "#efe5d1", ink: "#2b241f", accent: "#e4573d", accent2: "#3b6fd8", muted: "#8c7f6c",
+    font: '"Archivo", "Vazirmatn", system-ui, sans-serif', weight: 800, upper: false, enter: "stop", backdrop: "paper", badge: "torn",
+    trans: ["stack", "wipe"], chunk: 3, music: { mood: "warm", energy: "medium", bpm: 104 }, sfx: 0.9 },
+  luxe: { name: "Luxe Dark", fa: "لوکس تیره", bg: "#0b0a09", ink: "#f2ebdf", accent: "#e6d3a8", accent2: "#f2ebdf", muted: "#8f8676",
+    font: '"Prata", "Alice", Georgia, "Vazirmatn", serif', weight: 400, upper: false, enter: "fade", backdrop: "luxe", badge: "thin",
+    trans: ["iris", "wipe"], chunk: 4, music: { mood: "reflective", energy: "low", bpm: 84 }, sfx: 0.6 },
+};
+const VS_MOTION_TRANS_SFX = { bars: "whoosh", stack: "whoosh", wipe: "whoosh", iris: "riser", split: "boom" };
+const vsMoClamp = (x) => Math.max(0, Math.min(1, x));
+const vsMoE = {
+  out: (p) => 1 - Math.pow(1 - vsMoClamp(p), 3),
+  expo: (p) => { p = vsMoClamp(p); return p >= 1 ? 1 : 1 - Math.pow(2, -10 * p); },
+  back: (p) => { p = vsMoClamp(p); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  inOut: (p) => { p = vsMoClamp(p); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
+};
+
+// ── icons: a 24-unit line set, drawn stroke by stroke ──
+const vsMoCirc = (x, y, r) => "M" + (x - r) + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0";
+const VS_MOTION_ICONS = {
+  house: ["M3 11 12 4l9 7", "M5 10v10h14V10", "M10 20v-6h4v6"],
+  money: ["M3 7h18v10H3z", vsMoCirc(12, 12, 2.6), "M6.5 10v4M17.5 10v4"],
+  coin: [vsMoCirc(12, 12, 9), "M14.6 9.4c-.5-1-1.6-1.5-2.7-1.5-1.5 0-2.8.8-2.8 2s1.2 1.7 2.8 2 3 .9 3 2.2-1.4 2.3-3 2.3c-1.3 0-2.4-.6-2.8-1.6", "M12 6.4v1.5M12 16v1.6"],
+  up: ["M3 17l6-6 4 4 8-8", "M14 7h7v7"],
+  down: ["M3 7l6 6 4-4 8 8", "M21 10v7h-7"],
+  bars: ["M3 20h18", "M6 20v-7", "M11 20V8", "M16 20v-10", "M20 20V5"],
+  pie: [vsMoCirc(12, 12, 9), "M12 3v9h9"],
+  phone: ["M7.5 3h9a1.5 1.5 0 0 1 1.5 1.5v15a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19.5v-15A1.5 1.5 0 0 1 7.5 3z", "M11 18h2"],
+  laptop: ["M5 5h14v10H5z", "M2 19h20", "M5 15l-3 4", "M19 15l3 4"],
+  globe: [vsMoCirc(12, 12, 9), "M3 12h18", "M12 3c3.5 3 3.5 15 0 18", "M12 3c-3.5 3-3.5 15 0 18"],
+  heart: ["M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.4a4.2 4.2 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"],
+  clock: [vsMoCirc(12, 12, 9), "M12 7v5l3.2 2"],
+  calendar: ["M4 6h16v14H4z", "M4 10h16", "M8 3v5", "M16 3v5"],
+  people: [vsMoCirc(9, 8, 3), "M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6", "M16 5.2a3 3 0 0 1 0 5.6", "M18 14.3c1.9.8 3 2.9 3 5.7"],
+  person: [vsMoCirc(12, 8, 4), "M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"],
+  car: ["M5 16v-4l2.2-5h9.6L19 12v4", "M3 16h18", "M5 12h14", vsMoCirc(7.5, 17.5, 1.6), vsMoCirc(16.5, 17.5, 1.6)],
+  plane: ["M3 11l18-8-8 18-2-8z", "M11 13l10-10"],
+  shield: ["M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z", "M9 12l2 2 4-4"],
+  lock: ["M6 11h12v9H6z", "M9 11V8a3 3 0 0 1 6 0v3"],
+  bulb: ["M9 18h6", "M10 21h4", "M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"],
+  rocket: ["M12 3c4 2 6 6 5 11l-3 3h-4l-3-3C6 9 8 5 12 3z", vsMoCirc(12, 10, 1.6), "M9 17l-2 4", "M15 17l2 4"],
+  target: [vsMoCirc(12, 12, 9), vsMoCirc(12, 12, 5), vsMoCirc(12, 12, 1.4)],
+  check: [vsMoCirc(12, 12, 9), "M8 12.2l2.8 2.8 5.2-6"],
+  warning: ["M12 4l9 16H3z", "M12 10v4", "M12 17h.01"],
+  star: ["M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"],
+  leaf: ["M5 19c0-8 6-13 15-14-1 9-6 15-14 15", "M5 19l8-8"],
+  sun: [vsMoCirc(12, 12, 4), "M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"],
+  fire: ["M12 21c-4 0-6.5-2.8-6.5-6.2 0-4.3 4.3-6.1 4.3-10.3 3 2 5.2 5 5.2 8.2 1-1 1.4-2.1 1.4-3.2 2.1 2 2.6 4 2.6 5.3 0 3.4-3 6.2-7 6.2z"],
+  building: ["M4 21V5l8-2v18", "M12 9h8v12", "M2 21h20", "M7 8h2M7 12h2M7 16h2M15 13h2M15 17h2"],
+  cart: ["M3 4h2.2l2.5 11h10.8L21 7H6.6", vsMoCirc(9, 19.5, 1.5), vsMoCirc(18, 19.5, 1.5)],
+  gift: ["M4 11h16v9H4z", "M3 7.5h18V11H3z", "M12 7.5V20", "M12 7.5c-1.6-3.8-6-3.2-4.2-.1M12 7.5c1.6-3.8 6-3.2 4.2-.1"],
+  chat: ["M4 5h16v11H9.5L5 20v-4H4z", "M8 9.5h8M8 12.5h5"],
+  mail: ["M3 6h18v12H3z", "M3 7l9 6 9-6"],
+  search: [vsMoCirc(11, 11, 6.5), "M16 16l5 5"],
+  book: ["M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z", "M4 5.5v16", "M8.5 7.5h7"],
+  school: ["M2 9l10-5 10 5-10 5z", "M6 11v5c3 2.4 9 2.4 12 0v-5", "M22 9v6"],
+  health: ["M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"],
+  coffee: ["M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z", "M16 11h2a2.5 2.5 0 0 1 0 5h-2", "M8 2.5v3.5M12 2.5v3.5"],
+  music: ["M9 18V5l11-2v13", vsMoCirc(6, 18, 3), vsMoCirc(17, 16, 3)],
+  camera: ["M3 8h4l2-3h6l2 3h4v11H3z", vsMoCirc(12, 13, 3.8)],
+  play: [vsMoCirc(12, 12, 9), "M10 8.2l5.8 3.8-5.8 3.8z"],
+  battery: ["M3 8h16v8H3z", "M21 11v2", "M6 11v2M9 11v2M12 11v2"],
+  wifi: ["M2 9a15 15 0 0 1 20 0", "M5.2 12.5a10.5 10.5 0 0 1 13.6 0", "M8.6 16a5.2 5.2 0 0 1 6.8 0", "M12 19.5h.01"],
+  pin: ["M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z", vsMoCirc(12, 10, 2.5)],
+  trophy: ["M8 4h8v5a4 4 0 0 1-8 0z", "M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4", "M12 13v4", "M8 21h8", "M10 17h4v4h-4z"],
+  spark: ["M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z", "M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"],
+  bell: ["M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z", "M10 20.5a2 2 0 0 0 4 0"],
+  arrow: ["M4 12h16", "M14 6l6 6-6 6"],
+  gear: [vsMoCirc(12, 12, 3), vsMoCirc(12, 12, 7.2), "M12 2v2.8M12 19.2V22M2 12h2.8M19.2 12H22M4.9 4.9l2 2M17.1 17.1l2 2M4.9 19.1l2-2M17.1 6.9l2-2"],
+};
+// What a scene is about, to its icon - English and Persian words both.
+const VS_MOTION_ICON_WORDS = [
+  [/mortgage|\brent|housing|real estate|apartment|\bhome|\bhouse|مسکن|اجاره|آپارتمان|خانه|ملک/, "house"],
+  [/bitcoin|crypto|\bcoin|stock|invest|بیت|ارز دیجیتال|سهام|بورس|سرمایه/, "coin"],
+  [/money|cash|salary|income|price|cost|budget|saving|\bpay|پول|حقوق|درآمد|قیمت|هزینه|بودجه|پس‌انداز|پس انداز/, "money"],
+  [/grow|rise|increase|boom|higher|more than|افزایش|رشد|بیشتر|بالا رفت/, "up"],
+  [/fall|drop|decline|crash|lower|less than|کاهش|سقوط|افت|کمتر/, "down"],
+  [/data|survey|report|statistic|percent|%|آمار|گزارش|درصد|داده/, "bars"],
+  [/share|portion|split|breakdown|سهم|بخش/, "pie"],
+  [/phone|mobile|\bapp\b|instagram|tiktok|social|موبایل|گوشی|اپلیکیشن|اینستاگرام|شبکه اجتماعی/, "phone"],
+  [/computer|laptop|software|code|online|internet|website|کامپیوتر|لپ‌تاپ|نرم‌افزار|سایت|اینترنت|آنلاین/, "laptop"],
+  [/\bai\b|artificial|machine learning|robot|هوش مصنوعی|ربات/, "spark"],
+  [/world|global|countr|international|جهان|کشور|بین‌المل/, "globe"],
+  [/love|heart|feel|emotion|عشق|قلب|احساس/, "heart"],
+  [/morning|hour|minute|\btime|late|early|صبح|ساعت|دقیقه|زمان|دیر|زود/, "clock"],
+  [/week|month|year|\bday|date|schedule|هفته|ماه|سال|روز|تاریخ|برنامه‌ریزی/, "calendar"],
+  [/people|team|family|community|customer|users|مردم|تیم|خانواده|مشتری|کاربران/, "people"],
+  [/\bcar\b|drive|traffic|vehicle|ماشین|خودرو|ترافیک|رانندگی/, "car"],
+  [/travel|flight|trip|plane|سفر|پرواز|هواپیما/, "plane"],
+  [/safe|security|protect|insurance|امن|امنیت|بیمه|محافظت/, "shield"],
+  [/privacy|password|secret|lock|رمز|حریم|راز|قفل/, "lock"],
+  [/idea|tip|learn|smart|think|insight|ایده|نکته|یاد بگیر|فکر|هوشمند/, "bulb"],
+  [/launch|start|startup|fast|boost|speed|شروع|استارتاپ|سریع|سرعت/, "rocket"],
+  [/goal|focus|\baim|target|هدف|تمرکز/, "target"],
+  [/risk|danger|warning|mistake|avoid|خطر|هشدار|اشتباه|اجتناب/, "warning"],
+  [/best|\btop\b|quality|review|rated|بهترین|برتر|کیفیت/, "star"],
+  [/nature|green|climate|environment|plant|طبیعت|محیط زیست|سبز|اقلیم|گیاه/, "leaf"],
+  [/summer|\bsun|solar|energy|آفتاب|خورشید|انرژی|تابستان/, "sun"],
+  [/\bhot\b|trend|viral|fire|داغ|ترند|وایرال|آتش/, "fire"],
+  [/\bcit(y|ies)|office|company|business|corporate|downtown|شهر|شرکت|کسب|اداره|دفتر/, "building"],
+  [/shop|buy|\bsale|store|market|خرید|فروش|بازار|فروشگاه/, "cart"],
+  [/gift|free|bonus|هدیه|رایگان|جایزه/, "gift"],
+  [/talk|message|comment|chat|conversation|گفتگو|پیام|کامنت|صحبت/, "chat"],
+  [/email|newsletter|inbox|ایمیل|خبرنامه/, "mail"],
+  [/search|find|discover|research|جستجو|پیدا کن|کشف|تحقیق/, "search"],
+  [/read|book|study|story|کتاب|مطالعه|داستان|درس/, "book"],
+  [/school|university|student|education|course|مدرسه|دانشگاه|دانشجو|آموزش|دوره/, "school"],
+  [/doctor|hospital|medical|medicine|health|پزشک|بیمارستان|دارو|درمان|سلامت/, "health"],
+  [/coffee|cafe|break|قهوه|کافه|استراحت/, "coffee"],
+  [/music|song|sound|موسیقی|آهنگ|صدا/, "music"],
+  [/photo|video|camera|film|عکس|ویدیو|فیلم|دوربین/, "camera"],
+  [/battery|charge|power|باتری|شارژ|برق/, "battery"],
+  [/wifi|network|connect|شبکه|اتصال/, "wifi"],
+  [/place|location|local|neighbo|map|مکان|محله|نقشه|منطقه/, "pin"],
+  [/\bwin|success|champion|award|برنده|موفقیت|قهرمان/, "trophy"],
+  [/subscribe|follow|notif|alert|فالو|دنبال|اعلان/, "bell"],
+  [/watch|stream|\bplay|تماشا|پخش/, "play"],
+  [/setting|system|process|how it works|تنظیم|سیستم|فرآیند/, "gear"],
+  [/check|done|correct|right way|درست|تمام|انجام شد/, "check"],
+];
+function vsMotionIconFor(text, i, first) {
+  // what the headline says decides before what the narration mentions
+  for (const src of [first, text]) {
+    const t = String(src || "").toLowerCase();
+    if (!t) continue;
+    for (const [re, id] of VS_MOTION_ICON_WORDS) if (re.test(t)) return id;
+  }
+  return ["spark", "bulb", "target", "star", "rocket", "check"][i % 6];
+}
+const _vsMoPaths = new Map();
+function vsMotionPath(d) { let p = _vsMoPaths.get(d); if (!p) { p = new Path2D(d); _vsMoPaths.set(d, p); } return p; }
+// An icon drawing itself in: each stroke grows from its start as `prog` goes 0 to 1.
+function vsMotionDrawIcon(ctx, id, cx, cy, size, prog, color, lw) {
+  const paths = VS_MOTION_ICONS[id] || VS_MOTION_ICONS.spark;
+  const k = size / 24;
+  ctx.save();
+  ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(k, k);
+  ctx.lineWidth = lw / k; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = color;
+  if (prog < 1) { const L = 64; ctx.setLineDash([L, L]); ctx.lineDashOffset = L * (1 - vsMoClamp(prog)); }
+  for (const d of paths) ctx.stroke(vsMotionPath(d));
+  ctx.restore();
+}
+
+// ── the music's beat (the synth's grid, known exactly) ──
+function vsMotionBeat(elapsed) {
+  const b = vstudio._musicBeat;
+  if (!b || !b.period || elapsed < b.t0) return 0;
+  const ph = ((elapsed - b.t0) / b.period) % 1;
+  return Math.exp(-ph * 7);
+}
+// Cuts on the beat: each scene is lengthened (never shortened, by less than a
+// beat) so its end falls on one of the music's beats. The music is made after
+// this, at the final length, on the same grid.
+function vsMotionBeatSnap(slides, bpm) {
+  const period = 60 / (Number(bpm) || 100), t0 = 2.0;   // the synth starts its beat at 2s
+  let end = 0;
+  (slides || []).forEach((s, i) => {
+    end += Number(s.duration) || 4;
+    if (i === slides.length - 1) return;
+    const k = Math.ceil((end - t0 - 0.02) / period);
+    const onBeat = t0 + Math.max(0, k) * period;
+    const ext = onBeat - end;
+    if (ext > 0 && ext < period * 0.98) { s.duration = (Number(s.duration) || 4) + ext; end = onBeat; }
+  });
+}
+
+// ── what the build does: every scene becomes a motion scene ──
+function vsMotionActive() {
+  const b = document.querySelector("#vsAutoBatch");
+  return !!(vstudio._motionStyle && VS_MOTION_STYLES[vstudio._motionStyle] && !vstudio._editorialMode && !vstudio._motionGfxMode && !vstudio._realtorMode && !(b && b.checked));
+}
+function vsMotionHeadline(s) {
+  const st = s.settings || {};
+  return String(st["#vsNewsHeadline"] || st["#vsHeadline"] || s.headline || s._caption || (s._motion && s._motion.title) || "").replace(/\s+/g, " ").trim();
+}
+function vsMotionPrepare(slides, data) {
+  const id = vstudio._motionStyle, st = VS_MOTION_STYLES[id];
+  if (!st || !slides || !slides.length) return;
+  // the music the look calls for, on a grid the cuts can land on
+  if (data) data.music = Object.assign({}, data.music || {}, st.music);
+  const topic = String((data && (data.title || data._topic)) || "");
+  slides.forEach((s, i) => {
+    const last = i === slides.length - 1 && slides.length > 1;
+    const role = i === 0 ? "title" : last ? "outro" : "content";
+    const head = role === "content" ? vsMotionHeadline(s) : String(s.introMain || (role === "title" ? topic : "") || vsMotionHeadline(s));
+    const about = [head, s._narration, s._visual, (s._keywords || []).join(" ")].join(" ");
+    s._motion = {
+      style: id, role, title: head,
+      sub: String(s.introSub || (role === "title" && data && data.subtitle) || "").trim(),
+      kicker: String((role === "title" && data && data.kicker) || "").trim(),
+      icon: role === "outro" ? "arrow" : vsMotionIconFor(role === "title" ? about + " " + topic : about, i, head),
+      hero: String(s._heroWord || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""),
+      trans: st.trans[i % st.trans.length],
+      seed: (i * 9301 + 49297) % 233280,
+    };
+    s._noCaps = true;          // the kinetic words are the captions
+    s.mediaEl = null; s.isVideo = false; s.ready = true;
+  });
+}
+
+// ── the phrases of a scene and when each word arrives ──
+function vsMotionTimeline(s, dur, st) {
+  const m = s._motion, v = s._voice;
+  const key = dur.toFixed(2) + "|" + (v ? v.len.toFixed(2) : "-") + "|" + (s._narration || "").length;
+  if (m._tl && m._tl.key === key) return m._tl;
+  let words = v && v.words && v.words.length ? v.words.map((w) => ({ w: w.w, t0: w.t0, t1: w.t1 })) : null;
+  const text = String(s._narration || "").trim();
+  if (!words && text && m.role === "content") words = vsWordTimes(text, 0.5, Math.max(1.0, dur - 0.6));
+  const phrases = [];
+  if (words && words.length) {
+    // Phrases of about the look's size, broken after punctuation - and never a
+    // word left on its own ("NOW", "AND" read as broken): an orphan joins the
+    // phrase it belongs to.
+    const chunks = [];
+    let cur = [];
+    words.forEach((w, i) => {
+      cur.push(i);
+      if (cur.length >= st.chunk || /[.!?,;:،؛]["')»]*$/.test(w.w)) { chunks.push(cur); cur = []; }
+    });
+    if (cur.length) chunks.push(cur);
+    for (let k = 0; k < chunks.length; k++) {
+      if (chunks[k].length > 1 || chunks.length < 2) continue;
+      if (k + 1 < chunks.length && chunks[k + 1].length < st.chunk + 2) { chunks[k + 1] = chunks[k].concat(chunks[k + 1]); chunks.splice(k, 1); k--; }
+      else if (k > 0) { chunks[k - 1] = chunks[k - 1].concat(chunks[k]); chunks.splice(k, 1); k--; }
+    }
+    chunks.forEach((idx, k) => {
+      const ws = idx.map((i) => words[i]);
+      phrases.push({ words: ws, t0: ws[0].t0, t1: chunks[k + 1] ? words[chunks[k + 1][0]].t0 : dur + 1 });
+    });
+  }
+  m._tl = { key, phrases };
+  return m._tl;
+}
+// Which word of a phrase is the one to set apart: the scene's key word, a
+// figure, else the longest real word - and none in a phrase of one word.
+const VS_MOTION_STOP = new Set(("about after again also always among another around because before being below between both could does doing during each either every from have having into just like more most much must never other over same should since some such than that their them then there these they this those through under until upon very what when where which while whose with within without would your yours " +
+  "این آن که برای از به با در را و یک است هست بود شود شده می‌شود های هم اما ولی چون اگر تا یا نیز همه هر خود ما شما آنها ایشان کرد کند کنند دارد دارند").split(/\s+/));
+function vsMotionHero(words, heroKey) {
+  if (words.length < 2) return -1;
+  const bare = words.map((w) => String(w).toLowerCase().replace(/[^\p{L}\p{N}‌]/gu, ""));
+  let i = heroKey ? bare.findIndex((b) => b && (b === heroKey || (heroKey.length > 3 && b.startsWith(heroKey)))) : -1;
+  if (i < 0) i = bare.findIndex((b) => /[\d۰-۹]/.test(b));
+  // a Persian verb (می‌کند, نمی‌شود) is never the word to set apart
+  if (i < 0) { let mx = 3; bare.forEach((b, k) => { const n = b.replace(/‌/g, "").length; if (n > mx && !VS_MOTION_STOP.has(b) && !/^(ن?می)‌/.test(b)) { mx = n; i = k; } }); }
+  return i;
+}
+// Words into lines that fit a box, the key word larger and on its own line
+// when the phrase is long enough to give it one. Persian lines are mirrored
+// word-wise (the canvas sets words left to right).
+function vsMotionLayout(ctx, texts, hero, box, st, maxPx) {
+  const rtl = texts.some((w) => /[֐-ࣿ]/.test(w));
+  const disp = texts.map((w) => (st.upper && !rtl ? w.toUpperCase() : w));
+  const HK = 1.42;
+  const lay = (px) => {
+    const lines = []; let cur = [], curW = 0;
+    const space = px * 0.3;
+    for (let i = 0; i < disp.length; i++) {
+      const sz = i === hero ? px * HK : px;
+      ctx.font = st.weight + " " + sz + "px " + st.font;
+      const w = ctx.measureText(disp[i]).width;
+      const breakHero = disp.length >= 3 && (i === hero || cur.some((o) => o.i === hero));
+      if (cur.length && (curW + space + w > box.w || breakHero)) { lines.push(cur); cur = []; curW = 0; }
+      cur.push({ i, w, sz }); curW += (cur.length > 1 ? space : 0) + w;
+    }
+    if (cur.length) lines.push(cur);
+    const lhs = lines.map((ln) => Math.max.apply(null, ln.map((o) => o.sz)) * 1.1);
+    const wMax = Math.max.apply(null, lines.map((ln) => ln.reduce((n, o, j) => n + o.w + (j ? space : 0), 0)));
+    return { lines, space, lhs, hTot: lhs.reduce((a, b) => a + b, 0), wMax };
+  };
+  let px = maxPx, L = lay(px);
+  for (let k = 0; k < 40 && (L.hTot > box.h || L.wMax > box.w) && px > 8; k++) { px *= 0.93; L = lay(px); }
+  const out = [];
+  let y = box.y + (box.h - L.hTot) / 2;
+  L.lines.forEach((ln, li) => {
+    const order = rtl ? ln.slice().reverse() : ln;
+    const lw = order.reduce((n, o, j) => n + o.w + (j ? L.space : 0), 0);
+    let x = box.x + (box.w - lw) / 2;
+    order.forEach((o) => { out.push({ i: o.i, text: disp[o.i], x, y: y + L.lhs[li] / 2, w: o.w, sz: o.sz }); x += o.w + L.space; });
+    y += L.lhs[li];
+  });
+  return out;
+}
+// One word: its entrance (p from 0 to 1), its exit (x from 0 to 1) and, for
+// the key word, the look's way of setting it apart once it has landed.
+function vsMotionWord(ctx, st, wd, p, x, isHero, seed) {
+  if (p <= 0) return;
+  const e = vsMoClamp(p);
+  let dy = 0, sc = 1, a = 1, rot = 0, clip = null, ls = 0;
+  switch (st.enter) {
+    case "slam": a = vsMoClamp(p * 3); sc = 1 + 0.55 * (1 - vsMoE.back(e)); rot = (1 - vsMoE.out(e)) * -0.08; break;
+    case "glide": a = vsMoE.out(e); dy = (1 - vsMoE.expo(e)) * wd.sz * 0.7; break;
+    case "mask": dy = (1 - vsMoE.expo(e)) * wd.sz * 1.15; clip = true; break;
+    case "stop": { const q = Math.ceil(e * 5) / 5; a = q > 0 ? 1 : 0; sc = 0.55 + 0.45 * vsMoE.back(q); rot = (((seed * 7 + wd.i * 13) % 11) / 11 - 0.5) * 0.12; break; }
+    case "fade": a = vsMoE.inOut(e); ls = (1 - vsMoE.out(e)) * wd.sz * 0.22; break;
+    case "wipe": break;
+  }
+  if (x > 0) { a *= 1 - vsMoClamp(x); dy -= vsMoE.out(x) * wd.sz * 0.35; }
+  if (a <= 0.003) return;
+  ctx.save();
+  ctx.globalAlpha *= a;
+  if (clip) { ctx.beginPath(); ctx.rect(wd.x - wd.sz * 0.3, wd.y - wd.sz * 0.64, wd.w + wd.sz * 0.6, wd.sz * 1.28); ctx.clip(); }
+  ctx.font = st.weight + " " + wd.sz + "px " + st.font;
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  if (ls) { try { ctx.letterSpacing = ls + "px"; } catch (er) {} }
+  ctx.translate(wd.x + wd.w / 2, wd.y + dy); ctx.rotate(rot); ctx.scale(sc, sc); ctx.translate(-wd.w / 2, 0);
+  const h = isHero ? vsMoE.out((p - 0.55) / 0.5) : 0;
+  const padX = wd.sz * 0.16, boxH = wd.sz * 1.08;
+  let color = st.ink;
+  if (isHero && h > 0) {
+    if (st.enter === "slam") { ctx.fillStyle = st.accent; ctx.fillRect(-padX, -boxH / 2, (wd.w + padX * 2) * h, boxH); }
+    else if (st.enter === "wipe") { ctx.fillStyle = st.accent; ctx.fillRect(-padX, -boxH / 2, (wd.w + padX * 2) * h, boxH); }
+  }
+  if (isHero) color = (st.enter === "slam") ? st.ink : (st.enter === "wipe") ? "#ffffff" : st.accent;
+  if (st.enter === "wipe" && e < 1) {
+    // a bar runs across, the word is left behind it
+    const k1 = vsMoE.inOut(e / 0.5), k2 = vsMoE.inOut((e - 0.5) / 0.5);
+    if (e >= 0.5) { ctx.fillStyle = color; ctx.fillText(wd.text, 0, 0); }
+    ctx.fillStyle = st.accent;
+    const bx = e < 0.5 ? -padX : -padX + (wd.w + padX * 2) * k2;
+    const bw = e < 0.5 ? (wd.w + padX * 2) * k1 : (wd.w + padX * 2) * (1 - k2);
+    ctx.fillRect(bx, -boxH / 2, bw, boxH);
+  } else {
+    if (st.glow) { ctx.shadowColor = isHero ? st.accent : "rgba(38,224,255,0.45)"; ctx.shadowBlur = wd.sz * (isHero ? 0.45 : 0.18); }
+    ctx.fillStyle = color; ctx.fillText(wd.text, 0, 0);
+    ctx.shadowBlur = 0;
+  }
+  if (isHero && h > 0) {
+    if (st.enter === "mask" || st.enter === "fade") {
+      ctx.fillStyle = st.accent; ctx.fillRect(0, wd.sz * 0.56, wd.w * h, Math.max(2, wd.sz * (st.enter === "fade" ? 0.035 : 0.075)));
+    } else if (st.enter === "stop") {
+      // a marker scribble under it
+      ctx.strokeStyle = st.accent; ctx.lineWidth = wd.sz * 0.1; ctx.lineCap = "round";
+      ctx.beginPath();
+      const n = 7, yb = wd.sz * 0.6;
+      for (let k = 0; k <= n * h; k++) { const xx = -padX * 0.5 + (wd.w + padX) * (k / n), yy = yb + (k % 2 ? wd.sz * 0.07 : -wd.sz * 0.04); k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ── the backgrounds, moving on their own and breathing on the beat ──
+let _vsMoPaper = null;
+function vsMotionPaperTile() {
+  if (_vsMoPaper) return _vsMoPaper;
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const x = c.getContext("2d"), id = x.createImageData(256, 256);
+  let sd = 7;
+  for (let i = 0; i < id.data.length; i += 4) { sd = (sd * 16807) % 2147483647; const v = (sd % 1000) / 1000; const g = v < 0.5 ? 0 : 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = g; id.data[i + 3] = Math.round(Math.abs(v - 0.5) * 22); }
+  x.putImageData(id, 0, 0);
+  _vsMoPaper = c;
+  return c;
+}
+function vsMotionBackdrop(ctx, W, H, st, t, beat, seed) {
+  const U = Math.min(W, H);
+  ctx.fillStyle = st.bg; ctx.fillRect(0, 0, W, H);
+  const pulse = 1 + beat * 0.035;
+  ctx.save();
+  switch (st.backdrop) {
+    case "dots": {
+      const g = U * 0.055, off = (t * U * 0.012) % g;
+      ctx.fillStyle = "rgba(17,17,20,0.09)";
+      for (let y = -g + off; y < H + g; y += g) for (let x = -g + off * 0.5; x < W + g; x += g) { ctx.beginPath(); ctx.arc(x, y, U * 0.0045, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = st.accent;
+      ctx.beginPath(); ctx.arc(W * 0.92 + Math.sin(t * 0.4) * U * 0.03, H * 0.9, U * 0.34 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(W * 0.06, H * 0.08 + Math.cos(t * 0.35) * U * 0.03); ctx.rotate(t * 0.15);
+      ctx.fillStyle = st.accent2; const r = U * 0.12 * pulse; ctx.fillRect(-r, -r, r * 2, r * 2); ctx.restore();
+      break;
+    }
+    case "grid": {
+      const g = U * 0.08, off = (t * U * 0.03) % g;
+      ctx.strokeStyle = "rgba(38,224,255,0.07)"; ctx.lineWidth = Math.max(1, U * 0.0018);
+      ctx.beginPath();
+      for (let x = (W / 2) % g; x < W; x += g) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (let y = off; y < H; y += g) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+      [[0.2, 0.25, st.accent, 0.5], [0.85, 0.75, st.accent2, 0.42]].forEach(([fx, fy, col, rr], k) => {
+        const cx = W * fx + Math.sin(t * 0.3 + k) * U * 0.06, cy = H * fy + Math.cos(t * 0.25 + k) * U * 0.06, R = U * rr * pulse;
+        const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R); gr.addColorStop(0, col + "38"); gr.addColorStop(1, col + "00");
+        ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      });
+      const sy = ((t * 0.18) % 1) * H;
+      const sl = ctx.createLinearGradient(0, sy - U * 0.05, 0, sy + U * 0.05); sl.addColorStop(0, "rgba(38,224,255,0)"); sl.addColorStop(0.5, "rgba(38,224,255,0.07)"); sl.addColorStop(1, "rgba(38,224,255,0)");
+      ctx.fillStyle = sl; ctx.fillRect(0, sy - U * 0.05, W, U * 0.1);
+      break;
+    }
+    case "soft": {
+      const cx = W * (0.7 + Math.sin(t * 0.2) * 0.1), cy = H * (0.3 + Math.cos(t * 0.17) * 0.08), R = U * 0.75 * pulse;
+      const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R); gr.addColorStop(0, st.accent + "16"); gr.addColorStop(1, st.accent + "00");
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(20,20,20,0.08)"; ctx.lineWidth = Math.max(1, U * 0.0016);
+      const m = U * 0.05; ctx.strokeRect(m, m, W - m * 2, H - m * 2);
+      break;
+    }
+    case "stripes": {
+      ctx.globalAlpha = 0.06; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = U * 0.02;
+      const g = U * 0.09, off = (t * U * 0.04) % g;
+      ctx.beginPath();
+      for (let x = -H + off; x < W + H; x += g) { ctx.moveTo(x, 0); ctx.lineTo(x + H * 0.6, H); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = st.accent; ctx.fillRect(0, 0, Math.max(6, U * 0.018) * pulse, H);
+      const gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,0.35)");
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "paper": {
+      // stop-motion: the shapes move eight times a second
+      const tq = Math.floor(t * 8) / 8;
+      const blob = (cx, cy, r, col, k) => {
+        ctx.fillStyle = col; ctx.beginPath();
+        for (let a = 0; a <= 16; a++) { const ang = a / 16 * Math.PI * 2, rr = r * (0.86 + 0.14 * Math.sin(a * 2.3 + k + Math.floor(tq * 2) * 0.7)); const x = cx + Math.cos(ang) * rr, y = cy + Math.sin(ang) * rr; a ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.closePath(); ctx.fill();
+      };
+      blob(W * 0.9, H * 0.12, U * 0.2 * pulse, st.accent2 + "cc", seed);
+      blob(W * 0.08, H * 0.9, U * 0.26 * pulse, st.accent + "cc", seed + 2);
+      ctx.fillStyle = ctx.createPattern(vsMotionPaperTile(), "repeat"); ctx.fillRect(0, 0, W, H);
+      break;
+    }
+    case "luxe": {
+      const gr = ctx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.45, Math.max(W, H) * 0.75);
+      gr.addColorStop(0, "#1c1915"); gr.addColorStop(1, st.bg);
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = st.accent;
+      for (let k = 0; k < 26; k++) {
+        const px = ((k * 0.618 + t * 0.01 * (1 + (k % 3))) % 1) * W, py = (1 - ((k * 0.381 + t * 0.02 * (1 + (k % 4))) % 1)) * H;
+        ctx.globalAlpha = 0.12 + 0.1 * Math.sin(t + k); ctx.beginPath(); ctx.arc(px, py, U * 0.0028, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      const m = U * 0.045; ctx.strokeStyle = st.accent + "40"; ctx.lineWidth = Math.max(1, U * 0.0014); ctx.strokeRect(m, m, W - m * 2, H - m * 2);
+      break;
+    }
+  }
+  ctx.restore();
+}
+// The badge an icon sits on, in the look's own manner.
+function vsMotionBadge(ctx, st, cx, cy, r, pop, t) {
+  const s = vsMoE.back(pop);
+  if (s <= 0) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
+  switch (st.badge) {
+    case "fill": ctx.fillStyle = st.ink; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = st.accent; ctx.beginPath(); ctx.arc(r * 0.62, -r * 0.62, r * 0.2, 0, Math.PI * 2); ctx.fill(); break;
+    case "ring":
+      ctx.strokeStyle = st.accent; ctx.lineWidth = r * 0.06; ctx.shadowColor = st.accent; ctx.shadowBlur = r * 0.35;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.strokeStyle = st.accent2; ctx.lineWidth = r * 0.04;
+      ctx.beginPath(); ctx.arc(0, 0, r * 1.18, t * 1.2, t * 1.2 + Math.PI * 0.5); ctx.stroke(); break;
+    case "soft": ctx.fillStyle = "rgba(20,20,20,0.05)"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); break;
+    case "square": ctx.fillStyle = st.accent; ctx.fillRect(-r * 0.92, -r * 0.92, r * 1.84, r * 1.84); break;
+    case "torn": {
+      ctx.fillStyle = "#fffaf0"; ctx.beginPath();
+      for (let a = 0; a <= 20; a++) { const ang = a / 20 * Math.PI * 2, rr = r * (a % 2 ? 0.97 : 1.03); ctx.lineTo(Math.cos(ang) * rr, Math.sin(ang) * rr); }
+      ctx.closePath(); ctx.shadowColor = "rgba(0,0,0,0.18)"; ctx.shadowBlur = r * 0.12; ctx.shadowOffsetY = r * 0.05; ctx.fill(); break;
+    }
+    case "thin": ctx.strokeStyle = st.accent; ctx.lineWidth = Math.max(1, r * 0.025); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); break;
+  }
+  ctx.restore();
+}
+function vsMotionIconColor(st) { return st.badge === "fill" ? st.accent : st.badge === "square" ? "#ffffff" : st.badge === "soft" ? st.accent : st.accent; }
+
+// ── shape transitions: the end of one scene covers, the next uncovers ──
+function vsMotionTransition(ctx, W, H, kind, cover, reveal, st) {
+  const cols = [st.accent, st.accent2 === st.ink ? st.muted : st.accent2, st.ink];
+  const q = cover > 0 ? cover : reveal;
+  if (!(q > 0) || q >= 1 && reveal > 0) return;
+  ctx.save();
+  if (kind === "bars") {
+    const N = 5, cw = W / N;
+    for (let k = 0; k < N; k++) {
+      ctx.fillStyle = cols[k % 3];
+      if (cover > 0) { const e = vsMoE.inOut(cover * 1.5 - k * 0.1); ctx.fillRect(k * cw - 1, H * (1 - e), cw + 2, H * e); }
+      else { const e = vsMoE.inOut(reveal * 1.5 - k * 0.1); ctx.fillRect(k * cw - 1, 0, cw + 2, H * (1 - e)); }
+    }
+  } else if (kind === "stack") {
+    for (let j = 0; j < 3; j++) {
+      ctx.fillStyle = cols[(j + 1) % 3];
+      if (cover > 0) { const e = vsMoE.inOut(cover * 1.6 - j * 0.28); if (e > 0) ctx.fillRect(W * (1 - e), 0, W, H); }
+      else { const e = vsMoE.inOut(reveal * 1.6 - (2 - j) * 0.28); if (e < 1) ctx.fillRect(-W * e, 0, W, H); }
+    }
+  } else if (kind === "wipe") {
+    const sl = W * 0.35;
+    if (cover > 0) {
+      const f = -sl + (W + sl * 2) * vsMoE.inOut(cover);
+      ctx.fillStyle = cols[0]; ctx.beginPath(); ctx.moveTo(-sl, 0); ctx.lineTo(f, 0); ctx.lineTo(f - sl, H); ctx.lineTo(-sl * 2, H); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = cols[1]; ctx.beginPath(); ctx.moveTo(f, 0); ctx.lineTo(f + W * 0.03, 0); ctx.lineTo(f - sl + W * 0.03, H); ctx.lineTo(f - sl, H); ctx.closePath(); ctx.fill();
+    } else {
+      const b = -sl + (W + sl * 2) * vsMoE.inOut(reveal);
+      ctx.fillStyle = cols[0]; ctx.beginPath(); ctx.moveTo(b, 0); ctx.lineTo(W + sl * 2, 0); ctx.lineTo(W + sl * 2, H); ctx.lineTo(b - sl, H); ctx.closePath(); ctx.fill();
+    }
+  } else if (kind === "iris") {
+    const R = Math.hypot(W, H) / 2 + 2;
+    ctx.fillStyle = cols[0];
+    if (cover > 0) { ctx.beginPath(); ctx.arc(W / 2, H / 2, R * vsMoE.inOut(cover), 0, Math.PI * 2); ctx.fill(); }
+    else {
+      const r = R * vsMoE.inOut(reveal);
+      ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2, true); ctx.fill("evenodd");
+      ctx.strokeStyle = cols[1]; ctx.lineWidth = Math.min(W, H) * 0.012; ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.stroke();
+    }
+  } else if (kind === "split") {
+    const e = cover > 0 ? vsMoE.inOut(cover) : 1 - vsMoE.inOut(reveal), h = (H / 2) * e;
+    ctx.fillStyle = cols[2 % 3] === st.bg ? cols[0] : st.accent;
+    ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h);
+    ctx.fillStyle = cols[1]; const lh = Math.max(3, Math.min(W, H) * 0.008);
+    ctx.fillRect(0, h - lh, W, lh); ctx.fillRect(0, H - h, W, lh);
+  }
+  ctx.restore();
+}
+
+// ── a frame of a motion scene ──
+function vsMotionDraw(ctx, W, H, s, local, dur, elapsed, index) {
+  const m = s._motion, st = VS_MOTION_STYLES[m.style] || VS_MOTION_STYLES.kinetic;
+  const U = Math.min(W, H), land = W > H * 1.15, portrait = H > W * 1.15;
+  const beat = vsMotionBeat(elapsed);
+  const t = local;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = "none";
+  vsMotionBackdrop(ctx, W, H, st, elapsed, beat, m.seed);
+  const M = U * 0.08;
+  if (m.role === "content") {
+    // regions: icon and words side by side on a wide frame, stacked on a tall one
+    const iconC = land ? { x: W * 0.22, y: H * 0.52 } : { x: W / 2, y: portrait ? H * 0.27 : H * 0.25 };
+    const iconR = land ? H * 0.17 : U * (portrait ? 0.15 : 0.13);
+    const box = land ? { x: W * 0.4, y: H * 0.22, w: W * 0.55, h: H * 0.66 } : { x: M * 0.8, y: portrait ? H * 0.4 : H * 0.42, w: W - M * 1.6, h: portrait ? H * 0.5 : H * 0.48 };
+    // the chapter label: the scene's headline, small, at the top
+    const head = vsMotionHeadline(s);
+    if (head) {
+      const lp = vsMoE.expo((t - 0.1) / 0.5), lsz = U * 0.042;
+      ctx.save(); ctx.globalAlpha = lp;
+      ctx.font = "800 " + lsz + "px " + st.font; ctx.textBaseline = "middle";
+      const rtl = /[֐-ࣿ]/.test(head);
+      const txt = rtl ? head : head.toUpperCase();
+      try { if (!rtl) ctx.letterSpacing = (lsz * 0.12) + "px"; } catch (er) {}
+      let tw = ctx.measureText(txt).width;
+      const maxW = land ? W * 0.54 : W - M * 2;
+      let fs = lsz; while (tw > maxW && fs > U * 0.018) { fs *= 0.92; ctx.font = "800 " + fs + "px " + st.font; tw = ctx.measureText(txt).width; }
+      const ly = land ? H * 0.16 : H * (portrait ? 0.1 : 0.09);
+      const lx = land ? W * 0.4 + (rtl ? W * 0.54 - tw : 0) : (W - tw) / 2;
+      ctx.fillStyle = st.muted; ctx.fillText(txt, lx + (1 - lp) * (rtl ? U * 0.04 : -U * 0.04), ly);
+      ctx.fillStyle = st.accent; const bw = U * 0.07 * vsMoE.out((t - 0.25) / 0.5);
+      ctx.fillRect(land ? (rtl ? W * 0.94 - bw : W * 0.4) : W / 2 - bw / 2, ly + fs * 0.95, bw, Math.max(2, U * 0.006));
+      ctx.restore();
+    }
+    // the icon: the badge pops on the cut, the icon draws itself after
+    const pop = vsMoClamp((t - 0.12) / 0.45), draw = vsMoClamp((t - 0.3) / 0.75);
+    const fl = Math.sin(elapsed * 1.6 + m.seed) * U * 0.006;
+    vsMotionBadge(ctx, st, iconC.x, iconC.y + fl, iconR * (1 + beat * 0.04), pop, elapsed);
+    if (pop > 0.3) vsMotionDrawIcon(ctx, m.icon, iconC.x, iconC.y + fl, iconR * 1.05, draw, vsMotionIconColor(st), Math.max(2, iconR * 0.085));
+    // the words, phrase by phrase, each on the moment it is said
+    const tl = vsMotionTimeline(s, dur, st);
+    const ph = tl.phrases.find((p, k) => t >= p.t0 - 0.15 && t < p.t1 - 0.02) || (t < (tl.phrases[0] ? tl.phrases[0].t0 : 0) ? null : tl.phrases[tl.phrases.length - 1]);
+    if (ph) {
+      const texts = ph.words.map((w) => String(w.w).replace(/[.,;:"“”«»،؛]+$/g, "").replace(/^["“”«»]+/, ""));
+      const hero = vsMotionHero(texts, m.hero);
+      const kk = W + "x" + H + m.style;
+      if (!ph._lay || ph._lay.k !== kk) ph._lay = { k: kk, words: vsMotionLayout(ctx, texts, hero, box, st, U * (land ? 0.13 : 0.17)) };
+      const exitAt = ph.t1 - 0.16, x = t > exitAt ? (t - exitAt) / 0.16 : 0;
+      ph._lay.words.forEach((wd) => {
+        const w = ph.words[wd.i];
+        const p = (t - (w.t0 - 0.08)) / (st.enter === "stop" ? 0.32 : 0.3);
+        vsMotionWord(ctx, st, wd, p, x, wd.i === hero, m.seed);
+      });
+    } else if (!tl.phrases.length && head) {
+      // a scene with nothing spoken: its headline is the picture
+      const texts = head.split(/\s+/).filter(Boolean);
+      const hero = vsMotionHero(texts, m.hero);
+      if (!m._hl || m._hl.k !== W + "x" + H + m.style + head) m._hl = { k: W + "x" + H + m.style + head, words: vsMotionLayout(ctx, texts, hero, box, st, U * 0.12) };
+      m._hl.words.forEach((wd) => vsMotionWord(ctx, st, wd, (t - 0.35 - wd.i * 0.09) / 0.3, 0, wd.i === hero, m.seed));
+    }
+  } else {
+    // title and closing scenes: the words large, word by word, a line under
+    const big = String(m.title || "").trim();
+    const texts = big.split(/\s+/).filter(Boolean);
+    const hero = vsMotionHero(texts, m.hero);
+    const box = land ? { x: W * 0.12, y: H * 0.26, w: W * 0.76, h: H * 0.42 } : { x: M, y: H * (portrait ? 0.32 : 0.28), w: W - M * 2, h: H * (portrait ? 0.3 : 0.36) };
+    const kk = W + "x" + H + m.style + big;
+    if (!m._big || m._big.k !== kk) m._big = { k: kk, words: vsMotionLayout(ctx, texts, hero, box, st, U * (land ? 0.13 : 0.15)) };
+    if (m.role === "outro") {
+      const ir = U * 0.075, iy = box.y - ir * 1.6;
+      vsMotionBadge(ctx, st, W / 2, iy, ir, vsMoClamp((t - 0.1) / 0.4), elapsed);
+      vsMotionDrawIcon(ctx, "arrow", W / 2, iy, ir * 1.05, vsMoClamp((t - 0.3) / 0.6), vsMotionIconColor(st), Math.max(2, ir * 0.09));
+    } else if (m.kicker) {
+      const kp = vsMoE.expo((t - 0.05) / 0.5), ks = U * 0.032;
+      ctx.save(); ctx.globalAlpha = kp; ctx.font = "800 " + ks + "px " + st.font; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+      try { ctx.letterSpacing = (ks * 0.18) + "px"; } catch (er) {}
+      ctx.fillStyle = st.accent === st.bg ? st.ink : (st.badge === "fill" ? st.ink : st.accent);
+      ctx.fillText(m.kicker.toUpperCase(), W / 2, box.y - ks * 1.6); ctx.restore();
+    }
+    m._big.words.forEach((wd) => vsMotionWord(ctx, st, wd, (t - 0.3 - wd.i * 0.1) / 0.32, 0, wd.i === hero, m.seed));
+    const last = m._big.words.reduce((a, w) => Math.max(a, w.y + w.sz * 0.6), box.y);
+    const lineP = vsMoE.out((t - 0.3 - texts.length * 0.1) / 0.5);
+    ctx.fillStyle = st.accent; const lw = U * 0.16 * lineP;
+    ctx.fillRect(W / 2 - lw / 2, last + U * 0.03, lw, Math.max(3, U * 0.008));
+    if (m.sub) {
+      const sp = vsMoE.out((t - 0.5 - texts.length * 0.1) / 0.5), ss = U * 0.038;
+      ctx.save(); ctx.globalAlpha = sp; ctx.font = "600 " + ss + "px " + st.font; ctx.textBaseline = "top"; ctx.textAlign = "center"; ctx.fillStyle = st.muted;
+      ctx.fillText(m.sub.slice(0, 60), W / 2, last + U * 0.07 + (1 - sp) * U * 0.02); ctx.restore();
+    }
+  }
+  // the cut: this scene's end covers (in the next scene's shape), its start uncovers
+  const T = 0.34, slides = vstudio.slides || [];
+  const next = slides[index + 1], prev = slides[index - 1];
+  if (next && next._motion && t > dur - T) vsMotionTransition(ctx, W, H, next._motion.trans, (t - (dur - T)) / T, 0, VS_MOTION_STYLES[next._motion.style] || st);
+  else if (!next && t > dur - 0.6) { ctx.fillStyle = st.bg; ctx.globalAlpha = vsMoClamp((t - (dur - 0.6)) / 0.6); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  if (prev && prev._motion && t < T) vsMotionTransition(ctx, W, H, m.trans, 0, t / T, st);
+  else if (!prev && t < 0.4) { ctx.fillStyle = st.bg; ctx.globalAlpha = 1 - vsMoClamp(t / 0.4); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  ctx.restore();
+}
+
+// ── the picker: real footage, or one of the looks, each shown moving ──
+function vsMotionPreview(canvas, id, t) {
+  const st = VS_MOTION_STYLES[id]; if (!st) return;
+  const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+  const fa = state.lang === "fa";
+  const s = { duration: 3.2, _narration: fa ? "حرکت حرفه‌ای بدون هیچ تجربه" : "Pro motion with zero experience", settings: {}, _motion: {
+    style: id, role: "content", title: fa ? "سبک تو" : "Your look", icon: "spark", hero: fa ? "حرفه‌ای" : "motion", trans: st.trans[0], seed: 3 } };
+  const lt = t % 3.2;
+  const prevSlides = vstudio.slides; vstudio.slides = [s];
+  try { vsMotionDraw(ctx, W, H, s, lt, 3.2, t, 0); } catch (e) {}
+  vstudio.slides = prevSlides;
+}
+function vsMotionRenderPicker() {
+  const row = document.getElementById("vsLookRow");
+  if (!row) return;
+  const fa = state.lang === "fa";
+  let cur = "footage";
+  try { cur = localStorage.getItem("vsLook") || "footage"; } catch (e) {}
+  if (cur !== "footage" && !VS_MOTION_STYLES[cur]) cur = "footage";
+  vstudio._motionStyle = cur === "footage" ? null : cur;
+  const card = (id, name) => '<button type="button" class="vs-look-card" role="radio" aria-checked="' + (id === cur) + '" data-look="' + id + '">' +
+    (id === "footage"
+      ? '<span class="vs-look-pv vs-look-ft" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg></span>'
+      : '<canvas class="vs-look-pv" width="144" height="256" aria-hidden="true"></canvas>') +
+    '<span class="vs-look-n">' + name + "</span></button>";
+  row.innerHTML = card("footage", fa ? "فوتیج واقعی" : "Real footage") +
+    Object.keys(VS_MOTION_STYLES).map((id) => card(id, fa ? VS_MOTION_STYLES[id].fa : VS_MOTION_STYLES[id].name)).join("");
+  const cvs = Array.from(row.querySelectorAll("canvas.vs-look-pv"));
+  const ids = Object.keys(VS_MOTION_STYLES);
+  cvs.forEach((c, k) => vsMotionPreview(c, ids[k], 1.9));
+  // moving: the card under the pointer or keyboard, and the chosen one
+  let live = null, raf = 0, t0 = 0;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const run = (ts) => { if (!live) return; if (!t0) t0 = ts; vsMotionPreview(live.c, live.id, (ts - t0) / 1000); raf = requestAnimationFrame(run); };
+  const start = (btn) => {
+    if (reduce) return;
+    const k = ids.indexOf(btn.dataset.look); if (k < 0) return;
+    if (live && live.c === cvs[k]) return;
+    stop(); live = { c: cvs[k], id: ids[k] }; t0 = 0; raf = requestAnimationFrame(run);
+  };
+  const stop = () => { cancelAnimationFrame(raf); if (live) vsMotionPreview(live.c, live.id, 1.9); live = null; };
+  row.querySelectorAll(".vs-look-card").forEach((b) => {
+    b.addEventListener("mouseenter", () => start(b)); b.addEventListener("focus", () => start(b));
+    b.addEventListener("mouseleave", stop); b.addEventListener("blur", stop);
+    b.addEventListener("click", () => {
+      row.querySelectorAll(".vs-look-card").forEach((o) => o.setAttribute("aria-checked", String(o === b)));
+      const v = b.dataset.look;
+      try { localStorage.setItem("vsLook", v); } catch (e) {}
+      vstudio._motionStyle = v === "footage" ? null : v;
+    });
+  });
+}
+
 function drawEditorialFrame(ctx, W, H, s, local, dur) {
   const pal = s._edPalette || vsEditorialPalette("");
   const prog = dur > 0 ? Math.min(1, local / dur) : 0.5;
@@ -20397,6 +21107,12 @@ function drawStudioFrame(elapsed) {
     // ── Editorial (editorial-style) scene owns the whole frame ──
     if (slide && slide._editorial) {
       drawEditorialFrame(ctx, W, H, slide, dsLocal, dsDur);
+      vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
+      return;
+    }
+    // ── a motion-design scene draws itself (vsMotionDraw) ──
+    if (slide && slide._motion) {
+      vsMotionDraw(ctx, W, H, slide, dsLocal, dsDur, elapsed, at.index);
       vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
       return;
     }
@@ -21740,6 +22456,8 @@ function vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur) {
     }
     ctx.restore();
   }
+  // A motion scene makes its own cuts (shape transitions) - none on top.
+  { const _ms = vstudio.slides.length ? vstudio.slides[slideAtTime(elapsed).index] : null; if (_ms && _ms._motion) return; }
   const transKind = vsVal("#vsTransition", "punch");
   // Punch cut: the reel look. No dip to black between scenes - the new scene
   // lands with a quick zoom settle and a light flash, a quarter of a second -
@@ -34448,4 +35166,10 @@ function vsJobCard(title) {
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", again, { once: true });
   else again();
+})();
+
+// The Look picker in the build panel (real footage, or a motion look).
+(function () {
+  const go = () => { try { vsMotionRenderPicker(); } catch (e) {} };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else setTimeout(go, 0);
 })();

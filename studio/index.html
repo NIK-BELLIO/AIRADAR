@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v802" />
+    <link rel="stylesheet" href="/styles.css?v=v803" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -1538,6 +1538,12 @@
                       </div>
                     </label>
 
+                    <!-- The look: real footage, or a motion-design look that decides type,
+                         colour, motion, transitions, icons and the beat for the user -->
+                    <div class="vs-look">
+                      <div class="vs-look-h"><span data-i18n="vLookLbl">Look</span><span class="vs-look-tip" data-i18n="vLookTip">Hover a look to see it move</span></div>
+                      <div class="vs-look-row" id="vsLookRow" role="radiogroup" aria-label="Look"></div>
+                    </div>
                     <label><span id="vsAutoToneLbl" data-i18n="vsTone">Tone</span>
                       <select id="vsAutoTone">
                         <option value="advisor" data-i18n="vsToneAdvisor">Advisor / analytical (for clients)</option>
@@ -2254,6 +2260,19 @@
       .vs-switch-sub::before{content:"";position:absolute;inset-inline-start:0;top:-12px;width:14px;height:22px;border-inline-start:1.5px solid rgba(255,255,255,.2);border-bottom:1.5px solid rgba(255,255,255,.2);border-end-start-radius:8px}
       .vs-voice-group .vs-switch-sub .vs-switch-track{width:34px;height:20px}
       .vs-voice-group+.vs-voice-group{margin-top:8px}
+      .vs-look{display:flex;flex-direction:column;gap:8px;margin:2px 0 12px}
+      .vs-look-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:600 12.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}
+      .vs-look-tip{font-weight:500;font-size:11.5px;color:#8a919c}
+      .vs-look-row{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+      .vs-look-card{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;width:76px;padding:0;border:0;background:none;color:#8a919c;cursor:pointer;font:600 11px/1.25 Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;text-align:center}
+      .vs-look-pv{display:block;width:72px;height:128px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s,transform .15s}
+      .vs-look-ft{display:grid;place-items:center;background:#14171d;color:#c9ccd3}
+      .vs-look-card:hover .vs-look-pv{transform:translateY(-2px)}
+      .vs-look-card[aria-checked="true"] .vs-look-pv{box-shadow:0 0 0 2px #2563ff}
+      .vs-look-card[aria-checked="true"] .vs-look-n{color:#fff}
+      .vs-look-card:focus-visible{outline:none}
+      .vs-look-card:focus-visible .vs-look-pv{box-shadow:0 0 0 2px #12d6f5}
+      @media (prefers-reduced-motion:reduce){.vs-look-card:hover .vs-look-pv{transform:none}}
       .vs-rec-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.16);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;cursor:pointer}
       .vs-rec-btn::before{content:"";width:9px;height:9px;border-radius:50%;background:#ef4444}
       .vs-rec-btn:hover{border-color:rgba(255,255,255,.34)}
@@ -2848,7 +2867,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v802"></script>
+    <script src="/app.js?v=v803"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page
