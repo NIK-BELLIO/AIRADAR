@@ -28146,6 +28146,15 @@ async function vsFalPost(base, path, body) {
 // Settle with vsSettle(jobId, "done"|"failed").
 async function vsCharge(action, extra) {
   const fa = state.lang === "fa";
+  // One charge per press. Some builders measure or upload before their panel
+  // covers the page, so a quick double click reached here twice and paid
+  // twice; the same action asked for again within a few seconds is that.
+  const now = Date.now();
+  if (vsCharge._last && vsCharge._last.action === action && now - vsCharge._last.t < 4000) {
+    vsStatus(fa ? "این سفارش همین الان ثبت شد - یک بار کافی است." : "That was just ordered - one press is enough.");
+    return { block: true };
+  }
+  vsCharge._last = { action, t: now };
   try {
     const r = await fetch("/api/credits/charge", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...(extra || {}) }) });
     if (r.status === 401) { vsStatus(fa ? "برای این کار اول وارد شو." : "Please sign in to continue."); try { const b = document.getElementById("authSignInBtn"); if (b) b.click(); } catch (e) {} return { block: true }; }
@@ -28179,6 +28188,21 @@ function vsSettle(jobId, status) {
       .then((j) => { try { if (window.AIRadarAuth && window.AIRadarAuth.refresh) window.AIRadarAuth.refresh(); } catch (e) {} return j; })
       .catch(() => null);
   } catch (e) { return Promise.resolve(null); }
+}
+
+// What to tell the customer after a paid job did not come back here: the
+// server's answer, never an assumption. The builders used to print "your
+// credits were refunded" on every failure - including a video still rendering
+// past the page's ten minutes, which the server rightly does not refund, and
+// one that finished in a shape the page did not read.
+async function vsSettleTell(jobId) {
+  const fa = state.lang === "fa";
+  const st = await vsSettle(jobId, "failed");
+  if (st && st.refunded) return fa ? "کردیتت برگشت." : "Your credits were refunded.";
+  if (st && st.running) return fa ? "هنوز در حال ساخت است و کردیتی برنگشت؛ تمام که شود در داشبوردت ذخیره می‌شود." : "It is still being made, so nothing was refunded - it will be saved to your Dashboard when it finishes.";
+  if (st && st.delivered) return fa ? "مدل کار را تمام کرد؛ نتیجه در داشبوردت ذخیره می‌شود." : "The model did finish - the result is saved to your Dashboard.";
+  if (st && st.alreadyProcessed) return fa ? "این سفارش قبلاً بسته شده بود." : "This order had already been settled.";
+  return fa ? "وضعیتش تأیید نشد. اگر ساخته نشده باشد، کردیتت ظرف ۱۵ دقیقه خودکار برمی‌گردد." : "Its status could not be confirmed. If it was not made, your credits come back automatically within 15 minutes.";
 }
 
 /**
@@ -29792,7 +29816,9 @@ function vsReverseEngineer(prefill, opts) {
   if ($$("reBuildHappy")) $$("reBuildHappy").onclick = () => {
     const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
     const nar = vsExtractNarration(script) || script;
-    const sec = durSeconds("reHapDur", script);
+    // Seedance makes 4-15 seconds: the charge and the request use the same
+    // number (it used to pay for the script's length and send at most 15).
+    const sec = Math.min(Math.max(durSeconds("reHapDur", script), 4), 15);
     const asp = ($$("reHapAsp") && $$("reHapAsp").value) || "9:16";
     const setting = ((blueprint && blueprint.setting) || "clean studio").replace(/[^\w ,'-]/g, " ").slice(0, 80);
     try {
@@ -29804,7 +29830,7 @@ function vsReverseEngineer(prefill, opts) {
         // 720p is 2.25x the price for the same clip.
         input: { prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "a person speaking to camera", nar.slice(0, 700))
           || `A person speaking directly to the camera in ${setting}, natural expressions and gestures, saying: "${nar.slice(0, 900)}"`),
-          aspect_ratio: asp, resolution: "480p", duration: Math.min(Math.max(sec, 4), 15), generate_audio: true },
+          aspect_ratio: asp, resolution: "480p", duration: sec, generate_audio: true },
         name: "talking-head",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -29814,7 +29840,7 @@ function vsReverseEngineer(prefill, opts) {
   // (product / person / scene) if given, else a generated frame of the setting.
   if ($$("reBuildGrok")) $$("reBuildGrok").onclick = async () => {
     const script = ($$("reScript").value || "").trim(); if (!script) { vsStatus(fa ? "اسکریپت خالی است." : "Script is empty."); return; }
-    const sec = durSeconds("reGrokDur", script), nar = vsExtractNarration(script) || script;
+    const sec = Math.min(Math.max(durSeconds("reGrokDur", script), 4), 30), nar = vsExtractNarration(script) || script;   // Cinema Studio: 4-30s, charged as sent
     const res = ($$("reGrokRes") && $$("reGrokRes").value) || "720p";
     const WB = "https://airadar-ai.aliniashyn-9b4.workers.dev";
     let imageUrl = "";
@@ -29834,7 +29860,7 @@ function vsReverseEngineer(prefill, opts) {
         input: { ...(imageUrl ? { image_urls: [imageUrl] } : {}),
           prompt: (vsShotListToPrompt((blueprint && blueprint.shotList) || [], "", nar.slice(0, 200))
           || ("cinematic camera movement, natural motion, " + nar.slice(0, 140))),
-          resolution: "480p", duration: Math.min(Math.max(sec, 4), 30), generate_audio: true },
+          resolution: "480p", duration: sec, generate_audio: true },
         name: "cinematic",
         titleCards: vsOwnHeadlineCards(script, blueprint), titleColor: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.color) || ""), titleFont: ((blueprint && blueprint.captionStyle && blueprint.captionStyle.font) || "")
       });
@@ -31440,9 +31466,9 @@ async function reBuildImageModel(cfg) {
     finishUi();
   } catch (e) {
     if (cancelled) return;
-    vsSettle(charge.jobId, "failed");
     stageEl.textContent = "";
-    result.innerHTML = `<div style="color:#f87171;font-size:13px">${(fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e)}</div>`;
+    const told = await vsSettleTell(charge.jobId);
+    result.innerHTML = `<div style="color:#f87171;font-size:13px">${(fa ? "نشد: " : "Did not come back: ") + String(e && e.message ? e.message : e).slice(0, 160).replace(/[<>&]/g, "") + ". " + told}</div>`;
     finishUi();
   }
 }
@@ -31595,8 +31621,8 @@ async function vsBuildVideoModel(cfg) {
     finishUi();
   } catch (e) {
     if (cancelled) return;
-    vsSettle(charge.jobId, "failed"); stageEl.textContent = "";
-    const msg = (fa ? "نشد (کردیتت برگشت): " : "Failed (credits refunded): ") + (e && e.message ? e.message : e);
+    stageEl.textContent = "";
+    const msg = (fa ? "نشد: " : "Did not come back: ") + String(e && e.message ? e.message : e).slice(0, 160) + ". " + (await vsSettleTell(charge.jobId));
     result.innerHTML = `<div style="color:#f87171;font-size:13px">${msg}</div>`;
     if (tray) tray.fail(msg);
     finishUi();
@@ -35085,8 +35111,9 @@ async function vsBuildGenjutsu(cfg) {
       finish(); return;
     }
     if (out.status !== "completed") {
-      bad(gen); vsSettle(charge.jobId, "failed");
-      result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "ساخته نشد — کردیتت برگشت. " : "It did not finish — your credits were refunded. ") + (out.error ? String(out.error).slice(0, 160) : "") + '</div>';
+      bad(gen);
+      const told = await vsSettleTell(charge.jobId);
+      result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "اینجا تمام نشد. " : "It did not finish here. ") + told + (out.error ? " " + String(out.error).slice(0, 160) : "") + '</div>';
       finish(); return;
     }
     const url = out.video && out.video.url;
@@ -35102,8 +35129,8 @@ async function vsBuildGenjutsu(cfg) {
     if (tray && tray.done) { try { tray.done(url); } catch (e) {} }
     finish();
   } catch (e) {
-    vsSettle(charge.jobId, "failed");
-    result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "خطا — کردیتت برگشت. " : "Error — your credits were refunded. ") + String((e && e.message) || e).slice(0, 180) + '</div>';
+    const told = await vsSettleTell(charge.jobId);
+    result.innerHTML = '<div style="color:#f87171;font-size:13px">' + (fa ? "خطا: " : "Error: ") + String((e && e.message) || e).slice(0, 180) + ". " + told + '</div>';
     finish();
   }
 }
