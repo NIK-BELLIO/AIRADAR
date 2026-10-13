@@ -7686,8 +7686,18 @@ async function vsBuildFromReadyScript(data, opts) {
   // the looks the script asked for, kept aside: the build may rework data
   const looks = { font: data.font, intro: data.intro && data.intro.look, outro: data.outro && data.outro.look,
     sections: data.sections.map((x) => x && x.look) };
-  await vsBuildFromScript(data, [data.title, data.subtitle].filter(Boolean).join(". "), lenChoice);
-  try { vsApplyScriptLooks(looks); } catch (e) {}
+  // A motion look the script asked for (MCP create_video `look`), for this
+  // build only: a script that names none is built as the AI chose (footage,
+  // editorial, motion graphic), not in whatever look the picker holds.
+  const keepLook = vstudio._motionStyle;
+  const look = String(opts.look || data.look || "").toLowerCase();
+  vstudio._motionStyle = VS_MOTION_STYLES[look] ? look : null;
+  if (vstudio._motionStyle) { vstudio._editorialMode = false; vstudio._motionGfxMode = false; }
+  try {
+    await vsBuildFromScript(data, [data.title, data.subtitle].filter(Boolean).join(". "), lenChoice);
+  } finally { vstudio._motionStyle = keepLook; }
+  // a motion video's scenes carry their look themselves; the rest get theirs
+  if (!(vstudio.slides || []).some((x) => x._motion)) { try { vsApplyScriptLooks(looks); } catch (e) {} }
   return true;
 }
 // The whole video's font, then each scene's own look. Scenes are matched in
@@ -24748,7 +24758,7 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
     const raw = await vsAutoAiChat(
       `A thumbnail is being made about: "${topic}"${source ? ` (source: ${source})` : ""}.\n` +
       `Return ONLY compact JSON with two fields:\n` +
-      `1) "coverTitle": a 2-5 word scroll-stopping headline in the SAME language as the topic (no quotes, hashtags or emojis).\n` +
+      `1) "coverTitle": a 2-5 word scroll-stopping headline (no quotes, hashtags or emojis), ${/[؀-ۿ]/.test(topic) ? "in Persian" : "in the topic's own language - English for an English topic, never Persian"}.\n` +
       `2) "imagePrompt": ALWAYS IN ENGLISH, whatever language the topic is in. One concrete photo scene that a viewer would instantly connect to THIS topic: name the main subject of the sentence as a visible thing, plus where it is and how it is framed. Read the whole sentence - if it is about a phone, show the phone; about a football match, show the players or the ball on the pitch; about bitcoin, a gold bitcoin coin; about coffee, the cup of coffee; about a city, that city's landmark; about cooking, the dish being cooked.\n` +
       `Do NOT fall back on generic filler: no sky, clouds, sunset or skyline, no generic house or street, no random portrait of a person - use those ONLY when the topic is literally about weather, the sky, a skyline, a house or that person. Show a person only when the topic is about a person or something people do.\n` +
       `No readable text anywhere: no signs, screens, charts, documents or labels. One clear subject, real photograph, cinematic light.\n` +
@@ -27183,13 +27193,19 @@ function vsThumbStudio(prefillTopic, preset) {
     btn.disabled = true; box.hidden = false;
     box.innerHTML = '<div class="ts-skel" style="height:46px"></div><div class="ts-skel" style="height:46px"></div><div class="ts-skel" style="height:46px"></div>';
     let ideas = [];
+    // The language is decided here, not left to the model: told "the same
+    // language as the topic" next to a Persian example, it answered an
+    // English title in Persian.
+    const langRule = /[؀-ۿ]/.test(base)
+      ? "Write every line AND every reason in Persian (Farsi)."
+      : "The topic is in English (or another Latin-script language), so write every line AND every reason in that SAME language. Never use Persian, whatever language this page is shown in.";
     try {
       const raw = await vsAutoAiChat(
         `You write the words on YouTube and Instagram thumbnails. The video is about: "${base}".` + (said ? `\nWhat is said in it (the start): "${said}"` : "") + `\n` +
-        `Write 6 DIFFERENT thumbnail lines, 2-5 words each, in the SAME language as the topic (a Persian topic gets Persian lines).\n` +
+        `Write 6 DIFFERENT thumbnail lines, 2-5 words each. ${langRule}\n` +
         `Use a different hook for each: a curiosity gap, a bold claim, a question, a warning, a contrast, and one built on a number ONLY if a number is in the topic or what is said - never invent a figure, a percentage or a count.\n` +
         `Score each from 1 to 10 for how likely it is to win the click: short, concrete, emotional, readable at the size of a phone thumbnail, and honest (no promise the video cannot keep). Be strict - most lines are 5-7.\n` +
-        `Give the reason in at most 9 words, in the same language as the lines.\n` +
+        `Give the reason in at most 9 words. ${langRule}\n` +
         `Return ONLY JSON: {"ideas":[{"text":"","score":7.5,"why":""}]}`, { temperature: 0.9 });
       const j = vsParseAiJson(raw || "");
       ideas = (Array.isArray(j) ? j : ((j && (j.ideas || j.titles)) || [])).map((x) => ({ text: String(x.text || "").replace(/\s+/g, " ").trim().slice(0, 60), score: Math.max(1, Math.min(10, Number(x.score) || 0)), why: String(x.why || "").trim().slice(0, 80) }))
