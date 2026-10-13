@@ -24962,14 +24962,75 @@ async function vsCoverAssets(topic, source, imgW, imgH, opts) {
   return { coverTitle, img, source, imgModel: (img && img._imgModel) || "none", imgError };
 }
 
+// ── Readable at a glance ────────────────────────────────────────────────────
+// A thumbnail is read in a fraction of a second, often at the size of a
+// thumbnail in a feed. A whole sentence ("Canada Just Announced A $2B Housing
+// Opportunity") cannot be: on a 496x279 card it came out in letters too small
+// to make out. So each size is checked, and where the words will not read, a
+// short version made only of the user's own words is used instead (the
+// number kept), with the rest as a small label.
+function vsThumbReadable(title, W, H) {
+  const words = String(title || "").trim().split(/\s+/).filter(Boolean);
+  const S = Math.min(W, H);
+  // a thumbnail is seen small wherever it is shown (a 1280x720 one sits in a
+  // feed at a quarter of that), so five words is the most that reads at once
+  if (words.length > (S < 400 ? 4 : 5)) return false;
+  const c = document.createElement("canvas").getContext("2d");
+  const up = /[\u0590-\u08ff]/.test(title) ? words : words.map((w) => w.toUpperCase());
+  const fit = vsThumbFitBox(c, up, W * 0.88, H * (W >= H ? 0.55 : 0.5), S * 0.3, 6, "900", VS_TPL_FAM);
+  return fit.px >= S * 0.1;
+}
+const _vsThumbShortCache = new Map();
+// The short version: 2-4 of the user's words (any number kept as written) and
+// a 1-2 word label from the rest. Asked of the AI, checked word by word against
+// the original (it may drop words, never add them), else picked locally.
+async function vsThumbShorten(title) {
+  title = String(title || "").replace(/\s+/g, " ").trim();
+  if (_vsThumbShortCache.has(title)) return _vsThumbShortCache.get(title);
+  const bare = (w) => String(w).toLowerCase().replace(/[^\p{L}\p{N}$€£%]/gu, "");
+  const own = new Set(title.split(" ").map(bare).filter(Boolean));
+  const fromOwn = (t) => !!t && String(t).split(/\s+/).filter(Boolean).every((w) => own.has(bare(w)));
+  let out = null;
+  try {
+    const raw = await vsAutoAiChat(
+      `This is the text of a video thumbnail: "${title}".\n` +
+      `It is too long to read at a glance. Shorten it using ONLY words that are in it - drop words, never add, change or translate any. ` +
+      `Keep every number, amount or year exactly as written. Keep the words that carry the news (the number, the subject, the change), drop the filler (just, a, the, announced, very...).\n` +
+      `Return ONLY JSON: {"short":"2 to 4 of its words, in their original order","label":"1 or 2 of its OTHER words that say where or who (a place, a country, a company), or empty"}`,
+      { temperature: 0.2 });
+    const j = vsParseAiJson(raw || "");
+    const sh = j && String(j.short || "").replace(/\s+/g, " ").trim();
+    const lb = j && String(j.label || "").replace(/\s+/g, " ").trim();
+    if (sh && fromOwn(sh) && sh.split(" ").length <= 4 && sh.length < title.length) out = { short: sh, label: lb && fromOwn(lb) && lb.split(" ").length <= 2 ? lb : "" };
+  } catch (e) {}
+  if (!out) {
+    // locally: the number first, then the longest words that are not filler
+    const ws = title.split(" ");
+    const stop = /^(just|a|an|the|is|are|was|were|be|to|of|in|on|for|and|or|with|this|that|it|its|has|have|had|will|can|announced|says|said|new|now|here|how|why|what|your|you|our|we|they|از|به|در|با|را|و|که|این|آن|یک|برای|است|شد|کرد)$/i;
+    const keep = ws.map((w, i) => ({ w, i, n: /\d/.test(w), len: bare(w).length, stop: stop.test(bare(w)) }))
+      .filter((x) => !x.stop && x.len > 1)
+      .sort((a, b) => (b.n - a.n) || (b.len - a.len)).slice(0, 3)
+      .sort((a, b) => a.i - b.i).map((x) => x.w);
+    out = { short: keep.join(" ") || ws.slice(0, 3).join(" "), label: "" };
+  }
+  _vsThumbShortCache.set(title, out);
+  return out;
+}
+
 // Render a cover/banner from pre-made assets at an exact W×H → image blob.
 // opts.maxBytes: cap the file size (encodes JPEG and drops quality until it fits
 // — used so a 486×279 thumbnail stays under 50KB).
 async function vsCoverRenderAt(assets, W, H, opts) {
   opts = opts || {};
-  const coverTitle = (assets && assets.coverTitle) || "AI Radar";
+  let coverTitle = (assets && assets.coverTitle) || "AI Radar";
   const img = assets && assets.img;
-  const source = (assets && assets.source) || "";
+  let source = (assets && assets.source) || "";
+  // too long to read at this size: the short version of the user's own words
+  let shortened = false;
+  if (assets && assets.shortTitle && !opts.full && !vsThumbReadable(coverTitle, W, H)) {
+    coverTitle = assets.shortTitle; shortened = true;
+    if (!source && assets.shortLabel) source = assets.shortLabel;
+  }
   const landscape = W >= H;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
@@ -25000,7 +25061,7 @@ async function vsCoverRenderAt(assets, W, H, opts) {
     try { await Promise.race([Promise.all([document.fonts.load("900 40px Vazirmatn"), document.fonts.load("800 40px Vazirmatn")]), new Promise((r) => setTimeout(r, 2500))]); } catch (e) {}
   }
   try { draw(R); } catch (e) { try { vsTplBold(R); } catch (_) {} }
-  const toBlob = (mime, q) => new Promise(r => c.toBlob(r, mime, q));
+  const toBlob = (mime, q) => new Promise(r => c.toBlob((b) => { if (b && shortened) { b._short = coverTitle; } r(b); }, mime, q));
   // Size-capped output: JPEG, dropping quality until it fits under maxBytes.
   if (opts.maxBytes && opts.maxBytes > 0) {
     let blob = null;
@@ -25487,36 +25548,52 @@ function vsTplNumber(R) {
   const ni = words.findIndex((w) => /[\d۰-۹٠-٩]/.test(w));
   // a title with no number has nothing to make big: the Bold look carries it
   if (ni < 0) { vsTplBold(R); return; }
-  const big = words[ni] || "", rest = words.filter((_, i) => i !== ni).join(" ");
-  // dark side for the words, the picture showing on the other
-  const g = landscape
-    ? (rtl ? ctx.createLinearGradient(W, 0, 0, 0) : ctx.createLinearGradient(0, 0, W, 0))
-    : ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "rgba(4,6,10,0.92)"); g.addColorStop(landscape ? 0.55 : 0.6, "rgba(4,6,10,0.55)"); g.addColorStop(1, "rgba(4,6,10,0.1)");
+  const big = words[ni] || "", restWords = words.filter((_, i) => i !== ni), rest = restWords.join(" ");
+  const lab = R.source ? 1 : 0;   // a label tab at the top takes some of the height
+  // Stacked - the number on top, the words under it at full width - unless
+  // a wide frame has a long line beside the number. Side by side shrank both
+  // halves: on a 1280x720 "$2B" and "HOUSING OPPORTUNITY" each came out small.
+  const stacked = !landscape || restWords.length <= 3;
+  const shown = rtl ? big : big.toUpperCase();
+  const fit = (bw, bh) => { let px = Math.round(bh); ctx.font = "900 " + px + "px " + VS_TPL_FAM2; while (px > 20 && ctx.measureText(shown).width > bw) { px -= Math.max(2, Math.round(px * 0.05)); ctx.font = "900 " + px + "px " + VS_TPL_FAM2; } return px; };
+  let px, nx, ny, nw, restBox = null;
+  if (stacked) {
+    const top0 = lab ? H * (landscape ? 0.2 : 0.13) : H * (landscape ? 0.09 : 0.08);
+    px = fit(W - M * 2, landscape ? H * 0.46 : H * 0.26);
+    ctx.font = "900 " + px + "px " + VS_TPL_FAM2; nw = ctx.measureText(shown).width;
+    const sp = landscape ? H * 0.2 : W * 0.15, rH = landscape ? H * 0.32 : H * 0.28;
+    const m = rest ? vsThumbHeavy(ctx, rest, M, W - M, 0, rH, sp, { emph: -1, measure: true }) : { h: 0 };
+    const gap = px * 0.06, block = px * 0.95 + (rest ? gap + m.h : 0);
+    // the block sits low on a wide frame (over the darker bottom), centred on a tall one
+    ny = landscape ? Math.max(top0, H * 0.94 - block) : Math.max(top0, (H - block) / 2);
+    nx = landscape ? (rtl ? W - M - nw : M) : (W - nw) / 2;
+    if (rest) restBox = { x0: M, x1: W - M, top: ny + px * 0.95 + gap, h: rH, sp, align: landscape ? "start" : "center" };
+  } else {
+    px = fit(W * 0.42, H * (lab ? 0.66 : 0.8));
+    ctx.font = "900 " + px + "px " + VS_TPL_FAM2; nw = ctx.measureText(shown).width;
+    nx = rtl ? W - M - nw : M;
+    ny = (H - px * 0.95) / 2 + (lab ? H * 0.06 : 0);
+    const x0 = rtl ? M : nx + nw + W * 0.03, x1 = rtl ? nx - W * 0.03 : W - M, sp = H * 0.15, rH = H * 0.6;
+    const m = vsThumbHeavy(ctx, rest, x0, x1, 0, rH, sp, { emph: -1, measure: true });
+    restBox = { x0, x1, top: Math.max(H * 0.08, ny + px * 0.47 - m.h / 2), h: rH, sp, align: "start" };
+  }
+  // shade under the words: from the bottom on a stacked frame, from the side otherwise
+  const g = stacked
+    ? (landscape ? ctx.createLinearGradient(0, H, 0, 0) : ctx.createLinearGradient(0, 0, 0, H))
+    : (rtl ? ctx.createLinearGradient(W, 0, 0, 0) : ctx.createLinearGradient(0, 0, W, 0));
+  if (stacked && !landscape) { g.addColorStop(0, "rgba(4,6,10,0.25)"); g.addColorStop(0.5, "rgba(4,6,10,0.7)"); g.addColorStop(1, "rgba(4,6,10,0.25)"); }
+  else { g.addColorStop(0, "rgba(4,6,10,0.92)"); g.addColorStop(0.55, "rgba(4,6,10,0.5)"); g.addColorStop(1, "rgba(4,6,10,0.08)"); }
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  // the number: as big as its box allows
-  const nBoxW = landscape ? W * 0.42 : W - M * 2, nBoxH = landscape ? H * 0.8 : H * 0.34;
-  let px = Math.round(nBoxH);
-  ctx.font = "900 " + px + "px " + VS_TPL_FAM2;
-  while (px > 20 && ctx.measureText(rtl ? big : big.toUpperCase()).width > nBoxW) { px -= Math.max(2, Math.round(px * 0.05)); ctx.font = "900 " + px + "px " + VS_TPL_FAM2; }
-  const shown = rtl ? big : big.toUpperCase(), nw = ctx.measureText(shown).width;
-  const nx = landscape ? (rtl ? W - M - nw : M) : (W - nw) / 2;
-  const ny = landscape ? (H - px * 0.95) / 2 : H * 0.07;
   ctx.save();
+  ctx.font = "900 " + px + "px " + VS_TPL_FAM2;
   ctx.textBaseline = "top"; ctx.textAlign = "left"; ctx.lineJoin = "round";
   ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = px * 0.08; ctx.shadowOffsetY = px * 0.03;
   ctx.lineWidth = Math.max(4, px * 0.06); ctx.strokeStyle = "#0e1014"; ctx.strokeText(shown, nx, ny);
   ctx.shadowColor = "transparent"; ctx.fillStyle = accent; ctx.fillText(shown, nx, ny);
   ctx.restore();
-  // the rest of the words beside it (below it on a tall frame)
-  if (rest) {
-    const x0 = landscape ? (rtl ? M : nx + nw + W * 0.03) : M, x1 = landscape ? (rtl ? nx - W * 0.03 : W - M) : W - M;
-    const boxH = landscape ? H * 0.6 : H * 0.3, sp = landscape ? H * 0.15 : W * 0.12;
-    // beside the number, the words are centred on it
-    const m = vsThumbHeavy(ctx, rest, x0, x1, 0, boxH, sp, { emph: -1, measure: true });
-    const top = landscape ? Math.max(H * 0.08, ny + px * 0.47 - m.h / 2) : ny + px * 1.02 + H * 0.02;
-    vsThumbHeavy(ctx, rest, x0, x1, top, boxH, sp, { emph: -1 });
-  }
+  // the label (where, who) as a tab at the top
+  if (R.source) vsThumbKicker(ctx, W, H, M, accent === "#ffd400" ? "#0e1014" : accent, R.source, landscape ? "tl" : "tc");
+  if (rest && restBox) vsThumbHeavy(ctx, rest, restBox.x0, restBox.x1, restBox.top, restBox.h, restBox.sp, { emph: -1, align: restBox.align });
 }
 
 async function vsComposeCover(topic, source, aspect, size) {
@@ -27165,7 +27242,7 @@ function vsThumbStudio(prefillTopic, preset) {
     .map((x, i) => sizeRow(x[0], x[1], i === 0)).join("");
   const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video).map((t, i) => tplTile(t, i === 0)).join("");
   ov.innerHTML =
-    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-ideas-h{display:flex;align-items:center;justify-content:space-between;gap:10px}\n#tsModal .ts-ideas{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-idea{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;color:#f4f5f7;text-align:start;cursor:pointer;font:inherit;transition:border-color .15s}\n#tsModal .ts-idea:hover{border-color:rgba(255,255,255,.26)}\n#tsModal .ts-idea[aria-pressed=\"true\"]{border-color:#2563ff;background:rgba(37,99,255,.08)}\n#tsModal .ts-idea:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-score{grid-row:span 2;min-width:38px;padding:5px 0;border-radius:8px;background:#1b1f27;font:700 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;color:#c9ccd3}\n#tsModal .ts-score.hi{background:#2563ff;color:#fff}\n#tsModal .ts-idea-t{font:700 13.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-idea-w{font-size:11.5px;color:#8a919c}\n#tsModal .ts-photo{display:flex;align-items:center;gap:10px}\n#tsModal .ts-photo img{width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}\n#tsModal .ts-photo .ts-note{flex:1}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
+    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-ideas-h{display:flex;align-items:center;justify-content:space-between;gap:10px}\n#tsModal .ts-ideas{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-idea{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;color:#f4f5f7;text-align:start;cursor:pointer;font:inherit;transition:border-color .15s}\n#tsModal .ts-idea:hover{border-color:rgba(255,255,255,.26)}\n#tsModal .ts-idea[aria-pressed=\"true\"]{border-color:#2563ff;background:rgba(37,99,255,.08)}\n#tsModal .ts-idea:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-score{grid-row:span 2;min-width:38px;padding:5px 0;border-radius:8px;background:#1b1f27;font:700 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;color:#c9ccd3}\n#tsModal .ts-score.hi{background:#2563ff;color:#fff}\n#tsModal .ts-idea-t{font:700 13.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-idea-w{font-size:11.5px;color:#8a919c}\n#tsModal .ts-photo{display:flex;align-items:center;gap:10px}\n#tsModal .ts-photo img{width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}\n#tsModal .ts-photo .ts-note{flex:1}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{align-self:flex-start;object-fit:contain;max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
     '<aside class="ts-side">' +
       '<div><div class="ts-eye">Thumbnail Studio</div><h2 id="tsTitle">' + (fa ? "ساخت تامبنیل" : "Make a thumbnail") + '</h2></div>' +
       '<div class="ts-seg" role="tablist" aria-label="' + (fa ? "منبع" : "Source") + '">' +
@@ -27189,6 +27266,7 @@ function vsThumbStudio(prefillTopic, preset) {
         '<div class="ts-ideas-h"><label class="ts-switch"><input type="checkbox" id="tsAuto"/><span class="ts-sw"></span><span>' + (fa ? "یک عنوان جذاب برایم بنویس" : "Write a catchy title for me") + '</span></label>' +
           '<button id="tsIdeasBtn" type="button" class="ts-ghost">' + (fa ? "ایدهٔ تیتر" : "Title ideas") + '</button></div>' +
         '<div id="tsIdeas" class="ts-ideas" hidden></div>' +
+        '<label class="ts-switch"><input type="checkbox" id="tsShort" checked/><span class="ts-sw"></span><span>' + (fa ? "متن بلند را کوتاه کن تا در یک نگاه خوانده شود" : "Shorten long text so it reads at a glance") + '</span></label>' +
       '</div>' +
       '<div id="tsPhotoF" class="ts-field"><div class="ts-lbl">' + (fa ? "عکس خودت (اختیاری)" : "Your photo (optional)") + '</div>' +
         '<div class="ts-photo"><button id="tsPhotoBtn" type="button" class="ts-ghost">' + (fa ? "انتخاب عکس" : "Choose a photo") + '</button>' +
@@ -27233,6 +27311,7 @@ function vsThumbStudio(prefillTopic, preset) {
     if (ov.querySelector('.tssz[value="' + val + '"]')) return;
     $$("tsSizes").insertAdjacentHTML("beforeend", sizeRow(val, fa ? "دلخواه" : "Custom", true));
     $$("tsW").value = ""; $$("tsH").value = "";
+    renderPreviews();
   };
   // ── source: a topic, or the user's own video ──
   const setSrc = (m) => {
@@ -27262,11 +27341,21 @@ function vsThumbStudio(prefillTopic, preset) {
     if (base) pvBase = base;
     const words = ($$("tsTopic").value || "").trim() || (fa ? "کلمات تو اینجا" : "Your words here");
     const a0 = Object.assign({ source: "" }, pvBase || { img: null }, { coverTitle: words.slice(0, 64) });
+    // once a short version of these words exists, the looks preview with it -
+    // as the thumbnails will come out
+    const sh = (!$$("tsShort") || $$("tsShort").checked) ? _vsThumbShortCache.get(words.replace(/\s+/g, " ").trim()) : null;
+    if (sh && sh.short) { a0.shortTitle = sh.short; a0.shortLabel = sh.label; }
+    // the shape of the first size ticked, so a vertical thumbnail is
+    // previewed vertical (it was always drawn 16:9 and cropped)
+    const first = ov.querySelector(".tssz:checked");
+    const [fw, fh] = first ? first.value.split("x").map(Number) : [16, 9];
+    const pk = 320 / Math.max(fw || 16, fh || 9), pw = Math.max(60, Math.round((fw || 16) * pk)), ph = Math.max(60, Math.round((fh || 9) * pk));
     for (const el of ov.querySelectorAll(".ts-tpl-pv")) {
       const id = el.dataset.tpl;
+      el.style.aspectRatio = pw + "/" + ph;
       if (id === "cutout" && !(a0.cut && a0.img)) continue;
       let b = null;
-      try { b = await vsCoverRenderAt(a0, 320, 180, { template: id, jpeg: true, jpegQ: 0.8, accent: id === "cutout" ? (a0.accent || undefined) : undefined }); } catch (e) {}
+      try { b = await vsCoverRenderAt(a0, pw, ph, { template: id, jpeg: true, jpegQ: 0.8, accent: id === "cutout" ? (a0.accent || undefined) : undefined }); } catch (e) {}
       if (!b) continue;
       const u = URL.createObjectURL(b); pvUrls.push(u);
       el.style.backgroundImage = "url(" + u + ")";
@@ -27274,6 +27363,7 @@ function vsThumbStudio(prefillTopic, preset) {
     while (pvUrls.length > 40) { try { URL.revokeObjectURL(pvUrls.shift()); } catch (e) {} }
   };
   $$("tsTopic").addEventListener("input", () => { clearTimeout(pvTimer); pvTimer = setTimeout(() => renderPreviews(), 450); });
+  $$("tsSizes").addEventListener("change", () => { clearTimeout(pvTimer); pvTimer = setTimeout(() => renderPreviews(), 120); });
   setTimeout(() => renderPreviews(), 30);
   // a video dropped on the panel goes the same way as one chosen
   const drop = $$("tsVidBtn");
@@ -27526,6 +27616,10 @@ function vsThumbStudio(prefillTopic, preset) {
         if (ai && !exactTitle && ai.coverTitle) assets.coverTitle = ai.coverTitle;
       }
       if (!assets) { try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {} }
+      // a size the words will not read at gets the short version (made once)
+      if (assets && assets.coverTitle && (!$$("tsShort") || $$("tsShort").checked) && sizes.some((sz) => !vsThumbReadable(assets.coverTitle, sz.w, sz.h))) {
+        try { const sh = await vsThumbShorten(assets.coverTitle); if (sh && sh.short) { assets.shortTitle = sh.short; assets.shortLabel = sh.label; } } catch (e) {}
+      }
       for (let k = 0; k < sizes.length; k++) {
         const sz = sizes[k], cell = cells[k];
         // ALL banners are JPEG; the 496×279 thumbnail is additionally capped <50KB.
@@ -27550,6 +27644,7 @@ function vsThumbStudio(prefillTopic, preset) {
           cell.innerHTML =
             `<img src="${u}" alt="${fa ? "تامبنیل" : "Thumbnail"} ${sz.w}×${sz.h}"/>` +
             (noPic ? `<div role="status" class="ts-warn">${why}</div>` : "") +
+            (blob._short ? `<div class="ts-note">${fa ? "در این سایز کل جمله خوانا نبود، کوتاه شد به: " : "The whole sentence would not read at this size, so it says: "}<b dir="auto">${esc(blob._short)}</b></div>` : "") +
             `<div class="ts-meta"><span>${sz.w}×${sz.h}</span><span>${kb} KB${noPic ? (fa ? " · بدون تصویر" : " · text only") : ""}</span>` +
             `<a class="ts-dl" href="${u}" download="${name}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>${fa ? "دانلود" : "Download"}</a></div>`;
         } else {
@@ -27558,6 +27653,7 @@ function vsThumbStudio(prefillTopic, preset) {
       }
     }
     gen.disabled = false; gen.style.opacity = "1"; gen.textContent = fa ? "دوباره بساز" : "Generate again";
+    renderPreviews();   // the looks now preview with the words as they came out
     if (zipBtn && results.length) zipBtn.style.display = "";
   };
   // Download all generated thumbnails as a single ZIP.
