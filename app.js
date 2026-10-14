@@ -29194,15 +29194,15 @@ function vsThumbNoImageReason(err) {
 // a glow, the frame blurred behind, big words on the other side.
 const VS_THUMB_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/thumb-plan";
 const VS_MP_VER = "0.10.14";
-// MediaPipe's model files, from our own site first (repo/models), then through
+// MediaPipe's model files, from our own site first (repo/mediapipe - /models/* is the Next.js app's route), then through
 // our worker, then from Google: storage.googleapis.com hangs from some
 // networks (Iran among them), and a model that never arrives left the person
 // cut-out - and every word behind a speaker - waiting forever. Fetched once,
 // with a deadline per source, and handed to MediaPipe as bytes.
 const VS_MP_MODELS = {
-  seg: { file: "/models/selfie_multiclass_256x256.tflite", g: "image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
-  face: { file: "/models/blaze_face_short_range.tflite", g: "face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
-  lm: { file: "/models/face_landmarker.task", g: "face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
+  seg: { file: "/mediapipe/selfie_multiclass_256x256.tflite", g: "image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
+  face: { file: "/mediapipe/blaze_face_short_range.tflite", g: "face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
+  lm: { file: "/mediapipe/face_landmarker.task", g: "face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
 };
 const vsMpModelP = {};
 function vsMpModel(k) {
