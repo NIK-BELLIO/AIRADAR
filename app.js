@@ -11034,8 +11034,9 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
         }
         // only middle letters go behind them - the first and last stay clear
         if (hidden > allow || !touched || ends) return;
-        // a few letters behind them is the look; size counts, then reading order and the centre
-        const score = Math.min(touched, 3) * 10 + k * 12 - (align === "c" ? 0 : 1) - (c0.mode === "order" ? 0 : 0.5);
+        // a letter or two behind them is the look, but a big word that reads
+        // beats a small one tucked deeper; then reading order and the centre
+        const score = Math.min(touched, 2) * 6 + k * 20 - (align === "c" ? 0 : 1) - (c0.mode === "order" ? 0 : 0.5);
         if (score > bestScore) { bestScore = score; pick = Object.assign({ k, align }, c0); }
       });
     });
