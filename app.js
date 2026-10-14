@@ -10870,7 +10870,7 @@ function vsProGroups(s) {
   const v = s._voice;
   if (!v || !v.words || !v.words.length) return [];
   const dur = Number(s.duration) || 4;
-  if (s._proG && s._proG.n === v.words.length && s._proG.d === dur) return s._proG.g;
+  if (s._proG && s._proG.n === v.words.length && s._proG.d === dur && s._proG.e === (s._proEditV || 0)) return s._proG.g;
   const ws = v.words;
   const idx = [];
   let cur = [];
@@ -10885,17 +10885,34 @@ function vsProGroups(s) {
   });
   if (cur.length) idx.push(cur);
   const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
-  const groups = idx.map((ks) => {
-    const items = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
+  const shape = (g) => {
     let hero = 0, best = -1;
-    items.forEach((it, j) => {
+    g.items.forEach((it, j) => {
       const c = key(it.w);
       const sc = (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) ? 0 : 10) + c.length;
       if (sc > best) { best = sc; hero = j; }
     });
-    const stat = items.length ? /\d/.test(items[hero].w) : false;
-    return { items, hero, stat, single: items.length === 1 && !stat, t0: items.length ? items[0].t0 : 0 };
+    g.hero = hero;
+    g.stat = g.items.length ? /\d/.test(g.items[hero].w) : false;
+    g.single = g.items.length === 1 && !g.stat;
+    return g;
+  };
+  const groups = idx.map((ks) => {
+    const items = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
+    return shape({ items, t0: items.length ? items[0].t0 : 0 });
   }).filter((g) => g.items.length);
+  // the customer's own wording for a group (the editor in the Edit studio):
+  // the new words share the group's time, each landing a little after the last
+  const ed = s._proEdit || {};
+  groups.forEach((g, i) => {
+    const e = ed[i];
+    if (!e || typeof e.text !== "string") return;
+    const nw = e.text.trim().split(/\s+/).filter(Boolean).slice(0, 6);
+    if (!nw.length) { g.off = true; return; }
+    const a = g.items[0].t0, b = Math.max(a + 0.2, g.items[g.items.length - 1].t1), step = (b - a) / nw.length;
+    g.items = nw.map((w, k) => ({ w, t0: a + k * step * 0.7, t1: a + (k + 1) * step }));
+    shape(g);
+  });
   groups.forEach((g, i) => {
     const last = g.items[g.items.length - 1];
     const next = groups[i + 1];
@@ -10903,7 +10920,7 @@ function vsProGroups(s) {
     // the speaker pauses
     g.t1 = Math.min(dur, next ? Math.min(next.t0, last.t1 + 0.7) : last.t1 + 0.6);
   });
-  s._proG = { n: ws.length, d: dur, g: groups };
+  s._proG = { n: ws.length, d: dur, e: s._proEditV || 0, g: groups };
   return groups;
 }
 
@@ -10997,7 +11014,10 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   // so it may cross the face box. Measured letter by letter: the speaker
   // overlaps some letters (the depth the reels have) while hiding at most a
   // quarter of them, and none of a word under four letters.
-  const behind = !single && !!coverOf;
+  // Behind the speaker only across the head and shoulders: lower down the
+  // cut-out also takes in arms, a desk, a laptop - and the letters came out
+  // sliced ("whetner", "movement" with its top gone).
+  const behind = !single && !!coverOf && !!face;
   const clear = (L, y) => {
     const by = y - L.px * 0.5, bh = L.px;
     return L.x0 + L.m.tw < face.x || L.x0 > face.x + face.w || by + bh < face.y || by > face.y + face.h;
@@ -11012,6 +11032,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       const headYs = face ? [0, 0.15, 0.3, 0.5, 0.7, 0.9, 1.1, 1.35, 1.6].map((k) => face.y + face.h * k) : [];
       [def].concat(headYs, face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).forEach((y) => {
         const yy = inside(y, ys);
+        if (heroBehind && face && (yy < face.y - face.h * 0.35 || yy > face.y + face.h * 1.45)) return;
         if (!face || lines.every((L) => (heroBehind && L === hero) || clear(L, yy + ys.get(L)))) out.push({ y: yy, ys, mode });
       });
     });
@@ -11341,24 +11362,41 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
   ctx.translate(sxo, syo);
   ctx.drawImage(F, 0, 0);
-  if (g) {
+  const ed = g && s._proEdit ? s._proEdit[gi] : null;
+  if (!vstudio.rendering) vstudio._proHit = null;
+  if (g && !g.off && !(ed && ed.off)) {
     let mask = null, face = null;
     if (!g._lay) { mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask); }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
     const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
-    if (heroes.length && lay.box) {
+    if (heroes.length && lay.box && !(ed && ed.front === true)) {
       mask = vsProMask(F, W, H, s, local);
-      // always behind the speaker: the layout set it where it still reads,
-      // and in front it could land on their face
-      behind = !!(mask && mask.P) && !lay.front;
+      // behind the speaker where the layout chose it (or the customer did);
+      // in front otherwise - it could land on their face
+      behind = !!(mask && mask.P) && (ed && ed.front === false ? true : !lay.front);
     }
+    // the customer's move and size, around the group's own centre
+    const bx0 = Math.min(...lay.words.map((w) => w.x)), bx1 = Math.max(...lay.words.map((w) => w.x + w.w));
+    const by0 = Math.min(...lay.words.map((w) => w.y - w.px * 0.55)), by1 = Math.max(...lay.words.map((w) => w.y + w.px * 0.55));
+    const gcx = (bx0 + bx1) / 2, gcy = (by0 + by1) / 2;
+    const sc = ed && ed.scale ? ed.scale : 1, mx = ed && ed.dx ? ed.dx * W : 0, my = ed && ed.dy ? ed.dy * H : 0;
+    const moved = (fn) => {
+      ctx.save();
+      if (sc !== 1 || mx || my) { ctx.translate(gcx + mx, gcy + my); ctx.scale(sc, sc); ctx.translate(-gcx, -gcy); }
+      fn();
+      ctx.restore();
+    };
     if (behind) {
-      heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H));
+      moved(() => heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H)));
       ctx.drawImage(mask.P, 0, 0);
     }
-    lay.words.forEach((w) => { if (!(behind && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); });
+    moved(() => lay.words.forEach((w) => { if (!(behind && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
+    if (!vstudio.rendering) {
+      const hw = (bx1 - bx0) * sc / 2, hh = (by1 - by0) * sc / 2;
+      vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
+    }
   }
   // the opening comes out of a light leak
   if (idx === 0 && local < 0.8) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
@@ -11558,8 +11596,8 @@ function vsProSfxEvents(slides) {
     if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "whoosh", t: t + 0.32, g: 0.55 }); }
     if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? "hit" : "whoosh", t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
-    if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g) => {
-      if (g.t0 >= d - 0.1) return;
+    if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
+      if (g.t0 >= d - 0.1 || g.off || (sl._proEdit && sl._proEdit[gi] && sl._proEdit[gi].off)) return;   // words the customer removed take their click with them
       ev.push({ n: pops[n++ % pops.length], t: t + g.t0, g: 0.95, w: 1 });
       const h = g.items[g.hero];
       if (!g.single && h && h.t0 - g.t0 > 0.12 && h.t0 < d - 0.1) ev.push({ n: "tick", t: t + h.t0, g: 0.75, w: 1 });
@@ -11690,6 +11728,23 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-acts .ts-primary{width:auto;padding:0 22px}
 #emModal .em-acts .ts-ghost{min-height:46px;padding:0 18px;border-radius:11px}
 #emModal .em-err{max-width:420px;font-size:13px;color:#f4f5f7;border-inline-start:2px solid #f87171;padding:4px 0 4px 10px;text-align:start}
+#emModal .em-frame canvas{cursor:pointer;touch-action:none}
+#emModal .em-frame canvas:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
+#emModal .em-sel{position:absolute;border:1.5px solid #12d6f5;border-radius:6px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.18)}
+#emModal .em-scrub{display:flex;align-items:center;gap:8px;width:min(520px,100%)}
+#emModal .em-scrub input[type=range]{flex:1;accent-color:#2563ff;min-width:0}
+#emModal .em-play{min-height:34px;min-width:68px}
+#emModal .em-time{font:500 12px "JetBrains Mono",ui-monospace,monospace;color:#8a919c;min-width:34px;text-align:end}
+#emModal .em-insp{width:min(520px,100%);display:flex;flex-direction:column;gap:9px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0b0d11}
+#emModal .em-insp p{margin:0}
+#emModal #emCtl{display:flex;flex-direction:column;gap:9px}
+#emModal #emCtl[hidden]{display:none}
+#emModal .em-txt{width:100%;padding:10px 12px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f4f5f7;font:600 14px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;outline:none}
+#emModal .em-txt:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}
+#emModal #emSize{accent-color:#2563ff}
+#emModal .em-sz{display:flex;justify-content:space-between}
+#emModal .em-row{display:flex;gap:8px;flex-wrap:wrap}
+#emModal .em-row .ts-ghost{flex:1}
 `;
   ov.innerHTML =
     '<div id="emModal" role="dialog" aria-modal="true" aria-labelledby="emTitle"' + (fa ? ' dir="rtl"' : "") + "><style>" + CSS + "</style>" +
@@ -11757,33 +11812,160 @@ function vsEditStudio(preset, filesIn) {
   const showErr = (m) => {
     stage.innerHTML = '<div class="em-err" role="alert">' + escapeHtml(m) + "</div>";
   };
-  // the edited video: a mirror of the studio's own canvas, played and exported here
+  // the edited video: a mirror of the studio's own canvas, played, fixed and
+  // exported here. Any group of words can be changed on the spot - clicked on
+  // the video, dragged, resized, set in front of or behind the speaker,
+  // rewritten or removed - and the change is in the next frame and the export.
   const showDone = () => {
     const src = document.querySelector("#vsCanvas");
     const W = (src && src.width) || 1080, H = (src && src.height) || 1920;
-    stage.innerHTML = '<div class="em-frame" style="aspect-ratio:' + W + "/" + H + ";height:min(560px,62vh)\"><canvas id=\"emCv\" width=\"" + W + '" height="' + H + '"></canvas></div>' +
-      '<div class="em-acts"><button id="emPlay" type="button" class="ts-ghost">' + L("Play", "پخش") + "</button>" +
+    const icoL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+    const icoR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    stage.innerHTML = '<div class="em-frame" style="aspect-ratio:' + W + "/" + H + ';height:min(470px,52vh)"><canvas id="emCv" width="' + W + '" height="' + H + '" tabindex="0" aria-label="' + L("The edited video. Click a word to change it; drag it to move it.", "ویدیوی ادیت‌شده. روی یک کلمه کلیک کن تا تغییرش دهی؛ بکش تا جابه‌جا شود.") + '"></canvas><div id="emSel" class="em-sel" hidden></div></div>' +
+      '<div class="em-scrub"><button id="emPrev" type="button" class="ts-x" aria-label="' + L("Previous words", "کلمات قبلی") + '">' + icoL + '</button>' +
+        '<button id="emPlay" type="button" class="ts-ghost em-play">' + L("Play", "پخش") + '</button>' +
+        '<input id="emPos" type="range" min="0" max="1000" value="0" aria-label="' + L("Position in the video", "جای پخش") + '"/>' +
+        '<span id="emTime" class="em-time">0:00</span>' +
+        '<button id="emNext" type="button" class="ts-x" aria-label="' + L("Next words", "کلمات بعدی") + '">' + icoR + "</button></div>" +
+      '<div id="emInsp" class="em-insp"><p class="ts-note" id="emHint">' + L("Click a word on the video to change it - or step through them with the arrows.", "روی یک کلمه در ویدیو کلیک کن تا تغییرش دهی - یا با فلش‌ها یکی‌یکی برو.") + "</p>" +
+        '<div id="emCtl" hidden>' +
+          '<label class="ts-lbl" for="emTxt">' + L("Words", "کلمات") + "</label>" +
+          '<input id="emTxt" type="text" class="em-txt" maxlength="60"/>' +
+          '<div class="ts-seg" id="emDepth"><button type="button" data-d="behind">' + L("Behind the person", "پشت شخص") + '</button><button type="button" data-d="front">' + L("In front", "جلوی شخص") + "</button></div>" +
+          '<label class="ts-lbl em-sz" for="emSize">' + L("Size", "اندازه") + ' <span id="emSizeV">100%</span></label><input id="emSize" type="range" min="40" max="180" step="5" value="100"/>' +
+          '<div class="em-row"><button id="emReset" type="button" class="ts-ghost">' + L("Undo my changes", "برگرداندن تغییرها") + '</button><button id="emOff" type="button" class="ts-ghost"></button></div>' +
+          '<p class="ts-note">' + L("Drag the words on the video to move them.", "کلمات را روی ویدیو بکش تا جابه‌جا شوند.") + "</p>" +
+        "</div></div>" +
+      '<div class="em-acts">' +
       '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button>" +
       '<button id="emOpen" type="button" class="ts-ghost">' + L("Open in the editor", "باز کردن در ادیتور") + "</button></div>" +
       '<div id="emExp" class="em-prog" hidden><div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
       '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button></div>";
     const cv = $$("emCv"), cx = cv.getContext("2d");
-    const copy = () => { const c = document.querySelector("#vsCanvas"); if (c && c.width) { if (cv.width !== c.width || cv.height !== c.height) { cv.width = c.width; cv.height = c.height; } cx.drawImage(c, 0, 0); } };
-    try { drawStudioFrame(vsStillTime()); } catch (e) {}
-    copy();
-    const loop = () => { copy(); mirror = requestAnimationFrame(loop); };
-    const setPlaying = (p) => { $$("emPlay").textContent = p ? L("Pause", "توقف") : L("Play", "پخش"); };
-    $$("emPlay").onclick = () => {
-      if (vstudio.looping) { stopStudioPreview(); stopMirror(); copy(); setPlaying(false); }
-      else { previewStudioVideo(); stopMirror(); loop(); setPlaying(true); }
+    const copy = () => { const c = document.querySelector("#vsCanvas"); if (c && c.width) { if (cv.width !== c.width || cv.height !== c.height) { cv.width = c.width; cv.height = c.height; } cx.drawImage(c, 0, 0); } drawSel(); };
+    const total = () => Math.max(0.1, studioDuration());
+    const fmt = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+    let tCur = vsStillTime(), seq = 0, sel = null;
+    const showPos = (t) => { $$("emPos").value = String(Math.round(t / total() * 1000)); $$("emTime").textContent = fmt(t); };
+    // a still frame at t: the footage seeked there first, so the picture matches
+    const redraw = async (t) => {
+      if (t != null) tCur = Math.max(0, Math.min(total() - 0.01, t));
+      const my = ++seq;
+      try { await _vsSeekActiveFootage(tCur); } catch (e) {}
+      if (my !== seq || vstudio.looping || vstudio.rendering) return;
+      try { drawStudioFrame(tCur); } catch (e) {}
+      copy(); showPos(tCur);
     };
+    // the selected group's box, outlined over the mirror
+    const drawSel = () => {
+      const box = $$("emSel"), h = vstudio._proHit;
+      const on = sel && h && h.s === sel.s && h.gi === sel.gi && !vstudio.looping;
+      box.hidden = !on;
+      if (!on) return;
+      const k = cv.clientWidth / cv.width;
+      Object.assign(box.style, { left: h.x * k - 4 + "px", top: h.y * k - 4 + "px", width: h.w * k + 8 + "px", height: h.h * k + 8 + "px" });
+    };
+    const loop = () => { copy(); showPos(vstudio.position || 0); mirror = requestAnimationFrame(loop); };
+    const setPlaying = (p) => { $$("emPlay").textContent = p ? L("Pause", "توقف") : L("Play", "پخش"); };
+    const pause = () => { if (vstudio.looping) { stopStudioPreview(); tCur = vstudio.position || tCur; } stopMirror(); setPlaying(false); };
+    $$("emPlay").onclick = () => {
+      if (vstudio.looping) { pause(); redraw(); }
+      else { vstudio.position = tCur; previewStudioVideo(); stopMirror(); loop(); setPlaying(true); }
+    };
+    $$("emPos").addEventListener("input", () => { pause(); redraw(Number($$("emPos").value) / 1000 * total()); });
+
+    // every group of words in the edit, on the whole timeline
+    const allGroups = () => {
+      const out = []; let t = 0;
+      vstudio.slides.forEach((sl) => {
+        const d = Number(sl.duration) || 0;
+        if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
+          const last = g.items[g.items.length - 1];
+          // shown once its last word is on, before it goes
+          out.push({ s: sl, gi, at: t + Math.min(g.t1 - 0.05, (last ? last.t0 : g.t0) + 0.4) });
+        });
+        t += d;
+      });
+      return out;
+    };
+    const step = async (dir) => {
+      pause();
+      const gs = allGroups();
+      const cur = sel ? gs.findIndex((x) => x.s === sel.s && x.gi === sel.gi) : -1;
+      let i = cur >= 0 ? cur + dir : (dir > 0 ? gs.findIndex((x) => x.at > tCur + 0.05) : (() => { let k = -1; gs.forEach((x, j) => { if (x.at < tCur - 0.05) k = j; }); return k; })());
+      if (i < 0 || i >= gs.length) return;
+      select({ s: gs[i].s, gi: gs[i].gi });
+      await redraw(gs[i].at);
+      syncCtl(); drawSel();   // front or behind is known once the frame is drawn
+    };
+    $$("emPrev").onclick = () => step(-1);
+    $$("emNext").onclick = () => step(1);
+
+    // ── the selected words ──
+    const edOf = () => { const s0 = sel.s; s0._proEdit = s0._proEdit || {}; return s0._proEdit[sel.gi] || (s0._proEdit[sel.gi] = {}); };
+    const groupOf = () => (sel ? vsProGroups(sel.s)[sel.gi] : null);
+    const syncCtl = () => {
+      $$("emCtl").hidden = !sel; $$("emHint").hidden = !!sel;
+      if (!sel) return;
+      const e = (sel.s._proEdit || {})[sel.gi] || {}, g = groupOf();
+      if (document.activeElement !== $$("emTxt")) $$("emTxt").value = typeof e.text === "string" ? e.text : g ? g.items.map((x) => x.w).join(" ") : "";
+      const h = vstudio._proHit, behindNow = e.front === false || (e.front !== true && h && h.s === sel.s && h.gi === sel.gi ? h.behind : false);
+      ov.querySelectorAll("#emDepth button").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.d === "behind") === behindNow)));
+      $$("emSize").value = String(Math.round((e.scale || 1) * 100)); $$("emSizeV").textContent = Math.round((e.scale || 1) * 100) + "%";
+      $$("emOff").textContent = e.off ? L("Bring these words back", "برگرداندن این کلمات") : L("Remove these words", "حذف این کلمات");
+    };
+    const select = (x) => { sel = x; syncCtl(); drawSel(); };
+    const changed = (words) => {
+      if (words) { sel.s._proEditV = (sel.s._proEditV || 0) + 1; try { vsMixVoiceTrack(); } catch (e) {} }   // a click per group, so the sounds follow
+      redraw().then(syncCtl);
+    };
+    let txtT = 0;
+    $$("emTxt").addEventListener("input", () => { clearTimeout(txtT); txtT = setTimeout(() => { if (!sel) return; edOf().text = $$("emTxt").value; changed(true); }, 250); });
+    ov.querySelectorAll("#emDepth button").forEach((b) => { b.onclick = () => { if (!sel) return; edOf().front = b.dataset.d === "front"; changed(); }; });
+    $$("emSize").addEventListener("input", () => { if (!sel) return; edOf().scale = Number($$("emSize").value) / 100; $$("emSizeV").textContent = $$("emSize").value + "%"; changed(); });
+    $$("emReset").onclick = () => { if (!sel || !sel.s._proEdit) return; delete sel.s._proEdit[sel.gi]; $$("emTxt").value = ""; changed(true); };
+    $$("emOff").onclick = () => { if (!sel) return; const e = edOf(); e.off = !e.off; changed(true); };
+
+    // click a word to pick it, drag it to move it
+    let drag = null, dragRaf = 0;
+    const toCanvas = (ev) => { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) / r.width * cv.width, y: (ev.clientY - r.top) / r.height * cv.height }; };
+    cv.addEventListener("pointerdown", async (ev) => {
+      if (vstudio.looping) { pause(); await redraw(); }
+      const p = toCanvas(ev), h = vstudio._proHit;
+      if (h && p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) {
+        select({ s: h.s, gi: h.gi });
+        const e = edOf();
+        drag = { x: p.x, y: p.y, dx: e.dx || 0, dy: e.dy || 0 };
+        try { cv.setPointerCapture(ev.pointerId); } catch (er) {}
+      } else select(null);
+    });
+    cv.addEventListener("pointermove", (ev) => {
+      if (!drag || !sel) return;
+      const p = toCanvas(ev), e = edOf();
+      e.dx = drag.dx + (p.x - drag.x) / cv.width; e.dy = drag.dy + (p.y - drag.y) / cv.height;
+      if (!dragRaf) dragRaf = requestAnimationFrame(() => { dragRaf = 0; try { drawStudioFrame(tCur); } catch (er) {} copy(); });
+    });
+    const endDrag = () => { if (drag) { drag = null; redraw(); } };
+    cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+    // the arrow keys nudge the selected words
+    cv.addEventListener("keydown", (ev) => {
+      if (!sel) return;
+      const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+      if (!k) return;
+      ev.preventDefault();
+      const e = edOf(), st = ev.shiftKey ? 0.04 : 0.01;
+      e.dx = (e.dx || 0) + k[0] * st; e.dy = (e.dy || 0) + k[1] * st * (cv.width / cv.height);
+      changed();
+    });
+
+    redraw(tCur);
     $$("emOpen").onclick = () => { busy = false; close(); try { vsShowBuiltVideo(); } catch (e) {} };
     $$("emExport").onclick = async () => {
       if (busy) return;
-      try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
-      stopMirror(); setPlaying(false);
+      pause(); select(null);
       busy = true;
-      ["emPlay", "emExport", "emOpen"].forEach((id) => { $$(id).disabled = true; });
+      ["emPlay", "emExport", "emOpen", "emPrev", "emNext"].forEach((id) => { $$(id).disabled = true; });
+      $$("emPos").disabled = true;
       $$("emExp").hidden = false;
       // a cancel left over from an earlier build would stop this one on its first frame
       vstudio._batchCancel = false;
@@ -11795,7 +11977,9 @@ function vsEditStudio(preset, filesIn) {
         vstudio._returnBlob = true;
         out = await exportStudioVideo();
       } catch (e) {} finally { vstudio._returnBlob = false; vstudio._exportProgress = null; busy = false; }
-      ["emPlay", "emExport", "emOpen"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
+      ["emPlay", "emExport", "emOpen", "emPrev", "emNext"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
+      $$("emPos").disabled = false;
+      redraw();
       const blob = out && (out.blob || out);
       if (!blob || !blob.size) {
         setMsg(vstudio._batchCancel ? L("Export cancelled.", "خروجی لغو شد.") : L("The export did not finish - press Export again.", "خروجی کامل نشد؛ دوباره «خروجی MP4» را بزن."));
