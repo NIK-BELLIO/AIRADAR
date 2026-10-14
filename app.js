@@ -12026,12 +12026,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   fx.setTransform(1, 0, 0, 1, 0, 0);
   fx.fillStyle = "#000"; fx.fillRect(0, 0, W, H);
   const gradeF = s._bw ? "grayscale(1) contrast(1.3) brightness(1.06)" : pack.grade;
-  // a photo story's backdrop sits a little out of focus behind the presenter
-  // (well out of focus when it is the photo itself, for want of footage)
-  try { fx.filter = gradeF + (s._story ? " blur(" + Math.round(s._story.blurBg ? W / 30 : W / 600) + "px)" : ""); } catch (e) {}
+  try { fx.filter = gradeF; } catch (e) {}
   const focusX = s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
   vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
-  if (s._story) { try { fx.filter = gradeF; } catch (e) {} vsStoryCharacter(fx, W, H, s, local, dur); }
   fx.filter = "none";
   if (pack.warm && !s._bw) { fx.globalCompositeOperation = "soft-light"; fx.fillStyle = pack.warm; fx.fillRect(0, 0, W, H); fx.globalCompositeOperation = "source-over"; }
   // the Gold look washes the picture in a colour as a key word lands
@@ -12382,322 +12379,6 @@ const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zo
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
 const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
-// ── Photo + article: a presenter video from one photo, for free ─────────────
-// The owner's ask: give a character's photo and an article, and get the kind
-// of reel his AI-avatar clips make - the same person in a different place for
-// every line, speaking, then edited with text. Talking-head models cost money
-// (and none is on our supplier's API), so this is the free way:
-//   the article becomes a script of short lines, each with a place (our free AI);
-//   the lines are spoken by the free AI voice;
-//   the person is cut out of the photo (MediaPipe, on the device) and stood in
-//   real footage of each place (Pexels, free) - full, medium, close, to the side -
-//   with a shadow, a slow push and a breath;
-//   the mouth moves with the voice: face landmarks find the lips and jaw, and
-//   the jaw drops with the loudness of each moment (a test the owner asked for);
-//   then the pro edit runs on it as on any video - words, inserts, sounds.
-const VS_STORY_SHOTS = { full: { h: 0.86, top: 0.13, x: 0.5 }, medium: { h: 1.08, top: 0.12, x: 0.5 }, close: { h: 1.22, top: 0.09, x: 0.5 },
-  side: { h: 0.98, top: 0.13, x: 0.33 }, sideR: { h: 0.98, top: 0.13, x: 0.67 } };
-const VS_STORY_CYCLE = ["medium", "close", "full", "side", "medium", "sideR", "close"];
-
-let vsStoryLmP = null;
-function vsStoryLandmarker() {
-  if (!vsStoryLmP) vsStoryLmP = (async () => {
-    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
-    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
-    const model = await vsMpModel("lm");
-    const opts = (delegate) => ({ baseOptions: { delegate, modelAssetBuffer: model },
-      runningMode: "IMAGE", numFaces: 1 });
-    try { return await V.FaceLandmarker.createFromOptions(files, opts("GPU")); }
-    catch (e) { return await V.FaceLandmarker.createFromOptions(files, opts("CPU")); }
-  })().catch((e) => { vsStoryLmP = null; throw e; });
-  return vsStoryLmP;
-}
-// The face's landmarks in the photo's own pixels, or null.
-async function vsStoryLandmarks(canvas) {
-  const lm = await vsStoryLandmarker();
-  const r = lm.detect(canvas);
-  const pts = r && r.faceLandmarks && r.faceLandmarks[0];
-  if (!pts || pts.length < 400) return null;
-  return pts.map((p) => ({ x: p.x * canvas.width, y: p.y * canvas.height }));
-}
-// How open the mouth is through a line: the loudness of its voice in 30ms
-// steps, scaled to its own loud moments, so a quiet voice still moves.
-function vsStoryEnvelope(buf) {
-  const d = buf.getChannelData(0), sr = buf.sampleRate, win = Math.round(sr * 0.03);
-  const out = new Float32Array(Math.ceil(d.length / win));
-  for (let i = 0; i < out.length; i++) {
-    let s = 0; const a = i * win, b = Math.min(d.length, a + win);
-    for (let k = a; k < b; k++) s += d[k] * d[k];
-    out[i] = Math.sqrt(s / Math.max(1, b - a));
-  }
-  const sorted = Array.from(out).sort((x, y) => x - y), hi = sorted[Math.floor(sorted.length * 0.92)] || 1;
-  for (let i = 0; i < out.length; i++) out[i] = Math.max(0, Math.min(1, (out[i] / hi - 0.12) / 0.75));
-  // a mouth does not snap: each step eases towards the next
-  for (let i = 1; i < out.length; i++) out[i] = out[i - 1] * 0.35 + out[i] * 0.65;
-  return { v: out, step: 0.03 };
-}
-
-// The presenter, stood in the scene's footage: placed for the line's shot,
-// pushed in slowly, breathing, a shadow under them - and the jaw moving with
-// the voice.
-function vsStoryCharacter(fx, W, H, s, local, dur) {
-  const c = s._story;
-  if (!c || !c.cut) return;
-  const cut = c.cut, box = cut._box || { x: 0, y: 0, w: cut.width, h: cut.height };
-  const shot = VS_STORY_SHOTS[c.shot] || VS_STORY_SHOTS.medium;
-  // a photo of head and shoulders cannot fill a full-length shot: it stays medium at most
-  const bust = box.h / Math.max(1, box.w) < 1.45;
-  // a waist-up photo already fills the frame at less than its full height:
-  // drawn at a full-length size it became a giant head
-  const k = shot.h * (bust ? 0.72 : 1);
-  let sc = (H * k) / box.h;
-  const push = 1 + 0.045 * (dur > 0 ? local / dur : 0), breath = 1 + 0.004 * Math.sin(local * 2.1);
-  const cx = W * shot.x + Math.sin(local * 0.7) * W * 0.004, top = H * shot.top;
-  fx.save();
-  // the box's centre top is the anchor; the push grows the picture around it
-  fx.translate(cx, top + box.h * sc * 0.4);
-  fx.scale(push, push * breath);
-  fx.translate(-cx, -(top + box.h * sc * 0.4));
-  fx.translate(cx - (box.x + box.w / 2) * sc, top - box.y * sc);
-  fx.scale(sc, sc);
-  // a soft shadow on the backdrop gives the person a place to stand
-  // (a canvas shadow ignores the transform: its sizes are in frame pixels)
-  fx.shadowColor = "rgba(0,0,0,0.42)"; fx.shadowBlur = W * 0.035; fx.shadowOffsetX = W * 0.009; fx.shadowOffsetY = W * 0.013;
-  fx.drawImage(cut, 0, 0);
-  fx.shadowColor = "transparent"; fx.shadowBlur = 0; fx.shadowOffsetX = 0; fx.shadowOffsetY = 0;
-  // the mouth, from the voice
-  const lm = c.lm, env = s._voice && c.env;
-  if (lm && env) {
-    const vt = (local - s._voice.at) + (s._voice.cut || 0);
-    const i = Math.floor(vt / env.step);
-    const open = local >= s._voice.at && local <= s._voice.at + s._voice.len && i >= 0 && i < env.v.length ? env.v[i] : 0;
-    if (open > 0.03) vsStoryMouth(fx, cut, lm, open);
-  }
-  fx.restore();
-}
-const VS_LIP_IN = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308];
-const VS_JAW = [361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132];
-function vsStoryMouth(fx, cut, lm, open) {
-  const P = (i) => lm[i];
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  const J = dist(P(14), P(152));
-  const d = open * J * 0.26;
-  const l = P(78), r = P(308), up = P(13);
-  const mx = (l.x + r.x) / 2, mw = dist(l, r);
-  // inside the mouth: dark, with a hint of the upper teeth
-  fx.save();
-  fx.beginPath(); fx.ellipse(mx, up.y + d * 0.5, mw * 0.5, Math.max(1, d * 0.55 + J * 0.01), Math.atan2(r.y - l.y, r.x - l.x), 0, Math.PI * 2);
-  const g = fx.createLinearGradient(0, up.y, 0, up.y + d);
-  g.addColorStop(0, "#3a1517"); g.addColorStop(1, "#120506");
-  fx.fillStyle = g; fx.fill();
-  if (d > J * 0.05) {
-    fx.clip();
-    fx.fillStyle = "rgba(236,230,220,0.92)";
-    fx.fillRect(mx - mw * 0.36, up.y - J * 0.01, mw * 0.72, Math.min(d * 0.32, J * 0.07));
-  }
-  fx.restore();
-  // the lower lip and chin, dropped with the jaw
-  fx.save();
-  fx.beginPath();
-  VS_LIP_IN.forEach((i, k) => { const p = P(i); k ? fx.lineTo(p.x, p.y + d) : fx.moveTo(p.x, p.y + d); });
-  VS_JAW.forEach((i) => { const p = P(i); fx.lineTo(p.x, p.y + d * (p.y > P(14).y + J * 0.5 ? 1 : 0.6)); });
-  fx.closePath();
-  fx.clip();
-  fx.drawImage(cut, 0, d);
-  fx.restore();
-}
-
-// Photo(s) + an article (or a link to one) -> a finished pro edit.
-async function vsPhotoStory(photos, article, o) {
-  const fa = state.lang === "fa";
-  const L = (en, f) => (fa ? f : en);
-  const plain = (en, f) => { const e = new Error(L(en, f)); e.plain = true; return e; };
-  const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "clean";
-  photos = (photos || []).filter(Boolean).slice(0, 3);
-  if (!photos.length) throw plain("Add a photo of the person who presents.", "یک عکس از کسی که ارائه می‌دهد اضافه کن.");
-  let text = String(article || "").trim();
-  try { stopStudioPreview(); } catch (e) {}
-  vstudio._buildHold = true;
-  try {
-    vsProLoadFonts();
-    vsProSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {});
-    if (/^(https?:\/\/)?[\w-]+(\.[\w-]+)+\/?\S*$/i.test(text) && !/\s/.test(text)) {
-      vsAutoStatus(L("Reading the article…", "در حال خواندن مقاله…"));
-      text = await vsFetchArticle(text);
-      if (!text) throw plain("That link could not be read - paste the article's text instead.", "این لینک خوانده نشد؛ متن مقاله را اینجا بچسبان.");
-    }
-    if (text.replace(/\s+/g, " ").length < 120) throw plain("Paste a little more of the article - a few sentences at least.", "کمی بیشتر از مقاله بچسبان - حداقل چند جمله.");
-    // one video a day for a guest, like every build
-    try {
-      const g = await fetch(VS_AI_BUILD_GATE, { method: "POST", headers: await arGuestHeaders() });
-      if (g.status === 401 && await arIsGuestWall(g)) return;
-    } catch (e) {}
-
-    // the person, out of each photo, and where their lips and jaw are
-    vsAutoStatus(L("Cutting the person out of the photo…", "در حال جدا کردن شخص از عکس…"));
-    const people = [];
-    for (const f of photos) {
-      const img = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = URL.createObjectURL(f); });
-      if (!img) continue;
-      const sc = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
-      const cv = document.createElement("canvas"); cv.width = Math.round(img.naturalWidth * sc); cv.height = Math.round(img.naturalHeight * sc);
-      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-      const cut = await vsThumbCutout(cv);
-      if (!cut) continue;
-      let lm = null;
-      try { lm = await vsStoryLandmarks(cv); } catch (e) {}
-      people.push({ cut, lm, img });
-    }
-    if (!people.length) throw plain("No person was found in that photo - use one where the person is clearly visible.", "در این عکس کسی پیدا نشد؛ عکسی بده که شخص واضح دیده شود.");
-
-    // the script: short spoken lines, each with a place to stand in
-    vsAutoStatus(L("Writing the script…", "در حال نوشتن متن…"));
-    const prompt = [
-      "Turn this article into a short vertical video script spoken by ONE presenter, to camera, in the article's own language.",
-      "Return ONLY JSON: {\"title\":\"...\",\"language\":\"2-letter code\",\"lines\":[{\"text\":\"one spoken sentence, 8-22 words\",\"place\":\"3-5 word English stock-video search for a real place the presenter could stand in while saying it - the article's city, street, office, home, shop, beach... - filmed beautifully\",\"shot\":\"full|medium|close|side\",\"insert\":null}]}",
-      "4 to 7 lines, 25-50 seconds spoken in all. The first line is a hook that makes people stay. Vary the places and the shots.",
-      "An insert is an optional graphic on a line that names a product, place, number, list or comparison: {\"kind\":\"product|place|stat|list|compare\",\"title\":\"1-4 words\",\"sub\":\"short\",\"value\":\"a number exactly as written, or empty\",\"items\":[\"2-4 short points\"],\"left\":\"\",\"right\":\"\",\"query\":\"3-5 word English stock-video search\"}. At most two, never on the first line.",
-      "Every fact, name and number must come from the article - never invent any. Plain sentences, no emoji, no hashtags.",
-      "ARTICLE:", text.replace(/\s+/g, " ").slice(0, 7000),
-    ].join("\n");
-    let plan = null;
-    try { plan = vsParseJsonLoose(await vsAutoAiChat(prompt, { json: true, temperature: 0.55 })); } catch (e) {}
-    const lines = ((plan && plan.lines) || []).map((x) => ({ text: String((x && x.text) || "").replace(/\s+/g, " ").trim().slice(0, 240), place: String((x && x.place) || "").slice(0, 60), shot: String((x && x.shot) || ""), insert: x && x.insert }))
-      .filter((x) => x.text.split(/\s+/).length >= 3).slice(0, 8);
-    if (lines.length < 2) throw plain("The script could not be written just now - try again in a minute.", "متن الان نوشته نشد؛ یک دقیقهٔ دیگر دوباره امتحان کن.");
-
-    // the voice, line by line
-    const lang = vsVoiceLang(plan, lines.map((x) => x.text).join(" "));
-    if (!VS_TTS_LANGS[lang]) throw plain("The free AI voice cannot speak this article's language yet (it speaks English, Spanish, French, Chinese, Japanese and Korean).",
-      "صدای رایگان AI هنوز زبان این مقاله را نمی‌تواند بخواند (انگلیسی، اسپانیایی، فرانسوی، چینی، ژاپنی و کره‌ای را می‌خواند).");
-    vsAutoStatus(L("Recording the voice…", "در حال ضبط صدا…"));
-    const headers = Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders());
-    const bufs = new Array(lines.length).fill(null);
-    const queue = lines.map((x, i) => i);
-    await Promise.all([0, 1, 2, 3].map(async () => { while (queue.length) { const i = queue.shift(); bufs[i] = await vsFetchSceneVoice(vsSpeakable(lines[i].text), lang, headers); } }));
-    if (!bufs.some(Boolean)) throw plain("The voice could not be recorded just now - try again in a minute.", "صدا الان ضبط نشد؛ یک دقیقهٔ دیگر دوباره امتحان کن.");
-
-    // a place for every line - and, where none arrives, a studio backdrop
-    // (the photo itself, blurred, put the same face twice on screen)
-    vsAutoStatus(L("Finding the places…", "در حال پیدا کردن مکان‌ها…"));
-    const studio = await new Promise((res) => {
-      const c = document.createElement("canvas"); c.width = 720; c.height = 1280;
-      const x = c.getContext("2d"), acc = vsProAccent();
-      const g = x.createRadialGradient(360, 520, 60, 360, 640, 900);
-      g.addColorStop(0, "#3a3f4a"); g.addColorStop(0.55, "#1a1d24"); g.addColorStop(1, "#08090c");
-      x.fillStyle = g; x.fillRect(0, 0, 720, 1280);
-      // soft out-of-focus lights in the look's colour
-      [[140, 300, 90], [600, 220, 70], [520, 760, 110], [90, 900, 60], [380, 140, 50]].forEach(([cx, cy, r], i) => {
-        const b = x.createRadialGradient(cx, cy, 0, cx, cy, r);
-        b.addColorStop(0, i % 2 ? "rgba(255,255,255,0.10)" : "rgba(255,190,120,0.16)"); b.addColorStop(1, "rgba(0,0,0,0)");
-        x.fillStyle = b; x.fillRect(0, 0, 720, 1280);
-      });
-      const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = c.toDataURL("image/jpeg", 0.9);
-    });
-    const used = new Set();
-    const backs = await Promise.all(lines.map(async (x, i) => {
-      for (let k = 0; k < 2; k++) {
-        let el = null;
-        try { el = await vsFetchPexelsClip(x.place || "city street", VS_PEXELS_KEY, o.aspect, i + k * 4, used, 12000); } catch (e) {}
-        if (!el) break;
-        used.add(el.currentSrc || el.src);
-        if (await vsClipLuma(el) >= 0.2) return el;
-      }
-      return null;
-    }));
-
-    // the scenes
-    const asp = $("#vsAspect");
-    if (asp && o.aspect) { asp.value = o.aspect; asp.dispatchEvent(new Event("change", { bubbles: true })); }
-    const narr = $("#vsNarrate"); if (narr) narr.checked = true;
-    vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
-    vstudio._toneProfile = vsToneProfile();
-    vstudio.slides = [];
-    vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
-    const base = vsCaptureSettings();
-    ["#vsInfoOn", "#vsNewsOn"].forEach((k) => { base[k] = false; });
-    Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none", "#vsTransition": "none" });
-    const lead = 0.25, tail = 0.35;
-    lines.forEach((x, i) => {
-      const buf = bufs[i];
-      const who = people[i % people.length];
-      const bg = backs[i];
-      const sl = { isVideo: !!bg, mediaEl: bg || studio || who.img, ready: true, isIntro: false, headline: "", settings: Object.assign({}, base),
-        _ownSpeech: true, _clipIn: 0, _srcOffset: 0, _narration: x.text, _timelineLabel: x.text.split(/\s+/).slice(0, 4).join(" "),
-        _story: { cut: who.cut, lm: who.lm, shot: VS_STORY_SHOTS[x.shot] ? x.shot : VS_STORY_CYCLE[i % VS_STORY_CYCLE.length], env: null, blurBg: !bg && !studio } };
-      if (bg) sl.url = bg.currentSrc || bg.src;
-      if (buf) {
-        const b = vsSpeechBounds(buf), len = b.end - b.start;
-        const words = vsWordTimes(x.text, lead, lead + len);
-        sl._voice = { buf, cut: b.start, len, at: lead, words, chunks: vsCaptionChunks(words), _byMax: {} };
-        sl._story.env = vsStoryEnvelope(buf);
-        sl.duration = Math.round((lead + len + tail) * 100) / 100;
-      } else sl.duration = Math.max(2.5, x.text.split(/\s+/).length * 0.38);
-      vstudio.slides.push(sl);
-    });
-    vstudio._editSrc = { url: "", mono: null, words: [], name: "photo-story", srcs: [] };
-    vstudio.storyData = { title: (plan && plan.title) || lines[0].text, language: lang, summary: "", music: { mood: "inspiring", energy: "medium", bpm: 104 } };
-    vstudio._editStats = { story: true };
-    vstudio._editLayout = "full";
-    vstudio._editTitle = "";
-
-    // the pro look on it, as on an edited video; a new place is a new cut
-    const pk = VS_PRO_PACKS[pro];
-    vstudio._proAccent = null;
-    try { const a = vsProPickAccent(people[0].cut); if (a) vstudio._proAccent = a; } catch (e) {}
-    vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
-    vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
-    let tk = 0;
-    vstudio.slides.forEach((sl, i) => {
-      sl._pro = pro; sl._noCaps = true; sl._proZ = 1;
-      if (i > 0 && o.trans !== false) sl._transIn = pk.trans[tk++ % pk.trans.length];
-    });
-    // the graphics the script asked for, on their lines, with their own footage
-    if (o.inserts !== false) {
-      const jobs = [];
-      lines.forEach((x, i) => {
-        const ins = x.insert, sl = vstudio.slides[i];
-        if (!ins || !ins.title || i === 0 || !sl || (Number(sl.duration) || 0) < 2) return;
-        const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
-        sl._ins = { kind: VS_PRO_INSERT_KINDS[ins.kind] ? ins.kind : "product", title: clean(ins.title, 28), sub: clean(ins.sub, 40), value: clean(ins.value, 18),
-          items: (Array.isArray(ins.items) ? ins.items : []).map((v) => clean(v, 30)).filter(Boolean).slice(0, 4), left: clean(ins.left, 20), right: clean(ins.right, 20),
-          query: clean(ins.query || ins.title, 60), at: 0.4, len: Math.round(Math.min(3.8, Number(sl.duration) - 0.5) * 100) / 100 };
-        jobs.push(sl);
-      });
-      await Promise.all(jobs.map(async (sl, n) => {
-        try { const el = await vsFetchPexelsClip(sl._ins.query, VS_PEXELS_KEY, o.aspect, n + 6, used, 12000); if (el) sl._ins.el = el; } catch (e) {}
-      }));
-    }
-    vstudio._editSfxOn = true;
-    try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; }
-    vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
-    await vsProLoadFonts();
-    try { vstudio._proSeg = await Promise.race([vsProSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
-    try { vstudio._proFaceDet = await Promise.race([vsProFaceDetector(), new Promise((r) => setTimeout(() => r(null), 15000))]) || vstudio._proFaceDet || null; } catch (e) {}
-    const tsel = $("#vsTransition"); if (tsel) tsel.value = "none";
-    vstudio._voiceSig = "edit";
-    vsMixVoiceTrack(true);
-    if (o.music !== false && !vstudio._userMusic) {
-      vsAutoStatus(L("Adding music…", "در حال افزودن موسیقی…"));
-      const dm = await vsEnsureDefaultMusic(vstudio.storyData);
-      if (dm) {
-        if (vstudio.musicEl && vstudio.musicEl !== dm) { try { vstudio.musicEl.pause(); } catch (e) {} }
-        vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
-        vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
-      }
-    } else if (o.music === false && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
-    vstudio.activeSlide = 0;
-    renderSlideList();
-    selectSlide(0);
-    vsAutoStatus(L(`Made your video: ${vstudio.slides.length} scenes. Press Play to watch it.`, `ویدیوت ساخته شد: ${vstudio.slides.length} صحنه. برای دیدن، Play را بزن.`));
-    try { vsTrackGen("photostory", "free", lines.length + " lines"); } catch (e) {}
-  } finally {
-    vstudio._buildHold = false;
-    vsBuildOverlay(false);
-    vsShowBuiltVideo();
-  }
-}
-
 // What the Edit studio had open when it was closed - the videos, the
 // settings, the finished edit and the edit still running - so opening it again
 // carries on where it was instead of starting empty. The settings alone are
@@ -12810,14 +12491,6 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-sz{display:flex;justify-content:space-between}
 #emModal .em-row{display:flex;gap:8px;flex-wrap:wrap}
 #emModal .em-row .ts-ghost{flex:1}
-#emModal .em-story{display:flex;flex-direction:column;gap:9px}
-#emModal .em-story[hidden]{display:none}
-#emModal .em-photos{display:flex;gap:8px;flex-wrap:wrap}
-#emModal .em-photo{position:relative;width:64px;height:80px;border-radius:9px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
-#emModal .em-photo img{width:100%;height:100%;object-fit:cover;display:block}
-#emModal .em-photo button{position:absolute;top:3px;inset-inline-end:3px;width:22px;height:22px;display:grid;place-items:center;border-radius:6px;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
-#emModal .em-photo button:focus-visible{outline:2px solid #12d6f5}
-#emModal .em-area{resize:vertical;min-height:110px;font-weight:500;font-size:13px;line-height:1.5}
 `;
   ov.innerHTML =
     '<div id="emModal" role="dialog" aria-modal="true" aria-labelledby="emTitle"' + (fa ? ' dir="rtl"' : "") + "><style>" + CSS + "</style>" +
@@ -12825,26 +12498,13 @@ function vsEditStudio(preset, filesIn) {
       '<div><div class="ts-eye">Edit my video</div><h2 id="emTitle">' + L("Edit your video", "ادیت ویدیوی تو") + "</h2></div>" +
       '<div class="ts-seg" role="tablist" aria-label="' + L("What to do", "چه کاری") + '">' +
         '<button type="button" role="tab" data-mode="edit">' + L("Edit my raw video", "ادیت ویدیوی خامم") + "</button>" +
-        '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button>" +
-        '<button type="button" role="tab" data-mode="story">' + L("Photo + article", "عکس + مقاله") + "</button></div>" +
+        '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button></div>" +
       '<div class="ts-field">' +
         '<button id="emDrop" type="button" class="ts-drop">' +
           '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>' +
           '<span class="ts-drop-t">' + L("Choose your video", "انتخاب ویدیو") + "</span>" +
           '<span class="ts-drop-s" id="emDropS">' + L("or drop it here · MP4, MOV, WebM · several clips play in order", "یا اینجا رها کن · MP4، MOV، WebM · چند کلیپ به ترتیب پخش می‌شوند") + "</span></button>" +
         '<input id="emFile" type="file" accept="video/*" multiple hidden/>' +
-        '<div id="emStory" class="em-story" hidden>' +
-          '<button id="emPhotoDrop" type="button" class="ts-drop">' +
-            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5"/></svg>' +
-            '<span class="ts-drop-t">' + L("Choose a photo of the presenter", "عکس کسی که ارائه می‌دهد") + "</span>" +
-            '<span class="ts-drop-s">' + L("One clear photo, up to three · they are cut out and stood in every place", "یک عکس واضح، تا سه عکس · از پس‌زمینه جدا و در هر مکان قرار داده می‌شود") + "</span></button>" +
-          '<input id="emPhotoFile" type="file" accept="image/*" multiple hidden/>' +
-          '<div id="emPhotos" class="em-photos"></div>' +
-          '<label class="ts-lbl" for="emArticle">' + L("The article", "مقاله") + "</label>" +
-          '<textarea id="emArticle" class="em-txt em-area" rows="5" placeholder="' + L("Paste the article - or a link to it", "متن مقاله را بچسبان - یا لینکش را") + '"></textarea>' +
-          '<p class="ts-note">' + L("Free: the script, the AI voice, the places and the edit. The voice speaks English, Spanish, French, Chinese, Japanese and Korean. The mouth moves with the voice (a first version).",
-            "رایگان: متن، صدای AI، مکان‌ها و ادیت. صدا انگلیسی، اسپانیایی، فرانسوی، چینی، ژاپنی و کره‌ای را می‌خواند. دهان با صدا حرکت می‌کند (نسخهٔ اول).") + "</p>" +
-        "</div>" +
         '<ol id="emList" class="em-list" hidden></ol>' +
         '<p id="emSwapNote" class="ts-note" hidden>' + L("For a finished video: every text and footage in it is found; you change the ones you want and the design, motion and sound stay exactly as they are.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش پیدا می‌شود؛ هر کدام را خواستی عوض کن و طراحی، حرکت و صدا همان می‌ماند.") + "</p></div>" +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Style", "سبک") + '</div><div class="em-styles" role="radiogroup" aria-label="' + L("Style", "سبک") + '">' +
@@ -12890,7 +12550,7 @@ function vsEditStudio(preset, filesIn) {
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
     const st = settingsNow();
-    vsEditStudioMem = { files: files.slice(), photos: (typeof photos !== "undefined" ? photos.slice() : []), article: $$("emArticle") ? $$("emArticle").value : "", mode, settings: st, doneSeq, running };
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running };
     try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
   };
   const close = () => {
@@ -13111,26 +12771,18 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
     ov.querySelectorAll(".em-edit").forEach((el) => { el.hidden = m === "swap"; });
     $$("emSwapNote").hidden = m !== "swap";
-    $$("emStory").hidden = m !== "story";
-    $$("emDrop").hidden = m === "story";
-    // a photo story is always a pro look: Classic is for edited footage
-    const cl = ov.querySelector('.em-style input[value="classic"]');
-    if (cl) { cl.closest(".em-style").hidden = m === "story"; if (m === "story" && cl.checked) { ov.querySelector('input[name="emStyle"][value="pro-clean"]').checked = true; syncStyle(); } }
-    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "story" ? L("Make the video", "ساختن ویدیو") : L("Edit it", "ادیتش کن");
+    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : L("Edit it", "ادیتش کن");
     drawList();
-    drawStyles();
   };
   ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
   const drawList = () => {
     const list = $$("emList");
-    const use = mode === "swap" ? files.slice(0, 1) : mode === "story" ? [] : files;
+    const use = mode === "swap" ? files.slice(0, 1) : files;
     list.hidden = !use.length;
     list.innerHTML = use.map((f, k) => '<li><span>' + escapeHtml(f.name) + "</span><em>" + Math.round(f.size / 1048576 * 10) / 10 + " MB</em>" +
       (use.length > 1 ? '<button type="button" data-up="' + k + '"' + (k ? "" : " disabled") + ' aria-label="' + L("Move up", "بالا") + '">↑</button><button type="button" data-down="' + k + '"' + (k < use.length - 1 ? "" : " disabled") + ' aria-label="' + L("Move down", "پایین") + '">↓</button>' : "") +
       '<button type="button" data-rm="' + k + '" aria-label="' + L("Remove", "حذف") + '">' + icoX + "</button></li>").join("");
-    $$("emGo").disabled = mode === "story" ? !(photos.length && $$("emArticle").value.trim().length > 20) : !use.length;
-    // the chosen photos, each removable
-    $$("emPhotos").innerHTML = photos.map((f, k) => '<div class="em-photo"><img alt="" src="' + (photoUrls[k] || "") + '"/><button type="button" data-prm="' + k + '" aria-label="' + L("Remove the photo", "حذف عکس") + '">' + icoX + "</button></div>").join("");
+    $$("emGo").disabled = !use.length;
   };
   $$("emList").addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;
@@ -13141,31 +12793,6 @@ function vsEditStudio(preset, filesIn) {
     drawList(); if (!k || !j) drawStyles();
   });
   const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "");
-  // the photo story's photos and article
-  let photos = (mem && mem.photos) || [], photoUrls = photos.map((f) => URL.createObjectURL(f));
-  const addPhotos = (list) => {
-    const add = Array.from(list || []).filter((f) => /^image\//.test(f.type || "") || /\.(jpe?g|png|webp|heic)$/i.test(f.name || ""));
-    if (!add.length) return;
-    photos = photos.concat(add).slice(0, 3);
-    photoUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
-    photoUrls = photos.map((f) => URL.createObjectURL(f));
-    frameOf = null; drawList(); drawStyles(); remember();
-  };
-  $$("emPhotoDrop").onclick = () => { const f = $$("emPhotoFile"); f.value = ""; f.click(); };
-  $$("emPhotoFile").onchange = (e) => addPhotos(e.target.files);
-  ["dragenter", "dragover"].forEach((t) => $$("emPhotoDrop").addEventListener(t, (e) => { e.preventDefault(); $$("emPhotoDrop").classList.add("drag"); }));
-  ["dragleave", "drop"].forEach((t) => $$("emPhotoDrop").addEventListener(t, () => $$("emPhotoDrop").classList.remove("drag")));
-  $$("emPhotoDrop").addEventListener("drop", (e) => { e.preventDefault(); addPhotos(e.dataTransfer && e.dataTransfer.files); });
-  $$("emPhotos").addEventListener("click", (ev) => {
-    const b = ev.target.closest("button[data-prm]"); if (!b) return;
-    photos.splice(Number(b.dataset.prm), 1);
-    photoUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
-    photoUrls = photos.map((f) => URL.createObjectURL(f));
-    frameOf = null; drawList(); drawStyles(); remember();
-  });
-  $$("emArticle").value = (mem && mem.article) || "";
-  $$("emArticle").addEventListener("input", () => { drawList(); });
-  $$("emArticle").addEventListener("change", remember);
   const addFiles = (list) => {
     const add = Array.from(list || []).filter(isVideo).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     if (!add.length) return;
@@ -13183,18 +12810,10 @@ function vsEditStudio(preset, filesIn) {
   // once there is one
   let frame = null, frameOf = null;
   const grabFrame = async () => {
-    const f = mode === "story" ? photos[0] : files[0];
+    const f = files[0];
     if (!f || frameOf === f) return;
     frameOf = f; frame = null;
     const u = URL.createObjectURL(f);
-    if (mode === "story") {
-      try {
-        const im = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u; });
-        if (im) { const c = document.createElement("canvas"); c.width = 180; c.height = 260; vsDrawCover(c.getContext("2d"), im, 0, 0, 180, 260, 1, 0.5, 0, 0, 0.3); frame = c; }
-      } catch (e) {}
-      URL.revokeObjectURL(u);
-      return;
-    }
     try {
       const el = await vsEditVideoEl(u);
       if (el) {
@@ -13255,7 +12874,7 @@ function vsEditStudio(preset, filesIn) {
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
-    if (busy || (mode === "story" ? !photos.length : !files.length)) return;
+    if (busy || !files.length) return;
     if (mode === "swap") {
       busy = false; close();
       vsSwapStart(files[0], preset.swap || {}).catch((e) => {
@@ -13270,8 +12889,7 @@ function vsEditStudio(preset, filesIn) {
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
-    const job = mode === "story" ? vsPhotoStory(photos.slice(), $$("emArticle").value, o) : vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o);
-    const run = job
+    const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
       .then(() => ({ ok: vstudio._buildSeq !== before && vstudio.slides.some((x) => x._ownSpeech) }), (e) => ({ err: e }));
     running = run;
     remember();
@@ -29202,7 +28820,6 @@ const VS_MP_VER = "0.10.14";
 const VS_MP_MODELS = {
   seg: { file: "/mediapipe/selfie_multiclass_256x256.tflite", g: "image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
   face: { file: "/mediapipe/blaze_face_short_range.tflite", g: "face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
-  lm: { file: "/mediapipe/face_landmarker.task", g: "face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
 };
 const vsMpModelP = {};
 function vsMpModel(k) {
