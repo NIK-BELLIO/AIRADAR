@@ -10952,46 +10952,111 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
     if (m.tw > W * 0.9) { px *= (W * 0.9) / m.tw; m = measure(); }
     L.px = px; L.m = m;
   });
-  // vertical: the hero line at 0, the others overlapping its top and bottom
+  // vertical: the hero line at 0, the others overlapping its top and bottom.
+  // Three ways to stack them: in reading order (the words before the hero
+  // above it, the rest below), all above, all below - so the small words can
+  // get out of the face's way while the hero sits across the head.
   const hero = lines.find((L) => L.role === "hero") || lines[0];
-  const hp = hero.px;
   const capH = hero.st.upper || hero.st.fam === "Bebas Neue" ? 0.72 : 0.62;
-  lines.forEach((L) => {
-    if (L === hero) { L.y = 0; return; }
-    const above = lines.indexOf(L) < lines.indexOf(hero);
-    const script = L.st.fam === "Sacramento";
-    L.y = above ? -(hp * capH * 0.5 + L.px * (script ? 0.12 : 0.22)) : (hp * capH * 0.5 + L.px * (script ? 0.32 : 0.5));
-  });
+  const upOf = (L) => hero.px * capH * 0.5 + L.px * (L.st.fam === "Sacramento" ? 0.12 : 0.22);
+  const downOf = (L) => hero.px * capH * 0.5 + L.px * (L.st.fam === "Sacramento" ? 0.32 : 0.5);
+  const others = lines.filter((L) => L !== hero);
+  const stack = (mode) => {
+    const ys = new Map([[hero, 0]]);
+    if (mode === "order") others.forEach((L) => ys.set(L, lines.indexOf(L) < lines.indexOf(hero) ? -upOf(L) : downOf(L)));
+    else if (mode === "up") { let y = 0; others.slice().reverse().forEach((L, k) => { y = k ? y - L.px * 0.95 : -upOf(L); ys.set(L, y); }); }
+    else { let y = 0; others.forEach((L, k) => { y = k ? y + L.px * 0.95 : downOf(L); ys.set(L, y); }); }
+    return ys;
+  };
+  const modes = others.length ? ["order", "up", "down"] : ["order"];
   const single = lines.length === 1 && lines[0].role === "single";
-  const top = Math.min(...lines.map((L) => L.y - L.px * 0.6)), bot = Math.max(...lines.map((L) => L.y + L.px * 0.6));
-  const inside = (y) => Math.max(H * 0.12 - top, Math.min(H * 0.86 - bot, y));   // clear of the app's own bars
-  const heroX = W / 2 + ((gi % 3) - 1) * W * 0.025;
-  const hx0 = heroX - hero.m.tw / 2;
-  lines.forEach((L) => {
-    let x0;
-    if (L === hero) x0 = hx0;
-    else if (L.m.tw >= hero.m.tw * 0.92) x0 = W / 2 - L.m.tw / 2;
-    else x0 = gi % 2 ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge
-    L.x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
-  });
-  let cy = inside(single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32));
-  // Never over the face (the owner's rule): every line stays out of the
-  // speaker's face box - above the head or down on the chest. Among the
-  // heights that do, the hero tucks behind the speaker's head or shoulder as
-  // in the reels, but only a little: the first where the speaker covers under
-  // a seventh of it.
-  const offFace = (y) => !face || lines.every((L) => {
-    const by = y + L.y - L.px * 0.5, bh = L.px;
+  // The hero at full size centred, or smaller and set against one side - so
+  // in a close shot it can still tuck behind a shoulder and stay readable.
+  const base = { px: hero.px, m: hero.m };
+  const setHero = (k, align) => {
+    hero.px = base.px * k;
+    hero.m = k === 1 ? base.m : { sp: base.m.sp * k, tw: base.m.tw * k, ws2: base.m.ws2.map((w) => Object.assign({}, w, { w: w.w * k, xs: w.xs.map((v) => v * k) })) };
+    const hx0 = align === "l" ? W * 0.05 : align === "r" ? W * 0.95 - hero.m.tw : W / 2 + ((gi % 3) - 1) * W * 0.025 - hero.m.tw / 2;
+    lines.forEach((L) => {
+      let x0;
+      if (L === hero) x0 = hx0;
+      else if (L.m.tw >= hero.m.tw * 0.92) x0 = align === "c" ? W / 2 - L.m.tw / 2 : align === "l" ? W * 0.05 : W * 0.95 - L.m.tw;
+      else x0 = (align === "r" || (align === "c" && gi % 2)) ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge
+      L.x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
+    });
+  };
+  // clear of the app's own bars
+  const inside = (y, ys) => {
+    const top = Math.min(...lines.map((L) => ys.get(L) - L.px * 0.6)), bot = Math.max(...lines.map((L) => ys.get(L) + L.px * 0.6));
+    return Math.max(H * 0.12 - top, Math.min(H * 0.86 - bot, y));
+  };
+  // Never over the face (the owner's rule): a line drawn in front of the
+  // speaker stays out of their face box. The hero is drawn BEHIND them, as in
+  // the reels - across the head and shoulders, the speaker in front of it -
+  // so it may cross the face box. Measured letter by letter: the speaker
+  // overlaps some letters (the depth the reels have) while hiding at most a
+  // quarter of them, and none of a word under four letters.
+  const behind = !single && !!coverOf;
+  const clear = (L, y) => {
+    const by = y - L.px * 0.5, bh = L.px;
     return L.x0 + L.m.tw < face.x || L.x0 > face.x + face.w || by + bh < face.y || by > face.y + face.h;
-  });
-  const hb = (y) => ({ x: hx0, y: y - hero.px * 0.4, w: hero.m.tw, h: hero.px * 0.8 });
+  };
+  const def = single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32);
   const fracs = H > W ? [0.22, 0.3, 0.36, 0.42, 0.5, 0.58, 0.64, 0.7, 0.76, 0.16] : [0.22, 0.32, 0.42, 0.55, 0.68, 0.78];
-  const tries = [cy].concat(face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).map(inside);
-  const ok = tries.filter(offFace);
-  const good = !single && coverOf ? ok.find((y) => coverOf(hb(y)) < 0.15) : null;
-  if (good != null) cy = good;
-  else if (ok.length) cy = ok[0];
-  else if (face) cy = inside(face.y + face.h - top + H * 0.015);   // nothing clears it: under the face
+  const candsFor = (heroBehind) => {
+    const out = [];
+    modes.forEach((mode) => {
+      const ys = stack(mode);
+      const top = Math.min(...lines.map((L) => ys.get(L) - L.px * 0.6)), bot = Math.max(...lines.map((L) => ys.get(L) + L.px * 0.6));
+      const headYs = face ? [0, 0.15, 0.3, 0.5, 0.7, 0.9, 1.1, 1.35, 1.6].map((k) => face.y + face.h * k) : [];
+      [def].concat(headYs, face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).forEach((y) => {
+        const yy = inside(y, ys);
+        if (!face || lines.every((L) => (heroBehind && L === hero) || clear(L, yy + ys.get(L)))) out.push({ y: yy, ys, mode });
+      });
+    });
+    return out;
+  };
+  let pick = null, front = !behind;
+  if (behind) {
+    let bestScore = -1;
+    [[1, "c"], [1, "l"], [1, "r"], [0.82, "c"], [0.82, "l"], [0.82, "r"], [0.66, "l"], [0.66, "r"], [0.66, "c"], [0.52, "l"], [0.52, "r"]].forEach(([k, align]) => {
+      setHero(k, align);
+      const nL = hero.m.ws2.reduce((n, w) => n + w.pieces.length, 0) || 1;
+      const lw = hero.m.tw / nL;
+      const allow = nL >= 4 ? Math.floor(nL / 4) : 0;   // as in the reels: "KN W", "Oak ont"
+      candsFor(true).forEach((c0) => {
+        let hidden = 0, touched = 0, ends = 0;
+        for (let j = 0; j < nL; j++) {
+          const c = coverOf({ x: hero.x0 + j * lw + lw * 0.15, y: c0.y - hero.px * 0.32, w: lw * 0.7, h: hero.px * 0.64 });
+          if (c > 0.3) hidden++;
+          if (c > 0.08) touched++;
+          if ((j === 0 || j === nL - 1) && c > 0.12) ends++;
+        }
+        // only middle letters go behind them - the first and last stay clear
+        if (hidden > allow || !touched || ends) return;
+        // a few letters behind them is the look; size counts, then reading order and the centre
+        const score = Math.min(touched, 3) * 10 + k * 12 - (align === "c" ? 0 : 1) - (c0.mode === "order" ? 0 : 0.5);
+        if (score > bestScore) { bestScore = score; pick = Object.assign({ k, align }, c0); }
+      });
+    });
+    // Nowhere behind them where it still reads: the hero comes in front, at
+    // full size - and then it too keeps off the face.
+    if (!pick) front = true;
+  }
+  if (pick) setHero(pick.k, pick.align);
+  else {
+    setHero(1, "c");
+    pick = candsFor(false)[0] || null;
+  }
+  let cy;
+  if (pick) { cy = pick.y; lines.forEach((L) => { L.y = pick.ys.get(L); }); }
+  else {
+    // nothing clears the face: in reading order, under it
+    const ys = stack("order");
+    lines.forEach((L) => { L.y = ys.get(L); });
+    const top = Math.min(...lines.map((L) => L.y - L.px * 0.6));
+    cy = inside(face ? face.y + face.h - top + H * 0.015 : def, ys);
+  }
   lines.forEach((L, li) => {
     const x0 = L.x0;
     let x = rtl ? x0 + L.m.tw : x0;
@@ -11007,7 +11072,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   });
   const hw = words.filter((w) => w.role === "hero");
   const box = hw.length ? { x: Math.min(...hw.map((w) => w.x)), y: hw[0].y - hw[0].px * 0.42, w: Math.max(...hw.map((w) => w.x + w.w)) - Math.min(...hw.map((w) => w.x)), h: hw[0].px * 0.84 } : null;
-  g._lay = { W, H, words, box };
+  g._lay = { W, H, words, box, front };
   return g._lay;
 }
 
@@ -11283,9 +11348,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     let behind = false;
     if (heroes.length && lay.box) {
       mask = vsProMask(F, W, H, s, local);
-      // behind the speaker only while it still reads: a hero mostly hidden
-      // by them stays in front
-      behind = !!(mask && mask.P && vsProCover(mask, W, H, lay.box) < 0.2);
+      // always behind the speaker: the layout set it where it still reads,
+      // and in front it could land on their face
+      behind = !!(mask && mask.P) && !lay.front;
     }
     if (behind) {
       heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H));
