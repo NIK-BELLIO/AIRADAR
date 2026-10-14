@@ -10852,7 +10852,7 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;800&display=swap";
 const VS_PRO_PACKS = {
   clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "rise" },
            small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "rise", shade: true },
@@ -10871,7 +10871,73 @@ const VS_PRO_PACKS = {
            small: { fam: "DM Serif Display", w: 400, italic: true, size: 0.145, colors: ["#ffffff", "#1fd3ea", "#f6b400"], enter: "pop", shade: true },
            single: { fam: "Poppins", w: 800, size: 0.16, colors: ["#f6b400", "#1fd3ea"], y: 0.3, enter: "pop" },
            grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoomblur", "flash", "leak", "zoomblur"] },
+  // glowing condensed capitals in a colour taken from the video itself (an
+  // orange shirt gives orange), a dark band at the foot, a neon line drawn
+  // around the speaker at the start
+  glow:  { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["auto"], upper: true, glow: true, enter: "flicker" },
+           small: { fam: "Manrope", w: 800, size: 0.08, colors: ["#ffffff"], enter: "slide", shade: true },
+           single: { fam: "Anton", w: 400, size: 0.19, colors: ["auto"], upper: true, glow: true, y: 0.62, enter: "flicker" },
+           grade: "contrast(1.12) saturate(1.06) brightness(0.96)", warm: "", band: true, trail: true, trans: ["flash", "zoomblur", "leak", "zoomblur"] },
+  // metallic gold capitals with a shine across them, and a wash of colour over
+  // the picture as each one lands
+  gold:  { hero: { fam: "Oswald", w: 700, size: 0.25, colors: ["#f3c969"], upper: true, metal: true, enter: "shine", shade: true },
+           small: { fam: "Manrope", w: 600, size: 0.072, colors: ["#ffffff"], enter: "slide", shade: true },
+           single: { fam: "Oswald", w: 700, size: 0.17, colors: ["#f3c969"], upper: true, metal: true, y: 0.62, enter: "shine", shade: true },
+           grade: "contrast(1.1) saturate(1.04) sepia(0.1)", warm: "", tint: ["#b3202a", "#b8860b", "#1f4fa3"], trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+  // clean captions on one line, a marker sliding in behind the word that matters
+  highlight: { hero: { fam: "Manrope", w: 800, size: 0.085, colors: ["#141414"], marker: "#f7d038", enter: "slide" }, line: true,
+           small: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], enter: "slide", shade: true },
+           single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], y: 0.7, enter: "slide", shade: true },
+           grade: "contrast(1.06) saturate(1.04)", warm: "", paper: true, trans: ["whip", "flash", "whip", "zoomblur"] },
+  // words coloured by what they mean - money green, warnings red - in gradients,
+  // landing with a bounce
+  vivid: { hero: { fam: "Poppins", w: 800, size: 0.24, colors: ["#ffffff", "#4fa9ff"], gradFill: true, enter: "bounce" }, semantic: true,
+           small: { fam: "Poppins", w: 700, size: 0.075, colors: ["#ffffff"], enter: "blur", shade: true },
+           single: { fam: "Poppins", w: 800, size: 0.15, colors: ["#ffffff", "#4fa9ff"], gradFill: true, y: 0.6, enter: "bounce" },
+           grade: "contrast(1.1) saturate(1.15)", warm: "", trans: ["zoomblur", "whip", "flash", "zoomblur"] },
+  // black and white, a serif, and one word in colour
+  editorial: { hero: { fam: "DM Serif Display", w: 400, italic: true, size: 0.15, colors: ["#c43b4c", "#8e44ad"], enter: "glitch" },
+           small: { fam: "DM Serif Display", w: 400, size: 0.075, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "DM Serif Display", w: 400, size: 0.085, colors: ["#ffffff"], y: 0.62, enter: "fade", shade: true },
+           grade: "grayscale(1) contrast(1.18) brightness(1.04)", warm: "", paper: true, trans: ["flash", "zoomblur", "flash", "zoomblur"] },
 };
+// The accent a look draws from the video itself ("auto"), set as an edit is made.
+function vsProAccent() { return vstudio._proAccent || "#ffb21a"; }
+// The strongest saturated colour in a frame, lifted to a neon of the same hue.
+function vsProPickAccent(el) {
+  try {
+    const c = document.createElement("canvas"); c.width = 48; c.height = 80;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(el, 0, 0, 48, 80);
+    const d = x.getImageData(0, 0, 48, 80).data, bins = new Array(24).fill(0);
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, ch = mx - mn;
+      if (ch < 0.18 || l < 0.15 || l > 0.9) continue;
+      let h = mx === r ? ((g - b) / ch) % 6 : mx === g ? (b - r) / ch + 2 : (r - g) / ch + 4;
+      h = (h * 60 + 360) % 360;
+      bins[Math.floor(h / 15)] += ch;
+    }
+    let bi = -1, bv = 0;
+    bins.forEach((v, i) => { if (v > bv) { bv = v; bi = i; } });
+    if (bi < 0 || bv < 3) return null;
+    // skin tones (orange-red, low weight) lose to anything clearly coloured
+    const h = bi * 15 + 7.5;
+    return "hsl(" + Math.round(h) + ",100%," + (h > 40 && h < 190 ? 52 : 60) + "%)";
+  } catch (e) { return null; }
+}
+// What a word means, by its look: money green, a warning red.
+function vsProSemColor(w) {
+  const k = String(w || "").toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
+  if (/^\$|^\d+k$|^\d+%$|money|cash|income|dollar|profit|rich|revenue|price|cost|paid|salary|wealth|save|savings|سود|پول|درآمد|قیمت/.test(k)) return "#3ddc84";
+  if (/^(no|not|never|stop|stops|stopped|lose|lost|loss|fail|failed|problem|expensive|mistake|mistakes|wrong|bad|worst|danger|risk|debt|broke|hard|nobody|نه|هرگز|ضرر|اشتباه|گران)$/.test(k)) return "#ff4545";
+  return null;
+}
+function vsProMix(c, k) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(c));
+  if (!m) return c;
+  const n = parseInt(m[1], 16), f = (v) => Math.round(v + (255 - v) * k);
+  return "rgb(" + f((n >> 16) & 255) + "," + f((n >> 8) & 255) + "," + f(n & 255) + ")";
+}
 const VS_PRO_STOP = new Set(("a an the to of and or but so is are was were be been am i im you your yours we our it its in on at for with as by from " +
   "that this these those there here not no do does did have has had will would can could should just very really about into than then them " +
   "they he she his her my me us if what when how why who which all any some more most get got").split(" "));
@@ -10883,7 +10949,8 @@ function vsProLoadFonts() {
       await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 5000); });
     }
     const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '300 40px "Montserrat"',
-      '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"'];
+      '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
+      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '600 40px "Manrope"'];
     try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
   })();
   return vsProFontsP;
@@ -10962,7 +11029,8 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   const n = g.items.length, h = g.hero;
   const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
   const lines = [];
-  if (g.single || (g.stat && n === 1)) lines.push({ js: [0], st: g.single ? pack.single : pack.hero, role: g.single ? "single" : "hero" });
+  if (pack.line) lines.push({ js: range(0, n), st: pack.single, role: "single" });
+  else if (g.single || (g.stat && n === 1)) lines.push({ js: [0], st: g.single ? pack.single : pack.hero, role: g.single ? "single" : "hero" });
   else if (pack.halves) {
     const m = Math.ceil(n / 2);
     const heroA = h < m;
@@ -11117,8 +11185,13 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       if (rtl) x -= w.w;
       const it = g.items[w.j];
       const colors = L.st.colors || ["#ffffff"];
-      const color = colors[(gi + (L.role === "hero" ? 0 : li)) % colors.length];
-      words.push({ text: w.t, pieces: w.pieces, xs: w.xs, w: w.w, x, y: cy + L.y, px: L.px, st: L.st, role: L.role, t0: it.t0, color,
+      let color = colors[(gi + (L.role === "hero" ? 0 : li)) % colors.length];
+      let st = L.st, marker = null;
+      // one caption line: the word that matters gets the marker behind it
+      if (pack.line && w.j === g.hero && n > 1) { st = pack.hero; color = pack.hero.colors[0]; marker = pack.hero.marker; }
+      if (pack.semantic && L.role !== "small") color = vsProSemColor(it.w) || color;
+      if (color === "auto") color = vsProAccent();
+      words.push({ text: w.t, pieces: w.pieces, xs: w.xs, w: w.w, x, y: cy + L.y, px: L.px, st, role: L.role, t0: it.t0, color, marker,
         stat: /\d/.test(it.w) && L.role === "hero" });
       x = rtl ? x - L.m.sp : x + w.w + L.m.sp;
     });
@@ -11314,6 +11387,22 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.4, 0, wd.y + px * 0.4);
     gr.addColorStop(0, st.texture[0]); gr.addColorStop(1, st.texture[1]);
     fill = gr;
+  } else if (st.metal) {
+    // polished gold: light, a dark band through the middle, light again
+    const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
+    [[0, "#fff6d0"], [0.3, "#f6cf6a"], [0.52, "#b9842a"], [0.57, "#7d5210"], [0.78, "#f1c95b"], [1, "#fff0b0"]].forEach(([o, c]) => gr.addColorStop(o, c));
+    fill = gr;
+  } else if (st.gradFill && typeof fill === "string") {
+    const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
+    gr.addColorStop(0, vsProMix(fill, 0.5)); gr.addColorStop(1, fill);
+    fill = gr;
+  }
+  if (wd.marker) {
+    // the marker slides in behind the word, then the word lands on it
+    const e = vsEase.out(Math.min(1, since / 0.16)), mh = px * 1.3, mw = (wd.w + px * 0.5) * e;
+    ctx.save(); ctx.fillStyle = wd.marker; ctx.globalAlpha = out;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(wd.x - px * 0.25, wd.y - mh / 2, mw, mh, mh * 0.42); else ctx.rect(wd.x - px * 0.25, wd.y - mh / 2, mw, mh); ctx.fill();
+    ctx.restore();
   }
   const paint = (c, x, y) => {
     if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
@@ -11384,6 +11473,64 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     ctx.translate(cx, cy); ctx.rotate((1 - e) * -0.14); ctx.scale(0.35 + 0.65 * e, 0.35 + 0.65 * e); ctx.translate(-cx, -cy);
     ctx.globalAlpha = out * Math.min(1, p * 3);
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "slide") {
+    // up into place, quick (the caption-pack slide)
+    const p = vsEase.out(Math.min(1, since / 0.18));
+    ctx.globalAlpha = out * p;
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy + (1 - p) * px * 0.4);
+  } else if (st.enter === "flicker") {
+    // a neon tube coming on: a few stutters, then steady
+    const seq = [1, 0, 1, 1, 0, 0, 1, 0, 1];
+    const k = Math.floor(since / 0.045);
+    ctx.globalAlpha = out * (k < seq.length ? (seq[k] ? 1 : 0.12) : 1);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "shine") {
+    // settles in, then a band of light crosses it
+    const p = vsEase.out(Math.min(1, since / 0.24));
+    ctx.translate(cx, cy); ctx.scale(1.12 - 0.12 * p, 1.12 - 0.12 * p); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * p;
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+    const sp = (since - 0.2) / 0.65;
+    if (sp > 0 && sp < 1) {
+      const T = vstudio._proTex2 || (vstudio._proTex2 = document.createElement("canvas"));
+      const tw = Math.ceil(wd.w + px * 0.4), th = Math.ceil(px * 1.3);
+      if (T.width !== tw || T.height !== th) { T.width = tw; T.height = th; }
+      const tx = T.getContext("2d");
+      tx.save(); tx.clearRect(0, 0, tw, th);
+      tx.font = ctx.font; tx.textBaseline = "middle"; tx.fillStyle = "#fff"; tx.fillText(wd.text, px * 0.2, th / 2);
+      tx.globalCompositeOperation = "source-in";
+      const bx = -tw * 0.3 + sp * tw * 1.6, gr = tx.createLinearGradient(bx - px * 0.5, 0, bx + px * 0.5, th);
+      gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.5, "rgba(255,255,255,0.95)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      tx.fillStyle = gr; tx.fillRect(0, 0, tw, th);
+      tx.restore();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.drawImage(T, wd.x - px * 0.2, cy - th / 2);
+      ctx.globalCompositeOperation = "source-over";
+    }
+  } else if (st.enter === "bounce") {
+    // springs up from its baseline, overshoots and settles
+    const p = Math.min(1, since / 0.55);
+    const e = p >= 1 ? 1 : Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+    const by = cy + px * 0.45;
+    ctx.translate(cx, by); ctx.scale(Math.max(0.01, e), Math.max(0.01, e)); ctx.translate(-cx, -by);
+    ctx.globalAlpha = out * Math.min(1, p * 4);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "glitch") {
+    // a few frames of split colour and torn slices, then clean
+    if (since < 0.3) {
+      const j = (n) => (Math.sin((Math.floor(since / 0.04) + 1) * 12.9898 * n) * 43758.5453) % 1;
+      const off = px * 0.06 * (1 - since / 0.3);
+      ctx.globalAlpha = out * 0.8;
+      ctx.fillStyle = "#ff2a4d"; ctx.fillText(wd.text, wd.x - off + j(1) * off, cy);
+      ctx.fillStyle = "#2ad4ff"; ctx.fillText(wd.text, wd.x + off + j(2) * off, cy + j(3) * off * 0.5);
+      ctx.globalAlpha = out;
+      for (let k = 0; k < 3; k++) {
+        const y0 = cy - px * 0.4 + k * px * 0.28, h0 = px * 0.22;
+        ctx.save(); ctx.beginPath(); ctx.rect(wd.x - px, y0, wd.w + px * 2, h0); ctx.clip();
+        ctx.fillStyle = fill; ctx.fillText(wd.text, wd.x + j(k + 4) * px * 0.12, cy);
+        ctx.restore();
+      }
+    } else { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
   } else {   // fade: the letters close up as it fades in
     const p = ease(since / 0.25);
     ctx.globalAlpha = out * p;
@@ -11429,11 +11576,12 @@ function vsProNumber(v) {
 }
 
 function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
+  if (pack.paper) { vsProInsertPaper(ctx, W, H, s, ins, t, F, pack); return; }
   const U = Math.min(W, H * 0.62);
   const len = ins.len;
   const ein = vsEase.out(Math.min(1, t / 0.4));
   const fade = t > len - 0.2 ? Math.max(0, (len - t) / 0.2) : 1;
-  const colors = pack.hero.colors || ["#ffffff"];
+  const colors = (pack.hero.colors || ["#ffffff"]).map((c) => (c === "auto" ? vsProAccent() : c));
   const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
   const kind = VS_PRO_INSERT_KINDS[ins.kind] ? ins.kind : "product";
   ctx.save();
@@ -11460,7 +11608,7 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
   if (t < 0.16) { ctx.fillStyle = "rgba(255,255,255," + (0.6 * (1 - t / 0.16)) + ")"; ctx.fillRect(0, 0, W, H); }
 
-  const word = (...a) => { const w = vsProInsWord(ctx, ...a); vsProWord(ctx, w, t, 1, F, W, H); return w; };
+  const word = (...a) => { const w = vsProInsWord(ctx, ...a); vsProWord(ctx, w, t, fade, F, W, H); return w; };
   const small = pack.small, hero = pack.hero;
   const pill = (x, y, txt, t0, fill, ink) => {
     const p = Math.max(0, Math.min(1, (t - t0) / 0.3));
@@ -11523,7 +11671,7 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
     }
     const st = Object.assign({}, hero, { enter: "fade" });
     const w = vsProInsWord(ctx, txt, st, hero.size * U * 1.5, W / 2, H * 0.44, colors[0], 0.15, W * 0.88, "center");
-    vsProWord(ctx, w, t, 1, F, W, H);
+    vsProWord(ctx, w, t, fade, F, W, H);
     const label = ins.value && ins.title !== ins.value ? ins.title : ins.sub;
     if (label) word(label, small, small.size * U * 1.1, W / 2, H * 0.44 + w.px * 0.62, "#ffffff", 0.6, W * 0.86, "center");
   } else if (kind === "list") {
@@ -11636,6 +11784,219 @@ async function vsProPlaceInserts(slides, list, words, sentences, aspect) {
   return placed.length;
 }
 
+// A light infographic card for an insert - the clean "explainer" look of the
+// dental and poster reels: warm paper, the footage in a photo card with a
+// shadow, dark type, numbered steps joined by a line, a big number in a
+// circle. Used by the looks that are light by nature (Highlight, Editorial).
+function vsProInsertPaper(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62), len = ins.len;
+  const fade = t > len - 0.2 ? Math.max(0, (len - t) / 0.2) : 1;
+  const ink = "#1b1d22", soft = "#6b6f78", paper = "#efede8";
+  const serif = pack === VS_PRO_PACKS.editorial;
+  const accent = serif ? (pack.hero.colors[0] || "#c43b4c") : (pack.hero.marker || "#f7d038");
+  const kind = VS_PRO_INSERT_KINDS[ins.kind] ? ins.kind : "product";
+  const head = { fam: serif ? "DM Serif Display" : "Manrope", w: serif ? 400 : 800, size: 0.12, colors: [ink], enter: "slide" };
+  const body = { fam: "Manrope", w: 600, size: 0.05, colors: [ink], enter: "slide" };
+  const word = (text, st, px, x, y, color, t0, maxW, align) => { const w = vsProInsWord(ctx, text, st, px, x, y, color, t0, maxW, align); vsProWord(ctx, w, t, fade, F, W, H); return w; };
+  ctx.save();
+  ctx.globalAlpha = fade;
+  // paper, with the faintest grid, wiping in from the top
+  const wipe = vsEase.out(Math.min(1, t / 0.3));
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, W, H * wipe); ctx.clip();
+  ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(27,29,34,0.05)"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += U * 0.08) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += U * 0.08) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.restore();
+  // the footage in a photo card that settles from a tilt
+  const card = (x, y, w, h, t0) => {
+    const p = vsEase.out(Math.max(0, Math.min(1, (t - t0) / 0.45)));
+    if (p <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = fade * p;
+    ctx.translate(x + w / 2, y + h / 2 + (1 - p) * H * 0.04); ctx.rotate((1 - p) * 0.08); ctx.translate(-(x + w / 2), -(y + h / 2));
+    ctx.shadowColor = "rgba(0,0,0,0.28)"; ctx.shadowBlur = U * 0.06; ctx.shadowOffsetY = U * 0.02;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, U * 0.03); else ctx.rect(x, y, w, h); ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x + U * 0.012, y + U * 0.012, w - U * 0.024, h - U * 0.024, U * 0.022); else ctx.rect(x, y, w, h); ctx.clip();
+    if (ins.el && ins.el.videoWidth) { try { ctx.filter = serif ? "grayscale(1) contrast(1.1)" : "none"; } catch (e) {} vsDrawCover(ctx, ins.el, x, y, w, h, 1.05 + 0.04 * (t / len), 0.5, 0, 0, 0.5); }
+    else { try { ctx.filter = "grayscale(" + (serif ? 1 : 0) + ")"; } catch (e) {} ctx.drawImage(F, x, y, w, h); }
+    ctx.restore();
+  };
+  const items = (ins.items || []).slice(0, 4);
+  let pip = true;
+  if (kind === "list") {
+    word(ins.title, head, head.size * U * 0.85, W * 0.08, H * 0.17, ink, 0.2, W * 0.84, "left");
+    if (ins.sub) word(ins.sub, body, body.size * U, W * 0.08, H * 0.17 + U * 0.11, soft, 0.35, W * 0.84, "left");
+    // numbered steps on a line that draws down as they arrive
+    const x = W * 0.12, y0 = H * 0.34, gap = U * 0.2, r = U * 0.045;
+    const shown = items.filter((it, k) => t >= 0.55 + k * 0.5).length;
+    if (shown > 1) {
+      const p = Math.min(1, (t - 0.55 - (shown - 1) * 0.5) / 0.3 + (shown - 1));
+      ctx.strokeStyle = "rgba(27,29,34,0.35)"; ctx.lineWidth = U * 0.006;
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + gap * Math.max(0, p - 0)); ctx.stroke();
+    }
+    items.forEach((it, k) => {
+      const t0 = 0.55 + k * 0.5, p = Math.max(0, Math.min(1, (t - t0) / 0.3));
+      if (p <= 0) return;
+      const y = y0 + k * gap, e = 1 + 0.2 * Math.sin(Math.PI * p) * (1 - p);
+      ctx.save(); ctx.translate(x, y); ctx.scale(p * e, p * e);
+      ctx.fillStyle = k === items.length - 1 ? accent : ink; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = k === items.length - 1 && vsHexLuma(accent) > 150 ? ink : "#ffffff";
+      ctx.font = "800 " + Math.round(r * 1.05) + "px Manrope, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(k + 1), 0, r * 0.05);
+      ctx.restore();
+      word(it, body, body.size * U * 1.25, x + r * 2.2, y, ink, t0, W * 0.92 - (x + r * 2.2), "left");
+    });
+  } else if (kind === "stat") {
+    // the number counts up inside a dark circle
+    const num = vsProNumber(ins.value || ins.title);
+    let txt = String(ins.value || ins.title);
+    if (num) {
+      const p = vsEase.out(Math.max(0, Math.min(1, (t - 0.3) / 0.9))), v = num.n * p;
+      txt = num.pre + (num.comma ? v.toLocaleString("en-US", { minimumFractionDigits: num.dec, maximumFractionDigits: num.dec }) : v.toFixed(num.dec)) + num.post;
+    }
+    const cp = vsEase.out(Math.max(0, Math.min(1, (t - 0.15) / 0.35))), R = U * 0.26 * cp, cx = W / 2, cy = H * 0.4;
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = accent; ctx.lineWidth = U * 0.012; ctx.beginPath(); ctx.arc(cx, cy, R + U * 0.03, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * vsEase.out(Math.max(0, Math.min(1, (t - 0.3) / 0.9)))); ctx.stroke();
+    if (cp > 0.6) word(txt, Object.assign({}, head, { colors: ["#ffffff"], enter: "fade" }), U * 0.15, cx, cy, "#ffffff", 0.3, R * 1.7, "center");
+    const label = ins.value && ins.title !== ins.value ? ins.title : ins.sub;
+    if (label) word(label, head, head.size * U * 0.6, W / 2, cy + U * 0.36, ink, 0.6, W * 0.86, "center");
+  } else if (kind === "compare") {
+    card(W * 0.06, H * 0.2, W * 0.42, H * 0.3, 0.1);
+    card(W * 0.52, H * 0.2, W * 0.42, H * 0.3, 0.3);
+    word(ins.left || ins.title, head, head.size * U * 0.55, W * 0.27, H * 0.58, ink, 0.4, W * 0.42, "center");
+    word(ins.right || ins.sub || "", head, head.size * U * 0.55, W * 0.73, H * 0.58, ink, 0.6, W * 0.42, "center");
+    const q = Math.max(0, Math.min(1, (t - 0.75) / 0.25));
+    if (q > 0) {
+      const r = U * 0.07; ctx.save(); ctx.translate(W / 2, H * 0.35); ctx.scale(q, q);
+      ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = vsHexLuma(accent) > 150 ? ink : "#fff"; ctx.font = "800 " + Math.round(r * 0.75) + "px Manrope, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("VS", 0, r * 0.05);
+      ctx.restore();
+    }
+    pip = false;
+  } else {
+    // product or place: the footage in a card, the name under it, its points
+    card(W * 0.08, H * 0.12, W * 0.84, H * 0.38, 0.05);
+    if (kind === "place") {
+      const p = Math.max(0, Math.min(1, (t - 0.4) / 0.4)), r = U * 0.035, cx = W * 0.12, cy = H * 0.585;
+      if (p > 0) { ctx.save(); ctx.globalAlpha = fade * p; ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = paper; ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+    }
+    const tx = kind === "place" ? W * 0.17 : W * 0.08;
+    const tw = word(ins.title, head, head.size * U, tx, H * 0.585, ink, 0.3, W * 0.92 - tx, "left");
+    // a stroke of the accent under the name (the marker of the Highlight look)
+    const up = vsEase.out(Math.max(0, Math.min(1, (t - 0.5) / 0.3)));
+    if (up > 0) { ctx.fillStyle = accent; ctx.globalAlpha = fade * 0.9; ctx.fillRect(tx, H * 0.585 + tw.px * 0.42, tw.w * up, U * 0.014); ctx.globalAlpha = fade; }
+    if (ins.sub) word(ins.sub, body, body.size * U, tx, H * 0.585 + tw.px * 0.72, soft, 0.5, W * 0.84, "left");
+    if (ins.value) word(ins.value, Object.assign({}, head, { enter: "slide" }), head.size * U * 0.6, W * 0.92, H * 0.585 + tw.px * 0.72, accent === "#f7d038" ? ink : accent, 0.6, W * 0.4, "right");
+    let y = H * 0.585 + tw.px * 0.72 + U * 0.13;
+    items.forEach((it, k) => {
+      const t0 = 0.75 + k * 0.4, p = Math.max(0, Math.min(1, (t - t0) / 0.25));
+      if (p <= 0) return;
+      ctx.save(); ctx.globalAlpha = fade * p; ctx.fillStyle = accent; ctx.fillRect(W * 0.08, y - U * 0.012, U * 0.024, U * 0.024); ctx.restore();
+      word(it, body, body.size * U * 1.1, W * 0.08 + U * 0.05, y, ink, t0, W * 0.8, "left");
+      y += U * 0.085;
+    });
+  }
+  if (pip) {
+    const p = Math.max(0, Math.min(1, (t - 0.35) / 0.35));
+    if (p > 0) {
+      const f = ins._face || (ins._face = vsProFace(F, W, H, null) || { x: W * 0.25, y: H * 0.1, w: W * 0.5, h: W * 0.55 });
+      const r = U * 0.12 * vsEase.out(p), cx = W - U * 0.17, cy = H - U * 0.2;
+      const side = Math.max(f.w, f.h) * 1.1, sx = f.x + f.w / 2 - side / 2, sy = f.y + f.h / 2 - side / 2;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath();
+      ctx.shadowColor = "rgba(0,0,0,.3)"; ctx.shadowBlur = r * 0.3; ctx.fillStyle = "#000"; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.save(); ctx.clip(); try { ctx.drawImage(F, sx, sy, side, side, cx - r, cy - r, r * 2, r * 2); } catch (e) {} ctx.restore();
+      ctx.lineWidth = r * 0.07; ctx.strokeStyle = ink; ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+// The speaker's name on a card as they first appear (the name plates of the
+// reels), and the closing call to action ("comment GUIDE").
+function vsProNameCard(ctx, W, H, t, len, pack) {
+  const c = vstudio._proCard;
+  if (!c || !c.name || t < 0 || t > len) return;
+  const U = Math.min(W, H * 0.62);
+  const pin = vsEase.out(Math.min(1, t / 0.4)), pout = t > len - 0.3 ? Math.max(0, (len - t) / 0.3) : 1;
+  const accent = pack.hero.colors[0] === "auto" ? vsProAccent() : pack.hero.marker || pack.hero.colors[0] || "#ffb21a";
+  ctx.save();
+  ctx.globalAlpha = pout;
+  ctx.font = "800 " + Math.round(U * 0.052) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  const nw = ctx.measureText(c.name).width;
+  ctx.font = "600 " + Math.round(U * 0.032) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  const rw = c.role ? ctx.measureText(c.role).width : 0;
+  const w = Math.max(nw, rw) + U * 0.1, h = c.role ? U * 0.14 : U * 0.095, x = W * 0.06 - (1 - pin) * (w + W * 0.08), y = H * 0.8;
+  ctx.fillStyle = "rgba(12,13,16,0.82)";
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, U * 0.02); else ctx.rect(x, y, w, h); ctx.fill();
+  ctx.fillStyle = accent; ctx.fillRect(x, y, U * 0.014, h);
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.fillStyle = "#ffffff"; ctx.font = "800 " + Math.round(U * 0.052) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  ctx.fillText(c.name, x + U * 0.05, y + (c.role ? h * 0.36 : h / 2));
+  if (c.role) { ctx.fillStyle = "rgba(255,255,255,0.72)"; ctx.font = "600 " + Math.round(U * 0.032) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillText(c.role, x + U * 0.05, y + h * 0.72); }
+  ctx.restore();
+}
+function vsProCta(ctx, W, H, t, len, pack) {
+  const txt = String(vstudio._proCta || "").trim();
+  if (!txt || t < 0) return;
+  const U = Math.min(W, H * 0.62);
+  const p = Math.min(1, t / 0.5);
+  const e = p >= 1 ? 1 : Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+  const accent = pack.hero.colors[0] === "auto" ? vsProAccent() : pack.hero.marker || pack.hero.colors[0] || "#ffb21a";
+  ctx.save();
+  ctx.font = "800 " + Math.round(U * 0.058) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  const tw = Math.min(W * 0.8, ctx.measureText(txt).width), h = U * 0.12, w = tw + U * 0.14, cx = W / 2, cy = H * 0.83;
+  ctx.translate(cx, cy); ctx.scale(e, e); ctx.translate(-cx, -cy);
+  ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.04;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2); else ctx.rect(cx - w / 2, cy - h / 2, w, h); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx - w / 2 + h * 0.5, cy, h * 0.14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#111318"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(txt, cx + h * 0.12, cy + U * 0.003, W * 0.8);
+  ctx.restore();
+}
+
+// A neon line drawn around the speaker as the video opens, passing behind
+// them at the back of its loop and in front at the front.
+function vsProTrail(ctx, W, H, t, face, mask, behindPass) {
+  const U = Math.min(W, H * 0.62);
+  const p = vsEase.inOut(Math.min(1, t / 1.3)), fade = t > 2.3 ? Math.max(0, 1 - (t - 2.3) / 0.5) : 1;
+  if (p <= 0 || fade <= 0) return;
+  const f = face || { x: W * 0.3, y: H * 0.15, w: W * 0.4, h: H * 0.2 };
+  const cx = f.x + f.w / 2, cy = f.y + f.h * 1.55, rx = W * 0.44, ry = f.h * 0.42, rot = -0.14;
+  const a0 = Math.PI * 0.85, sweep = Math.PI * 2 * p;
+  const col = vsProAccent();
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.lineCap = "round";
+  const seg = (from, to) => {
+    if (to <= from) return;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, rot, from, to);
+    ctx.strokeStyle = col; ctx.lineWidth = U * 0.012; ctx.shadowColor = col; ctx.shadowBlur = U * 0.05; ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = U * 0.004; ctx.shadowBlur = U * 0.015; ctx.stroke();
+  };
+  // the back of the loop is the half above the centre line (angles pi..2pi)
+  const from = a0, to = a0 + sweep;
+  for (let k = 0; k < 3; k++) {
+    const lo = Math.PI * (2 * k - 1), hi = Math.PI * 2 * k;            // a back half: (2k-1)pi .. 2k pi
+    const flo = Math.PI * 2 * k, fhi = Math.PI * (2 * k + 1);          // a front half: 2k pi .. (2k+1) pi
+    if (behindPass) seg(Math.max(from, lo), Math.min(to, hi));
+    else seg(Math.max(from, flo), Math.min(to, fhi));
+  }
+  if (!behindPass && p < 1) {
+    // the bright head of the line
+    const a = to, hx = cx + rx * Math.cos(a) * Math.cos(rot) - ry * Math.sin(a) * Math.sin(rot), hy = cy + rx * Math.cos(a) * Math.sin(rot) + ry * Math.sin(a) * Math.cos(rot);
+    ctx.fillStyle = "#ffffff"; ctx.shadowColor = col; ctx.shadowBlur = U * 0.06;
+    ctx.beginPath(); ctx.arc(hx, hy, U * 0.012, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
 // The whole pro frame: graded picture, camera, words in front of and behind
 // the speaker, light.
 function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
@@ -11664,9 +12025,22 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
   fx.filter = "none";
   if (pack.warm && !s._bw) { fx.globalCompositeOperation = "soft-light"; fx.fillStyle = pack.warm; fx.fillRect(0, 0, W, H); fx.globalCompositeOperation = "source-over"; }
+  // the Gold look washes the picture in a colour as a key word lands
+  if (pack.tint && !s._bw && local >= heroT && local - heroT < 1.4) {
+    const k = Math.exp(-(local - heroT) / 0.45);
+    fx.globalCompositeOperation = "color"; fx.globalAlpha = 0.42 * k;
+    fx.fillStyle = pack.tint[Math.max(0, gi) % pack.tint.length]; fx.fillRect(0, 0, W, H);
+    fx.globalCompositeOperation = "source-over"; fx.globalAlpha = 1;
+  }
   const vg = fx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.35, W / 2, H * 0.5, Math.max(W, H) * 0.78);
   vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.42)");
   fx.fillStyle = vg; fx.fillRect(0, 0, W, H);
+  if (pack.band) {
+    // the dark foot the glowing words stand out against
+    const bd = fx.createLinearGradient(0, H * 0.55, 0, H);
+    bd.addColorStop(0, "rgba(0,0,0,0)"); bd.addColorStop(1, "rgba(0,0,0,0.78)");
+    fx.fillStyle = bd; fx.fillRect(0, H * 0.55, W, H * 0.45);
+  }
   fx.restore();
 
   ctx.save();
@@ -11686,6 +12060,14 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (el.paused) { try { el.currentTime = want; } catch (e) {} el.play().catch(() => {}); }
       else if (Math.abs(el.currentTime - want) > 0.5) { try { el.currentTime = want; } catch (e) {} }
     } else if (!el.paused) { try { el.pause(); } catch (e) {} }
+  }
+  // the neon line around the speaker as the video opens (Glow)
+  if (pack.trail && idx === 0 && !ins && local > 0.1 && local < 2.9) {
+    const m = vsProMask(F, W, H, s, local);
+    const fc = s._trailFace || (s._trailFace = vsProFace(F, W, H, m));
+    vsProTrail(ctx, W, H, local - 0.1, fc, m, true);
+    if (m && m.P) ctx.drawImage(m.P, 0, 0);
+    vsProTrail(ctx, W, H, local - 0.1, fc, m, false);
   }
   if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
   else if (g && !g.off && !(ed && ed.off)) {
@@ -11722,6 +12104,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
     }
   }
+  // the speaker's name as they first appear; the call to action at the end
+  if (idx === 0 && !ins) vsProNameCard(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), pack);
+  if (idx === vstudio.slides.length - 1) vsProCta(ctx, W, H, local - Math.max(0, dur - 3.2), 3.2, pack);
   // the opening comes out of a light leak
   if (idx === 0 && local < 0.8) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
   ctx.restore();
@@ -12019,6 +12404,11 @@ function vsEditStudio(preset, filesIn) {
     ["pro-neon", L("Neon", "نئون"), L("Glowing capitals under a handwritten line", "حروف درشت درخشان زیر خط دست‌نویس")],
     ["pro-luxe", L("Luxe", "لوکس"), L("Heavy textured words, thin captions", "کلمات سنگین بافت‌دار، زیرنویس نازک")],
     ["pro-pop", L("Pop", "پاپ"), L("Yellow and cyan with a bold italic serif", "زرد و فیروزه‌ای با سریف ایتالیک")],
+    ["pro-glow", L("Glow", "درخشان"), L("Glowing capitals in your video's own colour, a light line around you", "حروف درخشان به رنگ خود ویدیو، یک خط نور دور تو")],
+    ["pro-gold", L("Gold", "طلایی"), L("Metallic gold words with a shine, a colour wash as they land", "کلمات طلایی براق، رنگ‌پاشی روی تصویر")],
+    ["pro-highlight", L("Highlight", "هایلایت"), L("Clean captions, a marker behind the word that matters, light cards", "زیرنویس تمیز، ماژیک پشت کلمهٔ مهم، کارت‌های روشن")],
+    ["pro-vivid", L("Vivid", "پررنگ"), L("Words coloured by meaning - money green, warnings red", "رنگ کلمات بر اساس معنی - پول سبز، هشدار قرمز")],
+    ["pro-editorial", L("Editorial", "ادیتوریال"), L("Black and white, a serif, one word in colour", "سیاه‌وسفید، سریف، یک کلمه رنگی")],
     ["classic", L("Classic", "کلاسیک"), L("Captions, hook card, stickers, graphic cards", "زیرنویس، کارت هوک، استیکر، کارت گرافیکی")],
   ];
   const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
@@ -12090,6 +12480,7 @@ function vsEditStudio(preset, filesIn) {
 #emModal #emCtl[hidden]{display:none}
 #emModal .em-txt{width:100%;padding:10px 12px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f4f5f7;font:600 14px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;outline:none}
 #emModal .em-txt:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}
+#emModal .em-opts .em-txt{font-weight:500;font-size:13px}
 #emModal #emSize{accent-color:#2563ff}
 #emModal .em-sz{display:flex;justify-content:space-between}
 #emModal .em-row{display:flex;gap:8px;flex-wrap:wrap}
@@ -12118,6 +12509,11 @@ function vsEditStudio(preset, filesIn) {
         "</div></div>" +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("What it does", "چه کارهایی انجام شود") + '</div><div class="em-opts">' +
         OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-" + c : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
+        '<label class="ts-lbl em-p" for="emName" style="margin-top:4px">' + L("Your name on a card at the start (optional)", "اسمت روی کارت در شروع (اختیاری)") + "</label>" +
+        '<input id="emName" class="em-txt em-p" type="text" maxlength="40" placeholder="' + L("e.g. Sara Ahmadi", "مثلاً سارا احمدی") + '"/>' +
+        '<input id="emRole" class="em-txt em-p" type="text" maxlength="60" placeholder="' + L("What you do, e.g. Realtor in Toronto", "کارت، مثلاً مشاور املاک در تورنتو") + '"/>' +
+        '<label class="ts-lbl em-p" for="emCta">' + L("A line at the end (optional)", "یک جمله در پایان (اختیاری)") + "</label>" +
+        '<input id="emCta" class="em-txt em-p" type="text" maxlength="50" placeholder="' + L('e.g. Comment "GUIDE" for the free list', 'مثلاً کلمهٔ «راهنما» را کامنت کن') + '"/>' +
         '<label class="ts-lbl em-c" for="emLayout" style="margin-top:4px">' + L("Layout", "چیدمان") + "</label>" +
         '<select id="emLayout" class="em-c" style="padding:9px 10px;border-radius:9px;background:#08090c;color:#f4f5f7;border:1px solid rgba(255,255,255,.12);font:500 13px Manrope,system-ui,sans-serif">' +
           '<option value="auto">' + L("Automatic", "خودکار") + '</option><option value="card">' + L("Graphic card", "کارت گرافیکی") + '</option><option value="full">' + L("Full frame", "تمام‌صفحه") + "</option></select>" +
@@ -12142,7 +12538,8 @@ function vsEditStudio(preset, filesIn) {
   const settingsNow = () => {
     const opts = {};
     ov.querySelectorAll("input[data-opt]").forEach((c) => { opts[c.dataset.opt] = c.checked; });
-    return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value };
+    return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value,
+      name: $$("emName").value, role: $$("emRole").value, cta: $$("emCta").value };
   };
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
@@ -12466,6 +12863,8 @@ function vsEditStudio(preset, filesIn) {
   ov.querySelectorAll("input[data-opt]").forEach((c) => c.addEventListener("change", remember));
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", () => { if (!busy && !stage.querySelector("#emCv")) showEmpty(); }));
   { const want = preset.layout || last.layout; const l = $$("emLayout"); if (want && [...l.options].some((q) => q.value === want)) l.value = want; }
+  $$("emName").value = preset.name || last.name || ""; $$("emRole").value = preset.role || last.role || ""; $$("emCta").value = preset.cta || last.cta || "";
+  ["emName", "emRole", "emCta"].forEach((id) => $$(id).addEventListener("change", remember));
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
@@ -12481,6 +12880,7 @@ function vsEditStudio(preset, filesIn) {
     const o = { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value || "pro-clean",
       aspect: (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16", layout: $$("emLayout").value, host: true };
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
+    o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
     const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
@@ -13957,6 +14357,11 @@ async function vsEditMyVideo(fileIn, o) {
       // third jump cut), one black-and-white beat in the middle
       const pk = VS_PRO_PACKS[pro];
       let tk2 = 0;
+      // the colour of the video itself (an orange shirt: orange glow), the name card and the closing line
+      vstudio._proAccent = null;
+      try { const a = vsProPickAccent(vstudio.slides[0].mediaEl); if (a) vstudio._proAccent = a; } catch (e) {}
+      vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
+      vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
       vstudio.slides.forEach((sl, i) => {
         sl._pro = pro; sl._noCaps = true; sl._proZ = i % 2 ? 1.14 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
