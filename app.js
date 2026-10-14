@@ -12395,7 +12395,7 @@ const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true
 //   the mouth moves with the voice: face landmarks find the lips and jaw, and
 //   the jaw drops with the loudness of each moment (a test the owner asked for);
 //   then the pro edit runs on it as on any video - words, inserts, sounds.
-const VS_STORY_SHOTS = { full: { h: 0.86, top: 0.13, x: 0.5 }, medium: { h: 1.08, top: 0.12, x: 0.5 }, close: { h: 1.45, top: 0.07, x: 0.5 },
+const VS_STORY_SHOTS = { full: { h: 0.86, top: 0.13, x: 0.5 }, medium: { h: 1.08, top: 0.12, x: 0.5 }, close: { h: 1.22, top: 0.09, x: 0.5 },
   side: { h: 0.98, top: 0.13, x: 0.33 }, sideR: { h: 0.98, top: 0.13, x: 0.67 } };
 const VS_STORY_CYCLE = ["medium", "close", "full", "side", "medium", "sideR", "close"];
 
