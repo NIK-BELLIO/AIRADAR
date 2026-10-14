@@ -5054,7 +5054,10 @@ function vsCanvasSize(targetLongEdge) {
   // round to even numbers — required by most video codecs
   const even = (n) => Math.round(n / 2) * 2;
   // long edge: export uses the chosen size; preview caps at 1920
-  const cap = targetLongEdge || 1920;
+  // A pro edit's preview draws at 1280: each frame is graded and cut out,
+  // and at 1920 the GPU fell behind and the preview stuttered. The export
+  // still renders at the size chosen.
+  const cap = targetLongEdge || ((vstudio.slides || []).some((x) => x && x._pro) ? 1280 : 1920);
   if (aspect === "original") {
     const longEdge = Math.max(mw, mh);
     let scale;
@@ -11099,19 +11102,35 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   return g._lay;
 }
 
+// The pro edit's own segmenter, on the GPU: 10ms a frame there against 400ms
+// on the CPU (measured) - the CPU one is what made the preview stutter and
+// every export frame crawl. A device without WebGL gets the CPU one.
+let vsProSegP = null;
+function vsProSegmenter() {
+  if (!vsProSegP) vsProSegP = (async () => {
+    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
+    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    const opts = (delegate) => ({ baseOptions: { delegate, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
+      runningMode: "IMAGE", outputCategoryMask: false, outputConfidenceMasks: true });
+    try { return await V.ImageSegmenter.createFromOptions(files, opts("GPU")); }
+    catch (e) { return await V.ImageSegmenter.createFromOptions(files, opts("CPU")); }
+  })().catch((e) => { vsProSegP = null; throw e; });
+  return vsProSegP;
+}
+
 // The speaker, cut out of the graded frame: a small mask from MediaPipe
 // (smoothed against the last one so the edge does not boil), scaled up soft.
-// In the preview it is refreshed about nine times a second; the export
+// In the preview it is refreshed about fifteen times a second; the export
 // computes it on every frame.
 function vsProMask(F, W, H, s, local) {
   const st = vstudio._proSegState || (vstudio._proSegState = {});
   const seg = vstudio._proSeg;
   if (!seg) {
-    if (!st.loading) { st.loading = true; vsThumbSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
+    if (!st.loading) { st.loading = true; vsProSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => { st.loading = false; }); }
     return null;
   }
   const now = performance.now();
-  if (!vstudio.rendering && st.P && st.s === s && now - st.at < 110 && Math.abs(local - st.local) < 0.4 && st.W === W && st.H === H) return st;
+  if (!vstudio.rendering && st.P && st.s === s && now - st.at < 66 && Math.abs(local - st.local) < 0.4 && st.W === W && st.H === H) return st;
   const mw = 160, mh = Math.max(16, Math.round(160 * H / W));
   const sm = st.sm || (st.sm = document.createElement("canvas"));
   if (sm.width !== mw || sm.height !== mh) { sm.width = mw; sm.height = mh; }
@@ -11142,7 +11161,8 @@ function vsProMask(F, W, H, s, local) {
   px.drawImage(F, 0, 0);
   px.globalCompositeOperation = "destination-in";
   px.imageSmoothingEnabled = true; px.imageSmoothingQuality = "high";
-  try { px.filter = `blur(${Math.max(1, W / 700)}px)`; } catch (e) {}
+  // the small mask scaled up smooth is soft enough at the edge - a blur on
+  // top cost a full-frame filter every refresh
   px.drawImage(M, 0, 0, W, H);
   px.restore();
   Object.assign(st, { a: alpha, bw, bh, s, local, at: now, W, H });
@@ -11156,10 +11176,10 @@ function vsProFaceDetector() {
   if (!vsProFaceP) vsProFaceP = (async () => {
     const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
     const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
-    return await V.FaceDetector.createFromOptions(files, {
-      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
-      runningMode: "IMAGE", minDetectionConfidence: 0.45,
-    });
+    const opts = (delegate) => ({ baseOptions: { delegate, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
+      runningMode: "IMAGE", minDetectionConfidence: 0.45 });
+    try { return await V.FaceDetector.createFromOptions(files, opts("GPU")); }
+    catch (e) { return await V.FaceDetector.createFromOptions(files, opts("CPU")); }
   })().catch((e) => { vsProFaceP = null; throw e; });
   return vsProFaceP;
 }
@@ -11323,6 +11343,249 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
   ctx.restore();
 }
 
+// ── Pro edit: cinematic inserts ──────────────────────────────────────────────
+// What a professional editor cuts to while the speaker keeps talking: when a
+// product, a place, a number, a list or a comparison is named, the picture
+// cuts to cinematic stock footage of it (free, from Pexels) - letterboxed,
+// flashed in, slowly pushed - and the graphics come in in the look's own
+// faces: the name, its price, the points said about it one by one, a number
+// counting up, a pin on a place, A versus B. The speaker stays in a small
+// circle (not on a place) and their voice carries on underneath. The plan's
+// sector (real estate, food, beauty, tech...) picks the footage; every word
+// and number on screen is one the speaker said.
+const VS_PRO_INSERT_KINDS = { product: 1, place: 1, stat: 1, list: 1, compare: 1 };
+
+// A word of an insert, measured, for vsProWord.
+function vsProInsWord(ctx, text, st, px, x, y, color, t0, maxW, align) {
+  const label = st.upper ? String(text).toUpperCase() : String(text);
+  const measure = () => { ctx.font = vsProFont(st, px); return ctx.measureText(label).width + (st.track || 0) * px * Math.max(0, label.length - 1); };
+  let w = measure();
+  if (maxW && w > maxW) { px *= maxW / w; w = measure(); }
+  const pieces = /[؀-ۿ]/.test(label) ? [label] : Array.from(label);
+  const xs = []; let cx = 0;
+  pieces.forEach((c) => { xs.push(cx); cx += ctx.measureText(c).width + (st.track || 0) * px; });
+  const k = pieces.length > 1 && cx > 0 ? w / cx : 1;
+  const x0 = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+  return { text: label, pieces, xs: xs.map((v) => v * k), w, x: x0, y, px, st, role: "hero", t0, color, stat: /\d/.test(label) };
+}
+
+// The number in "$2.5B", "45%", "1,200 homes": its prefix, value, decimals, suffix.
+function vsProNumber(v) {
+  const m = String(v || "").match(/^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/);
+  if (!m) return null;
+  const n = Number(m[2].replace(/,/g, ""));
+  if (!isFinite(n)) return null;
+  return { pre: m[1], n, dec: (m[2].split(".")[1] || "").length, comma: /,/.test(m[2]) || Math.abs(n) >= 10000, post: m[3] };
+}
+
+function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62);
+  const len = ins.len;
+  const ein = vsEase.out(Math.min(1, t / 0.4));
+  const fade = t > len - 0.2 ? Math.max(0, (len - t) / 0.2) : 1;
+  const colors = pack.hero.colors || ["#ffffff"];
+  const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
+  const kind = VS_PRO_INSERT_KINDS[ins.kind] ? ins.kind : "product";
+  ctx.save();
+  ctx.globalAlpha = fade;
+  // the footage of it: arrives pushed in and settles, then keeps drifting
+  const z = 1.16 - 0.12 * ein + 0.05 * (t / len);
+  ctx.save();
+  if (ins.el && ins.el.videoWidth) {
+    try { ctx.filter = pack.grade + " brightness(0.9)"; } catch (e) {}
+    ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+    vsDrawCover(ctx, ins.el, 0, 0, W, H, 1, 0.5, 0, 0, 0.5);
+  } else {
+    try { ctx.filter = "blur(" + Math.max(6, Math.round(W / 50)) + "px) brightness(0.5) saturate(1.2)"; } catch (e) {}
+    ctx.drawImage(F, -W * 0.06, -H * 0.06, W * 1.12, H * 1.12);
+  }
+  ctx.restore();
+  // shade where the words sit, the cinematic bars, the flash in
+  const sh = ctx.createLinearGradient(0, H * 0.3, 0, H);
+  sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,0.75)");
+  ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
+  if (kind !== "list") { const tg = ctx.createLinearGradient(0, 0, 0, H * 0.35); tg.addColorStop(0, "rgba(0,0,0,0.45)"); tg.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = tg; ctx.fillRect(0, 0, W, H * 0.35); }
+  else { ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(0, 0, W, H); }
+  const bar = H * 0.07 * ein;
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
+  if (t < 0.16) { ctx.fillStyle = "rgba(255,255,255," + (0.6 * (1 - t / 0.16)) + ")"; ctx.fillRect(0, 0, W, H); }
+
+  const word = (...a) => { const w = vsProInsWord(ctx, ...a); vsProWord(ctx, w, t, 1, F, W, H); return w; };
+  const small = pack.small, hero = pack.hero;
+  const pill = (x, y, txt, t0, fill, ink) => {
+    const p = Math.max(0, Math.min(1, (t - t0) / 0.3));
+    if (p <= 0) return 0;
+    const e = vsEase.out(p), fs = U * 0.05;
+    ctx.save();
+    ctx.font = "700 " + Math.round(fs) + 'px Poppins, "Vazirmatn", system-ui, sans-serif';
+    const tw = ctx.measureText(txt).width, ph = fs * 1.9, pw = tw + fs * 2.2;
+    ctx.globalAlpha = fade * e;
+    ctx.translate((1 - e) * -W * 0.08, 0);
+    ctx.fillStyle = fill; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - ph / 2, pw, ph, ph / 2); else ctx.rect(x, y - ph / 2, pw, ph); ctx.fill();
+    ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x + fs * 0.85, y, fs * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = ink; ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillText(txt, x + fs * 1.35, y + fs * 0.03);
+    ctx.restore();
+    return ph;
+  };
+  const items = (ins.items || []).slice(0, 4);
+  let pip = kind !== "place";
+  if (kind === "product") {
+    if (ins.sub) word(ins.sub, small, small.size * U * 0.9, W * 0.07, H * 0.62, "#ffffff", 0.25, W * 0.86, "left");
+    word(ins.title, hero, hero.size * U, W * 0.07, H * 0.7, accent === "#ffffff" ? "#ffffff" : colors[0], 0.15, W * 0.86, "left");
+    if (ins.value) {
+      // the price: a solid tag that pops on
+      const p = Math.max(0, Math.min(1, (t - 0.45) / 0.25));
+      if (p > 0) {
+        const fs = U * 0.075, e = 1 + 0.25 * Math.sin(Math.PI * p) * (1 - p);
+        ctx.save(); ctx.font = "800 " + Math.round(fs) + 'px Poppins, "Vazirmatn", system-ui, sans-serif';
+        const tw = ctx.measureText(ins.value).width, x = W * 0.07, y = H * 0.79, ph = fs * 1.45;
+        ctx.translate(x, y); ctx.scale(p * e, p * e); ctx.translate(-x, -y);
+        ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - ph / 2, tw + fs * 0.9, ph, fs * 0.25); else ctx.rect(x, y - ph / 2, tw + fs * 0.9, ph); ctx.fill();
+        ctx.fillStyle = vsHexLuma(accent) > 150 ? "#0b0d12" : "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(ins.value, x + fs * 0.45, y + fs * 0.04);
+        ctx.restore();
+      }
+    }
+    let y = H * 0.17;
+    items.forEach((it, k) => { const h = pill(W * 0.06, y, it, 0.65 + k * 0.45, "rgba(10,12,16,0.72)", "#ffffff"); y += (h || U * 0.095) + U * 0.025; });
+  } else if (kind === "place") {
+    // a pin drops on, the name is set big in the middle
+    const p = Math.max(0, Math.min(1, (t - 0.1) / 0.45));
+    if (p > 0) {
+      const e = 1 - Math.pow(1 - p, 3), r = U * 0.06, cx = W / 2, cy = H * 0.37 - (1 - e) * H * 0.08;
+      ctx.save(); ctx.globalAlpha = fade * Math.min(1, p * 2);
+      ctx.fillStyle = accent;
+      ctx.beginPath(); ctx.moveTo(cx, cy + r * 1.9); ctx.bezierCurveTo(cx - r * 1.1, cy + r * 0.6, cx - r, cy - r * 0.2, cx - r, cy - r * 0.2);
+      ctx.arc(cx, cy - r * 0.2, r, Math.PI, 0); ctx.bezierCurveTo(cx + r, cy - r * 0.2, cx + r * 1.1, cy + r * 0.6, cx, cy + r * 1.9); ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.beginPath(); ctx.arc(cx, cy - r * 0.2, r * 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    word(ins.title, hero, hero.size * U * 1.05, W / 2, H * 0.5, colors[0], 0.3, W * 0.88, "center");
+    if (ins.sub) word(ins.sub, small, small.size * U, W / 2, H * 0.5 + hero.size * U * 0.62, "#ffffff", 0.55, W * 0.86, "center");
+  } else if (kind === "stat") {
+    // the number counts up to what was said
+    const num = vsProNumber(ins.value || ins.title);
+    let txt = String(ins.value || ins.title);
+    if (num) {
+      const p = vsEase.out(Math.max(0, Math.min(1, (t - 0.2) / 0.9)));
+      const v = num.n * p;
+      const body = num.comma ? v.toLocaleString("en-US", { minimumFractionDigits: num.dec, maximumFractionDigits: num.dec }) : v.toFixed(num.dec);
+      txt = num.pre + body + num.post;
+    }
+    const st = Object.assign({}, hero, { enter: "fade" });
+    const w = vsProInsWord(ctx, txt, st, hero.size * U * 1.5, W / 2, H * 0.44, colors[0], 0.15, W * 0.88, "center");
+    vsProWord(ctx, w, t, 1, F, W, H);
+    const label = ins.value && ins.title !== ins.value ? ins.title : ins.sub;
+    if (label) word(label, small, small.size * U * 1.1, W / 2, H * 0.44 + w.px * 0.62, "#ffffff", 0.6, W * 0.86, "center");
+  } else if (kind === "list") {
+    word(ins.title, hero, hero.size * U * 0.62, W * 0.08, H * 0.2, colors[0], 0.1, W * 0.84, "left");
+    items.forEach((it, k) => {
+      const t0 = 0.5 + k * 0.5, p = Math.max(0, Math.min(1, (t - t0) / 0.3));
+      if (p <= 0) return;
+      const e = vsEase.out(p), y = H * 0.33 + k * U * 0.2, r = U * 0.05, x = W * 0.08;
+      ctx.save(); ctx.globalAlpha = fade * e; ctx.translate((1 - e) * W * 0.06, 0);
+      ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x + r, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = vsHexLuma(accent) > 150 ? "#0b0d12" : "#ffffff"; ctx.font = "800 " + Math.round(r * 1.1) + "px Poppins, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(k + 1), x + r, y + r * 0.05);
+      ctx.restore();
+      word(it, small, small.size * U * 1.05, x + r * 2.7, y, "#ffffff", t0, W * 0.92 - (x + r * 2.7), "left");
+    });
+  } else if (kind === "compare") {
+    // two sides split down the middle, VS between them
+    const p = vsEase.out(Math.max(0, Math.min(1, t / 0.35)));
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillRect(0, 0, W / 2 * p, H);
+    ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(W - W / 2 * p, 0, W / 2 * p, H);
+    ctx.fillStyle = accent; ctx.fillRect(W / 2 - U * 0.006, H * (1 - p) / 2, U * 0.012, H * p);
+    ctx.restore();
+    word(ins.left || ins.title, hero, hero.size * U * 0.55, W * 0.25, H * 0.48, colors[0], 0.2, W * 0.44, "center");
+    word(ins.right || ins.sub || "", hero, hero.size * U * 0.55, W * 0.75, H * 0.48, colors[1] || "#ffffff", 0.45, W * 0.44, "center");
+    const q = Math.max(0, Math.min(1, (t - 0.65) / 0.25));
+    if (q > 0) {
+      const r = U * 0.075, e = q + 0.25 * Math.sin(Math.PI * q) * (1 - q);
+      ctx.save(); ctx.translate(W / 2, H * 0.48); ctx.scale(e, e);
+      ctx.fillStyle = "#0b0d12"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = accent; ctx.lineWidth = r * 0.12; ctx.stroke();
+      ctx.fillStyle = "#ffffff"; ctx.font = "800 " + Math.round(r * 0.8) + "px Poppins, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("VS", 0, r * 0.04);
+      ctx.restore();
+    }
+    pip = false;
+  }
+  // the speaker, still talking, in a circle
+  if (pip) {
+    const p = Math.max(0, Math.min(1, (t - 0.3) / 0.35));
+    if (p > 0) {
+      const f = ins._face || (ins._face = vsProFace(F, W, H, null) || { x: W * 0.25, y: H * 0.1, w: W * 0.5, h: W * 0.55 });
+      const r = U * 0.13 * vsEase.out(p), cx = W - U * 0.19, cy = kind === "product" ? H * 0.2 : H - bar - U * 0.2;
+      const side = Math.max(f.w, f.h) * 1.1, sx = f.x + f.w / 2 - side / 2, sy = f.y + f.h / 2 - side / 2;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath();
+      ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = r * 0.3; ctx.fillStyle = "#000"; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.save(); ctx.clip();
+      try { ctx.drawImage(F, sx, sy, side, side, cx - r, cy - r, r * 2, r * 2); } catch (e) {}
+      ctx.restore();
+      ctx.lineWidth = r * 0.06; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+// Inserts from the plan, each on the cut where its word is said - never the
+// opening, a teaser or B-roll, one per cut, at least a cut apart - with
+// footage found for it.
+async function vsProPlaceInserts(slides, list, words, sentences, aspect) {
+  const key = (x) => String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const placed = [];
+  (Array.isArray(list) ? list : []).slice(0, 8).forEach((x) => {
+    if (!x || !x.title) return;
+    const sn = sentences[Number(x.i)];
+    if (!sn) return;
+    const want = key(x.at_word);
+    const inS = words.filter((w) => w.s >= sn.start - 0.05 && w.s <= sn.end + 0.05);
+    const hit = inS.find((w) => key(w.w) === want) || inS[0];
+    if (!hit) return;
+    const T = hit.s;
+    let idx = -1, local = 0;
+    slides.forEach((sl, i) => {
+      if (idx >= 0 || sl._teaser) return;
+      const a = (sl._srcOffset || 0) + ((sl._broll ? sl._ownClipIn : sl._clipIn) || 0), d = Number(sl.duration) || 0;
+      if (T >= a - 0.3 && T < a + d) { idx = i; local = Math.max(0, T - a); }   // a word can start just before its cut's trimmed head
+    });
+    if (idx <= 0 || placed.some((p) => Math.abs(p.idx - idx) < 2)) return;
+    const sl = slides[idx], d = Number(sl.duration) || 0;
+    const len = Math.min(3.8, d - 0.1);
+    if (len < 1.7) return;
+    // The analysis often marks the same moment for B-roll: the insert wins -
+    // it brings its own footage - and the cut goes back to the speaker.
+    if (sl._broll && sl._ownEl) {
+      try { sl.mediaEl.pause(); } catch (e) {}
+      sl.mediaEl = sl._ownEl; sl._clipIn = sl._ownClipIn;
+      if (sl._ownSettings) Object.assign(sl.settings, sl._ownSettings);
+      delete sl._broll;
+    }
+    const at = Math.max(0, Math.min(local - 0.1, d - len));
+    const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+    sl._ins = { kind: VS_PRO_INSERT_KINDS[x.kind] ? x.kind : "product", title: clean(x.title, 28), sub: clean(x.sub, 40), value: clean(x.value, 18),
+      items: (Array.isArray(x.items) ? x.items : []).map((v) => clean(v, 30)).filter(Boolean).slice(0, 4),
+      left: clean(x.left, 20), right: clean(x.right, 20), query: clean(x.query || x.title, 60), at: Math.round(at * 100) / 100, len: Math.round(len * 100) / 100 };
+    placed.push({ idx, sl });
+  });
+  // footage for each, at once; one try each and a clip nobody else took
+  const used = new Set();
+  // a night shot is a black hole under the words: up to three tries for one with light in it
+  await Promise.all(placed.map(async (p, n) => {
+    for (let k = 0; k < 3 && !p.sl._ins.el; k++) {
+      let el = null;
+      try { el = await vsFetchPexelsClip(p.sl._ins.query, VS_PEXELS_KEY, aspect, n + k * 3, used, 12000); } catch (e) {}
+      if (!el) break;
+      used.add(el.currentSrc || el.src);
+      if (await vsClipLuma(el) >= 0.28) p.sl._ins.el = el;
+      else { try { el.removeAttribute("src"); el.load(); } catch (e) {} }
+    }
+  }));
+  return placed.length;
+}
+
 // The whole pro frame: graded picture, camera, words in front of and behind
 // the speaker, light.
 function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
@@ -11364,7 +11627,18 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   ctx.drawImage(F, 0, 0);
   const ed = g && s._proEdit ? s._proEdit[gi] : null;
   if (!vstudio.rendering) vstudio._proHit = null;
-  if (g && !g.off && !(ed && ed.off)) {
+  // a cinematic insert in its window; its footage plays along in the preview
+  const ins = s._ins && !s._broll && !s._ins.off && local >= s._ins.at && local < s._ins.at + s._ins.len ? s._ins : null;
+  if (s._ins && s._ins.el && !vstudio.rendering && vstudio.looping) {
+    const el = s._ins.el;
+    if (ins) {
+      const want = (local - ins.at) % Math.max(0.5, (el.duration || 10) - 0.1);
+      if (el.paused) { try { el.currentTime = want; } catch (e) {} el.play().catch(() => {}); }
+      else if (Math.abs(el.currentTime - want) > 0.5) { try { el.currentTime = want; } catch (e) {} }
+    } else if (!el.paused) { try { el.pause(); } catch (e) {} }
+  }
+  if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
+  else if (g && !g.off && !(ed && ed.off)) {
     let mask = null, face = null;
     if (!g._lay) { mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask); }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
@@ -11596,8 +11870,18 @@ function vsProSfxEvents(slides) {
     if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "whoosh", t: t + 0.32, g: 0.55 }); }
     if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? "hit" : "whoosh", t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
+    const ins = sl._ins && !sl._ins.off ? sl._ins : null;
+    if (ins) {
+      ev.push({ n: "whoosh", t: t + ins.at + 0.06, g: 0.85 });
+      if (ins.kind === "place") ev.push({ n: "sparkle", t: t + ins.at + 0.35, g: 0.45 });
+      if (ins.kind === "stat") ev.push({ n: "digital", t: t + ins.at + 0.25, g: 0.55 });
+      if (ins.kind === "compare") ev.push({ n: "hit", t: t + ins.at + 0.68, g: 0.6 });
+      if (ins.kind === "product" && ins.value) ev.push({ n: "hit", t: t + ins.at + 0.5, g: 0.6 });
+      (ins.items || []).forEach((it, k) => { const at = ins.at + (ins.kind === "list" ? 0.5 + k * 0.5 : 0.65 + k * 0.45); if (at < ins.at + ins.len - 0.2) ev.push({ n: pops[n++ % pops.length], t: t + at, g: 0.8, w: 1 }); });
+    }
     if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
       if (g.t0 >= d - 0.1 || g.off || (sl._proEdit && sl._proEdit[gi] && sl._proEdit[gi].off)) return;   // words the customer removed take their click with them
+      if (ins && g.t0 >= ins.at - 0.05 && g.t0 < ins.at + ins.len) return;   // the insert has its own words
       ev.push({ n: pops[n++ % pops.length], t: t + g.t0, g: 0.95, w: 1 });
       const h = g.items[g.hero];
       if (!g.single && h && h.t0 - g.t0 > 0.12 && h.t0 < d - 0.1) ev.push({ n: "tick", t: t + h.t0, g: 0.75, w: 1 });
@@ -11652,7 +11936,7 @@ const VS_EDIT_MAX_SECONDS = 12 * 60;
 
 const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zoom: "vsEmZoom", title: "vsEmTitle", music: "vsEmMusic",
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
-const VS_EM_DEFAULTS = { cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
+const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
 // Edit my video opens as its own studio, like Thumbnail Studio: the
 // settings on the left (the video, the style - each drawn as it will look -
@@ -11677,6 +11961,7 @@ function vsEditStudio(preset, filesIn) {
   ];
   const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
   const OPTS = [
+    ["inserts", L("Cinematic shots and graphics when you name a product, place or number", "نمای سینمایی و گرافیک وقتی از محصول، مکان یا عدد حرف می‌زنی"), "p"],
     ["cut", L("Cut the pauses", "حذف مکث‌ها و سکوت‌ها"), ""],
     ["fillers", L("Remove “um” and “uh”", "حذف «اِ» و «اوم»"), ""],
     ["trans", L("Transitions and sound effects", "ترنزیشن و افکت صوتی"), ""],
@@ -11713,6 +11998,7 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-list button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}
 #emModal .em-opts{display:flex;flex-direction:column;gap:10px}
 #emModal.pro .em-c{display:none}
+#emModal:not(.pro) .em-p{display:none}
 #emModal .em-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:0}
 #emModal .em-frame{position:relative;max-width:100%;max-height:min(560px,62vh);border-radius:12px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 #emModal .em-frame canvas{display:block;width:100%;height:100%}
@@ -11768,7 +12054,7 @@ function vsEditStudio(preset, filesIn) {
         SHAPES.map(([v, n, w, h]) => { const k = 18 / Math.max(w, h); return '<label class="ts-size"><input type="radio" name="emShape" value="' + v + '"' + (v === shape0 ? " checked" : "") + '/><span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span><span class="ts-size-n">' + n + '</span><span class="ts-size-d">' + v + "</span></label>"; }).join("") +
         "</div></div>" +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("What it does", "چه کارهایی انجام شود") + '</div><div class="em-opts">' +
-        OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-c" : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
+        OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-" + c : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
         '<label class="ts-lbl em-c" for="emLayout" style="margin-top:4px">' + L("Layout", "چیدمان") + "</label>" +
         '<select id="emLayout" class="em-c" style="padding:9px 10px;border-radius:9px;background:#08090c;color:#f4f5f7;border:1px solid rgba(255,255,255,.12);font:500 13px Manrope,system-ui,sans-serif">' +
           '<option value="auto">' + L("Automatic", "خودکار") + '</option><option value="card">' + L("Graphic card", "کارت گرافیکی") + '</option><option value="full">' + L("Full frame", "تمام‌صفحه") + "</option></select>" +
@@ -13239,7 +13525,7 @@ async function vsEditMyVideo(fileIn, o) {
   const file = files[0];
   // a pro look sets its own words, so no hook card, stickers or graphic cards
   const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "";
-  if (pro) { o = Object.assign({}, o, { title: false, stickers: false, gfx: false, layout: "full" }); vsProLoadFonts(); vsThumbSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
+  if (pro) { o = Object.assign({}, o, { title: false, stickers: false, gfx: false, layout: "full" }); vsProLoadFonts(); vsProSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
   if (files.reduce((n, f) => n + f.size, 0) > 400 * 1048576) { vsAutoStatus(L("Those files are over 400 MB together - trim them first.", "این فایل‌ها روی هم بیشتر از ۴۰۰ مگابایت‌اند؛ اول کوتاهشان کن.")); return; }
   try { stopStudioPreview(); } catch (e) {}
   vstudio._buildHold = true;
@@ -13565,12 +13851,17 @@ async function vsEditMyVideo(fileIn, o) {
         if (best) best._bw = true;
       }
     }
+    // cinematic inserts where a product, place, number, list or comparison is named
+    if (pro && o.inserts !== false && ai && Array.isArray(ai.inserts) && ai.inserts.length) {
+      vsAutoStatus(L("Finding cinematic shots…", "در حال پیدا کردن نماهای سینمایی…"));
+      try { vstudio._editStats.inserts = await vsProPlaceInserts(vstudio.slides, ai.inserts, words, sentences, o.aspect); } catch (e) {}
+    }
     vstudio._editSfxOn = !!o.trans || !!pro;
     if (vstudio._editSfxOn) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
     if (pro) {
       vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
       await vsProLoadFonts();
-      try { vstudio._proSeg = await Promise.race([vsThumbSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
+      try { vstudio._proSeg = await Promise.race([vsProSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
       try { vstudio._proFaceDet = await Promise.race([vsProFaceDetector(), new Promise((r) => setTimeout(() => r(null), 15000))]) || vstudio._proFaceDet || null; } catch (e) {}
     }
 
@@ -25557,6 +25848,13 @@ async function _vsSeekActiveFootage(t) {
   const slide = vstudio.slides[at.index];
   if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
   if (slide._swap) await vsSwapSeekExport(slide, at.local);
+  // a pro edit's cinematic insert: its own footage, from the insert's start
+  const ins = slide._ins;
+  if (ins && ins.el && !ins.off && at.local >= ins.at && at.local < ins.at + ins.len) {
+    const el = ins.el, d = Math.max(0.5, (el.duration || 10) - 0.1), want = (at.local - ins.at) % d;
+    try { el.pause(); } catch (e) {}
+    if (Math.abs((el.currentTime || 0) - want) > 0.008) await _vsSeekVideo(el, want, _vsSeekPatient(el, want));
+  }
   // the shot on screen when the scene is cut into several
   const sc = vsSceneClip(slide, at.local, at.dur);
   const vid = sc ? sc.el : slide.mediaEl;
