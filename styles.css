@@ -5586,6 +5586,7 @@ b, strong { font-weight: 600; }
 #vsEditMineDlg .vsem-modes button:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
 #vsEditMineDlg .vsem-swapnote{display:none;margin:0 0 12px;color:#c9ccd3;font:500 13px/1.5 Manrope,ui-sans-serif,system-ui,sans-serif}
 #vsEditMineDlg .vsem.swap .vsem-swapnote{display:block}
+#vsEditMineDlg .vsem.pro .vsem-classic{display:none}
 #vsEditMineDlg .vsem.swap .vsem-opt,#vsEditMineDlg .vsem.swap .vsem-row,#vsEditMineDlg .vsem.swap .vsem-list,#vsEditMineDlg .vsem.swap .vsem-file + .vsem-list{display:none}
 
 /* Edit my video: wide, not tall - the options in two columns, the two

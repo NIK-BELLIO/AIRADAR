@@ -10101,7 +10101,7 @@ async function vsEditStylePlan(scenes, lang) {
 // teaser and B-roll): whip, zoom-through, glitch or flash, each with its own
 // sound mixed into the voice track.
 // the sound each transition makes
-const VS_TRANS_SFX = { whip: "whoosh", zoom: "riser", glitch: "digital", flash: "sparkle", wipe: "whoosh" };
+const VS_TRANS_SFX = { whip: "whoosh", zoom: "riser", glitch: "digital", flash: "sparkle", wipe: "whoosh", zoomblur: "whoosh", leak: "whoosh" };
 const vsEase = {
   out: (p) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3),
   inOut: (p) => { p = Math.max(0, Math.min(1, p)); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
@@ -10249,7 +10249,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 //   wipe  - a band of the accent sweeps across, the new frame behind its edge
 //   flash - a soft white flash crossing from one to the other
 //   glitch- a few frames of split bands, then the new picture
-const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24 };
+const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45 };
 function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
   const W = canvas.width, H = canvas.height;
   const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
@@ -10299,6 +10299,22 @@ function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
       const band = W * 0.075 * Math.sin(Math.PI * p);
       ctx.fillStyle = vsEditAccent(s); ctx.fillRect(edge - band, 0, band, H);
       ctx.fillStyle = "#141414"; ctx.fillRect(edge, 0, Math.max(2, band * 0.18), H);
+    } else if (type === "zoomblur") {
+      // the old frame rushes in and smears outwards, the new one arrives out
+      // of the same rush and settles (the pro edit's cut)
+      const rush = (src, zz, amt) => {
+        const at = (k) => { ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(k, k); ctx.translate(-W / 2, -H / 2); ctx.drawImage(src, 0, 0); ctx.restore(); };
+        ctx.globalAlpha = 1; at(zz);
+        for (let k = 1; k <= 5; k++) { ctx.globalAlpha = 0.2 * amt; at(zz * (1 + 0.04 * k * amt)); }
+        ctx.globalAlpha = 1;
+      };
+      if (p < 0.5) rush(A, 1 + 0.35 * vsEase.in(p * 2), Math.min(1, p * 2.2));
+      else rush(B, 1.35 - 0.35 * vsEase.out((p - 0.5) * 2), Math.max(0, 1 - (p - 0.5) * 2.2));
+    } else if (type === "leak") {
+      ctx.drawImage(A, 0, 0);
+      ctx.globalAlpha = e; ctx.drawImage(B, 0, 0);
+      ctx.globalAlpha = 1;
+      vsProLeak(ctx, W, H, Math.sin(Math.PI * p), (idx % 3) / 3);
     } else if (type === "flash") {
       ctx.drawImage(A, 0, 0);
       ctx.globalAlpha = e; ctx.drawImage(B, 0, 0);
@@ -10792,9 +10808,445 @@ async function vsClipLuma(el) {
 }
 
 // The whole frame for an edited clip. Returns true when it drew.
+// ── Pro edit: the reel look ────────────────────────────────────────────────
+// The look of the four reels the owner sent as the target. The speech is set
+// on the picture as it is said, big and small at once: a hero word in a heavy
+// face - behind the speaker when it crosses them (the person is cut out of
+// every frame with MediaPipe) - and the words around it in a second face,
+// overlapping its edge. Every group lands with a click. The picture is graded,
+// pushed in slowly, punched in on the hero word and on alternate cuts; cuts
+// are zoom-blurs, light leaks and flashes; one beat goes black and white.
+// One look per reference:
+//   clean - heavy rounded sans, teal and white (reel 1)
+//   neon  - condensed caps with a cyan glow under a thin script (reel 2)
+//   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
+//   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&display=swap";
+const VS_PRO_PACKS = {
+  clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "rise" },
+           small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "rise", shade: true },
+           single: { fam: "Poppins", w: 700, size: 0.1, colors: ["#ffffff"], y: 0.6, enter: "rise", shade: true },
+           grade: "contrast(1.1) saturate(1.1) brightness(1.03)", warm: "rgba(255,176,96,0.07)", trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+  neon:  { hero: { fam: "Bebas Neue", w: 400, size: 0.21, colors: ["#38d8ff"], upper: true, glow: true, enter: "type" }, halves: true,
+           small: { fam: "Sacramento", w: 400, size: 0.14, colors: ["#ffffff"], enter: "write", shade: true },
+           single: { fam: "Bebas Neue", w: 400, size: 0.32, colors: ["#38d8ff"], upper: true, glow: true, y: 0.3, enter: "type" },
+           grade: "contrast(1.12) saturate(1.12)", warm: "", trans: ["leak", "zoomblur", "flash", "zoomblur"] },
+  luxe:  { hero: { fam: "Montserrat", w: 900, size: 0.25, colors: ["#c8b4e6"], texture: ["#b892f2", "#6a3fb8"], enter: "blur", shade: true },
+           small: { fam: "Montserrat", w: 800, size: 0.1, colors: ["#ffffff"], enter: "blur", shade: true },
+           single: { fam: "Montserrat", w: 300, size: 0.062, colors: ["#ffffff"], upper: true, track: 0.08, y: 0.62, enter: "fade", shade: true },
+           stat: ["#3fb6ff", "#c2188f"],
+           grade: "contrast(1.08) saturate(1.18) brightness(1.03)", warm: "", trans: ["zoomblur", "zoomblur", "flash", "leak"] },
+  pop:   { hero: { fam: "Poppins", w: 800, size: 0.23, colors: ["#f6b400", "#1fd3ea"], enter: "pop" },
+           small: { fam: "DM Serif Display", w: 400, italic: true, size: 0.145, colors: ["#ffffff", "#1fd3ea", "#f6b400"], enter: "pop", shade: true },
+           single: { fam: "Poppins", w: 800, size: 0.16, colors: ["#f6b400", "#1fd3ea"], y: 0.3, enter: "pop" },
+           grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoomblur", "flash", "leak", "zoomblur"] },
+};
+const VS_PRO_STOP = new Set(("a an the to of and or but so is are was were be been am i im you your yours we our it its in on at for with as by from " +
+  "that this these those there here not no do does did have has had will would can could should just very really about into than then them " +
+  "they he she his her my me us if what when how why who which all any some more most get got").split(" "));
+let vsProFontsP = null;
+function vsProLoadFonts() {
+  if (!vsProFontsP) vsProFontsP = (async () => {
+    if (!document.getElementById("vsProFontCss")) {
+      const l = document.createElement("link"); l.id = "vsProFontCss"; l.rel = "stylesheet"; l.href = VS_PRO_FONT_CSS; document.head.appendChild(l);
+      await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 5000); });
+    }
+    const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '300 40px "Montserrat"',
+      '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"'];
+    try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
+  })();
+  return vsProFontsP;
+}
+function vsProFont(st, px) {
+  return `${st.italic ? "italic " : ""}${st.w} ${Math.max(1, Math.round(px))}px "${st.fam}", "Vazirmatn", system-ui, sans-serif`;
+}
+
+// The scene's words in groups of one to four, as they will stand on screen:
+// a group ends at a breath, a comma or full stop, or after a second and a half.
+// Each has a hero - the word that carries it (a number first, then the longest
+// word that is not a little one).
+function vsProGroups(s) {
+  const v = s._voice;
+  if (!v || !v.words || !v.words.length) return [];
+  const dur = Number(s.duration) || 4;
+  if (s._proG && s._proG.n === v.words.length && s._proG.d === dur) return s._proG.g;
+  const ws = v.words;
+  const idx = [];
+  let cur = [];
+  ws.forEach((w, k) => {
+    if (w.t0 >= dur - 0.12) return;
+    if (cur.length) {
+      const prev = ws[cur[cur.length - 1]];
+      const letters = cur.reduce((n, j) => n + ws[j].w.length, 0);
+      if (cur.length >= 4 || letters + w.w.length > 19 || w.t0 - prev.t1 > 0.3 || /[.!?,;:؟،]["')”]*$/.test(prev.w) || w.t0 - ws[cur[0]].t0 > 1.5) { idx.push(cur); cur = []; }
+    }
+    cur.push(k);
+  });
+  if (cur.length) idx.push(cur);
+  const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
+  const groups = idx.map((ks) => {
+    const items = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
+    let hero = 0, best = -1;
+    items.forEach((it, j) => {
+      const c = key(it.w);
+      const sc = (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) ? 0 : 10) + c.length;
+      if (sc > best) { best = sc; hero = j; }
+    });
+    const stat = items.length ? /\d/.test(items[hero].w) : false;
+    return { items, hero, stat, single: items.length === 1 && !stat, t0: items.length ? items[0].t0 : 0 };
+  }).filter((g) => g.items.length);
+  groups.forEach((g, i) => {
+    const last = g.items[g.items.length - 1];
+    const next = groups[i + 1];
+    // on screen until the next group, or a moment after its last word when
+    // the speaker pauses
+    g.t1 = Math.min(dur, next ? Math.min(next.t0, last.t1 + 0.7) : last.t1 + 0.6);
+  });
+  s._proG = { n: ws.length, d: dur, g: groups };
+  return groups;
+}
+
+// Where each word of a group stands: lines stacked tight, the small line
+// overlapping the hero's edge, set against the hero's left or right side.
+function vsProLayout(ctx, W, H, g, gi, pack, coverOf) {
+  if (g._lay && g._lay.W === W && g._lay.H === H) return g._lay;
+  const U = Math.min(W, H * 0.62);
+  const n = g.items.length, h = g.hero;
+  const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
+  const lines = [];
+  if (g.single || (g.stat && n === 1)) lines.push({ js: [0], st: g.single ? pack.single : pack.hero, role: g.single ? "single" : "hero" });
+  else if (pack.halves) {
+    const m = Math.ceil(n / 2);
+    const heroA = h < m;
+    lines.push({ js: range(0, m), st: heroA ? pack.hero : pack.small, role: heroA ? "hero" : "small" });
+    if (m < n) lines.push({ js: range(m, n), st: heroA ? pack.small : pack.hero, role: heroA ? "small" : "hero" });
+  } else {
+    if (h > 0) lines.push({ js: range(0, h), st: pack.small, role: "small" });
+    lines.push({ js: [h], st: pack.hero, role: "hero" });
+    if (h < n - 1) lines.push({ js: range(h + 1, n), st: pack.small, role: "small" });
+  }
+  const rtl = g.items.some((it) => /[؀-ۿ]/.test(it.w));
+  const words = [];
+  lines.forEach((L, li) => {
+    const st = L.st;
+    let px = st.size * U * (g.stat && L.role === "hero" && n === 1 ? 1.25 : 1);
+    const label = (w) => (st.upper ? w.toUpperCase() : w);
+    const measure = () => {
+      ctx.font = vsProFont(st, px);
+      const track = (st.track || 0) * px;
+      const sp = px * (st.fam === "Sacramento" ? 0.18 : st.fam === "Bebas Neue" ? 0.2 : 0.24);
+      const ws2 = L.js.map((j) => {
+        const t = label(g.items[j].w);
+        // one piece for a joined script (Persian), else letter by letter
+        const pieces = /[؀-ۿ]/.test(t) ? [t] : Array.from(t);
+        const xs = []; let x = 0;
+        pieces.forEach((c) => { xs.push(x); x += ctx.measureText(c).width + track; });
+        // kerned width of the whole word, for spacing
+        const full = pieces.length > 1 ? ctx.measureText(t).width + track * (pieces.length - 1) : x;
+        const k = pieces.length > 1 && x > 0 ? full / x : 1;
+        return { j, t, pieces, xs: xs.map((v) => v * k), w: full };
+      });
+      return { ws2, sp, tw: ws2.reduce((a, b) => a + b.w, 0) + sp * (ws2.length - 1) };
+    };
+    let m = measure();
+    if (m.tw > W * 0.9) { px *= (W * 0.9) / m.tw; m = measure(); }
+    L.px = px; L.m = m;
+  });
+  // vertical: the hero line at 0, the others overlapping its top and bottom
+  const hero = lines.find((L) => L.role === "hero") || lines[0];
+  const hp = hero.px;
+  const capH = hero.st.upper || hero.st.fam === "Bebas Neue" ? 0.72 : 0.62;
+  lines.forEach((L) => {
+    if (L === hero) { L.y = 0; return; }
+    const above = lines.indexOf(L) < lines.indexOf(hero);
+    const script = L.st.fam === "Sacramento";
+    L.y = above ? -(hp * capH * 0.5 + L.px * (script ? 0.12 : 0.22)) : (hp * capH * 0.5 + L.px * (script ? 0.32 : 0.5));
+  });
+  const single = lines.length === 1 && lines[0].role === "single";
+  const top = Math.min(...lines.map((L) => L.y - L.px * 0.6)), bot = Math.max(...lines.map((L) => L.y + L.px * 0.6));
+  const inside = (y) => Math.max(H * 0.12 - top, Math.min(H * 0.86 - bot, y));   // clear of the app's own bars
+  const heroX = W / 2 + ((gi % 3) - 1) * W * 0.025;
+  const hx0 = heroX - hero.m.tw / 2;
+  let cy = inside(single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32));
+  // The hero tucks behind the speaker's head, as in the reels - but only a
+  // little of it: of the heights that keep the stack in frame, the first
+  // where the speaker covers under a seventh of the hero word.
+  if (!single && coverOf) {
+    const hb = (y) => ({ x: hx0, y: y - hero.px * 0.4, w: hero.m.tw, h: hero.px * 0.8 });
+    // none of them: the default height, and the hero stays in front
+    const tries = (H > W ? [cy, 0.22, 0.36, 0.42, 0.5] : [cy, 0.22, 0.4, 0.55]).map((v, k) => inside(k ? H * v : v));
+    for (const y of tries) if (coverOf(hb(y)) < 0.15) { cy = y; break; }
+  }
+  lines.forEach((L, li) => {
+    let x0;
+    if (L === hero) x0 = hx0;
+    else if (L.m.tw >= hero.m.tw * 0.92) x0 = W / 2 - L.m.tw / 2;
+    else x0 = gi % 2 ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge
+    x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
+    let x = rtl ? x0 + L.m.tw : x0;
+    L.m.ws2.forEach((w, k) => {
+      if (rtl) x -= w.w;
+      const it = g.items[w.j];
+      const colors = L.st.colors || ["#ffffff"];
+      const color = colors[(gi + (L.role === "hero" ? 0 : li)) % colors.length];
+      words.push({ text: w.t, pieces: w.pieces, xs: w.xs, w: w.w, x, y: cy + L.y, px: L.px, st: L.st, role: L.role, t0: it.t0, color,
+        stat: /\d/.test(it.w) && L.role === "hero" });
+      x = rtl ? x - L.m.sp : x + w.w + L.m.sp;
+    });
+  });
+  const hw = words.filter((w) => w.role === "hero");
+  const box = hw.length ? { x: Math.min(...hw.map((w) => w.x)), y: hw[0].y - hw[0].px * 0.42, w: Math.max(...hw.map((w) => w.x + w.w)) - Math.min(...hw.map((w) => w.x)), h: hw[0].px * 0.84 } : null;
+  g._lay = { W, H, words, box };
+  return g._lay;
+}
+
+// The speaker, cut out of the graded frame: a small mask from MediaPipe
+// (smoothed against the last one so the edge does not boil), scaled up soft.
+// In the preview it is refreshed about nine times a second; the export
+// computes it on every frame.
+function vsProMask(F, W, H, s, local) {
+  const st = vstudio._proSegState || (vstudio._proSegState = {});
+  const seg = vstudio._proSeg;
+  if (!seg) {
+    if (!st.loading) { st.loading = true; vsThumbSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
+    return null;
+  }
+  const now = performance.now();
+  if (!vstudio.rendering && st.P && st.s === s && now - st.at < 110 && Math.abs(local - st.local) < 0.4 && st.W === W && st.H === H) return st;
+  const mw = 160, mh = Math.max(16, Math.round(160 * H / W));
+  const sm = st.sm || (st.sm = document.createElement("canvas"));
+  if (sm.width !== mw || sm.height !== mh) { sm.width = mw; sm.height = mh; }
+  const sx = sm.getContext("2d", { willReadFrequently: true });
+  sx.clearRect(0, 0, mw, mh); sx.drawImage(F, 0, 0, mw, mh);
+  let res = null;
+  try { res = seg.segment(sm); } catch (e) { return null; }
+  const bg = res && res.confidenceMasks && res.confidenceMasks[0];
+  if (!bg) { try { res.close(); } catch (e) {} return null; }
+  const a = bg.getAsFloat32Array(), bw = bg.width, bh = bg.height;
+  const smooth = st.a && st.s === s && st.a.length === a.length && Math.abs(local - st.local) < 0.15;
+  const alpha = new Float32Array(bw * bh);
+  for (let p = 0; p < alpha.length; p++) {
+    const v = Math.max(0, Math.min(1, ((1 - a[p]) - 0.3) / 0.4));
+    alpha[p] = smooth ? v * 0.65 + st.a[p] * 0.35 : v;
+  }
+  try { res.close(); } catch (e) {}
+  const M = st.M || (st.M = document.createElement("canvas"));
+  if (M.width !== bw || M.height !== bh) { M.width = bw; M.height = bh; }
+  const mx = M.getContext("2d"), id = mx.createImageData(bw, bh);
+  for (let p = 0; p < alpha.length; p++) id.data[p * 4 + 3] = Math.round(alpha[p] * 255);
+  mx.putImageData(id, 0, 0);
+  const P = st.P || (st.P = document.createElement("canvas"));
+  if (P.width !== W || P.height !== H) { P.width = W; P.height = H; }
+  const px = P.getContext("2d");
+  px.save();
+  px.globalCompositeOperation = "source-over"; px.clearRect(0, 0, W, H);
+  px.drawImage(F, 0, 0);
+  px.globalCompositeOperation = "destination-in";
+  px.imageSmoothingEnabled = true; px.imageSmoothingQuality = "high";
+  try { px.filter = `blur(${Math.max(1, W / 700)}px)`; } catch (e) {}
+  px.drawImage(M, 0, 0, W, H);
+  px.restore();
+  Object.assign(st, { a: alpha, bw, bh, s, local, at: now, W, H });
+  return st;
+}
+// The share of a box the speaker covers.
+function vsProCover(st, W, H, b) {
+  if (!st || !st.a || !b) return 0;
+  const x0 = Math.max(0, Math.floor(b.x / W * st.bw)), x1 = Math.min(st.bw, Math.ceil((b.x + b.w) / W * st.bw));
+  const y0 = Math.max(0, Math.floor(b.y / H * st.bh)), y1 = Math.min(st.bh, Math.ceil((b.y + b.h) / H * st.bh));
+  let n = 0, on = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { n++; if (st.a[y * st.bw + x] > 0.5) on++; }
+  return n ? on / n : 0;
+}
+
+// Warm light washing across the frame: the opening, and the light-leak cut.
+function vsProLeak(ctx, W, H, a, seed) {
+  if (!(a > 0.01)) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  const R = Math.max(W, H);
+  [[0.1 + 0.55 * seed, 0.18, "255,120,28", 0.9], [0.9 - 0.4 * seed, 0.72, "255,170,70", 0.6], [0.55, 0.02, "255,80,50", 0.55]].forEach(([x, y, c, k]) => {
+    const g = ctx.createRadialGradient(x * W, y * H, 0, x * W, y * H, R * 0.55);
+    g.addColorStop(0, `rgba(${c},${k * a})`); g.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  });
+  ctx.fillStyle = `rgba(255,200,150,${0.12 * a})`; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// One word, at its own moment, with its pack's entrance.
+function vsProWord(ctx, wd, local, out, F, W, H) {
+  const st = wd.st;
+  const since = local - wd.t0;
+  if (since < 0) return;
+  const px = wd.px;
+  const ease = vsEase.out;
+  const back = (p) => { p = Math.max(0, Math.min(1, p)); const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+  ctx.save();
+  ctx.globalAlpha = out;
+  ctx.font = vsProFont(st, px);
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  try { ctx.direction = "ltr"; } catch (e) {}
+  let fill = wd.color;
+  if (wd.stat && VS_PRO_PACKS.luxe.stat && st === VS_PRO_PACKS.luxe.hero) {
+    const gr = ctx.createLinearGradient(wd.x, 0, wd.x + wd.w, 0);
+    gr.addColorStop(0, VS_PRO_PACKS.luxe.stat[0]); gr.addColorStop(1, VS_PRO_PACKS.luxe.stat[1]);
+    fill = gr;
+  } else if (st.texture) {
+    const gr = ctx.createLinearGradient(0, wd.y - px * 0.4, 0, wd.y + px * 0.4);
+    gr.addColorStop(0, st.texture[0]); gr.addColorStop(1, st.texture[1]);
+    fill = gr;
+  }
+  const paint = (c, x, y) => {
+    if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
+    if (st.glow) { ctx.shadowColor = typeof fill === "string" ? fill : "#38d8ff"; ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
+    ctx.fillText(c, x, y);
+    if (st.glow) { ctx.shadowBlur = px * 0.08; ctx.fillText(c, x, y); }
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  };
+  const cx = wd.x + wd.w / 2, cy = wd.y;
+  if (st.enter === "rise") {
+    // letters rise into place one after another, smeared on the way up
+    wd.pieces.forEach((c, j) => {
+      const p = Math.max(0, Math.min(1, (since - j * 0.018) / 0.2));
+      if (p <= 0) return;
+      const e = back(p), dy = (1 - e) * px * 0.55;
+      ctx.fillStyle = fill;
+      if (p < 1) {
+        ctx.globalAlpha = out * 0.22 * (1 - p);
+        for (let k = 1; k <= 2; k++) ctx.fillText(c, wd.x + wd.xs[j], cy + dy + px * 0.16 * k * (1 - p));
+      }
+      ctx.globalAlpha = out * Math.min(1, p * 2.5);
+      paint(c, wd.x + wd.xs[j], cy + dy);
+    });
+  } else if (st.enter === "type") {
+    // typed in, a letter at a time, each one flashing white as it lands
+    wd.pieces.forEach((c, j) => {
+      const t = since - j * 0.035;
+      if (t < 0) return;
+      ctx.fillStyle = t < 0.05 ? "#ffffff" : fill;
+      paint(c, wd.x + wd.xs[j], cy);
+    });
+  } else if (st.enter === "write") {
+    // the script is written on from the left
+    const p = ease(since / 0.4);
+    ctx.beginPath(); ctx.rect(wd.x - px * 0.3, cy - px * 1.2, (wd.w + px * 0.6) * p, px * 2.4); ctx.clip();
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "blur") {
+    const p = Math.max(0, Math.min(1, since / 0.32)), e = ease(p);
+    ctx.translate(cx, cy); ctx.scale(1.3 - 0.3 * e, 1.3 - 0.3 * e); ctx.translate(-cx, -cy);
+    if (p < 1) {
+      // a colour split while it is still out of focus
+      ctx.globalAlpha = out * 0.4 * (1 - e);
+      ctx.fillStyle = "#ff3d8b"; ctx.fillText(wd.text, wd.x - px * 0.05 * (1 - e), cy);
+      ctx.fillStyle = "#33d1ff"; ctx.fillText(wd.text, wd.x + px * 0.05 * (1 - e), cy);
+    }
+    ctx.globalAlpha = out * e;
+    try { if (p < 1) ctx.filter = `blur(${(1 - e) * px * 0.08}px)`; } catch (e2) {}
+    if (st.texture && F) {
+      // filled with the picture itself, tinted
+      const T = vstudio._proTex || (vstudio._proTex = document.createElement("canvas"));
+      const tw = Math.ceil(wd.w + px * 0.4), th = Math.ceil(px * 1.3);
+      if (T.width !== tw || T.height !== th) { T.width = tw; T.height = th; }
+      const tx = T.getContext("2d");
+      tx.save(); tx.clearRect(0, 0, tw, th);
+      tx.font = ctx.font; tx.textBaseline = "middle"; tx.fillStyle = fill; tx.fillText(wd.text, px * 0.2, th / 2);
+      tx.globalCompositeOperation = "multiply"; tx.globalAlpha = 0.4;
+      try { tx.filter = `blur(${px * 0.04}px) grayscale(0.4) contrast(1.4)`; } catch (e3) {}
+      tx.drawImage(F, wd.x - px * 0.2, cy - th / 2, tw, th, 0, 0, tw, th);
+      // the picture only inside the letters
+      tx.globalCompositeOperation = "destination-in"; tx.globalAlpha = 1; tx.filter = "none";
+      tx.fillStyle = "#000"; tx.fillText(wd.text, px * 0.2, th / 2);
+      tx.restore();
+      ctx.shadowColor = "rgba(20,8,40,0.35)"; ctx.shadowBlur = px * 0.12; ctx.shadowOffsetY = px * 0.02;
+      ctx.drawImage(T, wd.x - px * 0.2, cy - th / 2);
+    } else { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
+  } else if (st.enter === "pop") {
+    const p = Math.max(0, Math.min(1, since / 0.24)), e = back(p);
+    ctx.translate(cx, cy); ctx.rotate((1 - e) * -0.14); ctx.scale(0.35 + 0.65 * e, 0.35 + 0.65 * e); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 3);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else {   // fade: the letters close up as it fades in
+    const p = ease(since / 0.25);
+    ctx.globalAlpha = out * p;
+    ctx.fillStyle = fill;
+    wd.pieces.forEach((c, j) => paint(c, wd.x + wd.xs[j] + (j - wd.pieces.length / 2) * px * 0.08 * (1 - p), cy));
+  }
+  ctx.restore();
+}
+
+// The whole pro frame: graded picture, camera, words in front of and behind
+// the speaker, light.
+function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
+  const pack = VS_PRO_PACKS[s._pro] || VS_PRO_PACKS.clean;
+  const media = s.mediaEl;
+  const groups = s._broll ? [] : vsProGroups(s);
+  let gi = -1;
+  for (let k = 0; k < groups.length; k++) if (groups[k].t0 <= local + 0.001 && local < groups[k].t1) gi = k;
+  const g = gi >= 0 ? groups[gi] : null;
+  // camera: alternate cuts punched in, a slow push, a kick when the hero lands
+  const heroT = g && !g.single ? g.items[g.hero].t0 : -9;
+  const kick = local >= heroT && local - heroT < 0.5 ? Math.exp(-(local - heroT) / 0.12) : 0;
+  const userZ = Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1));
+  const baseZ = s._broll ? 1 : (s._proZ || 1);
+  const z = baseZ * (1 + 0.05 * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
+  const shake = kick > 0.05 ? W * 0.006 * kick : 0;
+  const sxo = shake * Math.sin(local * 91), syo = shake * Math.cos(local * 77);
+  const F = vstudio._proF || (vstudio._proF = document.createElement("canvas"));
+  if (F.width !== W || F.height !== H) { F.width = W; F.height = H; }
+  const fx = F.getContext("2d");
+  fx.save();
+  fx.setTransform(1, 0, 0, 1, 0, 0);
+  fx.fillStyle = "#000"; fx.fillRect(0, 0, W, H);
+  try { fx.filter = s._bw ? "grayscale(1) contrast(1.3) brightness(1.06)" : pack.grade; } catch (e) {}
+  const focusX = s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
+  vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
+  fx.filter = "none";
+  if (pack.warm && !s._bw) { fx.globalCompositeOperation = "soft-light"; fx.fillStyle = pack.warm; fx.fillRect(0, 0, W, H); fx.globalCompositeOperation = "source-over"; }
+  const vg = fx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.35, W / 2, H * 0.5, Math.max(W, H) * 0.78);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.42)");
+  fx.fillStyle = vg; fx.fillRect(0, 0, W, H);
+  fx.restore();
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  ctx.translate(sxo, syo);
+  ctx.drawImage(F, 0, 0);
+  if (g) {
+    let mask = null;
+    if (!g._lay && !g.single) mask = vsProMask(F, W, H, s, local);
+    const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null);
+    const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
+    const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
+    let behind = false;
+    if (heroes.length && lay.box) {
+      mask = vsProMask(F, W, H, s, local);
+      // behind the speaker only while it still reads: a hero mostly hidden
+      // by them stays in front
+      behind = !!(mask && mask.P && vsProCover(mask, W, H, lay.box) < 0.2);
+    }
+    if (behind) {
+      heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H));
+      ctx.drawImage(mask.P, 0, 0);
+    }
+    lay.words.forEach((w) => { if (!(behind && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); });
+  }
+  // the opening comes out of a light leak
+  if (idx === 0 && local < 0.8) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
+  ctx.restore();
+  return true;
+}
+
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
   if (!s._gfx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
+  if (s._pro && !s._gfx) {
+    vsProDrawFrame(ctx, W, H, s, idx, local, dur, off);
+    vstudio._frameHasMedia = true;
+    return true;
+  }
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -10947,6 +11399,7 @@ function vsBuildSfxEvents(slides) {
 // boom under the hook, a pluck when a key word pops on, and on a graphic card
 // a button-click for the icon and a soft tick as each big word lands.
 function vsEditSfxEvents(slides) {
+  if ((slides || []).some((x) => x && x._pro)) return vsProSfxEvents(slides);
   const ev = [];
   let t = 0, nb = 0, nk = 0;
   (slides || []).forEach((sl, i) => {
@@ -10963,6 +11416,34 @@ function vsEditSfxEvents(slides) {
     t += d;
   });
   return ev.sort((a, b) => a.t - b.t);
+}
+
+// The pro edit's sounds: a sub boom and a whoosh out of the opening light, a
+// whoosh on every zoom-blur or light-leak cut and a hit on a flash, a hit as
+// the picture goes black and white - and a click as each group of words lands,
+// a tick when its hero word follows.
+function vsProSfxEvents(slides) {
+  const ev = [];
+  const pops = ["button1", "button2", "button3"];
+  let t = 0, n = 0;
+  (slides || []).forEach((sl, i) => {
+    const d = Number(sl.duration) || 4;
+    if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "whoosh", t: t + 0.32, g: 0.55 }); }
+    if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? "hit" : "whoosh", t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
+    if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
+    if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g) => {
+      if (g.t0 >= d - 0.1) return;
+      ev.push({ n: pops[n++ % pops.length], t: t + g.t0, g: 0.95, w: 1 });
+      const h = g.items[g.hero];
+      if (!g.single && h && h.t0 - g.t0 > 0.12 && h.t0 < d - 0.1) ev.push({ n: "tick", t: t + h.t0, g: 0.75, w: 1 });
+    });
+    t += d;
+  });
+  ev.sort((a, b) => a.t - b.t);
+  // two clicks never on top of each other
+  const out = [];
+  ev.forEach((e) => { const last = out.filter((x) => x.w).pop(); if (e.w && last && e.t - last.t < 0.1) return; out.push(e); });
+  return out;
 }
 
 // ── Edit my video ───────────────────────────────────────────────────────────
@@ -11018,7 +11499,7 @@ function vsEditMineDialog(fileIn, preset) {
   const d = document.createElement("div");
   d.id = "vsEditMineDlg";
   d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "vsEmT");
-  const opt = (id, en, f, on) => `<label class="vsem-opt"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
+  const opt = (id, en, f, on, cls) => `<label class="vsem-opt${cls ? " " + cls : ""}"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
   d.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
       <h2 id="vsEmT">${L("Edit my video", "ادیت ویدیوی من")}</h2>
       <div class="vsem-modes" role="tablist" aria-label="${L("What to do", "چه کاری")}">
@@ -11033,9 +11514,9 @@ function vsEditMineDialog(fileIn, preset) {
         ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
         ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
         ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
-        ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true)}
-        ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true)}
-        ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true)}
+        ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true, "vsem-classic")}
+        ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true, "vsem-classic")}
+        ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true, "vsem-classic")}
         ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
         ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
         ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
@@ -11043,7 +11524,15 @@ function vsEditMineDialog(fileIn, preset) {
         ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
       </div>
       <div class="vsem-sels">
-        <label class="vsem-row"><span>${L("Look", "ظاهر")}</span>
+        <label class="vsem-row"><span>${L("Style", "سبک")}</span>
+          <select id="vsEmStyle">
+            <option value="pro-clean">${L("Pro · Bold - teal and white words, the big word behind you", "حرفه‌ای · بولد - کلمات سبزآبی و سفید، کلمهٔ بزرگ پشت سرت")}</option>
+            <option value="pro-neon">${L("Pro · Neon - glowing capitals under a handwritten line", "حرفه‌ای · نئون - حروف درشت درخشان زیر یک خط دست‌نویس")}</option>
+            <option value="pro-luxe">${L("Pro · Luxe - heavy textured words, thin spaced captions", "حرفه‌ای · لوکس - کلمات سنگین بافت‌دار، زیرنویس نازک")}</option>
+            <option value="pro-pop">${L("Pro · Pop - yellow and cyan with a bold italic serif", "حرفه‌ای · پاپ - زرد و فیروزه‌ای با سریف ایتالیک")}</option>
+            <option value="classic">${L("Classic - captions, hook card, stickers, graphic cards", "کلاسیک - زیرنویس، کارت هوک، استیکر، کارت گرافیکی")}</option>
+          </select></label>
+        <label class="vsem-row vsem-classic"><span>${L("Look", "ظاهر")}</span>
           <select id="vsEmLook">
             <option value="auto">${L("Automatic - full frame for a tall video, framed card for a square or wide one", "خودکار - تمام‌صفحه برای ویدیوی عمودی، کارت برای مربع یا افقی")}</option>
             <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
@@ -11092,7 +11581,8 @@ function vsEditMineDialog(fileIn, preset) {
       stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
       broll: d.querySelector("#vsEmBroll").checked, trans: d.querySelector("#vsEmTrans").checked, layout: d.querySelector("#vsEmLook").value,
       gfx: d.querySelector("#vsEmGfx").checked,
-      aspect: d.querySelector("#vsEmAspect").value
+      aspect: d.querySelector("#vsEmAspect").value,
+      style: d.querySelector("#vsEmStyle").value
     };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     close();
@@ -11122,6 +11612,11 @@ function vsEditMineDialog(fileIn, preset) {
   Object.keys(VS_EM_IDS).forEach((k) => { if (typeof preset[k] === "boolean") { const c = d.querySelector("#" + VS_EM_IDS[k]); if (c) c.checked = preset[k]; } });
   if (preset.layout) { const l = d.querySelector("#vsEmLook"); if (l && [...l.options].some((x) => x.value === preset.layout)) l.value = preset.layout; }
   if (preset.aspect) { const a2 = d.querySelector("#vsEmAspect"); if (a2 && [...a2.options].some((x) => x.value === preset.aspect)) a2.value = preset.aspect; }
+  // the pro looks make their own words and cuts: the classic-only options go
+  const styleSel = d.querySelector("#vsEmStyle");
+  if (preset.style && [...styleSel.options].some((x) => x.value === preset.style)) styleSel.value = preset.style;
+  const syncStyle = () => vsem.classList.toggle("pro", styleSel.value !== "classic");
+  styleSel.addEventListener("change", syncStyle); syncStyle();
   try { d.querySelector(".vsem-go").focus(); } catch (e) {}
 }
 
@@ -12226,6 +12721,9 @@ async function vsEditMyVideo(fileIn, o) {
     vsAutoStatus(L("Pick a video file.", "یک فایل ویدیو انتخاب کن.")); return;
   }
   const file = files[0];
+  // a pro look sets its own words, so no hook card, stickers or graphic cards
+  const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "";
+  if (pro) { o = Object.assign({}, o, { title: false, stickers: false, gfx: false, layout: "full" }); vsProLoadFonts(); vsThumbSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
   if (files.reduce((n, f) => n + f.size, 0) > 400 * 1048576) { vsAutoStatus(L("Those files are over 400 MB together - trim them first.", "این فایل‌ها روی هم بیشتر از ۴۰۰ مگابایت‌اند؛ اول کوتاهشان کن.")); return; }
   try { stopStudioPreview(); } catch (e) {}
   vstudio._buildHold = true;
@@ -12528,8 +13026,36 @@ async function vsEditMyVideo(fileIn, o) {
       const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._srcOffset || 0) + (x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
       if (sl._gfx || prev._gfx || prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = ["wipe", "whip", "zoom", "wipe", "flash"][tk++ % 5];
     });
-    vstudio._editSfxOn = !!o.trans;
-    if (o.trans) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
+    if (pro) {
+      // the pro look: every clip graded and worded in it, alternate cuts
+      // punched in, the pack's cuts where the talk moves on (and on every
+      // third jump cut), one black-and-white beat in the middle
+      const pk = VS_PRO_PACKS[pro];
+      let tk2 = 0;
+      vstudio.slides.forEach((sl, i) => {
+        sl._pro = pro; sl._noCaps = true; sl._proZ = i % 2 ? 1.14 : 1;
+        delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
+        if (i === 0 || !o.trans) { delete sl._transIn; return; }
+        if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
+      });
+      const tot = vstudio.slides.reduce((n, x) => n + (Number(x.duration) || 0), 0);
+      if (vstudio.slides.length >= 5) {
+        let at = 0, best = null, bestD = 1e9;
+        vstudio.slides.forEach((sl, i) => {
+          const d = Number(sl.duration) || 0;
+          if (i >= 2 && !sl._broll && d >= 1.2 && d <= 4.5 && Math.abs(at - tot * 0.45) < bestD) { bestD = Math.abs(at - tot * 0.45); best = sl; }
+          at += d;
+        });
+        if (best) best._bw = true;
+      }
+    }
+    vstudio._editSfxOn = !!o.trans || !!pro;
+    if (vstudio._editSfxOn) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
+    if (pro) {
+      vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
+      await vsProLoadFonts();
+      try { vstudio._proSeg = await Promise.race([vsThumbSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
+    }
 
     // cuts on the beat of the bed the music step is about to make
     if (o.cut) vsTightenEditTails(vstudio.slides);
