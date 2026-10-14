@@ -10908,7 +10908,7 @@ function vsProGroups(s) {
 
 // Where each word of a group stands: lines stacked tight, the small line
 // overlapping the hero's edge, set against the hero's left or right side.
-function vsProLayout(ctx, W, H, g, gi, pack, coverOf) {
+function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   if (g._lay && g._lay.W === W && g._lay.H === H) return g._lay;
   const U = Math.min(W, H * 0.62);
   const n = g.items.length, h = g.hero;
@@ -10967,22 +10967,33 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf) {
   const inside = (y) => Math.max(H * 0.12 - top, Math.min(H * 0.86 - bot, y));   // clear of the app's own bars
   const heroX = W / 2 + ((gi % 3) - 1) * W * 0.025;
   const hx0 = heroX - hero.m.tw / 2;
-  let cy = inside(single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32));
-  // The hero tucks behind the speaker's head, as in the reels - but only a
-  // little of it: of the heights that keep the stack in frame, the first
-  // where the speaker covers under a seventh of the hero word.
-  if (!single && coverOf) {
-    const hb = (y) => ({ x: hx0, y: y - hero.px * 0.4, w: hero.m.tw, h: hero.px * 0.8 });
-    // none of them: the default height, and the hero stays in front
-    const tries = (H > W ? [cy, 0.22, 0.36, 0.42, 0.5] : [cy, 0.22, 0.4, 0.55]).map((v, k) => inside(k ? H * v : v));
-    for (const y of tries) if (coverOf(hb(y)) < 0.15) { cy = y; break; }
-  }
-  lines.forEach((L, li) => {
+  lines.forEach((L) => {
     let x0;
     if (L === hero) x0 = hx0;
     else if (L.m.tw >= hero.m.tw * 0.92) x0 = W / 2 - L.m.tw / 2;
     else x0 = gi % 2 ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge
-    x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
+    L.x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
+  });
+  let cy = inside(single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32));
+  // Never over the face (the owner's rule): every line stays out of the
+  // speaker's face box - above the head or down on the chest. Among the
+  // heights that do, the hero tucks behind the speaker's head or shoulder as
+  // in the reels, but only a little: the first where the speaker covers under
+  // a seventh of it.
+  const offFace = (y) => !face || lines.every((L) => {
+    const by = y + L.y - L.px * 0.5, bh = L.px;
+    return L.x0 + L.m.tw < face.x || L.x0 > face.x + face.w || by + bh < face.y || by > face.y + face.h;
+  });
+  const hb = (y) => ({ x: hx0, y: y - hero.px * 0.4, w: hero.m.tw, h: hero.px * 0.8 });
+  const fracs = H > W ? [0.22, 0.3, 0.36, 0.42, 0.5, 0.58, 0.64, 0.7, 0.76, 0.16] : [0.22, 0.32, 0.42, 0.55, 0.68, 0.78];
+  const tries = [cy].concat(face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).map(inside);
+  const ok = tries.filter(offFace);
+  const good = !single && coverOf ? ok.find((y) => coverOf(hb(y)) < 0.15) : null;
+  if (good != null) cy = good;
+  else if (ok.length) cy = ok[0];
+  else if (face) cy = inside(face.y + face.h - top + H * 0.015);   // nothing clears it: under the face
+  lines.forEach((L, li) => {
+    const x0 = L.x0;
     let x = rtl ? x0 + L.m.tw : x0;
     L.m.ws2.forEach((w, k) => {
       if (rtl) x -= w.w;
@@ -11049,6 +11060,55 @@ function vsProMask(F, W, H, s, local) {
   Object.assign(st, { a: alpha, bw, bh, s, local, at: now, W, H });
   return st;
 }
+// The speaker's face, as a box in the frame with room around it for the head
+// to move: MediaPipe's face detector, or - before it loads, or when it finds
+// nothing - the top of the person's silhouette.
+let vsProFaceP = null;
+function vsProFaceDetector() {
+  if (!vsProFaceP) vsProFaceP = (async () => {
+    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
+    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    return await V.FaceDetector.createFromOptions(files, {
+      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" },
+      runningMode: "IMAGE", minDetectionConfidence: 0.45,
+    });
+  })().catch((e) => { vsProFaceP = null; throw e; });
+  return vsProFaceP;
+}
+function vsProFace(F, W, H, mask) {
+  const det = vstudio._proFaceDet;
+  if (!det && !vstudio._proFaceLoading) { vstudio._proFaceLoading = true; vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => { vstudio._proFaceLoading = false; }); }
+  if (det) {
+    const c = vstudio._proFaceC || (vstudio._proFaceC = document.createElement("canvas"));
+    const cw = 360, ch = Math.round(360 * H / W);
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+    c.getContext("2d").drawImage(F, 0, 0, cw, ch);
+    let r = null;
+    try { r = det.detect(c); } catch (e) {}
+    const ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+    if (ds.length) {
+      // the biggest face is the speaker's; widened for hair and a turn of the head
+      const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
+      const k = W / cw, x = b.originX * k, y = b.originY * k, w = b.width * k, h = b.height * k;
+      return { x: x - w * 0.22, y: y - h * 0.38, w: w * 1.44, h: h * 1.58 };
+    }
+    // only drop through when nothing was found
+  }
+  if (mask && mask.a) {
+    // the head: from the top of the silhouette, about a sixth of its height
+    let y0 = -1, y1 = -1;
+    for (let y = 0; y < mask.bh && y0 < 0; y++) for (let x = 0; x < mask.bw; x++) if (mask.a[y * mask.bw + x] > 0.5) { y0 = y; break; }
+    if (y0 < 0) return null;
+    for (let y = mask.bh - 1; y >= 0 && y1 < 0; y--) for (let x = 0; x < mask.bw; x++) if (mask.a[y * mask.bw + x] > 0.5) { y1 = y; break; }
+    const hh = Math.max(mask.bh * 0.14, (y1 - y0) * 0.2);
+    let x0 = mask.bw, x1 = -1;
+    for (let y = y0; y < Math.min(mask.bh, y0 + hh); y++) for (let x = 0; x < mask.bw; x++) if (mask.a[y * mask.bw + x] > 0.5) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    const kx = W / mask.bw, ky = H / mask.bh;
+    return { x: x0 * kx - W * 0.03, y: y0 * ky - H * 0.02, w: (x1 - x0 + 1) * kx + W * 0.06, h: hh * ky + H * 0.04 };
+  }
+  return null;
+}
+
 // The share of a box the speaker covers.
 function vsProCover(st, W, H, b) {
   if (!st || !st.a || !b) return 0;
@@ -11215,9 +11275,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   ctx.translate(sxo, syo);
   ctx.drawImage(F, 0, 0);
   if (g) {
-    let mask = null;
-    if (!g._lay && !g.single) mask = vsProMask(F, W, H, s, local);
-    const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null);
+    let mask = null, face = null;
+    if (!g._lay) { mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask); }
+    const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
     const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
@@ -13055,6 +13115,7 @@ async function vsEditMyVideo(fileIn, o) {
       vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
       await vsProLoadFonts();
       try { vstudio._proSeg = await Promise.race([vsThumbSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
+      try { vstudio._proFaceDet = await Promise.race([vsProFaceDetector(), new Promise((r) => setTimeout(() => r(null), 15000))]) || vstudio._proFaceDet || null; } catch (e) {}
     }
 
     // cuts on the beat of the bed the music step is about to make
