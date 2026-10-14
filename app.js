@@ -86,7 +86,10 @@ try { document.addEventListener("DOMContentLoaded", function(){ try { var body=J
 // OPTIONAL real-footage key. Paste your OWN free Pexels API key here ONCE
 // (get it at pexels.com/api) and every visitor gets real stock footage with
 // NO key field shown to them. Leave it "" to use free AI footage instead.
-const VS_PEXELS_KEY = "2U0VMar66ppPsHzpo2Ki2ganZaRf2DGlMdDnEiKSJM3f4reupw05PyRf";
+// Our Pexels key lives on the worker now (/pexels): in the page anyone could
+// read it and spend the hourly allowance every visitor shares. "server" means
+// "ask the worker"; a customer's own key typed into #vsPexelsKey still goes direct.
+const VS_PEXELS_KEY = "server";
 
 const i18n = {
   en: {
@@ -8572,6 +8575,30 @@ async function vsPexelsSearch(url, key) {
   if (Date.now() < vsPexelsBlockedUntil) return null;
 
   const req = (async () => {
+    // Our own key: the worker asks, with a day's cache shared by everyone.
+    // The clips it names come from Pexels' CDN - or through the worker when
+    // this browser cannot reach that CDN (checked once).
+    if (!key || key === "server") {
+      try {
+        const ctrl = new AbortController();
+        const tm = setTimeout(() => ctrl.abort(), 9000);
+        const r = await fetch(VS_STOCK_BASE + "/pexels?u=" + encodeURIComponent(url), { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+        if (r.status === 429) {
+          const ra = Number(r.headers.get("Retry-After"));
+          vsPexelsBlockedUntil = Date.now() + (ra > 0 ? ra * 1000 : 10 * 60 * 1000);
+          return undefined;
+        }
+        if (!r.ok) return r.status >= 500 ? undefined : null;
+        const j = await r.json();
+        if (!(await vsPexelsReachable())) {
+          _vsPexelsDirectDead = true;
+          const via = (u) => VS_STOCK_BASE + "/stock/media?url=" + encodeURIComponent(u);
+          (j.videos || []).forEach((v) => (v.video_files || []).forEach((f) => { if (f.link) f.link = via(f.link); }));
+          (j.photos || []).forEach((ph) => { if (ph.src) Object.keys(ph.src).forEach((k2) => { ph.src[k2] = via(ph.src[k2]); }); });
+        }
+        return j;
+      } catch (e) { return undefined; }
+    }
     // Once the direct route has failed, stop trying it. A blocked fetch does not
     // fail fast - measured at thirty seconds before it gave up - so paying that
     // on every search would be worse than the problem it was meant to fix.
@@ -11102,6 +11129,28 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   return g._lay;
 }
 
+// A device without graphics acceleration - no WebGL, a software renderer, or
+// a segmenter that would only start on the CPU - cuts the speaker out forty
+// times slower. A pro edit there is held to three minutes, exports at 720p
+// and refreshes the cut-out every third frame, and the Edit studio says so.
+const VS_WEAK_MAX_SECONDS = 180;
+function vsWeakDevice() {
+  if (vstudio._weakDev != null) return vstudio._weakDev;
+  let weak = false;
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2") || c.getContext("webgl");
+    if (!gl) weak = true;
+    else {
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      const r = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "") : "";
+      if (/swiftshader|llvmpipe|software|basic render/i.test(r)) weak = true;
+    }
+  } catch (e) { weak = true; }
+  vstudio._weakDev = weak || !!vstudio._proSegCpu;
+  return vstudio._weakDev;
+}
+
 // The pro edit's own segmenter, on the GPU: 10ms a frame there against 400ms
 // on the CPU (measured) - the CPU one is what made the preview stutter and
 // every export frame crawl. A device without WebGL gets the CPU one.
@@ -11113,7 +11162,7 @@ function vsProSegmenter() {
     const opts = (delegate) => ({ baseOptions: { delegate, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite" },
       runningMode: "IMAGE", outputCategoryMask: false, outputConfidenceMasks: true });
     try { return await V.ImageSegmenter.createFromOptions(files, opts("GPU")); }
-    catch (e) { return await V.ImageSegmenter.createFromOptions(files, opts("CPU")); }
+    catch (e) { vstudio._proSegCpu = true; vstudio._weakDev = true; return await V.ImageSegmenter.createFromOptions(files, opts("CPU")); }
   })().catch((e) => { vsProSegP = null; throw e; });
   return vsProSegP;
 }
@@ -11131,6 +11180,7 @@ function vsProMask(F, W, H, s, local) {
   }
   const now = performance.now();
   if (!vstudio.rendering && st.P && st.s === s && now - st.at < 66 && Math.abs(local - st.local) < 0.4 && st.W === W && st.H === H) return st;
+  if (vstudio.rendering && vstudio._weakDev && st.P && st.s === s && Math.abs(local - st.local) < 0.09 && st.W === W && st.H === H) return st;
   const mw = 160, mh = Math.max(16, Math.round(160 * H / W));
   const sm = st.sm || (st.sm = document.createElement("canvas"));
   if (sm.width !== mw || sm.height !== mh) { sm.width = mw; sm.height = mh; }
@@ -11938,6 +11988,13 @@ const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zo
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
 const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
+// What the Edit studio had open when it was closed - the videos, the
+// settings, the finished edit and the edit still running - so opening it again
+// carries on where it was instead of starting empty. The settings alone are
+// also kept on the device for the next visit.
+let vsEditStudioMem = null;
+const VS_EDIT_STUDIO_LS = "vsEditStudio";
+
 // Edit my video opens as its own studio, like Thumbnail Studio: the
 // settings on the left (the video, the style - each drawn as it will look -
 // the shape, what to do), the edit on the right: its progress, then the
@@ -11947,8 +12004,13 @@ function vsEditStudio(preset, filesIn) {
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
   document.getElementById("emOv")?.remove();
-  let files = (filesIn || []).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
-  let mode = preset.mode === "swap" ? "swap" : "edit";
+  const mem = vsEditStudioMem;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(VS_EDIT_STUDIO_LS) || "null"); } catch (e) {}
+  const last = (mem && mem.settings) || saved || {};
+  // the videos: the ones just chosen, else the ones that were open
+  let files = (filesIn && filesIn.length ? filesIn : (mem ? mem.files : [])).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
+  let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
@@ -11974,9 +12036,10 @@ function vsEditStudio(preset, filesIn) {
     ["stickers", L("Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر"), "c"],
     ["gfx", L("Motion-graphic cards on the key points", "کارت موشن‌گرافیک روی نکته‌های اصلی"), "c"],
   ];
-  const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : VS_EM_DEFAULTS[k] !== false);
-  const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : "pro-clean";
-  const shape0 = SHAPES.some((x) => x[0] === preset.aspect) ? preset.aspect : "9:16";
+  const lastOpts = last.opts || {};
+  const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : typeof lastOpts[k] === "boolean" ? lastOpts[k] : VS_EM_DEFAULTS[k] !== false);
+  const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : STYLES.some((x) => x[0] === last.style) ? last.style : "pro-clean";
+  const shape0 = SHAPES.some((x) => x[0] === preset.aspect) ? preset.aspect : SHAPES.some((x) => x[0] === last.shape) ? last.shape : "9:16";
   const icoX = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const CSS = VS_TS_CSS.replace(/#tsModal/g, "#emModal") + `
 #emModal .em-styles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
@@ -12060,6 +12123,8 @@ function vsEditStudio(preset, filesIn) {
           '<option value="auto">' + L("Automatic", "خودکار") + '</option><option value="card">' + L("Graphic card", "کارت گرافیکی") + '</option><option value="full">' + L("Full frame", "تمام‌صفحه") + "</option></select>" +
       "</div></div>" +
       '<p class="ts-note">' + L("Free. Your video stays on this device; only its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.") + "</p>" +
+      '<p id="emWeak" class="ts-warn" hidden>' + L("This device has no graphics acceleration: a Pro edit is limited to 3 minutes, exports at 720p and takes longer. A computer is faster.",
+        "این دستگاه شتاب گرافیکی ندارد: ادیت حرفه‌ای حداکثر ۳ دقیقه است، با کیفیت 720p خروجی می‌دهد و بیشتر طول می‌کشد. با کامپیوتر سریع‌تر است.") + "</p>" +
       '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Edit it", "ادیتش کن") + "</button></div>" +
     "</aside>" +
     '<section class="ts-main" aria-live="polite">' +
@@ -12072,8 +12137,24 @@ function vsEditStudio(preset, filesIn) {
   const stage = $$("emStage");
   let busy = false, mirror = 0, exportUrl = "";
   const stopMirror = () => { if (mirror) cancelAnimationFrame(mirror); mirror = 0; };
+  // the settings as they stand, to keep
+  const settingsNow = () => {
+    const opts = {};
+    ov.querySelectorAll("input[data-opt]").forEach((c) => { opts[c.dataset.opt] = c.checked; });
+    return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value };
+  };
+  let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
+  const remember = () => {
+    const st = settingsNow();
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running };
+    try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
+  };
   const close = () => {
-    if (busy && !confirm(L("The edit is still running. Close anyway?", "ادیت هنوز در حال انجام است. بسته شود؟"))) return;
+    // an export is lost if the window goes; an edit still running carries on
+    // and opening the window again shows it
+    if (busy && !running && !confirm(L("The MP4 is still being made. Close and stop it?", "MP4 هنوز در حال ساخت است. بسته شود و متوقف شود؟"))) return;
+    if (busy && !running) vstudio._batchCancel = true;
+    remember();
     stopMirror();
     try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
     vstudio._statusHook = null; vstudio._exportProgress = null;
@@ -12123,8 +12204,7 @@ function vsEditStudio(preset, filesIn) {
           '<p class="ts-note">' + L("Drag the words on the video to move them.", "کلمات را روی ویدیو بکش تا جابه‌جا شوند.") + "</p>" +
         "</div></div>" +
       '<div class="em-acts">' +
-      '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button>" +
-      '<button id="emOpen" type="button" class="ts-ghost">' + L("Open in the editor", "باز کردن در ادیتور") + "</button></div>" +
+      '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button></div>" +
       '<div id="emExp" class="em-prog" hidden><div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
       '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button></div>";
     const cv = $$("emCv"), cx = cv.getContext("2d");
@@ -12245,12 +12325,11 @@ function vsEditStudio(preset, filesIn) {
     });
 
     redraw(tCur);
-    $$("emOpen").onclick = () => { busy = false; close(); try { vsShowBuiltVideo(); } catch (e) {} };
     $$("emExport").onclick = async () => {
       if (busy) return;
       pause(); select(null);
       busy = true;
-      ["emPlay", "emExport", "emOpen", "emPrev", "emNext"].forEach((id) => { $$(id).disabled = true; });
+      ["emPlay", "emExport", "emPrev", "emNext"].forEach((id) => { $$(id).disabled = true; });
       $$("emPos").disabled = true;
       $$("emExp").hidden = false;
       // a cancel left over from an earlier build would stop this one on its first frame
@@ -12263,7 +12342,8 @@ function vsEditStudio(preset, filesIn) {
         vstudio._returnBlob = true;
         out = await exportStudioVideo();
       } catch (e) {} finally { vstudio._returnBlob = false; vstudio._exportProgress = null; busy = false; }
-      ["emPlay", "emExport", "emOpen", "emPrev", "emNext"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
+      if (!document.body.contains(ov)) return;
+      ["emPlay", "emExport", "emPrev", "emNext"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
       $$("emPos").disabled = false;
       redraw();
       const blob = out && (out.blob || out);
@@ -12378,11 +12458,14 @@ function vsEditStudio(preset, filesIn) {
   const syncStyle = () => {
     const v = (ov.querySelector('input[name="emStyle"]:checked') || {}).value || "pro-clean";
     modal.classList.toggle("pro", v !== "classic");
+    $$("emWeak").hidden = v === "classic" || !vsWeakDevice();
     $$("emStyleD").textContent = (STYLES.find((q) => q[0] === v) || [])[2] || "";
   };
-  ov.querySelectorAll('input[name="emStyle"]').forEach((r) => r.addEventListener("change", syncStyle));
+  ov.querySelectorAll('input[name="emStyle"]').forEach((r) => r.addEventListener("change", () => { syncStyle(); remember(); }));
+  ov.querySelectorAll("input[data-opt]").forEach((c) => c.addEventListener("change", remember));
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", () => { if (!busy && !stage.querySelector("#emCv")) showEmpty(); }));
-  if (preset.layout) { const l = $$("emLayout"); if ([...l.options].some((q) => q.value === preset.layout)) l.value = preset.layout; }
+  { const want = preset.layout || last.layout; const l = $$("emLayout"); if (want && [...l.options].some((q) => q.value === want)) l.value = want; }
+  ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
     if (busy || !files.length) return;
@@ -12398,27 +12481,48 @@ function vsEditStudio(preset, filesIn) {
       aspect: (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16", layout: $$("emLayout").value, host: true };
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
+    const before = vstudio._buildSeq;
+    const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
+      .then(() => ({ ok: vstudio._buildSeq !== before && vstudio.slides.some((x) => x._ownSpeech) }), (e) => ({ err: e }));
+    running = run;
+    remember();
+    await follow(run);
+  };
+  // waits on an edit - just started, or one still running from before the
+  // window was closed - and shows where it got to
+  const follow = async (run) => {
     busy = true;
     $$("emGo").disabled = true;
     showWork(L("Editing your video", "در حال ادیت ویدیوی تو"));
     vstudio._statusHook = setMsg;
-    const before = vstudio._buildSeq;
-    let err = null;
-    try { await vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o); }
-    catch (e) { err = e; }
-    finally { vstudio._statusHook = null; busy = false; $$("emGo").disabled = false; }
-    if (!document.body.contains(ov)) return;
-    if (err) { showErr((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(err && err.message || err).slice(0, 160)); return; }
-    if (vstudio._buildSeq === before || !vstudio.slides.some((s) => s._ownSpeech)) { showEmpty(); return; }   // stopped before it began (a sign-in wall)
+    const res = await run;
+    if (vsEditStudioMem && vsEditStudioMem.running === run) vsEditStudioMem.running = null;
+    running = null;
+    if (!document.body.contains(ov)) {
+      // closed meanwhile: the finished edit is what the next opening shows
+      if (res.ok && vsEditStudioMem) vsEditStudioMem.doneSeq = vstudio._buildSeq;
+      return;
+    }
+    vstudio._statusHook = null; busy = false; $$("emGo").disabled = false;
+    const err = res.err;
+    if (err) { showErr(err.plain ? err.message : (fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(err && err.message || err).slice(0, 160)); remember(); return; }
+    if (!res.ok) { showEmpty(); remember(); return; }   // stopped before it began (a sign-in wall)
+    doneSeq = vstudio._buildSeq;
+    remember();
     $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن");
     showDone();
   };
 
   setMode(mode);
   syncStyle();
-  showEmpty();
+  // carry on where it was: an edit still running, or the finished one
+  const stillThere = doneSeq >= 0 && doneSeq === vstudio._buildSeq && vstudio.slides.some((x) => x._ownSpeech);
+  if (running) follow(running);
+  else if (stillThere && !(filesIn && filesIn.length)) { $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن"); showDone(); }
+  else showEmpty();
   drawStyles();
   vsProLoadFonts().then(drawStyles).catch(() => {});
+  vsProSegmenter().then((x) => { vstudio._proSeg = x; if (document.body.contains(ov)) syncStyle(); }).catch(() => {});
   try { (files.length ? $$("emGo") : $$("emDrop")).focus(); } catch (e) {}
 }
 
@@ -13562,6 +13666,11 @@ async function vsEditMyVideo(fileIn, o) {
       if (offset > VS_EDIT_MAX_SECONDS) throw new Error(L("keep the videos under 12 minutes together", "ویدیوها روی هم باید زیر ۱۲ دقیقه باشند"));
     }
     const total = offset;
+    if (pro && vsWeakDevice() && total > VS_WEAK_MAX_SECONDS + 1) {
+      const e = new Error(L("This device has no graphics acceleration, so a Pro edit here is limited to 3 minutes. Trim the video, choose the Classic style, or use a computer.",
+        "این دستگاه شتاب گرافیکی ندارد، پس ادیت حرفه‌ای اینجا حداکثر ۳ دقیقه است. ویدیو را کوتاه کن، سبک کلاسیک را انتخاب کن یا از کامپیوتر استفاده کن."));
+      e.plain = true; throw e;
+    }
     const probe = srcs[0].el, url = srcs[0].url;
     vstudio._editSrcAspect = probe.videoWidth && probe.videoHeight ? probe.videoWidth / probe.videoHeight : 0.56;
     const sr0 = monos[0].sampleRate;
@@ -13572,27 +13681,37 @@ async function vsEditMyVideo(fileIn, o) {
     // which file a moment of the shared timeline belongs to
     const srcOf = (t) => { let k = 0; for (let j = 0; j < srcs.length; j++) if (t >= srcs[j].offset - 0.05) k = j; return k; };
 
+    // The same files edited again - another style, shape or option - keep
+    // their transcript and analysis: no second daily edit, and seconds not a
+    // minute.
+    const ckey = files.map((f) => f.name + ":" + f.size + ":" + f.lastModified).join("|");
+    const cache = vstudio._editCache && vstudio._editCache.key === ckey ? vstudio._editCache : null;
+    const memberCap = (j) => { const e = new Error(L("You've made today's " + (j.limit || 10) + " free video edits. You can edit again tomorrow.", (j.limit || 10) + " ادیت رایگان امروزت تمام شد. فردا دوباره می‌توانی ادیت کنی.")); e.plain = true; return e; };
     // The edit is a build - one a day for a guest, free for members - counted
     // only now, once the file has opened and been read, so a video that will
     // not open does not cost a guest their one.
-    try {
+    if (!cache) try {
       const g = await fetch(VS_AI_BUILD_GATE, { method: "POST", headers: await arGuestHeaders() });
       if (g.status === 401 && await arIsGuestWall(g)) { vsBuildOverlay(false); return; }
     } catch (e) {}
-    vsAutoStatus(L("Writing down every word…", "در حال نوشتن کلمه‌به‌کلمه…"));
-    const wav = await vsSpeechWav(mono);
-    let tr = null;
-    const trCtrl = new AbortController();
-    const trTimer = setTimeout(() => trCtrl.abort(), 120000);
-    try {
-      const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav, signal: trCtrl.signal });
-      if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
-      tr = await r.json();
-      if (!r.ok) throw new Error(tr && tr.error || ("HTTP " + r.status));
-    } catch (e) {
-      if (e && e.name === "AbortError") throw new Error(L("listening to the video took too long - try again in a minute", "گوش‌دادن به ویدیو خیلی طول کشید؛ یک دقیقهٔ دیگر دوباره امتحان کن"));
-      throw new Error(L("the speech could not be transcribed", "متن صحبت‌ها گرفته نشد") + (e && e.message ? " (" + e.message + ")" : ""));
-    } finally { clearTimeout(trTimer); }
+    let tr = cache ? cache.tr : null;
+    if (!tr) {
+      vsAutoStatus(L("Writing down every word…", "در حال نوشتن کلمه‌به‌کلمه…"));
+      const wav = await vsSpeechWav(mono);
+      const trCtrl = new AbortController();
+      const trTimer = setTimeout(() => trCtrl.abort(), 120000);
+      try {
+        const r = await fetch(VS_TRANSCRIBE_URL, { method: "POST", headers: Object.assign({ "Content-Type": "audio/wav" }, await arGuestHeaders()), body: wav, signal: trCtrl.signal });
+        if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+        tr = await r.json();
+        if (r.status === 429 && tr && tr.member) throw memberCap(tr);
+        if (!r.ok) throw new Error(tr && tr.error || ("HTTP " + r.status));
+      } catch (e) {
+        if (e && e.plain) throw e;
+        if (e && e.name === "AbortError") throw new Error(L("listening to the video took too long - try again in a minute", "گوش‌دادن به ویدیو خیلی طول کشید؛ یک دقیقهٔ دیگر دوباره امتحان کن"));
+        throw new Error(L("the speech could not be transcribed", "متن صحبت‌ها گرفته نشد") + (e && e.message ? " (" + e.message + ")" : ""));
+      } finally { clearTimeout(trTimer); }
+    }
     const words = [];
     (tr.segments || []).forEach((sg) => (sg.words || []).forEach((w) => {
       const t = String(w.word || "").trim();
@@ -13609,29 +13728,32 @@ async function vsEditMyVideo(fileIn, o) {
     const lang2 = (tr.language || "").slice(0, 2);
     const sentences = (tr.segments || []).map((sg, i) => ({ i, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text: String(sg.text || "").trim() }))
       .filter((x) => x.text);
-    vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
-    const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
-    let frames = [];
-    for (const sx of srcs) {
-      const fr = await vsSampleFrames(sx.el, sx.dur, many ? Math.max(2, Math.round(nFrames * sx.dur / total)) : nFrames);
-      fr.forEach((f) => { f.t = Math.round((f.t + sx.offset) * 10) / 10; });
-      frames = frames.concat(fr);
+    let ai = cache && cache.aspect === o.aspect ? cache.ai : null;
+    if (!ai) {
+      vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
+      const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
+      let frames = [];
+      for (const sx of srcs) {
+        const fr = await vsSampleFrames(sx.el, sx.dur, many ? Math.max(2, Math.round(nFrames * sx.dur / total)) : nFrames);
+        fr.forEach((f) => { f.t = Math.round((f.t + sx.offset) * 10) / 10; });
+        frames = frames.concat(fr);
+      }
+      frames = frames.slice(0, 16);
+      vsAutoStatus(L("Deciding the edit…", "در حال تصمیم‌گیری برای ادیت…"));
+      // At most a minute: without the analysis the edit still runs, from the
+      // words alone (the hook and key words come from vsEditStylePlan below).
+      const planCtrl = new AbortController();
+      const planTimer = setTimeout(() => planCtrl.abort(), 60000);
+      try {
+        const r = await fetch(VS_EDIT_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+          body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }), signal: planCtrl.signal });
+        if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+        const j = await r.json();
+        if (j && j.ok && j.plan) ai = j.plan;
+      } catch (e) {}
+      clearTimeout(planTimer);
     }
-    frames = frames.slice(0, 16);
-    vsAutoStatus(L("Deciding the edit…", "در حال تصمیم‌گیری برای ادیت…"));
-    let ai = null;
-    // At most a minute: without the analysis the edit still runs, from the
-    // words alone (the hook and key words come from vsEditStylePlan below).
-    const planCtrl = new AbortController();
-    const planTimer = setTimeout(() => planCtrl.abort(), 60000);
-    try {
-      const r = await fetch(VS_EDIT_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
-        body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }), signal: planCtrl.signal });
-      if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
-      const j = await r.json();
-      if (j && j.ok && j.plan) ai = j.plan;
-    } catch (e) {}
-    clearTimeout(planTimer);
+    vstudio._editCache = { key: ckey, tr, ai, aspect: o.aspect };
     vstudio._editPlan = ai;
     const sPlan = {};
     ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
@@ -17800,7 +17922,8 @@ function vsAnalyzeLogo(img) {
  * estimate beside them already assumed.
  */
 function vsExportLongEdge() {
-  const shortEdge = Math.max(240, Math.min(4320, Number(vsVal("#vsExportSize", 1080)) || 1080));
+  let shortEdge = Math.max(240, Math.min(4320, Number(vsVal("#vsExportSize", 1080)) || 1080));
+  if (vstudio._weakDev && (vstudio.slides || []).some((x) => x && x._pro)) shortEdge = Math.min(shortEdge, 720);   // see vsWeakDevice
   const aspect = vsVal("#vsAspect", "9:16");
   const map = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:5": [4, 5] };
   let ratio;
