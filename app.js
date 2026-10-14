@@ -5123,6 +5123,7 @@ function vsAutoStatus(msg) {
   if (vstudio._batchExporting && !vstudio._exportSpeaking) return;
   const el = document.querySelector("#vsAutoStatus");
   if (el) el.textContent = msg || "";
+  if (vstudio._statusHook) { try { vstudio._statusHook(msg); } catch (e) {} }
   // mirror the stage text into the loading popup while a build is running
   const ov = document.getElementById("vsBuildOverlay");
   // With no build popup up, this is a result or the reason a build stopped -
@@ -11615,135 +11616,340 @@ const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zo
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
 const VS_EM_DEFAULTS = { cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
-function vsEditMineDialog(fileIn, preset) {
+// Edit my video opens as its own studio, like Thumbnail Studio: the
+// settings on the left (the video, the style - each drawn as it will look -
+// the shape, what to do), the edit on the right: its progress, then the
+// edited video itself to play, export and download, or open in the editor.
+function vsEditStudio(preset, filesIn) {
   preset = preset || {};
-  const files = (Array.isArray(fileIn) ? fileIn : [fileIn]).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
-  const file = files[0];
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
-  document.getElementById("vsEditMineDlg")?.remove();
-  const d = document.createElement("div");
-  d.id = "vsEditMineDlg";
-  d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "vsEmT");
-  const opt = (id, en, f, on, cls) => `<label class="vsem-opt${cls ? " " + cls : ""}"><input type="checkbox" id="${id}" ${on ? "checked" : ""}/><span>${L(en, f)}</span></label>`;
-  d.innerHTML = `<div class="vsem" ${fa ? 'dir="rtl"' : ""}>
-      <h2 id="vsEmT">${L("Edit my video", "ادیت ویدیوی من")}</h2>
-      <div class="vsem-modes" role="tablist" aria-label="${L("What to do", "چه کاری")}">
-        <button type="button" role="tab" data-mode="edit" aria-selected="true">${L("Edit my raw video", "ادیت ویدیوی خامم")}</button>
-        <button type="button" role="tab" data-mode="swap" aria-selected="false">${L("Change only text or footage", "فقط متن یا فوتیج را عوض کن")}</button>
-      </div>
-      <p class="vsem-swapnote">${L("For a finished video: we find every text and footage in it; you change the ones you want and everything else - design, motion, sound - stays exactly as it is.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش را پیدا می‌کنیم؛ هر کدام را خواستی عوض کن و بقیه - طراحی، حرکت، صدا - دقیقاً همان می‌ماند.")}${files.length > 1 ? " " + L("(Only the first video is used.)", "(فقط ویدیوی اول استفاده می‌شود.)") : ""}</p>
-      ${files.length > 1
-        ? `<p class="vsem-file">${L(files.length + " videos, edited as one - in this order:", files.length + " ویدیو، به‌صورت یک ویدیو ادیت می‌شوند - به این ترتیب:")}</p><ol class="vsem-list"></ol>`
-        : `<p class="vsem-file">${escapeHtml(file.name)} · ${Math.round(file.size / 1048576 * 10) / 10} MB</p>`}
-      <div class="vsem-grid">
-        ${opt("vsEmCut", "Cut the pauses", "حذف مکث‌ها و سکوت‌ها", true)}
-        ${opt("vsEmFill", "Remove “um” and “uh”", "حذف «اِ» و «اوم»", true)}
-        ${opt("vsEmCap", "Word-by-word captions", "زیرنویس کلمه‌به‌کلمه", true)}
-        ${opt("vsEmTitle", "A hook in the first seconds", "هوک در ثانیه‌های اول", true, "vsem-classic")}
-        ${opt("vsEmStk", "Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر", true, "vsem-classic")}
-        ${opt("vsEmGfx", "Motion-graphic cards on the key points (your voice carries on)", "کارت موشن‌گرافیک روی نکته‌های اصلی (صدای تو ادامه دارد)", true, "vsem-classic")}
-        ${opt("vsEmBeat", "Cuts on the music's beat", "برش‌ها روی ضرب موسیقی", true)}
-        ${opt("vsEmBroll", "B-roll cutaways where the picture is static", "B-roll روی جاهایی که تصویر ثابت است", true)}
-        ${opt("vsEmTrans", "Trendy transitions with sound between sections", "ترنزیشن ترند با صدا بین بخش‌ها", true)}
-        ${opt("vsEmZoom", "Smooth zoom on the key moments", "زوم نرم روی لحظه‌های مهم", true)}
-        ${opt("vsEmMusic", "Quiet music underneath", "موسیقی آرام زیر صدا", true)}
-      </div>
-      <div class="vsem-sels">
-        <label class="vsem-row"><span>${L("Style", "سبک")}</span>
-          <select id="vsEmStyle">
-            <option value="pro-clean">${L("Pro · Bold - teal and white words, the big word behind you", "حرفه‌ای · بولد - کلمات سبزآبی و سفید، کلمهٔ بزرگ پشت سرت")}</option>
-            <option value="pro-neon">${L("Pro · Neon - glowing capitals under a handwritten line", "حرفه‌ای · نئون - حروف درشت درخشان زیر یک خط دست‌نویس")}</option>
-            <option value="pro-luxe">${L("Pro · Luxe - heavy textured words, thin spaced captions", "حرفه‌ای · لوکس - کلمات سنگین بافت‌دار، زیرنویس نازک")}</option>
-            <option value="pro-pop">${L("Pro · Pop - yellow and cyan with a bold italic serif", "حرفه‌ای · پاپ - زرد و فیروزه‌ای با سریف ایتالیک")}</option>
-            <option value="classic">${L("Classic - captions, hook card, stickers, graphic cards", "کلاسیک - زیرنویس، کارت هوک، استیکر، کارت گرافیکی")}</option>
-          </select></label>
-        <label class="vsem-row vsem-classic"><span>${L("Look", "ظاهر")}</span>
-          <select id="vsEmLook">
-            <option value="auto">${L("Automatic - full frame for a tall video, framed card for a square or wide one", "خودکار - تمام‌صفحه برای ویدیوی عمودی، کارت برای مربع یا افقی")}</option>
-            <option value="card">${L("Graphic card - speaker framed, title above, captions below", "کارت گرافیکی - گوینده در قاب، تیتر بالا، زیرنویس پایین")}</option>
-            <option value="full">${L("Full frame", "تمام‌صفحه")}</option>
-          </select></label>
-        <label class="vsem-row"><span>${L("Shape", "قالب")}</span>
-          <select id="vsEmAspect">
-            <option value="9:16">9:16 · Reels / TikTok / Shorts</option>
-            <option value="1:1">1:1 · ${L("Square", "مربع")}</option>
-            <option value="4:5">4:5 · ${L("Feed", "فید")}</option>
-            <option value="16:9">16:9 · YouTube</option>
-          </select></label>
-      </div>
-      <p class="vsem-note">${L("Free. Your video stays on this device; its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.")}</p>
-      <div class="vsem-btns">
-        <button type="button" class="vsem-go">${L("Edit it", "ادیتش کن")}</button>
-        <button type="button" class="vsem-x">${L("Cancel", "انصراف")}</button>
-      </div></div>`;
-  document.body.appendChild(d);
-  const close = () => d.remove();
-  d.querySelector(".vsem-x").onclick = close;
-  d.addEventListener("click", (e) => { if (e.target === d) close(); });
-  // the two ways
-  const vsem = d.querySelector(".vsem"), goBtn = d.querySelector(".vsem-go"), goLabel = goBtn.textContent;
+  document.getElementById("emOv")?.remove();
+  let files = (filesIn || []).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
   let mode = preset.mode === "swap" ? "swap" : "edit";
-  const setMode = (m) => {
-    mode = m; vsem.classList.toggle("swap", m === "swap");
-    d.querySelectorAll(".vsem-modes button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
-    goBtn.textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : goLabel;
+  const ov = document.createElement("div");
+  ov.id = "emOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
+  const STYLES = [
+    ["pro-clean", L("Bold", "بولد"), L("Teal and white, the big word behind you", "سبزآبی و سفید، کلمهٔ بزرگ پشت سرت")],
+    ["pro-neon", L("Neon", "نئون"), L("Glowing capitals under a handwritten line", "حروف درشت درخشان زیر خط دست‌نویس")],
+    ["pro-luxe", L("Luxe", "لوکس"), L("Heavy textured words, thin captions", "کلمات سنگین بافت‌دار، زیرنویس نازک")],
+    ["pro-pop", L("Pop", "پاپ"), L("Yellow and cyan with a bold italic serif", "زرد و فیروزه‌ای با سریف ایتالیک")],
+    ["classic", L("Classic", "کلاسیک"), L("Captions, hook card, stickers, graphic cards", "زیرنویس، کارت هوک، استیکر، کارت گرافیکی")],
+  ];
+  const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
+  const OPTS = [
+    ["cut", L("Cut the pauses", "حذف مکث‌ها و سکوت‌ها"), ""],
+    ["fillers", L("Remove “um” and “uh”", "حذف «اِ» و «اوم»"), ""],
+    ["trans", L("Transitions and sound effects", "ترنزیشن و افکت صوتی"), ""],
+    ["zoom", L("Zoom on the key moments", "زوم روی لحظه‌های مهم"), ""],
+    ["beat", L("Cuts on the music's beat", "برش‌ها روی ضرب موسیقی"), ""],
+    ["music", L("Quiet music underneath", "موسیقی آرام زیر صدا"), ""],
+    ["broll", L("B-roll where the picture is static", "B-roll روی جاهای ثابت"), ""],
+    ["captions", L("Word-by-word captions", "زیرنویس کلمه‌به‌کلمه"), "c"],
+    ["title", L("A hook card in the first seconds", "کارت هوک در ثانیه‌های اول"), "c"],
+    ["stickers", L("Key words and icons on screen", "کلمات کلیدی و آیکون روی تصویر"), "c"],
+    ["gfx", L("Motion-graphic cards on the key points", "کارت موشن‌گرافیک روی نکته‌های اصلی"), "c"],
+  ];
+  const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : VS_EM_DEFAULTS[k] !== false);
+  const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : "pro-clean";
+  const shape0 = SHAPES.some((x) => x[0] === preset.aspect) ? preset.aspect : "9:16";
+  const icoX = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const CSS = VS_TS_CSS.replace(/#tsModal/g, "#emModal") + `
+#emModal .em-styles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+#emModal .em-style{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}
+#emModal .em-style input{position:absolute;opacity:0;width:0;height:0}
+#emModal .em-style canvas{display:block;width:100%;aspect-ratio:9/13;border-radius:8px;background:#14171d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}
+#emModal .em-style:hover canvas{box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+#emModal .em-style input:checked~canvas{box-shadow:0 0 0 2px #2563ff}
+#emModal .em-style input:focus-visible~canvas{outline:2px solid #12d6f5;outline-offset:3px}
+#emModal .em-style-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}
+#emModal .em-style input:checked~.em-style-n{color:#fff}
+#emModal .em-style-d{margin:0;font-size:12px;color:#8a919c;min-height:18px}
+#emModal .em-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+#emModal .em-list li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;font-size:12.5px}
+#emModal .em-list li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#emModal .em-list li em{font-style:normal;color:#8a919c;font:500 11px "JetBrains Mono",ui-monospace,monospace}
+#emModal .em-list button{width:28px;height:28px;display:grid;place-items:center;border-radius:7px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}
+#emModal .em-list button:disabled{opacity:.35;cursor:default}
+#emModal .em-list button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}
+#emModal .em-opts{display:flex;flex-direction:column;gap:10px}
+#emModal.pro .em-c{display:none}
+#emModal .em-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:0}
+#emModal .em-frame{position:relative;max-width:100%;max-height:min(560px,62vh);border-radius:12px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+#emModal .em-frame canvas{display:block;width:100%;height:100%}
+#emModal .em-prog{width:min(360px,90%);display:flex;flex-direction:column;gap:10px;text-align:center}
+#emModal .em-prog-t{font:700 15px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;color:#f4f5f7}
+#emModal .em-prog-m{font-size:13px;color:#8a919c;min-height:20px}
+#emModal .em-bar{position:relative;height:5px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+#emModal .em-bar i{position:absolute;inset:0 auto 0 0;width:0;border-radius:6px;background:#2563ff;transition:width .35s ease}
+#emModal .em-bar.ind i{width:38%;animation:emSlide 1.3s ease-in-out infinite}
+@keyframes emSlide{0%{transform:translateX(-100%)}100%{transform:translateX(270%)}}
+@media (prefers-reduced-motion:reduce){#emModal .em-bar.ind i{animation:none;width:100%;opacity:.5}}
+#emModal .em-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+#emModal .em-acts .ts-primary{width:auto;padding:0 22px}
+#emModal .em-acts .ts-ghost{min-height:46px;padding:0 18px;border-radius:11px}
+#emModal .em-err{max-width:420px;font-size:13px;color:#f4f5f7;border-inline-start:2px solid #f87171;padding:4px 0 4px 10px;text-align:start}
+`;
+  ov.innerHTML =
+    '<div id="emModal" role="dialog" aria-modal="true" aria-labelledby="emTitle"' + (fa ? ' dir="rtl"' : "") + "><style>" + CSS + "</style>" +
+    '<aside class="ts-side">' +
+      '<div><div class="ts-eye">Edit my video</div><h2 id="emTitle">' + L("Edit your video", "ادیت ویدیوی تو") + "</h2></div>" +
+      '<div class="ts-seg" role="tablist" aria-label="' + L("What to do", "چه کاری") + '">' +
+        '<button type="button" role="tab" data-mode="edit">' + L("Edit my raw video", "ادیت ویدیوی خامم") + "</button>" +
+        '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button></div>" +
+      '<div class="ts-field">' +
+        '<button id="emDrop" type="button" class="ts-drop">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>' +
+          '<span class="ts-drop-t">' + L("Choose your video", "انتخاب ویدیو") + "</span>" +
+          '<span class="ts-drop-s" id="emDropS">' + L("or drop it here · MP4, MOV, WebM · several clips play in order", "یا اینجا رها کن · MP4، MOV، WebM · چند کلیپ به ترتیب پخش می‌شوند") + "</span></button>" +
+        '<input id="emFile" type="file" accept="video/*" multiple hidden/>' +
+        '<ol id="emList" class="em-list" hidden></ol>' +
+        '<p id="emSwapNote" class="ts-note" hidden>' + L("For a finished video: every text and footage in it is found; you change the ones you want and the design, motion and sound stay exactly as they are.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش پیدا می‌شود؛ هر کدام را خواستی عوض کن و طراحی، حرکت و صدا همان می‌ماند.") + "</p></div>" +
+      '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Style", "سبک") + '</div><div class="em-styles" role="radiogroup" aria-label="' + L("Style", "سبک") + '">' +
+        STYLES.map(([v, n], i) => '<label class="em-style"><input type="radio" name="emStyle" value="' + v + '"' + (v === style0 ? " checked" : "") + '/><canvas width="180" height="260" data-style="' + v + '" aria-hidden="true"></canvas><span class="em-style-n">' + n + "</span></label>").join("") +
+        '</div><p id="emStyleD" class="em-style-d"></p></div>' +
+      '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Shape", "قالب") + '</div><div class="ts-sizes">' +
+        SHAPES.map(([v, n, w, h]) => { const k = 18 / Math.max(w, h); return '<label class="ts-size"><input type="radio" name="emShape" value="' + v + '"' + (v === shape0 ? " checked" : "") + '/><span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span><span class="ts-size-n">' + n + '</span><span class="ts-size-d">' + v + "</span></label>"; }).join("") +
+        "</div></div>" +
+      '<div class="ts-field em-edit"><div class="ts-lbl">' + L("What it does", "چه کارهایی انجام شود") + '</div><div class="em-opts">' +
+        OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-c" : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
+        '<label class="ts-lbl em-c" for="emLayout" style="margin-top:4px">' + L("Layout", "چیدمان") + "</label>" +
+        '<select id="emLayout" class="em-c" style="padding:9px 10px;border-radius:9px;background:#08090c;color:#f4f5f7;border:1px solid rgba(255,255,255,.12);font:500 13px Manrope,system-ui,sans-serif">' +
+          '<option value="auto">' + L("Automatic", "خودکار") + '</option><option value="card">' + L("Graphic card", "کارت گرافیکی") + '</option><option value="full">' + L("Full frame", "تمام‌صفحه") + "</option></select>" +
+      "</div></div>" +
+      '<p class="ts-note">' + L("Free. Your video stays on this device; only its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.") + "</p>" +
+      '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Edit it", "ادیتش کن") + "</button></div>" +
+    "</aside>" +
+    '<section class="ts-main" aria-live="polite">' +
+      '<div class="ts-main-h"><div class="ts-eye">' + L("Your edit", "ادیت تو") + '</div><span style="flex:1"></span><button id="emClose" type="button" class="ts-x" aria-label="' + L("Close", "بستن") + '">' + icoX + "</button></div>" +
+      '<div id="emStage" class="em-stage"></div>' +
+    "</section></div>";
+  document.body.appendChild(ov);
+  const modal = ov.querySelector("#emModal");
+  const $$ = (id) => ov.querySelector("#" + id);
+  const stage = $$("emStage");
+  let busy = false, mirror = 0, exportUrl = "";
+  const stopMirror = () => { if (mirror) cancelAnimationFrame(mirror); mirror = 0; };
+  const close = () => {
+    if (busy && !confirm(L("The edit is still running. Close anyway?", "ادیت هنوز در حال انجام است. بسته شود؟"))) return;
+    stopMirror();
+    try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
+    vstudio._statusHook = null; vstudio._exportProgress = null;
+    if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (e) {} }
+    ov.remove();
   };
-  d.querySelectorAll(".vsem-modes button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-  setMode(mode);
-  d.querySelector(".vsem-go").onclick = () => {
+  $$("emClose").onclick = close;
+  ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+  // ── the right side: empty, working, done ──
+  const shapeWH = () => { const v = (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16"; const x = SHAPES.find((q) => q[0] === v) || SHAPES[0]; return [x[2], x[3]]; };
+  const showEmpty = () => {
+    const [w, h] = shapeWH();
+    stage.innerHTML = '<div class="ts-empty"><div class="ts-empty-f" style="width:auto;height:min(360px,46vh);aspect-ratio:' + w + "/" + h + '"><span>' + w + " : " + h + "</span></div><p>" +
+      L("Your edited video appears here, ready to play and download.", "ویدیوی ادیت‌شده اینجا می‌آید، آمادهٔ پخش و دانلود.") + "</p></div>";
+  };
+  const showWork = (title) => {
+    stage.innerHTML = '<div class="em-prog" role="status"><div class="em-prog-t">' + escapeHtml(title) + '</div><div class="em-prog-m" id="emMsg"></div><div class="em-bar ind" id="emBar"><i></i></div></div>';
+  };
+  const setMsg = (m) => { const el = $$("emMsg"); if (el) el.textContent = m || ""; };
+  const setPct = (p) => { const b = $$("emBar"); if (!b) return; b.classList.remove("ind"); b.querySelector("i").style.width = Math.max(2, Math.min(100, p)) + "%"; };
+  const showErr = (m) => {
+    stage.innerHTML = '<div class="em-err" role="alert">' + escapeHtml(m) + "</div>";
+  };
+  // the edited video: a mirror of the studio's own canvas, played and exported here
+  const showDone = () => {
+    const src = document.querySelector("#vsCanvas");
+    const W = (src && src.width) || 1080, H = (src && src.height) || 1920;
+    stage.innerHTML = '<div class="em-frame" style="aspect-ratio:' + W + "/" + H + ";height:min(560px,62vh)\"><canvas id=\"emCv\" width=\"" + W + '" height="' + H + '"></canvas></div>' +
+      '<div class="em-acts"><button id="emPlay" type="button" class="ts-ghost">' + L("Play", "پخش") + "</button>" +
+      '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button>" +
+      '<button id="emOpen" type="button" class="ts-ghost">' + L("Open in the editor", "باز کردن در ادیتور") + "</button></div>" +
+      '<div id="emExp" class="em-prog" hidden><div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
+      '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button></div>";
+    const cv = $$("emCv"), cx = cv.getContext("2d");
+    const copy = () => { const c = document.querySelector("#vsCanvas"); if (c && c.width) { if (cv.width !== c.width || cv.height !== c.height) { cv.width = c.width; cv.height = c.height; } cx.drawImage(c, 0, 0); } };
+    try { drawStudioFrame(vsStillTime()); } catch (e) {}
+    copy();
+    const loop = () => { copy(); mirror = requestAnimationFrame(loop); };
+    const setPlaying = (p) => { $$("emPlay").textContent = p ? L("Pause", "توقف") : L("Play", "پخش"); };
+    $$("emPlay").onclick = () => {
+      if (vstudio.looping) { stopStudioPreview(); stopMirror(); copy(); setPlaying(false); }
+      else { previewStudioVideo(); stopMirror(); loop(); setPlaying(true); }
+    };
+    $$("emOpen").onclick = () => { busy = false; close(); try { vsShowBuiltVideo(); } catch (e) {} };
+    $$("emExport").onclick = async () => {
+      if (busy) return;
+      try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
+      stopMirror(); setPlaying(false);
+      busy = true;
+      ["emPlay", "emExport", "emOpen"].forEach((id) => { $$(id).disabled = true; });
+      $$("emExp").hidden = false;
+      // a cancel left over from an earlier build would stop this one on its first frame
+      vstudio._batchCancel = false;
+      $$("emCancel").onclick = () => { vstudio._batchCancel = true; };
+      setMsg(L("Making the MP4… keep this tab open and visible.", "در حال ساخت MP4… این تب را باز و روی صفحه نگه دار."));
+      vstudio._exportProgress = (p) => { setPct(p); setMsg(L("Making the MP4… ", "در حال ساخت MP4… ") + p + "%"); };
+      let out = null;
+      try {
+        vstudio._returnBlob = true;
+        out = await exportStudioVideo();
+      } catch (e) {} finally { vstudio._returnBlob = false; vstudio._exportProgress = null; busy = false; }
+      ["emPlay", "emExport", "emOpen"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
+      const blob = out && (out.blob || out);
+      if (!blob || !blob.size) {
+        setMsg(vstudio._batchCancel ? L("Export cancelled.", "خروجی لغو شد.") : L("The export did not finish - press Export again.", "خروجی کامل نشد؛ دوباره «خروجی MP4» را بزن."));
+        const cb = $$("emCancel"); if (cb) cb.hidden = true;
+        return;
+      }
+      if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (e) {} }
+      exportUrl = URL.createObjectURL(blob);
+      const name = (vstudio._exportName || "ai-radar-edit").replace(/[^\w\-]+/g, "-") + "." + ((out && out.ext) || "mp4");
+      $$("emExp").innerHTML = '<a class="ts-primary" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:0 22px" href="' + exportUrl + '" download="' + escapeHtml(name) + '">' +
+        L("Download", "دانلود") + " · " + Math.round(blob.size / 1048576 * 10) / 10 + " MB</a>";
+      try { $$("emExp").querySelector("a").click(); } catch (e) {}
+    };
+  };
+
+  // ── the left side ──
+  const setMode = (m) => {
+    mode = m;
+    ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
+    ov.querySelectorAll(".em-edit").forEach((el) => { el.hidden = m === "swap"; });
+    $$("emSwapNote").hidden = m !== "swap";
+    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : L("Edit it", "ادیتش کن");
+    drawList();
+  };
+  ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
+  const drawList = () => {
+    const list = $$("emList");
+    const use = mode === "swap" ? files.slice(0, 1) : files;
+    list.hidden = !use.length;
+    list.innerHTML = use.map((f, k) => '<li><span>' + escapeHtml(f.name) + "</span><em>" + Math.round(f.size / 1048576 * 10) / 10 + " MB</em>" +
+      (use.length > 1 ? '<button type="button" data-up="' + k + '"' + (k ? "" : " disabled") + ' aria-label="' + L("Move up", "بالا") + '">↑</button><button type="button" data-down="' + k + '"' + (k < use.length - 1 ? "" : " disabled") + ' aria-label="' + L("Move down", "پایین") + '">↓</button>' : "") +
+      '<button type="button" data-rm="' + k + '" aria-label="' + L("Remove", "حذف") + '">' + icoX + "</button></li>").join("");
+    $$("emGo").disabled = !use.length;
+  };
+  $$("emList").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    if (b.dataset.rm != null) { files.splice(Number(b.dataset.rm), 1); drawList(); drawStyles(); return; }
+    const k = Number(b.dataset.up != null ? b.dataset.up : b.dataset.down), j = b.dataset.up != null ? k - 1 : k + 1;
+    if (j < 0 || j >= files.length) return;
+    [files[k], files[j]] = [files[j], files[k]];
+    drawList(); if (!k || !j) drawStyles();
+  });
+  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "");
+  const addFiles = (list) => {
+    const add = Array.from(list || []).filter(isVideo).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    if (!add.length) return;
+    files = files.concat(add).slice(0, VS_EDIT_MAX_FILES);
+    drawList(); drawStyles(); showEmpty();
+  };
+  $$("emDrop").onclick = () => { const f = $$("emFile"); f.value = ""; f.click(); };
+  $$("emFile").onchange = (e) => addFiles(e.target.files);
+  const drop = $$("emDrop");
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, () => drop.classList.remove("drag")));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); addFiles(e.dataTransfer && e.dataTransfer.files); });
+
+  // each style drawn as it will look - on a frame of the customer's own video
+  // once there is one
+  let frame = null, frameOf = null;
+  const grabFrame = async () => {
+    const f = files[0];
+    if (!f || frameOf === f) return;
+    frameOf = f; frame = null;
+    const u = URL.createObjectURL(f);
+    try {
+      const el = await vsEditVideoEl(u);
+      if (el) {
+        await new Promise((res) => { const fin = () => { el.removeEventListener("seeked", fin); res(); }; el.addEventListener("seeked", fin); try { el.currentTime = Math.min(1.2, (el.duration || 2) / 3); } catch (e) { res(); } setTimeout(res, 3000); });
+        const c = document.createElement("canvas"); c.width = 180; c.height = 260;
+        vsDrawCover(c.getContext("2d"), el, 0, 0, 180, 260, 1, 0.5, 0, 0, 0.35);
+        frame = c;
+      }
+    } catch (e) {}
+    URL.revokeObjectURL(u);
+  };
+  const SAMPLE = [["needs", 0], ["to", 0.05], ["KNOW", 0.1]];
+  const drawStyles = async () => {
+    await grabFrame();
+    ov.querySelectorAll(".em-style canvas").forEach((cv) => {
+      const W = cv.width, H = cv.height, x = cv.getContext("2d");
+      x.save(); x.clearRect(0, 0, W, H);
+      if (frame) { x.drawImage(frame, 0, 0, W, H); x.fillStyle = "rgba(0,0,0,.18)"; x.fillRect(0, 0, W, H); }
+      else {
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#2a2f3a"); g.addColorStop(1, "#111318");
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        // a speaker's silhouette, so the look reads at the right scale
+        x.fillStyle = "#3a404c"; x.beginPath(); x.arc(W / 2, H * 0.42, W * 0.15, 0, Math.PI * 2); x.fill();
+        x.beginPath(); x.ellipse(W / 2, H * 0.92, W * 0.36, H * 0.3, 0, Math.PI, 0); x.fill();
+      }
+      const sty = cv.dataset.style;
+      if (sty === "classic") {
+        const fs = Math.round(W * 0.1);
+        x.font = "900 " + fs + 'px Archivo, system-ui, sans-serif'; x.textBaseline = "middle"; x.textAlign = "left";
+        const a = "NEEDS TO ", b = "KNOW", wa = x.measureText(a).width, wb = x.measureText(b).width, x0 = (W - wa - wb) / 2, y = H * 0.8;
+        x.lineWidth = fs * 0.16; x.lineJoin = "round"; x.strokeStyle = "rgba(0,0,0,.85)"; x.strokeText(a, x0, y);
+        x.fillStyle = "#fff"; x.fillText(a, x0, y);
+        x.fillStyle = "#f5c451"; x.beginPath(); if (x.roundRect) x.roundRect(x0 + wa - fs * 0.15, y - fs * 0.62, wb + fs * 0.3, fs * 1.24, fs * 0.16); else x.rect(x0 + wa - fs * 0.15, y - fs * 0.62, wb + fs * 0.3, fs * 1.24); x.fill();
+        x.fillStyle = "#0b0d12"; x.fillText(b, x0 + wa, y);
+      } else {
+        const pack = VS_PRO_PACKS[sty.slice(4)];
+        const g = { items: SAMPLE.map(([w, t]) => ({ w, t0: t, t1: t + 0.3 })), hero: 2, stat: false, single: false, t0: 0, t1: 9 };
+        try {
+          const lay = vsProLayout(x, W, H, g, 0, pack, null, null);
+          lay.words.forEach((wd) => { wd.y = wd.y - H * 0.04; vsProWord(x, wd, 5, 1, frame || cv, W, H); });
+        } catch (e) {}
+      }
+      x.restore();
+    });
+  };
+  const syncStyle = () => {
+    const v = (ov.querySelector('input[name="emStyle"]:checked') || {}).value || "pro-clean";
+    modal.classList.toggle("pro", v !== "classic");
+    $$("emStyleD").textContent = (STYLES.find((q) => q[0] === v) || [])[2] || "";
+  };
+  ov.querySelectorAll('input[name="emStyle"]').forEach((r) => r.addEventListener("change", syncStyle));
+  ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", () => { if (!busy && !stage.querySelector("#emCv")) showEmpty(); }));
+  if (preset.layout) { const l = $$("emLayout"); if ([...l.options].some((q) => q.value === preset.layout)) l.value = preset.layout; }
+
+  $$("emGo").onclick = async () => {
+    if (busy || !files.length) return;
     if (mode === "swap") {
-      close();
-      vsSwapStart(file, preset.swap || {}).catch((e) => {
+      busy = false; close();
+      vsSwapStart(files[0], preset.swap || {}).catch((e) => {
         vsBuildOverlay(false);
         vsAutoStatus((fa ? "خواندن ویدیو ناموفق بود: " : "Reading the video failed: ") + String(e && e.message || e).slice(0, 140));
       });
       return;
     }
-    const o = {
-      cut: d.querySelector("#vsEmCut").checked, fillers: d.querySelector("#vsEmFill").checked,
-      captions: d.querySelector("#vsEmCap").checked, zoom: d.querySelector("#vsEmZoom").checked,
-      title: d.querySelector("#vsEmTitle").checked, music: d.querySelector("#vsEmMusic").checked,
-      stickers: d.querySelector("#vsEmStk").checked, beat: d.querySelector("#vsEmBeat").checked,
-      broll: d.querySelector("#vsEmBroll").checked, trans: d.querySelector("#vsEmTrans").checked, layout: d.querySelector("#vsEmLook").value,
-      gfx: d.querySelector("#vsEmGfx").checked,
-      aspect: d.querySelector("#vsEmAspect").value,
-      style: d.querySelector("#vsEmStyle").value
-    };
+    const o = { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value || "pro-clean",
+      aspect: (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16", layout: $$("emLayout").value, host: true };
+    ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
-    close();
-    vsEditMyVideo(files.length > 1 ? files : file, o).catch((e) => {
-      vsBuildOverlay(false);
-      vsAutoStatus((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(e && e.message || e).slice(0, 140));
-    });
+    busy = true;
+    $$("emGo").disabled = true;
+    showWork(L("Editing your video", "در حال ادیت ویدیوی تو"));
+    vstudio._statusHook = setMsg;
+    const before = vstudio._buildSeq;
+    let err = null;
+    try { await vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o); }
+    catch (e) { err = e; }
+    finally { vstudio._statusHook = null; busy = false; $$("emGo").disabled = false; }
+    if (!document.body.contains(ov)) return;
+    if (err) { showErr((fa ? "ادیت ناموفق بود: " : "The edit failed: ") + String(err && err.message || err).slice(0, 160)); return; }
+    if (vstudio._buildSeq === before || !vstudio.slides.some((s) => s._ownSpeech)) { showEmpty(); return; }   // stopped before it began (a sign-in wall)
+    $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن");
+    showDone();
   };
-  // the order list: move a clip up or down; that is the order they play in
-  const list = d.querySelector(".vsem-list");
-  const drawList = () => {
-    if (!list) return;
-    list.innerHTML = files.map((f, k) => `<li><span>${escapeHtml(f.name)} <em>${Math.round(f.size / 1048576 * 10) / 10} MB</em></span>
-      <button type="button" data-up="${k}" ${k ? "" : "disabled"} aria-label="${L("Move up", "بالا")}">↑</button>
-      <button type="button" data-down="${k}" ${k < files.length - 1 ? "" : "disabled"} aria-label="${L("Move down", "پایین")}">↓</button></li>`).join("");
-  };
-  if (list) {
-    drawList();
-    list.addEventListener("click", (ev) => {
-      const b = ev.target.closest("button"); if (!b) return;
-      const k = Number(b.dataset.up != null ? b.dataset.up : b.dataset.down), j = b.dataset.up != null ? k - 1 : k + 1;
-      if (j < 0 || j >= files.length) return;
-      [files[k], files[j]] = [files[j], files[k]];
-      drawList();
-    });
-  }
-  Object.keys(VS_EM_IDS).forEach((k) => { if (typeof preset[k] === "boolean") { const c = d.querySelector("#" + VS_EM_IDS[k]); if (c) c.checked = preset[k]; } });
-  if (preset.layout) { const l = d.querySelector("#vsEmLook"); if (l && [...l.options].some((x) => x.value === preset.layout)) l.value = preset.layout; }
-  if (preset.aspect) { const a2 = d.querySelector("#vsEmAspect"); if (a2 && [...a2.options].some((x) => x.value === preset.aspect)) a2.value = preset.aspect; }
-  // the pro looks make their own words and cuts: the classic-only options go
-  const styleSel = d.querySelector("#vsEmStyle");
-  if (preset.style && [...styleSel.options].some((x) => x.value === preset.style)) styleSel.value = preset.style;
-  const syncStyle = () => vsem.classList.toggle("pro", styleSel.value !== "classic");
-  styleSel.addEventListener("change", syncStyle); syncStyle();
-  try { d.querySelector(".vsem-go").focus(); } catch (e) {}
+
+  setMode(mode);
+  syncStyle();
+  showEmpty();
+  drawStyles();
+  vsProLoadFonts().then(drawStyles).catch(() => {});
+  try { (files.length ? $$("emGo") : $$("emDrop")).focus(); } catch (e) {}
 }
 
 // The speech in a decoded mono buffer, as 16 kHz WAV for Whisper.
@@ -12853,7 +13059,7 @@ async function vsEditMyVideo(fileIn, o) {
   if (files.reduce((n, f) => n + f.size, 0) > 400 * 1048576) { vsAutoStatus(L("Those files are over 400 MB together - trim them first.", "این فایل‌ها روی هم بیشتر از ۴۰۰ مگابایت‌اند؛ اول کوتاهشان کن.")); return; }
   try { stopStudioPreview(); } catch (e) {}
   vstudio._buildHold = true;
-  vsBuildOverlay(true, L("Reading your video…", "در حال خواندن ویدیوی تو…"), L("Editing your video", "در حال ادیت ویدیوی تو"), 600000);
+  if (!o.host) vsBuildOverlay(true, L("Reading your video…", "در حال خواندن ویدیوی تو…"), L("Editing your video", "در حال ادیت ویدیوی تو"), 600000);
   try {
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     const many = files.length > 1;
@@ -25247,6 +25453,7 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
     frame.close();
     // progress + let output callbacks drain (prevents unbounded queue growth)
     if ((i % 6) === 0 || i === total - 1) {
+      if (vstudio._exportProgress) { try { vstudio._exportProgress(Math.round((i + 1) / total * 100)); } catch (e) {} }
       if (!vstudio._returnBlob) {
         const pct = Math.round((i + 1) / total * 100);
         vsBuildOverlay(true, (_overlayFa ? "در حال ساخت ویدئو… " : "Rendering your video… ") + pct + "%",
@@ -27873,6 +28080,8 @@ function vsTplCutout(R) {
   ctx.restore();
 }
 
+// The studio-window look shared by Thumbnail Studio and Edit my video.
+const VS_TS_CSS = "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-ideas-h{display:flex;align-items:center;justify-content:space-between;gap:10px}\n#tsModal .ts-ideas{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-idea{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;color:#f4f5f7;text-align:start;cursor:pointer;font:inherit;transition:border-color .15s}\n#tsModal .ts-idea:hover{border-color:rgba(255,255,255,.26)}\n#tsModal .ts-idea[aria-pressed=\"true\"]{border-color:#2563ff;background:rgba(37,99,255,.08)}\n#tsModal .ts-idea:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-score{grid-row:span 2;min-width:38px;padding:5px 0;border-radius:8px;background:#1b1f27;font:700 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;color:#c9ccd3}\n#tsModal .ts-score.hi{background:#2563ff;color:#fff}\n#tsModal .ts-idea-t{font:700 13.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-idea-w{font-size:11.5px;color:#8a919c}\n#tsModal .ts-photo{display:flex;align-items:center;gap:10px}\n#tsModal .ts-photo img{width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}\n#tsModal .ts-photo .ts-note{flex:1}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{align-self:flex-start;object-fit:contain;max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n";
 function vsThumbStudio(prefillTopic, preset) {
   preset = preset || {};
   const fa = state.lang === "fa";
@@ -27895,7 +28104,7 @@ function vsThumbStudio(prefillTopic, preset) {
     .map((x, i) => sizeRow(x[0], x[1], i === 0)).join("");
   const tplChips = VS_THUMB_TEMPLATES.filter((t) => !t.video).map((t, i) => tplTile(t, i === 0)).join("");
   ov.innerHTML =
-    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + "\n#tsModal{position:relative;width:min(1120px,96vw);height:min(780px,94vh);display:grid;grid-template-columns:380px minmax(0,1fr);background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px -20px rgba(0,0,0,.7);color:#f4f5f7;font:500 14px/1.45 Manrope,ui-sans-serif,system-ui,sans-serif;text-align:start}\n#tsModal *{box-sizing:border-box}\n#tsModal [hidden]{display:none!important}\n#tsModal .ts-side{display:flex;flex-direction:column;gap:20px;padding:22px 20px 0;overflow:auto;border-inline-end:1px solid rgba(255,255,255,.07);background:#0b0d11}\n#tsModal .ts-eye{font:500 10.5px/1 \"JetBrains Mono\",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#8a919c}\n#tsModal #tsTitle{margin:8px 0 0;font:600 22px/1.15 \"Space Grotesk\",ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#fff}\n#tsModal .ts-seg{display:flex;gap:4px;padding:4px;background:#08090c;border:1px solid rgba(255,255,255,.08);border-radius:11px}\n#tsModal .ts-seg button{flex:1;min-height:36px;border:0;border-radius:8px;background:transparent;color:#8a919c;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,color .15s}\n#tsModal .ts-seg button:hover{color:#f4f5f7}\n#tsModal .ts-seg button[aria-selected=\"true\"],#tsModal .ts-seg button[aria-pressed=\"true\"]{background:#1b1f27;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}\n#tsModal .ts-seg button:focus-visible{outline:2px solid #12d6f5;outline-offset:1px}\n#tsModal .ts-seg-s{width:132px}\n#tsModal .ts-field{display:flex;flex-direction:column;gap:9px}\n#tsModal .ts-row{flex-direction:row;align-items:center;justify-content:space-between}\n#tsModal .ts-lbl{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#c9ccd3}\n#tsModal #tsTopic{width:100%;padding:12px 13px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f4f5f7;font:600 15px Manrope,ui-sans-serif,system-ui,sans-serif;outline:none}\n#tsModal #tsTopic:focus{border-color:#2563ff;box-shadow:0 0 0 3px rgba(37,99,255,.18)}\n#tsModal .ts-switch{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-switch input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-sw{flex:none;width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .15s}\n#tsModal .ts-sw::after{content:\"\";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}\n#tsModal .ts-switch input:checked+.ts-sw{background:#2563ff}\n#tsModal .ts-switch input:checked+.ts-sw::after{transform:translateX(14px)}\n#tsModal[dir=\"rtl\"] .ts-switch input:checked+.ts-sw::after{transform:translateX(-14px)}\n#tsModal .ts-switch input:focus-visible+.ts-sw{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-tpls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}\n#tsModal .ts-tpl{position:relative;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}\n#tsModal .ts-tpl input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-tpl-pv{display:block;aspect-ratio:16/9;border-radius:8px;background:#14171d center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s}\n#tsModal .ts-tpl:hover .ts-tpl-pv{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}\n#tsModal .ts-tpl input:checked~.ts-tpl-pv{box-shadow:0 0 0 2px #2563ff}\n#tsModal .ts-tpl input:focus-visible~.ts-tpl-pv{outline:2px solid #12d6f5;outline-offset:3px}\n#tsModal .ts-tpl-n{font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#tsModal .ts-tpl input:checked~.ts-tpl-n{color:#fff}\n#tsModal .ts-sizes{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-size{position:relative;display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:border-color .15s,background .15s}\n#tsModal .ts-size:hover{border-color:rgba(255,255,255,.2)}\n#tsModal .ts-size input{position:absolute;opacity:0;width:0;height:0}\n#tsModal .ts-size:has(input:checked){border-color:rgba(37,99,255,.75);background:rgba(37,99,255,.08)}\n#tsModal .ts-size:has(input:focus-visible){outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-ratio-w{flex:none;width:22px;height:22px;display:grid;place-items:center}\n#tsModal .ts-ratio{display:block;border:1.5px solid #8a919c;border-radius:2px}\n#tsModal .ts-size:has(input:checked) .ts-ratio{border-color:#5b9bff}\n#tsModal .ts-size-n{flex:1;font:600 13px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-size-d{font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-custom{display:flex;align-items:center;gap:6px;color:#8a919c}\n#tsModal .ts-custom input{width:72px;padding:8px 9px;background:#08090c;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#f4f5f7;font:500 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;outline:none}\n#tsModal .ts-custom input:focus{border-color:#2563ff}\n#tsModal .ts-ghost{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 12.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:border-color .15s}\n#tsModal .ts-ghost:hover{border-color:rgba(255,255,255,.32)}\n#tsModal .ts-ghost:focus-visible,#tsModal .ts-primary:focus-visible,#tsModal .ts-x:focus-visible,#tsModal .ts-drop:focus-visible,#tsModal .ts-dl:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-foot{position:sticky;bottom:0;margin:auto -20px 0;padding:14px 20px 18px;background:linear-gradient(rgba(11,13,17,0),#0b0d11 32%)}\n#tsModal .ts-primary{width:100%;min-height:46px;border:0;border-radius:11px;background:#2563ff;color:#fff;font:700 14.5px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s}\n#tsModal .ts-primary:hover{background:#3a72ff}\n#tsModal .ts-primary:disabled{opacity:.6;cursor:default}\n#tsModal .ts-vid{display:flex;flex-direction:column;gap:10px}\n#tsModal .ts-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.18);background:#08090c;color:#f4f5f7;cursor:pointer;transition:border-color .15s,background .15s;font:inherit}\n#tsModal .ts-drop:hover,#tsModal .ts-drop.drag{border-color:#2563ff;background:rgba(37,99,255,.06)}\n#tsModal .ts-drop svg{color:#8a919c}\n#tsModal .ts-drop-t{font:700 13.5px Manrope,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-drop-s{font:500 12px Manrope,ui-sans-serif,system-ui,sans-serif;color:#8a919c}\n#tsModal .ts-note{margin:0;font-size:12.5px;line-height:1.5;color:#8a919c}\n#tsModal .ts-frames{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}\n#tsModal .ts-alts{display:flex;flex-wrap:wrap;gap:6px}\n#tsModal .ts-alts button{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;cursor:pointer}\n#tsModal .ts-alts button:hover{border-color:#2563ff;color:#fff}\n#tsModal .ts-ideas-h{display:flex;align-items:center;justify-content:space-between;gap:10px}\n#tsModal .ts-ideas{display:flex;flex-direction:column;gap:6px}\n#tsModal .ts-idea{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#08090c;color:#f4f5f7;text-align:start;cursor:pointer;font:inherit;transition:border-color .15s}\n#tsModal .ts-idea:hover{border-color:rgba(255,255,255,.26)}\n#tsModal .ts-idea[aria-pressed=\"true\"]{border-color:#2563ff;background:rgba(37,99,255,.08)}\n#tsModal .ts-idea:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}\n#tsModal .ts-score{grid-row:span 2;min-width:38px;padding:5px 0;border-radius:8px;background:#1b1f27;font:700 13px \"JetBrains Mono\",ui-monospace,monospace;text-align:center;color:#c9ccd3}\n#tsModal .ts-score.hi{background:#2563ff;color:#fff}\n#tsModal .ts-idea-t{font:700 13.5px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif}\n#tsModal .ts-idea-w{font-size:11.5px;color:#8a919c}\n#tsModal .ts-photo{display:flex;align-items:center;gap:10px}\n#tsModal .ts-photo img{width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}\n#tsModal .ts-photo .ts-note{flex:1}\n#tsModal .ts-main{display:flex;flex-direction:column;min-width:0;padding:20px 22px;overflow:auto;background:#0e1014}\n#tsModal .ts-main-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}\n#tsModal .ts-x{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;cursor:pointer}\n#tsModal .ts-x:hover{color:#fff;border-color:rgba(255,255,255,.3)}\n#tsModal .ts-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8a919c;text-align:center}\n#tsModal .ts-empty-f{width:min(420px,80%);aspect-ratio:16/9;border-radius:12px;border:1px dashed rgba(255,255,255,.14);display:grid;place-items:center;font:500 12px \"JetBrains Mono\",ui-monospace,monospace;color:#5d636d}\n#tsModal .ts-empty p{margin:0;font-size:13px}\n#tsModal .ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;align-items:start}\n#tsModal .ts-cell{display:flex;flex-direction:column;gap:8px;min-width:0}\n#tsModal .ts-cell img{align-self:flex-start;object-fit:contain;max-width:100%;max-height:380px;width:auto;height:auto;display:block;border-radius:10px;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}\n#tsModal .ts-meta{display:flex;align-items:center;gap:10px;font:500 11.5px \"JetBrains Mono\",ui-monospace,monospace;color:#8a919c}\n#tsModal .ts-dl{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;font:600 12px Manrope,ui-sans-serif,system-ui,sans-serif;text-decoration:none}\n#tsModal .ts-dl:hover{border-color:#2563ff}\n#tsModal .ts-warn{font-size:12px;line-height:1.45;color:#c9ccd3;border-inline-start:2px solid #f87171;padding:2px 0 2px 9px}\n#tsModal .ts-fail{display:grid;place-items:center;border-radius:10px;background:#14171d;color:#f87171;font-size:12.5px}\n#tsModal .ts-skel{border-radius:10px;background:linear-gradient(90deg,#14171d 0%,#1d212a 50%,#14171d 100%);background-size:200% 100%;animation:tsShimmer 1.3s linear infinite}\n@keyframes tsShimmer{to{background-position:-200% 0}}\n@media (prefers-reduced-motion:reduce){#tsModal .ts-skel{animation:none}}\n@media (max-width:860px){#tsModal{grid-template-columns:1fr;height:auto;max-height:none}#tsModal .ts-side{border-inline-end:0;overflow:visible}#tsModal .ts-main{overflow:visible;min-height:320px;border-top:1px solid rgba(255,255,255,.07)}#tsModal .ts-tpls{grid-template-columns:repeat(2,minmax(0,1fr))}#tsModal .ts-x{position:fixed;top:24px;inset-inline-end:24px;z-index:3;background:#0e1014}}\n" + '</style>' +
+    '<div id="tsModal" role="dialog" aria-modal="true" aria-labelledby="tsTitle"' + (fa ? ' dir="rtl"' : "") + '><style>' + VS_TS_CSS + '</style>' +
     '<aside class="ts-side">' +
       '<div><div class="ts-eye">Thumbnail Studio</div><h2 id="tsTitle">' + (fa ? "ساخت تامبنیل" : "Make a thumbnail") + '</h2></div>' +
       '<div class="ts-seg" role="tablist" aria-label="' + (fa ? "منبع" : "Source") + '">' +
@@ -33176,7 +33385,7 @@ async function vsOpenEditDeck(e) {
   box.className = "vsem-ask";
   document.body.appendChild(box);
   box.querySelector(".vsem-x").onclick = () => box.remove();
-  box.querySelector(".vsem-go").onclick = () => { box.remove(); const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } };
+  box.querySelector(".vsem-go").onclick = () => { box.remove(); vsEditStudio(vstudio._mcpEditPreset); };
   try { box.querySelector(".vsem-go").focus(); } catch (er) {}
   vsAutoStatus(L("Your AI set up an edit - choose the video to start.", "AIِ تو ادیت را آماده کرد؛ ویدیو را انتخاب کن تا شروع شود."));
 }
@@ -34108,11 +34317,11 @@ function bindEvents() {
   vsUpdateUndoButtons();
 
   // Timeline: play/pause button + scrubbing by dragging the track area.
-  on("#vsEditMineBtn", "click", () => { const f = $("#vsEditMineFile"); if (f) { f.value = ""; f.click(); } });
+  on("#vsEditMineBtn", "click", () => vsEditStudio(vstudio._mcpEditPreset));
   on("#vsEditMineFile", "change", (e) => {
     // several clips, sorted by name to start with (cameras number them in order); the window lets you reorder
     const fs = Array.from((e.target.files) || []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    if (fs.length) vsEditMineDialog(fs.length > 1 ? fs : fs[0], vstudio._mcpEditPreset);
+    if (fs.length) vsEditStudio(vstudio._mcpEditPreset, fs);
   });
   on("#vsPlayBtn", "click", () => {
     if (vstudio.playing) {
