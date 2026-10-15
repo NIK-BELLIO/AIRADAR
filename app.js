@@ -25689,44 +25689,63 @@ function vsSetWatermark(on) {
   document.querySelectorAll(".vs-wm-toggle").forEach((c) => { c.checked = vsWatermarkOn(); });
   if (!vstudio.looping) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
 }
-let vsWmFontP = null;
-function vsWmFont() {
-  if (!vsWmFontP) vsWmFontP = (async () => {
-    if (!document.getElementById("vsWmFontCss")) {
-      const l = document.createElement("link"); l.id = "vsWmFontCss"; l.rel = "stylesheet";
-      l.href = "https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"; document.head.appendChild(l);
-    }
-    try { await Promise.race([document.fonts.load('400 40px "Archivo Black"'), new Promise((r) => setTimeout(r, 5000))]); } catch (e) {}
-  })();
-  return vsWmFontP;
+// The brand's own mark, white in logo-mono.svg, painted in its cyan-to-blue
+// gradient once, for the watermark.
+let vsWmMarkC = null, vsWmMarkP = null;
+function vsWmMark() {
+  if (!vsWmMarkP) vsWmMarkP = new Promise((res) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas"); c.width = c.height = 256;
+      const x = c.getContext("2d");
+      x.drawImage(im, 0, 0, 256, 256);
+      x.globalCompositeOperation = "source-in";
+      const g = x.createLinearGradient(40, 20, 210, 240);
+      g.addColorStop(0, "#02defd"); g.addColorStop(1, "#0259ff");
+      x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+      vsWmMarkC = c; res(c);
+    };
+    im.onerror = () => res(null);
+    im.src = "/logo-mono.svg";
+  });
+  return vsWmMarkP;
 }
+// Our own watermark - the brand, not a copy of anyone's badge: a small dark
+// glass pill like the site's own logo lockup, the gradient mark, and
+// "airadar.me" in the site's face with ".me" in the brand cyan.
 function vsDrawWatermark() {
   const canvas = document.getElementById("vsCanvas");
   if (!canvas || !vstudio.slides || !vstudio.slides.length || !vsWatermarkOn()) return;
-  vsWmFont();
+  if (!vsWmMarkC) vsWmMark();
   const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height, U = Math.min(W, H * 0.62);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = 0.96; ctx.filter = "none"; ctx.globalCompositeOperation = "source-over";
-  // a tag: a slanted box, a dark edge, the words in heavy italic capitals
-  const tag = (txt, x, y, px, bg, fg) => {
-    ctx.font = '400 ' + Math.round(px) + 'px "Archivo Black", "Arial Black", system-ui, sans-serif';
-    const tw = ctx.measureText(txt).width, padX = px * 0.42, h = px * 1.32, w = tw + padX * 2;
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(-0.06); ctx.transform(1, 0, -0.14, 1, 0, 0);
-    ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = px * 0.5; ctx.shadowOffsetY = px * 0.12;
-    ctx.fillStyle = "#0a0b0f"; ctx.fillRect(-px * 0.07, -h / 2 - px * 0.07, w + px * 0.14, h + px * 0.14);
-    ctx.shadowColor = "transparent";
-    ctx.fillStyle = bg; ctx.fillRect(0, -h / 2, w, h);
-    ctx.fillStyle = fg; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-    ctx.fillText(txt, padX, px * 0.06);
-    ctx.restore();
-    return w;
-  };
-  const px1 = U * 0.034, px2 = U * 0.042;
-  const x = W * 0.05, y = Math.max(H * 0.045, U * 0.06);
-  tag("MADE BY", x, y, px1, "#e4ff3a", "#0a0b0f");
-  tag("AIRADAR.ME", x + px1 * 0.9, y + px1 * 1.55, px2, "#2563ff", "#ffffff");
+  ctx.globalAlpha = 1; ctx.filter = "none"; ctx.globalCompositeOperation = "source-over";
+  const h = U * 0.062, px = h * 0.44, pad = h * 0.34, mk = h * 0.6;
+  ctx.font = '700 ' + Math.round(px) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  const a = "airadar", b = ".me", wa = ctx.measureText(a).width, wb = ctx.measureText(b).width;
+  const w = pad + mk + h * 0.22 + wa + wb + pad * 1.1;
+  const x = W * 0.045, y = Math.max(H * 0.035, U * 0.045);
+  // the pill: dark glass, a gloss on its upper half, a thin gradient edge
+  const pill = () => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, h / 2); else ctx.rect(x, y, w, h); };
+  ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = h * 0.35; ctx.shadowOffsetY = h * 0.06;
+  pill(); ctx.fillStyle = "rgba(6,9,16,0.62)"; ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.save(); pill(); ctx.clip();
+  const gl = ctx.createLinearGradient(0, y, 0, y + h * 0.55);
+  gl.addColorStop(0, "rgba(255,255,255,0.14)"); gl.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gl; ctx.fillRect(x, y, w, h * 0.55);
+  ctx.restore();
+  const eg = ctx.createLinearGradient(x, y, x + w, y + h);
+  eg.addColorStop(0, "rgba(2,222,253,0.85)"); eg.addColorStop(1, "rgba(2,89,255,0.5)");
+  ctx.lineWidth = Math.max(1, h * 0.03); ctx.strokeStyle = eg; pill(); ctx.stroke();
+  // the mark, then the address
+  const mx = x + pad * 0.85, my = y + (h - mk) / 2;
+  if (vsWmMarkC) ctx.drawImage(vsWmMarkC, mx, my, mk, mk);
+  const tx = mx + mk + h * 0.22, ty = y + h / 2 + px * 0.04;
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.fillStyle = "#ffffff"; ctx.fillText(a, tx, ty);
+  ctx.fillStyle = "#12d6f5"; ctx.fillText(b, tx + wa, ty);
   ctx.restore();
 }
 // The switch next to Export, in the studio: on for guests (and greyed),
@@ -25738,6 +25757,7 @@ function vsWmToggleHtml(id) {
     "<span>" + (fa ? "واترمارک «airadar.me»" : "“airadar.me” watermark") + '</span><span class="vs-wm-note" style="font-weight:500;color:#8a919c"></span></label>';
 }
 function vsWmWire(root) {
+  vsWmMark();
   (root || document).querySelectorAll(".vs-wm-toggle").forEach((c) => {
     if (c._wm) return; c._wm = true;
     c.addEventListener("change", () => { if (!vstudio._signedIn) { c.checked = true; return; } vsSetWatermark(c.checked); });
@@ -25752,6 +25772,7 @@ function vsWmWire(root) {
   });
 }
 function vsWmEnsureStudioToggle() {
+  vsWmMark();
   const eb = document.getElementById("vsExportBtn");
   if (!eb || document.getElementById("vsWmToggle")) return;
   eb.insertAdjacentHTML("afterend", '<div id="vsWmWrap">' + vsWmToggleHtml("vsWmToggle") + "</div>");
