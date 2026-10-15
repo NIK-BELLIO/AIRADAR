@@ -15016,6 +15016,7 @@ function vsEditStudio(preset, filesIn) {
         '<input id="emMusicVol" type="range" min="0" max="100" step="5" value="' + Math.round(vsMusicLevel() * 100) + '" aria-label="' + L("Music volume", "بلندی موسیقی") + '"/>' +
         '<label class="ts-switch"><input type="checkbox" id="emSndFx"' + (vstudio._editSfxOn ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Sound effects", "افکت صوتی") + "</span></label>" +
         '<input id="emFxVol" type="range" min="0" max="200" step="10" value="' + Math.round((vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) * 100) + '" aria-label="' + L("Sound effects volume", "بلندی افکت‌ها") + '"/>' +
+        '<div style="grid-column:1/-1">' + vsWmToggleHtml("emWm") + "</div>" +
       "</div>" +
       '<div class="em-acts">' +
       (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
@@ -15142,6 +15143,7 @@ function vsEditStudio(preset, filesIn) {
     vstudio._gxRedraw = () => redraw();
     if ($$("emReTheme")) $$("emReTheme").onclick = pickTheme;
     // music and sound effects: on or off, and how loud - heard at once, no new edit
+    vsWmWire(ov);
     {
       const mv = $$("emMusicVol"), fv = $$("emFxVol");
       const sync = () => { mv.disabled = !$$("emSndMusic").checked; fv.disabled = !$$("emSndFx").checked; };
@@ -25663,7 +25665,106 @@ function drawEditorialFrame(ctx, W, H, s, local, dur) {
   drawEditorialText(ctx, W, H, s, pal, enter, local, false);
 }
 
+// ── The watermark: "MADE BY / AIRADAR.ME" ───────────────────────────────────
+// Two stacked, tilted tags in the corner - a lime one and a blue one, heavy
+// italic capitals with a dark edge - the sticker look of the AI tools'
+// own badges. On every video, preview and export alike. A signed-in member
+// may switch it off (remembered); a guest's videos always carry it.
+const VS_WM_LS = "arWmOff";
+let vsSignedInP = null;
+function vsSignedIn() {
+  if (!vsSignedInP) vsSignedInP = fetch("/api/generations", { credentials: "include", cache: "no-store" })
+    .then((r) => { vstudio._signedIn = !!(r && r.ok); return vstudio._signedIn; })
+    .catch(() => { vstudio._signedIn = false; return false; });
+  return vsSignedInP;
+}
+function vsWatermarkOn() {
+  if (!vstudio._signedIn) return true;
+  let off = false;
+  try { off = localStorage.getItem(VS_WM_LS) === "1"; } catch (e) {}
+  return !off;
+}
+function vsSetWatermark(on) {
+  try { localStorage.setItem(VS_WM_LS, on ? "0" : "1"); } catch (e) {}
+  document.querySelectorAll(".vs-wm-toggle").forEach((c) => { c.checked = vsWatermarkOn(); });
+  if (!vstudio.looping) { try { drawStudioFrame(vstudio.position || 0); } catch (e) {} }
+}
+let vsWmFontP = null;
+function vsWmFont() {
+  if (!vsWmFontP) vsWmFontP = (async () => {
+    if (!document.getElementById("vsWmFontCss")) {
+      const l = document.createElement("link"); l.id = "vsWmFontCss"; l.rel = "stylesheet";
+      l.href = "https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"; document.head.appendChild(l);
+    }
+    try { await Promise.race([document.fonts.load('400 40px "Archivo Black"'), new Promise((r) => setTimeout(r, 5000))]); } catch (e) {}
+  })();
+  return vsWmFontP;
+}
+function vsDrawWatermark() {
+  const canvas = document.getElementById("vsCanvas");
+  if (!canvas || !vstudio.slides || !vstudio.slides.length || !vsWatermarkOn()) return;
+  vsWmFont();
+  const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height, U = Math.min(W, H * 0.62);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 0.96; ctx.filter = "none"; ctx.globalCompositeOperation = "source-over";
+  // a tag: a slanted box, a dark edge, the words in heavy italic capitals
+  const tag = (txt, x, y, px, bg, fg) => {
+    ctx.font = '400 ' + Math.round(px) + 'px "Archivo Black", "Arial Black", system-ui, sans-serif';
+    const tw = ctx.measureText(txt).width, padX = px * 0.42, h = px * 1.32, w = tw + padX * 2;
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(-0.06); ctx.transform(1, 0, -0.14, 1, 0, 0);
+    ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = px * 0.5; ctx.shadowOffsetY = px * 0.12;
+    ctx.fillStyle = "#0a0b0f"; ctx.fillRect(-px * 0.07, -h / 2 - px * 0.07, w + px * 0.14, h + px * 0.14);
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = bg; ctx.fillRect(0, -h / 2, w, h);
+    ctx.fillStyle = fg; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillText(txt, padX, px * 0.06);
+    ctx.restore();
+    return w;
+  };
+  const px1 = U * 0.034, px2 = U * 0.042;
+  const x = W * 0.05, y = Math.max(H * 0.045, U * 0.06);
+  tag("MADE BY", x, y, px1, "#e4ff3a", "#0a0b0f");
+  tag("AIRADAR.ME", x + px1 * 0.9, y + px1 * 1.55, px2, "#2563ff", "#ffffff");
+  ctx.restore();
+}
+// The switch next to Export, in the studio: on for guests (and greyed),
+// a member's own choice once signed in.
+function vsWmToggleHtml(id) {
+  const fa = state.lang === "fa";
+  return '<label class="vs-wm-row" style="display:flex;align-items:center;gap:8px;margin-top:8px;font:600 12.5px Manrope,Vazirmatn,system-ui,sans-serif;color:#c9ccd3;cursor:pointer">' +
+    '<input type="checkbox" class="vs-wm-toggle" id="' + id + '" checked style="accent-color:#2563ff;width:16px;height:16px"/>' +
+    "<span>" + (fa ? "واترمارک «airadar.me»" : "“airadar.me” watermark") + '</span><span class="vs-wm-note" style="font-weight:500;color:#8a919c"></span></label>';
+}
+function vsWmWire(root) {
+  (root || document).querySelectorAll(".vs-wm-toggle").forEach((c) => {
+    if (c._wm) return; c._wm = true;
+    c.addEventListener("change", () => { if (!vstudio._signedIn) { c.checked = true; return; } vsSetWatermark(c.checked); });
+  });
+  vsSignedIn().then((ok) => {
+    const fa = state.lang === "fa";
+    (root || document).querySelectorAll(".vs-wm-toggle").forEach((c) => {
+      c.checked = vsWatermarkOn(); c.disabled = !ok;
+      const n = c.parentElement && c.parentElement.querySelector(".vs-wm-note");
+      if (n) n.innerHTML = ok ? "" : '· <a href="/login" style="color:#5b9bff">' + (fa ? "برای خاموش کردن وارد شو" : "sign in to turn it off") + "</a>";
+    });
+  });
+}
+function vsWmEnsureStudioToggle() {
+  const eb = document.getElementById("vsExportBtn");
+  if (!eb || document.getElementById("vsWmToggle")) return;
+  eb.insertAdjacentHTML("afterend", '<div id="vsWmWrap">' + vsWmToggleHtml("vsWmToggle") + "</div>");
+  vsWmWire(document.getElementById("vsWmWrap"));
+}
+
+// Every frame, then the watermark over all of it.
 function drawStudioFrame(elapsed) {
+  const r = drawStudioFrameCore(elapsed);
+  try { vsDrawWatermark(); } catch (e) {}
+  return r;
+}
+function drawStudioFrameCore(elapsed) {
   const canvas = $("#vsCanvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
@@ -27893,6 +27994,7 @@ function vsShowBuiltVideo() {
   try { stopStudioPreview(); } catch (e) {}
   buildPreviewCanvas();
   try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
+  try { vsWmEnsureStudioToggle(); } catch (e) {}
   try { const _cb = document.getElementById("vsCoverBtn"); if (_cb) _cb.style.display = ""; } catch {}
   try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
   vstudio.position = 0;
@@ -27962,6 +28064,7 @@ function previewStudioVideo(fromStart) {
   buildPreviewCanvas();
   // A real video now exists — reveal the Export button (hidden until first build).
   try { const _eb = document.getElementById("vsExportBtn"); if (_eb) _eb.style.display = ""; } catch {}
+  try { vsWmEnsureStudioToggle(); } catch (e) {}
   try { const _cb = document.getElementById("vsCoverBtn"); if (_cb) _cb.style.display = ""; } catch {}
   try { if (typeof vsProbeDashboardLogin === "function") vsProbeDashboardLogin(); } catch (e) {}
   vstudio._logoVidVisible = false;   // logo restarts cleanly when it first appears
