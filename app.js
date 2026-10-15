@@ -13576,8 +13576,8 @@ function vsEditStudio(preset, filesIn) {
         '<select id="emLayout" class="em-c" style="padding:9px 10px;border-radius:9px;background:#08090c;color:#f4f5f7;border:1px solid rgba(255,255,255,.12);font:500 13px Manrope,system-ui,sans-serif">' +
           '<option value="auto">' + L("Automatic", "خودکار") + '</option><option value="card">' + L("Graphic card", "کارت گرافیکی") + '</option><option value="full">' + L("Full frame", "تمام‌صفحه") + "</option></select>" +
       "</div></div>" +
-      '<p class="ts-note">' + L("Free. Your video stays on this device; only its sound and a few still frames are sent to be analysed.", "رایگان. ویدیو روی همین دستگاه می‌ماند؛ فقط صدایش و چند فریم ثابت برای تحلیل فرستاده می‌شود.") +
-        " " + L("Stock footage from", "فوتیج آماده از") + ' <a href="https://www.pexels.com" target="_blank" rel="noopener" style="color:#c9ccd3">Pexels</a>.</p>' +
+      // Pexels' API terms ask for a visible link wherever their media is used
+      '<p class="ts-note">' + L("Stock by", "فوتیج از") + ' <a href="https://www.pexels.com" target="_blank" rel="noopener" style="color:#c9ccd3">Pexels</a></p>' +
       '<p id="emWeak" class="ts-warn" hidden>' + L("This device has no graphics acceleration: a Pro edit is limited to 3 minutes, exports at 720p and takes longer. A computer is faster.",
         "این دستگاه شتاب گرافیکی ندارد: ادیت حرفه‌ای حداکثر ۳ دقیقه است، با کیفیت 720p خروجی می‌دهد و بیشتر طول می‌کشد. با کامپیوتر سریع‌تر است.") + "</p>" +
       '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Edit it", "ادیتش کن") + "</button></div>" +
