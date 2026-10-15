@@ -11829,7 +11829,10 @@ async function vsProPlaceInserts(slides, list, words, sentences, aspect) {
 // slow motion), whip / zoom / flash cuts between them, letterbox bars, a
 // grade, and the name and price set in. Their voice carries on underneath.
 const VS_SHOW_MOVES = ["push", "panL", "tilt", "pull", "panR", "pushRot"];
-const VS_SHOW_CUTS = ["whip", "zoom", "flash", "whip"];
+// Cinematic, as the owner asked: a light leak sweeping through a dissolve, a
+// dip to warm light, a slow cross-zoom, a focus pull - half a second each.
+const VS_SHOW_CUTS = ["leak", "glide", "flare", "focus"];
+const VS_SHOW_T = 0.55;
 // Which shot of a showcase is on screen at t (seconds into the insert), how
 // far into it, and - for a video - where in the clip, with the speed ramp.
 function vsShowShotAt(ins, t) {
@@ -11839,33 +11842,53 @@ function vsShowShotAt(ins, t) {
     const sh = shots[k], d = sh.dur;
     if (t < a + d || k === shots.length - 1) {
       const st = Math.max(0, Math.min(d, t - a));
-      let vt = 0;
-      if (sh.vid) {
-        // quick for the first part of the shot, then slow motion to the cut
-        const split = d * 0.5;
-        vt = sh.ramp ? sh.in + (st < split ? st * 1.5 : split * 1.5 + (st - split) * 0.55) : sh.in + st;
-        vt = Math.min(Math.max(0, (sh.vid.duration || 0) - 0.05), vt);
-      }
-      return { k, sh, st, p: d > 0 ? st / d : 1, vt, start: a };
+      return { k, sh, st, p: d > 0 ? st / d : 1, vt: vsShowVt(sh, st), start: a };
     }
     a += d;
   }
   return null;
 }
-// A shot's move at progress p (0..1): zoom, pan, tilt and turn.
+// Where a video shot is in its clip st seconds in: a speed ramp that eases
+// from a little quick to a little slow - no step in speed, no jump.
+function vsShowVt(sh, st) {
+  if (!sh.vid) return 0;
+  let vt = sh.in;
+  if (!sh.ramp) vt += st;
+  else {
+    const n = 12, dt = st / n;
+    for (let i = 0; i < n; i++) { const u = ((i + 0.5) * dt) / sh.dur, k = Math.max(0, Math.min(1, (u - 0.3) / 0.4)); vt += dt * (1.25 - 0.5 * k * k * (3 - 2 * k)); }
+  }
+  return Math.min(Math.max(0, (sh.vid.duration || 0) - 0.05), vt);
+}
+// A shot's move at progress p: a steady glide - zoom, pan, tilt or a slow
+// turn - the camera never rushes. p may run a little past 0..1 while a
+// transition overlaps two shots; the move carries on at the same pace.
 function vsShowXf(sh, p) {
-  // fast at the start, gliding at the end - the action feel
-  const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
-  let z = 1.06, ox = 0, oy = 0, rot = 0;
+  const q = Math.max(-0.2, Math.min(1.2, p)), e = q < 0 || q > 1 ? q : q * q * (3 - 2 * q) * 0.6 + q * 0.4;
+  let z = 1.05, ox = 0, oy = 0, rot = 0;
   const m = sh.move;
-  if (sh.vid) z = 1.02 + 0.06 * e;
-  else if (m === "push") z = 1.04 + 0.16 * e;
-  else if (m === "pull") z = 1.22 - 0.16 * e;
-  else if (m === "panL") { z = 1.18; ox = 0.07 - 0.14 * e; }
-  else if (m === "panR") { z = 1.18; ox = -0.07 + 0.14 * e; }
-  else if (m === "tilt") { z = 1.18; oy = 0.06 - 0.12 * e; }
-  else if (m === "pushRot") { z = 1.06 + 0.14 * e; rot = (-0.6 + 1.6 * e) * Math.PI / 180; }
+  if (sh.vid) z = 1.03 + 0.04 * e;
+  else if (m === "push") z = 1.04 + 0.09 * e;
+  else if (m === "pull") z = 1.14 - 0.09 * e;
+  else if (m === "panL") { z = 1.14; ox = 0.045 - 0.09 * e; }
+  else if (m === "panR") { z = 1.14; ox = -0.045 + 0.09 * e; }
+  else if (m === "tilt") { z = 1.14; oy = 0.04 - 0.08 * e; }
+  else if (m === "pushRot") { z = 1.06 + 0.08 * e; rot = (-0.4 + 0.8 * e) * Math.PI / 180; }
   return { z, ox, oy, rot };
+}
+// The two shots a transition is joining at t, if one is: the shot before,
+// the shot after, how far through (0..1) and each one's progress.
+function vsShowJoin(ins, t) {
+  const shots = ins.shots || [], T = VS_SHOW_T;
+  let a = 0;
+  for (let k = 0; k < shots.length - 1; k++) {
+    a += shots[k].dur;
+    if (t >= a - T / 2 && t < a + T / 2) {
+      const a0 = a - shots[k].dur;
+      return { k, from: shots[k], to: shots[k + 1], u: (t - (a - T / 2)) / T, pFrom: (t - a0) / shots[k].dur, pTo: (t - a) / shots[k + 1].dur, stFrom: t - a0, stTo: Math.max(0, t - a) };
+    }
+  }
+  return null;
 }
 // One shot, filling the frame, with its move at progress p (0..1). `src`
 // draws something else in the same place - the shot's cut-out foreground.
@@ -11982,34 +12005,44 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
   const grade = "contrast(1.08) saturate(1.12) brightness(1.02)";
   try { ctx.filter = grade; } catch (e) {}
-  // the cut into this shot: a whip, a zoom through or a flash
-  const T = 0.2, into = at.st < T && at.k > 0 ? at.st / T : 1;
-  const cut = VS_SHOW_CUTS[(at.k + (ins.seed || 0)) % VS_SHOW_CUTS.length];
-  const prev = at.k > 0 ? ins.shots[at.k - 1] : null;
+  // a light leak: warm light washing across from one side
+  const leak = (amt, side) => {
+    if (amt <= 0.01) return;
+    ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = Math.min(1, amt);
+    const cx = side > 0 ? W * 1.05 : -W * 0.05, cy = H * (0.3 + 0.2 * side);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.9);
+    g.addColorStop(0, "rgba(255,214,150,0.95)"); g.addColorStop(0.35, "rgba(255,140,60,0.55)"); g.addColorStop(0.7, "rgba(200,60,40,0.15)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  };
+  const join = vsShowJoin(ins, t);
   let still = false;
-  if (into < 1 && prev && cut === "whip") {
-    // both shots sliding, smeared in the direction of travel
-    const e = 0.5 - Math.cos(Math.PI * into) / 2, dir = at.k % 2 ? 1 : -1;
-    for (let j = 0; j < 5; j++) {
-      ctx.globalAlpha = j ? 0.22 : 1;
-      const sm = j * W * 0.025 * Math.sin(Math.PI * into);
-      vsShowDrawShot(ctx, W, H, prev, 1, 1, -dir * W * e - sm * dir);
-      vsShowDrawShot(ctx, W, H, at.sh, 0, 1, dir * W * (1 - e) - sm * dir);
+  if (join) {
+    // two shots, joined the way a film editor joins them
+    const u = join.u, e = u * u * (3 - 2 * u);
+    const cut = VS_SHOW_CUTS[(join.k + (ins.seed || 0)) % VS_SHOW_CUTS.length];
+    if (cut === "glide") {
+      vsShowDrawShot(ctx, W, H, join.from, join.pFrom, 1 + 0.08 * e, 0);
+      ctx.globalAlpha = e; vsShowDrawShot(ctx, W, H, join.to, join.pTo, 1.08 - 0.08 * e, 0); ctx.globalAlpha = 1;
+    } else if (cut === "focus") {
+      try { ctx.filter = grade + " blur(" + (Math.sin(Math.PI * u) * W * 0.012).toFixed(1) + "px)"; } catch (er) {}
+      vsShowDrawShot(ctx, W, H, join.from, join.pFrom, 1, 0);
+      ctx.globalAlpha = e; vsShowDrawShot(ctx, W, H, join.to, join.pTo, 1, 0); ctx.globalAlpha = 1;
+      try { ctx.filter = grade; } catch (er) {}
+    } else {
+      vsShowDrawShot(ctx, W, H, join.from, join.pFrom, 1, 0);
+      ctx.globalAlpha = e; vsShowDrawShot(ctx, W, H, join.to, join.pTo, 1, 0); ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
-  } else if (into < 1 && prev && cut === "zoom") {
-    // the old shot rushes in, the new one lands from big
-    const e = into;
-    if (e < 0.5) { for (let j = 0; j < 4; j++) { ctx.globalAlpha = j ? 0.25 : 1; vsShowDrawShot(ctx, W, H, prev, 1, 1 + e * 0.9 + j * 0.04, 0); } }
-    else { for (let j = 0; j < 4; j++) { ctx.globalAlpha = j ? 0.25 : 1; vsShowDrawShot(ctx, W, H, at.sh, 0, 1 + (1 - e) * 0.6 + j * 0.03, 0); } }
-    ctx.globalAlpha = 1;
+    ctx.filter = "none";
+    if (cut === "leak") leak(Math.sin(Math.PI * u) * 0.9, join.k % 2 ? 1 : -1);
+    if (cut === "flare") { ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.fillStyle = "rgba(255,236,205," + (Math.sin(Math.PI * u) * 0.75).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); ctx.restore(); }
   } else {
     vsShowDrawShot(ctx, W, H, at.sh, at.p, 1, 0);
     still = true;
-    if (into < 1 && cut === "flash") { ctx.fillStyle = "rgba(255,255,255," + (0.85 * (1 - into)) + ")"; ctx.fillRect(0, 0, W, H); }
   }
   ctx.filter = "none";
-  if (t < 0.14) { ctx.fillStyle = "rgba(255,255,255," + (0.7 * (1 - t / 0.14)) + ")"; ctx.fillRect(0, 0, W, H); }
+  // and a soft light drifting across the whole montage
+  { const ph = (t / Math.max(1, len)) * 2 - 1; leak(0.16 + 0.06 * Math.sin(t * 1.3), ph > 0 ? 1 : -1); }
+
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   // full frame, as in the reels it copies (letterbox bars only took room)
@@ -12032,7 +12065,11 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   let g = null;
   for (const x of groups) if (x.t0 <= local + 0.001 && local < x.t1) g = x;
   if (g && !g.off) {
-    const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
+    // fading with the picture as the speaker dissolves in or out - never left
+    // standing on their face
+    const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+    const edge = Math.min(sm(t / 0.5), 1 - sm((t - (len - 0.45)) / 0.45));
+    const out = (local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1) * edge;
     const hi = g.single ? 0 : g.hero;
     const heroIt = g.items[hi];
     const small = g.items.filter((x, k) => k !== hi).map((x) => x.w).join(" ");
@@ -12044,7 +12081,14 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
     // last, nor more than a quarter of them - "MORT" of MORTGAGE was a facade.
     let hy = H * 0.36, behind = false;
     let hw = heroIt ? vsProInsWord(ctx, heroIt.w, hst, hpx, W / 2, hy, colors[0], heroIt.t0, W * 0.9, "center") : null;
-    if (hw && cutOut) {
+    // A group keeps the place it was given for as long as it is on screen -
+    // set again at a shot change, its words jumped mid-sentence. Behind the
+    // subject only on that shot, still; in front, in the same place, after.
+    const pin = g._showPin && g._showPin.ins === ins && g._showPin.W === W ? g._showPin : null;
+    if (pin) {
+      hy = pin.y; behind = pin.behind && pin.sh === at.sh && still && !!cutOut;
+      hw = vsProInsWord(ctx, heroIt.w, hst, hpx, pin.cx, hy, colors[0], heroIt.t0, W * 0.9, "center");
+    } else if (hw && cutOut) {
       const yTop = vsShowScreenY(W, H, at.sh, at.p, cutOut.top);
       if (yTop > H * 0.2 && yTop < H * 0.75) {
         const nL = hw.pieces.length || 1, allow = nL >= 4 ? Math.floor(nL / 4) : 0;
@@ -12076,6 +12120,7 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
         hw = vsProInsWord(ctx, heroIt.w, hst, hpx, best ? best.cx : W / 2, hy, colors[0], heroIt.t0, W * 0.9, "center");
       }
     }
+    if (hw && !pin && still) g._showPin = { ins, W, sh: at.sh, y: hy, cx: hw.x + hw.w / 2, behind };
     const scx = hw ? Math.max(W * 0.08 + Math.min(W * 0.86, hw.w) / 2, Math.min(W * 0.92 - Math.min(W * 0.86, hw.w) / 2, hw.x + hw.w / 2)) : W / 2;
     const sw = small ? vsProInsWord(ctx, small, sst, sst.size * U, scx, (hw ? hw.y - hw.px * 0.62 : hy) - sst.size * U * 0.3, colors[1] || "#ffffff", g.items[0].t0, W * 0.86, "center") : null;
     if (sw) sw.role = "small";
@@ -12083,7 +12128,7 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
     if (hw && local >= g.items[0].t0) {
       const top = sw ? sw.y - sw.px * 0.7 : hw.y - hw.px * 0.6, bot = hw.y + hw.px * 0.6, cy = (top + bot) / 2;
       const rx = Math.max(hw.w, sw ? sw.w : 0) * 0.7 + U * 0.1, ry = (bot - top) * 0.85;
-      ctx.save(); ctx.translate(hw.x + hw.w / 2, cy); ctx.scale(1, ry / rx);
+      ctx.save(); ctx.globalAlpha = edge; ctx.translate(hw.x + hw.w / 2, cy); ctx.scale(1, ry / rx);
       const sc = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
       sc.addColorStop(0, "rgba(0,0,0,0.42)"); sc.addColorStop(0.6, "rgba(0,0,0,0.22)"); sc.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = sc; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
@@ -12128,6 +12173,19 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
       }
       ctx.restore();
     }
+  }
+  // In from the speaker and back out to them through light, not a cut - and
+  // drawn last, over the words and the cut-out, so nothing of the montage
+  // stands on the speaker's face while they dissolve.
+  if (t < 0.5) {
+    const u = t / 0.5;
+    ctx.save(); ctx.globalAlpha = 1 - u * u * (3 - 2 * u); ctx.drawImage(F, 0, 0, W, H); ctx.restore();
+    leak(Math.sin(Math.PI * u) * 0.85, 1);
+  }
+  if (t > len - 0.45) {
+    const u = Math.min(1, (t - (len - 0.45)) / 0.45);
+    ctx.save(); ctx.globalAlpha = u * u * (3 - 2 * u); ctx.drawImage(F, 0, 0, W, H); ctx.restore();
+    leak(Math.sin(Math.PI * u) * 0.8, -1);
   }
   ctx.restore();
 }
@@ -12193,8 +12251,9 @@ async function vsProPlaceShowcase(slides, show) {
     }
     const left = media.length - m, slotsLeft = picks.length - pi;
     const len = Math.max(2.2, Math.min(d - 0.1, 4.6));
-    let k = Math.max(2, Math.min(4, Math.round(len / 1.1)));
-    if (slotsLeft === 1) k = Math.max(k, Math.min(4, left));
+    // about two seconds a shot - room for the move and the dissolve
+    let k = Math.max(2, Math.min(3, Math.round(len / 1.9)));
+    if (slotsLeft === 1) k = Math.max(k, Math.min(3, left));
     let sd = len / k;
     if (beat) { const b = Math.max(1, Math.round(sd / beat)); if (b * beat * k <= len + 0.01) sd = b * beat; }
     const shots = [];
@@ -12203,7 +12262,7 @@ async function vsProPlaceShowcase(slides, show) {
       const dur = j === k - 1 ? Math.max(0.5, len - sd * (k - 1)) : sd;
       const sh = { dur, move: VS_SHOW_MOVES[(m + pi) % VS_SHOW_MOVES.length] };
       if (md.vid) {
-        const vd = md.vid.duration || 0, need = dur * 1.15;
+        const vd = md.vid.duration || 0, need = dur * 1.1 + VS_SHOW_T;
         sh.vid = md.vid; sh.ramp = vd > need + 0.3;
         sh.in = Math.max(0, Math.min(vd * 0.2, vd - need - 0.05));
       } else sh.img = md.img;
@@ -12438,9 +12497,11 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   let gi = -1;
   for (let k = 0; k < groups.length; k++) if (groups[k].t0 <= local + 0.001 && local < groups[k].t1) gi = k;
   const g = gi >= 0 ? groups[gi] : null;
-  // camera: alternate cuts punched in, a slow push, a kick when the hero lands
+  // camera: a slow, steady push. (A punch and a shake on every hero word was
+  // dropped - the owner: "no jump on every word, the viewer's eyes tire".)
+  const kick = 0;
+  // the hero's moment still times the Gold look's colour wash
   const heroT = g && !g.single ? g.items[g.hero].t0 : -9;
-  const kick = local >= heroT && local - heroT < 0.5 ? Math.exp(-(local - heroT) / 0.12) : 0;
   const userZ = Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1));
   const baseZ = s._broll ? 1 : (s._proZ || 1);
   const z = baseZ * (1 + 0.05 * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
@@ -12496,6 +12557,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
         if (v.paused) { try { v.currentTime = sa.vt; } catch (e) {} v.play().catch(() => {}); }
         else if (Math.abs(v.currentTime - sa.vt) > 0.35) { try { v.currentTime = sa.vt; } catch (e) {} }
       } else if (!v.paused && !(sa && sa.sh.vid === v)) { try { v.pause(); } catch (e) {} }
+      else if (v.paused && sa && sa.sh !== sh && Math.abs(v.currentTime - sh.in) > 0.2) { try { v.currentTime = sh.in; } catch (e) {} }
     });
   }
   if (s._ins && s._ins.el && !vstudio.rendering && vstudio.looping) {
@@ -12787,7 +12849,7 @@ function vsProSfxEvents(slides) {
     if (ins && ins.shots) {
       ev.push({ n: "riser", t: t + ins.at + 0.05, g: 0.6 });
       let a = 0;
-      ins.shots.forEach((sh, j) => { if (j) ev.push({ n: pick("cut"), t: t + ins.at + a + 0.04, g: 0.7 }); a += sh.dur; });
+      ins.shots.forEach((sh, j) => { if (j) ev.push({ n: j % 2 ? "whoosh" : "riser", t: t + ins.at + a, g: 0.5 }); a += sh.dur; });
       if (ins.value) ev.push({ n: pick("big"), t: t + ins.at + 0.6, g: 0.5 });
     } else if (ins) {
       ev.push({ n: pick("cut"), t: t + ins.at + 0.06, g: 0.85 });
@@ -14928,6 +14990,8 @@ function vsEditStudio(preset, filesIn) {
   // rewritten or removed - and the change is in the next frame and the export.
   const showDone = () => {
     $$("emNew").hidden = false;
+    const expProg = '<div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
+      '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button>";
     const src = document.querySelector("#vsCanvas");
     const W = (src && src.width) || 1080, H = (src && src.height) || 1920;
     const icoL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
@@ -14956,8 +15020,7 @@ function vsEditStudio(preset, filesIn) {
       '<div class="em-acts">' +
       (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
       '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button></div>" +
-      '<div id="emExp" class="em-prog" hidden><div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
-      '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button></div>";
+      '<div id="emExp" class="em-prog" hidden>' + expProg + "</div>";
     const cv = $$("emCv"), cx = cv.getContext("2d");
     const copy = () => { const c = document.querySelector("#vsCanvas"); if (c && c.width) { if (cv.width !== c.width || cv.height !== c.height) { cv.width = c.width; cv.height = c.height; } cx.drawImage(c, 0, 0); } drawSel(); };
     const total = () => Math.max(0.1, studioDuration());
@@ -15117,6 +15180,10 @@ function vsEditStudio(preset, filesIn) {
     $$("emExport").onclick = async () => {
       if (busy) return;
       pause(); select(null);
+      // A second export in the same window: the first one's download link had
+      // taken the place of the progress bar and its Cancel - the export threw
+      // on the missing button and left every control disabled.
+      $$("emExp").innerHTML = expProg;
       busy = true;
       ["emPlay", "emExport", "emPrev", "emNext"].forEach((id) => { $$(id).disabled = true; });
       $$("emPos").disabled = true;
@@ -16855,7 +16922,7 @@ async function vsEditMyVideo(fileIn, o) {
       vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
       vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
       vstudio.slides.forEach((sl, i) => {
-        sl._pro = pro; sl._noCaps = true; sl._proZ = i % 2 ? 1.14 : 1;
+        sl._pro = pro; sl._noCaps = true; sl._proZ = i % 2 ? 1.06 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
         if (i === 0 || !o.trans) { delete sl._transIn; return; }
         if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
@@ -28916,9 +28983,11 @@ async function _vsSeekActiveFootage(t) {
   // a pro edit's cinematic insert: its own footage, from the insert's start
   const ins = slide._ins;
   if (ins && ins.shots && !ins.off && at.local >= ins.at && at.local < ins.at + ins.len) {
-    const sa = vsShowShotAt(ins, at.local - ins.at);
-    const v = sa && sa.sh.vid;
-    if (v) { try { v.pause(); } catch (e) {} if (Math.abs((v.currentTime || 0) - sa.vt) > 0.008) await _vsSeekVideo(v, sa.vt, _vsSeekPatient(v, sa.vt)); }
+    const ti = at.local - ins.at, sa = vsShowShotAt(ins, ti), jn = vsShowJoin(ins, ti);
+    const want = [];
+    if (jn) { if (jn.from.vid) want.push([jn.from.vid, vsShowVt(jn.from, jn.stFrom)]); if (jn.to.vid) want.push([jn.to.vid, vsShowVt(jn.to, jn.stTo)]); }
+    else if (sa && sa.sh.vid) want.push([sa.sh.vid, sa.vt]);
+    for (const [v, vt] of want) { try { v.pause(); } catch (e) {} if (Math.abs((v.currentTime || 0) - vt) > 0.008) await _vsSeekVideo(v, vt, _vsSeekPatient(v, vt)); }
   }
   if (ins && ins.el && !ins.off && at.local >= ins.at && at.local < ins.at + ins.len) {
     const el = ins.el, d = Math.max(0.5, (el.duration || 10) - 0.1), want = (at.local - ins.at) % d;
