@@ -11201,7 +11201,9 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   });
   const hw = words.filter((w) => w.role === "hero");
   const box = hw.length ? { x: Math.min(...hw.map((w) => w.x)), y: hw[0].y - hw[0].px * 0.42, w: Math.max(...hw.map((w) => w.x + w.w)) - Math.min(...hw.map((w) => w.x)), h: hw[0].px * 0.84 } : null;
-  g._lay = { W, H, words, box, front };
+  // laid out before the face or the cut-out were known (the models still
+  // loading): kept only until they are - it may sit on the face
+  g._lay = { W, H, words, box, front, blind: !face || !coverOf };
   return g._lay;
 }
 
@@ -12078,16 +12080,31 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
   else if (g && !g.off && !(ed && ed.off)) {
     let mask = null, face = null;
-    if (!g._lay) { mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask); }
+    // A group is laid out once, where the face is - but a layout made while
+    // the face finder and the cut-out were still loading did not know where
+    // the face was, and kept its words on it for good (the export too). It is
+    // tried again until they are there.
+    const blind = g._lay && g._lay.blind && (vstudio.rendering || !(Math.abs(local - (g._layTry || -9)) < 0.25));
+    if (!g._lay || blind) {
+      mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask);
+      g._layTry = local;
+      if (blind && face && mask && mask.a) delete g._lay;
+    }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
     const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
     if (heroes.length && lay.box && !(ed && ed.front === true)) {
       mask = vsProMask(F, W, H, s, local);
+      const wantBehind = ed && ed.front === false ? true : !lay.front;
+      // no fresh cut-out this frame: the last one of this cut, if it is recent
+      if (wantBehind && !(mask && mask.P)) { const st = vstudio._proSegState; if (st && st.P && st.s === s && Math.abs(st.local - local) < 0.6) mask = st; }
       // behind the speaker where the layout chose it (or the customer did);
       // in front otherwise - it could land on their face
-      behind = !!(mask && mask.P) && (ed && ed.front === false ? true : !lay.front);
+      behind = !!(mask && mask.P) && wantBehind;
+      // placed across the head to go behind it, and nothing to put in front
+      // of it: not drawn this frame rather than drawn on the face
+      if (wantBehind && !behind && !(ed && ed.front === false)) heroes.length = 0;
     }
     // the customer's move and size, around the group's own centre
     const bx0 = Math.min(...lay.words.map((w) => w.x)), bx1 = Math.max(...lay.words.map((w) => w.x + w.w));
@@ -12104,7 +12121,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       moved(() => heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H)));
       ctx.drawImage(mask.P, 0, 0);
     }
-    moved(() => lay.words.forEach((w) => { if (!(behind && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
+    const hideHero = !behind && !lay.front && !(ed && ed.front === true) && !heroes.length && lay.words.some((w) => w.role === "hero" && local >= w.t0);
+    moved(() => lay.words.forEach((w) => { if (!((behind || hideHero) && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
     if (!vstudio.rendering) {
       const hw = (bx1 - bx0) * sc / 2, hh = (by1 - by0) * sc / 2;
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
