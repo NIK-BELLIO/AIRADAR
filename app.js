@@ -14456,7 +14456,7 @@ function vsEditStudio(preset, filesIn) {
       try { if (vstudio.looping) stopStudioPreview(); } catch (er) {}
       if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (er) {} }
       vstudio._statusHook = null; vstudio._exportProgress = null;
-      vstudio._editCache = null; vstudio._musicStash = null;
+      vsResetStudioProject();
       vsEditStudioMem = { files: [], mode, settings: settingsNow(), doneSeq: -1, running: null };
       ov.remove();
       vsEditStudio({ mode }, []);
@@ -27355,6 +27355,29 @@ function vsShowBuiltVideo() {
   setPlayBtn(false);
   // the cut sounds are made once (in the browser) and laid on the track
   vsRemixBuildSound();
+}
+// A new project: the studio as a fresh page has it - no scenes, no voice,
+// no music, the empty preview - without reloading the page. (The Edit
+// studio's New project emptied its own window and left the last edit in the
+// studio behind it, timeline and all.)
+function vsResetStudioProject() {
+  try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
+  (vstudio.slides || []).forEach((s) => [s.mediaEl, s._ins && s._ins.el].forEach((el) => { if (el && el.pause) { try { el.pause(); } catch (e) {} } }));
+  if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch (e) {} }
+  vsClearVoiceTrack();
+  vstudio.slides = [];
+  vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
+  vstudio.activeSlide = 0; vstudio.position = 0;
+  vstudio.musicEl = null; vstudio._musicBuffer = null; vstudio._musicContentEnd = null; vstudio._musicStash = null;
+  vstudio._voiceInMix = false; vstudio._editSfxOn = false; vstudio._editCache = null; vstudio._exportName = null;
+  vstudio._proHit = null; vstudio._gxRedraw = null;
+  try { renderSlideList(); } catch (e) {}
+  try { updateTimeline(0, 0); } catch (e) {}
+  try { setPlayBtn(false); } catch (e) {}
+  const pv = document.getElementById("vsPreview");
+  if (pv) pv.innerHTML = '<div class="preview-placeholder" data-i18n="vPlaceholder">' + escapeHtml(t("vPlaceholder")) + "</div>";
+  { const b = document.getElementById("vsExportBtn"); if (b) b.style.display = "none"; }
+  try { vsAutoStatus(""); } catch (e) {}
 }
 function vsRemixBuildSound() {
   if (!(vstudio.slides || []).length) return;
