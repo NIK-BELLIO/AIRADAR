@@ -12233,6 +12233,228 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   }
   ctx.restore();
 }
+// ── Callouts: graphics beside the speaker ───────────────────────────────────
+// The explainer and real-estate reels the owner sent keep the speaker on
+// screen and bring small graphics in beside them as they talk: a 3D object
+// for a thing they name, a little map for a place, a photo card, a number.
+// Vox-smooth - a soft fade and settle in, a slow float, a soft fade out;
+// nothing bounces. On the side away from the face, never over it.
+// Everyday words that have a clear picture, for when the analysis marked
+// too few moments.
+const VS_CALL_WORDS = { house: "house", home: "house", homes: "house", housing: "house", apartment: "office building", condo: "office building", property: "house",
+  money: "money bag", price: "money bag", prices: "money bag", cost: "money bag", mortgage: "money bag", loan: "money bag", cash: "dollar banknote", dollars: "dollar banknote",
+  market: "chart increasing", growth: "chart increasing", rates: "chart decreasing", sales: "chart increasing", invest: "chart increasing", investment: "chart increasing",
+  job: "briefcase", jobs: "briefcase", work: "briefcase", business: "briefcase", car: "automobile", cars: "automobile", phone: "mobile phone", family: "family",
+  travel: "airplane", flight: "airplane", time: "alarm clock", idea: "light bulb", ideas: "light bulb", school: "graduation cap", learn: "graduation cap",
+  health: "stethoscope", doctor: "stethoscope", gym: "flexed biceps", fitness: "flexed biceps", love: "red heart", city: "cityscape", key: "key", keys: "key",
+  food: "fork and knife with plate", coffee: "hot beverage", camera: "camera", video: "video camera", computer: "laptop", ai: "robot", robot: "robot",
+  gift: "wrapped gift", party: "party popper", calendar: "calendar", contract: "page with curl", document: "page with curl", tax: "receipt", taxes: "receipt" };
+// The cut a moment of the shared timeline falls in, and how far into it.
+function vsProSlideAt(slides, T) {
+  let idx = -1, local = 0;
+  slides.forEach((sl, i) => {
+    if (idx >= 0 || sl._teaser) return;
+    const a = (sl._srcOffset || 0) + ((sl._broll ? sl._ownClipIn : sl._clipIn) || 0), d = Number(sl.duration) || 0;
+    if (T >= a - 0.3 && T < a + d) { idx = i; local = Math.max(0, T - a); }
+  });
+  return { idx, local };
+}
+async function vsProPlaceCallouts(slides, ai, words, sentences) {
+  const key = (x) => String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+  const marks = [];
+  const wordAt = (si, want) => {
+    const sn = sentences[Number(si)];
+    if (!sn) return null;
+    const inS = words.filter((w) => w.s >= sn.start - 0.05 && w.s <= sn.end + 0.05);
+    return inS.find((w) => key(w.w) === key(want)) || inS[0] || null;
+  };
+  (ai && Array.isArray(ai.callouts) ? ai.callouts : []).slice(0, 12).forEach((c) => {
+    if (!c || !/^(icon|map|photo|stat)$/.test(c.kind)) return;
+    const w = wordAt(c.i, c.at_word);
+    if (!w) return;
+    const m = { kind: c.kind, T: w.s, label: clean(c.label, 26), object: clean(c.object, 30), country: clean(c.country, 40), place: clean(c.place, 30), photo: clean(c.photo, 50), value: clean(c.value, 16), si: Number(c.i) };
+    if (m.kind === "icon" && !m.object) return;
+    if (m.kind === "map" && !m.country) return;
+    if (m.kind === "photo" && !m.photo) return;
+    if (m.kind === "stat" && !vsGxNum(m.value)) return;
+    marks.push(m);
+  });
+  // too few: a 3D object for an everyday word that has one, one per sentence
+  const speech = words.length ? words[words.length - 1].e - words[0].s : 0;
+  const want = Math.max(1, Math.floor(speech / 6));
+  if (marks.length < want) {
+    sentences.forEach((sn, si) => {
+      if (marks.length >= want || marks.some((m) => m.si === si)) return;
+      const ws = words.filter((w) => w.s >= sn.start - 0.05 && w.s <= sn.end + 0.05);
+      const hit = ws.find((w) => VS_CALL_WORDS[key(w.w)]);
+      if (hit) marks.push({ kind: "icon", T: hit.s, object: VS_CALL_WORDS[key(hit.w)], label: "", si });
+    });
+  }
+  marks.sort((a, b) => a.T - b.T);
+  // spread out: four seconds apart, not on an insert or a product montage
+  const placed = [];
+  let lastT = -9;
+  marks.forEach((m) => {
+    if (m.T - lastT < 4) return;
+    const at = vsProSlideAt(slides, m.T);
+    if (at.idx < 0) return;
+    const sl = slides[at.idx], d = Number(sl.duration) || 0;
+    const len = Math.min(2.8, d - at.local - 0.1);
+    if (len < 1.4 || sl._broll) return;
+    const ins = sl._ins && !sl._ins.off ? sl._ins : null;
+    if (ins && at.local + len > ins.at && at.local < ins.at + ins.len) return;
+    m.idx = at.idx; m.at = Math.max(0, at.local - 0.1); m.len = len;
+    placed.push(m); lastT = m.T;
+  });
+  // the pictures, all at once
+  let world = null;
+  if (placed.some((m) => m.kind === "map")) { try { world = await vsGxWorld(); } catch (e) {} }
+  await Promise.all(placed.map(async (m) => {
+    try {
+      if (m.kind === "icon") m.img = await vsGx3D(m.object);
+      else if (m.kind === "map" && world) { m.world = world; m.hits = vsGxCountries(world, [m.country]); }
+      else if (m.kind === "photo") {
+        const j = await vsPexelsSearch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(m.photo) + "&per_page=4&orientation=landscape", VS_PEXELS_KEY);
+        const ph = j && j.photos && j.photos[0];
+        let src = ph && ph.src && (ph.src.large || ph.src.medium);
+        if (src && src.indexOf(VS_STOCK_BASE) !== 0) src = VS_STOCK_BASE + "/stock/media?url=" + encodeURIComponent(src);
+        if (src) m.img = await vsGxImage(src);
+      }
+    } catch (e) {}
+  }));
+  let n = 0;
+  slides.forEach((sl) => { delete sl._calls; });
+  placed.forEach((m) => {
+    if ((m.kind === "icon" || m.kind === "photo") && !m.img) return;
+    if (m.kind === "map" && !(m.hits && m.hits.length)) return;
+    const sl = slides[m.idx];
+    (sl._calls || (sl._calls = [])).push({ kind: m.kind, at: Math.round(m.at * 100) / 100, len: Math.round(m.len * 100) / 100, label: m.label || (m.kind === "map" ? m.place : ""), img: m.img || null, world: m.world || null, hits: m.hits || null, value: m.value || "" });
+    n++;
+  });
+  return n;
+}
+// One callout at t seconds into it.
+function vsProCallout(ctx, W, H, s, c, t, F, pack) {
+  const U = Math.min(W, H * 0.62);
+  const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const eo = (u) => 1 - Math.pow(1 - Math.max(0, Math.min(1, u)), 3);
+  const pin = eo(t / 0.55), pout = 1 - sm((t - (c.len - 0.4)) / 0.4);
+  const vis = Math.min(pin, pout);
+  if (vis <= 0.001) return;
+  // the side away from the face
+  if (!c._side) {
+    const f = vsProFace(F, W, H, null);
+    if (f || t > 0.3) { c._side = f && f.x + f.w / 2 > W / 2 ? -1 : 1; c._face = f || null; }
+  }
+  const side = c._side || 1;
+  const colors = (pack.hero.colors || ["#ffffff"]).map((x) => (x === "auto" ? vsProAccent() : x));
+  const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
+  let S = Math.min(W * 0.36, U * 0.38);
+  const cx = side > 0 ? W - W * 0.05 - S / 2 : W * 0.05 + S / 2;
+  let cy0 = H * 0.32;
+  // never over the face: beside the head if there is room, else down beside
+  // the shoulder, else smaller
+  const f = c._face;
+  if (f) {
+    const hits = (y, sz) => !(cx + sz / 2 < f.x || cx - sz / 2 > f.x + f.w || y + sz * 0.6 < f.y || y - sz * 0.6 > f.y + f.h);
+    if (hits(cy0, S)) {
+      // down beside the shoulder, its label still above the caption line
+      let done = false;
+      for (let k = 0, sz = S; k < 5 && !done; k++, sz *= 0.86) {
+        const below = f.y + f.h + sz * 0.62;
+        if (below + sz * 0.7 < H * 0.6 && !hits(below, sz)) { cy0 = below; S = sz; done = true; }
+      }
+      if (!done) { for (let k = 0; k < 4 && hits(cy0, S); k++) S *= 0.85; }
+    }
+  }
+  const cy = cy0 + Math.sin(t * 1.4) * H * 0.004;
+  ctx.save();
+  ctx.globalAlpha = vis;
+  ctx.translate(cx + side * (1 - pin) * W * 0.05, cy + (1 - pin) * H * 0.015);
+  const k = 0.92 + 0.08 * pin; ctx.scale(k, k);
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  const label = (txt, y) => {
+    if (!txt) return;
+    const fs = S * 0.1;
+    ctx.font = '700 ' + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+    const tw = ctx.measureText(txt).width, ph = fs * 1.8, pw = tw + fs * 1.4;
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = fs * 0.6;
+    ctx.fillStyle = "rgba(255,255,255,0.94)"; rr(-pw / 2, y - ph / 2, pw, ph, ph / 2); ctx.fill(); ctx.restore();
+    ctx.fillStyle = "#14161b"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, 0, y + fs * 0.05);
+  };
+  if (c.kind === "icon" && c.img) {
+    const im = c.img, ar = (im.naturalWidth || 1) / (im.naturalHeight || 1), w = ar >= 1 ? S : S * ar, h = ar >= 1 ? S / ar : S;
+    ctx.save(); ctx.globalAlpha = vis * 0.28; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(0, S * 0.5, S * 0.3, S * 0.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = S * 0.08; ctx.shadowOffsetY = S * 0.03;
+    ctx.rotate(Math.sin(t * 1.1) * 0.03); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
+    label(c.label, S * 0.68);
+  } else if (c.kind === "map" && c.hits && c.world) {
+    // a paper map card: the world, easing in to the country, a pin dropping on it
+    const cw = S, ch = S * 0.92, r = S * 0.07;
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = S * 0.1; ctx.shadowOffsetY = S * 0.03;
+    ctx.fillStyle = "#f2ece1"; rr(-cw / 2, -ch / 2, cw, ch, r); ctx.fill(); ctx.restore();
+    ctx.save(); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.clip();
+    ctx.fillStyle = "#b9d3e3"; ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
+    let bx0 = 180, bx1 = -180, by0 = 90, by1 = -90;
+    c.hits.forEach((h) => h.polys.forEach((poly) => poly[0].forEach(([lo, la]) => { if (lo < bx0) bx0 = lo; if (lo > bx1) bx1 = lo; if (la < by0) by0 = la; if (la > by1) by1 = la; })));
+    if (bx1 - bx0 > 300) { bx0 = -180; bx1 = 180; }
+    const zp = sm((t - 0.15) / 1.0), L = (a, b) => a + (b - a) * zp;
+    const padX = Math.max(10, (bx1 - bx0) * 0.5), padY = Math.max(8, (by1 - by0) * 0.5);
+    const lo0 = L(-170, bx0 - padX), lo1 = L(190, bx1 + padX), la0 = L(-55, by0 - padY), la1 = L(80, by1 + padY);
+    const sc = Math.min(cw / (lo1 - lo0), ch / (la1 - la0)), mlo = (lo0 + lo1) / 2, mla = (la0 + la1) / 2;
+    const prj = (lo, la) => [(lo - mlo) * sc, -(la - mla) * sc];
+    const drawC = (cc, fill, stroke, lw) => {
+      ctx.beginPath();
+      cc.polys.forEach((poly) => poly.forEach((ring) => ring.forEach(([lo, la], q) => { const [px, py] = prj(lo, la); q ? ctx.lineTo(px, py) : ctx.moveTo(px, py); })));
+      ctx.fillStyle = fill; ctx.fill("evenodd"); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+    };
+    c.world.forEach((cc) => { if (!c.hits.includes(cc)) drawC(cc, "#e9e1d2", "#c9bfae", Math.max(0.5, S * 0.003)); });
+    const hp = sm((t - 0.55) / 0.4);
+    c.hits.forEach((cc) => { ctx.globalAlpha = vis * hp; drawC(cc, accent, "#ffffff", Math.max(0.8, S * 0.006)); ctx.globalAlpha = vis; });
+    // the pin in the middle of the country's largest piece
+    let big = null, ba = 0;
+    c.hits[0].polys.forEach((poly) => { let x0 = 180, x1 = -180, y0 = 90, y1 = -90; poly[0].forEach(([lo, la]) => { x0 = Math.min(x0, lo); x1 = Math.max(x1, lo); y0 = Math.min(y0, la); y1 = Math.max(y1, la); }); const ar = (x1 - x0) * (y1 - y0); if (ar > ba) { ba = ar; big = [(x0 + x1) / 2, (y0 + y1) / 2]; } });
+    const pp = eo((t - 0.85) / 0.45);
+    if (big && pp > 0) {
+      const [px, py] = prj(big[0], big[1]), pr = S * 0.05, dy = (1 - pp) * S * 0.12;
+      ctx.globalAlpha = vis * Math.min(1, pp * 1.5);
+      ctx.fillStyle = "#e5402f"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = S * 0.012;
+      ctx.beginPath(); ctx.arc(px, py - pr * 1.7 - dy, pr, Math.PI, 0); ctx.lineTo(px, py - dy); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(px, py - pr * 1.75 - dy, pr * 0.38, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = vis;
+    }
+    ctx.restore();
+    ctx.strokeStyle = "rgba(20,24,32,0.35)"; ctx.lineWidth = Math.max(1, S * 0.008); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.stroke();
+    label(c.label, ch / 2 + S * 0.08);
+  } else if (c.kind === "photo" && c.img) {
+    // a print, turned a little, the picture drifting inside it
+    const cw = S, ch = S * 1.02, b = S * 0.045;
+    ctx.rotate((-5 + 2.5 * pin) * Math.PI / 180);
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = S * 0.1; ctx.shadowOffsetY = S * 0.03;
+    ctx.fillStyle = "#fbfaf6"; ctx.fillRect(-cw / 2, -ch / 2, cw, ch); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(-cw / 2 + b, -ch / 2 + b, cw - b * 2, ch - b * 4.2); ctx.clip();
+    const im = c.img, iw = im.naturalWidth || 1, ih = im.naturalHeight || 1, z = 1.05 + 0.06 * (t / c.len);
+    const k2 = Math.max((cw - b * 2) / iw, (ch - b * 4.2) / ih) * z;
+    ctx.drawImage(im, -iw * k2 / 2, -ch / 2 + b + (ch - b * 4.2) / 2 - ih * k2 / 2, iw * k2, ih * k2);
+    ctx.restore();
+    if (c.label) { const fs = S * 0.09; ctx.font = '700 ' + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillStyle = "#22252b"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(c.label, 0, ch / 2 - b * 1.6); }
+  } else if (c.kind === "stat") {
+    // a glass card, the figure counting up to what was said
+    const cw = S, ch = S * 0.62, num = vsGxNum(c.value);
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = S * 0.1;
+    ctx.fillStyle = "rgba(10,12,18,0.62)"; rr(-cw / 2, -ch / 2, cw, ch, S * 0.08); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = Math.max(1, S * 0.006); rr(-cw / 2, -ch / 2, cw, ch, S * 0.08); ctx.stroke();
+    let v = c.value;
+    if (num) { const p = sm((t - 0.2) / 0.9), x = num.n * p; v = num.pre + (num.comma ? x.toLocaleString("en-US", { maximumFractionDigits: num.dec }) : x.toFixed(num.dec)) + num.post; }
+    let fs = S * 0.24; ctx.font = '800 ' + Math.round(fs) + 'px Archivo, Manrope, "Vazirmatn", system-ui, sans-serif';
+    const tw = ctx.measureText(c.value).width; if (tw > cw * 0.86) { fs *= (cw * 0.86) / tw; ctx.font = '800 ' + Math.round(fs) + 'px Archivo, Manrope, "Vazirmatn", system-ui, sans-serif'; }
+    ctx.fillStyle = accent; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(v, 0, -ch * 0.08);
+    if (c.label) { const f2 = S * 0.085; ctx.font = '600 ' + Math.round(f2) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillText(c.label, 0, ch * 0.28); }
+  }
+  ctx.restore();
+}
+
 // The customer's photos and videos, read once: photos made no bigger than
 // the export needs (a 12-megapixel photo drawn every frame is slow), videos
 // opened and ready to seek.
@@ -12620,6 +12842,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     if (m && m.P) ctx.drawImage(m.P, 0, 0);
     vsProTrail(ctx, W, H, local - 0.1, fc, m, false);
   }
+  // graphics beside the speaker, under their words
+  if (!ins && s._calls && !s._broll) s._calls.forEach((c) => { if (local >= c.at && local < c.at + c.len) { try { vsProCallout(ctx, W, H, s, c, local - c.at, F, pack); } catch (e) {} } });
   if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
   else if (g && !g.off && !(ed && ed.off)) {
     let mask = null, face = null;
@@ -12889,6 +13113,7 @@ function vsProSfxEvents(slides) {
     if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "riser", t: t + 0.32, g: 0.5 }); }
     if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
+    (sl._calls || []).forEach((c) => { ev.push({ n: pick("land"), t: t + c.at + 0.1, g: 0.45 }); if (c.kind === "map") ev.push({ n: "sparkle", t: t + c.at + 0.9, g: 0.3 }); });
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
     if (ins && ins.shots) {
       ev.push({ n: "riser", t: t + ins.at + 0.05, g: 0.6 });
@@ -14566,7 +14791,10 @@ async function vsGxResolveAll(slides) {
 }
 // The cuts between scenes, in the style's manner; none inside a scene.
 function vsGxCuts(slides) {
-  const list = vsGxTheme(vstudio._gxTheme).style.tr || ["whip"];
+  // soft cuts only - light and slow zooms, never a whip or a glitch (the
+  // owner: smooth and soft, Vox-like)
+  const SOFT = { whip: "leak", wipe: "zoom", glitch: "flash", zoomblur: "zoom" };
+  const list = (vsGxTheme(vstudio._gxTheme).style.tr || ["leak"]).map((x) => SOFT[x] || x);
   let k = 0;
   slides.forEach((s, i) => {
     delete s._transIn;
@@ -14802,6 +15030,7 @@ function vsEditStudio(preset, filesIn) {
   const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
   const OPTS = [
     ["inserts", L("Cinematic shots and graphics when you name a product, place or number", "نمای سینمایی و گرافیک وقتی از محصول، مکان یا عدد حرف می‌زنی"), "p"],
+    ["callouts", L("Icons, maps and photos beside you as you talk", "آیکون، نقشه و عکس کنارت وقتی حرف می‌زنی"), "p"],
     ["cut", L("Cut the pauses", "حذف مکث‌ها و سکوت‌ها"), ""],
     ["fillers", L("Remove “um” and “uh”", "حذف «اِ» و «اوم»"), ""],
     ["trans", L("Transitions", "ترنزیشن"), ""],
@@ -16992,6 +17221,11 @@ async function vsEditMyVideo(fileIn, o) {
     if (pro && o.inserts !== false && ai && Array.isArray(ai.inserts) && ai.inserts.length) {
       vsAutoStatus(L("Finding cinematic shots…", "در حال پیدا کردن نماهای سینمایی…"));
       try { vstudio._editStats.inserts = await vsProPlaceInserts(vstudio.slides, ai.inserts, words, sentences, o.aspect); } catch (e) {}
+    }
+    // icons, maps, photos and figures beside the speaker as they talk
+    if (pro && o.callouts !== false) {
+      vsAutoStatus(L("Adding icons and maps…", "در حال افزودن آیکون و نقشه…"));
+      try { vstudio._editStats.callouts = await vsProPlaceCallouts(vstudio.slides, ai, words, sentences); } catch (e) {}
     }
     // their own product or listing, cut in as a cinematic montage (experimental)
     if (pro && o.showcase && o.showcase.files && o.showcase.files.length) {
