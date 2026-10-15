@@ -10872,8 +10872,28 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;800&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;800&family=Lilita+One&display=swap";
 const VS_PRO_PACKS = {
+  // The caption looks that lead the 2026 rankings of short-form captions
+  // (OpusClip's 13.5M-clip study: 80% of viral clips carry burned-in,
+  // word-by-word captions; the style rankings put the yellow-and-white
+  // outlined capitals first and the outlined white capitals with a green /
+  // yellow key word close behind). Two or three words at a time, a thick
+  // black outline, no bounce - each word snaps on as it is said.
+  viral: { hero: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffe600", "#3dff6e"], upper: true, stroke: 0.2, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 16,
+           small: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, enter: "snap" },
+           single: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, y: 0.68, enter: "snap" },
+           grade: "contrast(1.12) saturate(1.2)", warm: "", trans: ["leak", "flash", "zoomblur", "leak"] },
+  punch: { hero: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#2bff6a", "#ffe11a"], upper: true, stroke: 0.17, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 15,
+           small: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, enter: "snap" },
+           single: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, y: 0.7, enter: "snap" },
+           grade: "contrast(1.08) saturate(1.06)", warm: "", trans: ["leak", "zoomblur", "flash", "leak"] },
+  // the whole line up at once, dimmed, a coloured box running under each
+  // word as it is said
+  karaoke: { hero: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" }, line: true, maxWords: 4, maxLetters: 20,
+           small: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" },
+           single: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", y: 0.7, enter: "karaoke" },
+           grade: "contrast(1.08) saturate(1.1)", warm: "", trans: ["leak", "flash", "zoomblur", "leak"] },
   clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "rise" },
            small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "rise", shade: true },
            single: { fam: "Poppins", w: 700, size: 0.1, colors: ["#ffffff"], y: 0.6, enter: "rise", shade: true },
@@ -10970,7 +10990,7 @@ function vsProLoadFonts() {
     }
     const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '300 40px "Montserrat"',
       '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
-      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '600 40px "Manrope"'];
+      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"'];
     try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
   })();
   return vsProFontsP;
@@ -10987,7 +11007,8 @@ function vsProGroups(s) {
   const v = s._voice;
   if (!v || !v.words || !v.words.length) return [];
   const dur = Number(s.duration) || 4;
-  if (s._proG && s._proG.n === v.words.length && s._proG.d === dur && s._proG.e === (s._proEditV || 0)) return s._proG.g;
+  const pk = VS_PRO_PACKS[s._pro] || {}, maxW = pk.maxWords || 4, maxL = pk.maxLetters || 19;
+  if (s._proG && s._proG.n === v.words.length && s._proG.d === dur && s._proG.e === (s._proEditV || 0) && s._proG.p === s._pro) return s._proG.g;
   const ws = v.words;
   const idx = [];
   let cur = [];
@@ -10996,7 +11017,7 @@ function vsProGroups(s) {
     if (cur.length) {
       const prev = ws[cur[cur.length - 1]];
       const letters = cur.reduce((n, j) => n + ws[j].w.length, 0);
-      if (cur.length >= 4 || letters + w.w.length > 19 || w.t0 - prev.t1 > 0.3 || /[.!?,;:؟،]["')”]*$/.test(prev.w) || w.t0 - ws[cur[0]].t0 > 1.5) { idx.push(cur); cur = []; }
+      if (cur.length >= maxW || letters + w.w.length > maxL || w.t0 - prev.t1 > 0.3 || /[.!?,;:؟،]["')”]*$/.test(prev.w) || w.t0 - ws[cur[0]].t0 > 1.5) { idx.push(cur); cur = []; }
     }
     cur.push(k);
   });
@@ -11037,7 +11058,7 @@ function vsProGroups(s) {
     // the speaker pauses
     g.t1 = Math.min(dur, next ? Math.min(next.t0, last.t1 + 0.7) : last.t1 + 0.6);
   });
-  s._proG = { n: ws.length, d: dur, e: s._proEditV || 0, g: groups };
+  s._proG = { n: ws.length, d: dur, e: s._proEditV || 0, p: s._pro, g: groups };
   return groups;
 }
 
@@ -11208,10 +11229,11 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       let color = colors[(gi + (L.role === "hero" ? 0 : li)) % colors.length];
       let st = L.st, marker = null;
       // one caption line: the word that matters gets the marker behind it
-      if (pack.line && w.j === g.hero && n > 1) { st = pack.hero; color = pack.hero.colors[0]; marker = pack.hero.marker; }
+      if (pack.line && w.j === g.hero && n > 1) { st = pack.hero; color = pack.hero.colors[gi % pack.hero.colors.length]; marker = pack.hero.marker; }
       if (pack.semantic && L.role !== "small") color = vsProSemColor(it.w) || color;
       if (color === "auto") color = vsProAccent();
-      words.push({ text: w.t, pieces: w.pieces, xs: w.xs, w: w.w, x, y: cy + L.y, px: L.px, st, role: L.role, t0: it.t0, color, marker,
+      const nx = g.items[w.j + 1];
+      words.push({ text: w.t, pieces: w.pieces, xs: w.xs, w: w.w, x, y: cy + L.y, px: L.px, st, role: L.role, t0: it.t0, tEnd: nx ? nx.t0 : (it.t1 || it.t0) + 0.35, color, marker,
         stat: /\d/.test(it.w) && L.role === "hero" });
       x = rtl ? x - L.m.sp : x + w.w + L.m.sp;
     });
@@ -11393,7 +11415,7 @@ function vsProLeak(ctx, W, H, a, seed) {
 function vsProWord(ctx, wd, local, out, F, W, H) {
   const st = wd.st;
   const since = local - wd.t0;
-  if (since < 0) return;
+  if (since < 0 && st.enter !== "karaoke") return;
   const px = wd.px;
   const ease = vsEase.out;
   const back = (p) => { p = Math.max(0, Math.min(1, p)); const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
@@ -11429,14 +11451,36 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     ctx.restore();
   }
   const paint = (c, x, y) => {
-    if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
+    if (st.stroke) {
+      // the thick black edge the caption looks are known by, its shadow under it
+      ctx.save(); ctx.lineJoin = "round"; ctx.miterLimit = 2; ctx.lineWidth = px * st.stroke; ctx.strokeStyle = st.strokeColor || "#000000";
+      if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = px * 0.12; ctx.shadowOffsetY = px * 0.05; }
+      ctx.strokeText(c, x, y); ctx.restore();
+    } else if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
     if (st.glow) { ctx.shadowColor = typeof fill === "string" ? fill : "#38d8ff"; ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
     ctx.fillText(c, x, y);
     if (st.glow) { ctx.shadowBlur = px * 0.08; ctx.fillText(c, x, y); }
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   };
   const cx = wd.x + wd.w / 2, cy = wd.y;
-  if (st.enter === "rise") {
+  if (st.enter === "snap") {
+    // on as it is said, a small quick settle - no bounce, nothing to tire the eye
+    const p = Math.max(0, Math.min(1, since / 0.1)), e = ease(p), k = 0.9 + 0.1 * e;
+    ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "karaoke") {
+    // the line is up already, dimmed; the word being said gets the box
+    const now = since >= 0 && local < (wd.tEnd || wd.t0 + 0.4);
+    if (now) {
+      const bp = Math.min(1, since / 0.08), bh = px * 1.28, bw = wd.w + px * 0.5;
+      ctx.save(); ctx.globalAlpha = out * bp; ctx.fillStyle = st.karaoke;
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(wd.x - px * 0.25, cy - bh / 2, bw, bh, px * 0.22); else ctx.rect(wd.x - px * 0.25, cy - bh / 2, bw, bh); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = out * (since < 0 ? 0.55 : 1);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "rise") {
     // letters rise into place one after another, smeared on the way up
     wd.pieces.forEach((c, j) => {
       const p = Math.max(0, Math.min(1, (since - j * 0.018) / 0.2));
@@ -14741,6 +14785,9 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-viral", L("Viral", "وایرال"), L("Trending · yellow and white capitals, a thick black edge, three words at a time", "ترند · حروف درشت زرد و سفید، لبهٔ مشکی پهن، سه کلمه در هر لحظه")],
+    ["pro-punch", L("Punch", "پانچ"), L("Trending · heavy white capitals, the key word in green or yellow", "ترند · حروف سفید سنگین، کلمهٔ اصلی سبز یا زرد")],
+    ["pro-karaoke", L("Karaoke", "کارائوکه"), L("Trending · the whole line up, a box running under each word as it is said", "ترند · کل خط روی صفحه، یک کادر زیر هر کلمه وقتی گفته می‌شود")],
     ["pro-clean", L("Bold", "بولد"), L("Teal and white, the big word behind you", "سبزآبی و سفید، کلمهٔ بزرگ پشت سرت")],
     ["pro-neon", L("Neon", "نئون"), L("Glowing capitals under a handwritten line", "حروف درشت درخشان زیر خط دست‌نویس")],
     ["pro-luxe", L("Luxe", "لوکس"), L("Heavy textured words, thin captions", "کلمات سنگین بافت‌دار، زیرنویس نازک")],
@@ -14770,7 +14817,8 @@ function vsEditStudio(preset, filesIn) {
   ];
   const lastOpts = last.opts || {};
   const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : typeof lastOpts[k] === "boolean" ? lastOpts[k] : VS_EM_DEFAULTS[k] !== false);
-  const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : STYLES.some((x) => x[0] === last.style) ? last.style : "pro-clean";
+  // a first edit gets the look that leads the 2026 caption rankings
+  const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : STYLES.some((x) => x[0] === last.style) ? last.style : "pro-viral";
   const shape0 = SHAPES.some((x) => x[0] === preset.aspect) ? preset.aspect : SHAPES.some((x) => x[0] === last.shape) ? last.shape : "9:16";
   const icoX = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const CSS = VS_TS_CSS.replace(/#tsModal/g, "#emModal") + `
