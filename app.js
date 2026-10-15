@@ -12270,14 +12270,16 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
     return inS.find((w) => key(w.w) === key(want)) || inS[0] || null;
   };
   (ai && Array.isArray(ai.callouts) ? ai.callouts : []).slice(0, 12).forEach((c) => {
-    if (!c || !/^(icon|map|photo|stat)$/.test(c.kind)) return;
+    if (!c || !/^(icon|map|photo|stat|search|notify|orbit)$/.test(c.kind)) return;
     const w = wordAt(c.i, c.at_word);
     if (!w) return;
-    const m = { kind: c.kind, T: w.s, label: clean(c.label, 26), object: clean(c.object, 30), country: clean(c.country, 40), place: clean(c.place, 30), photo: clean(c.photo, 50), value: clean(c.value, 16), si: Number(c.i) };
+    const m = { kind: c.kind, T: w.s, label: clean(c.label, 26), object: clean(c.object, 30), country: clean(c.country, 40), place: clean(c.place, 30), photo: clean(c.photo, 50), value: clean(c.value, 16), text: clean(c.text, 60), si: Number(c.i) };
     if (m.kind === "icon" && !m.object) return;
     if (m.kind === "map" && !m.country) return;
     if (m.kind === "photo" && !m.photo) return;
     if (m.kind === "stat" && !vsGxNum(m.value)) return;
+    if ((m.kind === "search" || m.kind === "notify") && !m.text) return;
+    if (m.kind === "orbit" && marks.some((x) => x.kind === "orbit")) return;
     marks.push(m);
   });
   // too few: a 3D object for an everyday word that has one, one per sentence
@@ -12290,6 +12292,12 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
       const hit = ws.find((w) => VS_CALL_WORDS[key(w.w)]);
       if (hit) marks.push({ kind: "icon", T: hit.s, object: VS_CALL_WORDS[key(hit.w)], label: "", si });
     });
+  }
+  // the one striking moment, if the analysis did not mark it: chrome spheres
+  // round the speaker on a superlative
+  if (!marks.some((m) => m.kind === "orbit")) {
+    const wow = words.find((w, i) => i > 3 && /^(amazing|incredible|best|biggest|huge|insane|crazy|perfect|dream|unbelievable|massive|record|love)$/i.test(key(w.w)));
+    if (wow) marks.push({ kind: "orbit", T: wow.s, label: "", si: -1 });
   }
   marks.sort((a, b) => a.T - b.T);
   // spread out: four seconds apart, not on an insert or a product montage
@@ -12329,12 +12337,41 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
     if ((m.kind === "icon" || m.kind === "photo") && !m.img) return;
     if (m.kind === "map" && !(m.hits && m.hits.length)) return;
     const sl = slides[m.idx];
-    (sl._calls || (sl._calls = [])).push({ kind: m.kind, at: Math.round(m.at * 100) / 100, len: Math.round(m.len * 100) / 100, label: m.label || (m.kind === "map" ? m.place : ""), img: m.img || null, world: m.world || null, hits: m.hits || null, value: m.value || "" });
+    (sl._calls || (sl._calls = [])).push({ kind: m.kind, at: Math.round(m.at * 100) / 100, len: Math.round(m.len * 100) / 100, label: m.label || (m.kind === "map" ? m.place : ""), img: m.img || null, world: m.world || null, hits: m.hits || null, value: m.value || "", text: m.text || "",
+      who: (vstudio._proCard && vstudio._proCard.name) || "" });
     n++;
   });
   return n;
 }
-// One callout at t seconds into it.
+// A 3D object made silver - the chrome look of the reels' gears and spheres,
+// not a cartoon emoji. Made once per picture.
+const vsCallSilverC = new Map();
+function vsCallSilver(img) {
+  if (vsCallSilverC.has(img)) return vsCallSilverC.get(img);
+  const S = 320, c = document.createElement("canvas"); c.width = c.height = S;
+  const x = c.getContext("2d");
+  const ar = (img.naturalWidth || 1) / (img.naturalHeight || 1), w = ar >= 1 ? S : S * ar, h = ar >= 1 ? S / ar : S;
+  try { x.filter = "grayscale(1) contrast(1.35) brightness(1.18)"; } catch (e) {}
+  x.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+  x.filter = "none";
+  // a cool sheen from the top-left, only on the object
+  x.globalCompositeOperation = "source-atop";
+  const g = x.createLinearGradient(0, 0, S, S);
+  g.addColorStop(0, "rgba(255,255,255,0.55)"); g.addColorStop(0.45, "rgba(205,214,228,0.05)"); g.addColorStop(1, "rgba(70,80,100,0.35)");
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
+  vsCallSilverC.set(img, c);
+  return c;
+}
+// A chrome sphere: a highlight, a dark band, the room's light at the rim.
+function vsCallSphere(ctx, x, y, r) {
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.05, x, y, r);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(0.25, "#e9edf2"); g.addColorStop(0.62, "#9aa3ae"); g.addColorStop(0.86, "#3c434d"); g.addColorStop(1, "#c9d0d8");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+}
+// One callout at t seconds into it - in the premium language of the reels the
+// owner sent: crisp white UI cards turned a little in depth with soft shadows,
+// silver objects, chrome spheres orbiting the speaker and passing behind them.
+// Soft in, slow float, soft out; never bouncing, never over the face.
 function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   const U = Math.min(W, H * 0.62);
   const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
@@ -12342,24 +12379,48 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   const pin = eo(t / 0.55), pout = 1 - sm((t - (c.len - 0.4)) / 0.4);
   const vis = Math.min(pin, pout);
   if (vis <= 0.001) return;
-  // the side away from the face
+  const FONT = (w, px) => w + " " + Math.round(px) + 'px "SF Pro Display", Manrope, "Vazirmatn", system-ui, sans-serif';
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  const colors = (pack.hero.colors || ["#ffffff"]).map((x) => (x === "auto" ? vsProAccent() : x));
+  const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
+
+  // ── the orbit: chrome spheres circling the speaker, behind them at the back ──
+  if (c.kind === "orbit") {
+    const f = c._face || (c._face = vsProFace(F, W, H, null)) || { x: W * 0.3, y: H * 0.15, w: W * 0.4, h: H * 0.2 };
+    const cx = f.x + f.w / 2, cy = f.y + f.h * 0.95, rx = Math.min(W * 0.42, f.w * 1.25), ry = rx * 0.32;
+    const n = 6, spin = t * 0.9, R = U * 0.045;
+    const balls = [];
+    for (let k = 0; k < n; k++) { const a = spin + (k / n) * Math.PI * 2; balls.push({ a, x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, z: Math.sin(a) }); }
+    const back = balls.filter((b) => b.z < 0), front = balls.filter((b) => b.z >= 0);
+    const drawB = (b) => { ctx.save(); ctx.globalAlpha = vis; vsCallSphere(ctx, b.x, b.y - (1 - pin) * U * 0.05, R * (0.85 + 0.15 * (b.z + 1) / 2)); ctx.restore(); };
+    // the ring itself, a hairline of light
+    ctx.save(); ctx.globalAlpha = vis * 0.55; ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1, U * 0.003);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, Math.PI * 2); ctx.stroke(); ctx.restore();
+    back.sort((a, b) => a.z - b.z).forEach(drawB);
+    // the speaker back over the far side of the ring
+    const m = vsProMask(F, W, H, s, c.at + t);
+    if (m && m.P) ctx.drawImage(m.P, 0, 0);
+    ctx.save(); ctx.globalAlpha = vis * 0.55; ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1, U * 0.003);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI); ctx.stroke(); ctx.restore();
+    front.sort((a, b) => a.z - b.z).forEach(drawB);
+    return;
+  }
+
+  // ── the rest sit beside the speaker, the side away from the face ──
   if (!c._side) {
     const f = vsProFace(F, W, H, null);
     if (f || t > 0.3) { c._side = f && f.x + f.w / 2 > W / 2 ? -1 : 1; c._face = f || null; }
   }
   const side = c._side || 1;
-  const colors = (pack.hero.colors || ["#ffffff"]).map((x) => (x === "auto" ? vsProAccent() : x));
-  const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
-  let S = Math.min(W * 0.36, U * 0.38);
-  const cx = side > 0 ? W - W * 0.05 - S / 2 : W * 0.05 + S / 2;
-  let cy0 = H * 0.32;
-  // never over the face: beside the head if there is room, else down beside
-  // the shoulder, else smaller
+  let S = Math.min(W * 0.4, U * 0.42);
+  if (c.kind === "search" || c.kind === "notify") S = Math.min(W * 0.84, U * 0.86);
+  let cx = side > 0 ? W - W * 0.05 - S / 2 : W * 0.05 + S / 2;
+  if (c.kind === "search" || c.kind === "notify") cx = W / 2;
+  let cy0 = c.kind === "notify" || c.kind === "search" ? H * 0.5 : H * 0.32;
   const f = c._face;
-  if (f) {
+  if (f && c.kind !== "notify" && c.kind !== "search") {
     const hits = (y, sz) => !(cx + sz / 2 < f.x || cx - sz / 2 > f.x + f.w || y + sz * 0.6 < f.y || y - sz * 0.6 > f.y + f.h);
     if (hits(cy0, S)) {
-      // down beside the shoulder, its label still above the caption line
       let done = false;
       for (let k = 0, sz = S; k < 5 && !done; k++, sz *= 0.86) {
         const below = f.y + f.h + sz * 0.62;
@@ -12368,89 +12429,158 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
       if (!done) { for (let k = 0; k < 4 && hits(cy0, S); k++) S *= 0.85; }
     }
   }
-  const cy = cy0 + Math.sin(t * 1.4) * H * 0.004;
+  // a notification or a search bar sits across the chest: under the face, over
+  // the caption line - the top of the frame is the watermark's and the app's
+  if (f && (c.kind === "notify" || c.kind === "search")) cy0 = Math.max(H * 0.42, Math.min(H * 0.56, f.y + f.h + S * 0.16));
+  const cy = cy0 + Math.sin(t * 1.3) * H * 0.003;
   ctx.save();
   ctx.globalAlpha = vis;
-  ctx.translate(cx + side * (1 - pin) * W * 0.05, cy + (1 - pin) * H * 0.015);
-  const k = 0.92 + 0.08 * pin; ctx.scale(k, k);
-  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
-  const label = (txt, y) => {
-    if (!txt) return;
-    const fs = S * 0.1;
-    ctx.font = '700 ' + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
-    const tw = ctx.measureText(txt).width, ph = fs * 1.8, pw = tw + fs * 1.4;
-    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = fs * 0.6;
-    ctx.fillStyle = "rgba(255,255,255,0.94)"; rr(-pw / 2, y - ph / 2, pw, ph, ph / 2); ctx.fill(); ctx.restore();
-    ctx.fillStyle = "#14161b"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, 0, y + fs * 0.05);
+  const fromTop = c.kind === "notify";
+  ctx.translate(cx + (fromTop ? 0 : side * (1 - pin) * W * 0.05), cy + (fromTop ? -(1 - pin) * H * 0.08 : (1 - pin) * H * 0.015));
+  const k = 0.94 + 0.06 * pin; ctx.scale(k, k);
+  // cards turned a little in depth, as if floating in the room
+  if (c.kind !== "icon" && c.kind !== "notify" && c.kind !== "search") { ctx.rotate(side * -0.045); ctx.transform(1, side * -0.035, 0, 1, 0, 0); }
+  const card = (w, h, r, fill) => {
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = Math.max(w, h) * 0.1; ctx.shadowOffsetY = Math.max(w, h) * 0.035;
+    ctx.fillStyle = fill; rr(-w / 2, -h / 2, w, h, r); ctx.fill(); ctx.restore();
   };
+
   if (c.kind === "icon" && c.img) {
-    const im = c.img, ar = (im.naturalWidth || 1) / (im.naturalHeight || 1), w = ar >= 1 ? S : S * ar, h = ar >= 1 ? S / ar : S;
-    ctx.save(); ctx.globalAlpha = vis * 0.28; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(0, S * 0.5, S * 0.3, S * 0.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = S * 0.08; ctx.shadowOffsetY = S * 0.03;
-    ctx.rotate(Math.sin(t * 1.1) * 0.03); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
-    label(c.label, S * 0.68);
+    // a silver object, a soft shadow on an invisible floor
+    const sil = vsCallSilver(c.img), z = S * 0.9;
+    ctx.save(); ctx.globalAlpha = vis * 0.25; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(0, z * 0.52, z * 0.28, z * 0.045, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.rotate(Math.sin(t * 0.9) * 0.05); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = z * 0.08; ctx.shadowOffsetY = z * 0.03;
+    ctx.drawImage(sil, -z / 2, -z / 2, z, z); ctx.restore();
+    if (c.label) { ctx.font = FONT(600, S * 0.085); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = S * 0.05; ctx.fillText(c.label, 0, z * 0.66); }
   } else if (c.kind === "map" && c.hits && c.world) {
-    // a paper map card: the world, easing in to the country, a pin dropping on it
-    const cw = S, ch = S * 0.92, r = S * 0.07;
-    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = S * 0.1; ctx.shadowOffsetY = S * 0.03;
-    ctx.fillStyle = "#f2ece1"; rr(-cw / 2, -ch / 2, cw, ch, r); ctx.fill(); ctx.restore();
+    // a maps-app card: grey land, pale water, the place in the accent, a pin with a pulse
+    const cw = S, ch = S * 1.08, r = S * 0.07, mh = ch * 0.74;
+    card(cw, ch, r, "#ffffff");
     ctx.save(); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.clip();
-    ctx.fillStyle = "#b9d3e3"; ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
+    ctx.fillStyle = "#e9eef3"; ctx.fillRect(-cw / 2, -ch / 2, cw, mh);
     let bx0 = 180, bx1 = -180, by0 = 90, by1 = -90;
     c.hits.forEach((h) => h.polys.forEach((poly) => poly[0].forEach(([lo, la]) => { if (lo < bx0) bx0 = lo; if (lo > bx1) bx1 = lo; if (la < by0) by0 = la; if (la > by1) by1 = la; })));
     if (bx1 - bx0 > 300) { bx0 = -180; bx1 = 180; }
     const zp = sm((t - 0.15) / 1.0), L = (a, b) => a + (b - a) * zp;
-    const padX = Math.max(10, (bx1 - bx0) * 0.5), padY = Math.max(8, (by1 - by0) * 0.5);
+    const padX = Math.max(10, (bx1 - bx0) * 0.45), padY = Math.max(8, (by1 - by0) * 0.45);
     const lo0 = L(-170, bx0 - padX), lo1 = L(190, bx1 + padX), la0 = L(-55, by0 - padY), la1 = L(80, by1 + padY);
-    const sc = Math.min(cw / (lo1 - lo0), ch / (la1 - la0)), mlo = (lo0 + lo1) / 2, mla = (la0 + la1) / 2;
-    const prj = (lo, la) => [(lo - mlo) * sc, -(la - mla) * sc];
+    const sc = Math.min(cw / (lo1 - lo0), mh / (la1 - la0)), mlo = (lo0 + lo1) / 2, mla = (la0 + la1) / 2;
+    const oy = -ch / 2 + mh / 2;
+    const prj = (lo, la) => [(lo - mlo) * sc, oy - (la - mla) * sc];
+    ctx.save(); ctx.beginPath(); ctx.rect(-cw / 2, -ch / 2, cw, mh); ctx.clip();
     const drawC = (cc, fill, stroke, lw) => {
       ctx.beginPath();
       cc.polys.forEach((poly) => poly.forEach((ring) => ring.forEach(([lo, la], q) => { const [px, py] = prj(lo, la); q ? ctx.lineTo(px, py) : ctx.moveTo(px, py); })));
       ctx.fillStyle = fill; ctx.fill("evenodd"); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
     };
-    c.world.forEach((cc) => { if (!c.hits.includes(cc)) drawC(cc, "#e9e1d2", "#c9bfae", Math.max(0.5, S * 0.003)); });
+    c.world.forEach((cc) => { if (!c.hits.includes(cc)) drawC(cc, "#d6dce3", "#ffffff", Math.max(0.5, S * 0.004)); });
     const hp = sm((t - 0.55) / 0.4);
-    c.hits.forEach((cc) => { ctx.globalAlpha = vis * hp; drawC(cc, accent, "#ffffff", Math.max(0.8, S * 0.006)); ctx.globalAlpha = vis; });
-    // the pin in the middle of the country's largest piece
+    c.hits.forEach((cc) => { ctx.globalAlpha = vis * hp; drawC(cc, accent + "cc", "#ffffff", Math.max(0.8, S * 0.006)); ctx.globalAlpha = vis; });
     let big = null, ba = 0;
     c.hits[0].polys.forEach((poly) => { let x0 = 180, x1 = -180, y0 = 90, y1 = -90; poly[0].forEach(([lo, la]) => { x0 = Math.min(x0, lo); x1 = Math.max(x1, lo); y0 = Math.min(y0, la); y1 = Math.max(y1, la); }); const ar = (x1 - x0) * (y1 - y0); if (ar > ba) { ba = ar; big = [(x0 + x1) / 2, (y0 + y1) / 2]; } });
     const pp = eo((t - 0.85) / 0.45);
     if (big && pp > 0) {
-      const [px, py] = prj(big[0], big[1]), pr = S * 0.05, dy = (1 - pp) * S * 0.12;
+      const [px, py] = prj(big[0], big[1]), pr = S * 0.045, dy = (1 - pp) * S * 0.1;
+      // the pulse
+      const pu = ((t - 1.2) % 1.4) / 1.4;
+      if (t > 1.2) { ctx.globalAlpha = vis * (1 - pu) * 0.6; ctx.strokeStyle = "#ff3b30"; ctx.lineWidth = S * 0.008; ctx.beginPath(); ctx.ellipse(px, py, pr * (1 + pu * 2.2), pr * 0.45 * (1 + pu * 2.2), 0, 0, Math.PI * 2); ctx.stroke(); }
       ctx.globalAlpha = vis * Math.min(1, pp * 1.5);
-      ctx.fillStyle = "#e5402f"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = S * 0.012;
+      ctx.fillStyle = "#ff3b30"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = S * 0.012;
       ctx.beginPath(); ctx.arc(px, py - pr * 1.7 - dy, pr, Math.PI, 0); ctx.lineTo(px, py - dy); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(px, py - pr * 1.75 - dy, pr * 0.38, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = vis;
     }
     ctx.restore();
-    ctx.strokeStyle = "rgba(20,24,32,0.35)"; ctx.lineWidth = Math.max(1, S * 0.008); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.stroke();
-    label(c.label, ch / 2 + S * 0.08);
-  } else if (c.kind === "photo" && c.img) {
-    // a print, turned a little, the picture drifting inside it
-    const cw = S, ch = S * 1.02, b = S * 0.045;
-    ctx.rotate((-5 + 2.5 * pin) * Math.PI / 180);
-    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = S * 0.1; ctx.shadowOffsetY = S * 0.03;
-    ctx.fillStyle = "#fbfaf6"; ctx.fillRect(-cw / 2, -ch / 2, cw, ch); ctx.restore();
-    ctx.save(); ctx.beginPath(); ctx.rect(-cw / 2 + b, -ch / 2 + b, cw - b * 2, ch - b * 4.2); ctx.clip();
-    const im = c.img, iw = im.naturalWidth || 1, ih = im.naturalHeight || 1, z = 1.05 + 0.06 * (t / c.len);
-    const k2 = Math.max((cw - b * 2) / iw, (ch - b * 4.2) / ih) * z;
-    ctx.drawImage(im, -iw * k2 / 2, -ch / 2 + b + (ch - b * 4.2) / 2 - ih * k2 / 2, iw * k2, ih * k2);
+    // the place, set like a maps app
+    const ty = -ch / 2 + mh + (ch - mh) * 0.36;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#111318"; ctx.font = FONT(700, S * 0.085); ctx.fillText(c.label || (c.hits[0] && c.hits[0].name) || "", -cw / 2 + S * 0.07, ty);
+    ctx.fillStyle = "#8a8f98"; ctx.font = FONT(500, S * 0.06); ctx.fillText((c.hits[0] && c.hits[0].name) || "", -cw / 2 + S * 0.07, ty + S * 0.085);
     ctx.restore();
-    if (c.label) { const fs = S * 0.09; ctx.font = '700 ' + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillStyle = "#22252b"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(c.label, 0, ch / 2 - b * 1.6); }
+  } else if (c.kind === "photo" && c.img) {
+    // a social post: an avatar and a name, the picture, the actions row
+    const cw = S, ch = S * 1.32, r = S * 0.05, hh = S * 0.16, ih = cw * 0.92;
+    card(cw, ch, r, "#ffffff");
+    ctx.save(); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.clip();
+    const ax = -cw / 2 + S * 0.09, ay = -ch / 2 + hh / 2;
+    // the avatar: the speaker's own face, taken from the video
+    if (!c._av && F) {
+      const fc = c._face || vsProFace(F, W, H, null);
+      if (fc) {
+        const av = document.createElement("canvas"); av.width = av.height = 96;
+        const side2 = Math.max(fc.w, fc.h) * 0.8, sx = Math.max(0, fc.x + fc.w / 2 - side2 / 2), sy = Math.max(0, fc.y + fc.h * 0.45 - side2 / 2);
+        try { av.getContext("2d").drawImage(F, sx, sy, Math.min(side2, W - sx), Math.min(side2, H - sy), 0, 0, 96, 96); c._av = av; } catch (e) {}
+      }
+    }
+    ctx.save(); ctx.beginPath(); ctx.arc(ax, ay, S * 0.045, 0, Math.PI * 2); ctx.closePath();
+    if (c._av) { ctx.clip(); ctx.drawImage(c._av, ax - S * 0.045, ay - S * 0.045, S * 0.09, S * 0.09); } else { ctx.fillStyle = accent; ctx.fill(); }
+    ctx.restore();
+    ctx.fillStyle = "#111318"; ctx.font = FONT(700, S * 0.058); ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(c.who || "you", ax + S * 0.07, ay);
+    ctx.fillStyle = "#8a8f98"; ctx.fillText("•••", cw / 2 - S * 0.14, ay);
+    const im = c.img, iw = im.naturalWidth || 1, ihh = im.naturalHeight || 1, z = 1.04 + 0.05 * (t / c.len);
+    ctx.save(); ctx.beginPath(); ctx.rect(-cw / 2, -ch / 2 + hh, cw, ih); ctx.clip();
+    const k2 = Math.max(cw / iw, ih / ihh) * z;
+    ctx.drawImage(im, -iw * k2 / 2, -ch / 2 + hh + ih / 2 - ihh * k2 / 2, iw * k2, ihh * k2);
+    ctx.restore();
+    // heart, comment, share - drawn, no made-up counts
+    const ry = -ch / 2 + hh + ih + S * 0.08, ic = S * 0.035;
+    ctx.strokeStyle = "#111318"; ctx.lineWidth = S * 0.011; ctx.lineJoin = "round";
+    const hx = -cw / 2 + S * 0.09;
+    const liked = t > 0.9;
+    ctx.beginPath(); ctx.moveTo(hx, ry + ic * 0.9); ctx.bezierCurveTo(hx - ic * 1.6, ry - ic * 0.2, hx - ic * 0.7, ry - ic * 1.4, hx, ry - ic * 0.4); ctx.bezierCurveTo(hx + ic * 0.7, ry - ic * 1.4, hx + ic * 1.6, ry - ic * 0.2, hx, ry + ic * 0.9); ctx.closePath();
+    if (liked) { ctx.fillStyle = "#ff3040"; ctx.fill(); } else ctx.stroke();
+    ctx.beginPath(); ctx.arc(hx + S * 0.1, ry, ic * 0.95, Math.PI * 0.75, Math.PI * 2.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx + S * 0.19, ry - ic * 0.8); ctx.lineTo(hx + S * 0.25, ry); ctx.lineTo(hx + S * 0.19, ry + ic * 0.8); ctx.stroke();
+    if (c.label) { ctx.fillStyle = "#111318"; ctx.font = FONT(600, S * 0.058); ctx.textAlign = "left"; ctx.fillText(c.label, -cw / 2 + S * 0.06, ry + S * 0.1); }
+    ctx.restore();
   } else if (c.kind === "stat") {
-    // a glass card, the figure counting up to what was said
-    const cw = S, ch = S * 0.62, num = vsGxNum(c.value);
-    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = S * 0.1;
-    ctx.fillStyle = "rgba(10,12,18,0.62)"; rr(-cw / 2, -ch / 2, cw, ch, S * 0.08); ctx.fill(); ctx.restore();
-    ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = Math.max(1, S * 0.006); rr(-cw / 2, -ch / 2, cw, ch, S * 0.08); ctx.stroke();
+    // an analytics card: a ring filling to the figure as it counts up
+    const cw = S, ch = S, r = S * 0.09, num = vsGxNum(c.value);
+    card(cw, ch, r, "#0c0d12");
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = Math.max(1, S * 0.006); rr(-cw / 2, -ch / 2, cw, ch, r); ctx.stroke();
+    const p = sm((t - 0.2) / 1.1), RR = S * 0.3, ry = -ch * 0.06;
+    const pct = num && /%/.test(c.value) ? Math.max(0.05, Math.min(1, num.n / 100)) : 0.82;
+    ctx.lineCap = "round"; ctx.lineWidth = S * 0.05;
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.beginPath(); ctx.arc(0, ry, RR, 0, Math.PI * 2); ctx.stroke();
+    const g = ctx.createLinearGradient(-RR, -RR, RR, RR); g.addColorStop(0, "#22d3ee"); g.addColorStop(0.5, "#7c5cff"); g.addColorStop(1, "#ff4fd8");
+    ctx.strokeStyle = g; ctx.beginPath(); ctx.arc(0, ry, RR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct * p); ctx.stroke();
     let v = c.value;
-    if (num) { const p = sm((t - 0.2) / 0.9), x = num.n * p; v = num.pre + (num.comma ? x.toLocaleString("en-US", { maximumFractionDigits: num.dec }) : x.toFixed(num.dec)) + num.post; }
-    let fs = S * 0.24; ctx.font = '800 ' + Math.round(fs) + 'px Archivo, Manrope, "Vazirmatn", system-ui, sans-serif';
-    const tw = ctx.measureText(c.value).width; if (tw > cw * 0.86) { fs *= (cw * 0.86) / tw; ctx.font = '800 ' + Math.round(fs) + 'px Archivo, Manrope, "Vazirmatn", system-ui, sans-serif'; }
-    ctx.fillStyle = accent; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(v, 0, -ch * 0.08);
-    if (c.label) { const f2 = S * 0.085; ctx.font = '600 ' + Math.round(f2) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillText(c.label, 0, ch * 0.28); }
+    if (num) { const x = num.n * p; v = num.pre + (num.comma ? x.toLocaleString("en-US", { maximumFractionDigits: num.dec }) : x.toFixed(num.dec)) + num.post; }
+    let fs = S * 0.13; ctx.font = FONT(800, fs);
+    const tw = ctx.measureText(c.value).width; if (tw > RR * 1.6) { fs *= (RR * 1.6) / tw; ctx.font = FONT(800, fs); }
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(v, 0, ry);
+    if (c.label) { ctx.font = FONT(600, S * 0.065); ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.fillText(c.label, 0, ch / 2 - S * 0.11); }
+  } else if (c.kind === "search") {
+    // a search bar: the words typed in, a caret, a soft press as it searches
+    const cw = S, ch = S * 0.15, txt = c.text || c.label || "";
+    card(cw, ch, ch / 2, "#ffffff");
+    const mx = -cw / 2 + ch * 0.55, my = 0, mr = ch * 0.17;
+    ctx.strokeStyle = "#5f6368"; ctx.lineWidth = ch * 0.07; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(mx, my - mr * 0.15, mr, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx + mr * 0.7, my + mr * 0.55); ctx.lineTo(mx + mr * 1.35, my + mr * 1.2); ctx.stroke();
+    const n = Math.max(0, Math.min(txt.length, Math.floor((t - 0.35) / 0.045)));
+    ctx.font = FONT(500, ch * 0.36); ctx.fillStyle = "#202124"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const shown = txt.slice(0, n), tx = mx + ch * 0.45;
+    let fitted = shown; while (fitted.length > 1 && ctx.measureText(fitted).width > cw - ch * 1.4) fitted = fitted.slice(1);
+    ctx.fillText(fitted, tx, my + ch * 0.02);
+    if (n < txt.length || Math.floor(t * 2) % 2 === 0) { ctx.fillStyle = "#1a73e8"; ctx.fillRect(tx + ctx.measureText(fitted).width + ch * 0.04, my - ch * 0.2, ch * 0.03, ch * 0.4); }
+  } else if (c.kind === "notify") {
+    // a phone notification: frosted, the app's mark, a bold line and the message
+    const cw = S, ch = S * 0.22, r = ch * 0.28, txt = c.text || c.label || "";
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = ch * 0.4; ctx.shadowOffsetY = ch * 0.08;
+    ctx.fillStyle = "rgba(246,246,248,0.94)"; rr(-cw / 2, -ch / 2, cw, ch, r); ctx.fill(); ctx.restore();
+    const ix = -cw / 2 + ch * 0.5, isz = ch * 0.5;
+    const ig = ctx.createLinearGradient(ix - isz / 2, -isz / 2, ix + isz / 2, isz / 2); ig.addColorStop(0, "#02defd"); ig.addColorStop(1, "#0259ff");
+    ctx.fillStyle = ig; rr(ix - isz / 2, -isz / 2, isz, isz, isz * 0.24); ctx.fill();
+    if (typeof vsWmMarkC !== "undefined" && vsWmMarkC) { ctx.save(); ctx.globalCompositeOperation = "source-over"; ctx.filter = "brightness(10)"; ctx.drawImage(vsWmMarkC, ix - isz * 0.3, -isz * 0.3, isz * 0.6, isz * 0.6); ctx.restore(); }
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#111318"; ctx.font = FONT(700, ch * 0.2); ctx.fillText(c.label || "", ix + isz * 0.75, -ch * 0.17);
+    ctx.fillStyle = "#8a8f98"; ctx.font = FONT(500, ch * 0.16); ctx.textAlign = "right"; ctx.fillText("now", cw / 2 - ch * 0.3, -ch * 0.17);
+    ctx.fillStyle = "#30333a"; ctx.font = FONT(500, ch * 0.18); ctx.textAlign = "left";
+    let line = txt; while (line.length > 3 && ctx.measureText(line).width > cw - isz * 2.2) line = line.slice(0, -2);
+    if (line !== txt) line = line.replace(/\s*\S*$/, "") + "…";
+    ctx.fillText(line, ix + isz * 0.75, ch * 0.16);
   }
   ctx.restore();
 }
