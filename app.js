@@ -4737,6 +4737,14 @@ function vsToast(msg, ms) {
     setTimeout(() => { t.style.transition = "opacity .25s"; t.style.opacity = "0"; setTimeout(() => { try { t.remove(); } catch (e) {} }, 260); }, ms || 4200);
   } catch (e) {}
 }
+// How loud the music bed is (0-1): the Edit studio's slider, else the old
+// studio control if a page still has one, else half. The preview and the
+// export read the same number, so what is heard is what is exported.
+function vsMusicLevel() {
+  if (vstudio._musicLevel != null) return Math.max(0, Math.min(1, Number(vstudio._musicLevel) || 0));
+  const v = parseFloat(vsVal("#vsMusicVolume", NaN));
+  return isNaN(v) ? 0.5 : v;
+}
 function vsVal(id, fallback) {
   const el = $(id);
   return el ? el.value : fallback;
@@ -9615,7 +9623,7 @@ function vsMixVoiceTrack(force) {
   const anyVoice = voiceOn && slides.some((s) => s._voice);
   if (!anyVoice && !buildFx && !vstudio._editSfxOn) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); vstudio._voiceInMix = false; return; }
   const fxEvents = vstudio._editSfxOn ? vsEditSfxEvents(slides) : (buildFx ? vsBuildSfxEvents(slides) : []);
-  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" : "") + (buildFx ? "bfx" : "") + (voiceOn ? "on" : "off") +
+  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" + (vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) : "") + (buildFx ? "bfx" : "") + (voiceOn ? "on" : "off") +
     fxEvents.map((e) => e.n + e.t.toFixed(2)).join(",");
   if (!force && sig === vstudio._voiceSig) return;
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -9649,14 +9657,23 @@ function vsMixVoiceTrack(force) {
     }
     start += d;
   });
-  // the edit's sounds, each with its loudest moment on its beat
+  // the edit's sounds, each with its loudest moment on its beat - and well
+  // under the speaker (the owner: "much quieter than the voice, it gets on
+  // your nerves"). A fixed level was as loud as a quietly recorded voice, so
+  // the level is the voice's own: the effects peak at about half its average
+  // loudness - near 19 dB under its peaks.
   if ((vstudio._editSfxOn || buildFx) && vstudio._sfx && vstudio._sfx.sr === sr) {
+    let ss = 0, nn = 0;
+    for (let j = 0; j < dst.length; j += 4) { const x = dst[j]; if (x > 0.01 || x < -0.01) { ss += x * x; nn++; } }
+    const vRms = nn > sr / 4 ? Math.sqrt(ss / nn) : 0;
+    const base = vRms ? Math.min(0.15, Math.max(0.02, vRms * 0.45)) / 0.9 : VS_SFX_GAIN * 0.5;
+    const lvl = vstudio._sfxLevel == null ? 1 : Math.max(0, Math.min(2, Number(vstudio._sfxLevel) || 0));
     fxEvents.forEach((ev) => {
       const fx = vsSfxFor(ev.n);
       if (!fx) return;
       const src = fx.buf.getChannelData(0);
       const at = Math.floor((ev.t - fx.peak) * sr);
-      const g = VS_SFX_GAIN * (ev.g || 1);
+      const g = base * (ev.g || 1) * lvl;
       for (let k = 0; k < src.length; k++) {
         const j = at + k;
         if (j < 0 || j >= dst.length) continue;
@@ -12258,6 +12275,16 @@ async function vsPrepareEditSfx() {
   }));
   return vstudio._sfx;
 }
+// The owner's sounds by what they mark. Each role takes its sounds in turn,
+// so an edit uses all seventeen - not one click over and over.
+const VS_SFX_ROLE = {
+  land: ["button1", "pluck", "bloop", "button2", "pluck2", "button3", "tick2", "texture"],
+  accent: ["tick", "tick2", "pluck2", "pluck"],
+  cut: ["whoosh", "riser", "whoosh", "texture", "riser", "digital"],
+  big: ["hit", "sparkle", "hit2", "impact", "digital"],
+  open: ["boom", "impact"],
+};
+function vsSfxPick(role, i) { const p = VS_SFX_ROLE[role] || VS_SFX_ROLE.land; return p[((i % p.length) + p.length) % p.length]; }
 // bump when the files change: the CDN keeps a file (or its 404) for hours
 const VS_SFX_VER = 1;
 const VS_SFX_FILES = ["whoosh", "riser", "sparkle", "digital", "boom", "impact", "button1", "button2", "button3", "pluck", "pluck2", "tick", "tick2", "hit", "hit2", "bloop", "texture"];
@@ -12328,28 +12355,29 @@ function vsEditSfxEvents(slides) {
 // a tick when its hero word follows.
 function vsProSfxEvents(slides) {
   const ev = [];
-  const pops = ["button1", "button2", "button3"];
-  let t = 0, n = 0;
+  const k = { land: 0, accent: 0, cut: 0, big: 0 };
+  const pick = (role) => vsSfxPick(role, k[role]++);
+  let t = 0;
   (slides || []).forEach((sl, i) => {
     const d = Number(sl.duration) || 4;
-    if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "whoosh", t: t + 0.32, g: 0.55 }); }
-    if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? "hit" : "whoosh", t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
+    if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "riser", t: t + 0.32, g: 0.5 }); }
+    if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
     if (ins) {
-      ev.push({ n: "whoosh", t: t + ins.at + 0.06, g: 0.85 });
+      ev.push({ n: pick("cut"), t: t + ins.at + 0.06, g: 0.85 });
       if (ins.kind === "place") ev.push({ n: "sparkle", t: t + ins.at + 0.35, g: 0.45 });
       if (ins.kind === "stat") ev.push({ n: "digital", t: t + ins.at + 0.25, g: 0.55 });
       if (ins.kind === "compare") ev.push({ n: "hit", t: t + ins.at + 0.68, g: 0.6 });
       if (ins.kind === "product" && ins.value) ev.push({ n: "hit", t: t + ins.at + 0.5, g: 0.6 });
-      (ins.items || []).forEach((it, k) => { const at = ins.at + (ins.kind === "list" ? 0.5 + k * 0.5 : 0.65 + k * 0.45); if (at < ins.at + ins.len - 0.2) ev.push({ n: pops[n++ % pops.length], t: t + at, g: 0.8, w: 1 }); });
+      (ins.items || []).forEach((it, j) => { const at = ins.at + (ins.kind === "list" ? 0.5 + j * 0.5 : 0.65 + j * 0.45); if (at < ins.at + ins.len - 0.2) ev.push({ n: pick("land"), t: t + at, g: 0.8, w: 1 }); });
     }
     if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
       if (g.t0 >= d - 0.1 || g.off || (sl._proEdit && sl._proEdit[gi] && sl._proEdit[gi].off)) return;   // words the customer removed take their click with them
       if (ins && g.t0 >= ins.at - 0.05 && g.t0 < ins.at + ins.len) return;   // the insert has its own words
-      ev.push({ n: pops[n++ % pops.length], t: t + g.t0, g: 0.95, w: 1 });
+      ev.push({ n: pick("land"), t: t + g.t0, g: 0.95, w: 1 });
       const h = g.items[g.hero];
-      if (!g.single && h && h.t0 - g.t0 > 0.12 && h.t0 < d - 0.1) ev.push({ n: "tick", t: t + h.t0, g: 0.75, w: 1 });
+      if (!g.single && h && h.t0 - g.t0 > 0.12 && h.t0 < d - 0.1) ev.push({ n: pick("accent"), t: t + h.t0, g: 0.75, w: 1 });
     });
     t += d;
   });
@@ -12402,7 +12430,7 @@ const VS_EDIT_MAX_SECONDS = 12 * 60;
 
 const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zoom: "vsEmZoom", title: "vsEmTitle", music: "vsEmMusic",
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
-const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
+const VS_EM_DEFAULTS = { sfx: true, inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
 // ── Graphic video: the speaker's voice, a motion designer's pictures ────────
 // "Edit my video" as a fully graphic video - the person never on screen - in
@@ -13416,6 +13444,15 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     return dflt;
   };
   const xL = W * 0.08, xC = W / 2, bodyCol = ink;
+  // where a picture will land, faint and dashed, until its word is said -
+  // so a scene waiting on the voice is never an empty frame
+  const ghost = (cx, cy, r, tLand, from) => {
+    const pg = P(from || 0.2), pl = P(tLand);
+    if (pg <= 0 || pl >= 1) return;
+    ctx.save(); ctx.globalAlpha = Math.min(1, pg) * (1 - Math.max(0, pl)) * 0.45;
+    ctx.strokeStyle = tk.muted; ctx.lineWidth = U * 0.005; ctx.setLineDash([U * 0.014, U * 0.012]);
+    ctx.beginPath(); ctx.arc(cx, cy, r * (0.7 + 0.3 * Math.min(1, pg)), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  };
 
   // ── the scene ──
   const ty = sc.type;
@@ -13458,6 +13495,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       const cx = W * sp[0], cy = Math.max(y + U * sp[2] * 0.6, H * sp[1]);
       const lb = sc.labels[i] || sc.objects[i] || "";
       const t0 = when(lb, 0.2 + i * mv.st * 1.5);
+      ghost(cx, cy, U * sp[2] * 0.48, t0, 0.15 + i * 0.08);
       obj(im, cx, cy, U * sp[2], t0, i);
       const under = st.ef === "pedestal" ? 0.86 : st.ef === "float" ? 0.68 : 0.78;
       if (lb) text(lb, body, U * 0.055, cx, cy + U * sp[2] * under, W * 0.42, "center", bodyCol, t0 + 0.15, { maxLines: 2 });
@@ -13563,6 +13601,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     const p = P(0.15);
     ctx.strokeStyle = tk.muted; ctx.lineWidth = U * 0.004; ctx.beginPath(); ctx.moveTo(W / 2, cy - U * 0.3 * p); ctx.lineTo(W / 2, cy + U * 0.3 * p); ctx.stroke();
     [[sc.left, sc.left_value, a.objs[0], 0.27, when(sc.left, 0.2)], [sc.right, sc.right_value, a.objs[1], 0.73, when(sc.right, 0.45)]].forEach(([lb, val, im, fx, t0], i) => {
+      ghost(W * fx, cy - U * 0.08, U * 0.14, t0, 0.2 + i * 0.1);
       if (im) obj(im, W * fx, cy - U * 0.08, U * 0.28, t0, i);
       text(lb, disp, U * 0.07, W * fx, cy + U * 0.17, W * 0.42, "center", bodyCol, t0 + 0.1, { maxLines: 2 });
       if (val) text(val, disp, U * 0.09, W * fx, cy + U * 0.29, W * 0.42, "center", i ? tk.a2 : acc, t0 + 0.25, { maxLines: 1, glow: st.tt === "glow" ? (i ? tk.a2 : acc) : null });
@@ -13978,6 +14017,21 @@ async function vsGxResolveAll(slides) {
   const seen = new Set(), jobs = [];
   slides.forEach((s) => { if (s._gx && !seen.has(s._gx)) { seen.add(s._gx); s._gx._idx = jobs.length; jobs.push(s._gx); } });
   await Promise.all(jobs.map(async (sc) => { try { sc.assets = await vsGxResolve(sc, tk); } catch (e) { sc.assets = { objs: [], icons: [] }; } }));
+  // A scene never comes out empty. A photo or a map that was not found turns
+  // into a key word - and a scene planned as a photo or a map often has no
+  // words of its own, so it drew nothing but the ground (a seven-second
+  // blank board at the end of a reel). The words come from what it said.
+  jobs.forEach((sc) => {
+    const a = sc.assets || (sc.assets = { objs: [], icons: [] });
+    if (sc.type === "objects" && !(a.objs || []).some(Boolean)) sc.type = "keyword";
+    if ((sc.type === "keyword" || sc.type === "title") && !String(sc.title || "").trim()) {
+      const said = slides.filter((x) => x._gx === sc).map((x) => x._narration || ((x._voice && x._voice.words) || []).map((w) => w.w).join(" ")).join(" ");
+      const STOP = /^(the|a|an|and|or|but|to|of|in|on|for|is|are|was|it|this|that|your|you|i|we|my|our|so|if|get|got|just|before|after|with|at|by|be)$/i;
+      const words = said.split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}%$'-]/gu, "")).filter(Boolean);
+      const keep = words.filter((w) => !STOP.test(w));
+      sc.title = String(sc.caption || sc.label || (sc.countries || [])[0] || sc.kicker || (sc.items || [])[0] || (sc.objects || [])[0] || keep.slice(0, 4).join(" ") || words.slice(0, 4).join(" ")).slice(0, 60);
+    }
+  });
 }
 // The cuts between scenes, in the style's manner; none inside a scene.
 function vsGxCuts(slides) {
@@ -13992,21 +14046,22 @@ function vsGxCuts(slides) {
 // lands, a tick for each date, a digital count for a number.
 function vsGxSfxEvents(slides) {
   const ev = [];
-  const pops = ["button1", "button2", "button3"];
-  let t = 0, n = 0, prev = null;
+  const k0 = { land: 0, accent: 0, cut: 0, big: 0 };
+  const pick = (role) => vsSfxPick(role, k0[role]++);
+  let t = 0, prev = null;
   const mv = vsGxMove(vsGxTokens(vsGxTheme(vstudio._gxTheme)));
   slides.forEach((s, i) => {
     const d = Number(s.duration) || 0, sc = s._gx;
     if (sc && sc !== prev) {
       if (i === 0) ev.push({ n: "boom", t: t + 0.05, g: 0.7 });
-      else ev.push({ n: "whoosh", t: t + 0.12, g: 0.6 });
-      const at = (x) => { if (x < d + 2) ev.push({ n: pops[n++ % 3], t: t + x, g: 0.55, w: 1 }); };
+      else ev.push({ n: pick("cut"), t: t + 0.12, g: 0.6 });
+      const at = (x) => { if (x < d + 2) ev.push({ n: pick("land"), t: t + x, g: 0.55, w: 1 }); };
       if (sc.type === "objects") (sc.objects || []).forEach((o, k) => at(0.2 + k * mv.st * 1.5));
       else if (sc.type === "list") (sc.items || []).forEach((o, k) => at(0.3 + k * mv.st * 2.5));
-      else if (sc.type === "timeline") (sc.years || []).forEach((o, k) => ev.push({ n: k % 2 ? "tick2" : "tick", t: t + 0.3 + k * 0.45, g: 0.6 }));
+      else if (sc.type === "timeline") (sc.years || []).forEach((o, k) => ev.push({ n: pick("accent"), t: t + 0.3 + k * 0.45, g: 0.6 }));
       else if (sc.type === "stat") ev.push({ n: "digital", t: t + 0.2, g: 0.5 });
       else if (sc.type === "map") ev.push({ n: "sparkle", t: t + 0.95, g: 0.45 });
-      else if (sc.type === "compare") { at(0.2); at(0.45); ev.push({ n: "hit", t: t + 0.7, g: 0.5 }); }
+      else if (sc.type === "compare") { at(0.2); at(0.45); ev.push({ n: pick("big"), t: t + 0.7, g: 0.5 }); }
       else if (sc.type === "chart") (sc.bars || []).forEach((o, k) => at(0.25 + k * mv.st * 2));
       else at(0.15);
     }
@@ -14213,7 +14268,8 @@ function vsEditStudio(preset, filesIn) {
     ["inserts", L("Cinematic shots and graphics when you name a product, place or number", "نمای سینمایی و گرافیک وقتی از محصول، مکان یا عدد حرف می‌زنی"), "p"],
     ["cut", L("Cut the pauses", "حذف مکث‌ها و سکوت‌ها"), ""],
     ["fillers", L("Remove “um” and “uh”", "حذف «اِ» و «اوم»"), ""],
-    ["trans", L("Transitions and sound effects", "ترنزیشن و افکت صوتی"), ""],
+    ["trans", L("Transitions", "ترنزیشن"), ""],
+    ["sfx", L("Sound effects", "افکت صوتی"), ""],
     ["zoom", L("Zoom on the key moments", "زوم روی لحظه‌های مهم"), ""],
     ["beat", L("Cuts on the music's beat", "برش‌ها روی ضرب موسیقی"), ""],
     ["music", L("Quiet music underneath", "موسیقی آرام زیر صدا"), ""],
@@ -14267,6 +14323,16 @@ function vsEditStudio(preset, filesIn) {
 @keyframes emSlide{0%{transform:translateX(-100%)}100%{transform:translateX(270%)}}
 @media (prefers-reduced-motion:reduce){#emModal .em-bar.ind i{animation:none;width:100%;opacity:.5}}
 #emModal .em-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+#emModal .em-new{min-height:34px;padding:0 14px;margin-inline-end:8px}
+#emModal .em-pop{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.6);backdrop-filter:blur(3px)}
+#emModal .em-popc{width:min(360px,90%);padding:20px;border-radius:14px;background:#14171d;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -20px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:10px}
+#emModal .em-popc h3{margin:0;font:600 17px/1.3 'Space Grotesk',Vazirmatn,system-ui,sans-serif}
+#emModal .em-popc p{margin:0;color:#a3a9b3;font-size:13px}
+#emModal .em-popc .em-row{display:flex;flex-direction:row;gap:8px;justify-content:flex-end;margin-top:6px}
+#emModal .em-popc .em-row>button{flex:1;width:auto;min-height:40px}
+#emModal .em-snd{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 14px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
+#emModal .em-snd input[type=range]{width:100%;accent-color:#2563ff}
+#emModal .em-snd input[type=range]:disabled{opacity:.35}
 #emModal .em-acts .ts-primary{width:auto;padding:0 22px}
 #emModal .em-acts .ts-ghost{min-height:46px;padding:0 18px;border-radius:11px}
 #emModal .em-err{max-width:420px;font-size:13px;color:#f4f5f7;border-inline-start:2px solid #f87171;padding:4px 0 4px 10px;text-align:start}
@@ -14334,7 +14400,7 @@ function vsEditStudio(preset, filesIn) {
       '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Edit it", "ادیتش کن") + "</button></div>" +
     "</aside>" +
     '<section class="ts-main" aria-live="polite">' +
-      '<div class="ts-main-h"><div class="ts-eye">' + L("Your edit", "ادیت تو") + '</div><span style="flex:1"></span><button id="emClose" type="button" class="ts-x" aria-label="' + L("Close", "بستن") + '">' + icoX + "</button></div>" +
+      '<div class="ts-main-h"><div class="ts-eye">' + L("Your edit", "ادیت تو") + '</div><span style="flex:1"></span><button id="emNew" type="button" class="ts-ghost em-new" hidden>' + L("New project", "پروژهٔ جدید") + '</button><button id="emClose" type="button" class="ts-x" aria-label="' + L("Close", "بستن") + '">' + icoX + "</button></div>" +
       '<div id="emStage" class="em-stage"></div>' +
     "</section></div>";
   document.body.appendChild(ov);
@@ -14369,7 +14435,33 @@ function vsEditStudio(preset, filesIn) {
     ov.remove();
   };
   $$("emClose").onclick = close;
-  ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  ov.addEventListener("keydown", (e) => { if (e.key === "Escape") { const pop = ov.querySelector(".em-pop"); if (pop) pop.remove(); else close(); } });
+  // A new video without reloading the page: a small window asks, then the
+  // studio opens again empty - the settings stay, the video and its edit go.
+  $$("emNew").onclick = () => {
+    if (ov.querySelector(".em-pop")) return;
+    const pop = document.createElement("div");
+    pop.className = "em-pop";
+    pop.innerHTML = '<div class="em-popc" role="alertdialog" aria-modal="true" aria-labelledby="emPopT"><h3 id="emPopT">' + L("Start a new project?", "پروژهٔ جدید شروع شود؟") + "</h3>" +
+      "<p>" + (busy || running ? L("The edit or export still running will stop.", "ادیت یا خروجیِ در حال ساخت متوقف می‌شود.") : L("This edit closes. Download it first if you still need it.", "این ادیت بسته می‌شود. اگر لازمش داری اول دانلودش کن.")) + "</p>" +
+      '<div class="em-row"><button type="button" class="ts-ghost" data-a="no">' + L("Cancel", "لغو") + '</button><button type="button" class="ts-primary" data-a="yes">' + L("New project", "پروژهٔ جدید") + "</button></div></div>";
+    pop.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-a]");
+      if (e.target === pop || (a && a.dataset.a === "no")) { pop.remove(); return; }
+      if (!a) return;
+      if (busy || running) vstudio._batchCancel = true;
+      stopMirror();
+      try { if (vstudio.looping) stopStudioPreview(); } catch (er) {}
+      if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (er) {} }
+      vstudio._statusHook = null; vstudio._exportProgress = null;
+      vstudio._editCache = null; vstudio._musicStash = null;
+      vsEditStudioMem = { files: [], mode, settings: settingsNow(), doneSeq: -1, running: null };
+      ov.remove();
+      vsEditStudio({ mode }, []);
+    });
+    $$("emModal").appendChild(pop);
+    try { pop.querySelector('[data-a="yes"]').focus(); } catch (er) {}
+  };
 
   // ── the right side: empty, working, done ──
   const shapeWH = () => { const v = (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16"; const x = SHAPES.find((q) => q[0] === v) || SHAPES[0]; return [x[2], x[3]]; };
@@ -14391,6 +14483,7 @@ function vsEditStudio(preset, filesIn) {
   // the video, dragged, resized, set in front of or behind the speaker,
   // rewritten or removed - and the change is in the next frame and the export.
   const showDone = () => {
+    $$("emNew").hidden = false;
     const src = document.querySelector("#vsCanvas");
     const W = (src && src.width) || 1080, H = (src && src.height) || 1920;
     const icoL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
@@ -14410,6 +14503,12 @@ function vsEditStudio(preset, filesIn) {
           '<div class="em-row"><button id="emReset" type="button" class="ts-ghost">' + L("Undo my changes", "برگرداندن تغییرها") + '</button><button id="emOff" type="button" class="ts-ghost"></button></div>' +
           '<p class="ts-note">' + L("Drag the words on the video to move them.", "کلمات را روی ویدیو بکش تا جابه‌جا شوند.") + "</p>" +
         "</div></div>" +
+      '<div class="em-snd" role="group" aria-label="' + L("Sound", "صدا") + '">' +
+        '<label class="ts-switch"><input type="checkbox" id="emSndMusic"' + (vstudio.musicEl ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Music", "موسیقی") + "</span></label>" +
+        '<input id="emMusicVol" type="range" min="0" max="100" step="5" value="' + Math.round(vsMusicLevel() * 100) + '" aria-label="' + L("Music volume", "بلندی موسیقی") + '"/>' +
+        '<label class="ts-switch"><input type="checkbox" id="emSndFx"' + (vstudio._editSfxOn ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Sound effects", "افکت صوتی") + "</span></label>" +
+        '<input id="emFxVol" type="range" min="0" max="200" step="10" value="' + Math.round((vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) * 100) + '" aria-label="' + L("Sound effects volume", "بلندی افکت‌ها") + '"/>' +
+      "</div>" +
       '<div class="em-acts">' +
       (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
       '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button></div>" +
@@ -14535,6 +14634,42 @@ function vsEditStudio(preset, filesIn) {
     redraw(tCur);
     vstudio._gxRedraw = () => redraw();
     if ($$("emReTheme")) $$("emReTheme").onclick = pickTheme;
+    // music and sound effects: on or off, and how loud - heard at once, no new edit
+    {
+      const mv = $$("emMusicVol"), fv = $$("emFxVol");
+      const sync = () => { mv.disabled = !$$("emSndMusic").checked; fv.disabled = !$$("emSndFx").checked; };
+      sync();
+      $$("emSndMusic").onchange = async (e) => {
+        const on = e.target.checked;
+        if (!on) {
+          if (vstudio.musicEl) { vstudio._musicStash = { el: vstudio.musicEl, buf: vstudio._musicBuffer, end: vstudio._musicContentEnd }; try { vstudio.musicEl.pause(); } catch (er) {} }
+          vstudio.musicEl = null; vstudio._musicBuffer = null;
+        } else if (vstudio._musicStash) {
+          const m = vstudio._musicStash; vstudio.musicEl = m.el; vstudio._musicBuffer = m.buf; vstudio._musicContentEnd = m.end;
+        } else {
+          e.target.disabled = true;
+          try {
+            const dm = await vsEnsureDefaultMusic(vstudio.storyData);
+            if (dm) { vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null; vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm); }
+          } catch (er) {}
+          e.target.disabled = false;
+          if (!vstudio.musicEl) e.target.checked = false;
+        }
+        if (vstudio.looping) { pause(); }
+        sync();
+      };
+      mv.oninput = () => { vstudio._musicLevel = Number(mv.value) / 100; };
+      $$("emSndFx").onchange = async (e) => {
+        const on = e.target.checked;
+        if (on) { try { await vsPrepareEditSfx(); } catch (er) {} }
+        vstudio._editSfxOn = on;
+        if (vstudio.looping) pause();
+        try { vsMixVoiceTrack(true); } catch (er) {}
+        sync();
+      };
+      let ft = 0;
+      fv.oninput = () => { vstudio._sfxLevel = Number(fv.value) / 100; clearTimeout(ft); ft = setTimeout(() => { if (vstudio.looping) pause(); try { vsMixVoiceTrack(true); } catch (er) {} }, 250); };
+    }
     $$("emExport").onclick = async () => {
       if (busy) return;
       pause(); select(null);
@@ -14548,10 +14683,15 @@ function vsEditStudio(preset, filesIn) {
       setMsg(L("Making the MP4… keep this tab open and visible.", "در حال ساخت MP4… این تب را باز و روی صفحه نگه دار."));
       vstudio._exportProgress = (p) => { setPct(p); setMsg(L("Making the MP4… ", "در حال ساخت MP4… ") + p + "%"); };
       let out = null;
+      // the download (and the dashboard copy) is named after the customer's
+      // own video - "beach day.mp4" comes back as "beach day-edit.mp4"
+      const src = String((files[0] && files[0].name) || "").replace(/\.[^.]+$/, "").replace(/[\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+      const baseName = (src || L("my video", "ویدیوی من")) + "-edit";
+      const prevName = vstudio._exportName;
       try {
-        vstudio._returnBlob = true;
+        vstudio._returnBlob = true; vstudio._exportName = baseName;
         out = await exportStudioVideo();
-      } catch (e) {} finally { vstudio._returnBlob = false; vstudio._exportProgress = null; busy = false; }
+      } catch (e) {} finally { vstudio._returnBlob = false; vstudio._exportProgress = null; vstudio._exportName = prevName; busy = false; }
       if (!document.body.contains(ov)) return;
       ["emPlay", "emExport", "emPrev", "emNext"].forEach((id) => { const b = $$(id); if (b) b.disabled = false; });
       $$("emPos").disabled = false;
@@ -14564,7 +14704,7 @@ function vsEditStudio(preset, filesIn) {
       }
       if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (e) {} }
       exportUrl = URL.createObjectURL(blob);
-      const name = (vstudio._exportName || "ai-radar-edit").replace(/[^\w\-]+/g, "-") + "." + ((out && out.ext) || "mp4");
+      const name = baseName + "." + ((out && out.ext) || "mp4");
       $$("emExp").innerHTML = '<a class="ts-primary" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:0 22px" href="' + exportUrl + '" download="' + escapeHtml(name) + '">' +
         L("Download", "دانلود") + " · " + Math.round(blob.size / 1048576 * 10) / 10 + " MB</a>";
       try { $$("emExp").querySelector("a").click(); } catch (e) {}
@@ -14736,6 +14876,7 @@ function vsEditStudio(preset, filesIn) {
   // waits on an edit - just started, or one still running from before the
   // window was closed - and shows where it got to
   const follow = async (run) => {
+    $$("emNew").hidden = false;
     busy = true;
     $$("emGo").disabled = true;
     showWork(L("Editing your video", "در حال ادیت ویدیوی تو"));
@@ -14762,6 +14903,7 @@ function vsEditStudio(preset, filesIn) {
   syncStyle();
   // carry on where it was: an edit still running, or the finished one
   const stillThere = doneSeq >= 0 && doneSeq === vstudio._buildSeq && vstudio.slides.some((x) => x._ownSpeech);
+  $$("emNew").hidden = !(running || stillThere || files.length);
   if (running) follow(running);
   else if (stillThere && !(filesIn && filesIn.length)) { $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن"); showDone(); }
   else showEmpty();
@@ -16267,7 +16409,7 @@ async function vsEditMyVideo(fileIn, o) {
       await vsGxResolveAll(vstudio.slides);
       vsGxCuts(vstudio.slides);
     }
-    vstudio._editSfxOn = !!o.trans || !!pro || gx;
+    vstudio._editSfxOn = o.sfx !== false && (!!o.trans || !!pro || gx);
     if (vstudio._editSfxOn) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
     if (pro) {
       vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
@@ -27179,8 +27321,7 @@ function vsApplyMusicFade(elapsed, duration) {
   } else if (elapsed > duration - fadeOut) {
     vol = Math.max(0, (duration - elapsed) / fadeOut);
   }
-  // respect a user music-volume setting if one exists
-  const base = Number(vsVal("#vsMusicVolume", 1));
+  const base = vsMusicLevel();
   // Under a voice the bed drops to half, as it does in the export mix.
   const duck = (vstudio._narrationBuffer && vstudio._voiceInMix) ? 0.5 : 1;
   try { m.volume = Math.max(0, Math.min(1, vol * duck * (isNaN(base) ? 1 : base))); }
@@ -28178,8 +28319,7 @@ async function vsRenderMixWav(duration) {
   const ctx = new OAC(2, len, sr);
   const end = duration;
   const spd = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
-  const vol = parseFloat((document.querySelector("#vsMusicVolume") || {}).value);
-  const musicVol = (isNaN(vol) ? 0.5 : vol) * (nBuf && vstudio._voiceInMix ? 0.5 : 1);
+  const musicVol = vsMusicLevel() * (nBuf && vstudio._voiceInMix ? 0.5 : 1);
   if (mBuf) {
     const s = ctx.createBufferSource(); s.buffer = mBuf; s.loop = true;
     const contentEnd = vstudio._musicContentEnd || null;
@@ -35987,8 +36127,7 @@ async function exportStudioVideo() {
       const ea = vstudio._exportAudio, actx = ea.actx;
       const t0 = actx.currentTime + 0.08, end = t0 + (ea.dur || 20);
       const spd = parseFloat((document.querySelector("#vsVoiceSpeed") || {}).value) || 1;
-      const vol = parseFloat((document.querySelector("#vsMusicVolume") || {}).value);
-      const musicVol = (isNaN(vol) ? 0.5 : vol) * (ea.nBuf && vstudio._voiceInMix ? 0.5 : 1); // duck under voice, not under the cut sounds
+      const musicVol = vsMusicLevel() * (ea.nBuf && vstudio._voiceInMix ? 0.5 : 1); // duck under voice, not under the cut sounds
       if (ea.mBuf) {
         const s = actx.createBufferSource(); s.buffer = ea.mBuf; s.loop = true;
         // The AI music generator sometimes under-fills the requested
