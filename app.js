@@ -11736,9 +11736,21 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   if (pip) {
     const p = Math.max(0, Math.min(1, (t - 0.3) / 0.35));
     if (p > 0) {
-      const f = ins._face || (ins._face = vsProFace(F, W, H, null) || { x: W * 0.25, y: H * 0.1, w: W * 0.5, h: W * 0.55 });
+      // The face, found again every half second (the speaker moves) and not
+      // kept when the finder had not loaded yet - a guessed box, kept for good,
+      // put an eye at the circle's edge.
+      if (!ins._face || t - (ins._faceT || 0) > 0.5) {
+        const nf = vsProFace(F, W, H, null);
+        if (nf) { ins._face = ins._face ? { x: ins._face.x * 0.5 + nf.x * 0.5, y: ins._face.y * 0.5 + nf.y * 0.5, w: ins._face.w * 0.5 + nf.w * 0.5, h: ins._face.h * 0.5 + nf.h * 0.5 } : nf; ins._faceT = t; }
+      }
+      const f = ins._face || { x: W * 0.25, y: H * 0.12, w: W * 0.5, h: W * 0.55 };
       const r = U * 0.13 * vsEase.out(p), cx = W - U * 0.19, cy = kind === "product" ? H * 0.2 : H - bar - U * 0.2;
-      const side = Math.max(f.w, f.h) * 1.1, sx = f.x + f.w / 2 - side / 2, sy = f.y + f.h / 2 - side / 2;
+      // head and shoulders, the face a little above the middle - and the
+      // square kept inside the frame: a source rectangle past the edge is
+      // drawn stretched and shifted
+      const side = Math.min(W, H, Math.max(f.w, f.h) * 1.55);
+      const sx = Math.max(0, Math.min(W - side, f.x + f.w / 2 - side / 2));
+      const sy = Math.max(0, Math.min(H - side, f.y + f.h * 0.6 - side * 0.45));
       ctx.save();
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath();
       ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = r * 0.3; ctx.fillStyle = "#000"; ctx.fill(); ctx.shadowBlur = 0;
