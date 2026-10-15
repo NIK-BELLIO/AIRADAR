@@ -12259,7 +12259,8 @@ function vsProSlideAt(slides, T) {
   });
   return { idx, local };
 }
-async function vsProPlaceCallouts(slides, ai, words, sentences) {
+async function vsProPlaceCallouts(slides, ai, words, sentences, shots) {
+  shots = shots || [];
   const key = (x) => String(x || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
   const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
   const marks = [];
@@ -12270,7 +12271,8 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
     return inS.find((w) => key(w.w) === key(want)) || inS[0] || null;
   };
   (ai && Array.isArray(ai.callouts) ? ai.callouts : []).slice(0, 12).forEach((c) => {
-    if (!c || !/^(icon|map|photo|stat|search|notify|orbit)$/.test(c.kind)) return;
+    if (!c || !/^(icon|map|photo|stat|search|notify|orbit|shot)$/.test(c.kind)) return;
+    if (c.kind === "shot" && !shots[Number(c.shot)]) return;
     const w = wordAt(c.i, c.at_word);
     if (!w) return;
     const m = { kind: c.kind, T: w.s, label: clean(c.label, 26), object: clean(c.object, 30), country: clean(c.country, 40), place: clean(c.place, 30), photo: clean(c.photo, 50), value: clean(c.value, 16), text: clean(c.text, 60), si: Number(c.i) };
@@ -12280,6 +12282,7 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
     if (m.kind === "stat" && !vsGxNum(m.value)) return;
     if ((m.kind === "search" || m.kind === "notify") && !m.text) return;
     if (m.kind === "orbit" && marks.some((x) => x.kind === "orbit")) return;
+    if (m.kind === "shot") { if (marks.some((x) => x.kind === "shot" && x.shot === Number(c.shot))) return; m.shot = Number(c.shot); m.img = shots[m.shot].img; }
     marks.push(m);
   });
   // too few: a 3D object for an everyday word that has one, one per sentence
@@ -12299,21 +12302,42 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
     const wow = words.find((w, i) => i > 3 && /^(amazing|incredible|best|biggest|huge|insane|crazy|perfect|dream|unbelievable|massive|record|love)$/i.test(key(w.w)));
     if (wow) marks.push({ kind: "orbit", T: wow.s, label: "", si: -1 });
   }
+  // a screenshot the analysis did not place goes where the talk is free,
+  // spread over the video
+  shots.forEach((sh, k) => {
+    if (marks.some((m) => m.kind === "shot" && m.shot === k)) return;
+    const span = words.length ? words[words.length - 1].s - words[0].s : 0;
+    const T = (words[0] ? words[0].s : 0) + span * ((k + 1) / (shots.length + 1));
+    const w = words.find((x) => x.s >= T) || words[words.length - 1];
+    if (w) marks.push({ kind: "shot", T: w.s, shot: k, img: sh.img, label: "", si: -1 });
+  });
   marks.sort((a, b) => a.T - b.T);
-  // spread out: four seconds apart, not on an insert or a product montage
+  // spread out: four seconds apart (the user's own screenshots first), not on
+  // an insert or a product montage
   const placed = [];
-  let lastT = -9;
-  marks.forEach((m) => {
-    if (m.T - lastT < 4) return;
+  const firsts = marks.filter((m) => m.kind === "shot"), rest = marks.filter((m) => m.kind !== "shot");
+  const near = (T) => placed.some((p) => Math.abs(p.T - T) < 4);
+  firsts.concat(rest).forEach((m) => {
+    if (m.kind === "shot" ? placed.some((p) => Math.abs(p.T - m.T) < 2.6) : near(m.T)) return;
     const at = vsProSlideAt(slides, m.T);
     if (at.idx < 0) return;
-    const sl = slides[at.idx], d = Number(sl.duration) || 0;
-    const len = Math.min(2.8, d - at.local - 0.1);
-    if (len < 1.4 || sl._broll) return;
+    // a cut of B-roll has no speaker to stand beside: the next cut that has
+    // them (or the one before), at its start (or its end)
+    let idx = at.idx, local = at.local;
+    if (slides[idx]._broll) {
+      const nx = slides.findIndex((x, i) => i > idx && !x._broll && !x._teaser), pv = (() => { for (let i = idx - 1; i >= 0; i--) if (!slides[i]._broll && !slides[i]._teaser) return i; return -1; })();
+      if (nx >= 0 && (pv < 0 || nx - idx <= idx - pv)) { idx = nx; local = 0.1; } else if (pv >= 0) { idx = pv; local = 1e9; } else return;
+    }
+    const sl = slides[idx], d = Number(sl.duration) || 0;
+    // near the end of a cut: start a little earlier rather than lose it
+    let a0 = Math.max(0, Math.min(local - 0.1, d - 0.1 - 2.2));
+    const len = Math.min(2.8, d - a0 - 0.1);
+    if (len < 1.4) return;
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
-    if (ins && at.local + len > ins.at && at.local < ins.at + ins.len) return;
-    m.idx = at.idx; m.at = Math.max(0, at.local - 0.1); m.len = len;
-    placed.push(m); lastT = m.T;
+    if (ins && a0 + len > ins.at && a0 < ins.at + ins.len) return;
+    if (placed.some((p) => p.idx === idx && Math.abs(p.at - a0) < 2.6)) return;
+    m.idx = idx; m.at = a0; m.len = len;
+    placed.push(m);
   });
   // the pictures, all at once
   let world = null;
@@ -12334,7 +12358,7 @@ async function vsProPlaceCallouts(slides, ai, words, sentences) {
   let n = 0;
   slides.forEach((sl) => { delete sl._calls; });
   placed.forEach((m) => {
-    if ((m.kind === "icon" || m.kind === "photo") && !m.img) return;
+    if ((m.kind === "icon" || m.kind === "photo" || m.kind === "shot") && !m.img) return;
     if (m.kind === "map" && !(m.hits && m.hits.length)) return;
     const sl = slides[m.idx];
     (sl._calls || (sl._calls = [])).push({ kind: m.kind, at: Math.round(m.at * 100) / 100, len: Math.round(m.len * 100) / 100, label: m.label || (m.kind === "map" ? m.place : ""), img: m.img || null, world: m.world || null, hits: m.hits || null, value: m.value || "", text: m.text || "",
@@ -12432,6 +12456,30 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   // a notification or a search bar sits across the chest: under the face, over
   // the caption line - the top of the frame is the watermark's and the app's
   if (f && (c.kind === "notify" || c.kind === "search")) cy0 = Math.max(H * 0.42, Math.min(H * 0.56, f.y + f.h + S * 0.16));
+  // A screenshot is mostly in view with only a corner tucked behind the
+  // speaker, as in the reel: tried at both edges and three heights, it goes
+  // where the person covers a little of it (never most), clear of the face.
+  if (c.kind === "shot" && c.img && !c._pos) {
+    const ar = c.img.width / c.img.height;
+    let w = ar < 0.8 ? Math.min(W * 0.44, H * 0.42 * ar) : Math.min(W * 0.52, U * 0.62), h = w / ar;
+    if (h > H * 0.44) { h = H * 0.44; w = h * ar; }
+    const m = vsProMask(F, W, H, s, c.at + t);
+    let best = null;
+    [side, -side].forEach((sd, si) => [0.3, 0.38, 0.24, 0.46].forEach((fy, yi) => [0.035, 0.0].forEach((mg, mi) => {
+      const x = sd > 0 ? W - W * mg - w / 2 : W * mg + w / 2, y = H * fy;
+      if (y - h / 2 < H * 0.07 || y + h / 2 > H * 0.62) return;
+      const box = { x: x - w / 2, y: y - h / 2, w, h };
+      if (f && !(box.x + box.w < f.x || box.x > f.x + f.w || box.y + box.h < f.y || box.y > f.y + f.h)) return;
+      const cov = m && m.a ? vsProCover(m, W, H, box) : 0;
+      if (cov > 0.22) return;
+      // a little behind them is the look; then this side, then higher in frame
+      const score = -Math.abs(cov - 0.1) * 10 - si * 0.6 - yi * 0.15 - mi * 0.2;
+      if (!best || score > best.score) best = { score, x, y, w, h };
+    })));
+    if (!best) { const k2 = 0.75; w *= k2; h *= k2; best = { x: side > 0 ? W - W * 0.035 - w / 2 : W * 0.035 + w / 2, y: H * 0.34, w, h }; }
+    c._pos = best;
+  }
+  if (c._pos) { cx = c._pos.x; cy0 = c._pos.y; }
   const cy = cy0 + Math.sin(t * 1.3) * H * 0.003;
   ctx.save();
   ctx.globalAlpha = vis;
@@ -12439,13 +12487,28 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   ctx.translate(cx + (fromTop ? 0 : side * (1 - pin) * W * 0.05), cy + (fromTop ? -(1 - pin) * H * 0.08 : (1 - pin) * H * 0.015));
   const k = 0.94 + 0.06 * pin; ctx.scale(k, k);
   // cards turned a little in depth, as if floating in the room
-  if (c.kind !== "icon" && c.kind !== "notify" && c.kind !== "search") { ctx.rotate(side * -0.045); ctx.transform(1, side * -0.035, 0, 1, 0, 0); }
+  { const sd = c._pos ? (c._pos.x > W / 2 ? 1 : -1) : side;
+    if (c.kind !== "icon" && c.kind !== "notify" && c.kind !== "search") { ctx.rotate(sd * -0.045); ctx.transform(1, sd * -0.035, 0, 1, 0, 0); } }
   const card = (w, h, r, fill) => {
     ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = Math.max(w, h) * 0.1; ctx.shadowOffsetY = Math.max(w, h) * 0.035;
     ctx.fillStyle = fill; rr(-w / 2, -h / 2, w, h, r); ctx.fill(); ctx.restore();
   };
 
-  if (c.kind === "icon" && c.img) {
+  if (c.kind === "shot" && c.img) {
+    // their own screenshot, a crisp card with a fine white edge, floating
+    // beside them and tucked a little behind their shoulder
+    const im = c.img, w = c._pos.w, h = c._pos.h;
+    const r = Math.min(w, h) * 0.06, b = Math.max(2, Math.min(w, h) * 0.018);
+    ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = Math.max(w, h) * 0.08; ctx.shadowOffsetY = Math.max(w, h) * 0.03;
+    ctx.fillStyle = "#ffffff"; rr(-w / 2 - b, -h / 2 - b, w + b * 2, h + b * 2, r + b); ctx.fill(); ctx.restore();
+    ctx.save(); rr(-w / 2, -h / 2, w, h, r); ctx.clip(); ctx.drawImage(im, -w / 2, -h / 2, w, h);
+    // a slow sheen across the glass
+    const sx = -w / 2 + (w * 1.6) * ((t * 0.35) % 1) - w * 0.3, g = ctx.createLinearGradient(sx - w * 0.2, 0, sx + w * 0.2, 0);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.18)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.restore();
+    c._behind = true;
+  } else if (c.kind === "icon" && c.img) {
     // a silver object, a soft shadow on an invisible floor
     const sil = vsCallSilver(c.img), z = S * 0.9;
     ctx.save(); ctx.globalAlpha = vis * 0.25; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(0, z * 0.52, z * 0.28, z * 0.045, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
@@ -12583,6 +12646,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     ctx.fillText(line, ix + isz * 0.75, ch * 0.16);
   }
   ctx.restore();
+  if (c._behind) { const m = vsProMask(F, W, H, s, c.at + t); if (m && m.P) ctx.drawImage(m.P, 0, 0); }
 }
 
 // The customer's photos and videos, read once: photos made no bigger than
@@ -15138,6 +15202,8 @@ function vsEditStudio(preset, filesIn) {
   let files = (filesIn && filesIn.length ? filesIn : (mem ? mem.files : [])).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
   // the product or listing shots (experimental), kept with the window
   let showFiles = (mem && mem.show) ? mem.show.slice() : [];
+  // their own screenshots, floated beside them as they talk about them
+  let shotFiles = (mem && mem.shots) ? mem.shots.slice() : [];
   let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
@@ -15288,6 +15354,11 @@ function vsEditStudio(preset, filesIn) {
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Shape", "قالب") + '</div><div class="ts-sizes">' +
         SHAPES.map(([v, n, w, h]) => { const k = 18 / Math.max(w, h); return '<label class="ts-size"><input type="radio" name="emShape" value="' + v + '"' + (v === shape0 ? " checked" : "") + '/><span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span><span class="ts-size-n">' + n + '</span><span class="ts-size-d">' + v + "</span></label>"; }).join("") +
         "</div></div>" +
+      '<div class="ts-field em-edit em-p em-show"><div class="ts-lbl">' + L("Your screenshots", "اسکرین‌شات‌های تو") + "</div>" +
+        '<div id="emShotList" class="em-showl"></div>' +
+        '<button id="emShotAdd" type="button" class="ts-ghost em-showadd">' + L("Add your profile, results or listings", "افزودن پروفایل، نتایج یا لیستینگ") + "</button>" +
+        '<input id="emShotFile" type="file" accept="image/*" multiple hidden/>' +
+      "</div>" +
       '<div class="ts-field em-edit em-p em-show"><div class="ts-lbl">' + L("Your product or listing", "محصول یا ملک تو") + ' <span class="em-beta">' + L("Beta", "آزمایشی") + "</span></div>" +
         '<div id="emShowList" class="em-showl"></div>' +
         '<button id="emShowAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos or videos", "افزودن عکس یا ویدیو") + "</button>" +
@@ -15332,7 +15403,7 @@ function vsEditStudio(preset, filesIn) {
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
     const st = settingsNow();
-    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice() };
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice(), shots: shotFiles.slice() };
     try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
   };
   const close = () => {
@@ -15799,6 +15870,17 @@ function vsEditStudio(preset, filesIn) {
     drawShow(); remember();
   };
   drawShow();
+  // the screenshots, the same way
+  const shotUrls = [];
+  const drawShots = () => {
+    shotUrls.splice(0).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
+    $$("emShotList").innerHTML = shotFiles.map((f, i) => { const u = URL.createObjectURL(f); shotUrls.push(u); return '<div class="em-sht"><img src="' + u + '" alt=""/><button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>'; }).join("");
+    $$("emShotAdd").textContent = shotFiles.length ? L("Add more", "افزودن بیشتر") : L("Add your profile, results or listings", "افزودن پروفایل، نتایج یا لیستینگ");
+  };
+  $$("emShotList").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; shotFiles.splice(Number(b.dataset.i), 1); drawShots(); remember(); });
+  $$("emShotAdd").onclick = () => { $$("emShotFile").value = ""; $$("emShotFile").click(); };
+  $$("emShotFile").onchange = () => { shotFiles = shotFiles.concat([...($$("emShotFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 6); drawShots(); remember(); };
+  drawShots();
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
@@ -15816,6 +15898,7 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
     if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; }
+    if (shotFiles.length && o.style !== "classic" && !o.graphic) o.shots = shotFiles.slice();
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
@@ -17098,6 +17181,21 @@ async function vsEditMyVideo(fileIn, o) {
       } catch (e) {}
       clearTimeout(gt);
     }
+    // their screenshots: a sharp copy to show, a small one for the planner to read
+    const shots = [];
+    for (const f of (o.shots || []).slice(0, 6)) {
+      try {
+        const bm = await createImageBitmap(f);
+        const k = Math.min(1, 1400 / Math.max(bm.width, bm.height)), c = document.createElement("canvas");
+        c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext("2d").drawImage(bm, 0, 0, c.width, c.height);
+        const k2 = Math.min(1, 512 / Math.max(bm.width, bm.height)), c2 = document.createElement("canvas");
+        c2.width = Math.round(bm.width * k2); c2.height = Math.round(bm.height * k2); c2.getContext("2d").drawImage(bm, 0, 0, c2.width, c2.height);
+        try { bm.close(); } catch (e) {}
+        shots.push({ img: c, jpeg: c2.toDataURL("image/jpeg", 0.75).split(",")[1] });
+      } catch (e) {}
+    }
+    // a plan made before the screenshots were added does not know them
+    if (ai && shots.length && !(ai.callouts || []).some((c) => c && c.kind === "shot")) ai = null;
     if (!ai && !gx) {
       vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
       const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
@@ -17115,7 +17213,7 @@ async function vsEditMyVideo(fileIn, o) {
       const planTimer = setTimeout(() => planCtrl.abort(), 60000);
       try {
         const r = await fetch(VS_EDIT_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
-          body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", ") }), signal: planCtrl.signal });
+          body: JSON.stringify({ frames, sentences, aspect: o.aspect, icons: VS_STICKER_ICONS.join(", "), shots: shots.map((x) => ({ jpeg: x.jpeg })) }), signal: planCtrl.signal });
         if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
         const j = await r.json();
         if (j && j.ok && j.plan) ai = j.plan;
@@ -17353,9 +17451,9 @@ async function vsEditMyVideo(fileIn, o) {
       try { vstudio._editStats.inserts = await vsProPlaceInserts(vstudio.slides, ai.inserts, words, sentences, o.aspect); } catch (e) {}
     }
     // icons, maps, photos and figures beside the speaker as they talk
-    if (pro && o.callouts !== false) {
+    if (pro && (o.callouts !== false || shots.length)) {
       vsAutoStatus(L("Adding icons and maps…", "در حال افزودن آیکون و نقشه…"));
-      try { vstudio._editStats.callouts = await vsProPlaceCallouts(vstudio.slides, ai, words, sentences); } catch (e) {}
+      try { vstudio._editStats.callouts = await vsProPlaceCallouts(vstudio.slides, ai, words, sentences, shots); } catch (e) {}
     }
     // their own product or listing, cut in as a cinematic montage (experimental)
     if (pro && o.showcase && o.showcase.files && o.showcase.files.length) {
