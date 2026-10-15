@@ -14324,6 +14324,8 @@ function vsEditStudio(preset, filesIn) {
 @media (prefers-reduced-motion:reduce){#emModal .em-bar.ind i{animation:none;width:100%;opacity:.5}}
 #emModal .em-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 #emModal .em-new{min-height:34px;padding:0 14px;margin-inline-end:8px}
+#emModal .em-next{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;font-size:13px;color:#c9ccd3}
+#emModal .em-next .ts-ghost{min-height:36px;padding:0 14px}
 #emModal .em-pop{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.6);backdrop-filter:blur(3px)}
 #emModal .em-popc{width:min(360px,90%);padding:20px;border-radius:14px;background:#14171d;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -20px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:10px}
 #emModal .em-popc h3{margin:0;font:600 17px/1.3 'Space Grotesk',Vazirmatn,system-ui,sans-serif}
@@ -14706,8 +14708,18 @@ function vsEditStudio(preset, filesIn) {
       exportUrl = URL.createObjectURL(blob);
       const name = baseName + "." + ((out && out.ext) || "mp4");
       $$("emExp").innerHTML = '<a class="ts-primary" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:0 22px" href="' + exportUrl + '" download="' + escapeHtml(name) + '">' +
-        L("Download", "دانلود") + " · " + Math.round(blob.size / 1048576 * 10) / 10 + " MB</a>";
+        L("Download", "دانلود") + " · " + Math.round(blob.size / 1048576 * 10) / 10 + " MB</a>" +
+        // what comes next: a thumbnail for this same video, in Thumbnail Studio
+        '<div class="em-next"><span>' + L("A thumbnail for this video?", "برای این ویدیو تامبنیل هم بسازیم؟") + '</span><button id="emThumb" type="button" class="ts-ghost">' + L("Make a thumbnail", "ساخت تامبنیل") + "</button></div>";
       try { $$("emExp").querySelector("a").click(); } catch (e) {}
+      $$("emThumb").onclick = () => {
+        // a graphic video's own frames are its pictures; a speaker's edit is
+        // better read from the raw video - no captions burnt over the face
+        const graphic = vstudio.slides.some((x) => x._gx);
+        const v = graphic || !files[0] ? new File([blob], name, { type: blob.type || "video/mp4" }) : files[0];
+        close();
+        vsThumbStudio("", { video: v });
+      };
     };
   };
 
