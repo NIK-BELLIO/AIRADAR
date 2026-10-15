@@ -11600,6 +11600,7 @@ function vsProNumber(v) {
 }
 
 function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
+  if (ins.kind === "showcase") { vsProShowcase(ctx, W, H, s, ins, t, F, pack); return; }
   if (pack.paper) { vsProInsertPaper(ctx, W, H, s, ins, t, F, pack); return; }
   const U = Math.min(W, H * 0.62);
   const len = ins.len;
@@ -11818,6 +11819,222 @@ async function vsProPlaceInserts(slides, list, words, sentences, aspect) {
     }
   }));
   return placed.length;
+}
+
+// ── Product / listing showcase (experimental) ──────────────────────────────
+// The customer's own photos and videos of what they sell - a product, a home,
+// a place - cut into their talking video as a cinematic montage, the way the
+// real-estate reels do it: two to four shots a time, each with a move (a
+// fast push that settles, a pan, a tilt), a speed ramp on video (quick, then
+// slow motion), whip / zoom / flash cuts between them, letterbox bars, a
+// grade, and the name and price set in. Their voice carries on underneath.
+const VS_SHOW_MOVES = ["push", "panL", "tilt", "pull", "panR", "pushRot"];
+const VS_SHOW_CUTS = ["whip", "zoom", "flash", "whip"];
+// Which shot of a showcase is on screen at t (seconds into the insert), how
+// far into it, and - for a video - where in the clip, with the speed ramp.
+function vsShowShotAt(ins, t) {
+  const shots = ins.shots || [];
+  let a = 0;
+  for (let k = 0; k < shots.length; k++) {
+    const sh = shots[k], d = sh.dur;
+    if (t < a + d || k === shots.length - 1) {
+      const st = Math.max(0, Math.min(d, t - a));
+      let vt = 0;
+      if (sh.vid) {
+        // quick for the first part of the shot, then slow motion to the cut
+        const split = d * 0.5;
+        vt = sh.ramp ? sh.in + (st < split ? st * 1.5 : split * 1.5 + (st - split) * 0.55) : sh.in + st;
+        vt = Math.min(Math.max(0, (sh.vid.duration || 0) - 0.05), vt);
+      }
+      return { k, sh, st, p: d > 0 ? st / d : 1, vt, start: a };
+    }
+    a += d;
+  }
+  return null;
+}
+// One shot, filling the frame, with its move at progress p (0..1).
+function vsShowDrawShot(ctx, W, H, sh, p, extraZ, dx) {
+  const src = sh.vid || sh.img;
+  if (!src) return;
+  // fast at the start, gliding at the end - the action feel
+  const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
+  let z = 1.06, ox = 0, oy = 0, rot = 0;
+  const m = sh.move;
+  if (sh.vid) z = 1.02 + 0.06 * e;
+  else if (m === "push") z = 1.04 + 0.16 * e;
+  else if (m === "pull") z = 1.22 - 0.16 * e;
+  else if (m === "panL") { z = 1.18; ox = 0.07 - 0.14 * e; }
+  else if (m === "panR") { z = 1.18; ox = -0.07 + 0.14 * e; }
+  else if (m === "tilt") { z = 1.18; oy = 0.06 - 0.12 * e; }
+  else if (m === "pushRot") { z = 1.06 + 0.14 * e; rot = (-0.6 + 1.6 * e) * Math.PI / 180; }
+  z *= extraZ || 1;
+  ctx.save();
+  // a pan stays inside the margin the zoom gives: (z - 1) / 2 of the frame
+  ctx.translate(W / 2 + (dx || 0) + ox * W, H / 2 + oy * H); ctx.rotate(rot); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  vsDrawCover(ctx, src, 0, 0, W, H, 1, 0.5, 0, 0, 0.5);
+  ctx.restore();
+}
+function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62), len = ins.len;
+  const at = vsShowShotAt(ins, t);
+  if (!at) return;
+  const colors = (pack.hero.colors || ["#ffffff"]).map((c) => (c === "auto" ? vsProAccent() : c));
+  const accent = colors[0] === "#ffffff" ? (colors[1] || "#f5c451") : colors[0];
+  ctx.save();
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  try { ctx.filter = "contrast(1.08) saturate(1.12) brightness(1.02)"; } catch (e) {}
+  // the cut into this shot: a whip, a zoom through or a flash
+  const T = 0.2, into = at.st < T && at.k > 0 ? at.st / T : 1;
+  const cut = VS_SHOW_CUTS[(at.k + (ins.seed || 0)) % VS_SHOW_CUTS.length];
+  const prev = at.k > 0 ? ins.shots[at.k - 1] : null;
+  if (into < 1 && prev && cut === "whip") {
+    // both shots sliding, smeared in the direction of travel
+    const e = 0.5 - Math.cos(Math.PI * into) / 2, dir = at.k % 2 ? 1 : -1;
+    for (let j = 0; j < 5; j++) {
+      ctx.globalAlpha = j ? 0.22 : 1;
+      const sm = j * W * 0.025 * Math.sin(Math.PI * into);
+      vsShowDrawShot(ctx, W, H, prev, 1, 1, -dir * W * e - sm * dir);
+      vsShowDrawShot(ctx, W, H, at.sh, 0, 1, dir * W * (1 - e) - sm * dir);
+    }
+    ctx.globalAlpha = 1;
+  } else if (into < 1 && prev && cut === "zoom") {
+    // the old shot rushes in, the new one lands from big
+    const e = into;
+    if (e < 0.5) { for (let j = 0; j < 4; j++) { ctx.globalAlpha = j ? 0.25 : 1; vsShowDrawShot(ctx, W, H, prev, 1, 1 + e * 0.9 + j * 0.04, 0); } }
+    else { for (let j = 0; j < 4; j++) { ctx.globalAlpha = j ? 0.25 : 1; vsShowDrawShot(ctx, W, H, at.sh, 0, 1 + (1 - e) * 0.6 + j * 0.03, 0); } }
+    ctx.globalAlpha = 1;
+  } else {
+    vsShowDrawShot(ctx, W, H, at.sh, at.p, 1, 0);
+    if (into < 1 && cut === "flash") { ctx.fillStyle = "rgba(255,255,255," + (0.85 * (1 - into)) + ")"; ctx.fillRect(0, 0, W, H); }
+  }
+  ctx.filter = "none";
+  // into the montage from the speaker: a quick whip of white light
+  if (t < 0.14) { ctx.fillStyle = "rgba(255,255,255," + (0.7 * (1 - t / 0.14)) + ")"; ctx.fillRect(0, 0, W, H); }
+  // the film look: vignette, a warm wash, bars
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const sh = ctx.createLinearGradient(0, H * 0.55, 0, H); sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,0.6)");
+  ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
+  const bars = H * 0.075 * Math.min(1, t / 0.3);
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
+  // the name, spaced capitals with a rule that runs out; the detail under it
+  const name = String(ins.title || "").toUpperCase(), detail = String(ins.value || "");
+  const out = t > len - 0.25 ? Math.max(0, (len - t) / 0.25) : 1;
+  if (name || detail) {
+    const x = W * 0.07, y = H - bars - U * 0.26;
+    const q = Math.max(0, Math.min(1, (t - 0.35) / 0.4)), e = 1 - Math.pow(1 - q, 3);
+    if (q > 0) {
+      ctx.save(); ctx.globalAlpha = out;
+      ctx.fillStyle = accent; ctx.fillRect(x, y - U * 0.1, U * 0.16 * e, U * 0.008);
+      if (name) {
+        let px = U * 0.085; const fam = (pack.hero && pack.hero.fam) || "Archivo";
+        ctx.font = "800 " + Math.round(px) + 'px "' + fam + '", "Vazirmatn", system-ui, sans-serif';
+        const track = px * 0.12, wOf = (s2) => ctx.measureText(s2).width + track * (s2.length - 1);
+        while (wOf(name) > W * 0.86 && px > U * 0.04) { px *= 0.92; ctx.font = "800 " + Math.round(px) + 'px "' + fam + '", "Vazirmatn", system-ui, sans-serif'; }
+        ctx.save(); ctx.beginPath(); ctx.rect(x - 4, y - px, W, px * 1.3); ctx.clip();
+        ctx.fillStyle = "#ffffff"; ctx.textBaseline = "alphabetic"; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = px * 0.3;
+        let xx = x; const yy = y + (1 - e) * px;
+        for (const ch of name) { ctx.fillText(ch, xx, yy); xx += ctx.measureText(ch).width + track; }
+        ctx.restore();
+      }
+      if (detail) {
+        const q2 = Math.max(0, Math.min(1, (t - 0.6) / 0.3));
+        if (q2 > 0) {
+          const fs = U * 0.05; ctx.font = "700 " + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+          const tw = ctx.measureText(detail).width, ph = fs * 1.8, pw = tw + fs * 1.4, py = y + U * 0.09;
+          ctx.globalAlpha = out * q2;
+          ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, py - ph / 2, pw * (0.6 + 0.4 * q2), ph, ph / 2); else ctx.rect(x, py - ph / 2, pw, ph); ctx.fill();
+          ctx.fillStyle = vsHexLuma(accent) > 150 ? "#0b0d12" : "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(detail, x + fs * 0.7, py + fs * 0.04);
+        }
+      }
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+// The customer's photos and videos, read once: photos made no bigger than
+// the export needs (a 12-megapixel photo drawn every frame is slow), videos
+// opened and ready to seek.
+async function vsShowLoad(files) {
+  const out = [];
+  for (const f of (files || []).slice(0, 12)) {
+    try {
+      if (/^image\//.test(f.type)) {
+        const bm = await createImageBitmap(f);
+        const k = Math.min(1, 2200 / Math.max(bm.width, bm.height));
+        const c = document.createElement("canvas"); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+        c.getContext("2d").drawImage(bm, 0, 0, c.width, c.height);
+        try { bm.close(); } catch (e) {}
+        out.push({ img: c, name: f.name });
+      } else if (/^video\//.test(f.type)) {
+        const v = document.createElement("video");
+        v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous";
+        v.src = URL.createObjectURL(f);
+        await new Promise((r) => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 9000); });
+        if (v.videoWidth) out.push({ vid: v, name: f.name });
+      }
+    } catch (e) {}
+  }
+  return out;
+}
+// Where the showcase goes: where the analysis marked the product or a place
+// first, then spread over the edit (never the opening cut, never two side by
+// side), each montage taking two to four of the shots - every shot used.
+async function vsProPlaceShowcase(slides, show) {
+  const media = await vsShowLoad(show && show.files);
+  if (!media.length) return 0;
+  const n = slides.length;
+  const ok = (i) => i > 0 && !slides[i]._teaser && (Number(slides[i].duration) || 0) >= 2.4;
+  const near = (i, list) => list.some((j) => Math.abs(j - i) < 2);
+  const picks = [];
+  slides.forEach((sl, i) => { if (ok(i) && sl._ins && (sl._ins.kind === "product" || sl._ins.kind === "place") && !near(i, picks)) picks.push(i); });
+  const want = Math.max(1, Math.min(4, Math.ceil(media.length / 3)));
+  // evenly over the edit for the rest
+  for (let k = 0; picks.length < want && k < want * 3; k++) {
+    const target = Math.round(((k % want) + 1) * n / (want + 1));
+    let best = -1, bd = 1e9;
+    for (let i = 1; i < n; i++) { if (!ok(i) || picks.includes(i) || near(i, picks) || slides[i]._ins) continue; const d = Math.abs(i - target); if (d < bd) { bd = d; best = i; } }
+    if (best < 0) break;
+    picks.push(best);
+  }
+  picks.sort((a, b) => a - b);
+  if (!picks.length) return 0;
+  const bpm = (vstudio.storyData && vstudio.storyData.music && vstudio.storyData.music.bpm) || 0;
+  const beat = bpm ? 60 / bpm : 0;
+  let m = 0;
+  const clean = (v, k) => String(v || "").replace(/\s+/g, " ").trim().slice(0, k);
+  picks.forEach((i, pi) => {
+    const sl = slides[i], d = Number(sl.duration) || 0, old = sl._ins || null;
+    // a B-roll cut goes back to the speaker underneath
+    if (sl._broll && sl._ownEl) {
+      try { sl.mediaEl.pause(); } catch (e) {}
+      sl.mediaEl = sl._ownEl; sl._clipIn = sl._ownClipIn;
+      if (sl._ownSettings) Object.assign(sl.settings, sl._ownSettings);
+      delete sl._broll;
+    }
+    const left = media.length - m, slotsLeft = picks.length - pi;
+    const len = Math.max(2.2, Math.min(d - 0.1, 4.6));
+    let k = Math.max(2, Math.min(4, Math.round(len / 1.1)));
+    if (slotsLeft === 1) k = Math.max(k, Math.min(4, left));
+    let sd = len / k;
+    if (beat) { const b = Math.max(1, Math.round(sd / beat)); if (b * beat * k <= len + 0.01) sd = b * beat; }
+    const shots = [];
+    for (let j = 0; j < k; j++) {
+      const md = media[m++ % media.length];
+      const dur = j === k - 1 ? Math.max(0.5, len - sd * (k - 1)) : sd;
+      const sh = { dur, move: VS_SHOW_MOVES[(m + pi) % VS_SHOW_MOVES.length] };
+      if (md.vid) {
+        const vd = md.vid.duration || 0, need = dur * 1.15;
+        sh.vid = md.vid; sh.ramp = vd > need + 0.3;
+        sh.in = Math.max(0, Math.min(vd * 0.2, vd - need - 0.05));
+      } else sh.img = md.img;
+      shots.push(sh);
+    }
+    const at = old ? Math.max(0, Math.min(old.at, d - len)) : Math.min(0.15, Math.max(0, d - len));
+    sl._ins = { kind: "showcase", shots, seed: pi, at: Math.round(at * 100) / 100, len: Math.round(Math.min(len, d - at) * 100) / 100,
+      title: clean(show.name || (old && old.title), 32), value: clean(show.detail || (old && old.value), 26) };
+  });
+  return picks.length;
 }
 
 // A light infographic card for an insert - the clean "explainer" look of the
@@ -12090,6 +12307,18 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   if (!vstudio.rendering) vstudio._proHit = null;
   // a cinematic insert in its window; its footage plays along in the preview
   const ins = s._ins && !s._broll && !s._ins.off && local >= s._ins.at && local < s._ins.at + s._ins.len ? s._ins : null;
+  if (s._ins && s._ins.shots && !vstudio.rendering) {
+    const sa = ins === s._ins && vstudio.looping ? vsShowShotAt(ins, local - ins.at) : null;
+    s._ins.shots.forEach((sh) => {
+      const v = sh.vid; if (!v) return;
+      if (sa && sa.sh === sh) {
+        const rate = sh.ramp ? (sa.st < sh.dur * 0.5 ? 1.5 : 0.55) : 1;
+        if (Math.abs(v.playbackRate - rate) > 0.01) { try { v.playbackRate = rate; } catch (e) {} }
+        if (v.paused) { try { v.currentTime = sa.vt; } catch (e) {} v.play().catch(() => {}); }
+        else if (Math.abs(v.currentTime - sa.vt) > 0.35) { try { v.currentTime = sa.vt; } catch (e) {} }
+      } else if (!v.paused && !(sa && sa.sh.vid === v)) { try { v.pause(); } catch (e) {} }
+    });
+  }
   if (s._ins && s._ins.el && !vstudio.rendering && vstudio.looping) {
     const el = s._ins.el;
     if (ins) {
@@ -12376,7 +12605,12 @@ function vsProSfxEvents(slides) {
     if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
-    if (ins) {
+    if (ins && ins.shots) {
+      ev.push({ n: "riser", t: t + ins.at + 0.05, g: 0.6 });
+      let a = 0;
+      ins.shots.forEach((sh, j) => { if (j) ev.push({ n: pick("cut"), t: t + ins.at + a + 0.04, g: 0.7 }); a += sh.dur; });
+      if (ins.value) ev.push({ n: pick("big"), t: t + ins.at + 0.6, g: 0.5 });
+    } else if (ins) {
       ev.push({ n: pick("cut"), t: t + ins.at + 0.06, g: 0.85 });
       if (ins.kind === "place") ev.push({ n: "sparkle", t: t + ins.at + 0.35, g: 0.45 });
       if (ins.kind === "stat") ev.push({ n: "digital", t: t + ins.at + 0.25, g: 0.55 });
@@ -14259,6 +14493,8 @@ function vsEditStudio(preset, filesIn) {
   const last = (mem && mem.settings) || saved || {};
   // the videos: the ones just chosen, else the ones that were open
   let files = (filesIn && filesIn.length ? filesIn : (mem ? mem.files : [])).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
+  // the product or listing shots (experimental), kept with the window
+  let showFiles = (mem && mem.show) ? mem.show.slice() : [];
   let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
@@ -14336,6 +14572,14 @@ function vsEditStudio(preset, filesIn) {
 @media (prefers-reduced-motion:reduce){#emModal .em-bar.ind i{animation:none;width:100%;opacity:.5}}
 #emModal .em-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 #emModal .em-new{min-height:34px;padding:0 14px;margin-inline-end:8px}
+#emModal .em-beta{display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.18);font:600 10.5px Manrope,Vazirmatn,system-ui,sans-serif;color:#c9ccd3;vertical-align:middle}
+#emModal .em-show{display:flex;flex-direction:column;gap:8px}
+#emModal .em-showl{display:flex;flex-wrap:wrap;gap:6px}
+#emModal .em-showl:empty{display:none}
+#emModal .em-sht{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;background:#08090c;border:1px solid rgba(255,255,255,.1)}
+#emModal .em-sht img,#emModal .em-sht video{width:100%;height:100%;object-fit:cover;display:block}
+#emModal .em-sht button{position:absolute;top:2px;inset-inline-end:2px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:12px;line-height:20px;padding:0;cursor:pointer}
+#emModal .em-showadd{min-height:40px}
 #emModal .em-next{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;font-size:13px;color:#c9ccd3}
 #emModal .em-next .ts-ghost{min-height:36px;padding:0 14px}
 #emModal .em-pop{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.6);backdrop-filter:blur(3px)}
@@ -14396,6 +14640,13 @@ function vsEditStudio(preset, filesIn) {
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Shape", "قالب") + '</div><div class="ts-sizes">' +
         SHAPES.map(([v, n, w, h]) => { const k = 18 / Math.max(w, h); return '<label class="ts-size"><input type="radio" name="emShape" value="' + v + '"' + (v === shape0 ? " checked" : "") + '/><span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span><span class="ts-size-n">' + n + '</span><span class="ts-size-d">' + v + "</span></label>"; }).join("") +
         "</div></div>" +
+      '<div class="ts-field em-edit em-p em-show"><div class="ts-lbl">' + L("Your product or listing", "محصول یا ملک تو") + ' <span class="em-beta">' + L("Beta", "آزمایشی") + "</span></div>" +
+        '<div id="emShowList" class="em-showl"></div>' +
+        '<button id="emShowAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos or videos", "افزودن عکس یا ویدیو") + "</button>" +
+        '<input id="emShowFile" type="file" accept="image/*,video/*" multiple hidden/>' +
+        '<input id="emShowName" class="em-txt" type="text" maxlength="32" placeholder="' + L("Name, e.g. 24 Oak Street", "اسم، مثلاً ویلای لواسان") + '"/>' +
+        '<input id="emShowDetail" class="em-txt" type="text" maxlength="26" placeholder="' + L("Detail, e.g. $1.2M · 3 bed", "جزئیات، مثلاً ۱۲ میلیارد · ۳ خواب") + '"/>' +
+      "</div>" +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("What it does", "چه کارهایی انجام شود") + '</div><div class="em-opts">' +
         OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-" + c : "") + (k === "captions" ? " em-gc" : k === "zoom" || k === "broll" || k === "inserts" ? " em-nogx" : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
         '<label class="ts-lbl em-p" for="emName" style="margin-top:4px">' + L("Your name on a card at the start (optional)", "اسمت روی کارت در شروع (اختیاری)") + "</label>" +
@@ -14428,12 +14679,12 @@ function vsEditStudio(preset, filesIn) {
     const opts = {};
     ov.querySelectorAll("input[data-opt]").forEach((c) => { opts[c.dataset.opt] = c.checked; });
     return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value, gxTheme,
-      name: $$("emName").value, role: $$("emRole").value, cta: $$("emCta").value };
+      name: $$("emName").value, role: $$("emRole").value, cta: $$("emCta").value, showName: $$("emShowName").value, showDetail: $$("emShowDetail").value };
   };
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
     const st = settingsNow();
-    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running };
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice() };
     try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
   };
   const close = () => {
@@ -14469,7 +14720,7 @@ function vsEditStudio(preset, filesIn) {
       if (exportUrl) { try { URL.revokeObjectURL(exportUrl); } catch (er) {} }
       vstudio._statusHook = null; vstudio._exportProgress = null;
       vsResetStudioProject();
-      vsEditStudioMem = { files: [], mode, settings: settingsNow(), doneSeq: -1, running: null };
+      vsEditStudioMem = { files: [], mode, settings: Object.assign(settingsNow(), { showName: "", showDetail: "" }), doneSeq: -1, running: null };
       ov.remove();
       vsEditStudio({ mode }, []);
     });
@@ -14872,6 +15123,27 @@ function vsEditStudio(preset, filesIn) {
   { const want = preset.layout || last.layout; const l = $$("emLayout"); if (want && [...l.options].some((q) => q.value === want)) l.value = want; }
   $$("emName").value = preset.name || last.name || ""; $$("emRole").value = preset.role || last.role || ""; $$("emCta").value = preset.cta || last.cta || "";
   ["emName", "emRole", "emCta"].forEach((id) => $$(id).addEventListener("change", remember));
+  // the product or listing shots: added, shown small, taken out with a cross
+  $$("emShowName").value = last.showName || ""; $$("emShowDetail").value = last.showDetail || "";
+  ["emShowName", "emShowDetail"].forEach((id) => $$(id).addEventListener("change", remember));
+  const showUrls = [];
+  const drawShow = () => {
+    showUrls.splice(0).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
+    $$("emShowList").innerHTML = showFiles.map((f, i) => {
+      const u = URL.createObjectURL(f); showUrls.push(u);
+      return '<div class="em-sht">' + (/^video\//.test(f.type) ? '<video src="' + u + '#t=0.5" muted playsinline preload="metadata"></video>' : '<img src="' + u + '" alt=""/>') +
+        '<button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>';
+    }).join("");
+    $$("emShowAdd").textContent = showFiles.length ? L("Add more", "افزودن بیشتر") : L("Add photos or videos", "افزودن عکس یا ویدیو");
+  };
+  $$("emShowList").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; showFiles.splice(Number(b.dataset.i), 1); drawShow(); remember(); });
+  $$("emShowAdd").onclick = () => { $$("emShowFile").value = ""; $$("emShowFile").click(); };
+  $$("emShowFile").onchange = () => {
+    const add = [...($$("emShowFile").files || [])].filter((f) => /^(image|video)\//.test(f.type));
+    showFiles = showFiles.concat(add).slice(0, 12);
+    drawShow(); remember();
+  };
+  drawShow();
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
@@ -14889,6 +15161,7 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
     if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; }
+    if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
     const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
@@ -16414,6 +16687,11 @@ async function vsEditMyVideo(fileIn, o) {
     if (pro && o.inserts !== false && ai && Array.isArray(ai.inserts) && ai.inserts.length) {
       vsAutoStatus(L("Finding cinematic shots…", "در حال پیدا کردن نماهای سینمایی…"));
       try { vstudio._editStats.inserts = await vsProPlaceInserts(vstudio.slides, ai.inserts, words, sentences, o.aspect); } catch (e) {}
+    }
+    // their own product or listing, cut in as a cinematic montage (experimental)
+    if (pro && o.showcase && o.showcase.files && o.showcase.files.length) {
+      vsAutoStatus(L("Cutting in your product shots…", "در حال گذاشتن نماهای محصولت…"));
+      try { vstudio._editStats.showcase = await vsProPlaceShowcase(vstudio.slides, o.showcase); } catch (e) {}
     }
     if (gx) {
       // every cut gets the scene its sentence belongs to; a scene can span cuts
@@ -27374,7 +27652,7 @@ function vsShowBuiltVideo() {
 // studio behind it, timeline and all.)
 function vsResetStudioProject() {
   try { if (vstudio.looping) stopStudioPreview(); } catch (e) {}
-  (vstudio.slides || []).forEach((s) => [s.mediaEl, s._ins && s._ins.el].forEach((el) => { if (el && el.pause) { try { el.pause(); } catch (e) {} } }));
+  (vstudio.slides || []).forEach((s) => [s.mediaEl, s._ins && s._ins.el].concat(((s._ins && s._ins.shots) || []).map((sh) => sh.vid)).forEach((el) => { if (el && el.pause) { try { el.pause(); } catch (e) {} } }));
   if (vstudio.musicEl) { try { vstudio.musicEl.pause(); } catch (e) {} }
   vsClearVoiceTrack();
   vstudio.slides = [];
@@ -28449,6 +28727,11 @@ async function _vsSeekActiveFootage(t) {
   if (slide._swap) await vsSwapSeekExport(slide, at.local);
   // a pro edit's cinematic insert: its own footage, from the insert's start
   const ins = slide._ins;
+  if (ins && ins.shots && !ins.off && at.local >= ins.at && at.local < ins.at + ins.len) {
+    const sa = vsShowShotAt(ins, at.local - ins.at);
+    const v = sa && sa.sh.vid;
+    if (v) { try { v.pause(); } catch (e) {} if (Math.abs((v.currentTime || 0) - sa.vt) > 0.008) await _vsSeekVideo(v, sa.vt, _vsSeekPatient(v, sa.vt)); }
+  }
   if (ins && ins.el && !ins.off && at.local >= ins.at && at.local < ins.at + ins.len) {
     const el = ins.el, d = Math.max(0.5, (el.duration || 10) - 0.1), want = (at.local - ins.at) % d;
     try { el.pause(); } catch (e) {}
