@@ -12122,6 +12122,11 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
   if (!s._gfx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
+  if (s._gx) {
+    vsGxFrame(ctx, W, H, s, idx, local, dur);
+    vstudio._frameHasMedia = true;
+    return true;
+  }
   if (s._pro && !s._gfx) {
     vsProDrawFrame(ctx, W, H, s, idx, local, dur, off);
     vstudio._frameHasMedia = true;
@@ -12279,6 +12284,7 @@ function vsBuildSfxEvents(slides) {
 // boom under the hook, a pluck when a key word pops on, and on a graphic card
 // a button-click for the icon and a soft tick as each big word lands.
 function vsEditSfxEvents(slides) {
+  if ((slides || []).some((x) => x && x._gx)) return vsGxSfxEvents(slides);
   if ((slides || []).some((x) => x && x._pro)) return vsProSfxEvents(slides);
   const ev = [];
   let t = 0, nb = 0, nk = 0;
@@ -12347,6 +12353,7 @@ function vsProSfxEvents(slides) {
 // the scene editor can change any of it afterwards.
 const VS_TRANSCRIBE_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/transcribe";
 const VS_EDIT_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/edit-plan";
+const VS_GX_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/graphic-plan";
 
 // Frames sampled across the video, small JPEGs for the analysis.
 async function vsSampleFrames(el, total, n) {
@@ -12379,6 +12386,1039 @@ const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zo
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
 const VS_EM_DEFAULTS = { inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
+// ── Graphic video: the speaker's voice, a motion designer's pictures ────────
+// "Edit my video" as a fully graphic video - the person never on screen - in
+// the manner of the explainer reels the owner sent (Vox, editorial cut-outs,
+// poster, neon, 3D). The speech is planned scene by scene (/graphic-plan) and
+// each scene is drawn from a library: 1,595 3D objects (Microsoft Fluent Emoji,
+// MIT), 4,936 line icons (Tabler, MIT), the world's countries (world-atlas,
+// ISC) and Pexels photographs, in one of thousands of themes - a palette, a
+// pair of faces, a texture, a way of moving and a kind of element.
+const VS_GX_FLUENT = "https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/";
+const VS_GX_TABLER = "https://cdn.jsdelivr.net/npm/@tabler/icons@3.31.0/icons/outline/";
+const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@700&family=DM+Serif+Display&family=Anton&family=Bebas+Neue&family=Oswald:wght@700&family=Poppins:wght@500;800&family=Montserrat:wght@500;900&family=Fraunces:opsz,wght@9..144,800&family=Sora:wght@400;800&family=JetBrains+Mono:wght@500;800&family=Lilita+One&family=Baloo+2:wght@600&family=Libre+Caslon+Text:wght@400;700&family=Manrope:wght@500;600;800&family=Figtree:wght@500&family=Source+Sans+3:wght@600&family=Caveat:wght@600&display=swap";
+
+// ── themes ──
+// [id, family, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
+const VS_GX_PALETTES = [
+  ["cream", "vox", 0, "#efe6d8", "#f7f1e6", "#1d1d1b", "#8b8172", "#f2c230", "#d9452b", "#2f6db5"],
+  ["newsprint", "vox", 0, "#e9e4da", "#f5f2ec", "#151515", "#7d776e", "#ffd400", "#e03a2f", "#1e88e5"],
+  ["teal", "vox", 0, "#e7ece6", "#f4f6f1", "#162024", "#6f7c7f", "#f5c400", "#0f8b8d", "#e4572e"],
+  ["kraft", "vox", 0, "#d9c7a7", "#e8dcc4", "#2a2118", "#7e6a51", "#f4d35e", "#c0392b", "#1b4965"],
+  ["mono", "editorial", 0, "#e9e9e7", "#f6f6f4", "#111111", "#8a8a87", "#c43b4c", "#111111", "#8e44ad"],
+  ["noir", "editorial", 1, "#121212", "#1c1c1c", "#f2f2f0", "#8d8d8a", "#d4af37", "#c43b4c", "#ffffff"],
+  ["ink", "editorial", 0, "#f3efe7", "#fbf8f2", "#1a1f2b", "#7b7f88", "#2b59c3", "#e85d04", "#1a1f2b"],
+  ["cyan", "neon", 1, "#07090f", "#10131c", "#f4f7ff", "#7f8aa3", "#25e0ff", "#ff3d9a", "#b6ff3b"],
+  ["violet", "neon", 1, "#0a0614", "#151026", "#f5f0ff", "#8b81a8", "#a855f7", "#22d3ee", "#f472b6"],
+  ["lime", "neon", 1, "#060a06", "#0f150f", "#f2fff0", "#7d9a7a", "#b6ff3b", "#39d0ff", "#ff8a00"],
+  ["sunset", "neon", 1, "#0d0710", "#1a0f1d", "#fff3ec", "#a88a92", "#ff7a18", "#ff2e63", "#ffd166"],
+  ["white", "minimal", 0, "#f7f7f5", "#ffffff", "#111214", "#9a9ca1", "#2563ff", "#111214", "#ff5a36"],
+  ["sand", "minimal", 0, "#f2ede4", "#faf7f1", "#22201c", "#9a9286", "#d97706", "#22201c", "#0e7490"],
+  ["sage", "minimal", 0, "#e8eee8", "#f5f8f5", "#1c2a22", "#7e8f84", "#2f855a", "#1c2a22", "#d69e2e"],
+  ["slate", "minimal", 1, "#14171c", "#1c2027", "#eef1f5", "#8a93a1", "#60a5fa", "#f472b6", "#facc15"],
+  ["sunny", "playful", 0, "#fff4d6", "#fffaf0", "#2b2d42", "#8d8a7a", "#ff6b6b", "#4ecdc4", "#ffd93d"],
+  ["candy", "playful", 0, "#ffe8f0", "#fff5f9", "#2d1e3e", "#9a7f97", "#ff4f9a", "#7c5cff", "#00c2a8"],
+  ["sky", "playful", 0, "#e3f2ff", "#f4faff", "#14213d", "#7d8ba3", "#ff9f1c", "#2ec4b6", "#e71d36"],
+  ["gold", "luxury", 1, "#0d0b08", "#17140f", "#f6efe2", "#9c8f78", "#d4af37", "#f6efe2", "#8c6d2f"],
+  ["emerald", "luxury", 1, "#06110d", "#0d1d17", "#eef6f1", "#86a296", "#c9a227", "#2e8b57", "#eef6f1"],
+  ["wine", "luxury", 1, "#12070a", "#1e0d12", "#f7eef0", "#a68a90", "#c9a227", "#9b1b30", "#f7eef0"],
+  ["blueprint", "tech", 1, "#050a14", "#0b1424", "#e6f0ff", "#7e8fae", "#3b82f6", "#22d3ee", "#a3e635"],
+  ["matrix", "tech", 1, "#030806", "#08120c", "#e7fff0", "#6f9a80", "#22c55e", "#a3e635", "#38bdf8"],
+  ["paperlab", "tech", 0, "#eef2f7", "#f8fafc", "#0f172a", "#64748b", "#2563eb", "#0ea5e9", "#f97316"],
+  ["seventies", "retro", 0, "#f1e3c6", "#f8efdc", "#3b2416", "#8f7457", "#e76f51", "#f4a261", "#2a9d8f"],
+  ["pop", "retro", 0, "#fdf0d5", "#fffaf0", "#003049", "#7a8a96", "#c1121f", "#f77f00", "#669bbc"],
+  ["dusk", "retro", 1, "#1d1530", "#291d42", "#fbe9d0", "#a796b8", "#f49d37", "#e3655b", "#5cc8ff"],
+  ["bulletin", "news", 0, "#f4f4f4", "#ffffff", "#101010", "#7a7a7a", "#d32f2f", "#101010", "#1565c0"],
+  ["navy", "news", 1, "#0b1a33", "#12264a", "#ffffff", "#9fb0cc", "#ffcc00", "#e53935", "#ffffff"],
+  ["forest", "nature", 0, "#e6eadf", "#f3f5ee", "#1f2a1c", "#7d8a73", "#3f7d20", "#d98324", "#2f6690"],
+  ["ocean", "nature", 1, "#06202b", "#0b2e3d", "#e8f6f8", "#86a9b3", "#2ec4b6", "#ffbf69", "#cbf3f0"],
+  ["lavender", "pastel", 0, "#efeaff", "#f8f6ff", "#2a2440", "#8f88a8", "#9b8cff", "#ff9ec7", "#7bdcb5"],
+  ["peach", "pastel", 0, "#ffece2", "#fff6f1", "#3a2a24", "#a08a80", "#ff8c69", "#7fc8a9", "#ffd166"],
+];
+// [id, display face, weight, capitals, body face, weight]
+const VS_GX_FONTS = [
+  ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
+  ["grotesk", "Space Grotesk", 700, 0, "Manrope", 500],
+  ["serif", "DM Serif Display", 400, 0, "Manrope", 500],
+  ["anton", "Anton", 400, 1, "Manrope", 600],
+  ["bebas", "Bebas Neue", 400, 1, "Figtree", 500],
+  ["oswald", "Oswald", 700, 1, "Source Sans 3", 600],
+  ["poppins", "Poppins", 800, 0, "Poppins", 500],
+  ["montserrat", "Montserrat", 900, 0, "Montserrat", 500],
+  ["fraunces", "Fraunces", 800, 0, "Figtree", 500],
+  ["sora", "Sora", 800, 0, "Sora", 400],
+  ["mono", "JetBrains Mono", 800, 0, "JetBrains Mono", 500],
+  ["kids", "Lilita One", 400, 0, "Baloo 2", 600],
+  ["caslon", "Libre Caslon Text", 700, 0, "Libre Caslon Text", 400],
+  ["archivo", "Archivo", 800, 0, "Archivo", 500],
+];
+const VS_GX_FAMILY = {
+  vox: { label: ["Vox", "واکس"], fonts: ["archivoblack", "grotesk", "serif", "archivo"], tex: ["paper", "newsprint", "halftone"] },
+  editorial: { label: ["Editorial", "ادیتوریال"], fonts: ["serif", "caslon", "fraunces"], tex: ["paper", "flat", "grain"] },
+  neon: { label: ["Neon", "نئون"], fonts: ["anton", "bebas", "sora", "mono"], tex: ["grain", "grid", "mesh"] },
+  minimal: { label: ["Minimal", "مینیمال"], fonts: ["grotesk", "sora", "archivo", "poppins"], tex: ["flat", "paper", "grid"] },
+  playful: { label: ["Playful", "شاد"], fonts: ["kids", "poppins", "fraunces"], tex: ["flat", "mesh", "halftone"] },
+  luxury: { label: ["Luxury", "لوکس"], fonts: ["serif", "caslon", "oswald", "fraunces"], tex: ["grain", "flat", "mesh"] },
+  tech: { label: ["Tech", "تک"], fonts: ["mono", "sora", "grotesk"], tex: ["grid", "grain", "mesh"] },
+  retro: { label: ["Retro", "رترو"], fonts: ["fraunces", "oswald", "kids", "archivoblack"], tex: ["halftone", "paper", "newsprint"] },
+  news: { label: ["News", "خبری"], fonts: ["anton", "oswald", "montserrat", "archivo"], tex: ["flat", "newsprint", "grid"] },
+  nature: { label: ["Nature", "طبیعت"], fonts: ["fraunces", "sora", "grotesk"], tex: ["paper", "flat", "mesh"] },
+  pastel: { label: ["Pastel", "پاستلی"], fonts: ["poppins", "sora", "kids"], tex: ["mesh", "flat", "paper"] },
+};
+const VS_GX_MOTIONS = ["snappy", "smooth", "bouncy", "calm"];
+const VS_GX_ELEMS = ["3d", "icons", "mixed"];
+const VS_GX_TEX_NAME = { paper: ["Paper", "کاغذ"], newsprint: ["Newsprint", "روزنامه"], halftone: ["Halftone", "هاف‌تون"], grain: ["Grain", "دانه"], grid: ["Grid", "شطرنجی"], mesh: ["Glow", "نور"], flat: ["Flat", "تخت"] };
+const VS_GX_MOTION_NAME = { snappy: ["Snappy", "تند"], smooth: ["Smooth", "نرم"], bouncy: ["Bouncy", "فنری"], calm: ["Calm", "آرام"] };
+const VS_GX_ELEM_NAME = { "3d": ["3D objects", "اشیای سه‌بعدی"], icons: ["Line icons", "آیکون خطی"], mixed: ["3D + icons", "سه‌بعدی + آیکون"] };
+// Every combination the families allow - about four thousand themes, each
+// with a stable id (palette.font.texture.motion.elements).
+let vsGxThemeList = null;
+function vsGxThemes() {
+  if (vsGxThemeList) return vsGxThemeList;
+  const out = [];
+  VS_GX_PALETTES.forEach((p) => {
+    const fam = VS_GX_FAMILY[p[1]];
+    fam.fonts.forEach((f) => fam.tex.forEach((tx) => VS_GX_MOTIONS.forEach((m) => VS_GX_ELEMS.forEach((el) => {
+      out.push({ id: [p[0], f, tx, m, el].join("."), family: p[1], pal: p, font: VS_GX_FONTS.find((x) => x[0] === f), tex: tx, motion: m, elem: el });
+    }))));
+  });
+  // The order the picker shows them in: every look (palette, faces, texture)
+  // once - palettes taking turns - before any look's other motions and
+  // element styles, which draw the same still picture and would otherwise
+  // fill the first screen with near twins.
+  const looks = new Map();
+  out.forEach((t) => { const k = t.pal[0] + "|" + t.font[0] + "|" + t.tex; if (!looks.has(k)) looks.set(k, []); looks.get(k).push(t); });
+  const byPal = new Map();
+  [...looks.values()].forEach((g) => { const k = g[0].pal[0]; if (!byPal.has(k)) byPal.set(k, []); byPal.get(k).push(g); });
+  const ordered = [];
+  for (let v = 0; v < 12; v++) {
+    const queues = [...byPal.values()].map((gs) => gs.slice());
+    let any = true;
+    while (any) { any = false; queues.forEach((q) => { const g = q.shift(); if (g) { any = true; if (g[v]) ordered.push(g[v]); } }); }
+  }
+  vsGxThemeList = ordered.length === out.length ? ordered : out;
+  return vsGxThemeList;
+}
+function vsGxTheme(id) {
+  const all = vsGxThemes();
+  return all.find((t) => t.id === id) || all.find((t) => t.id === "cream.archivoblack.paper.snappy.3d") || all[0];
+}
+function vsGxThemeName(t, fa) {
+  const L = (x) => (fa ? x[1] : x[0]);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  return L(VS_GX_FAMILY[t.family].label) + " · " + cap(t.pal[0]) + " · " + L(VS_GX_TEX_NAME[t.tex]);
+}
+// A theme as the colours and faces the renderer uses.
+function vsGxTokens(t) {
+  const p = t.pal, f = t.font;
+  return { dark: !!p[2], bg: p[3], paper: p[4], ink: p[5], muted: p[6], a1: p[7], a2: p[8], a3: p[9],
+    disp: { fam: f[1], w: f[2], upper: !!f[3] }, body: { fam: f[4], w: f[5] }, tex: t.tex, motion: t.motion, elem: t.elem, family: t.family };
+}
+let vsGxFontsP = null;
+function vsGxLoadFonts() {
+  if (!vsGxFontsP) vsGxFontsP = (async () => {
+    if (!document.getElementById("vsGxFontCss")) {
+      const l = document.createElement("link"); l.id = "vsGxFontCss"; l.rel = "stylesheet"; l.href = VS_GX_FONT_CSS; document.head.appendChild(l);
+      await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 6000); });
+    }
+    const faces = [];
+    VS_GX_FONTS.forEach((f) => { faces.push(f[2] + ' 40px "' + f[1] + '"'); faces.push(f[5] + ' 40px "' + f[4] + '"'); });
+    faces.push('600 40px "Caveat"');
+    try { await Promise.race([Promise.all(faces.map((x) => document.fonts.load(x))), new Promise((r) => setTimeout(r, 7000))]); } catch (e) {}
+  })();
+  return vsGxFontsP;
+}
+function vsGxFont(st, px) {
+  return (st.italic ? "italic " : "") + (st.w || 400) + " " + Math.max(1, Math.round(px)) + 'px "' + st.fam + '", "Vazirmatn", system-ui, sans-serif';
+}
+
+// ── the element libraries ──
+const vsGxIdxP = {};
+function vsGxIndex(k) {
+  if (!vsGxIdxP[k]) vsGxIdxP[k] = fetch("/gx/" + (k === "3d" ? "fluent3d" : "tabler") + ".json").then((r) => r.json()).catch((e) => { delete vsGxIdxP[k]; throw e; });
+  return vsGxIdxP[k];
+}
+// The library entry a few English words best describe, or null.
+function vsGxMatch(list, query, nameAt) {
+  const q = String(query || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim();
+  if (!q) return null;
+  const words = q.split(/\s+/).filter((w) => w.length > 1);
+  const stem = (w) => w.replace(/(ies)$/, "y").replace(/(es|s)$/, "");
+  let best = null, bestS = 0;
+  for (const e of list) {
+    const name = String(e[0]).toLowerCase().replace(/-/g, " ");
+    let sc = name === q || name.replace(/ /g, "") === q.replace(/ /g, "") ? 40 : 0;
+    const nw = name.split(/\s+/);
+    if (nw[nw.length - 1] === "off" && !words.includes("off")) sc -= 6;
+    for (const w of words) {
+      const sw = stem(w);
+      if (nw.includes(w) || nw.includes(sw)) sc += 8;
+      else if (name.includes(sw)) sc += 3;
+      for (let k = nameAt; k < e.length; k++) { const kw = String(e[k]); if (kw === w || kw === sw) { sc += 4 - (k - nameAt) * 0.15; break; } if (kw.includes(sw) && sw.length > 3) { sc += 1; break; } }
+    }
+    // a shorter name is the plainer picture of the thing
+    sc -= nw.length * 0.3;
+    if (sc > bestS) { bestS = sc; best = e; }
+  }
+  return bestS >= 3 ? best : null;
+}
+const vsGxImgCache = new Map();
+function vsGxImage(url) {
+  if (!vsGxImgCache.has(url)) vsGxImgCache.set(url, new Promise((res) => {
+    const im = new Image(); im.crossOrigin = "anonymous";
+    const t = setTimeout(() => res(null), 15000);
+    im.onload = () => { clearTimeout(t); res(im); }; im.onerror = () => { clearTimeout(t); res(null); };
+    im.src = url;
+  }));
+  return vsGxImgCache.get(url);
+}
+async function vsGx3D(query) {
+  try { const list = await vsGxIndex("3d"); const e = vsGxMatch(list, query, 2); return e ? await vsGxImage(VS_GX_FLUENT + e[1].split("/").map(encodeURIComponent).join("/")) : null; } catch (e) { return null; }
+}
+// A line icon in a colour, as an image (the SVG's currentColor swapped).
+const VS_GX_ICON_WORD = { house: "home", houses: "building", money: "cash", dollar: "currency dollar", decrease: "trending down", decreasing: "trending down", falling: "trending down", drop: "trending down",
+  increase: "trending up", increasing: "trending up", rising: "trending up", growth: "trending up", people: "users", person: "user", man: "user", woman: "user", team: "users group",
+  idea: "bulb", time: "clock", city: "building skyscraper", world: "world", earth: "world", job: "briefcase", work: "briefcase", warning: "alert triangle", danger: "alert triangle",
+  doctor: "stethoscope", health: "heartbeat", ai: "brain", robot: "robot", law: "scale", justice: "scale", food: "tools kitchen", oil: "droplet", energy: "bolt", power: "bolt" };
+async function vsGxIcon(query, color) {
+  try {
+    const list = await vsGxIndex("icons");
+    const ws = String(query || "").toLowerCase().split(/\s+/);
+    const said = ws.map((w) => VS_GX_ICON_WORD[w]).filter(Boolean);
+    const e = (said.length && vsGxMatch(list, said.join(" "), 1)) || vsGxMatch(list, query, 1);
+    if (!e) return null;
+    const key = "icon:" + e[0] + ":" + color;
+    if (!vsGxImgCache.has(key)) vsGxImgCache.set(key, (async () => {
+      const r = await fetch(VS_GX_TABLER + e[0] + ".svg");
+      if (!r.ok) return null;
+      const svg = (await r.text()).replace(/currentColor/g, color).replace(/stroke-width="2"/, 'stroke-width="1.75"');
+      return await vsGxImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+    })());
+    return await vsGxImgCache.get(key);
+  } catch (e) { return null; }
+}
+// The world's countries, as [{name, polys: [[[lon, lat], ...], ...]}] - a
+// TopoJSON decoded here (quantised arcs, deltas, the transform), so no
+// library has to load for it.
+let vsGxWorldP = null;
+function vsGxWorld() {
+  if (!vsGxWorldP) vsGxWorldP = (async () => {
+    const topo = await (await fetch(VS_GX_WORLD)).json();
+    const tr = topo.transform, arcs = topo.arcs.map((a) => {
+      let x = 0, y = 0;
+      return a.map((pt) => { x += pt[0]; y += pt[1]; return [x * tr.scale[0] + tr.translate[0], y * tr.scale[1] + tr.translate[1]]; });
+    });
+    const ring = (ids) => {
+      const pts = [];
+      ids.forEach((i) => { const a = i < 0 ? arcs[~i].slice().reverse() : arcs[i]; a.forEach((p, k) => { if (k || !pts.length) pts.push(p); }); });
+      return pts;
+    };
+    return topo.objects.countries.geometries.map((g) => {
+      const polys = g.type === "Polygon" ? [g.arcs.map(ring)] : g.type === "MultiPolygon" ? g.arcs.map((pp) => pp.map(ring)) : [];
+      return { name: String((g.properties && g.properties.name) || ""), polys };
+    });
+  })().catch((e) => { vsGxWorldP = null; throw e; });
+  return vsGxWorldP;
+}
+// A country by the name the plan gives it (common short forms included).
+const VS_GX_COUNTRY_ALIAS = { "usa": "United States of America", "us": "United States of America", "united states": "United States of America", "america": "United States of America",
+  "uk": "United Kingdom", "britain": "United Kingdom", "england": "United Kingdom", "uae": "United Arab Emirates", "russia": "Russia", "south korea": "South Korea", "korea": "South Korea",
+  "iran": "Iran", "persia": "Iran", "czech republic": "Czechia", "ivory coast": "Côte d'Ivoire", "congo": "Dem. Rep. Congo", "drc": "Dem. Rep. Congo" };
+function vsGxCountries(world, names) {
+  const out = [];
+  (names || []).forEach((n) => {
+    const k = String(n || "").toLowerCase().trim();
+    const want = (VS_GX_COUNTRY_ALIAS[k] || n || "").toLowerCase();
+    const hit = world.find((c) => c.name.toLowerCase() === want) || world.find((c) => c.name.toLowerCase().startsWith(want) && want.length > 3);
+    if (hit && !out.includes(hit)) out.push(hit);
+  });
+  return out;
+}
+
+// ── textures, made once per theme and size ──
+const vsGxTexCache = new Map();
+function vsGxTexture(tk, W, H) {
+  const key = [tk.tex, tk.bg, tk.paper, tk.ink, tk.a1, tk.a2, W, H].join("|");
+  if (vsGxTexCache.has(key)) return vsGxTexCache.get(key);
+  if (vsGxTexCache.size > 12) vsGxTexCache.clear();
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  x.fillStyle = tk.bg; x.fillRect(0, 0, W, H);
+  if (tk.tex === "paper" || tk.tex === "newsprint") {
+    // a sheet a shade lighter in the middle, fibres, a speckle
+    const g = x.createRadialGradient(W / 2, H * 0.45, W * 0.1, W / 2, H / 2, Math.max(W, H) * 0.75);
+    g.addColorStop(0, tk.paper); g.addColorStop(1, tk.bg); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.globalAlpha = tk.dark ? 0.05 : 0.06;
+    for (let i = 0; i < 900; i++) { x.strokeStyle = rnd() < 0.5 ? tk.ink : "#ffffff"; x.lineWidth = 0.6; const px = rnd() * W, py = rnd() * H, l = 4 + rnd() * 18, a = rnd() * Math.PI; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
+    x.globalAlpha = tk.dark ? 0.08 : 0.1;
+    for (let i = 0; i < 6000; i++) { x.fillStyle = rnd() < 0.5 ? tk.ink : "#ffffff"; x.fillRect(rnd() * W, rnd() * H, 1, 1); }
+    if (tk.tex === "newsprint") {
+      x.globalAlpha = tk.dark ? 0.06 : 0.07; x.fillStyle = tk.ink;
+      const s = Math.max(5, Math.round(W / 140));
+      for (let yy = 0; yy < H; yy += s) for (let xx = (yy / s) % 2 ? s / 2 : 0; xx < W; xx += s) { x.beginPath(); x.arc(xx, yy, s * 0.22, 0, Math.PI * 2); x.fill(); }
+    }
+  } else if (tk.tex === "halftone") {
+    const s = Math.max(6, Math.round(W / 60));
+    x.fillStyle = tk.a1;
+    for (let yy = 0; yy < H; yy += s) for (let xx = 0; xx < W; xx += s) {
+      const k = Math.max(0, 1 - Math.hypot(xx - W * 0.85, yy - H * 0.1) / (W * 0.9));
+      if (k <= 0.02) continue;
+      x.globalAlpha = 0.28; x.beginPath(); x.arc(xx + ((yy / s) % 2 ? s / 2 : 0), yy, s * 0.42 * k, 0, Math.PI * 2); x.fill();
+    }
+  } else if (tk.tex === "grid") {
+    x.strokeStyle = tk.dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"; x.lineWidth = 1;
+    const s = Math.round(W / 14);
+    for (let xx = 0; xx <= W; xx += s) { x.beginPath(); x.moveTo(xx, 0); x.lineTo(xx, H); x.stroke(); }
+    for (let yy = 0; yy <= H; yy += s) { x.beginPath(); x.moveTo(0, yy); x.lineTo(W, yy); x.stroke(); }
+    x.strokeStyle = tk.dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
+    for (let xx = 0; xx <= W; xx += s * 4) { x.beginPath(); x.moveTo(xx, 0); x.lineTo(xx, H); x.stroke(); }
+  } else if (tk.tex === "mesh") {
+    [[0.15, 0.2, tk.a1], [0.9, 0.35, tk.a2], [0.5, 0.95, tk.a3]].forEach(([px, py, c]) => {
+      const g = x.createRadialGradient(px * W, py * H, 0, px * W, py * H, Math.max(W, H) * 0.6);
+      g.addColorStop(0, c + (tk.dark ? "38" : "40")); g.addColorStop(1, c + "00"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    });
+  } else if (tk.tex === "grain") {
+    const g = x.createRadialGradient(W / 2, H * 0.4, W * 0.1, W / 2, H / 2, Math.max(W, H) * 0.8);
+    g.addColorStop(0, tk.paper); g.addColorStop(1, tk.bg); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  // a quiet vignette for depth
+  x.globalAlpha = 1;
+  const v = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, tk.dark ? "rgba(0,0,0,0.45)" : "rgba(60,40,20,0.12)");
+  x.fillStyle = v; x.fillRect(0, 0, W, H);
+  vsGxTexCache.set(key, c);
+  return c;
+}
+// Moving film grain over everything (a few pre-made noise tiles, cycled).
+let vsGxNoise = null;
+function vsGxGrain(ctx, W, H, t, amt) {
+  if (!vsGxNoise) {
+    vsGxNoise = [0, 1, 2].map((k) => {
+      const c = document.createElement("canvas"); c.width = 160; c.height = 160;
+      const x = c.getContext("2d"), id = x.createImageData(160, 160);
+      for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+      x.putImageData(id, 0, 0); return c;
+    });
+  }
+  ctx.save();
+  ctx.globalAlpha = amt; ctx.globalCompositeOperation = "overlay";
+  const pat = ctx.createPattern(vsGxNoise[Math.floor(t * 12) % 3], "repeat");
+  ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// ── motion ──
+function vsGxMove(tk) {
+  return {
+    snappy: { d: 0.32, e: (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * Math.max(0, p))), st: 0.08 },
+    smooth: { d: 0.55, e: (p) => { p = Math.max(0, Math.min(1, p)); return 1 - Math.pow(1 - p, 3); }, st: 0.12 },
+    bouncy: { d: 0.6, e: (p) => { p = Math.max(0, Math.min(1, p)); return p >= 1 ? 1 : Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1; }, st: 0.1 },
+    calm: { d: 0.9, e: (p) => { p = Math.max(0, Math.min(1, p)); return 0.5 - Math.cos(Math.PI * p) / 2; }, st: 0.18 },
+  }[tk.motion] || { d: 0.4, e: (p) => p, st: 0.1 };
+}
+// Text wrapped to a width, in lines.
+function vsGxWrap(ctx, text, maxW) {
+  const words = String(text || "").split(/\s+/).filter(Boolean), lines = [];
+  let cur = "";
+  words.forEach((w) => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// ── the scenes ──
+// Every scene type a plan can ask for, drawn from its own fields and the
+// pictures resolved for it (sc.assets), in the theme's colours, faces,
+// texture and way of moving. t is the time since the scene began; the
+// pictures arrive with their own entrances, staggered the way a motion
+// designer staggers them, and the whole frame drifts a little so nothing is
+// ever quite still.
+const VS_GX_TYPES = { title: 1, keyword: 1, objects: 1, map: 1, stat: 1, list: 1, compare: 1, timeline: 1, quote: 1, photo: 1, chart: 1 };
+
+// The numeric value in "45%", "$2.5B", "1,200": prefix, number, decimals, suffix.
+function vsGxNum(v) {
+  const m = String(v == null ? "" : v).match(/^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/);
+  if (!m) return null;
+  const n = Number(m[2].replace(/,/g, ""));
+  return isFinite(n) ? { pre: m[1], n, dec: (m[2].split(".")[1] || "").length, comma: /,/.test(m[2]) || Math.abs(n) >= 10000, post: m[3] } : null;
+}
+// A plan's scene, checked: a type it can draw, with what that type needs -
+// or a simpler type that can show the same words.
+function vsGxCheck(sc) {
+  const s = Object.assign({}, sc || {});
+  const str = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
+  s.type = VS_GX_TYPES[s.type] ? s.type : "keyword";
+  s.title = str(s.title, 60); s.kicker = str(s.kicker, 24);
+  s.objects = (Array.isArray(s.objects) ? s.objects : []).map((x) => str(x, 30)).filter(Boolean).slice(0, 4);
+  s.labels = (Array.isArray(s.labels) ? s.labels : []).map((x) => str(x, 24)).slice(0, 4);
+  s.icons = (Array.isArray(s.icons) ? s.icons : []).map((x) => str(x, 30)).slice(0, 5);
+  s.items = (Array.isArray(s.items) ? s.items : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 5);
+  if (s.type === "chart") {
+    s.bars = (Array.isArray(s.bars) ? s.bars : []).map((b) => ({ label: str(b && b.label, 20), num: vsGxNum(b && b.value), raw: str(b && b.value, 14) })).filter((b) => b.label && b.num).slice(0, 5);
+    if (s.bars.length < 2) s.type = s.title ? "keyword" : "objects";
+  }
+  if (s.type === "stat") { s.value = str(s.value, 16); if (!vsGxNum(s.value)) s.type = "keyword"; }
+  if (s.type === "list" && s.items.length < 2) s.type = s.title ? "keyword" : "objects";
+  if (s.type === "timeline") {
+    s.years = (Array.isArray(s.years) ? s.years : []).map((y) => ({ year: str(y && y.year, 12), label: str(y && y.label, 36) })).filter((y) => y.year).slice(0, 5);
+    if (s.years.length < 2) s.type = "keyword";
+  }
+  if (s.type === "compare") { s.left = str(s.left, 24); s.right = str(s.right, 24); s.left_value = str(s.left_value, 14); s.right_value = str(s.right_value, 14); if (!s.left || !s.right) s.type = "keyword"; }
+  if (s.type === "quote") { s.text = str(s.text, 140); s.highlight = str(s.highlight, 50); if (s.text.split(" ").length < 3) s.type = "keyword"; }
+  if (s.type === "map") { s.countries = (Array.isArray(s.countries) ? s.countries : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 6); s.label = str(s.label, 30); }
+  if (s.type === "photo") { s.photo = str(s.photo, 60); s.caption = str(s.caption, 40); if (!s.photo) s.type = "keyword"; }
+  if (s.type === "objects" && !s.objects.length) s.type = "keyword";
+  if (s.type === "keyword" && !s.title) s.title = s.kicker || s.items[0] || s.objects[0] || "";
+  return s;
+}
+// The pictures a scene needs, fetched before it is drawn: 3D objects or
+// icons (by the theme's element style), the world and its countries, a photo.
+async function vsGxResolve(sc, tk) {
+  const a = { objs: [], icons: [], photo: null, world: null, hits: [] };
+  const want3d = tk.elem !== "icons";
+  const objIcons = tk.elem === "icons";
+  const pics = sc.objects.length ? sc.objects : [];
+  a.objs = await Promise.all(pics.map(async (q) => (want3d ? (await vsGx3D(q)) || (await vsGxIcon(q, tk.ink)) : await vsGxIcon(q, tk.ink))));
+  a.objIcons = objIcons;
+  if (sc.type === "list") a.icons = await Promise.all(sc.items.map((it, i) => (tk.elem === "3d" ? vsGx3D(sc.icons[i] || it) : vsGxIcon(sc.icons[i] || it, tk.dark ? tk.bg : tk.paper))));
+  if (sc.type === "stat" || sc.type === "keyword" || sc.type === "title") {
+    if (!a.objs.length && sc.icons[0]) a.objs = [await (want3d ? vsGx3D(sc.icons[0]) : vsGxIcon(sc.icons[0], tk.ink))];
+  }
+  if (sc.type === "map") {
+    try { a.world = await vsGxWorld(); a.hits = vsGxCountries(a.world, sc.countries); } catch (e) {}
+    if (!a.hits.length) sc.type = "keyword";
+  }
+  if (sc.type === "photo") {
+    try {
+      const j = await vsPexelsSearch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(sc.photo) + "&per_page=6&orientation=portrait", VS_PEXELS_KEY);
+      const ph = j && j.photos && j.photos[0];
+      // always through our worker: it answers with CORS (a picture without it
+      // taints the canvas and the export fails) and it reaches Pexels where
+      // the visitor's network does not
+      let src = ph && ph.src && (ph.src.large || ph.src.large2x || ph.src.original);
+      if (src && src.indexOf(VS_STOCK_BASE) !== 0) src = VS_STOCK_BASE + "/stock/media?url=" + encodeURIComponent(src);
+      if (src) a.photo = await vsGxImage(src);
+    } catch (e) {}
+    if (!a.photo) sc.type = sc.objects.length ? "objects" : "keyword";
+  }
+  return a;
+}
+
+function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
+  const U = Math.min(W, H * 0.62), mv = vsGxMove(tk), a = sc.assets || {};
+  const port = H > W;
+  const P = (t0) => mv.e((t - t0) / mv.d);
+  const ink = tk.ink, acc = tk.a1;
+  const voxish = tk.tex === "paper" || tk.tex === "newsprint" || tk.tex === "halftone";
+  // background, then everything drifting a little over it
+  ctx.save();
+  ctx.drawImage(vsGxTexture(tk, W, H), 0, 0);
+  // a scene held a long time gets a second beat halfway: the camera pushes in
+  const push = dur > 6.5 ? 0.07 * mv.e((t - dur * 0.5) / 1.1) : 0;
+  const drift = 1 + 0.025 * Math.min(1, t / Math.max(1, dur)) + push;
+  ctx.translate(W / 2 + Math.sin(t * 0.3) * W * 0.004, H / 2); ctx.scale(drift, drift); ctx.translate(-W / 2, -H / 2);
+
+  // ── pieces ──
+  const font = (st, px) => vsGxFont(st, px);
+  const disp = tk.disp, body = tk.body;
+  const up = (s) => (disp.upper ? String(s).toUpperCase() : String(s));
+  // a block of text, line by line, each line rising into place
+  const text = (str, st, px, x, y, maxW, align, color, t0, o) => {
+    o = o || {};
+    if (!str) return { h: 0, lines: [], boxes: [] };
+    ctx.font = font(st, px);
+    let lines = vsGxWrap(ctx, st === disp ? up(str) : str, maxW);
+    // too many lines: smaller
+    while (lines.length > (o.maxLines || 3) && px > U * 0.03) { px *= 0.88; ctx.font = font(st, px); lines = vsGxWrap(ctx, st === disp ? up(str) : str, maxW); }
+    const lh = px * (o.lh || 1.08), y0 = y - ((lines.length - 1) * lh) / 2, boxes = [];
+    lines.forEach((ln, i) => {
+      const w = ctx.measureText(ln).width, lx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+      boxes.push({ x: lx, y: y0 + i * lh, w, h: px, ln });
+    });
+    if (o.marker) boxes.forEach((b, i) => {
+      // the highlighter, swept on behind each line, slightly skewed
+      const p = Math.max(0, Math.min(1, (t - t0 - 0.12 - i * mv.st) / 0.35));
+      if (p <= 0) return;
+      ctx.save(); ctx.globalAlpha = 0.9; ctx.fillStyle = o.marker;
+      ctx.beginPath(); ctx.moveTo(b.x - px * 0.12, b.y + px * 0.05); ctx.lineTo(b.x - px * 0.12 + (b.w + px * 0.24) * p, b.y - px * 0.02);
+      ctx.lineTo(b.x - px * 0.12 + (b.w + px * 0.24) * p, b.y + px * 0.5); ctx.lineTo(b.x - px * 0.12, b.y + px * 0.48); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    });
+    boxes.forEach((b, i) => {
+      const p = P(t0 + i * mv.st);
+      if (p <= 0) return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(b.x - px, b.y - px * 0.75, b.w + px * 2, px * 1.5); ctx.clip();
+      ctx.globalAlpha = Math.min(1, p * 1.4);
+      ctx.font = font(st, px); ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillStyle = o.color || color;
+      if (o.glow) { ctx.shadowColor = o.color || color; ctx.shadowBlur = px * 0.35; }
+      ctx.fillText(b.ln, b.x, b.y + (1 - p) * px * 0.9);
+      ctx.restore();
+    });
+    return { h: lines.length * lh, lines, boxes, px };
+  };
+  // a 3D object (or an icon) popping in, floating, with a soft shadow
+  const obj = (img, cx, cy, size, t0, i) => {
+    if (!img) return;
+    const p = P(t0);
+    if (p <= 0) return;
+    const bob = Math.sin(t * 1.7 + i * 1.3) * size * 0.025;
+    const s = size * Math.max(0.01, p), ar = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+    const w = ar >= 1 ? s : s * ar, h = ar >= 1 ? s / ar : s;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p * 2) * 0.22;
+    ctx.fillStyle = tk.dark ? "#000" : ink;
+    ctx.beginPath(); ctx.ellipse(cx, cy + size * 0.52, size * 0.32 * Math.max(0.01, p), size * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = Math.min(1, p * 2);
+    ctx.translate(cx, cy + bob); ctx.rotate(Math.sin(t * 1.1 + i) * 0.03);
+    if (a.objIcons) {
+      // an icon sits on a disc of the accent
+      ctx.fillStyle = tk.dark ? "rgba(255,255,255,0.08)" : tk.paper;
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.56, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = s * 0.03; ctx.strokeStyle = acc; ctx.stroke();
+      ctx.drawImage(img, -w * 0.32, -h * 0.32, w * 0.64, h * 0.64);
+    } else ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  };
+  // a hand-drawn ring round something, drawn on (the explainer annotation)
+  const ring = (cx, cy, rx, ry, color, t0) => {
+    const p = Math.max(0, Math.min(1, (t - t0) / 0.6));
+    if (p <= 0) return;
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = U * 0.008; ctx.lineCap = "round";
+    ctx.beginPath();
+    const n = 48, end = Math.floor(n * 1.08 * p);
+    for (let k = 0; k <= end; k++) {
+      const an = -Math.PI * 0.6 + (k / n) * Math.PI * 2, j = 1 + Math.sin(k * 1.7) * 0.025;
+      const px = cx + Math.cos(an) * rx * j, py = cy + Math.sin(an) * ry * j * (1 + k / n * 0.06);
+      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke(); ctx.restore();
+  };
+  const bar = (x, y, w, h, color, t0) => {
+    const p = P(t0); if (p <= 0) return;
+    ctx.fillStyle = color; ctx.fillRect(x, y, w * p, h);
+  };
+  const pill = (str, x, y, bg, fg, t0, px) => {
+    const p = P(t0); if (p <= 0 || !str) return;
+    px = px || U * 0.042;
+    ctx.save(); ctx.font = font(body, px); const w = ctx.measureText(str).width + px * 1.6, h = px * 1.9;
+    ctx.globalAlpha = Math.min(1, p * 1.5);
+    ctx.translate(x, y); ctx.scale(0.7 + 0.3 * p, 0.7 + 0.3 * p);
+    ctx.fillStyle = bg; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-w / 2, -h / 2, w, h, h / 2); else ctx.rect(-w / 2, -h / 2, w, h); ctx.fill();
+    ctx.fillStyle = fg; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(str, 0, px * 0.05);
+    ctx.restore();
+  };
+  // the heading of a scene: the title, an accent rule growing under it
+  const head = (str, y, t0) => {
+    if (!str) return y;
+    const r = text(str, disp, U * 0.085, W / 2, y, W * 0.84, "center", ink, t0, { maxLines: 2 });
+    bar(W / 2 - U * 0.07, y + r.h / 2 + U * 0.03, U * 0.14, U * 0.012, acc, t0 + 0.15);
+    return y + r.h / 2 + U * 0.08;
+  };
+  const markerFor = voxish ? acc + "d9" : null;
+  const textCol = ink;
+  // when a phrase is said in this scene (its first real word), else the
+  // fallback - a little early, so the picture is there as the word lands
+  const STOPW = { the: 1, a: 1, an: 1, of: 1, and: 1, to: 1, in: 1, on: 1, for: 1, is: 1, are: 1, new: 0 };
+  const when = (phrase, dflt) => {
+    const ws = sc._words || [];
+    const keys = String(phrase || "").toLowerCase().split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, "")).filter((w) => w.length > 2 && !STOPW[w]);
+    for (const k of keys) {
+      const hit = ws.find((w) => w.w === k || (k.length > 4 && w.w.startsWith(k.slice(0, Math.max(4, k.length - 2)))));
+      if (hit) return Math.max(0.1, hit.t - 0.15);
+    }
+    return dflt;
+  };
+  // ambient shapes in the theme's colours, drifting at the edges: the frame
+  // is never still, and never busy where the content is
+  {
+    let sd = 0; String(sc.title || sc.type).split("").forEach((c) => { sd = (sd * 31 + c.charCodeAt(0)) % 9973; });
+    const rnd = () => { sd = (sd * 16807 + 11) % 2147483647; return (sd % 10000) / 10000; };
+    const spots = [[0.03, 0.04], [0.97, 0.05], [0.04, 0.965], [0.96, 0.95]];
+    spots.forEach(([fx, fy], i) => {
+      const sz = U * (0.08 + rnd() * 0.06), col = [tk.a1, tk.a2, tk.a3][i % 3];
+      const x = W * fx + Math.sin(t * 0.35 + i * 2) * U * 0.02, y = H * fy + Math.cos(t * 0.3 + i) * U * 0.02, rot = rnd() * Math.PI + t * 0.08 * (i % 2 ? 1 : -1);
+      const ap = mv.e(Math.min(1, t / 0.8));
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = ap;
+      if (voxish) {
+        // a torn scrap of coloured paper
+        ctx.fillStyle = col; ctx.globalAlpha = ap * 0.9;
+        ctx.beginPath(); const w2 = sz, h2 = sz * 0.55;
+        for (let k = 0; k <= 10; k++) ctx.lineTo(-w2 / 2 + (w2 * k) / 10, -h2 / 2 + (k % 2 ? 1 : -1) * sz * 0.02);
+        for (let k = 10; k >= 0; k--) ctx.lineTo(-w2 / 2 + (w2 * k) / 10, h2 / 2 + (k % 2 ? -1 : 1) * sz * 0.02);
+        ctx.closePath(); ctx.fill();
+      } else if (tk.family === "neon" || tk.family === "luxury" || tk.tex === "mesh") {
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, sz); g.addColorStop(0, col + "55"); g.addColorStop(1, col + "00");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, sz, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = ap * 0.6; ctx.strokeStyle = col; ctx.lineWidth = U * 0.003; ctx.beginPath(); ctx.arc(0, 0, sz * 0.45, 0, Math.PI * 1.3); ctx.stroke();
+      } else if (tk.family === "tech" || tk.tex === "grid") {
+        ctx.strokeStyle = col; ctx.lineWidth = U * 0.004; ctx.globalAlpha = ap * 0.7;
+        ctx.beginPath(); ctx.moveTo(-sz * 0.3, 0); ctx.lineTo(sz * 0.3, 0); ctx.moveTo(0, -sz * 0.3); ctx.lineTo(0, sz * 0.3); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, sz * 0.5, 0, Math.PI * 2); ctx.globalAlpha = ap * 0.3; ctx.stroke();
+      } else if (tk.family === "playful" || tk.family === "pastel") {
+        ctx.fillStyle = col; ctx.globalAlpha = ap * 0.85;
+        if (i % 2) { ctx.beginPath(); for (let k = 0; k < 10; k++) { const an = (k / 10) * Math.PI * 2, r = k % 2 ? sz * 0.22 : sz * 0.45; ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r); } ctx.closePath(); ctx.fill(); }
+        else { ctx.beginPath(); ctx.arc(0, 0, sz * 0.35, 0, Math.PI * 2); ctx.fill(); }
+      } else {
+        ctx.strokeStyle = col; ctx.lineWidth = U * 0.005; ctx.globalAlpha = ap * 0.55;
+        ctx.beginPath(); ctx.arc(0, 0, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    });
+  }
+
+  // ── the scene ──
+  const ty = sc.type;
+  if (ty === "title" || ty === "keyword") {
+    const big = ty === "keyword";
+    const objs = a.objs.filter(Boolean);
+    if (big && objs[0]) obj(objs[0], W / 2, H * (port ? 0.3 : 0.28), U * 0.4, 0.15, 0);
+    const ty0 = big ? H * (port ? 0.56 : 0.6) : H * (port ? 0.4 : 0.42);
+    const r = text(sc.title, disp, U * (big ? 0.2 : 0.15), W / 2, ty0, W * 0.86, "center", textCol, 0.1, { marker: markerFor, maxLines: big ? 2 : 3, glow: tk.family === "neon" });
+    if (!markerFor && r.boxes.length) { const b = r.boxes[r.boxes.length - 1]; bar(b.x, b.y + r.px * 0.6, b.w, U * 0.014, acc, 0.35); }
+    if (sc.kicker && !big) pill(sc.kicker, W / 2, ty0 - r.h / 2 - U * 0.09, acc, tk.dark ? tk.bg : ink, 0.05);
+    if (!big) objs.slice(0, 2).forEach((im, i, arr) => { const sz = U * (arr.length > 1 ? 0.3 : 0.38); obj(im, W / 2 + (arr.length > 1 ? (i ? 1 : -1) * U * 0.22 : 0), Math.max(H * (port ? 0.66 : 0.75), ty0 + r.h / 2 + sz * 0.72), sz, 0.35 + i * mv.st, i); });
+    if (big && r.boxes.length && voxish) ring(W / 2, ty0, Math.min(W * 0.44, r.boxes[0].w * 0.6 + U * 0.07), r.h * 0.75, tk.a2, 0.6);
+  } else if (ty === "objects") {
+    const y = head(sc.title, H * (port ? 0.16 : 0.14), 0.05);
+    const objs = a.objs, n = objs.length;
+    const spots = n === 1 ? [[0.5, 0.48, 0.5]] : n === 2 ? [[0.3, 0.47, 0.36], [0.7, 0.47, 0.36]] : n === 3 ? [[0.27, 0.42, 0.3], [0.73, 0.42, 0.3], [0.5, 0.67, 0.3]] : [[0.3, 0.4, 0.28], [0.7, 0.4, 0.28], [0.3, 0.68, 0.28], [0.7, 0.68, 0.28]];
+    objs.forEach((im, i) => {
+      const sp = spots[i]; if (!sp) return;
+      const cx = W * sp[0], cy = Math.max(y + U * sp[2] * 0.6, H * sp[1]);
+      const lb = sc.labels[i] || sc.objects[i] || "";
+      const t0 = when(lb, 0.2 + i * mv.st * 1.5);
+      obj(im, cx, cy, U * sp[2], t0, i);
+      if (lb) text(lb, body, U * 0.055, cx, cy + U * sp[2] * (a.objIcons ? 0.8 : 0.68), W * 0.42, "center", textCol, t0 + 0.15, { maxLines: 2 });
+    });
+  } else if (ty === "stat") {
+    if (a.objs[0]) obj(a.objs[0], W / 2, H * (port ? 0.27 : 0.25), U * 0.32, 0.05, 0);
+    const num = vsGxNum(sc.value);
+    let v = sc.value;
+    if (num) { const p = mv.e(Math.min(1, (t - 0.15) / 1.0)); const x = num.n * Math.max(0, p); v = num.pre + (num.comma ? x.toLocaleString("en-US", { minimumFractionDigits: num.dec, maximumFractionDigits: num.dec }) : x.toFixed(num.dec)) + num.post; }
+    ctx.font = font(disp, U * 0.26);
+    let px = U * 0.26; const fw = ctx.measureText(up(sc.value)).width; if (fw > W * 0.86) px *= (W * 0.86) / fw;
+    const ny = H * (port ? 0.5 : 0.52);
+    if (voxish) { const p = Math.max(0, Math.min(1, (t - 0.3) / 0.4)); ctx.fillStyle = acc + "cc"; ctx.fillRect(W / 2 - (fw * px / (U * 0.26)) / 2 - U * 0.03, ny + px * 0.05, (fw * px / (U * 0.26) + U * 0.06) * p, px * 0.42); }
+    text(v, disp, px, W / 2, ny, W * 0.95, "center", tk.family === "neon" ? acc : textCol, 0.1, { maxLines: 1, glow: tk.family === "neon" });
+    text(sc.title, body, U * 0.06, W / 2, ny + px * 0.7, W * 0.8, "center", tk.muted, 0.4, { maxLines: 2 });
+  } else if (ty === "list") {
+    const y = head(sc.title, H * (port ? 0.16 : 0.14), 0.05);
+    const n = sc.items.length, gap = Math.min(U * 0.24, (H * 0.84 - y) / n), r = U * 0.07, x = W * 0.1;
+    // the block sits in the middle of the space under the heading
+    const y1 = Math.max(y, y + ((H * 0.84 - y) - gap * n) / 2);
+    let last = 0;
+    sc.items.forEach((it, i) => {
+      const d0 = 0.25 + i * mv.st * 1.2, t0 = last = Math.max(last + 0.12, when(it, 0.3 + i * (mv.st * 2.5))), cy = y1 + gap * (i + 0.5), p = P(t0);
+      const pg = P(d0);
+      if (pg > 0 && p < 1) {
+        ctx.save(); ctx.globalAlpha = Math.min(1, pg) * (1 - Math.max(0, p)) * 0.55;
+        ctx.strokeStyle = tk.muted; ctx.lineWidth = U * 0.005; ctx.setLineDash([U * 0.012, U * 0.01]);
+        ctx.beginPath(); ctx.arc(x + r, cy, r * (0.6 + 0.4 * pg), 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = tk.muted; ctx.font = font(disp, r * 0.9); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(i + 1), x + r, cy + r * 0.05);
+        ctx.fillRect(x + r * 2.5, cy - U * 0.004, (W * 0.5) * pg, U * 0.008);
+        ctx.restore();
+      }
+      if (p <= 0) return;
+      // the moment it is said: a ring pulses out of the badge
+      const pu = (t - t0) / 0.6;
+      if (pu > 0 && pu < 1) { ctx.save(); ctx.globalAlpha = 1 - pu; ctx.strokeStyle = i % 2 ? tk.a2 : acc; ctx.lineWidth = U * 0.006; ctx.beginPath(); ctx.arc(x + r, cy, r * (1 + pu * 0.8), 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.5);
+      ctx.translate(x + r, cy); ctx.scale(Math.max(0.01, p), Math.max(0.01, p));
+      ctx.fillStyle = i % 2 ? tk.a2 : acc; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      const ic = a.icons[i];
+      if (ic) { const s = r * (tk.elem === "3d" ? 1.7 : 1.15); ctx.drawImage(ic, -s / 2, -s / 2, s, s); }
+      else { ctx.fillStyle = tk.dark ? tk.bg : tk.paper; ctx.font = font(disp, r * 1.1); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(i + 1), 0, r * 0.05); }
+      ctx.restore();
+      text(it, body, U * 0.072, x + r * 2.5, cy, W * 0.9 - (x + r * 2.5), "left", textCol, t0 + 0.05, { maxLines: 2 });
+    });
+  } else if (ty === "compare") {
+    const y = head(sc.title, H * (port ? 0.15 : 0.13), 0.05);
+    const cy = Math.max(y + U * 0.25, H * 0.46);
+    const p = P(0.15);
+    ctx.strokeStyle = tk.muted; ctx.lineWidth = U * 0.004; ctx.beginPath(); ctx.moveTo(W / 2, cy - U * 0.3 * p); ctx.lineTo(W / 2, cy + U * 0.3 * p); ctx.stroke();
+    [[sc.left, sc.left_value, a.objs[0], 0.27, when(sc.left, 0.2)], [sc.right, sc.right_value, a.objs[1], 0.73, when(sc.right, 0.45)]].forEach(([lb, val, im, fx, t0], i) => {
+      if (im) obj(im, W * fx, cy - U * 0.08, U * 0.28, t0, i);
+      text(lb, disp, U * 0.07, W * fx, cy + U * 0.16, W * 0.42, "center", textCol, t0 + 0.1, { maxLines: 2 });
+      if (val) text(val, disp, U * 0.09, W * fx, cy + U * 0.28, W * 0.42, "center", i ? tk.a2 : acc, t0 + 0.25, { maxLines: 1 });
+    });
+    const q = P(0.7);
+    if (q > 0) { ctx.save(); ctx.translate(W / 2, cy - U * 0.08); ctx.scale(q, q); ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(0, 0, U * 0.06, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = tk.dark ? tk.bg : ink; ctx.font = font(disp, U * 0.05); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("VS", 0, U * 0.004); ctx.restore(); }
+  } else if (ty === "timeline") {
+    const y = head(sc.title, H * (port ? 0.15 : 0.13), 0.05);
+    const n = sc.years.length, top = y + U * 0.05, bot = H * 0.86, x = W * 0.2;
+    const lp = mv.e(Math.min(1, t / (0.4 + n * 0.45)));
+    ctx.strokeStyle = tk.muted; ctx.lineWidth = U * 0.006; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + (bot - top) * lp); ctx.stroke();
+    sc.years.forEach((yr, i) => {
+      const cy = top + (bot - top) * ((i + 0.5) / n), t0 = when(yr.year + " " + yr.label, 0.3 + i * 0.45), p = P(t0);
+      if (p <= 0) return;
+      ctx.save(); ctx.translate(x, cy); ctx.scale(p, p); ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(0, 0, U * 0.028, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = tk.dark ? tk.bg : tk.paper; ctx.lineWidth = U * 0.008; ctx.stroke(); ctx.restore();
+      text(yr.year, disp, U * 0.085, x + U * 0.07, cy - U * 0.035, W * 0.68, "left", tk.family === "neon" ? acc : textCol, t0, { maxLines: 1 });
+      text(yr.label, body, U * 0.045, x + U * 0.07, cy + U * 0.045, W * 0.68, "left", tk.muted, t0 + 0.1, { maxLines: 2 });
+    });
+  } else if (ty === "quote") {
+    // a clipping: paper, slightly turned, a big quote mark, the key words highlighted
+    const cw = W * 0.84, cx = W / 2, cy = H * 0.47;
+    ctx.font = font(body, U * 0.07);
+    const lines = vsGxWrap(ctx, sc.text, cw - U * 0.16), lh = U * 0.09, ch = lines.length * lh + U * 0.22;
+    const p = P(0.05);
+    ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.4);
+    ctx.translate(cx, cy + (1 - p) * U * 0.1); ctx.rotate(-0.025);
+    ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.015;
+    ctx.fillStyle = tk.dark ? tk.paper : "#fffdf8"; ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = acc; ctx.font = font(disp, U * 0.22); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillText("“", -cw / 2 + U * 0.04, -ch / 2 + U * 0.17);
+    const hl = String(sc.highlight || "").toLowerCase().split(/\s+/).filter(Boolean);
+    ctx.font = font(body, U * 0.07); ctx.textBaseline = "middle";
+    lines.forEach((ln, i) => {
+      const ly = -ch / 2 + U * 0.16 + i * lh, lp = Math.max(0, Math.min(1, (t - 0.25 - i * 0.12) / 0.35));
+      let lx = -cw / 2 + U * 0.08;
+      ln.split(" ").forEach((w) => {
+        const ww = ctx.measureText(w + " ").width;
+        if (hl.includes(w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""))) {
+          const hp = Math.max(0, Math.min(1, (t - 0.7 - i * 0.12) / 0.3));
+          ctx.fillStyle = acc + "b0"; ctx.fillRect(lx - U * 0.005, ly - U * 0.035, (ww - U * 0.012) * hp, U * 0.07);
+        }
+        ctx.globalAlpha = lp; ctx.fillStyle = tk.dark ? tk.ink : "#1b1b1b"; ctx.fillText(w, lx, ly); ctx.globalAlpha = 1;
+        lx += ww;
+      });
+    });
+    ctx.restore();
+    if (sc.title) text("— " + sc.title, body, U * 0.055, cx, cy + ch / 2 + U * 0.1, W * 0.8, "center", tk.muted, 0.9, { maxLines: 1 });
+  } else if (ty === "photo") {
+    const y = head(sc.title, H * (port ? 0.14 : 0.12), 0.05);
+    const im = a.photo;
+    if (im) {
+      const p = P(0.1), cw = W * 0.8, chh = Math.min(H * 0.55, cw * 1.15), cx = W / 2, cy = Math.max(y + chh / 2 + U * 0.04, H * 0.5);
+      ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.4);
+      ctx.translate(cx, cy + (1 - p) * U * 0.12); ctx.rotate(0.02 - 0.03 * p);
+      ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.02;
+      // a print with a white border and a torn foot
+      ctx.fillStyle = "#fbfaf6";
+      ctx.beginPath(); ctx.moveTo(-cw / 2, -chh / 2); ctx.lineTo(cw / 2, -chh / 2); ctx.lineTo(cw / 2, chh / 2);
+      for (let k = 0; k <= 24; k++) ctx.lineTo(cw / 2 - (cw * k) / 24, chh / 2 + (k % 2 ? 1 : -1) * U * 0.012);
+      ctx.closePath(); ctx.fill(); ctx.shadowColor = "transparent";
+      ctx.save(); ctx.beginPath(); ctx.rect(-cw / 2 + U * 0.025, -chh / 2 + U * 0.025, cw - U * 0.05, chh - U * 0.07); ctx.clip();
+      try { ctx.filter = voxish || tk.family === "editorial" ? "grayscale(1) contrast(1.2)" : "contrast(1.05) saturate(1.1)"; } catch (e) {}
+      const z = 1.06 + 0.06 * (t / Math.max(1, dur));
+      const iw = im.naturalWidth, ih = im.naturalHeight, sc2 = Math.max((cw - U * 0.05) / iw, (chh - U * 0.07) / ih) * z;
+      ctx.drawImage(im, -iw * sc2 / 2, -ih * sc2 / 2 - U * 0.01, iw * sc2, ih * sc2);
+      ctx.filter = "none";
+      if (voxish || tk.family === "editorial") { ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = tk.a2 + "55"; ctx.fillRect(-cw / 2, -chh / 2, cw, chh); ctx.globalCompositeOperation = "source-over"; }
+      ctx.restore();
+      // tape
+      ctx.fillStyle = "rgba(240,230,190,0.75)"; ctx.save(); ctx.translate(-cw * 0.3, -chh / 2); ctx.rotate(-0.25); ctx.fillRect(-U * 0.08, -U * 0.025, U * 0.16, U * 0.05); ctx.restore();
+      ctx.save(); ctx.translate(cw * 0.32, -chh / 2); ctx.rotate(0.3); ctx.fillRect(-U * 0.08, -U * 0.025, U * 0.16, U * 0.05); ctx.restore();
+      ctx.restore();
+      if (sc.caption) pill(sc.caption, W / 2, cy + chh / 2 + U * 0.07, acc, tk.dark ? tk.bg : ink, 0.5);
+    }
+  } else if (ty === "chart") {
+    const y = head(sc.title, H * (port ? 0.15 : 0.13), 0.05);
+    const bars = sc.bars, mx = Math.max(...bars.map((b) => Math.abs(b.num.n))) || 1;
+    const room = H * 0.84 - (y + U * 0.04), gap = Math.min(U * 0.27, room / bars.length), x0 = W * 0.08, bh = U * 0.085;
+    const top = y + U * 0.04 + (room - gap * bars.length) / 2;
+    // the widest figure decides how far a bar may run
+    ctx.font = font(disp, U * 0.07);
+    const fig = (b, v) => b.num.pre + (b.num.comma ? v.toLocaleString("en-US", { maximumFractionDigits: b.num.dec }) : v.toFixed(b.num.dec)) + b.num.post;
+    const wMax = W * 0.92 - x0 - Math.max(...bars.map((b) => ctx.measureText(fig(b, b.num.n)).width)) - U * 0.03;
+    bars.forEach((b, i) => {
+      const cy = top + gap * (i + 0.5), t0 = when(b.label, 0.25 + i * mv.st * 2), p = mv.e(Math.max(0, Math.min(1, (t - t0) / 0.8)));
+      text(b.label, body, U * 0.055, x0, cy - bh * 0.95, wMax, "left", tk.muted, t0, { maxLines: 1 });
+      const w = wMax * (Math.abs(b.num.n) / mx) * p;
+      ctx.fillStyle = i === 0 ? acc : i % 2 ? tk.a2 : tk.a3;
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, cy - bh * 0.35, Math.max(0, w), bh, bh * 0.18); else ctx.rect(x0, cy - bh * 0.35, Math.max(0, w), bh); ctx.fill();
+      ctx.font = font(disp, U * 0.07); ctx.fillStyle = textCol; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      if (p > 0.05) ctx.fillText(fig(b, b.num.n * p), x0 + w + U * 0.03, cy + bh * 0.17);
+    });
+  } else if (ty === "map") {
+    const y = head(sc.title, H * (port ? 0.14 : 0.12), 0.05);
+    const vx = W * 0.06, vy = y + U * 0.02, vw = W * 0.88, vh = Math.min(H * 0.55, H * 0.9 - vy);
+    const hits = a.hits || [];
+    // the box round the countries asked for, from the whole world in
+    let bx0 = 180, bx1 = -180, by0 = 90, by1 = -90;
+    hits.forEach((c) => c.polys.forEach((poly) => poly[0].forEach(([lo, la]) => { if (lo < bx0) bx0 = lo; if (lo > bx1) bx1 = lo; if (la < by0) by0 = la; if (la > by1) by1 = la; })));
+    if (bx1 - bx0 > 300) { bx0 = -180; bx1 = 180; }
+    const padX = Math.max(8, (bx1 - bx0) * 0.6), padY = Math.max(6, (by1 - by0) * 0.6);
+    const zp = mv.e(Math.min(1, Math.max(0, (t - 0.2) / 1.4)));
+    const L = (aa, bb) => aa + (bb - aa) * zp;
+    const lo0 = L(-180, bx0 - padX), lo1 = L(180, bx1 + padX), la0 = L(-60, by0 - padY), la1 = L(85, by1 + padY);
+    const sx = vw / (lo1 - lo0), sy = vh / (la1 - la0), s = Math.min(sx, sy);
+    const cxl = (lo0 + lo1) / 2, cyl = (la0 + la1) / 2;
+    const prj = (lo, la) => [vx + vw / 2 + (lo - cxl) * s, vy + vh / 2 - (la - cyl) * s];
+    ctx.save();
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(vx, vy, vw, vh, U * 0.03); else ctx.rect(vx, vy, vw, vh);
+    ctx.fillStyle = tk.dark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.45)"; ctx.fill();
+    ctx.clip();
+    const drawC = (c, fill, stroke, lw) => {
+      ctx.beginPath();
+      c.polys.forEach((poly) => poly.forEach((ringp) => ringp.forEach(([lo, la], k) => { const [px, py] = prj(lo, la); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); })));
+      if (fill) { ctx.fillStyle = fill; ctx.fill("evenodd"); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+    };
+    (a.world || []).forEach((c) => { if (!hits.includes(c)) drawC(c, tk.dark ? "rgba(255,255,255,0.12)" : tk.muted + "55", tk.dark ? "rgba(0,0,0,0.5)" : tk.paper, Math.max(0.5, U * 0.0015)); });
+    const hp = Math.max(0, Math.min(1, (t - 0.9) / 0.5));
+    hits.forEach((c, i) => { ctx.globalAlpha = hp; drawC(c, i ? tk.a2 : acc, ink, U * 0.003); ctx.globalAlpha = 1; });
+    ctx.restore();
+    // the pin and the place's name on the first country
+    if (hits[0] && hp > 0) {
+      let big = null, ba = 0;
+      hits[0].polys.forEach((poly) => { let x0 = 180, x1 = -180, y0 = 90, y1 = -90; poly[0].forEach(([lo, la]) => { x0 = Math.min(x0, lo); x1 = Math.max(x1, lo); y0 = Math.min(y0, la); y1 = Math.max(y1, la); }); const ar = (x1 - x0) * (y1 - y0); if (ar > ba) { ba = ar; big = [(x0 + x1) / 2, (y0 + y1) / 2]; } });
+      if (big) {
+        const [px, py] = prj(big[0], big[1]), r = U * 0.03, d = (1 - mv.e(hp)) * U * 0.1;
+        ctx.save(); ctx.fillStyle = tk.a2; ctx.strokeStyle = tk.dark ? tk.bg : "#fff"; ctx.lineWidth = U * 0.006;
+        ctx.beginPath(); ctx.arc(px, py - r * 1.6 - d, r, Math.PI, 0); ctx.lineTo(px, py - d); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+        pill(sc.label || hits[0].name, Math.max(vx + U * 0.15, Math.min(vx + vw - U * 0.15, px)), Math.min(vy + vh - U * 0.05, py + U * 0.07), ink, tk.dark ? tk.bg : tk.paper, 1.0, U * 0.036);
+      }
+    }
+  }
+  ctx.restore();
+  // the words being said, small, at the foot - one short line at a time
+  if (cap && cap.words && cap.words.length) vsGxCaptions(ctx, W, H, cap, tk, U);
+  vsGxGrain(ctx, W, H, t, tk.dark ? 0.06 : 0.05);
+}
+function vsGxCaptions(ctx, W, H, cap, tk, U) {
+  const ws = cap.words, lt = cap.t;
+  let cur = -1;
+  for (let k = 0; k < ws.length; k++) if (ws[k].t0 <= lt + 0.02) cur = k;
+  if (cur < 0 || lt > ws[ws.length - 1].t1 + 0.4) return;
+  const start = Math.floor(cur / 4) * 4, chunk = ws.slice(start, start + 4);
+  const px = U * 0.05;
+  ctx.save();
+  ctx.font = vsGxFont({ fam: tk.body.fam, w: 800 }, px); ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  const txt = chunk.map((w) => w.w.replace(/^["'(]+|["')]+$/g, ""));
+  const widths = txt.map((x) => ctx.measureText(x).width), sp = px * 0.32, tw = widths.reduce((n, w) => n + w, 0) + sp * (txt.length - 1);
+  const y = H * 0.9, x0 = W / 2 - tw / 2;
+  ctx.fillStyle = tk.dark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.78)";
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0 - px * 0.5, y - px * 0.85, tw + px, px * 1.7, px * 0.5); else ctx.rect(x0 - px * 0.5, y - px * 0.85, tw + px, px * 1.7); ctx.fill();
+  let x = x0;
+  // the word being said in an accent that reads on the caption's own ground
+  txt.forEach((s, i) => { ctx.fillStyle = start + i === cur ? (tk.dark ? tk.a1 : tk.a2) : tk.ink; ctx.fillText(s, x, y); x += widths[i] + sp; });
+  ctx.restore();
+}
+
+// ── the graphic edit on the timeline ──
+// A scene can run over several cuts: it starts on its first and its pictures
+// keep their places across the cuts after it, so t is counted from the
+// scene's own start, not the cut's.
+function vsGxFrame(ctx, W, H, s, idx, local, dur) {
+  const sl = vstudio.slides;
+  let before = 0, total = 0, j = idx - 1;
+  while (j >= 0 && sl[j]._gx === s._gx) { before += Number(sl[j].duration) || 0; j--; }
+  total = before;
+  for (let k = idx; k < sl.length && sl[k]._gx === s._gx; k++) total += Number(sl[k].duration) || 0;
+  const tk = vsGxTokens(vsGxTheme(vstudio._gxTheme));
+  // every word said in this scene, timed from the scene's start - so a list's
+  // point, a date or an object can land the moment it is said
+  const stamp = total.toFixed(3) + ":" + idx + ":" + before.toFixed(3);
+  if (s._gx._wordsStamp !== stamp) {
+    let first = idx; while (first > 0 && sl[first - 1]._gx === s._gx) first--;
+    const ws = []; let off = 0;
+    for (let k = first; k < sl.length && sl[k]._gx === s._gx; k++) {
+      ((sl[k]._voice && sl[k]._voice.words) || []).forEach((w) => ws.push({ w: String(w.w).toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""), t: off + w.t0 }));
+      off += Number(sl[k].duration) || 0;
+    }
+    s._gx._words = ws; s._gx._wordsStamp = stamp;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  vsGxDrawScene(ctx, W, H, s._gx, before + local, total, tk, vstudio._gxCaps && s._voice ? { words: s._voice.words, t: local } : null);
+  ctx.restore();
+  return true;
+}
+// Pictures for every scene of the edit, in the theme's colours.
+async function vsGxResolveAll(slides) {
+  const tk = vsGxTokens(vsGxTheme(vstudio._gxTheme));
+  const seen = new Set(), jobs = [];
+  slides.forEach((s) => { if (s._gx && !seen.has(s._gx)) { seen.add(s._gx); jobs.push(s._gx); } });
+  await Promise.all(jobs.map(async (sc) => { try { sc.assets = await vsGxResolve(sc, tk); } catch (e) { sc.assets = { objs: [], icons: [] }; } }));
+}
+// The cuts between scenes, in the theme's manner; none inside a scene.
+const VS_GX_TRANS = { vox: ["whip", "wipe"], editorial: ["flash", "zoom"], neon: ["zoomblur", "flash"], minimal: ["whip", "zoom"], playful: ["whip", "zoomblur"],
+  luxury: ["zoom", "flash"], tech: ["glitch", "zoomblur"], retro: ["wipe", "whip"], news: ["wipe", "flash"], nature: ["zoom", "whip"], pastel: ["zoom", "whip"] };
+function vsGxCuts(slides) {
+  const t = vsGxTheme(vstudio._gxTheme), list = VS_GX_TRANS[t.family] || ["whip"];
+  let k = 0;
+  slides.forEach((s, i) => {
+    delete s._transIn;
+    if (i > 0 && s._gx && slides[i - 1]._gx !== s._gx) s._transIn = list[k++ % list.length];
+  });
+}
+// The graphic edit's sounds: a whoosh into each scene, a click as each thing
+// lands, a tick for each date, a digital count for a number.
+function vsGxSfxEvents(slides) {
+  const ev = [];
+  const pops = ["button1", "button2", "button3"];
+  let t = 0, n = 0, prev = null;
+  const mv = vsGxMove(vsGxTokens(vsGxTheme(vstudio._gxTheme)));
+  slides.forEach((s, i) => {
+    const d = Number(s.duration) || 0, sc = s._gx;
+    if (sc && sc !== prev) {
+      if (i === 0) ev.push({ n: "boom", t: t + 0.05, g: 0.7 });
+      else ev.push({ n: "whoosh", t: t + 0.12, g: 0.6 });
+      const at = (x) => { if (x < d + 2) ev.push({ n: pops[n++ % 3], t: t + x, g: 0.55, w: 1 }); };
+      if (sc.type === "objects") (sc.objects || []).forEach((o, k) => at(0.2 + k * mv.st * 1.5));
+      else if (sc.type === "list") (sc.items || []).forEach((o, k) => at(0.3 + k * mv.st * 2.5));
+      else if (sc.type === "timeline") (sc.years || []).forEach((o, k) => ev.push({ n: k % 2 ? "tick2" : "tick", t: t + 0.3 + k * 0.45, g: 0.6 }));
+      else if (sc.type === "stat") ev.push({ n: "digital", t: t + 0.2, g: 0.5 });
+      else if (sc.type === "map") ev.push({ n: "sparkle", t: t + 0.95, g: 0.45 });
+      else if (sc.type === "compare") { at(0.2); at(0.45); ev.push({ n: "hit", t: t + 0.7, g: 0.5 }); }
+      else if (sc.type === "chart") (sc.bars || []).forEach((o, k) => at(0.25 + k * mv.st * 2));
+      else at(0.15);
+    }
+    prev = sc;
+    t += d;
+  });
+  ev.sort((a, b) => a.t - b.t);
+  const out = [];
+  ev.forEach((e) => { const last = out.filter((x) => x.w).pop(); if (e.w && last && e.t - last.t < 0.09) return; out.push(e); });
+  return out;
+}
+
+// ── the theme picker: thousands of themes in their own window ──
+// Every card is the theme itself, drawn live (the same renderer as the
+// video), made only as it scrolls into view; a hovered card plays.
+let vsGxSampleP = null;
+const vsGxSampleIcons = new Map();
+function vsGxSample(title) {
+  if (!vsGxSampleP) vsGxSampleP = (async () => {
+    const objs = await Promise.all(["rocket", "globe showing americas"].map((q) => vsGx3D(q)));
+    return { objs };
+  })();
+  return vsGxSampleP.then((a) => ({ type: "title", title: title || "Your story, in motion", kicker: "", objects: ["rocket", "globe"], assets: { objs: a.objs, icons: [] } }));
+}
+// The sample scene as a theme shows it: line-icon themes get icons in their ink.
+function vsGxSampleFor(sample, th, redraw) {
+  if (th.elem !== "icons") return sample;
+  const ink = th.pal[5];
+  if (!vsGxSampleIcons.has(ink)) vsGxSampleIcons.set(ink, Promise.all(["rocket", "world"].map((q) => vsGxIcon(q, ink))).then((v) => { vsGxSampleIcons.set(ink, v); if (redraw) redraw(); return v; }));
+  const got = vsGxSampleIcons.get(ink);
+  if (!Array.isArray(got)) return Object.assign({}, sample, { assets: { objs: [], icons: [], objIcons: true } });
+  return Object.assign({}, sample, { assets: { objs: got, icons: [], objIcons: true } });
+}
+function vsGxThemePicker(cur, onPick, sampleTitle) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  document.getElementById("gxPickOv")?.remove();
+  const all = vsGxThemes();
+  const ov = document.createElement("div");
+  ov.id = "gxPickOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.82);backdrop-filter:blur(6px);padding:16px";
+  const fams = Object.keys(VS_GX_FAMILY);
+  ov.innerHTML = '<div id="gxPick" role="dialog" aria-modal="true" aria-labelledby="gxPickT"' + (fa ? ' dir="rtl"' : "") + "><style>" +
+    "#gxPick{width:min(1180px,96vw);height:min(820px,94vh);display:flex;flex-direction:column;background:#0e1014;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;color:#f4f5f7;font:500 14px/1.45 Manrope,Vazirmatn,system-ui,sans-serif;box-shadow:0 40px 120px -20px rgba(0,0,0,.7)}" +
+    "#gxPick *{box-sizing:border-box}" +
+    "#gxPick .gp-h{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07)}" +
+    "#gxPick h2{margin:0;font:600 20px/1.2 'Space Grotesk',system-ui,sans-serif}" +
+    "#gxPick .gp-n{font:500 12px 'JetBrains Mono',monospace;color:#8a919c}" +
+    "#gxPick .gp-q{flex:1;min-width:140px;max-width:340px;margin-inline-start:auto;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#08090c;color:#f4f5f7;font:500 14px Manrope,system-ui,sans-serif;outline:none}" +
+    "#gxPick .gp-q:focus{border-color:#2563ff}" +
+    "#gxPick .gp-b{min-height:36px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f4f5f7;font:600 13px Manrope,system-ui,sans-serif;cursor:pointer}" +
+    "#gxPick .gp-b:hover{border-color:rgba(255,255,255,.32)}#gxPick .gp-b:focus-visible,#gxPick .gp-chip:focus-visible,#gxPick .gp-card:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}" +
+    "#gxPick .gp-f{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.06)}" +
+    "#gxPick .gp-chip{padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c9ccd3;font:600 12.5px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer}" +
+    "#gxPick .gp-chip[aria-pressed=true]{background:#f4f5f7;color:#0e1014;border-color:#f4f5f7}" +
+    "#gxPick select{width:auto;flex:none;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:#08090c;color:#c9ccd3;font:600 12.5px Manrope,system-ui,sans-serif}" +
+    "#gxPick .gp-grid{flex:1;overflow:auto;padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px;align-content:start}" +
+    "#gxPick .gp-card{display:flex;flex-direction:column;gap:6px;padding:0;border:0;background:transparent;color:inherit;text-align:start;cursor:pointer}" +
+    "#gxPick .gp-card canvas{width:100%;aspect-ratio:9/16;border-radius:10px;background:#14171d;box-shadow:0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .15s,transform .15s}" +
+    "#gxPick .gp-card:hover canvas{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(255,255,255,.35)}" +
+    "#gxPick .gp-card[aria-pressed=true] canvas{box-shadow:0 0 0 3px #2563ff}" +
+    "#gxPick .gp-name{font:600 12px Manrope,Vazirmatn,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    "#gxPick .gp-meta{font:500 11px Manrope,Vazirmatn,system-ui,sans-serif;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}" +
+    "#gxPick .gp-more{grid-column:1/-1;height:1px}" +
+    "@media (prefers-reduced-motion:reduce){#gxPick .gp-card canvas{transition:none}}" +
+    "</style>" +
+    '<div class="gp-h"><h2 id="gxPickT">' + L("Themes", "تم‌ها") + '</h2><span class="gp-n" id="gpN"></span>' +
+      '<input class="gp-q" id="gpQ" type="search" placeholder="' + L("Search: vox, gold, neon, paper, serif…", "جستجو: vox، طلایی، نئون، کاغذ…") + '" aria-label="' + L("Search themes", "جستجوی تم") + '"/>' +
+      '<button class="gp-b" id="gpShuffle" type="button">' + L("Shuffle", "درهم") + '</button>' +
+      '<button class="gp-b" id="gpX" type="button" aria-label="' + L("Close", "بستن") + '">✕</button></div>' +
+    '<div class="gp-f" role="group" aria-label="' + L("Style family", "خانوادهٔ سبک") + '">' +
+      '<button class="gp-chip" type="button" data-f="" aria-pressed="true">' + L("All", "همه") + "</button>" +
+      fams.map((f) => '<button class="gp-chip" type="button" data-f="' + f + '" aria-pressed="false">' + (fa ? VS_GX_FAMILY[f].label[1] : VS_GX_FAMILY[f].label[0]) + "</button>").join("") +
+      '<select id="gpMotion" aria-label="' + L("Motion", "حرکت") + '"><option value="">' + L("Any motion", "هر حرکتی") + "</option>" + VS_GX_MOTIONS.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_MOTION_NAME[m][1] : VS_GX_MOTION_NAME[m][0]) + "</option>").join("") + "</select>" +
+      '<select id="gpElem" aria-label="' + L("Elements", "عناصر") + '"><option value="">' + L("Any elements", "هر عنصری") + "</option>" + VS_GX_ELEMS.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_ELEM_NAME[m][1] : VS_GX_ELEM_NAME[m][0]) + "</option>").join("") + "</select>" +
+    "</div>" +
+    '<div class="gp-grid" id="gpGrid" role="listbox" aria-label="' + L("Themes", "تم‌ها") + '"></div></div>';
+  document.body.appendChild(ov);
+  const $$ = (id) => ov.querySelector("#" + id);
+  const grid = $$("gpGrid");
+  let fam = "", list = all.slice(), shown = 0, anim = 0, seed = 0;
+  const close = () => { cancelAnimationFrame(anim); io.disconnect(); ov.remove(); };
+  $$("gpX").onclick = close;
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  let sample = null;
+  const draw = (cv, th, t) => {
+    if (!sample) return;
+    const x = cv.getContext("2d");
+    vsGxDrawScene(x, cv.width, cv.height, vsGxSampleFor(sample, th, () => draw(cv, th, 3.5)), t, 4, vsGxTokens(th), null);
+  };
+  // cards are drawn as they come into view
+  const io = new IntersectionObserver((ents) => ents.forEach((en) => {
+    if (!en.isIntersecting) return;
+    const cv = en.target, th = vsGxTheme(cv.dataset.id);
+    io.unobserve(cv);
+    draw(cv, th, 3.5);
+  }), { root: grid, rootMargin: "200px" });
+  const card = (th) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "gp-card"; b.setAttribute("role", "option"); b.dataset.id = th.id;
+    b.setAttribute("aria-pressed", String(th.id === cur));
+    const f = th.font;
+    b.innerHTML = '<canvas width="216" height="384" data-id="' + th.id + '" aria-hidden="true"></canvas><span class="gp-name">' + escapeHtml(vsGxThemeName(th, fa)) + '</span><span class="gp-meta">' +
+      escapeHtml(f[1] + " · " + (fa ? VS_GX_MOTION_NAME[th.motion][1] : VS_GX_MOTION_NAME[th.motion][0]) + " · " + (fa ? VS_GX_ELEM_NAME[th.elem][1] : VS_GX_ELEM_NAME[th.elem][0])) + "</span>";
+    const cv = b.querySelector("canvas");
+    io.observe(cv);
+    // a hovered card plays its entrance
+    b.addEventListener("mouseenter", () => {
+      cancelAnimationFrame(anim);
+      const t0 = performance.now();
+      const loop = () => { const t = (performance.now() - t0) / 1000; draw(cv, th, t % 4.5); anim = requestAnimationFrame(loop); };
+      loop();
+    });
+    b.addEventListener("mouseleave", () => { cancelAnimationFrame(anim); draw(cv, th, 3.5); });
+    b.onclick = () => { onPick(th.id); close(); };
+    return b;
+  };
+  const more = () => {
+    const sentinel = grid.querySelector(".gp-more"); if (sentinel) sentinel.remove();
+    const frag = document.createDocumentFragment();
+    list.slice(shown, shown + 60).forEach((th) => frag.appendChild(card(th)));
+    shown = Math.min(list.length, shown + 60);
+    grid.appendChild(frag);
+    if (shown < list.length) { const s = document.createElement("div"); s.className = "gp-more"; grid.appendChild(s); moreIo.observe(s); }
+  };
+  const moreIo = new IntersectionObserver((ents) => { if (ents.some((e) => e.isIntersecting)) more(); }, { root: grid, rootMargin: "400px" });
+  const apply = () => {
+    const q = ($$("gpQ").value || "").toLowerCase().trim(), mo = $$("gpMotion").value, el = $$("gpElem").value;
+    list = all.filter((th) => (!fam || th.family === fam) && (!mo || th.motion === mo) && (!el || th.elem === el) &&
+      (!q || q.split(/\s+/).every((w) => (th.id + " " + vsGxThemeName(th, false) + " " + vsGxThemeName(th, true) + " " + th.font[1] + " " + th.font[4]).toLowerCase().includes(w))));
+    if (seed) { let s2 = seed; list = list.map((x) => [x, (s2 = (s2 * 16807) % 2147483647)]).sort((a, b) => a[1] - b[1]).map((x) => x[0]); }
+    // the current theme first
+    const ci = list.findIndex((x) => x.id === cur); if (ci > 0) list.unshift(list.splice(ci, 1)[0]);
+    grid.innerHTML = ""; shown = 0; grid.scrollTop = 0;
+    $$("gpN").textContent = list.length.toLocaleString(fa ? "fa-IR" : "en-US") + " " + L("themes", "تم");
+    more();
+  };
+  ov.querySelectorAll(".gp-chip").forEach((b) => { b.onclick = () => { fam = b.dataset.f; ov.querySelectorAll(".gp-chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); apply(); }; });
+  let qt = 0;
+  $$("gpQ").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(apply, 200); });
+  $$("gpMotion").onchange = apply; $$("gpElem").onchange = apply;
+  $$("gpShuffle").onclick = () => { seed = Math.floor(Math.random() * 1e9) + 1; apply(); };
+  apply();
+  // the faces and pictures, then every visible card again
+  Promise.all([vsGxLoadFonts(), vsGxSample(sampleTitle)]).then(([, sm]) => {
+    sample = vsGxCheck(sm); sample.assets = sm.assets;
+    grid.querySelectorAll("canvas").forEach((cv) => io.observe(cv));
+  }).catch(() => {});
+  try { $$("gpQ").focus(); } catch (e) {}
+}
+
 // What the Edit studio had open when it was closed - the videos, the
 // settings, the finished edit and the edit still running - so opening it again
 // carries on where it was instead of starting empty. The settings alone are
@@ -12458,6 +13498,12 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-opts{display:flex;flex-direction:column;gap:10px}
 #emModal.pro .em-c{display:none}
 #emModal:not(.pro) .em-p{display:none}
+#emModal.gx .em-p,#emModal.gx .em-c,#emModal.gx .em-nogx{display:none}
+#emModal.gx label.em-gc{display:flex}
+#emModal .em-gxrow{display:flex;gap:14px;align-items:center}
+#emModal #emGxCv{width:96px;aspect-ratio:9/16;border-radius:9px;box-shadow:0 0 0 1px rgba(255,255,255,.12);flex:none;background:#14171d}
+#emModal .em-gxinfo{display:flex;flex-direction:column;gap:6px;min-width:0}
+#emModal .em-gxname{font:700 14px Manrope,Vazirmatn,system-ui,sans-serif;color:#fff}
 #emModal .em-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:0}
 #emModal .em-frame{position:relative;max-width:100%;max-height:min(560px,62vh);border-radius:12px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 #emModal .em-frame canvas{display:block;width:100%;height:100%}
@@ -12498,7 +13544,8 @@ function vsEditStudio(preset, filesIn) {
       '<div><div class="ts-eye">Edit my video</div><h2 id="emTitle">' + L("Edit your video", "ادیت ویدیوی تو") + "</h2></div>" +
       '<div class="ts-seg" role="tablist" aria-label="' + L("What to do", "چه کاری") + '">' +
         '<button type="button" role="tab" data-mode="edit">' + L("Edit my raw video", "ادیت ویدیوی خامم") + "</button>" +
-        '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button></div>" +
+        '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button>" +
+        '<button type="button" role="tab" data-mode="graphic">' + L("Graphic video", "ویدیوی گرافیکی") + "</button></div>" +
       '<div class="ts-field">' +
         '<button id="emDrop" type="button" class="ts-drop">' +
           '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>' +
@@ -12507,14 +13554,19 @@ function vsEditStudio(preset, filesIn) {
         '<input id="emFile" type="file" accept="video/*" multiple hidden/>' +
         '<ol id="emList" class="em-list" hidden></ol>' +
         '<p id="emSwapNote" class="ts-note" hidden>' + L("For a finished video: every text and footage in it is found; you change the ones you want and the design, motion and sound stay exactly as they are.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش پیدا می‌شود؛ هر کدام را خواستی عوض کن و طراحی، حرکت و صدا همان می‌ماند.") + "</p></div>" +
-      '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Style", "سبک") + '</div><div class="em-styles" role="radiogroup" aria-label="' + L("Style", "سبک") + '">' +
+      '<div id="emGx" class="ts-field em-gxf" hidden><div class="ts-lbl">' + L("Theme", "تم") + "</div>" +
+        '<div class="em-gxrow"><canvas id="emGxCv" width="216" height="384" aria-hidden="true"></canvas><div class="em-gxinfo"><div id="emGxName" class="em-gxname"></div><div id="emGxMeta" class="ts-note"></div>' +
+        '<button id="emGxPick" type="button" class="ts-ghost">' + L("Choose from " + vsGxThemes().length.toLocaleString("en-US") + " themes", "انتخاب از " + vsGxThemes().length.toLocaleString("fa-IR") + " تم") + "</button></div></div>" +
+        '<p class="ts-note">' + L("You are not shown: your voice plays and every moment becomes a designed scene - maps, numbers, lists, timelines, quotes, 3D objects and photos, chosen from what you say.",
+          "خودت دیده نمی‌شوی: صدایت پخش می‌شود و هر لحظه یک صحنهٔ طراحی‌شده است - نقشه، عدد، فهرست، خط زمانی، نقل‌قول، اشیای سه‌بعدی و عکس، بر اساس حرف‌هایت.") + "</p></div>" +
+      '<div id="emStyleF" class="ts-field em-edit"><div class="ts-lbl">' + L("Style", "سبک") + '</div><div class="em-styles" role="radiogroup" aria-label="' + L("Style", "سبک") + '">' +
         STYLES.map(([v, n], i) => '<label class="em-style"><input type="radio" name="emStyle" value="' + v + '"' + (v === style0 ? " checked" : "") + '/><canvas width="180" height="260" data-style="' + v + '" aria-hidden="true"></canvas><span class="em-style-n">' + n + "</span></label>").join("") +
         '</div><p id="emStyleD" class="em-style-d"></p></div>' +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("Shape", "قالب") + '</div><div class="ts-sizes">' +
         SHAPES.map(([v, n, w, h]) => { const k = 18 / Math.max(w, h); return '<label class="ts-size"><input type="radio" name="emShape" value="' + v + '"' + (v === shape0 ? " checked" : "") + '/><span class="ts-ratio-w"><span class="ts-ratio" style="width:' + Math.max(6, Math.round(w * k)) + "px;height:" + Math.max(6, Math.round(h * k)) + 'px"></span></span><span class="ts-size-n">' + n + '</span><span class="ts-size-d">' + v + "</span></label>"; }).join("") +
         "</div></div>" +
       '<div class="ts-field em-edit"><div class="ts-lbl">' + L("What it does", "چه کارهایی انجام شود") + '</div><div class="em-opts">' +
-        OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-" + c : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
+        OPTS.map(([k, n, c]) => '<label class="ts-switch' + (c ? " em-" + c : "") + (k === "captions" ? " em-gc" : k === "zoom" || k === "broll" || k === "inserts" ? " em-nogx" : "") + '"><input type="checkbox" data-opt="' + k + '"' + (on0(k) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + n + "</span></label>").join("") +
         '<label class="ts-lbl em-p" for="emName" style="margin-top:4px">' + L("Your name on a card at the start (optional)", "اسمت روی کارت در شروع (اختیاری)") + "</label>" +
         '<input id="emName" class="em-txt em-p" type="text" maxlength="40" placeholder="' + L("e.g. Sara Ahmadi", "مثلاً سارا احمدی") + '"/>' +
         '<input id="emRole" class="em-txt em-p" type="text" maxlength="60" placeholder="' + L("What you do, e.g. Realtor in Toronto", "کارت، مثلاً مشاور املاک در تورنتو") + '"/>' +
@@ -12544,7 +13596,7 @@ function vsEditStudio(preset, filesIn) {
   const settingsNow = () => {
     const opts = {};
     ov.querySelectorAll("input[data-opt]").forEach((c) => { opts[c.dataset.opt] = c.checked; });
-    return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value,
+    return { style: (ov.querySelector('input[name="emStyle"]:checked') || {}).value, shape: (ov.querySelector('input[name="emShape"]:checked') || {}).value, opts, layout: $$("emLayout").value, gxTheme,
       name: $$("emName").value, role: $$("emRole").value, cta: $$("emCta").value };
   };
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
@@ -12608,6 +13660,7 @@ function vsEditStudio(preset, filesIn) {
           '<p class="ts-note">' + L("Drag the words on the video to move them.", "کلمات را روی ویدیو بکش تا جابه‌جا شوند.") + "</p>" +
         "</div></div>" +
       '<div class="em-acts">' +
+      (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
       '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button></div>" +
       '<div id="emExp" class="em-prog" hidden><div class="em-prog-m" id="emMsg"></div><div class="em-bar" id="emBar"><i></i></div>' +
       '<button id="emCancel" type="button" class="ts-ghost" style="align-self:center">' + L("Cancel", "لغو") + "</button></div>";
@@ -12729,6 +13782,8 @@ function vsEditStudio(preset, filesIn) {
     });
 
     redraw(tCur);
+    vstudio._gxRedraw = () => redraw();
+    if ($$("emReTheme")) $$("emReTheme").onclick = pickTheme;
     $$("emExport").onclick = async () => {
       if (busy) return;
       pause(); select(null);
@@ -12766,15 +13821,45 @@ function vsEditStudio(preset, filesIn) {
   };
 
   // ── the left side ──
+  // the graphic video's theme, drawn on its card
+  let gxTheme = preset.gxTheme || last.gxTheme || vstudio._gxTheme || "cream.archivoblack.paper.snappy.3d";
+  const drawGx = async () => {
+    const th = vsGxTheme(gxTheme), f = th.font;
+    $$("emGxName").textContent = vsGxThemeName(th, fa);
+    $$("emGxMeta").textContent = f[1] + " · " + (fa ? VS_GX_MOTION_NAME[th.motion][1] : VS_GX_MOTION_NAME[th.motion][0]) + " · " + (fa ? VS_GX_ELEM_NAME[th.elem][1] : VS_GX_ELEM_NAME[th.elem][0]);
+    try {
+      await vsGxLoadFonts();
+      const sm = await vsGxSample(); const sc = vsGxCheck(sm); sc.assets = sm.assets;
+      const cv = $$("emGxCv");
+      const paint = () => vsGxDrawScene(cv.getContext("2d"), cv.width, cv.height, vsGxSampleFor(sc, th, paint), 3.5, 4, vsGxTokens(th), null);
+      paint();
+    } catch (e) {}
+  };
   const setMode = (m) => {
     mode = m;
+    modal.classList.toggle("gx", m === "graphic");
+    $$("emGx").hidden = m !== "graphic";
+    $$("emStyleF").hidden = m === "graphic" || m === "swap";
+    if (m === "graphic") drawGx();
     ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
     ov.querySelectorAll(".em-edit").forEach((el) => { el.hidden = m === "swap"; });
     $$("emSwapNote").hidden = m !== "swap";
-    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : L("Edit it", "ادیتش کن");
+    $$("emStyleF").hidden = m === "graphic" || m === "swap";   // after the line above, which shows every .em-edit
+    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : L("Edit it", "ادیتش کن");
     drawList();
   };
   ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
+  const pickTheme = () => vsGxThemePicker(gxTheme, async (id) => {
+    gxTheme = id; remember(); drawGx();
+    // a finished graphic video takes the new theme at once - no new edit
+    if (vstudio.slides.some((x) => x._gx) && !busy) {
+      vstudio._gxTheme = id;
+      await vsGxResolveAll(vstudio.slides); vsGxCuts(vstudio.slides);
+      try { vsMixVoiceTrack(); } catch (e) {}
+      if (vstudio._gxRedraw) vstudio._gxRedraw();
+    }
+  });
+  $$("emGxPick").onclick = pickTheme;
   const drawList = () => {
     const list = $$("emList");
     const use = mode === "swap" ? files.slice(0, 1) : files;
@@ -12887,6 +13972,7 @@ function vsEditStudio(preset, filesIn) {
       aspect: (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16", layout: $$("emLayout").value, host: true };
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
+    if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; }
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
     const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
@@ -14036,6 +15122,13 @@ async function vsEditMyVideo(fileIn, o) {
   const file = files[0];
   // a pro look sets its own words, so no hook card, stickers or graphic cards
   const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "";
+  // a graphic video: the voice only, every moment a designed scene
+  const gx = !!o.graphic;
+  if (gx) {
+    o = Object.assign({}, o, { title: false, stickers: false, gfx: false, broll: false, inserts: false, layout: "full" });
+    vstudio._gxTheme = o.gxTheme || vstudio._gxTheme || "cream.archivoblack.paper.snappy.3d";
+    vsGxLoadFonts(); vsGxIndex("3d").catch(() => {}); vsGxIndex("icons").catch(() => {});
+  }
   if (pro) { o = Object.assign({}, o, { title: false, stickers: false, gfx: false, layout: "full" }); vsProLoadFonts(); vsProSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {}); }
   if (files.reduce((n, f) => n + f.size, 0) > 400 * 1048576) { vsAutoStatus(L("Those files are over 400 MB together - trim them first.", "این فایل‌ها روی هم بیشتر از ۴۰۰ مگابایت‌اند؛ اول کوتاهشان کن.")); return; }
   try { stopStudioPreview(); } catch (e) {}
@@ -14136,7 +15229,21 @@ async function vsEditMyVideo(fileIn, o) {
     const sentences = (tr.segments || []).map((sg, i) => ({ i, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text: String(sg.text || "").trim() }))
       .filter((x) => x.text);
     let ai = cache && cache.aspect === o.aspect ? cache.ai : null;
-    if (!ai) {
+    // a graphic video is designed from the words (/graphic-plan), not from frames
+    let gxPlan = gx && cache && cache.aspect === o.aspect ? cache.gx || null : null;
+    if (gx && !gxPlan) {
+      vsAutoStatus(L("Designing the scenes…", "در حال طراحی صحنه‌ها…"));
+      const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 70000);
+      try {
+        const r = await fetch(VS_GX_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+          body: JSON.stringify({ sentences, aspect: o.aspect }), signal: gc.signal });
+        if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+        const j = await r.json();
+        if (j && j.ok && j.plan) gxPlan = j.plan;
+      } catch (e) {}
+      clearTimeout(gt);
+    }
+    if (!ai && !gx) {
       vsAutoStatus(L("Watching your video…", "در حال تماشای ویدیو…"));
       const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
       let frames = [];
@@ -14160,7 +15267,7 @@ async function vsEditMyVideo(fileIn, o) {
       } catch (e) {}
       clearTimeout(planTimer);
     }
-    vstudio._editCache = { key: ckey, tr, ai, aspect: o.aspect };
+    vstudio._editCache = { key: ckey, tr, ai: ai || (cache && cache.ai) || null, gx: gxPlan || (cache && cache.gx) || null, aspect: o.aspect };
     vstudio._editPlan = ai;
     const sPlan = {};
     ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
@@ -14390,7 +15497,25 @@ async function vsEditMyVideo(fileIn, o) {
       vsAutoStatus(L("Finding cinematic shots…", "در حال پیدا کردن نماهای سینمایی…"));
       try { vstudio._editStats.inserts = await vsProPlaceInserts(vstudio.slides, ai.inserts, words, sentences, o.aspect); } catch (e) {}
     }
-    vstudio._editSfxOn = !!o.trans || !!pro;
+    if (gx) {
+      // every cut gets the scene its sentence belongs to; a scene can span cuts
+      vsAutoStatus(L("Building the scenes…", "در حال ساختن صحنه‌ها…"));
+      const scenes = ((gxPlan && gxPlan.scenes) || []).map((x) => Object.assign(vsGxCheck(x), { from: Number(x.from), to: Number(x.to) })).filter((x) => isFinite(x.from));
+      const own = new Map();
+      vstudio.slides.forEach((sl) => {
+        const k = sentOf((sl._srcOffset || 0) + (sl._clipIn || 0) + 0.1);
+        let sc = scenes.find((x) => k >= x.from && k <= (isFinite(x.to) ? x.to : x.from)) || (scenes.length ? scenes.filter((x) => x.from <= k).pop() : null);
+        // no plan for it: its own words, big - one scene per sentence
+        if (!sc) { if (!own.has(k)) own.set(k, vsGxCheck({ type: "keyword", title: String(sl._narration || "").split(/\s+/).slice(0, 4).join(" ") })); sc = own.get(k); }
+        sl._gx = sc; sl._noCaps = true;
+        delete sl._pro; delete sl._ins; delete sl._bw; delete sl._sticker; delete sl._hook; delete sl._gfx;
+      });
+      vstudio._gxCaps = o.captions !== false;
+      await vsGxLoadFonts();
+      await vsGxResolveAll(vstudio.slides);
+      vsGxCuts(vstudio.slides);
+    }
+    vstudio._editSfxOn = !!o.trans || !!pro || gx;
     if (vstudio._editSfxOn) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
     if (pro) {
       vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
