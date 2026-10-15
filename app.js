@@ -12012,7 +12012,8 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   if (t < 0.14) { ctx.fillStyle = "rgba(255,255,255," + (0.7 * (1 - t / 0.14)) + ")"; ctx.fillRect(0, 0, W, H); }
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-  const bars = H * 0.075 * Math.min(1, t / 0.3);
+  // full frame, as in the reels it copies (letterbox bars only took room)
+  const bars = 0;
 
   // ── the words being said, carried on over the shots ──
   // the subject of this shot cut out of its ground, where the picture allows
@@ -12096,12 +12097,11 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
     } else if (hw) vsProWord(ctx, hw, local, out, F, W, H);
     if (sw) vsProWord(ctx, sw, local, out, F, W, H);
   }
-  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
   // the name and the detail, small, in the corner of the first shots
   const name = String(ins.title || "").toUpperCase(), detail = String(ins.value || "");
   const fadeOut = t > len - 0.25 ? Math.max(0, (len - t) / 0.25) : 1;
   if (name || detail) {
-    const x = W * 0.06, y = H - bars - U * 0.1;
+    const x = W * 0.06, y = H * 0.83;   // above the app's own buttons at the foot
     const q = Math.max(0, Math.min(1, (t - 0.3) / 0.4)), e = 1 - Math.pow(1 - q, 3);
     if (q > 0) {
       ctx.save(); ctx.globalAlpha = fadeOut;
