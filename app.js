@@ -11852,10 +11852,8 @@ function vsShowShotAt(ins, t) {
   }
   return null;
 }
-// One shot, filling the frame, with its move at progress p (0..1).
-function vsShowDrawShot(ctx, W, H, sh, p, extraZ, dx) {
-  const src = sh.vid || sh.img;
-  if (!src) return;
+// A shot's move at progress p (0..1): zoom, pan, tilt and turn.
+function vsShowXf(sh, p) {
   // fast at the start, gliding at the end - the action feel
   const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
   let z = 1.06, ox = 0, oy = 0, rot = 0;
@@ -11867,12 +11865,112 @@ function vsShowDrawShot(ctx, W, H, sh, p, extraZ, dx) {
   else if (m === "panR") { z = 1.18; ox = -0.07 + 0.14 * e; }
   else if (m === "tilt") { z = 1.18; oy = 0.06 - 0.12 * e; }
   else if (m === "pushRot") { z = 1.06 + 0.14 * e; rot = (-0.6 + 1.6 * e) * Math.PI / 180; }
-  z *= extraZ || 1;
+  return { z, ox, oy, rot };
+}
+// One shot, filling the frame, with its move at progress p (0..1). `src`
+// draws something else in the same place - the shot's cut-out foreground.
+function vsShowDrawShot(ctx, W, H, sh, p, extraZ, dx, src) {
+  src = src || sh.vid || sh.img;
+  if (!src) return;
+  const x = vsShowXf(sh, p), z = x.z * (extraZ || 1);
   ctx.save();
   // a pan stays inside the margin the zoom gives: (z - 1) / 2 of the frame
-  ctx.translate(W / 2 + (dx || 0) + ox * W, H / 2 + oy * H); ctx.rotate(rot); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  ctx.translate(W / 2 + (dx || 0) + x.ox * W, H / 2 + x.oy * H); ctx.rotate(x.rot); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
   vsDrawCover(ctx, src, 0, 0, W, H, 1, 0.5, 0, 0, 0.5);
   ctx.restore();
+}
+// The property or product cut out of its ground - the sky over a house, the
+// plain backdrop round a product - so a word can sit behind it, as the
+// real-estate reels set "BUT ITS LOCATION" behind the roof. A small copy is
+// flooded from the edge that is ground; what the flood does not reach is
+// the subject. Nothing comes back for a picture with no clear ground (an
+// interior, a busy street): its words stay in front.
+function vsShowCut(src, outW) {
+  const iw = src.videoWidth || src.width, ih = src.videoHeight || src.height;
+  if (!iw || !ih) return null;
+  const mw = 96, mh = Math.max(16, Math.round(96 * ih / iw)), N = mw * mh;
+  const m = vsShowCut._m || (vsShowCut._m = document.createElement("canvas"));
+  m.width = mw; m.height = mh;
+  const mx = m.getContext("2d", { willReadFrequently: true });
+  mx.drawImage(src, 0, 0, mw, mh);
+  const d = mx.getImageData(0, 0, mw, mh).data;
+  // sky: blue however deep (a clear sky is dark by brightness), or a bright
+  // pale grey-white (cloud, overcast)
+  const sky = (i) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], L = 0.299 * r + 0.587 * g + 0.114 * b, mxc = Math.max(r, g, b), mnc = Math.min(r, g, b); return (b > 110 && b > r + 25 && b >= g - 10) || (L > 150 && mxc - mnc < 34); };
+  let topSky = 0;
+  for (let x = 0; x < mw; x++) if (sky(x)) topSky++;
+  // the border's colour and how even it is
+  const bi = [];
+  for (let x = 0; x < mw; x++) { bi.push(x, (mh - 1) * mw + x); }
+  for (let y = 1; y < mh - 1; y++) { bi.push(y * mw, y * mw + mw - 1); }
+  let sr = 0, sg = 0, sb = 0;
+  bi.forEach((i) => { sr += d[i * 4]; sg += d[i * 4 + 1]; sb += d[i * 4 + 2]; });
+  sr /= bi.length; sg /= bi.length; sb /= bi.length;
+  let vv = 0;
+  bi.forEach((i) => { vv += Math.abs(d[i * 4] - sr) + Math.abs(d[i * 4 + 1] - sg) + Math.abs(d[i * 4 + 2] - sb); });
+  vv /= bi.length;
+  const mode = topSky / mw > 0.55 ? "sky" : vv < 40 ? "plain" : null;
+  if (!mode) return null;
+  const bg = new Uint8Array(N), q = new Int32Array(N);
+  let qh = 0, qt = 0;
+  const near = (i) => Math.abs(d[i * 4] - sr) + Math.abs(d[i * 4 + 1] - sg) + Math.abs(d[i * 4 + 2] - sb);
+  const seed = (i) => { if (!bg[i]) { bg[i] = 1; q[qt++] = i; } };
+  if (mode === "sky") { for (let x = 0; x < mw; x++) if (sky(x)) seed(x); }
+  else bi.forEach((i) => { if (near(i) < 70) seed(i); });
+  while (qh < qt) {
+    const i = q[qh++], x = i % mw;
+    const nb = [x > 0 ? i - 1 : -1, x < mw - 1 ? i + 1 : -1, i - mw, i + mw];
+    for (const j of nb) {
+      if (j < 0 || j >= N || bg[j]) continue;
+      const dd = Math.abs(d[i * 4] - d[j * 4]) + Math.abs(d[i * 4 + 1] - d[j * 4 + 1]) + Math.abs(d[i * 4 + 2] - d[j * 4 + 2]);
+      if (mode === "sky" ? dd < 34 && sky(j) : dd < 40 && near(j) < 80) seed(j);
+    }
+  }
+  let nbg = 0;
+  for (let i = 0; i < N; i++) nbg += bg[i];
+  const frac = nbg / N;
+  if (frac < 0.08 || frac > 0.82) return null;
+  // where the subject's top edge runs across the middle of the picture
+  const tops = [];
+  for (let x = Math.round(mw * 0.2); x < Math.round(mw * 0.8); x++) for (let y = 0; y < mh; y++) if (!bg[y * mw + x]) { tops.push(y); break; }
+  if (!tops.length) return null;
+  tops.sort((a, b) => a - b);
+  const top = tops[Math.floor(tops.length * 0.4)] / mh;
+  const mk = document.createElement("canvas"); mk.width = mw; mk.height = mh;
+  const kx = mk.getContext("2d"), id = kx.createImageData(mw, mh);
+  for (let i = 0; i < N; i++) { id.data[i * 4 + 3] = bg[i] ? 0 : 255; }
+  kx.putImageData(id, 0, 0);
+  const ow = Math.min(outW || 1080, iw), oh = Math.round(ow * ih / iw);
+  const fg = document.createElement("canvas"); fg.width = ow; fg.height = oh;
+  const fx = fg.getContext("2d");
+  fx.drawImage(src, 0, 0, ow, oh);
+  fx.globalCompositeOperation = "destination-in";
+  fx.imageSmoothingEnabled = true; fx.imageSmoothingQuality = "high";
+  fx.drawImage(mk, 0, 0, ow, oh);
+  return { fg, top, mode, bg, mw, mh };
+}
+// How much of a screen box the cut-out subject covers in a shot (0..1),
+// sampled through the shot's move back into the small mask.
+function vsShowCover(W, H, sh, p, cut, bx, by, bw, bh) {
+  const src = sh.vid || sh.img, iw = src.videoWidth || src.width, ih = src.videoHeight || src.height;
+  const c = Math.max(W / iw, H / ih), dw = iw * c, dh = ih * c, x = vsShowXf(sh, p);
+  let n = 0, hit = 0;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
+    const X = bx + bw * (i + 0.5) / 4, Y = by + bh * (j + 0.5) / 3;
+    const px = (X - (W / 2 + x.ox * W)) / x.z + W / 2, py = (Y - (H / 2 + x.oy * H)) / x.z + H / 2;
+    const fx = (px - (W - dw) / 2) / dw, fy = (py - (H - dh) / 2) / dh;
+    n++;
+    if (fx < 0 || fx >= 1 || fy < 0 || fy >= 1) continue;
+    if (!cut.bg[Math.floor(fy * cut.mh) * cut.mw + Math.floor(fx * cut.mw)]) hit++;
+  }
+  return hit / n;
+}
+// Where a line across the source at height f (0..1) lands on screen in a shot.
+function vsShowScreenY(W, H, sh, p, f) {
+  const src = sh.vid || sh.img, iw = src.videoWidth || src.width, ih = src.videoHeight || src.height;
+  const c = Math.max(W / iw, H / ih), dh = ih * c, x = vsShowXf(sh, p);
+  const yc = (H - dh) / 2 + f * dh;
+  return H / 2 + x.oy * H + (yc - H / 2) * x.z;
 }
 function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   const U = Math.min(W, H * 0.62), len = ins.len;
@@ -11882,11 +11980,13 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
   const accent = colors[0] === "#ffffff" ? (colors[1] || "#f5c451") : colors[0];
   ctx.save();
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
-  try { ctx.filter = "contrast(1.08) saturate(1.12) brightness(1.02)"; } catch (e) {}
+  const grade = "contrast(1.08) saturate(1.12) brightness(1.02)";
+  try { ctx.filter = grade; } catch (e) {}
   // the cut into this shot: a whip, a zoom through or a flash
   const T = 0.2, into = at.st < T && at.k > 0 ? at.st / T : 1;
   const cut = VS_SHOW_CUTS[(at.k + (ins.seed || 0)) % VS_SHOW_CUTS.length];
   const prev = at.k > 0 ? ins.shots[at.k - 1] : null;
+  let still = false;
   if (into < 1 && prev && cut === "whip") {
     // both shots sliding, smeared in the direction of travel
     const e = 0.5 - Math.cos(Math.PI * into) / 2, dir = at.k % 2 ? 1 : -1;
@@ -11905,46 +12005,125 @@ function vsProShowcase(ctx, W, H, s, ins, t, F, pack) {
     ctx.globalAlpha = 1;
   } else {
     vsShowDrawShot(ctx, W, H, at.sh, at.p, 1, 0);
+    still = true;
     if (into < 1 && cut === "flash") { ctx.fillStyle = "rgba(255,255,255," + (0.85 * (1 - into)) + ")"; ctx.fillRect(0, 0, W, H); }
   }
   ctx.filter = "none";
-  // into the montage from the speaker: a quick whip of white light
   if (t < 0.14) { ctx.fillStyle = "rgba(255,255,255," + (0.7 * (1 - t / 0.14)) + ")"; ctx.fillRect(0, 0, W, H); }
-  // the film look: vignette, a warm wash, bars
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
-  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-  const sh = ctx.createLinearGradient(0, H * 0.55, 0, H); sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,0.6)");
-  ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   const bars = H * 0.075 * Math.min(1, t / 0.3);
+
+  // ── the words being said, carried on over the shots ──
+  // the subject of this shot cut out of its ground, where the picture allows
+  let cutOut = null;
+  if (still) {
+    const sh = at.sh;
+    if (sh.img) { if (sh._cut === undefined) sh._cut = vsShowCut(sh.img, 1400); cutOut = sh._cut; }
+    else if (sh.vid) {
+      const kf = Math.round(at.vt * 8);
+      if (sh._cutK !== kf) { sh._cutK = kf; sh._cutV = vsShowCut(sh.vid, 900); }
+      cutOut = sh._cutV;
+    }
+  }
+  const local = ins.at + t;
+  const groups = vsProGroups(s);
+  let g = null;
+  for (const x of groups) if (x.t0 <= local + 0.001 && local < x.t1) g = x;
+  if (g && !g.off) {
+    const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
+    const hi = g.single ? 0 : g.hero;
+    const heroIt = g.items[hi];
+    const small = g.items.filter((x, k) => k !== hi).map((x) => x.w).join(" ");
+    const hst = pack.hero, sst = pack.small;
+    const hpx = hst.size * U * 1.15;
+    // Behind the subject, the way the speaker's hero word goes behind them:
+    // tried from deep (its lower part under the roofline) upwards, and taken
+    // where the subject hides some middle letters but never the first or the
+    // last, nor more than a quarter of them - "MORT" of MORTGAGE was a facade.
+    let hy = H * 0.36, behind = false;
+    let hw = heroIt ? vsProInsWord(ctx, heroIt.w, hst, hpx, W / 2, hy, colors[0], heroIt.t0, W * 0.9, "center") : null;
+    if (hw && cutOut) {
+      const yTop = vsShowScreenY(W, H, at.sh, at.p, cutOut.top);
+      if (yTop > H * 0.2 && yTop < H * 0.75) {
+        const nL = hw.pieces.length || 1, allow = nL >= 4 ? Math.floor(nL / 4) : 0;
+        // across as well as up: a sloping roof hides one end of a centred word
+        let best = null;
+        const xs0 = [W / 2, W * 0.06 + hw.w / 2, W * 0.94 - hw.w / 2].filter((x, i, a) => i === 0 || Math.abs(x - a[0]) > W * 0.04);
+        xs0.forEach((cx, xi) => {
+          const dx = cx - W / 2;
+          for (let k = 0; k <= 8; k++) {
+            const y = yTop + hw.px * (0.2 - k * 0.12);
+            if (y - hw.px * 0.5 < H * 0.12) break;
+            let hidden = 0, touched = 0, ends = 0;
+            for (let j = 0; j < nL; j++) {
+              const lx = hw.x + dx + hw.xs[j], lw = (j + 1 < nL ? hw.xs[j + 1] : hw.w) - hw.xs[j];
+              const c = vsShowCover(W, H, at.sh, at.p, cutOut, lx + lw * 0.15, y - hw.px * 0.32, lw * 0.7, hw.px * 0.64);
+              if (c > 0.45) hidden++;
+              if (c > 0.08) touched++;
+              if ((j === 0 || j === nL - 1) && c > 0.2) ends++;
+            }
+            if (hidden <= allow && !ends) {
+              // a letter or two behind it is the look; then the deeper, then the centre
+              const score = Math.min(touched, 2) * 10 - k - xi * 0.5;
+              if (!best || score > best.score) best = { score, y, cx, touched };
+              break;
+            }
+          }
+        });
+        if (best) { hy = best.y; behind = best.touched > 0; }
+        hw = vsProInsWord(ctx, heroIt.w, hst, hpx, best ? best.cx : W / 2, hy, colors[0], heroIt.t0, W * 0.9, "center");
+      }
+    }
+    const scx = hw ? Math.max(W * 0.08 + Math.min(W * 0.86, hw.w) / 2, Math.min(W * 0.92 - Math.min(W * 0.86, hw.w) / 2, hw.x + hw.w / 2)) : W / 2;
+    const sw = small ? vsProInsWord(ctx, small, sst, sst.size * U, scx, (hw ? hw.y - hw.px * 0.62 : hy) - sst.size * U * 0.3, colors[1] || "#ffffff", g.items[0].t0, W * 0.86, "center") : null;
+    if (sw) sw.role = "small";
+    // a soft shade under both lines, so white words read on a white wall
+    if (hw && local >= g.items[0].t0) {
+      const top = sw ? sw.y - sw.px * 0.7 : hw.y - hw.px * 0.6, bot = hw.y + hw.px * 0.6, cy = (top + bot) / 2;
+      const rx = Math.max(hw.w, sw ? sw.w : 0) * 0.7 + U * 0.1, ry = (bot - top) * 0.85;
+      ctx.save(); ctx.translate(hw.x + hw.w / 2, cy); ctx.scale(1, ry / rx);
+      const sc = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      sc.addColorStop(0, "rgba(0,0,0,0.42)"); sc.addColorStop(0.6, "rgba(0,0,0,0.22)"); sc.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = sc; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    if (hw && behind) {
+      vsProWord(ctx, hw, local, out, F, W, H);
+      // the house (or the product) back over the word
+      try { ctx.filter = grade; } catch (e) {}
+      vsShowDrawShot(ctx, W, H, at.sh, at.p, 1, 0, cutOut.fg);
+      ctx.filter = "none";
+    } else if (hw) vsProWord(ctx, hw, local, out, F, W, H);
+    if (sw) vsProWord(ctx, sw, local, out, F, W, H);
+  }
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
-  // the name, spaced capitals with a rule that runs out; the detail under it
+  // the name and the detail, small, in the corner of the first shots
   const name = String(ins.title || "").toUpperCase(), detail = String(ins.value || "");
-  const out = t > len - 0.25 ? Math.max(0, (len - t) / 0.25) : 1;
+  const fadeOut = t > len - 0.25 ? Math.max(0, (len - t) / 0.25) : 1;
   if (name || detail) {
-    const x = W * 0.07, y = H - bars - U * 0.26;
-    const q = Math.max(0, Math.min(1, (t - 0.35) / 0.4)), e = 1 - Math.pow(1 - q, 3);
+    const x = W * 0.06, y = H - bars - U * 0.1;
+    const q = Math.max(0, Math.min(1, (t - 0.3) / 0.4)), e = 1 - Math.pow(1 - q, 3);
     if (q > 0) {
-      ctx.save(); ctx.globalAlpha = out;
-      ctx.fillStyle = accent; ctx.fillRect(x, y - U * 0.1, U * 0.16 * e, U * 0.008);
+      ctx.save(); ctx.globalAlpha = fadeOut;
+      const fs = U * 0.042;
+      let xx = x;
       if (name) {
-        let px = U * 0.085; const fam = (pack.hero && pack.hero.fam) || "Archivo";
-        ctx.font = "800 " + Math.round(px) + 'px "' + fam + '", "Vazirmatn", system-ui, sans-serif';
-        const track = px * 0.12, wOf = (s2) => ctx.measureText(s2).width + track * (s2.length - 1);
-        while (wOf(name) > W * 0.86 && px > U * 0.04) { px *= 0.92; ctx.font = "800 " + Math.round(px) + 'px "' + fam + '", "Vazirmatn", system-ui, sans-serif'; }
-        ctx.save(); ctx.beginPath(); ctx.rect(x - 4, y - px, W, px * 1.3); ctx.clip();
-        ctx.fillStyle = "#ffffff"; ctx.textBaseline = "alphabetic"; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = px * 0.3;
-        let xx = x; const yy = y + (1 - e) * px;
-        for (const ch of name) { ctx.fillText(ch, xx, yy); xx += ctx.measureText(ch).width + track; }
-        ctx.restore();
+        ctx.font = "800 " + Math.round(fs) + 'px "' + ((pack.hero && pack.hero.fam) || "Archivo") + '", "Vazirmatn", system-ui, sans-serif';
+        ctx.fillStyle = accent; ctx.fillRect(x, y - fs * 0.95, U * 0.08 * e, U * 0.006);
+        ctx.fillStyle = "#ffffff"; ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = fs * 0.4; ctx.textBaseline = "middle";
+        let cx = xx; for (const ch of name) { ctx.fillText(ch, cx, y + (1 - e) * fs); cx += ctx.measureText(ch).width + fs * 0.1; }
+        xx = cx + fs * 0.6; ctx.shadowBlur = 0;
       }
       if (detail) {
-        const q2 = Math.max(0, Math.min(1, (t - 0.6) / 0.3));
+        const q2 = Math.max(0, Math.min(1, (t - 0.55) / 0.3));
         if (q2 > 0) {
-          const fs = U * 0.05; ctx.font = "700 " + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
-          const tw = ctx.measureText(detail).width, ph = fs * 1.8, pw = tw + fs * 1.4, py = y + U * 0.09;
-          ctx.globalAlpha = out * q2;
-          ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, py - ph / 2, pw * (0.6 + 0.4 * q2), ph, ph / 2); else ctx.rect(x, py - ph / 2, pw, ph); ctx.fill();
-          ctx.fillStyle = vsHexLuma(accent) > 150 ? "#0b0d12" : "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(detail, x + fs * 0.7, py + fs * 0.04);
+          ctx.font = "700 " + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+          const tw = ctx.measureText(detail).width, ph = fs * 1.7, pw = tw + fs * 1.3;
+          if (xx + pw > W * 0.95) { xx = x; }
+          const py = xx === x && name ? y + fs * 1.6 : y;
+          ctx.globalAlpha = fadeOut * q2;
+          ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(xx, py - ph / 2, pw, ph, ph / 2); else ctx.rect(xx, py - ph / 2, pw, ph); ctx.fill();
+          ctx.fillStyle = vsHexLuma(accent) > 150 ? "#0b0d12" : "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(detail, xx + fs * 0.65, py + fs * 0.04);
         }
       }
       ctx.restore();
@@ -16414,6 +16593,15 @@ async function vsEditMyVideo(fileIn, o) {
       words.push({ w: t, s: Number(w.start), e: Math.max(Number(w.end), Number(w.start) + 0.05) });
     }));
     vsTrimLongWords(words, md, mono.sampleRate);
+    // A word Whisper stamps across the gap between two files - starting in
+    // the first file's quiet tail, ending in the next - is the next file's
+    // first word. Left with the first file it was cut off: the edit dropped
+    // "San" from "San Diego's" and "Lower" from "Lower mortgage rates", the
+    // speaker cut in the middle of a sentence.
+    for (let k = 1; k < srcs.length; k++) {
+      const o = srcs[k].offset, tail = o - VS_EDIT_FILE_GAP;
+      words.forEach((w) => { if (w.s < o && w.e > o + 0.05 && w.e - o >= tail - w.s) w.s = o + 0.01; });
+    }
 
     // ── watch it: sampled frames + timed sentences → the edit, decided ──
     const lang2 = (tr.language || "").slice(0, 2);
