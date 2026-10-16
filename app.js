@@ -10872,8 +10872,55 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;800&family=Lilita+One&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&display=swap";
 const VS_PRO_PACKS = {
+  // Copied from the Alight Motion personal-brand reel: a small white line
+  // with a soft glow over the word that matters in heavy wide capitals, cyan
+  // fading to teal, glowing; on alternate beats the room behind the speaker
+  // gives way to a dark teal set lit cyan from the side with a neon line at
+  // the foot; lists on that set - a condensed cyan heading, a white line under
+  // it, the points on a thin rail with diamond bullets.
+  cyan: { hero: { fam: "Montserrat", w: 900, size: 0.2, colors: ["#2feef4"], upper: true, vgrad: true, glow: true, glowColor: "rgba(31,227,238,0.85)", enter: "rise" },
+           small: { fam: "Montserrat", w: 800, size: 0.072, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", enter: "rise" },
+           single: { fam: "Montserrat", w: 800, size: 0.08, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", y: 0.66, enter: "rise" },
+           grade: "contrast(1.06) saturate(1.02)", warm: "", bgfill: "teal", tealList: true, clear: true,
+           trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+  // Copied from the dental-clinic product reel: the word that matters in
+  // condensed yellow capitals glowing like neon, behind the speaker, the room
+  // behind them dimmed as it lands; a small white line over a yellow glowing
+  // word for the rest; a yellow bar behind the line at the top; numbers
+  // either solid or as a thin glowing outline; a dark foot; props in colour.
+  yellow: { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["#ffd60a"], upper: true, glow: true, outlineNum: true, enter: "flicker" },
+           small: { fam: "Manrope", w: 600, size: 0.055, colors: ["#ffffff", "#ffd60a"], enter: "fade", shade: true },
+           single: { fam: "Manrope", w: 800, size: 0.05, colors: ["#16120a"], marker: "#ffd60a", y: 0.15, enter: "slide" },
+           grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, bgfill: "dim", callColor: true,
+           trans: ["flash", "zoomblur", "leak", "zoomblur"] },
+  // Copied from the caption-placement tutorial reel: one or two words at a
+  // time, a tight semibold grotesk in white, low in the frame; the word that
+  // matters on a translucent olive-yellow pill with round ends.
+  pill: { hero: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, marker: "rgba(201,180,25,0.78)", pill: true, enter: "focus", shade: true }, line: true, maxWords: 2, maxLetters: 13,
+           small: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, enter: "focus", shade: true },
+           single: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, y: 0.76, enter: "focus", shade: true },
+           grade: "contrast(1.05) saturate(1.02)", warm: "", trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+  // Copied from the $150-edit reel: small white captions word by word at the
+  // chest; the word that matters in huge condensed gold capitals; the
+  // background behind the speaker washed gold or red as it lands (the speaker
+  // keeps their own colours); lists in a gold bar over a dark panel; the
+  // speaker's name on a swinging ID badge; props in full colour.
+  goldpro: { hero: { fam: "Anton", w: 400, size: 0.29, colors: ["#f3c969"], upper: true, metal: true, enter: "rise", shade: true },
+           small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           grade: "contrast(1.1) saturate(1.06) brightness(0.98)", warm: "", band: true, bgwash: ["#c99a1e", "#b3202a", "#c99a1e"], listPanel: true, badge: true, callColor: true,
+           trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+  // Copied from the walking-realtor reel (Listwell): lowercase Montserrat;
+  // one word big in a glossy gradient - green for money, red-pink for the
+  // negative, light blue or teal otherwise - the rest small and white around
+  // it; every word slides in from the side smeared with motion, and slides
+  // out the same way.
+  stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, enter: "swipe", shade: true }, semantic: true,
+           small: { fam: "Montserrat", w: 600, size: 0.075, colors: ["#ffffff"], enter: "swipe", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.17, colors: ["#ffffff"], y: 0.62, enter: "swipe", shade: true },
+           grade: "contrast(1.08) saturate(1.05)", warm: "", trans: ["zoomblur", "zoomblur", "leak", "zoomblur"] },
   // The caption looks that lead the 2026 rankings of short-form captions
   // (OpusClip's 13.5M-clip study: 80% of viral clips carry burned-in,
   // word-by-word captions; the style rankings put the yellow-and-white
@@ -10975,7 +11022,8 @@ function vsProSemColor(w) {
 function vsProMix(c, k) {
   const m = /^#([0-9a-f]{6})$/i.exec(String(c));
   if (!m) return c;
-  const n = parseInt(m[1], 16), f = (v) => Math.round(v + (255 - v) * k);
+  // k above 0 lightens towards white; below 0 deepens the colour
+  const n = parseInt(m[1], 16), f = (v) => Math.max(0, Math.min(255, Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k))));
   return "rgb(" + f((n >> 16) & 255) + "," + f((n >> 8) & 255) + "," + f(n & 255) + ")";
 }
 const VS_PRO_STOP = new Set(("a an the to of and or but so is are was were be been am i im you your yours we our it its in on at for with as by from " +
@@ -10988,9 +11036,9 @@ function vsProLoadFonts() {
       const l = document.createElement("link"); l.id = "vsProFontCss"; l.rel = "stylesheet"; l.href = VS_PRO_FONT_CSS; document.head.appendChild(l);
       await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 5000); });
     }
-    const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '300 40px "Montserrat"',
+    const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '700 40px "Montserrat"', '600 40px "Montserrat"', '300 40px "Montserrat"',
       '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
-      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"'];
+      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"'];
     try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
   })();
   return vsProFontsP;
@@ -11115,8 +11163,10 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   // get out of the face's way while the hero sits across the head.
   const hero = lines.find((L) => L.role === "hero") || lines[0];
   const capH = hero.st.upper || hero.st.fam === "Bebas Neue" ? 0.72 : 0.62;
-  const upOf = (L) => hero.px * capH * 0.5 + L.px * (L.st.fam === "Sacramento" ? 0.12 : 0.22);
-  const downOf = (L) => hero.px * capH * 0.5 + L.px * (L.st.fam === "Sacramento" ? 0.32 : 0.5);
+  // (a look with pack.clear keeps them just clear of it instead, as the
+  // Alight Motion reel does)
+  const upOf = (L) => hero.px * capH * 0.5 + L.px * (pack.clear ? 0.66 : L.st.fam === "Sacramento" ? 0.12 : 0.22);
+  const downOf = (L) => hero.px * capH * 0.5 + L.px * (pack.clear ? 0.74 : L.st.fam === "Sacramento" ? 0.32 : 0.5);
   const others = lines.filter((L) => L !== hero);
   const stack = (mode) => {
     const ys = new Map([[hero, 0]]);
@@ -11230,6 +11280,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       let st = L.st, marker = null;
       // one caption line: the word that matters gets the marker behind it
       if (pack.line && w.j === g.hero && n > 1) { st = pack.hero; color = pack.hero.colors[gi % pack.hero.colors.length]; marker = pack.hero.marker; }
+      if (L.role === "single" && L.st.marker) marker = L.st.marker;
       if (pack.semantic && L.role !== "small") color = vsProSemColor(it.w) || color;
       if (color === "auto") color = vsProAccent();
       const nx = g.items[w.j + 1];
@@ -11438,12 +11489,26 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
     [[0, "#fff6d0"], [0.3, "#f6cf6a"], [0.52, "#b9842a"], [0.57, "#7d5210"], [0.78, "#f1c95b"], [1, "#fff0b0"]].forEach(([o, c]) => gr.addColorStop(o, c));
     fill = gr;
+  } else if (st.vgrad && typeof fill === "string") {
+    const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.42);
+    gr.addColorStop(0, vsProMix(fill, 0.55)); gr.addColorStop(0.5, fill); gr.addColorStop(1, vsProMix(fill, -0.4));
+    fill = gr;
+  } else if (st.gloss && typeof fill === "string") {
+    const gr = ctx.createLinearGradient(wd.x, wd.y - px * 0.5, wd.x + wd.w * 0.6, wd.y + px * 0.45);
+    gr.addColorStop(0, vsProMix(fill, 0.9)); gr.addColorStop(0.3, vsProMix(fill, 0.45)); gr.addColorStop(0.55, fill); gr.addColorStop(1, vsProMix(fill, -0.3));
+    fill = gr;
   } else if (st.gradFill && typeof fill === "string") {
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
     gr.addColorStop(0, vsProMix(fill, 0.5)); gr.addColorStop(1, fill);
     fill = gr;
   }
-  if (wd.marker) {
+  if (wd.marker && st.pill) {
+    // a pill with round ends, opening from its middle
+    const e = vsEase.out(Math.min(1, since / 0.16)), mh = px * 1.75, full = wd.w + px * 2.4, mw = full * (0.6 + 0.4 * e), mx = wd.x + wd.w / 2 - mw / 2;
+    ctx.save(); ctx.fillStyle = wd.marker; ctx.globalAlpha = out * Math.min(1, e * 1.5);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(mx, wd.y - mh / 2, mw, mh, mh / 2); else ctx.rect(mx, wd.y - mh / 2, mw, mh); ctx.fill();
+    ctx.restore();
+  } else if (wd.marker) {
     // the marker slides in behind the word, then the word lands on it
     const e = vsEase.out(Math.min(1, since / 0.16)), mh = px * 1.3, mw = (wd.w + px * 0.5) * e;
     ctx.save(); ctx.fillStyle = wd.marker; ctx.globalAlpha = out;
@@ -11457,13 +11522,41 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
       if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = px * 0.12; ctx.shadowOffsetY = px * 0.05; }
       ctx.strokeText(c, x, y); ctx.restore();
     } else if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
-    if (st.glow) { ctx.shadowColor = typeof fill === "string" ? fill : "#38d8ff"; ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
+    if (st.halo) { ctx.shadowColor = st.halo; ctx.shadowBlur = px * 0.22; ctx.shadowOffsetY = 0; }
+    if (st.glow) { ctx.shadowColor = st.glowColor || (typeof fill === "string" ? fill : "#38d8ff"); ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
+    // a number every other time as a thin glowing outline (the clinic reel's 5)
+    if (st.outlineNum && /^[0-9\u06F0-\u06F9%]+$/.test(c) && Math.floor(wd.t0 * 2) % 2) {
+      ctx.lineWidth = Math.max(1.5, px * 0.025); ctx.strokeStyle = typeof fill === "string" ? fill : "#ffd60a";
+      ctx.strokeText(c, x, y); ctx.shadowBlur = px * 0.08; ctx.strokeText(c, x, y);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      return;
+    }
     ctx.fillText(c, x, y);
     if (st.glow) { ctx.shadowBlur = px * 0.08; ctx.fillText(c, x, y); }
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   };
   const cx = wd.x + wd.w / 2, cy = wd.y;
-  if (st.enter === "snap") {
+  if (st.enter === "focus") {
+    const p = Math.max(0, Math.min(1, since / 0.12)), e = 1 - Math.pow(1 - p, 2), k = 1.06 - 0.06 * e;
+    ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 1.6);
+    try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.06).toFixed(1) + "px)"; } catch (er) {}
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+    ctx.filter = "none";
+  } else if (st.enter === "swipe") {
+    const p = Math.max(0, Math.min(1, since / 0.2)), e = 1 - Math.pow(1 - p, 3);
+    const gone = 1 - Math.max(0, Math.min(1, out));
+    const dx = (1 - e) * W * 0.22 - gone * W * 0.22, smear = (1 - e) + gone;
+    ctx.fillStyle = fill;
+    if (smear > 0.02) {
+      // the motion trail: fading copies along the way it came
+      for (let k = 1; k <= 4; k++) { ctx.globalAlpha = 0.16 * smear; ctx.fillText(wd.text, wd.x + dx + (gone ? -1 : 1) * k * px * 0.18 * smear, cy); }
+    }
+    ctx.globalAlpha = Math.min(1, p * 2.2) * (gone ? 1 - gone * 0.6 : 1);
+    try { if (smear > 0.05) ctx.filter = "blur(" + (smear * px * 0.05).toFixed(1) + "px)"; } catch (er) {}
+    paint(wd.text, wd.x + dx, cy);
+    ctx.filter = "none";
+  } else if (st.enter === "snap") {
     // on as it is said, a small quick settle - no bounce, nothing to tire the eye
     const p = Math.max(0, Math.min(1, since / 0.1)), e = ease(p), k = 0.9 + 0.1 * e;
     ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
@@ -11643,8 +11736,158 @@ function vsProNumber(v) {
   return { pre: m[1], n, dec: (m[2].split(".")[1] || "").length, comma: /,/.test(m[2]) || Math.abs(n) >= 10000, post: m[3] };
 }
 
+// The $150-edit reel's list: a gold bar with the heading, a dark panel under
+// it, each point typed in with a plus as it comes - over the speaker, the
+// speaker still talking above it.
+function vsProGoldList(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62), len = ins.len;
+  const items = (ins.items || []).slice(0, 4);
+  const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const out = t > len - 0.3 ? Math.max(0, (len - t) / 0.3) : 1;
+  const x = W * 0.06, w = W * 0.88, y = H * 0.58, bh = U * 0.085;
+  const pb = sm(t / 0.35);
+  ctx.save(); ctx.globalAlpha = out;
+  // the bar, wiping open from the left
+  const gg = ctx.createLinearGradient(0, y, 0, y + bh);
+  gg.addColorStop(0, "#ffe27a"); gg.addColorStop(0.5, "#f3c23c"); gg.addColorStop(1, "#c8901a");
+  ctx.fillStyle = gg; ctx.fillRect(x, y, w * pb, bh);
+  if (pb > 0.6) {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w * pb, bh); ctx.clip();
+    ctx.fillStyle = "#16120a"; ctx.font = '700 ' + Math.round(bh * 0.42) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillText(String(ins.title || ""), x + bh * 0.35, y + bh / 2); ctx.restore();
+  }
+  // the panel under it, dropping open
+  const pp = sm((t - 0.3) / 0.35), ph = (items.length * U * 0.075 + U * 0.05) * pp;
+  if (pp > 0) {
+    ctx.fillStyle = "rgba(14,12,9,0.82)"; ctx.fillRect(x, y + bh, w, ph);
+    ctx.strokeStyle = "rgba(243,194,60,0.5)"; ctx.lineWidth = Math.max(1, U * 0.003); ctx.strokeRect(x, y + bh, w, ph);
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y + bh, w, ph); ctx.clip();
+    items.forEach((it, i) => {
+      const t0 = 0.6 + i * Math.max(0.35, (len - 1.2) / Math.max(1, items.length)), n = Math.max(0, Math.min(it.length, Math.floor((t - t0) / 0.03)));
+      if (t < t0) return;
+      const iy = y + bh + U * 0.06 + i * U * 0.075;
+      ctx.fillStyle = "#f3c23c"; ctx.font = '700 ' + Math.round(U * 0.045) + 'px Manrope, system-ui, sans-serif'; ctx.textBaseline = "middle"; ctx.fillText("+", x + U * 0.04, iy);
+      ctx.fillStyle = "#ffffff"; ctx.font = '600 ' + Math.round(U * 0.038) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillText(it.slice(0, n), x + U * 0.1, iy);
+    });
+    ctx.restore();
+  }
+  ctx.restore();
+}
+// The speaker's name on an ID badge on a lanyard, swinging in and settling.
+function vsProBadge(ctx, W, H, t, len, F, pack) {
+  const c = vstudio._proCard;
+  if (!c || !c.name || t < 0 || t > len) return;
+  const U = Math.min(W, H * 0.62);
+  const out = t > len - 0.35 ? Math.max(0, (len - t) / 0.35) : 1;
+  // on the side away from the face, small enough to keep clear of it
+  if (!vstudio._badgePos && F) {
+    const f = vsProFace(F, W, H, null);
+    let cw0 = W * 0.36, ax0 = f && f.x + f.w / 2 < W / 2 ? W * 0.76 : W * 0.24;
+    for (let k = 0; k < 5 && f; k++) {
+      const x0 = ax0 - cw0 / 2, x1 = ax0 + cw0 / 2, y1 = H * 0.12 + U * 0.02 + cw0 * 1.42;
+      if (x1 < f.x || x0 > f.x + f.w || f.y > y1) break;
+      cw0 *= 0.86; ax0 = ax0 > W / 2 ? W - W * 0.04 - cw0 / 2 : W * 0.04 + cw0 / 2;
+    }
+    vstudio._badgePos = { cw: cw0, ax: ax0 };
+  }
+  const bp = vstudio._badgePos || { cw: W * 0.32, ax: W * 0.22 };
+  const cw = bp.cw, ch = cw * 1.42, ax = bp.ax, ay = -H * 0.02;
+  const drop = Math.min(1, t / 0.45), swing = Math.exp(-t * 2.2) * Math.sin(t * 7) * 0.22;
+  if (!vstudio._badgeFace && F) {
+    const f = vsProFace(F, W, H, null);
+    if (f) { const a = document.createElement("canvas"); a.width = 240; a.height = 280; const sd = Math.max(f.w, f.h) * 1.1; try { a.getContext("2d").drawImage(F, Math.max(0, f.x + f.w / 2 - sd / 2), Math.max(0, f.y + f.h * 0.5 - sd * 0.55), sd, sd * 1.16, 0, 0, 240, 280); vstudio._badgeFace = a; } catch (e) {} }
+  }
+  ctx.save(); ctx.globalAlpha = out;
+  ctx.translate(ax, ay - (1 - drop) * H * 0.3); ctx.rotate(swing);
+  // the strap
+  const sy = H * 0.12;
+  ctx.fillStyle = "#1f5a3f"; ctx.fillRect(-U * 0.022, 0, U * 0.044, sy);
+  ctx.fillStyle = "#c9ced6"; ctx.fillRect(-U * 0.03, sy - U * 0.01, U * 0.06, U * 0.04);
+  // the card
+  ctx.translate(0, sy + U * 0.02);
+  ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.02;
+  ctx.fillStyle = "#f7f8f6"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-cw / 2, 0, cw, ch, U * 0.025); else ctx.rect(-cw / 2, 0, cw, ch); ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.fillStyle = "#cfd3d8"; ctx.beginPath(); ctx.arc(0, U * 0.035, U * 0.012, 0, Math.PI * 2); ctx.fill();
+  const pw = cw * 0.62, phh = pw * 1.15, py = ch * 0.16;
+  ctx.save(); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-pw / 2, py, pw, phh, U * 0.015); else ctx.rect(-pw / 2, py, pw, phh); ctx.clip();
+  ctx.fillStyle = "#dfe4ea"; ctx.fillRect(-pw / 2, py, pw, phh);
+  if (vstudio._badgeFace) ctx.drawImage(vstudio._badgeFace, -pw / 2, py, pw, phh);
+  ctx.restore();
+  ctx.fillStyle = "#111318"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = '800 ' + Math.round(cw * 0.1) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillText(c.name, 0, py + phh + cw * 0.11);
+  if (c.role) { ctx.fillStyle = "#6b7079"; ctx.font = '600 ' + Math.round(cw * 0.055) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.fillText(c.role, 0, py + phh + cw * 0.2); }
+  ctx.restore();
+}
+// The Alight Motion reel's set: dark teal, a lighter panel standing in the
+// middle, cyan light down the left edge and in the corners, a neon line at
+// the foot.
+function vsProTealSet(ctx, W, H, t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#0c434a"); g.addColorStop(0.55, "#07292f"); g.addColorStop(1, "#03161a");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const pg = ctx.createLinearGradient(W * 0.24, 0, W * 0.76, 0);
+  pg.addColorStop(0, "rgba(46,190,200,0)"); pg.addColorStop(0.06, "rgba(46,190,200,0.17)"); pg.addColorStop(0.94, "rgba(46,190,200,0.17)"); pg.addColorStop(1, "rgba(46,190,200,0)");
+  ctx.fillStyle = pg; ctx.fillRect(W * 0.24, 0, W * 0.52, H * 0.9);
+  const lg = ctx.createLinearGradient(0, 0, W * 0.2, 0);
+  lg.addColorStop(0, "rgba(47,238,244,0.42)"); lg.addColorStop(1, "rgba(47,238,244,0)");
+  ctx.fillStyle = lg; ctx.fillRect(0, 0, W * 0.2, H);
+  [[W, 0, 0.5], [0, H, 0.6]].forEach(([x, y, r]) => {
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, Math.max(W, H) * r * 0.5);
+    rg.addColorStop(0, "rgba(47,238,244,0.32)"); rg.addColorStop(1, "rgba(47,238,244,0)");
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  });
+  ctx.save(); ctx.shadowColor = "#2feef4"; ctx.shadowBlur = H * 0.014;
+  ctx.fillStyle = "rgba(150,252,255,0.95)"; ctx.fillRect(W * 0.1, H * 0.955, W * 0.8, Math.max(1.5, H * 0.0026));
+  ctx.restore();
+}
+// A list on that set: the heading in condensed cyan capitals, a white line
+// under it, the points on a thin vertical rail with diamond bullets, typed in.
+function vsProTealList(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62), len = ins.len;
+  const items = (ins.items || []).slice(0, 4);
+  const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const fade = Math.min(1, t / 0.25) * (t > len - 0.3 ? Math.max(0, (len - t) / 0.3) : 1);
+  ctx.save(); ctx.globalAlpha = fade;
+  vsProTealSet(ctx, W, H, t);
+  const head = Object.assign({}, pack.hero, { fam: "Anton", w: 400, enter: "rise" });
+  const tw = vsProInsWord(ctx, String(ins.title || ""), head, U * 0.2, W * 0.08, H * 0.2, pack.hero.colors[0], 0.1, W * 0.84, "left");
+  vsProWord(ctx, tw, t, fade, F, W, H);
+  if (ins.sub) vsProWord(ctx, vsProInsWord(ctx, ins.sub, pack.small, U * 0.07, W * 0.08, tw.y + tw.px * 0.62, "#ffffff", 0.35, W * 0.84, "left"), t, fade, F, W, H);
+  // the rail, drawn down as the points come
+  const rx = W * 0.14, ry0 = H * 0.4, gap = U * 0.16, ry1 = ry0 + Math.max(1, items.length) * gap;
+  const rp = sm((t - 0.45) / 0.6);
+  const rl = ctx.createLinearGradient(0, ry0 - gap * 0.5, 0, ry1);
+  rl.addColorStop(0, "rgba(47,238,244,0)"); rl.addColorStop(0.2, "rgba(140,250,255,0.8)"); rl.addColorStop(1, "rgba(47,238,244,0)");
+  ctx.fillStyle = rl; ctx.fillRect(rx - 1, ry0 - gap * 0.5, Math.max(2, U * 0.004), (ry1 - ry0 + gap * 0.5) * rp);
+  items.forEach((it, i) => {
+    const t0 = 0.6 + i * Math.max(0.4, (len - 1.3) / Math.max(1, items.length));
+    if (t < t0) return;
+    const y = ry0 + i * gap, d = U * 0.022 * sm((t - t0) / 0.2), n = Math.max(0, Math.min(it.length, Math.floor((t - t0) / 0.035)));
+    ctx.save(); ctx.shadowColor = "#2feef4"; ctx.shadowBlur = U * 0.03; ctx.fillStyle = "#8ffcff";
+    ctx.beginPath(); ctx.moveTo(rx, y - d); ctx.lineTo(rx + d * 0.7, y); ctx.lineTo(rx, y + d); ctx.lineTo(rx - d * 0.7, y); ctx.closePath(); ctx.fill();
+    ctx.shadowColor = "rgba(200,255,255,0.5)"; ctx.shadowBlur = U * 0.02;
+    ctx.fillStyle = "#e9ffff"; ctx.font = '700 ' + Math.round(U * 0.05) + 'px Montserrat, "Vazirmatn", system-ui, sans-serif'; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    try { ctx.letterSpacing = Math.round(U * 0.004) + "px"; } catch (e) {}
+    ctx.fillText(it.slice(0, n), rx + U * 0.07, y);
+    ctx.restore();
+  });
+  // the glowing cyan sweep at the foot, coming in from the left
+  const bp = sm((t - 0.2) / 0.5);
+  if (bp > 0) {
+    ctx.save(); ctx.shadowColor = "#2feef4"; ctx.shadowBlur = U * 0.06;
+    const bg = ctx.createLinearGradient(0, H * 0.9, 0, H);
+    bg.addColorStop(0, "#9ffcff"); bg.addColorStop(1, "#14c9d4");
+    ctx.fillStyle = bg; ctx.beginPath();
+    ctx.moveTo(-W * 0.05, H * 0.93); ctx.quadraticCurveTo(W * 0.5 * bp, H * 0.895, W * 1.05 * bp, H * 0.925); ctx.lineTo(W * 1.05 * bp, H * 1.01); ctx.lineTo(-W * 0.05, H * 1.01); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
 function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   if (ins.kind === "showcase") { vsProShowcase(ctx, W, H, s, ins, t, F, pack); return; }
+  if (pack.tealList && ins.kind === "list" && (ins.items || []).length) { vsProTealList(ctx, W, H, s, ins, t, F, pack); return; }
+  if (pack.listPanel && ins.kind === "list" && (ins.items || []).length) { vsProGoldList(ctx, W, H, s, ins, t, F, pack); return; }
   if (pack.paper) { vsProInsertPaper(ctx, W, H, s, ins, t, F, pack); return; }
   const U = Math.min(W, H * 0.62);
   const len = ins.len;
@@ -12510,7 +12753,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     c._behind = true;
   } else if (c.kind === "icon" && c.img) {
     // a silver object, a soft shadow on an invisible floor
-    const sil = vsCallSilver(c.img), z = S * 0.9;
+    const sil = pack.callColor ? c.img : vsCallSilver(c.img), z = S * 0.9;
     ctx.save(); ctx.globalAlpha = vis * 0.25; ctx.fillStyle = "#000"; ctx.beginPath(); ctx.ellipse(0, z * 0.52, z * 0.28, z * 0.045, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     ctx.save(); ctx.rotate(Math.sin(t * 0.9) * 0.05); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = z * 0.08; ctx.shadowOffsetY = z * 0.03;
     ctx.drawImage(sil, -z / 2, -z / 2, z, z); ctx.restore();
@@ -13003,6 +13246,33 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
   ctx.translate(sxo, syo);
   ctx.drawImage(F, 0, 0);
+  // the background only, washed in a colour as the hero lands - the speaker
+  // drawn back over it in their own colours
+  if (pack.bgwash && !s._bw && g && !g.single && local >= heroT) {
+    const k = local - heroT < 0.25 ? (local - heroT) / 0.25 : Math.max(0, Math.min(1, (g.t1 - local) / 0.3));
+    if (k > 0.01) {
+      const m = vsProMask(F, W, H, s, local);
+      const col = pack.bgwash[Math.max(0, gi) % pack.bgwash.length];
+      const wg = ctx.createLinearGradient(0, H, W * 0.6, 0);
+      wg.addColorStop(0, col); wg.addColorStop(0.55, col + "cc"); wg.addColorStop(1, col + "22");
+      ctx.save(); ctx.globalAlpha = 0.85 * k; ctx.globalCompositeOperation = "color"; ctx.fillStyle = wg; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "soft-light"; ctx.fillRect(0, 0, W, H); ctx.restore();
+      if (m && m.P) ctx.drawImage(m.P, 0, 0);
+    }
+  }
+  if (pack.bgfill && !s._bw && g && !g.single && (pack.bgfill === "dim" || gi % 2 === 1) && local >= heroT - 0.05) {
+    const k = Math.min(1, (local - heroT + 0.05) / 0.22) * Math.max(0, Math.min(1, (g.t1 - local) / 0.22));
+    if (k > 0.01) {
+      let m = vsProMask(F, W, H, s, local);
+      if (!(m && m.P)) { const st = vstudio._proSegState; if (st && st.P && st.s === s && Math.abs(st.local - local) < 0.6) m = st; }
+      if (m && m.P) {
+        ctx.save(); ctx.globalAlpha = k;
+        if (pack.bgfill === "teal") vsProTealSet(ctx, W, H, local); else { ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, W, H); }
+        ctx.restore();
+        ctx.drawImage(m.P, 0, 0);
+      }
+    }
+  }
   const ed = g && s._proEdit ? s._proEdit[gi] : null;
   if (!vstudio.rendering) vstudio._proHit = null;
   // a cinematic insert in its window; its footage plays along in the preview
@@ -13052,7 +13322,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (blind && face && mask && mask.a) delete g._lay;
     }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
-    const out = local > g.t1 - 0.08 ? Math.max(0, (g.t1 - local) / 0.08) : 1;
+    const outT = pack.hero.enter === "swipe" ? 0.16 : 0.08;
+    const out = local > g.t1 - outT ? Math.max(0, (g.t1 - local) / outT) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
     if (heroes.length && lay.box && !(ed && ed.front === true)) {
@@ -13090,7 +13361,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     }
   }
   // the speaker's name as they first appear; the call to action at the end
-  if (idx === 0 && !ins) vsProNameCard(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), pack);
+  if (idx === 0 && !ins) { if (pack.badge) vsProBadge(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), F, pack); else vsProNameCard(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), pack); }
   if (idx === vstudio.slides.length - 1) vsProCta(ctx, W, H, local - Math.max(0, dur - 3.2), 3.2, pack);
   // the opening comes out of a light leak
   if (idx === 0 && local < 0.8) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
@@ -15209,6 +15480,11 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-cyan", L("Cyan", "فیروزه‌ای"), L("From the Alight Motion brand reel · white line over a glowing cyan word, a teal set behind you, rail lists", "از ریلز برند شخصی Alight Motion · خط سفید روی کلمهٔ فیروزه‌ای درخشان، دکور سبزآبی پشتت، لیست ریلی")],
+    ["pro-yellow", L("Yellow neon", "نئون زرد"), L("From the clinic product reel · glowing yellow capitals behind you, the room dimmed, a yellow bar on top", "از ریلز محصول کلینیک · حروف زرد نئونی پشتت، پس‌زمینه تیره، نوار زرد بالا")],
+    ["pro-pill", L("Pill", "پیل"), L("From the caption tutorial reel · one or two words, low, a round olive pill behind the word that matters", "از ریلز آموزش زیرنویس · یک یا دو کلمه، پایین، یک قرص زیتونی پشت کلمهٔ مهم")],
+    ["pro-goldpro", L("Gold Pro", "گلد پرو"), L("From the $150-edit reel · small white captions, the key word in huge gold, the background washed gold behind you, gold lists, an ID badge", "از ریلز ادیت ۱۵۰ دلاری · زیرنویس کوچک سفید، کلمهٔ اصلی طلایی بزرگ، پس‌زمینهٔ طلایی پشتت، لیست طلایی، کارت شناسایی")],
+    ["pro-stack", L("Stack", "استک"), L("From the walking realtor reel · one big glossy word, the rest small around it, sliding in with motion blur", "از ریلز مشاور قدم‌زنان · یک کلمهٔ بزرگ براق، بقیه کوچک دورش، با بلور حرکت می‌آیند")],
     ["pro-viral", L("Viral", "وایرال"), L("Trending · yellow and white capitals, a thick black edge, three words at a time", "ترند · حروف درشت زرد و سفید، لبهٔ مشکی پهن، سه کلمه در هر لحظه")],
     ["pro-punch", L("Punch", "پانچ"), L("Trending · heavy white capitals, the key word in green or yellow", "ترند · حروف سفید سنگین، کلمهٔ اصلی سبز یا زرد")],
     ["pro-karaoke", L("Karaoke", "کارائوکه"), L("Trending · the whole line up, a box running under each word as it is said", "ترند · کل خط روی صفحه، یک کادر زیر هر کلمه وقتی گفته می‌شود")],
@@ -17426,6 +17702,7 @@ async function vsEditMyVideo(fileIn, o) {
       // the colour of the video itself (an orange shirt: orange glow), the name card and the closing line
       vstudio._proAccent = null;
       try { const a = vsProPickAccent(vstudio.slides[0].mediaEl); if (a) vstudio._proAccent = a; } catch (e) {}
+      vstudio._badgePos = null; vstudio._badgeFace = null;
       vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
       vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
       vstudio.slides.forEach((sl, i) => {
