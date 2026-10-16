@@ -11509,11 +11509,22 @@ function vsProFace(F, W, H, mask) {
     c.getContext("2d").drawImage(F, 0, 0, cw, ch);
     let r = null;
     try { r = det.detect(c); } catch (e) {}
-    const ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+    let ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+    let k0 = W / cw;
+    if (!ds.length) {
+      // a face far from the camera is too small at 360px: once more at 720
+      const c2 = vstudio._proFaceC2 || (vstudio._proFaceC2 = document.createElement("canvas"));
+      const cw2 = 720, ch2 = Math.round(720 * H / W);
+      if (c2.width !== cw2 || c2.height !== ch2) { c2.width = cw2; c2.height = ch2; }
+      c2.getContext("2d").drawImage(F, 0, 0, cw2, ch2);
+      try { r = det.detect(c2); } catch (e) { r = null; }
+      ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+      k0 = W / cw2;
+    }
     if (ds.length) {
       // the biggest face is the speaker's; widened for hair and a turn of the head
       const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
-      const k = W / cw, x = b.originX * k, y = b.originY * k, w = b.width * k, h = b.height * k;
+      const k = k0, x = b.originX * k, y = b.originY * k, w = b.width * k, h = b.height * k;
       return { x: x - w * 0.22, y: y - h * 0.38, w: w * 1.44, h: h * 1.58 };
     }
     // only drop through when nothing was found
@@ -12239,10 +12250,15 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
       // kept when the finder had not loaded yet - a guessed box, kept for good,
       // put an eye at the circle's edge.
       if (!ins._face || t - (ins._faceT || 0) > 0.5) {
-        const nf = vsProFace(F, W, H, null);
+        // the face finder, or the head of the cut-out when it misses (a small,
+        // seated speaker) - the guessed box it used to fall back on put the
+        // face at the circle's edge
+        let nf = vsProFace(F, W, H, null);
+        if (!nf) { try { nf = vsProFace(F, W, H, vsProMask(F, W, H, s, ins.at + t)); } catch (e) {} }
         if (nf) { ins._face = ins._face ? { x: ins._face.x * 0.5 + nf.x * 0.5, y: ins._face.y * 0.5 + nf.y * 0.5, w: ins._face.w * 0.5 + nf.w * 0.5, h: ins._face.h * 0.5 + nf.h * 0.5 } : nf; ins._faceT = t; }
       }
-      const f = ins._face || { x: W * 0.25, y: H * 0.12, w: W * 0.5, h: W * 0.55 };
+      const fx0 = (s._focusX != null ? s._focusX : 0.5) * W;
+      const f = ins._face || { x: fx0 - W * 0.16, y: H * 0.14, w: W * 0.32, h: W * 0.36 };
       const r = U * 0.13 * vsEase.out(p), cx = W - U * 0.19, cy = kind === "product" ? H * 0.2 : H - bar - U * 0.2;
       // head and shoulders, the face a little above the middle - and the
       // square kept inside the frame: a source rectangle past the edge is
@@ -17771,11 +17787,22 @@ async function vsEditMyVideo(fileIn, o) {
 
     // ── watch it: sampled frames + timed sentences → the edit, decided ──
     const lang2 = (tr.language || "").slice(0, 2);
-    const sentences = (tr.segments || []).map((sg, i) => ({ i, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text: String(sg.text || "").trim() }))
-      .filter((x) => x.text);
-    let ai = cache && cache.aspect === o.aspect ? cache.ai : null;
+    // Whole sentences, not Whisper's pieces: it splits a long sentence where it
+    // likes, and the plan then judged the second piece weak and dropped it - the
+    // speaker cut off mid-sentence ("...and whether new" | "inventory can meet
+    // demand."). A piece that does not end a sentence is joined to the next.
+    const sentences = [];
+    (tr.segments || []).forEach((sg) => {
+      const text = String(sg.text || "").trim();
+      if (!text) return;
+      const last = sentences[sentences.length - 1];
+      if (last && !/[.!?؟۔…]["')”]*$/.test(last.text) && last.text.length < 400) { last.text += " " + text; last.end = Number(sg.end) || last.end; return; }
+      sentences.push({ i: sentences.length, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text });
+    });
+    // (a plan made on Whisper's pieces numbers its sentences differently: not reused)
+    let ai = cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.ai : null;
     // a graphic video is designed from the words (/graphic-plan), not from frames
-    let gxPlan = gx && cache && cache.aspect === o.aspect ? cache.gx || null : null;
+    let gxPlan = gx && cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.gx || null : null;
     if (gx && !gxPlan) {
       vsAutoStatus(L("Designing the scenes…", "در حال طراحی صحنه‌ها…"));
       const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 70000);
@@ -17827,7 +17854,7 @@ async function vsEditMyVideo(fileIn, o) {
       } catch (e) {}
       clearTimeout(planTimer);
     }
-    vstudio._editCache = { key: ckey, tr, ai: ai || (cache && cache.ai) || null, gx: gxPlan || (cache && cache.gx) || null, aspect: o.aspect };
+    vstudio._editCache = { key: ckey, tr, ai: ai || (cache && cache.sv === 2 && cache.ai) || null, gx: gxPlan || (cache && cache.sv === 2 && cache.gx) || null, aspect: o.aspect, sv: 2 };
     vstudio._editPlan = ai;
     const sPlan = {};
     ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
