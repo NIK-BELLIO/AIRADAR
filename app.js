@@ -10874,6 +10874,23 @@ async function vsClipLuma(el) {
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
 const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&display=swap";
 const VS_PRO_PACKS = {
+  // Copied from the drone-and-tour listing reels: big thin white words, the
+  // word that matters in a serif italic - lilac, olive, rose, going lighter to
+  // the right - behind the speaker; everything dissolving in and out with a
+  // little blur; meant to sit on the tour and drone footage of the showcase.
+  listing: { hero: { fam: "DM Serif Display", w: 400, italic: true, size: 0.24, colors: ["#9b72dc", "#a7ad45", "#e0579b"], hgrad: true, enter: "blur" },
+           small: { fam: "Montserrat", w: 300, size: 0.085, colors: ["#ffffff"], track: -0.02, enter: "blur", shade: true },
+           single: { fam: "Montserrat", w: 300, size: 0.1, colors: ["#ffffff"], track: -0.02, y: 0.3, enter: "blur", shade: true },
+           grade: "contrast(1.08) saturate(1.12) brightness(1.03)", warm: "rgba(255,190,120,0.05)", outT: 0.3, trans: ["leak", "zoomblur", "leak", "flash"] },
+  // Copied from the Kelsie realtor reel: small light white words as they are
+  // said; the word that matters in a bold lowercase grotesk, a colour taken
+  // from a calm palette (stone grey, teal, wine) going lighter to the right,
+  // behind the speaker's head; the small words overlapping its top; each
+  // line dissolving out as the next comes.
+  agent: { hero: { fam: "Manrope", w: 800, size: 0.2, colors: ["#5d5b58", "#23897f", "#74183a"], track: -0.03, hgrad: true, enter: "fade" },
+           small: { fam: "Manrope", w: 600, size: 0.06, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true },
+           single: { fam: "Manrope", w: 600, size: 0.062, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "fade", shade: true },
+           grade: "contrast(1.04) saturate(1.02) brightness(1.02)", warm: "", outT: 0.24, insColors: ["#ffffff", "#3fb8ac"], trans: ["leak", "zoomblur", "leak", "zoomblur"] },
   // Copied from the Alight Motion personal-brand reel: a small white line
   // with a soft glow over the word that matters in heavy wide capitals, cyan
   // fading to teal, glowing; on alternate beats the room behind the speaker
@@ -11489,6 +11506,10 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
     [[0, "#fff6d0"], [0.3, "#f6cf6a"], [0.52, "#b9842a"], [0.57, "#7d5210"], [0.78, "#f1c95b"], [1, "#fff0b0"]].forEach(([o, c]) => gr.addColorStop(o, c));
     fill = gr;
+  } else if (st.hgrad && typeof fill === "string") {
+    const gr = ctx.createLinearGradient(wd.x, 0, wd.x + wd.w, 0);
+    gr.addColorStop(0, vsProMix(fill, -0.12)); gr.addColorStop(0.65, fill); gr.addColorStop(1, vsProMix(fill, 0.5));
+    fill = gr;
   } else if (st.vgrad && typeof fill === "string") {
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.42);
     gr.addColorStop(0, vsProMix(fill, 0.55)); gr.addColorStop(0.5, fill); gr.addColorStop(1, vsProMix(fill, -0.4));
@@ -11893,7 +11914,7 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   const len = ins.len;
   const ein = vsEase.out(Math.min(1, t / 0.4));
   const fade = t > len - 0.2 ? Math.max(0, (len - t) / 0.2) : 1;
-  const colors = (pack.hero.colors || ["#ffffff"]).map((c) => (c === "auto" ? vsProAccent() : c));
+  const colors = (pack.insColors || pack.hero.colors || ["#ffffff"]).map((c) => (c === "auto" ? vsProAccent() : c));
   const accent = colors[0] === "#ffffff" ? (colors[1] || "#3dbcc6") : colors[0];
   const kind = VS_PRO_INSERT_KINDS[ins.kind] ? ins.kind : "product";
   ctx.save();
@@ -13322,7 +13343,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (blind && face && mask && mask.a) delete g._lay;
     }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
-    const outT = pack.hero.enter === "swipe" ? 0.16 : 0.08;
+    const outT = pack.outT || (pack.hero.enter === "swipe" ? 0.16 : 0.08);
     const out = local > g.t1 - outT ? Math.max(0, (g.t1 - local) / outT) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
@@ -15480,6 +15501,8 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-listing", L("Listing tour", "تور ملک"), L("From the drone realtor reels · big thin white words, the key word in a lilac or rose serif italic, soft dissolves", "از ریلزهای ملک با پهپاد · کلمات بزرگ نازک سفید، کلمهٔ اصلی سریف ایتالیک یاسی یا صورتی، محو نرم")],
+    ["pro-agent", L("Agent", "مشاور"), L("From the Kelsie realtor reel · small light words, the key word bold in grey, teal or wine behind your head", "از ریلز مشاور کلسی · کلمات ریز سفید، کلمهٔ اصلی پررنگ طوسی، سبزآبی یا شرابی پشت سرت")],
     ["pro-cyan", L("Cyan", "فیروزه‌ای"), L("From the Alight Motion brand reel · white line over a glowing cyan word, a teal set behind you, rail lists", "از ریلز برند شخصی Alight Motion · خط سفید روی کلمهٔ فیروزه‌ای درخشان، دکور سبزآبی پشتت، لیست ریلی")],
     ["pro-yellow", L("Yellow neon", "نئون زرد"), L("From the clinic product reel · glowing yellow capitals behind you, the room dimmed, a yellow bar on top", "از ریلز محصول کلینیک · حروف زرد نئونی پشتت، پس‌زمینه تیره، نوار زرد بالا")],
     ["pro-pill", L("Pill", "پیل"), L("From the caption tutorial reel · one or two words, low, a round olive pill behind the word that matters", "از ریلز آموزش زیرنویس · یک یا دو کلمه، پایین، یک قرص زیتونی پشت کلمهٔ مهم")],
