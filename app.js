@@ -10300,7 +10300,10 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 //   wipe  - a band of the accent sweeps across, the new frame behind its edge
 //   flash - a soft white flash crossing from one to the other
 //   glitch- a few frames of split bands, then the new picture
-const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45 };
+//   burn  - the picture burns out to the look's own light colour and the
+//           next comes out of it (the Alight Motion / walking-realtor reels)
+//   invert- a moment of negative between the two (the $150-edit reel)
+const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
 function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
   const W = canvas.width, H = canvas.height;
   const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
@@ -10366,6 +10369,24 @@ function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
       ctx.globalAlpha = e; ctx.drawImage(B, 0, 0);
       ctx.globalAlpha = 1;
       vsProLeak(ctx, W, H, Math.sin(Math.PI * p), (idx % 3) / 3);
+    } else if (type === "burn") {
+      // over-exposed into the look's light (cyan, lime, white), a slight push
+      // in, then the new picture out of the same light
+      const pk = VS_PRO_PACKS[s._pro] || {}, col = pk.burn || "#ffffff", k = Math.sin(Math.PI * p);
+      const src = p < 0.5 ? A : B, zz = 1 + 0.06 * k;
+      ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(zz, zz); ctx.translate(-W / 2, -H / 2);
+      try { ctx.filter = "brightness(" + (1 + 1.6 * k).toFixed(2) + ") saturate(" + (1 - 0.6 * k).toFixed(2) + ")"; } catch (er) {}
+      ctx.drawImage(src, 0, 0); ctx.filter = "none"; ctx.restore();
+      ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.85 * k; ctx.fillStyle = col; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 0.35 * k * k; ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    } else if (type === "invert") {
+      // the old picture, a flicker of the new one in negative, the new one
+      ctx.drawImage(p < 0.35 ? A : B, 0, 0);
+      if (p >= 0.35 && p < 0.75) {
+        ctx.save(); try { ctx.filter = "invert(1) grayscale(0.7) brightness(1.25) contrast(1.1)"; } catch (er) {}
+        ctx.drawImage(B, 0, 0); ctx.filter = "none"; ctx.restore();
+        ctx.globalAlpha = 0.25; ctx.fillStyle = "#dfe8ff"; ctx.fillRect(0, 0, W, H);
+      }
     } else if (type === "flash") {
       ctx.drawImage(A, 0, 0);
       ctx.globalAlpha = e; ctx.drawImage(B, 0, 0);
@@ -10883,7 +10904,7 @@ const VS_PRO_PACKS = {
            small: { fam: "Manrope", w: 600, size: 0.075, colors: ["#ffffff"], track: -0.02, enter: "swipe", shade: true },
            single: { fam: "Manrope", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.03, y: 0.62, enter: "swipe", shade: true },
            grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, pixels: "#b8f04a", editorList: true,
-           trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+           burn: "#d6ff7a", trans: ["burn", "burn", "zoomblur", "burn"] },
   // Copied from the drone-and-tour listing reels: big thin white words, the
   // word that matters in a serif italic - lilac, olive, rose, going lighter to
   // the right - behind the speaker; everything dissolving in and out with a
@@ -10911,7 +10932,7 @@ const VS_PRO_PACKS = {
            small: { fam: "Montserrat", w: 800, size: 0.072, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", enter: "rise" },
            single: { fam: "Montserrat", w: 800, size: 0.08, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", y: 0.66, enter: "rise" },
            grade: "contrast(1.06) saturate(1.02)", warm: "", bgfill: "teal", tealList: true, clear: true,
-           trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+           burn: "#2fb9ff", trans: ["burn", "burn", "zoomblur", "burn"] },
   // Copied from the dental-clinic product reel: the word that matters in
   // condensed yellow capitals glowing like neon, behind the speaker, the room
   // behind them dimmed as it lands; a small white line over a yellow glowing
@@ -10938,7 +10959,7 @@ const VS_PRO_PACKS = {
            small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
            grade: "contrast(1.1) saturate(1.06) brightness(0.98)", warm: "", band: true, bgwash: ["#c99a1e", "#b3202a", "#c99a1e"], listPanel: true, badge: true, callColor: true,
-           trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+           trans: ["invert", "zoomblur", "invert", "leak"] },
   // Copied from the walking-realtor reel (Listwell): lowercase Montserrat;
   // one word big in a glossy gradient - green for money, red-pink for the
   // negative, light blue or teal otherwise - the rest small and white around
@@ -10947,7 +10968,7 @@ const VS_PRO_PACKS = {
   stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, enter: "swipe", shade: true }, semantic: true,
            small: { fam: "Montserrat", w: 600, size: 0.075, colors: ["#ffffff"], enter: "swipe", shade: true },
            single: { fam: "Montserrat", w: 700, size: 0.17, colors: ["#ffffff"], y: 0.62, enter: "swipe", shade: true },
-           grade: "contrast(1.08) saturate(1.05)", warm: "", trans: ["zoomblur", "zoomblur", "leak", "zoomblur"] },
+           grade: "contrast(1.08) saturate(1.05)", warm: "", burn: "#ffffff", trans: ["burn", "zoomblur", "burn", "leak"] },
   // The caption looks that lead the 2026 rankings of short-form captions
   // (OpusClip's 13.5M-clip study: 80% of viral clips carry burned-in,
   // word-by-word captions; the style rankings put the yellow-and-white
@@ -18371,7 +18392,8 @@ function vsElementFields(s, i, id) {
     F.push({ type: "select", label: L("Transition into this clip", "ترنزیشن ورود به این کلیپ"), list: true,
       options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Slide across + whoosh", "اسلاید + صدای ووش") },
         { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") },
-        { v: "wipe", t: L("Colour wipe + whoosh", "پردهٔ رنگی + صدای ووش") }],
+        { v: "wipe", t: L("Colour wipe + whoosh", "پردهٔ رنگی + صدای ووش") }, { v: "burn", t: L("Light burn", "سوختگی نور") },
+        { v: "invert", t: L("Negative flash", "فلش نگاتیو") }, { v: "zoomblur", t: L("Zoom blur", "زوم بلور") }, { v: "leak", t: L("Light leak", "نشت نور") }],
       get: () => s._transIn || "", set: async (v) => {
         s._transIn = v;
         if (v) { vstudio._editSfxOn = true; try { await vsPrepareEditSfx(); } catch (e) {} }
