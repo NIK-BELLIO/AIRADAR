@@ -10893,8 +10893,56 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&display=swap";
 const VS_PRO_PACKS = {
+  // Copied from the podcast-clip reels (the mic reel, the Estate interview):
+  // plain bold white words with a soft dark shadow, two or three at a time,
+  // over the chest; jump cuts that switch between a wide and a close framing;
+  // the topic in a white box with black words at the start.
+  podcast: { hero: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "snap", shade: true }, line: true, maxWords: 3, maxLetters: 18,
+           small: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "snap", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, y: 0.62, enter: "snap", shade: true },
+           grade: "contrast(1.04) saturate(1.04)", warm: "", hookBox: true, altZoom: [1, 1.2], noBw: true, trans: ["", "", "zoomblur", ""] },
+  // Copied from the Seattle realtor vlog (the man getting out of the car):
+  // small bold white words at the chest, a filmic grade - deep greens, a pink
+  // sky - and a whip pan between places.
+  vlog: { hero: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true }, line: true, maxWords: 3, maxLetters: 20,
+           small: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "fade", shade: true },
+           grade: "contrast(1.12) saturate(0.92) sepia(0.08) hue-rotate(-6deg) brightness(0.98)", warm: "rgba(255,150,170,0.06)", noBw: true, trans: ["whip", "zoomblur", "whip", "leak"] },
+  // Copied from the new-listing reel (the flyer that blows away): small
+  // spaced capitals, low, the whole line up at once in grey and each word
+  // turning white as it is said.
+  reveal: { hero: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "karaoke", dim: 0.42 }, line: true, maxWords: 4, maxLetters: 26,
+           small: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "karaoke", dim: 0.42 },
+           single: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, y: 0.76, enter: "karaoke", dim: 0.42 },
+           grade: "contrast(1.08) saturate(1.06) brightness(1.02)", warm: "rgba(255,190,130,0.05)", noBw: true, trans: ["zoomblur", "whip", "leak", "zoomblur"] },
+  // Copied from the handheld walk-and-talk reel: one word at a time in a
+  // heavy white serif, at the chest.
+  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "snap", shade: true }, line: true, maxWords: 1, maxLetters: 14,
+           small: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "snap", shade: true },
+           single: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], y: 0.5, enter: "snap", shade: true },
+           grade: "contrast(1.06) saturate(1.08)", warm: "", noBw: true, trans: ["whip", "zoomblur", "whip", "zoomblur"] },
+  // Copied from the "coming soon" listing reel: the hook in huge heavy yellow
+  // capitals stacked over the head, behind it; small white words for the rest.
+  yellowcaps: { hero: { fam: "Archivo Black", w: 400, size: 0.19, colors: ["#f7c41b"], upper: true, track: -0.02, enter: "snap" },
+           small: { fam: "Manrope", w: 600, size: 0.045, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "Archivo Black", w: 400, size: 0.15, colors: ["#f7c41b"], upper: true, track: -0.02, y: 0.3, enter: "snap" },
+           grade: "contrast(1.08) saturate(1.14) brightness(1.03)", warm: "", noBw: true, trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+  // Copied from the street-interview reel ("what comes to your mind when you
+  // hear the word home"): small bold capitals on two lines, the word that
+  // matters in sky blue.
+  street: { hero: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#38b6f4"], upper: true, enter: "snap", shade: true }, line: true, maxWords: 6, maxLetters: 30,
+           small: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, enter: "snap", shade: true },
+           single: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, y: 0.4, enter: "snap", shade: true },
+           grade: "contrast(1.08) saturate(1.16)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+  // Copied from the 25-acre estate reel: the word that matters as big 3D
+  // letters standing in the place - a pale face, its depth falling back and
+  // down - behind the speaker; drone and room footage around it.
+  block3d: { hero: { fam: "Oswald", w: 700, size: 0.24, colors: ["#f4f2f6", "#c6b2e6", "#e7e7e7"], upper: true, extrude: 0.07, enter: "rise" },
+           small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "Oswald", w: 700, size: 0.2, colors: ["#f4f2f6"], upper: true, extrude: 0.07, y: 0.4, enter: "rise" },
+           grade: "contrast(1.06) saturate(1.1) brightness(1.02)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "zoomblur"] },
   // Copied from the motion-designer reel: white captions in a bold and a
   // light weight side by side, the word that matters in lime; small lime
   // squares and a lime cursor gliding in beside the words; lists shown as the
@@ -11086,7 +11134,7 @@ function vsProLoadFonts() {
     }
     const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '700 40px "Montserrat"', '600 40px "Montserrat"', '300 40px "Montserrat"',
       '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
-      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"'];
+      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"', '400 40px "Archivo Black"'];
     try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
   })();
   return vsProFontsP;
@@ -11568,6 +11616,18 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     ctx.restore();
   }
   const paint = (c, x, y) => {
+    if (st.extrude) {
+      const d = px * st.extrude, n = Math.max(6, Math.round(d / 1.5)), base = typeof fill === "string" ? fill : "#e8e8e8";
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = px * 0.12; ctx.shadowOffsetY = px * 0.06;
+      for (let k = n; k >= 1; k--) { ctx.fillStyle = vsProMix(base, -0.25 - 0.3 * (k / n)); ctx.fillText(c, x + (d * k) / n * 0.35, y + (d * k) / n); if (k === n) ctx.shadowColor = "transparent"; }
+      ctx.restore();
+      // a soft light falling across the face
+      const lg = ctx.createLinearGradient(0, y - px * 0.45, 0, y + px * 0.4);
+      lg.addColorStop(0, vsProMix(base, 0.35)); lg.addColorStop(1, vsProMix(base, -0.08));
+      ctx.fillStyle = lg; ctx.fillText(c, x, y);
+      return;
+    }
     if (st.stroke) {
       // the thick black edge the caption looks are known by, its shadow under it
       ctx.save(); ctx.lineJoin = "round"; ctx.miterLimit = 2; ctx.lineWidth = px * st.stroke; ctx.strokeStyle = st.strokeColor || "#000000";
@@ -11617,13 +11677,13 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
   } else if (st.enter === "karaoke") {
     // the line is up already, dimmed; the word being said gets the box
     const now = since >= 0 && local < (wd.tEnd || wd.t0 + 0.4);
-    if (now) {
+    if (now && st.karaoke) {
       const bp = Math.min(1, since / 0.08), bh = px * 1.28, bw = wd.w + px * 0.5;
       ctx.save(); ctx.globalAlpha = out * bp; ctx.fillStyle = st.karaoke;
       ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(wd.x - px * 0.25, cy - bh / 2, bw, bh, px * 0.22); else ctx.rect(wd.x - px * 0.25, cy - bh / 2, bw, bh); ctx.fill();
       ctx.restore();
     }
-    ctx.globalAlpha = out * (since < 0 ? 0.55 : 1);
+    ctx.globalAlpha = out * (since < 0 ? (st.dim || 0.55) : st.karaoke ? 1 : (st.dim || 0.55) + (1 - (st.dim || 0.55)) * Math.min(1, since / 0.12));
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
   } else if (st.enter === "rise") {
     // letters rise into place one after another, smeared on the way up
@@ -13511,6 +13571,18 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       const hw = (bx1 - bx0) * sc / 2, hh = (by1 - by0) * sc / 2;
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
     }
+  }
+  if (pack.hookBox && idx === 0 && !ins && vstudio._proHook && local < 3) {
+    const U = Math.min(W, H * 0.62), k = Math.min(1, local / 0.15) * Math.min(1, (3 - local) / 0.2);
+    ctx.save(); ctx.globalAlpha = Math.max(0, k);
+    ctx.font = '800 ' + Math.round(U * 0.058) + 'px Montserrat, "Vazirmatn", system-ui, sans-serif';
+    const lines = vsGxWrap(ctx, vstudio._proHook, W * 0.7).slice(0, 3), lh = U * 0.074;
+    const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + U * 0.09, bh = lines.length * lh + U * 0.05, bx = W / 2 - bw / 2, by = H * 0.5 - bh / 2;
+    ctx.shadowColor = "rgba(0,0,0,0.25)"; ctx.shadowBlur = U * 0.03;
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, U * 0.012); else ctx.rect(bx, by, bw, bh); ctx.fill();
+    ctx.shadowColor = "transparent"; ctx.fillStyle = "#0d0d0d"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    lines.forEach((l, i) => ctx.fillText(l, W / 2, by + U * 0.025 + lh * (i + 0.5)));
+    ctx.restore();
   }
   // the speaker's name as they first appear; the call to action at the end
   if (idx === 0 && !ins) { if (pack.badge) vsProBadge(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), F, pack); else vsProNameCard(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), pack); }
@@ -15729,6 +15801,13 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-podcast", L("Podcast clip", "کلیپ پادکست"), L("From the mic and interview reels · plain bold white words, wide and close jump cuts, the topic in a white box", "از ریلزهای پادکست و مصاحبه · کلمات سفید پررنگ ساده، کات بین نمای باز و بسته، موضوع در کادر سفید")],
+    ["pro-vlog", L("Film vlog", "ولاگ فیلمی"), L("From the Seattle realtor vlog · small white words, a filmic grade, whip pans", "از ولاگ مشاور سیاتل · کلمات کوچک سفید، رنگ فیلمی، ویپ پن")],
+    ["pro-reveal", L("Caps reveal", "حروف بزرگ تدریجی"), L("From the new-listing reel · small spaced capitals, each word turning white as it is said", "از ریلز ملک جدید · حروف بزرگ کوچک با فاصله، هر کلمه موقع گفتن سفید می‌شود")],
+    ["pro-serif", L("Serif word", "کلمهٔ سریف"), L("From the walk-and-talk reel · one word at a time in a heavy white serif", "از ریلز راه‌رفتن و حرف‌زدن · هر بار یک کلمه با سریف سفید پررنگ")],
+    ["pro-yellowcaps", L("Yellow caps", "حروف زرد"), L("From the coming-soon listing reel · the hook in huge yellow capitals behind your head", "از ریلز ملک به‌زودی · قلاب با حروف زرد بزرگ پشت سرت")],
+    ["pro-street", L("Street interview", "مصاحبهٔ خیابانی"), L("From the street-interview reel · small bold capitals, the key word in sky blue", "از ریلز مصاحبهٔ خیابانی · حروف بزرگ کوچک پررنگ، کلمهٔ اصلی آبی")],
+    ["pro-block3d", L("3D letters", "حروف سه‌بعدی"), L("From the 25-acre estate reel · the key word as big 3D letters standing behind you", "از ریلز ملک ۲۵ جریبی · کلمهٔ اصلی با حروف سه‌بعدی بزرگ پشتت")],
     ["pro-lime", L("Lime UI", "رابط لیمویی"), L("From the motion-designer reel · bold and light white words, lime highlights, a lime cursor, lists as an editor timeline", "از ریلز موشن دیزاینر · کلمات سفید پررنگ و نازک، هایلایت لیمویی، نشانگر لیمویی، لیست به شکل تایم‌لاین ادیتور")],
     ["pro-listing", L("Listing tour", "تور ملک"), L("From the drone realtor reels · big thin white words, the key word in a lilac or rose serif italic, soft dissolves", "از ریلزهای ملک با پهپاد · کلمات بزرگ نازک سفید، کلمهٔ اصلی سریف ایتالیک یاسی یا صورتی، محو نرم")],
     ["pro-agent", L("Agent", "مشاور"), L("From the Kelsie realtor reel · small light words, the key word bold in grey, teal or wine behind your head", "از ریلز مشاور کلسی · کلمات ریز سفید، کلمهٔ اصلی پررنگ طوسی، سبزآبی یا شرابی پشت سرت")],
@@ -17957,14 +18036,15 @@ async function vsEditMyVideo(fileIn, o) {
       vstudio._badgePos = null; vstudio._badgeFace = null;
       vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
       vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
+      vstudio._proHook = String(vstudio._editTitle || "").trim();
       vstudio.slides.forEach((sl, i) => {
-        sl._pro = pro; sl._noCaps = true; sl._proZ = i % 2 ? 1.06 : 1;
+        sl._pro = pro; sl._noCaps = true; sl._proZ = pk.altZoom ? pk.altZoom[i % pk.altZoom.length] : i % 2 ? 1.06 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
         if (i === 0 || !o.trans) { delete sl._transIn; return; }
         if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
       });
       const tot = vstudio.slides.reduce((n, x) => n + (Number(x.duration) || 0), 0);
-      if (vstudio.slides.length >= 5) {
+      if (vstudio.slides.length >= 5 && !pk.noBw) {
         let at = 0, best = null, bestD = 1e9;
         vstudio.slides.forEach((sl, i) => {
           const d = Number(sl.duration) || 0;
