@@ -11436,6 +11436,16 @@ function vsProSegmenter() {
 // (smoothed against the last one so the edge does not boil), scaled up soft.
 // In the preview it is refreshed about fifteen times a second; the export
 // computes it on every frame.
+// The cut-out for this frame, or - when the segmenter has nothing this frame
+// - the last one of the same cut if it is recent. Anything drawn behind the
+// speaker uses it: without it, a frame with no cut-out drew the icon or the
+// word over them for a moment and it jumped in front.
+function vsProMaskHeld(F, W, H, s, local) {
+  const m = vsProMask(F, W, H, s, local);
+  if (m && m.P) return m;
+  const st = vstudio._proSegState;
+  return st && st.P && st.s === s && Math.abs(st.local - local) < 0.6 ? st : m;
+}
 function vsProMask(F, W, H, s, local) {
   const st = vstudio._proSegState || (vstudio._proSegState = {});
   const seg = vstudio._proSeg;
@@ -12892,7 +12902,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, Math.PI * 2); ctx.stroke(); ctx.restore();
     back.sort((a, b) => a.z - b.z).forEach(drawB);
     // the speaker back over the far side of the ring
-    const m = vsProMask(F, W, H, s, c.at + t);
+    const m = vsProMaskHeld(F, W, H, s, c.at + t);
     if (m && m.P) ctx.drawImage(m.P, 0, 0);
     ctx.save(); ctx.globalAlpha = vis * 0.55; ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1, U * 0.003);
     ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI); ctx.stroke(); ctx.restore();
@@ -12933,7 +12943,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     const ar = c.img.width / c.img.height;
     let w = ar < 0.8 ? Math.min(W * 0.44, H * 0.42 * ar) : Math.min(W * 0.52, U * 0.62), h = w / ar;
     if (h > H * 0.44) { h = H * 0.44; w = h * ar; }
-    const m = vsProMask(F, W, H, s, c.at + t);
+    const m = vsProMaskHeld(F, W, H, s, c.at + t);
     let best = null;
     [side, -side].forEach((sd, si) => [0.3, 0.38, 0.24, 0.46].forEach((fy, yi) => [0.035, 0.0].forEach((mg, mi) => {
       const x = sd > 0 ? W - W * mg - w / 2 : W * mg + w / 2, y = H * fy;
@@ -13116,7 +13126,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     ctx.fillText(line, ix + isz * 0.75, ch * 0.16);
   }
   ctx.restore();
-  if (c._behind) { const m = vsProMask(F, W, H, s, c.at + t); if (m && m.P) ctx.drawImage(m.P, 0, 0); }
+  if (c._behind) { const m = vsProMaskHeld(F, W, H, s, c.at + t); if (m && m.P) ctx.drawImage(m.P, 0, 0); }
 }
 
 // The customer's photos and videos, read once: photos made no bigger than
@@ -13479,7 +13489,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   if (pack.bgwash && !s._bw && g && !g.single && local >= heroT) {
     const k = local - heroT < 0.25 ? (local - heroT) / 0.25 : Math.max(0, Math.min(1, (g.t1 - local) / 0.3));
     if (k > 0.01) {
-      const m = vsProMask(F, W, H, s, local);
+      const m = vsProMaskHeld(F, W, H, s, local);
       const col = pack.bgwash[Math.max(0, gi) % pack.bgwash.length];
       const wg = ctx.createLinearGradient(0, H, W * 0.6, 0);
       wg.addColorStop(0, col); wg.addColorStop(0.55, col + "cc"); wg.addColorStop(1, col + "22");
@@ -13529,7 +13539,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   }
   // the neon line around the speaker as the video opens (Glow)
   if (pack.trail && idx === 0 && !ins && local > 0.1 && local < 2.9) {
-    const m = vsProMask(F, W, H, s, local);
+    const m = vsProMaskHeld(F, W, H, s, local);
     const fc = s._trailFace || (s._trailFace = vsProFace(F, W, H, m));
     vsProTrail(ctx, W, H, local - 0.1, fc, m, true);
     if (m && m.P) ctx.drawImage(m.P, 0, 0);
@@ -17837,6 +17847,40 @@ async function vsPhotoStory(photos, o) {
   if (vstudio._photoNeedsVoice) { vstudio._photoNeedsVoice = false; try { await vsRecordVoiceStudio(); } catch (e) {} }
 }
 
+// The frame rate of an MP4/MOV's video track, read from its header boxes
+// (mdhd timescale over the stts sample durations). 0 when it cannot be read.
+async function vsMp4Fps(file) {
+  try {
+    const n = file.size, rd = async (a, b) => new DataView(await file.slice(a, Math.min(n, b)).arrayBuffer());
+    const ty = (dv, o) => String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+    let off = 0, moov = null;
+    for (let k = 0; k < 64 && off + 8 <= n; k++) {
+      const h = await rd(off, off + 16);
+      let size = h.getUint32(0); const t = ty(h, 4);
+      if (size === 1) size = Number(h.getBigUint64(8)); else if (size === 0) size = n - off;
+      if (t === "moov") { if (size > 64 * 1048576) return 0; moov = await rd(off, off + size); break; }
+      if (size < 8) return 0;
+      off += size;
+    }
+    if (!moov) return 0;
+    let fps = 0;
+    const walk = (a, b, tr) => {
+      for (let o = a; o + 8 <= b;) {
+        const size = moov.getUint32(o), t = ty(moov, o + 4);
+        if (size < 8 || o + size > b) return;
+        if (t === "trak") { const T = {}; walk(o + 8, o + size, T); if (T.vide && T.ts && T.n && T.d) fps = fps || (T.ts * T.n) / T.d; }
+        else if (t === "mdia" || t === "minf" || t === "stbl") walk(o + 8, o + size, tr);
+        else if (tr && t === "hdlr") tr.vide = ty(moov, o + 16) === "vide";
+        else if (tr && t === "mdhd") tr.ts = moov.getUint8(o + 8) === 1 ? moov.getUint32(o + 28) : moov.getUint32(o + 20);
+        else if (tr && t === "stts") { const c = moov.getUint32(o + 12); let nn = 0, dd = 0; for (let i = 0; i < Math.min(c, 4096); i++) { const sc = moov.getUint32(o + 16 + i * 8), de = moov.getUint32(o + 20 + i * 8); nn += sc; dd += sc * de; } tr.n = nn; tr.d = dd; }
+        o += size;
+      }
+    };
+    walk(8, moov.byteLength, null);
+    return isFinite(fps) && fps > 1 && fps < 241 ? fps : 0;
+  } catch (e) { return 0; }
+}
+
 // Several clips are edited as one video: their sound is laid end to end on
 // one timeline (a short gap between files), transcribed and planned once,
 // and every cut plays from its own original file - nothing is re-encoded.
@@ -17850,6 +17894,13 @@ async function vsEditMyVideo(fileIn, o) {
     vsAutoStatus(L("Pick a video file.", "یک فایل ویدیو انتخاب کن.")); return;
   }
   const file = files[0];
+  // the footage's frame rate, for the export: 24 or 25 when every file is
+  vstudio._srcFps = 0;
+  try {
+    const rates = await Promise.all(files.map(vsMp4Fps));
+    const r0 = rates[0];
+    if (r0 && rates.every((r) => Math.abs(r - r0) < 0.2) && r0 > 23 && r0 < 25.5) vstudio._srcFps = Math.round(r0);
+  } catch (e) {}
   // a pro look sets its own words, so no hook card, stickers or graphic cards
   const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "";
   // a graphic video: the voice only, every moment a designed scene
@@ -37910,7 +37961,9 @@ async function exportStudioVideo() {
     vsBuildOverlay(true, _rendMsg, _exTitle, 900000, { onCancel: () => { vstudio._batchCancel = true; } });
   }
   const duration = studioDuration();
-  const fps = 30;
+  // an edit of the customer's own footage keeps its frame rate: 24 fps footage
+  // written at 30 repeated every fifth frame and the motion juddered
+  const fps = (vstudio.slides || []).some((x) => x && x._ownSpeech) && vstudio._srcFps ? vstudio._srcFps : 30;
 
   // ── DETERMINISTIC OFFLINE ENCODE (freeze-proof) ──
   // Render every frame with an explicit timestamp via WebCodecs instead of
