@@ -17246,7 +17246,8 @@ async function vsSwapStart(file, o) {
     vsAutoStatus(L("Reading every text and footage…", "در حال خواندن همهٔ متن‌ها و فوتیج‌ها…"));
     const frames = await vsSampleFrames(el, dur, Math.max(8, Math.min(20, Math.round(dur / 1.2))));
     let plan = null;
-    const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
+    // the worker waits out Gemini's busy spells (up to ~85s) before it gives up
+    const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 100000);
     try {
       const r = await fetch(VS_SWAP_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
         body: JSON.stringify({ frames, duration: dur }), signal: ctrl.signal });
