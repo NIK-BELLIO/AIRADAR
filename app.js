@@ -10948,7 +10948,7 @@ const VS_PRO_PACKS = {
   // squares and a lime cursor gliding in beside the words; lists shown as the
   // speaker's own clip in an editor window - lime frame, play controls, the
   // points as tracks on a timeline, a playhead with its timecode.
-  lime: { hero: { fam: "Manrope", w: 800, size: 0.13, colors: ["#b8f04a", "#ffffff"], track: -0.03, glowSoft: true, enter: "swipe", shade: true },
+  lime: { hero: { fam: "Manrope", w: 800, size: 0.13, colors: ["#b8f04a", "#ffffff"], track: -0.03, glowSoft: true, enter: "swipe", shade: true }, moves: true,
            small: { fam: "Manrope", w: 600, size: 0.075, colors: ["#ffffff"], track: -0.02, enter: "swipe", shade: true },
            single: { fam: "Manrope", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.03, y: 0.62, enter: "swipe", shade: true },
            grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, pixels: "#b8f04a", editorList: true,
@@ -11692,10 +11692,12 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     ctx.filter = "none";
   } else if (st.enter === "snap") {
     // on as it is said, a small quick settle - no bounce, nothing to tire the eye
-    const p = Math.max(0, Math.min(1, since / 0.1)), e = ease(p), k = 0.9 + 0.1 * e;
+    const p = Math.max(0, Math.min(1, since / 0.2)), e = 1 - Math.pow(1 - p, 3), k = 0.92 + 0.08 * e;
     ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
-    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.globalAlpha = out * Math.min(1, p * 1.8);
+    try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.035).toFixed(1) + "px)"; } catch (er) {}
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+    ctx.filter = "none";
   } else if (st.enter === "karaoke") {
     // the line is up already, dimmed; the word being said gets the box
     const now = since >= 0 && local < (wd.tEnd || wd.t0 + 0.4);
@@ -11710,9 +11712,9 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
   } else if (st.enter === "rise") {
     // letters rise into place one after another, smeared on the way up
     wd.pieces.forEach((c, j) => {
-      const p = Math.max(0, Math.min(1, (since - j * 0.018) / 0.2));
+      const p = Math.max(0, Math.min(1, (since - j * 0.02) / 0.32));
       if (p <= 0) return;
-      const e = back(p), dy = (1 - e) * px * 0.55;
+      const e = 1 - Math.pow(1 - p, 3), dy = (1 - e) * px * 0.45;
       ctx.fillStyle = fill;
       if (p < 1) {
         ctx.globalAlpha = out * 0.22 * (1 - p);
@@ -11726,7 +11728,8 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     wd.pieces.forEach((c, j) => {
       const t = since - j * 0.035;
       if (t < 0) return;
-      ctx.fillStyle = t < 0.05 ? "#ffffff" : fill;
+      ctx.globalAlpha = out * Math.min(1, t / 0.07);
+      ctx.fillStyle = fill;
       paint(c, wd.x + wd.xs[j], cy);
     });
   } else if (st.enter === "write") {
@@ -11764,20 +11767,20 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
       ctx.drawImage(T, wd.x - px * 0.2, cy - th / 2);
     } else { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
   } else if (st.enter === "pop") {
-    const p = Math.max(0, Math.min(1, since / 0.24)), e = back(p);
-    ctx.translate(cx, cy); ctx.rotate((1 - e) * -0.14); ctx.scale(0.35 + 0.65 * e, 0.35 + 0.65 * e); ctx.translate(-cx, -cy);
-    ctx.globalAlpha = out * Math.min(1, p * 3);
+    const p = Math.max(0, Math.min(1, since / 0.34)), e = 1 - Math.pow(1 - p, 3);
+    ctx.translate(cx, cy); ctx.rotate((1 - e) * -0.08); ctx.scale(0.7 + 0.3 * e, 0.7 + 0.3 * e); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
   } else if (st.enter === "slide") {
     // up into place, quick (the caption-pack slide)
-    const p = vsEase.out(Math.min(1, since / 0.18));
+    const p = vsEase.out(Math.min(1, since / 0.28));
     ctx.globalAlpha = out * p;
-    ctx.fillStyle = fill; paint(wd.text, wd.x, cy + (1 - p) * px * 0.4);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy + (1 - p) * px * 0.32);
   } else if (st.enter === "flicker") {
     // a neon tube coming on: a few stutters, then steady
-    const seq = [1, 0, 1, 1, 0, 0, 1, 0, 1];
-    const k = Math.floor(since / 0.045);
-    ctx.globalAlpha = out * (k < seq.length ? (seq[k] ? 1 : 0.12) : 1);
+    // (softened: a smooth swell with one gentle dip, no hard stutter)
+    const q = Math.min(1, since / 0.45), sw = q < 1 ? Math.min(1, q * 2.2) * (1 - 0.35 * Math.sin(Math.PI * Math.max(0, Math.min(1, (q - 0.4) / 0.35)))) : 1;
+    ctx.globalAlpha = out * sw;
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
   } else if (st.enter === "shine") {
     // settles in, then a band of light crosses it
@@ -11804,15 +11807,16 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     }
   } else if (st.enter === "bounce") {
     // springs up from its baseline, overshoots and settles
-    const p = Math.min(1, since / 0.55);
-    const e = p >= 1 ? 1 : Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+    // (softened: rises and settles, no spring)
+    const p = Math.min(1, since / 0.36);
+    const e = 0.6 + 0.4 * (1 - Math.pow(1 - p, 3));
     const by = cy + px * 0.45;
     ctx.translate(cx, by); ctx.scale(Math.max(0.01, e), Math.max(0.01, e)); ctx.translate(-cx, -by);
     ctx.globalAlpha = out * Math.min(1, p * 4);
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
   } else if (st.enter === "glitch") {
     // a few frames of split colour and torn slices, then clean
-    if (since < 0.3) {
+    if (since < 0.3 && st.hardGlitch) {
       const j = (n) => (Math.sin((Math.floor(since / 0.04) + 1) * 12.9898 * n) * 43758.5453) % 1;
       const off = px * 0.06 * (1 - since / 0.3);
       ctx.globalAlpha = out * 0.8;
@@ -11825,6 +11829,15 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
         ctx.fillStyle = fill; ctx.fillText(wd.text, wd.x + j(k + 4) * px * 0.12, cy);
         ctx.restore();
       }
+    } else if (since < 0.32) {
+      // (softened: a colour split that closes and comes into focus)
+      const e = 1 - Math.pow(1 - since / 0.32, 3), off = px * 0.05 * (1 - e);
+      ctx.globalAlpha = out * 0.45 * (1 - e);
+      ctx.fillStyle = "#ff2a4d"; ctx.fillText(wd.text, wd.x - off, cy);
+      ctx.fillStyle = "#2ad4ff"; ctx.fillText(wd.text, wd.x + off, cy);
+      ctx.globalAlpha = out * e;
+      try { ctx.filter = "blur(" + ((1 - e) * px * 0.05).toFixed(1) + "px)"; } catch (er) {}
+      ctx.fillStyle = fill; paint(wd.text, wd.x, cy); ctx.filter = "none";
     } else { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
   } else {   // fade: the letters close up as it fades in
     const p = ease(since / 0.25);
@@ -13651,7 +13664,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (blind && face && mask && mask.a) delete g._lay;
     }
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
-    const outT = pack.outT || (pack.hero.enter === "swipe" ? 0.16 : 0.08);
+    const outT = pack.outT || (pack.hero.enter === "swipe" ? 0.18 : 0.15);
     const out = local > g.t1 - outT ? Math.max(0, (g.t1 - local) / outT) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
@@ -13672,7 +13685,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     const by0 = Math.min(...lay.words.map((w) => w.y - w.px * 0.55)), by1 = Math.max(...lay.words.map((w) => w.y + w.px * 0.55));
     const gcx = (bx0 + bx1) / 2, gcy = (by0 + by1) / 2;
     const sc = ed && ed.scale ? ed.scale : 1, mx = ed && ed.dx ? ed.dx * W : 0, my = ed && ed.dy ? ed.dy * H : 0;
-    const flyE = vsProMoveOf(gi) === "fly" && !g.single ? 1 - Math.pow(1 - Math.max(0, Math.min(1, (local - g.t0) / 0.42)), 3) : 1;
+    const flyE = pack.moves && vsProMoveOf(gi) === "fly" && !g.single ? 1 - Math.pow(1 - Math.max(0, Math.min(1, (local - g.t0) / 0.42)), 3) : 1;
     const moved = (fn) => {
       ctx.save();
       if (sc !== 1 || mx || my) { ctx.translate(gcx + mx, gcy + my); ctx.scale(sc, sc); ctx.translate(-gcx, -gcy); }
@@ -13694,7 +13707,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       // the key word only, once it is up (a line of one word: that word)
       const hw = lay.words.filter((w) => (w.role === "hero" || w.role === "single") && local >= w.t0);
       const src = hw.length ? [hw[0]] : [];
-      if (src.length && pack.moves !== false) {
+      if (src.length && pack.moves) {
         const hx0 = Math.min(...src.map((w) => w.x)), hx1 = Math.max(...src.map((w) => w.x + w.w));
         const hy0 = Math.min(...src.map((w) => w.y - w.px * 0.42)), hy1 = Math.max(...src.map((w) => w.y + w.px * 0.36));
         const k = sc, ox = mx, oy = my;
