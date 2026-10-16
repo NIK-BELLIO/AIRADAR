@@ -18147,7 +18147,11 @@ async function vsEditMyVideo(fileIn, o) {
       const text = String(sg.text || "").trim();
       if (!text) return;
       const last = sentences[sentences.length - 1];
-      if (last && !/[.!?؟۔…]["')”]*$/.test(last.text) && last.text.length < 400) { last.text += " " + text; last.end = Number(sg.end) || last.end; return; }
+      // (only a short continuation: speech with little punctuation - Persian
+      // often - must not become one or two endless "sentences", which left a
+      // graphic video with two slides for the whole talk)
+      const sEnd = Number(sg.end) || 0;
+      if (last && !/[.!?؟۔…]["')”]*$/.test(last.text) && last.text.length + text.length < 220 && sEnd - last.start < 11) { last.text += " " + text; last.end = sEnd || last.end; return; }
       sentences.push({ i: sentences.length, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text });
     });
     // (a plan made on Whisper's pieces numbers its sentences differently: not reused)
@@ -18452,11 +18456,27 @@ async function vsEditMyVideo(fileIn, o) {
       vsAutoStatus(L("Building the scenes…", "در حال ساختن صحنه‌ها…"));
       const scenes = ((gxPlan && gxPlan.scenes) || []).map((x) => Object.assign(vsGxCheck(x), { from: Number(x.from), to: Number(x.to) })).filter((x) => isFinite(x.from));
       const own = new Map();
+      // the strongest words of a cut, for a scene of its own
+      const keyOf = (txt) => {
+        const ws = String(txt || "").replace(/[^\p{L}\p{N}\s%$-]/gu, " ").split(/\s+/).filter(Boolean);
+        const num = ws.find((w) => /\d/.test(w));
+        if (num) return { type: "stat", value: num, title: ws.filter((w) => w !== num).slice(0, 4).join(" ") };
+        const long = ws.slice().sort((a2, b2) => b2.length - a2.length)[0] || "";
+        const at = ws.indexOf(long);
+        return { type: "keyword", title: ws.slice(Math.max(0, at - 1), at + 2).join(" ") };
+      };
+      let lastSc = null, shown = 0;
       vstudio.slides.forEach((sl) => {
         const k = sentOf((sl._srcOffset || 0) + (sl._clipIn || 0) + 0.1);
         let sc = scenes.find((x) => k >= x.from && k <= (isFinite(x.to) ? x.to : x.from)) || (scenes.length ? scenes.filter((x) => x.from <= k).pop() : null);
         // no plan for it: its own words, big - one scene per sentence
-        if (!sc) { if (!own.has(k)) own.set(k, vsGxCheck({ type: "keyword", title: String(sl._narration || "").split(/\s+/).slice(0, 4).join(" ") })); sc = own.get(k); }
+        if (!sc) { if (!own.has(k)) own.set(k, vsGxCheck(keyOf(sl._narration))); sc = own.get(k); }
+        // never one scene for long: past about six seconds the next cut gets
+        // a scene of its own words
+        const d = Number(sl.duration) || 0;
+        if (sc === lastSc && shown >= 5) sc = vsGxCheck(keyOf(sl._narration));
+        shown = sc === lastSc ? shown + d : d;
+        lastSc = sc;
         sl._gx = sc; sl._noCaps = true;
         delete sl._pro; delete sl._ins; delete sl._bw; delete sl._sticker; delete sl._hook; delete sl._gfx;
       });
