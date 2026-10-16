@@ -10874,6 +10874,16 @@ async function vsClipLuma(el) {
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
 const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&display=swap";
 const VS_PRO_PACKS = {
+  // Copied from the motion-designer reel: white captions in a bold and a
+  // light weight side by side, the word that matters in lime; small lime
+  // squares and a lime cursor gliding in beside the words; lists shown as the
+  // speaker's own clip in an editor window - lime frame, play controls, the
+  // points as tracks on a timeline, a playhead with its timecode.
+  lime: { hero: { fam: "Manrope", w: 800, size: 0.13, colors: ["#b8f04a", "#ffffff"], track: -0.03, enter: "swipe", shade: true },
+           small: { fam: "Manrope", w: 600, size: 0.075, colors: ["#ffffff"], track: -0.02, enter: "swipe", shade: true },
+           single: { fam: "Manrope", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.03, y: 0.62, enter: "swipe", shade: true },
+           grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, pixels: "#b8f04a", editorList: true,
+           trans: ["zoomblur", "leak", "zoomblur", "flash"] },
   // Copied from the drone-and-tour listing reels: big thin white words, the
   // word that matters in a serif italic - lilac, olive, rose, going lighter to
   // the right - behind the speaker; everything dissolving in and out with a
@@ -11905,8 +11915,107 @@ function vsProTealList(ctx, W, H, s, ins, t, F, pack) {
   }
   ctx.restore();
 }
+// The motion-designer reel's accents: a few small squares popping on around
+// the words and drifting a little, and on every other line a cursor gliding
+// in to its corner. Calm - nothing shakes.
+function vsProPixels(ctx, W, H, b, t, out, gi, col) {
+  if (t < 0) return;
+  const U = Math.min(W, H * 0.62), sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  let r = (gi + 1) * 9301;
+  const rnd = () => { r = (r * 49297 + 233280) % 233280; return r / 233280; };
+  ctx.save();
+  for (let k = 0; k < 4; k++) {
+    const side = rnd(), sz = U * (0.014 + rnd() * 0.02), p = sm((t - k * 0.08) / 0.25);
+    if (p <= 0) { rnd(); rnd(); continue; }
+    const x = side < 0.5 ? b.x0 - sz * (1.5 + rnd() * 3) : b.x1 + sz * (0.8 + rnd() * 3);
+    const y = b.y0 + (b.y1 - b.y0) * rnd() - t * U * 0.01;
+    ctx.globalAlpha = out * p * (k % 2 ? 0.55 : 0.9);
+    ctx.fillStyle = col; ctx.fillRect(x, y, sz, sz);
+  }
+  if (gi % 2 === 0) {
+    const p = sm((t - 0.15) / 0.45), ax = b.x1 + U * 0.02, ay = b.y1 + U * 0.01;
+    if (p > 0) {
+      const x = ax + (1 - p) * U * 0.18, y = ay + (1 - p) * U * 0.12, z = U * 0.055;
+      ctx.globalAlpha = out * p;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + z * 0.18, y + z); ctx.lineTo(x + z * 0.42, y + z * 0.6); ctx.lineTo(x + z * 0.78, y + z * 0.62); ctx.closePath();
+      ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = z * 0.3; ctx.fillStyle = col; ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.lineWidth = Math.max(1, z * 0.05); ctx.strokeStyle = "#10140a"; ctx.lineJoin = "round"; ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+// A list as the speaker's clip open in an editor: a white-to-lime page, a
+// "motion" tag, the clip in a lime-framed window, play controls, the points
+// as tracks arriving one by one, a playhead with its timecode.
+function vsProLimeEditor(ctx, W, H, s, ins, t, F, pack) {
+  const U = Math.min(W, H * 0.62), len = ins.len, col = pack.pixels || "#b8f04a";
+  const items = (ins.items || []).slice(0, 3);
+  const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const fade = Math.min(1, t / 0.25) * (t > len - 0.3 ? Math.max(0, (len - t) / 0.3) : 1);
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  ctx.save(); ctx.globalAlpha = fade;
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#ffffff"); bg.addColorStop(0.55, "#f3fbe6"); bg.addColorStop(1, "#d6f3a6");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // soft lime columns rising from the foot
+  for (let k = 0; k < 9; k++) { const cx = W * (0.04 + k * 0.12), ch = H * (0.12 + ((k * 37) % 9) / 40); ctx.fillStyle = "rgba(184,240,74,0.18)"; ctx.fillRect(cx, H - ch, W * 0.05, ch); }
+  // the tag
+  const tag = String(ins.title || "motion").slice(0, 28), fs = U * 0.04;
+  ctx.font = '700 ' + Math.round(fs) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
+  const tw = ctx.measureText(tag).width, tx = W / 2 - (tw + fs * 2.2) / 2, ty = H * 0.13;
+  ctx.fillStyle = "rgba(184,240,74,0.55)"; rr(tx, ty - fs, tw + fs * 2.2, fs * 2, fs); ctx.fill();
+  ctx.fillStyle = "#3e6b06"; ctx.beginPath(); ctx.arc(tx + fs * 0.9, ty, fs * 0.22, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#24400a"; ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillText(tag, tx + fs * 1.4, ty + fs * 0.04);
+  // the window, scaling up from the middle
+  const wp = sm(t / 0.4), ww = W * 0.78 * (0.9 + 0.1 * wp), wh = ww * 0.86, wx = W / 2 - ww / 2, wy = H * 0.19;
+  ctx.save(); ctx.globalAlpha = fade * wp;
+  ctx.shadowColor = "rgba(40,70,10,0.25)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.015;
+  ctx.fillStyle = "#24331a"; rr(wx, wy, ww, wh, U * 0.035); ctx.fill(); ctx.shadowColor = "transparent";
+  ctx.save(); rr(wx, wy, ww, wh, U * 0.035); ctx.clip();
+  const k = Math.max(ww / W, wh / H), dw = W * k, dh = H * k;
+  ctx.drawImage(F, wx + ww / 2 - dw / 2, wy + wh / 2 - dh * 0.42, dw, dh);
+  ctx.restore();
+  ctx.lineWidth = Math.max(2, U * 0.007); ctx.strokeStyle = "#3b6a12"; rr(wx, wy, ww, wh, U * 0.035); ctx.stroke();
+  ctx.restore();
+  // play controls
+  const cy = wy + wh + U * 0.05, ic = U * 0.022;
+  ctx.fillStyle = "#4f5a44";
+  [-1, 0, 1].forEach((d) => {
+    const x = W / 2 + d * U * 0.08;
+    ctx.beginPath();
+    if (d === 0) { ctx.moveTo(x - ic * 0.6, cy - ic); ctx.lineTo(x + ic, cy); ctx.lineTo(x - ic * 0.6, cy + ic); }
+    else { const s2 = -d; ctx.moveTo(x + s2 * ic * 0.8, cy - ic * 0.8); ctx.lineTo(x - s2 * ic * 0.6, cy); ctx.lineTo(x + s2 * ic * 0.8, cy + ic * 0.8); ctx.rect(x - s2 * ic * 0.9 - ic * 0.1, cy - ic * 0.8, ic * 0.2, ic * 1.6); }
+    ctx.fill();
+  });
+  // the tracks, one per point
+  const fills = [col, "#ff8a3d", "#ffffff"], inks = ["#24400a", "#ffffff", "#24400a"];
+  const tx0 = W * 0.11, tw0 = W * 0.78, th = U * 0.095;
+  items.forEach((it, i) => {
+    const t0 = 0.5 + i * Math.max(0.4, (len - 1.4) / Math.max(1, items.length)), p = sm((t - t0) / 0.35);
+    if (p <= 0) return;
+    const y = cy + U * 0.07 + i * (th + U * 0.025);
+    ctx.save(); ctx.globalAlpha = fade * p;
+    ctx.fillStyle = fills[i % 3]; rr(tx0, y, tw0 * p, th, th * 0.28); ctx.fill();
+    ctx.lineWidth = Math.max(1, U * 0.003); ctx.strokeStyle = "rgba(60,90,20,0.35)"; ctx.stroke();
+    ctx.beginPath(); ctx.rect(tx0, y, tw0 * p, th); ctx.clip();
+    ctx.fillStyle = inks[i % 3]; ctx.font = '700 ' + Math.round(th * 0.4) + 'px Manrope, "Vazirmatn", system-ui, sans-serif'; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillText(it, tx0 + th * 0.4, y + th / 2);
+    ctx.restore();
+  });
+  // the playhead and its timecode
+  const ty0 = cy + U * 0.05, ty1 = ty0 + U * 0.04 + Math.max(1, items.length) * (th + U * 0.025);
+  const px = tx0 + tw0 * (0.08 + 0.8 * Math.min(1, t / Math.max(1, len)));
+  ctx.fillStyle = "#4c8a0e"; ctx.fillRect(px - 1, ty0, Math.max(2, U * 0.004), ty1 - ty0);
+  const tc = "00:00:" + String(Math.floor(t * 10) % 100).padStart(2, "0"), cf = U * 0.03;
+  ctx.font = '700 ' + Math.round(cf) + 'px Manrope, system-ui, sans-serif';
+  const cw = ctx.measureText(tc).width + cf * 1.2;
+  ctx.fillStyle = col; rr(px - cw / 2, ty1 + U * 0.01, cw, cf * 1.7, cf * 0.5); ctx.fill();
+  ctx.fillStyle = "#24400a"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(tc, px, ty1 + U * 0.01 + cf * 0.88);
+  ctx.restore();
+}
 function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   if (ins.kind === "showcase") { vsProShowcase(ctx, W, H, s, ins, t, F, pack); return; }
+  if (pack.editorList && ins.kind === "list" && (ins.items || []).length) { vsProLimeEditor(ctx, W, H, s, ins, t, F, pack); return; }
   if (pack.tealList && ins.kind === "list" && (ins.items || []).length) { vsProTealList(ctx, W, H, s, ins, t, F, pack); return; }
   if (pack.listPanel && ins.kind === "list" && (ins.items || []).length) { vsProGoldList(ctx, W, H, s, ins, t, F, pack); return; }
   if (pack.paper) { vsProInsertPaper(ctx, W, H, s, ins, t, F, pack); return; }
@@ -13376,6 +13485,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     }
     const hideHero = !behind && !lay.front && !(ed && ed.front === true) && !heroes.length && lay.words.some((w) => w.role === "hero" && local >= w.t0);
     moved(() => lay.words.forEach((w) => { if (!((behind || hideHero) && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
+    if (pack.pixels && !g.single) vsProPixels(ctx, W, H, { x0: bx0 + mx, x1: bx1 + mx, y0: by0 + my, y1: by1 + my }, local - g.t0, out, gi, pack.pixels);
     if (!vstudio.rendering) {
       const hw = (bx1 - bx0) * sc / 2, hh = (by1 - by0) * sc / 2;
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
@@ -13694,6 +13804,11 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // what make two themes look like two different designers.
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
+  ["silver", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#7a2a9a", "#4a4a4a", "#111111"],
+  ["silverwine", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#8e1f3a", "#4a4a4a", "#111111"],
+  ["steel", 0, "#ece9e1", "#fbfaf6", "#56708f", "#a3aebb", "#7fa9d8", "#26364b", "#c9d6e6"],
+  ["steelrust", 0, "#ece9e1", "#fbfaf6", "#3f5266", "#a3aebb", "#c8743c", "#26364b", "#e6d3c3"],
+  ["sagepaper", 0, "#a9c2bd", "#f6f6f1", "#1d2a25", "#7d8a83", "#2c4a3f", "#b3283a", "#e9b7bd"],
   ["cream", 0, "#efe6d8", "#f7f1e6", "#1d1d1b", "#8b8172", "#f2c230", "#d9452b", "#2f6db5"],
   ["newsprint", 0, "#e9e4da", "#f5f2ec", "#151515", "#7d776e", "#ffd400", "#e03a2f", "#1e88e5"],
   ["teal", 0, "#e7ece6", "#f4f6f1", "#162024", "#6f7c7f", "#f5c400", "#0f8b8d", "#e4572e"],
@@ -13752,6 +13867,7 @@ const VS_GX_PALETTES = [
 ];
 // [id, display face, weight, capitals, body face, weight, italic display]
 const VS_GX_FONTS = [
+  ["editorial", "Archivo", 800, 0, "Libre Caslon Text", 400],
   ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
   ["archivo", "Archivo", 800, 0, "Archivo", 500],
   ["grotesk", "Space Grotesk", 700, 0, "Manrope", 500],
@@ -13791,6 +13907,26 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 const VS_GX_CATS = { explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Copied from the After Effects "Godfather" / "Peaky Blinders" reels: a
+  // white card standing on a pale grey ground crossed by window light, black
+  // and white pictures, a small book serif leading into the key word in a
+  // bold grotesk with a design-tool selection box around it, one word in a
+  // purple accent.
+  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "elegant", pals: ["silver", "silverwine"], fonts: ["editorial"],
+    el: ["3d", "hc"], bg: "window", al: "c", tt: "select", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
+    of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2)" },
+  // Copied from the French poster reel: a white sheet on cream, huge
+  // condensed steel-blue type, pale blue 3D objects (a camera, a gear) half
+  // out of the sheet, a barcode, fine print and crop marks.
+  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "clean", pals: ["steel", "steelrust"], fonts: ["anton", "bebas"],
+    el: ["3d", "color"], bg: "poster", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "number", de: "plus", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
+    of: "grayscale(1) sepia(0.35) hue-rotate(175deg) saturate(1.9) brightness(1.12)", pf: "grayscale(1) sepia(0.3) hue-rotate(175deg) saturate(1.4)" },
+  // Copied from the baashokooh clinic explainer: an off-white sheet, black
+  // and white cut-out pictures, numbers in a dark green circle, points as
+  // round badges, a wavy line across the page.
+  { id: "clinic", n: ["Clinic explainer", "توضیحی کلینیک"], cat: "explain", pals: ["sagepaper"], fonts: ["archivoblack", "grotesk"],
+    el: ["3d", "hc"], bg: "sheet", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "badge", de: "wave", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "zoom"],
+    of: "grayscale(1) contrast(1.1)", pf: "grayscale(1) contrast(1.15)" },
   { id: "explainer", n: ["Explainer paper", "کاغذی توضیحی"], cat: "explain", pals: ["cream", "newsprint", "teal", "kraft", "peach", "sage"], fonts: ["archivoblack", "grotesk", "archivo"],
     el: ["3d", "color"], bg: "paper", al: "c", tt: "marker", ef: "float", ec: "ink", ls: "badge", de: "scraps", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "wipe"] },
   { id: "newsroom", n: ["Newsroom", "اتاق خبر"], cat: "news", pals: ["bulletin", "crimson", "navy", "mono"], fonts: ["anton", "oswald", "bebas"],
@@ -14184,9 +14320,39 @@ function vsGxTexture(tk, W, H) {
     for (let yy = 0; yy < H; yy += s * 2) x.fillRect(0, yy, W, s);
   } else if (tex === "dots") {
     dotsAt(Math.max(10, Math.round(W / 22)), Math.max(1.5, W / 520), tk.ink, tk.dark ? 0.25 : 0.22);
+  } else if (tex === "window" || tex === "poster" || tex === "sheet") {
+    // a sheet standing on the ground (the editorial and poster reels)
+    if (tex === "window") {
+      // window light falling across the grey in soft diagonal bands
+      x.save(); x.globalAlpha = 0.5;
+      for (let k = -4; k < 10; k++) {
+        const g = x.createLinearGradient(0, 0, W * 0.2, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.9)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        x.save(); x.translate(k * W * 0.22, 0); x.transform(1, 0, -0.7, 1, 0, 0); x.translate(H * 0.35, 0); x.fillStyle = g; x.fillRect(0, 0, W * 0.2, H); x.restore();
+      }
+      x.restore();
+    }
+    const sx = W * 0.07, sy = H * 0.07, sw = W * 0.86, sh = H * 0.84, r = U * 0.05;
+    x.save(); x.shadowColor = "rgba(0,0,0,0.22)"; x.shadowBlur = U * 0.07; x.shadowOffsetY = U * 0.025;
+    x.fillStyle = tk.paper; x.beginPath(); if (x.roundRect) x.roundRect(sx, sy, sw, sh, r); else x.rect(sx, sy, sw, sh); x.fill(); x.restore();
+    if (tex === "window") {
+      // the light crosses the sheet too, fainter
+      x.save(); x.beginPath(); if (x.roundRect) x.roundRect(sx, sy, sw, sh, r); else x.rect(sx, sy, sw, sh); x.clip(); x.globalAlpha = 0.18;
+      const g = x.createLinearGradient(0, sy, 0, sy + sh); g.addColorStop(0, "#ffffff"); g.addColorStop(1, tk.bg); x.fillStyle = g; x.fillRect(sx, sy, sw, sh); x.restore();
+    }
+    if (tex === "poster") {
+      // fine print, a barcode and crop marks
+      x.fillStyle = tk.muted; x.globalAlpha = 0.55;
+      for (let k = 0; k < 5; k++) x.fillRect(sx + sw * 0.18, sy + sh * 0.79 + k * U * 0.016, sw * (0.64 - (k % 2) * 0.12), Math.max(1, U * 0.004));
+      x.globalAlpha = 0.85; x.fillStyle = tk.ink;
+      let bx = sx + sw * 0.36;
+      for (let k = 0; k < 34; k++) { const w = Math.max(1, U * (rnd() < 0.5 ? 0.003 : 0.007)); x.fillRect(bx, sy + sh * 0.89, w, U * 0.045); bx += w + U * 0.004; }
+      x.globalAlpha = 0.5; x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.002);
+      [[sx + sw * 0.5, sy + U * 0.04], [sx + U * 0.05, sy + sh * 0.5], [sx + sw - U * 0.05, sy + sh * 0.5]].forEach(([cx, cy]) => { x.beginPath(); x.moveTo(cx - U * 0.02, cy); x.lineTo(cx + U * 0.02, cy); x.moveTo(cx, cy - U * 0.02); x.lineTo(cx, cy + U * 0.02); x.stroke(); x.beginPath(); x.arc(cx, cy, U * 0.009, 0, Math.PI * 2); x.stroke(); });
+      x.globalAlpha = 1;
+    }
   }
   // a quiet vignette for depth (not on the flat, printed grounds)
-  if (tex !== "flat" && tex !== "swiss" && tex !== "dots" && tex !== "lined") {
+  if (tex !== "flat" && tex !== "swiss" && tex !== "dots" && tex !== "lined" && tex !== "window" && tex !== "poster" && tex !== "sheet") {
     const v = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
     v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, tk.dark ? "rgba(0,0,0,0.45)" : "rgba(60,40,20,0.12)");
     x.fillStyle = v; x.fillRect(0, 0, W, H);
@@ -14284,6 +14450,18 @@ function vsGxElemColors(tk) {
   const onFill = st.ls === "badge" || st.ls === "pills";
   return { ec, ec2: ec === tk.a1 ? tk.a2 : tk.a1, lc: onFill ? (tk.dark ? tk.bg : tk.paper) : ec };
 }
+// A picture redrawn through a filter (black and white, a blue tint), sized
+// and named like the image it came from so the scene draws it the same way.
+function vsGxFiltered(im, filter) {
+  if (!im || !im.naturalWidth) return im;
+  try {
+    const k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+    const x = c.getContext("2d"); x.filter = filter; x.drawImage(im, 0, 0, c.width, c.height);
+    c.naturalWidth = c.width; c.naturalHeight = c.height;
+    return c;
+  } catch (e) { return im; }
+}
 async function vsGxResolve(sc, tk) {
   const a = { objs: [], icons: [], photo: null, world: null, hits: [] };
   const kind = tk.elem, c = vsGxElemColors(tk);
@@ -14307,6 +14485,8 @@ async function vsGxResolve(sc, tk) {
     } catch (e) {}
     if (!a.photo) sc.type = sc.objects.length ? "objects" : "keyword";
   }
+  // the style's own look for its pictures (black and white, a blue tint)
+  if (tk.st && tk.st.of && (kind === "3d" || kind === "color")) { a.objs = a.objs.map((im) => vsGxFiltered(im, tk.st.of)); a.icons = a.icons.map((im) => vsGxFiltered(im, tk.st.of)); }
   return a;
 }
 // A picture's silhouette grown by a border - the white edge of a sticker,
@@ -14394,6 +14574,14 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     o = o || {};
     if (!str) return { h: 0, boxes: [], px };
     const tt = o.tt || st.tt, hand = tt === "hand" || tt === "chalk";
+    const ws0 = String(str).trim().split(/\s+/);
+    if (tt === "select" && !o.whole && ws0.length > 1) {
+      // as in the editorial reels: "He never raised his" small in the serif,
+      // then "voice" big in the grotesk, in its selection box
+      const lead = text(ws0.slice(0, -1).join(" "), body, px * 0.4, x, y - px * 0.62, maxW, align, ink, t0, { maxLines: 2 });
+      const k = title(ws0[ws0.length - 1], px * 1.15, x, y + px * 0.18, maxW, align, t0 + 0.3, Object.assign({}, o, { whole: true }));
+      return { h: lead.h + k.h, boxes: k.boxes, px: k.px };
+    }
     const sp = tt === "spaced" ? 0.18 : 0;
     const label = tt === "spaced" || tt === "tape" || tt === "block" ? String(str).toUpperCase() : up(str);
     const w0 = wrap(label, disp, px, maxW - (tt === "tape" || tt === "block" || tt === "hard" || tt === "strip" ? px * 0.6 : 0), o.maxLines || 3); px = w0.px;
@@ -14414,7 +14602,19 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       ctx.save();
       ctx.font = font(disp, px); ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.lineJoin = "round";
       const padX = px * 0.28, bx = b.x - padX, bw = b.w + padX * 2, by = b.y - px * 0.62, bh = px * 1.18;
-      if (tt === "marker") {
+      if (tt === "select") {
+        // a design tool's selection: a thin frame with square handles, drawn
+        // round the words as they land, gone again a moment later
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.3))), gone = Math.max(0, Math.min(1, (t - tl - 2.6) / 0.4));
+        if (q > 0 && gone < 1) {
+          ctx.save(); ctx.globalAlpha = (1 - gone) * q;
+          const fx0 = bx - px * 0.08, fy0 = by + px * 0.04, fw = bw + px * 0.16, fh = bh - px * 0.04, hs = Math.max(4, px * 0.11);
+          ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, px * 0.025); ctx.setLineDash([px * 0.08, px * 0.06]);
+          ctx.strokeRect(fx0 + fw * (1 - q) / 2, fy0, fw * q, fh); ctx.setLineDash([]);
+          [[fx0, fy0], [fx0 + fw, fy0], [fx0, fy0 + fh], [fx0 + fw, fy0 + fh], [fx0 + fw / 2, fy0], [fx0 + fw / 2, fy0 + fh]].forEach(([hx, hy]) => { ctx.fillStyle = "#ffffff"; ctx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs); ctx.strokeRect(hx - hs / 2, hy - hs / 2, hs, hs); });
+          ctx.restore();
+        }
+      } else if (tt === "marker") {
         const q = Math.max(0, Math.min(1, (t - tl - 0.12) / 0.35));
         if (q > 0) { ctx.save(); ctx.globalAlpha = 0.9; ctx.fillStyle = acc + "d9"; ctx.beginPath(); ctx.moveTo(b.x - px * 0.12, b.y + px * 0.05); ctx.lineTo(b.x - px * 0.12 + (b.w + px * 0.24) * q, b.y - px * 0.02); ctx.lineTo(b.x - px * 0.12 + (b.w + px * 0.24) * q, b.y + px * 0.5); ctx.lineTo(b.x - px * 0.12, b.y + px * 0.48); ctx.closePath(); ctx.fill(); ctx.restore(); }
       } else if (tt === "tape" || tt === "block") {
@@ -14924,7 +15124,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       } else if (kindP === "hard") { ctx.fillStyle = ink; ctx.fillRect(ix + U * 0.025, iy + U * 0.025, cw, chh); }
       else { ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.06; ctx.fillStyle = tk.bg; rr(ix, iy, cw, chh, U * 0.04); ctx.fill(); ctx.shadowColor = "transparent"; }
       ctx.save(); if (kindP === "round" || kindP === "neon" || kindP === "gold") rr(clip[0], clip[1], clip[2], clip[3], U * 0.04); else { ctx.beginPath(); ctx.rect(clip[0], clip[1], clip[2], clip[3]); } ctx.clip();
-      try { ctx.filter = st.bg === "newsprint" || st.id === "explainer" || st.id === "collage" || st.id === "cinema" ? "grayscale(1) contrast(1.2)" : "contrast(1.05) saturate(1.1)"; } catch (e) {}
+      try { ctx.filter = st.pf || (st.bg === "newsprint" || st.id === "explainer" || st.id === "collage" || st.id === "cinema" ? "grayscale(1) contrast(1.2)" : "contrast(1.05) saturate(1.1)"); } catch (e) {}
       const z = 1.06 + 0.06 * (t / Math.max(1, dur));
       const iw = im.naturalWidth, ih = im.naturalHeight, sc2 = Math.max(clip[2] / iw, clip[3] / ih) * z;
       ctx.drawImage(im, -iw * sc2 / 2, -ih * sc2 / 2 - U * 0.01, iw * sc2, ih * sc2);
@@ -15018,7 +15218,14 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
   const cols = [tk.a1, tk.a2, tk.a3];
   const spots = [[0.04, 0.05], [0.96, 0.06], [0.05, 0.955], [0.95, 0.945]];
   ctx.save();
-  if (de === "scraps" || de === "tape") {
+  if (de === "wave") {
+    // one fine wavy line across the page, drawn on from the left (the clinic reel)
+    const p = mv.e(Math.min(1, t / 1.2)), y0 = H * 0.27;
+    ctx.strokeStyle = tk.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1.5, U * 0.004); ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let k = 0; k <= 60 * p; k++) { const x = W * 0.07 + (W * 0.86 * k) / 60, y = y0 + Math.sin(k / 60 * Math.PI * 2.2 + 0.6) * U * 0.035; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+    ctx.stroke();
+  } else if (de === "scraps" || de === "tape") {
     spots.forEach(([fx, fy], i) => {
       const sz = U * (0.09 + rnd() * 0.06), x = W * fx + Math.sin(t * 0.35 + i * 2) * U * 0.015, y = H * fy + Math.cos(t * 0.3 + i) * U * 0.015;
       ctx.save(); ctx.translate(x, y); ctx.rotate(rnd() * Math.PI + t * 0.06 * (i % 2 ? 1 : -1)); ctx.globalAlpha = ap * (de === "tape" ? 0.7 : 0.9);
@@ -15501,6 +15708,7 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-lime", L("Lime UI", "رابط لیمویی"), L("From the motion-designer reel · bold and light white words, lime highlights, a lime cursor, lists as an editor timeline", "از ریلز موشن دیزاینر · کلمات سفید پررنگ و نازک، هایلایت لیمویی، نشانگر لیمویی، لیست به شکل تایم‌لاین ادیتور")],
     ["pro-listing", L("Listing tour", "تور ملک"), L("From the drone realtor reels · big thin white words, the key word in a lilac or rose serif italic, soft dissolves", "از ریلزهای ملک با پهپاد · کلمات بزرگ نازک سفید، کلمهٔ اصلی سریف ایتالیک یاسی یا صورتی، محو نرم")],
     ["pro-agent", L("Agent", "مشاور"), L("From the Kelsie realtor reel · small light words, the key word bold in grey, teal or wine behind your head", "از ریلز مشاور کلسی · کلمات ریز سفید، کلمهٔ اصلی پررنگ طوسی، سبزآبی یا شرابی پشت سرت")],
     ["pro-cyan", L("Cyan", "فیروزه‌ای"), L("From the Alight Motion brand reel · white line over a glowing cyan word, a teal set behind you, rail lists", "از ریلز برند شخصی Alight Motion · خط سفید روی کلمهٔ فیروزه‌ای درخشان، دکور سبزآبی پشتت، لیست ریلی")],
