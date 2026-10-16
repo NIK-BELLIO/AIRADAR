@@ -9949,7 +9949,7 @@ function vsDrawEditOverlays(ctx, W, H, elapsed) {
   const at = slideAtTime(elapsed);
   const s = vstudio.slides[at.index];
   if (!s || (!s._hook && !s._sticker)) return;
-  if (s._ownSpeech && vstudio._editLayout) return;   // vsDrawEditChrome draws these
+  if ((s._ownSpeech || s._photoStory) && vstudio._editLayout) return;   // vsDrawEditChrome draws these
   const t = at.local, U = Math.min(W, H);
   let accent = "#f5c451";
   try { const tp = vsTemplate(); if (tp && /^#[0-9a-f]{6}$/i.test(tp.accent || "")) accent = tp.accent; } catch (e) {}
@@ -13434,7 +13434,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   const heroT = g && !g.single ? g.items[g.hero].t0 : -9;
   const userZ = Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1));
   const baseZ = s._broll ? 1 : (s._proZ || 1);
-  const z = baseZ * (1 + 0.05 * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
+  const z = baseZ * (1 + (s._photoStory ? 0.13 : 0.05) * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
   const shake = kick > 0.05 ? W * 0.006 * kick : 0;
   const sxo = shake * Math.sin(local * 91), syo = shake * Math.cos(local * 77);
   const F = vstudio._proF || (vstudio._proF = document.createElement("canvas"));
@@ -13446,7 +13446,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   const gradeF = s._bw ? "grayscale(1) contrast(1.3) brightness(1.06)" : pack.grade;
   try { fx.filter = gradeF; } catch (e) {}
   const focusX = s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
-  vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, Number(off && off.mediaDX) || 0, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
+  const drift = s._photoStory && dur > 0 ? (idx % 2 ? 1 : -1) * 0.08 * (local / dur - 0.5) : 0;
+  vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, (Number(off && off.mediaDX) || 0) + drift, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
   fx.filter = "none";
   if (pack.warm && !s._bw) { fx.globalCompositeOperation = "soft-light"; fx.fillStyle = pack.warm; fx.fillRect(0, 0, W, H); fx.globalCompositeOperation = "source-over"; }
   // the Gold look washes the picture in a colour as a key word lands
@@ -13487,7 +13488,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (m && m.P) ctx.drawImage(m.P, 0, 0);
     }
   }
-  if (pack.bgfill && !s._bw && g && !g.single && (pack.bgfill === "dim" || gi % 2 === 1) && local >= heroT - 0.05) {
+  // (never on a photo: the photo is the footage, there is no one to keep in front)
+  if (pack.bgfill && !s._bw && !s._photoStory && g && !g.single && (pack.bgfill === "dim" || gi % 2 === 1) && local >= heroT - 0.05) {
     const k = Math.min(1, (local - heroT + 0.05) / 0.22) * Math.max(0, Math.min(1, (g.t1 - local) / 0.22));
     if (k > 0.01) {
       let m = vsProMask(F, W, H, s, local);
@@ -13759,7 +13761,7 @@ const VS_BUILD_TRANS_SFX = { punch: "whoosh", fade: "riser", blur: "riser", zoom
 function vsBuildSfxOn() {
   const t = document.querySelector("#vsSfx");
   const sl = vstudio.slides || [];
-  return !!(t && t.checked) && sl.length > 1 && !sl.some((x) => x && (x._ownSpeech || x._swap));
+  return !!(t && t.checked) && sl.length > 1 && !sl.some((x) => x && (x._ownSpeech || x._swap || x._photoStory));
 }
 function vsBuildSfxEvents(slides) {
   const ev = [];
@@ -15810,6 +15812,8 @@ function vsEditStudio(preset, filesIn) {
   let files = (filesIn && filesIn.length ? filesIn : (mem ? mem.files : [])).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
   // the product or listing shots (experimental), kept with the window
   let showFiles = (mem && mem.show) ? mem.show.slice() : [];
+  // photos for a video made without one (Photos + text)
+  let phFiles = (mem && mem.photos) ? mem.photos.slice() : [];
   // their own screenshots, floated beside them as they talk about them
   let shotFiles = (mem && mem.shots) ? mem.shots.slice() : [];
   let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
@@ -15912,6 +15916,9 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-beta{display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.18);font:600 10.5px Manrope,Vazirmatn,system-ui,sans-serif;color:#c9ccd3;vertical-align:middle}
 #emModal .em-show{display:flex;flex-direction:column;gap:8px}
 #emModal .em-showl{display:flex;flex-wrap:wrap;gap:6px}
+#emModal .em-opt{flex:1;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font:600 13px Manrope,Vazirmatn,ui-sans-serif,system-ui,sans-serif;cursor:pointer}
+#emModal .em-opt:has(input:checked){border-color:#2563ff;background:rgba(37,99,255,.12)}
+#emModal .em-opt input{accent-color:#2563ff;width:16px;height:16px;min-height:0;flex:none;margin:0;padding:0}
 #emModal .em-showl:empty{display:none}
 #emModal .em-sht{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;background:#08090c;border:1px solid rgba(255,255,255,.1)}
 #emModal .em-sht img,#emModal .em-sht video{width:100%;height:100%;object-fit:cover;display:block}
@@ -15957,7 +15964,18 @@ function vsEditStudio(preset, filesIn) {
       '<div class="ts-seg" role="tablist" aria-label="' + L("What to do", "چه کاری") + '">' +
         '<button type="button" role="tab" data-mode="edit">' + L("Edit my raw video", "ادیت ویدیوی خامم") + "</button>" +
         '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button>" +
-        '<button type="button" role="tab" data-mode="graphic">' + L("Graphic video", "ویدیوی گرافیکی") + "</button></div>" +
+        '<button type="button" role="tab" data-mode="graphic">' + L("Graphic video", "ویدیوی گرافیکی") + "</button>" +
+        '<button type="button" role="tab" data-mode="photos">' + L("Photos + text", "عکس + متن") + "</button></div>" +
+      '<div id="emPh" class="ts-field" hidden><div class="ts-lbl">' + L("Your photos", "عکس‌هایت") + "</div>" +
+        '<div id="emPhList" class="em-showl"></div>' +
+        '<button id="emPhAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos", "افزودن عکس") + "</button>" +
+        '<input id="emPhFile" type="file" accept="image/*" multiple hidden/>' +
+        '<div class="ts-lbl" style="margin-top:10px">' + L("Text or news link", "متن یا لینک خبر") + "</div>" +
+        '<textarea id="emPhText" class="em-txt" rows="4" dir="auto" placeholder="' + L("Paste your text or a link", "متن یا لینک را بچسبان") + '"></textarea>' +
+        '<div class="ts-lbl" style="margin-top:10px">' + L("Voice", "صدا") + "</div>" +
+        '<div class="em-row"><label class="em-opt"><input type="radio" name="emPhVoice" value="ai" checked/> ' + L("AI voice · Free", "صدای AI · رایگان") + "</label>" +
+        '<label class="em-opt"><input type="radio" name="emPhVoice" value="mine"/> ' + L("My own voice", "صدای خودم") + "</label></div>" +
+      "</div>" +
       '<div class="ts-field">' +
         '<button id="emDrop" type="button" class="ts-drop">' +
           '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>' +
@@ -16026,7 +16044,7 @@ function vsEditStudio(preset, filesIn) {
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
     const st = settingsNow();
-    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice(), shots: shotFiles.slice() };
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice(), shots: shotFiles.slice(), photos: phFiles.slice(), phText: ($$("emPhText") || {}).value || "" };
     try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
   };
   const close = () => {
@@ -16361,7 +16379,11 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll(".em-edit").forEach((el) => { el.hidden = m === "swap"; });
     $$("emSwapNote").hidden = m !== "swap";
     $$("emStyleF").hidden = m === "graphic" || m === "swap";   // after the line above, which shows every .em-edit
-    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : L("Edit it", "ادیتش کن");
+    // photos + text: no video to choose, nothing of a video's to add
+    $$("emPh").hidden = m !== "photos";
+    $$("emDrop").parentElement.hidden = m === "photos";
+    ov.querySelectorAll(".em-show").forEach((el) => { if (m === "photos") el.hidden = true; });
+    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : m === "photos" ? L("Make my video", "ساختن ویدیو") : L("Edit it", "ادیتش کن");
     drawList();
   };
   ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
@@ -16379,11 +16401,11 @@ function vsEditStudio(preset, filesIn) {
   const drawList = () => {
     const list = $$("emList");
     const use = mode === "swap" ? files.slice(0, 1) : files;
-    list.hidden = !use.length;
+    list.hidden = !use.length || mode === "photos";
     list.innerHTML = use.map((f, k) => '<li><span>' + escapeHtml(f.name) + "</span><em>" + Math.round(f.size / 1048576 * 10) / 10 + " MB</em>" +
       (use.length > 1 ? '<button type="button" data-up="' + k + '"' + (k ? "" : " disabled") + ' aria-label="' + L("Move up", "بالا") + '">↑</button><button type="button" data-down="' + k + '"' + (k < use.length - 1 ? "" : " disabled") + ' aria-label="' + L("Move down", "پایین") + '">↓</button>' : "") +
       '<button type="button" data-rm="' + k + '" aria-label="' + L("Remove", "حذف") + '">' + icoX + "</button></li>").join("");
-    $$("emGo").disabled = !use.length;
+    $$("emGo").disabled = mode === "photos" ? !(phFiles.length && $$("emPhText").value.trim()) : !use.length;
   };
   $$("emList").addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;
@@ -16504,10 +16526,25 @@ function vsEditStudio(preset, filesIn) {
   $$("emShotAdd").onclick = () => { $$("emShotFile").value = ""; $$("emShotFile").click(); };
   $$("emShotFile").onchange = () => { shotFiles = shotFiles.concat([...($$("emShotFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 6); drawShots(); remember(); };
   drawShots();
+  // the photos, the same way
+  const phUrls = [];
+  const drawPh = () => {
+    phUrls.splice(0).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
+    $$("emPhList").innerHTML = phFiles.map((f, i) => { const u = URL.createObjectURL(f); phUrls.push(u); return '<div class="em-sht"><img src="' + u + '" alt=""/><button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>'; }).join("");
+    $$("emPhAdd").textContent = phFiles.length ? L("Add more", "افزودن بیشتر") : L("Add photos", "افزودن عکس");
+    drawList();
+  };
+  $$("emPhList").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; phFiles.splice(Number(b.dataset.i), 1); drawPh(); remember(); });
+  $$("emPhAdd").onclick = () => { $$("emPhFile").value = ""; $$("emPhFile").click(); };
+  $$("emPhFile").onchange = () => { phFiles = phFiles.concat([...($$("emPhFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 12); drawPh(); remember(); };
+  if (mem && mem.phText) $$("emPhText").value = mem.phText;
+  $$("emPhText").addEventListener("input", () => { drawList(); });
+  $$("emPhText").addEventListener("change", remember);
+  drawPh();
   ov.querySelectorAll('input[name="emShape"]').forEach((r) => r.addEventListener("change", remember));
 
   $$("emGo").onclick = async () => {
-    if (busy || !files.length) return;
+    if (busy || (mode !== "photos" && !files.length)) return;
     if (mode === "swap") {
       busy = false; close();
       vsSwapStart(files[0], preset.swap || {}).catch((e) => {
@@ -16525,6 +16562,17 @@ function vsEditStudio(preset, filesIn) {
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
+    if (mode === "photos") {
+      if (!phFiles.length || !$$("emPhText").value.trim()) return;
+      o.text = $$("emPhText").value; o.voice = (ov.querySelector('input[name="emPhVoice"]:checked') || {}).value || "ai";
+      if (!/^pro-/.test(o.style)) o.style = "pro-viral";
+      const runP = vsPhotoStory(phFiles.slice(), o)
+        .then(() => ({ ok: vstudio._buildSeq !== before && vstudio.slides.some((x) => x._photoStory) }), (e) => ({ err: e }));
+      running = runP;
+      remember();
+      await follow(runP);
+      return;
+    }
     const run = vsEditMyVideo(files.length > 1 ? files.slice() : files[0], o)
       .then(() => ({ ok: vstudio._buildSeq !== before && vstudio.slides.some((x) => x._ownSpeech) }), (e) => ({ err: e }));
     running = run;
@@ -16560,7 +16608,7 @@ function vsEditStudio(preset, filesIn) {
   setMode(mode);
   syncStyle();
   // carry on where it was: an edit still running, or the finished one
-  const stillThere = doneSeq >= 0 && doneSeq === vstudio._buildSeq && vstudio.slides.some((x) => x._ownSpeech);
+  const stillThere = doneSeq >= 0 && doneSeq === vstudio._buildSeq && vstudio.slides.some((x) => x._ownSpeech || x._photoStory);
   $$("emNew").hidden = !(running || stillThere || files.length);
   if (running) follow(running);
   else if (stillThere && !(filesIn && filesIn.length)) { $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن"); showDone(); }
@@ -17657,6 +17705,136 @@ async function vsSwapSeekExport(s, local) {
     if (Math.abs((v.currentTime || 0) - target) < 0.01) continue;
     await _vsSeekVideo(v, target, _vsSeekPatient(v, target));
   }
+}
+
+// No video of their own: their photos and a text or a news link. The text is
+// written into one spoken line per photo, the photos are the footage - each
+// with a slow camera move, cut in the chosen look's own way - the lines are
+// spoken (the free voice, or the user's own) and set in the look's words.
+async function vsPhotoStory(photos, o) {
+  const fa = state.lang === "fa";
+  const L = (en, f) => (fa ? f : en);
+  photos = (photos || []).filter((f) => /^image\//.test(f.type || "")).slice(0, 12);
+  const src0 = String(o.text || "").trim();
+  if (!photos.length || !src0) { vsAutoStatus(L("Add your photos and a text or a link.", "عکس‌ها و یک متن یا لینک بده.")); return; }
+  const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "viral";
+  const pk = VS_PRO_PACKS[pro];
+  try { stopStudioPreview(); } catch (e) {}
+  vstudio._buildHold = true;
+  vsProLoadFonts(); vsProSegmenter().then((x) => { vstudio._proSeg = x; }).catch(() => {});
+  try {
+    // the source: the article behind a link, or the text itself
+    let text = src0;
+    if (/^https?:\/\/\S+$/i.test(src0) || /^[\w-]+(\.[\w-]+)+\/\S*$/i.test(src0)) {
+      vsAutoStatus(L("Reading the link…", "در حال خواندن لینک…"));
+      let got = "";
+      try { const a = await vsFetchArticle(src0); got = String((a && (a.text || a.content)) || a || ""); } catch (e) {}
+      if (got.replace(/\s+/g, " ").trim().length < 120) { const er = new Error(L("That link could not be read - paste the text instead.", "این لینک خوانده نشد؛ متنش را بچسبان.")); er.plain = true; throw er; }
+      text = got;
+    }
+    text = text.replace(/\s+/g, " ").trim().slice(0, 9000);
+    const n = Math.max(4, Math.min(10, photos.length < 4 ? 5 : photos.length));
+    // the photos, loaded
+    vsAutoStatus(L("Reading your photos…", "در حال خواندن عکس‌ها…"));
+    const imgs = [];
+    for (const f of photos) {
+      const u = URL.createObjectURL(f);
+      const im = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u; });
+      if (im) imgs.push({ im, u, name: f.name });
+    }
+    if (!imgs.length) { const er = new Error(L("The photos could not be opened.", "عکس‌ها باز نشدند.")); er.plain = true; throw er; }
+    // the script: one spoken line per photo, only what the source says
+    vsAutoStatus(L("Writing the script…", "در حال نوشتن متن…"));
+    const prompt = "Write a short vertical social video voice-over from the SOURCE below.\n" +
+      "Return JSON only: {\"title\": string, \"language\": ISO 639-1 code of the SOURCE, \"lines\": [string x " + n + "]}.\n" +
+      "- Write in the SOURCE's own language.\n- " + n + " lines, spoken one after another, each 8-20 words, plain speech (no emoji, hashtags or stage directions).\n" +
+      "- Line 1 is the hook: a question or the most striking fact. The last line is a short, natural call to action.\n" +
+      "- Only facts, numbers and names that are in the SOURCE. Nothing invented.\n- title: the hook in at most 7 words.\n\nSOURCE:\n" + text;
+    let j = null;
+    for (let k = 0; k < 2 && !j; k++) {
+      try { j = vsParseAiJson(await vsAutoAiChat(prompt, { temperature: 0.6 })); } catch (e) { if (String(e && e.message) === "needLogin") { vsBuildOverlay(false); return; } }
+      if (j && !(Array.isArray(j.lines) && j.lines.filter((x) => String(x || "").trim()).length >= 2)) j = null;
+    }
+    if (!j) { const er = new Error(L("The script could not be written - try again in a minute.", "متن نوشته نشد؛ یک دقیقهٔ دیگر دوباره امتحان کن.")); er.plain = true; throw er; }
+    const lines = j.lines.map((x) => String(x || "").replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 12);
+    const title = String(j.title || "").trim().slice(0, 80);
+    const lang = String(j.language || "").slice(0, 2).toLowerCase() || (/[\u0600-\u06FF]/.test(text) ? "fa" : "en");
+
+    // the slides: a photo each, its line to say
+    const asp = $("#vsAspect");
+    if (asp && o.aspect) { asp.value = o.aspect; asp.dispatchEvent(new Event("change", { bubbles: true })); }
+    const narr = $("#vsNarrate"); if (narr) narr.checked = true;
+    const capsEl = $("#vsCaptions"); if (capsEl) capsEl.checked = false;
+    vstudio._editorialMode = false; vstudio._motionGfxMode = false; vstudio._realtorMode = false;
+    vstudio._toneProfile = vsToneProfile();
+    vstudio.slides = [];
+    vstudio._buildSeq = (vstudio._buildSeq || 0) + 1;
+    vstudio._editSrc = null;
+    const base = vsCaptureSettings();
+    ["#vsInfoOn", "#vsNewsOn"].forEach((k) => { base[k] = false; });
+    Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none" });
+    lines.forEach((line, i) => {
+      const ph = imgs[i % imgs.length];
+      vstudio.slides.push({ url: ph.u, isVideo: false, mediaEl: ph.im, ready: true, isIntro: false, headline: "", duration: 3.5,
+        settings: Object.assign({}, base), _narration: line, _photoStory: true, _fit: "fill",
+        _timelineLabel: line.split(/\s+/).slice(0, 4).join(" ") });
+    });
+    vstudio.storyData = { title: title || lines[0].slice(0, 60), language: lang, summary: text.slice(0, 300),
+      music: { mood: "inspiring", energy: "medium", bpm: 100 } };
+    vstudio._editTitle = title;
+
+    // the voice: the free one where it speaks the language, else their own
+    const own = o.voice === "mine" || !VS_TTS_LANGS[lang];
+    let voiced = false;
+    if (!own) voiced = await vsAddVoiceover({ language: lang });
+
+    // the look
+    vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
+    await vsProLoadFonts();
+    try { vstudio._proSeg = await Promise.race([vsProSegmenter(), new Promise((r) => setTimeout(() => r(null), 20000))]) || vstudio._proSeg || null; } catch (e) {}
+    try { vstudio._proFaceDet = await Promise.race([vsProFaceDetector(), new Promise((r) => setTimeout(() => r(null), 15000))]) || vstudio._proFaceDet || null; } catch (e) {}
+    vstudio._proAccent = null;
+    try { const a = vsProPickAccent(imgs[0].im); if (a) vstudio._proAccent = a; } catch (e) {}
+    vstudio._badgePos = null; vstudio._badgeFace = null;
+    vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
+    vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
+    vstudio._proHook = title;
+    vstudio._editLayout = "full";
+    vstudio.slides.forEach((sl, i) => {
+      sl._pro = pro; sl._noCaps = true; sl._proZ = 1;
+      delete sl._transIn;
+      // a new photo is a new shot: every cut is one of the look's own
+      if (i > 0 && o.trans !== false) { const t = pk.trans[(i - 1) % pk.trans.length]; if (t) sl._transIn = t; }
+    });
+    vstudio._editSfxOn = o.sfx !== false;
+    if (vstudio._editSfxOn) { try { await vsPrepareEditSfx(); } catch (e) { vstudio._editSfxOn = false; } }
+    const tsel = $("#vsTransition"); if (tsel) { tsel.value = "none"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "none"; }); }
+    if (o.music !== false && !vstudio._userMusic) {
+      vsAutoStatus(L("Adding music…", "در حال افزودن موسیقی…"));
+      try {
+        const dm = await vsEnsureDefaultMusic(vstudio.storyData);
+        if (dm) {
+          if (vstudio.musicEl && vstudio.musicEl !== dm) { try { vstudio.musicEl.pause(); } catch (e) {} }
+          vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null;
+          vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
+        }
+      } catch (e) {}
+    }
+    vstudio.activeSlide = 0;
+    renderSlideList();
+    selectSlide(0);
+    vsAutoStatus(own || !voiced
+      ? L("Your video is laid out. Read each line in your own voice to finish it.", "ویدیوت چیده شد. هر خط را با صدای خودت بخوان تا تمام شود.")
+      : L(`Made your video: ${vstudio.slides.length} photos. Press Play to watch it.`, `ویدیوت ساخته شد: ${vstudio.slides.length} عکس. برای دیدن، Play را بزن.`));
+    try { vsTrackGen("photostory", "tts", vstudio.slides.length + " photos"); } catch (e) {}
+    vstudio._photoNeedsVoice = own || !voiced;
+  } finally {
+    vstudio._buildHold = false;
+    vsBuildOverlay(false);
+    vsShowBuiltVideo();
+  }
+  // their own voice: the teleprompter, line by line
+  if (vstudio._photoNeedsVoice) { vstudio._photoNeedsVoice = false; try { await vsRecordVoiceStudio(); } catch (e) {} }
 }
 
 // Several clips are edited as one video: their sound is laid end to end on
@@ -27123,7 +27301,7 @@ function drawStudioFrameCore(elapsed) {
     if (vsDrawSwapFrame(ctx, W, H, dsSlideObj, dsLocal)) { vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur); return; }
   }
   // An edited clip ("Edit my video") has its own designed frame.
-  if (dsSlideObj && dsSlideObj._ownSpeech && vstudio._editLayout) {
+  if (dsSlideObj && (dsSlideObj._ownSpeech || dsSlideObj._photoStory) && vstudio._editLayout) {
     const at3 = slideAtTime(elapsed);
     if (vsDrawEditFrame(ctx, canvas, W, H, dsSlideObj, at3.index, dsLocal, dsDur, elapsed, vsOff)) {
       vsFinishFrame(ctx, canvas, W, H, elapsed, dsLocal, dsDur);
