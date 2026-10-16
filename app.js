@@ -10948,7 +10948,7 @@ const VS_PRO_PACKS = {
   // squares and a lime cursor gliding in beside the words; lists shown as the
   // speaker's own clip in an editor window - lime frame, play controls, the
   // points as tracks on a timeline, a playhead with its timecode.
-  lime: { hero: { fam: "Manrope", w: 800, size: 0.13, colors: ["#b8f04a", "#ffffff"], track: -0.03, enter: "swipe", shade: true },
+  lime: { hero: { fam: "Manrope", w: 800, size: 0.13, colors: ["#b8f04a", "#ffffff"], track: -0.03, glowSoft: true, enter: "swipe", shade: true },
            small: { fam: "Manrope", w: 600, size: 0.075, colors: ["#ffffff"], track: -0.02, enter: "swipe", shade: true },
            single: { fam: "Manrope", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.03, y: 0.62, enter: "swipe", shade: true },
            grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, pixels: "#b8f04a", editorList: true,
@@ -11013,7 +11013,7 @@ const VS_PRO_PACKS = {
   // negative, light blue or teal otherwise - the rest small and white around
   // it; every word slides in from the side smeared with motion, and slides
   // out the same way.
-  stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, enter: "swipe", shade: true }, semantic: true,
+  stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, glowSoft: true, enter: "swipe", shade: true }, semantic: true,
            small: { fam: "Montserrat", w: 600, size: 0.075, colors: ["#ffffff"], enter: "swipe", shade: true },
            single: { fam: "Montserrat", w: 700, size: 0.17, colors: ["#ffffff"], y: 0.62, enter: "swipe", shade: true },
            grade: "contrast(1.08) saturate(1.05)", warm: "", burn: "#ffffff", trans: ["burn", "zoomblur", "burn", "leak"] },
@@ -11656,6 +11656,7 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
       ctx.strokeText(c, x, y); ctx.restore();
     } else if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
     if (st.halo) { ctx.shadowColor = st.halo; ctx.shadowBlur = px * 0.22; ctx.shadowOffsetY = 0; }
+    if (st.glowSoft && !st.glow && typeof wd.color === "string" && !/^#f{3,6}$/i.test(wd.color)) { ctx.shadowColor = wd.color + "aa"; ctx.shadowBlur = px * 0.2; ctx.shadowOffsetY = 0; }
     if (st.glow) { ctx.shadowColor = st.glowColor || (typeof fill === "string" ? fill : "#38d8ff"); ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
     // a number every other time as a thin glowing outline (the clinic reel's 5)
     if (st.outlineNum && /^[0-9\u06F0-\u06F9%]+$/.test(c) && Math.floor(wd.t0 * 2) % 2) {
@@ -12113,6 +12114,95 @@ function vsProLimeEditor(ctx, W, H, s, ins, t, F, pack) {
   const cw = ctx.measureText(tc).width + cf * 1.2;
   ctx.fillStyle = col; rr(px - cw / 2, ty1 + U * 0.01, cw, cf * 1.7, cf * 0.5); ctx.fill();
   ctx.fillStyle = "#24400a"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(tc, px, ty1 + U * 0.01 + cf * 0.88);
+  ctx.restore();
+}
+// The motion-designer reel's moves, for every look, in the look's own colour:
+// a design tool's selection frame drawn round the word that matters with a
+// cursor gliding in on a curve; the line flying in tilted and settling; a
+// transform gizmo opening out of a grid of dots under the words and turning
+// slowly. One per line, in turn, every fourth line left plain. All eased,
+// nothing shakes.
+const VS_PRO_MOVES = ["select", "fly", "gizmo", ""];
+function vsProMoveOf(gi) { return VS_PRO_MOVES[((gi % VS_PRO_MOVES.length) + VS_PRO_MOVES.length) % VS_PRO_MOVES.length]; }
+function vsProMoveColor(pack) {
+  if (pack.burn && pack.burn !== "#ffffff") return pack.burn;
+  if (pack.pixels) return pack.pixels;
+  const c = (pack.hero.colors || []).map((x) => (x === "auto" ? vsProAccent() : x)).find((x) => typeof x === "string" && !/^#f{3,6}$/i.test(x) && vsHexLuma(x) > 60);
+  return c || "#ffffff";
+}
+function vsProCursor(ctx, x, y, z, col) {
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + z * 0.18, y + z); ctx.lineTo(x + z * 0.42, y + z * 0.6); ctx.lineTo(x + z * 0.78, y + z * 0.62); ctx.closePath();
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = z * 0.3; ctx.fillStyle = col; ctx.fill(); ctx.restore();
+  ctx.lineWidth = Math.max(1, z * 0.05); ctx.strokeStyle = "#10140a"; ctx.lineJoin = "round"; ctx.stroke();
+}
+function vsProMotion(ctx, W, H, pack, gi, t, len, hb, gb, out) {
+  const mv = vsProMoveOf(gi);
+  if (!mv || mv === "fly" || t < 0 || !hb) return;
+  const U = Math.min(W, H * 0.62), col = vsProMoveColor(pack);
+  const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const fade = Math.max(0, Math.min(1, (len - t) / 0.14)) * out;
+  if (fade <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = fade;
+  if (mv === "select") {
+    // the frame draws round the word, its handles pop on at the corners and
+    // the middles of the sides
+    const pad = Math.max(4, hb.h * 0.08), x0 = hb.x - pad, y0 = hb.y - pad, w = hb.w + pad * 2, h = hb.h + pad * 2;
+    const p = sm(t / 0.18), per = 2 * (w + h);
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.5, U * 0.0032);
+    ctx.shadowColor = col; ctx.shadowBlur = U * 0.012;
+    ctx.setLineDash([per * p, per]); ctx.strokeRect(x0, y0, w, h); ctx.setLineDash([]);
+    const hs = Math.max(4, U * 0.011), q = sm((t - 0.12) / 0.14);
+    if (q > 0) {
+      ctx.shadowBlur = 0;
+      [[x0, y0], [x0 + w, y0], [x0, y0 + h], [x0 + w, y0 + h], [x0 + w / 2, y0], [x0 + w / 2, y0 + h], [x0, y0 + h / 2], [x0 + w, y0 + h / 2]].forEach(([hx, hy]) => {
+        const k = hs * q; ctx.fillStyle = col; ctx.fillRect(hx - k / 2, hy - k / 2, k, k);
+      });
+    }
+    if (!pack.pixels) {
+      // the cursor glides in on a curve to the top corner, its path fading behind it
+      const c = sm(t / 0.36), ex = x0 + w + U * 0.005, ey = y0 - U * 0.005;
+      const sx = ex + U * 0.32, sy = ey + U * 0.26, cx = ex + U * 0.34, cy = ey - U * 0.06;
+      const at = (u) => [(1 - u) * (1 - u) * sx + 2 * (1 - u) * u * cx + u * u * ex, (1 - u) * (1 - u) * sy + 2 * (1 - u) * u * cy + u * u * ey];
+      if (c > 0) {
+        const tail = Math.max(0, c - 0.45);
+        ctx.lineWidth = Math.max(1.5, U * 0.004); ctx.lineCap = "round";
+        for (let k = 0; k < 12; k++) {
+          const u0 = tail + (c - tail) * (k / 12), u1 = tail + (c - tail) * ((k + 1) / 12);
+          const a0 = at(u0), a1 = at(u1);
+          ctx.globalAlpha = fade * (k / 12) * 0.85 * (1 - sm((t - 0.45) / 0.3));
+          ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke();
+        }
+        ctx.globalAlpha = fade;
+        const [px, py] = at(c);
+        vsProCursor(ctx, px, py, U * 0.05, col);
+      }
+    }
+  } else if (mv === "gizmo") {
+    // a 3x3 grid of dots opens into a square with handles, a cross in the
+    // middle, and turns slowly while the line is up
+    const S = Math.max(U * 0.2, Math.min(U * 0.28, hb.h * 1.4));
+    let cx = gb.x + gb.w / 2, cy = gb.y + gb.h + S * 0.75;
+    if (cy + S * 0.7 > H * 0.9) cy = gb.y - S * 0.75;
+    cy = Math.max(H * 0.12 + S * 0.6, Math.min(H * 0.88 - S * 0.6, cy));
+    cx = Math.max(S, Math.min(W - S, cx));
+    const p = sm(t / 0.16), o = sm((t - 0.14) / 0.26), ang = 0.32 * sm((t - 0.4) / Math.max(0.6, len - 0.4));
+    ctx.translate(cx, cy); ctx.rotate(ang);
+    ctx.fillStyle = col; ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = U * 0.01;
+    const hs = Math.max(5, U * 0.017);
+    const pts = [];
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) pts.push([i, j]);
+    pts.forEach(([i, j]) => {
+      const d = S * (0.12 + 0.38 * o), x = i * d, y = j * d, k = hs * (0.5 + 0.5 * p) * p;
+      ctx.fillRect(x - k / 2, y - k / 2, k, k);
+    });
+    if (o > 0.02) {
+      const d = S * (0.12 + 0.38 * o);
+      ctx.globalAlpha = fade * o; ctx.lineWidth = Math.max(1.5, U * 0.0042);
+      ctx.strokeRect(-d, -d, d * 2, d * 2);
+      ctx.beginPath(); ctx.moveTo(-hs * 1.2, 0); ctx.lineTo(hs * 1.2, 0); ctx.moveTo(0, -hs * 1.2); ctx.lineTo(0, hs * 1.2); ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
@@ -13582,9 +13672,14 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     const by0 = Math.min(...lay.words.map((w) => w.y - w.px * 0.55)), by1 = Math.max(...lay.words.map((w) => w.y + w.px * 0.55));
     const gcx = (bx0 + bx1) / 2, gcy = (by0 + by1) / 2;
     const sc = ed && ed.scale ? ed.scale : 1, mx = ed && ed.dx ? ed.dx * W : 0, my = ed && ed.dy ? ed.dy * H : 0;
+    const flyE = vsProMoveOf(gi) === "fly" && !g.single ? 1 - Math.pow(1 - Math.max(0, Math.min(1, (local - g.t0) / 0.42)), 3) : 1;
     const moved = (fn) => {
       ctx.save();
       if (sc !== 1 || mx || my) { ctx.translate(gcx + mx, gcy + my); ctx.scale(sc, sc); ctx.translate(-gcx, -gcy); }
+      if (flyE < 1) {
+        ctx.translate(gcx - (1 - flyE) * W * 0.14, gcy + (1 - flyE) * H * 0.07); ctx.rotate(-(1 - flyE) * 0.32); ctx.translate(-gcx, -gcy);
+        ctx.globalAlpha = Math.min(1, flyE * 1.6);
+      }
       fn();
       ctx.restore();
     };
@@ -13594,6 +13689,19 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     }
     const hideHero = !behind && !lay.front && !(ed && ed.front === true) && !heroes.length && lay.words.some((w) => w.role === "hero" && local >= w.t0);
     moved(() => lay.words.forEach((w) => { if (!((behind || hideHero) && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
+    {
+      // the moves of the motion-designer reel, round the word that matters
+      // the key word only, once it is up (a line of one word: that word)
+      const hw = lay.words.filter((w) => (w.role === "hero" || w.role === "single") && local >= w.t0);
+      const src = hw.length ? [hw[0]] : [];
+      if (src.length && pack.moves !== false) {
+        const hx0 = Math.min(...src.map((w) => w.x)), hx1 = Math.max(...src.map((w) => w.x + w.w));
+        const hy0 = Math.min(...src.map((w) => w.y - w.px * 0.42)), hy1 = Math.max(...src.map((w) => w.y + w.px * 0.36));
+        const k = sc, ox = mx, oy = my;
+        const tb = (x0, y0, x1, y1) => ({ x: gcx + ox + (x0 - gcx) * k, y: gcy + oy + (y0 - gcy) * k, w: (x1 - x0) * k, h: (y1 - y0) * k });
+        try { vsProMotion(ctx, W, H, pack, gi, local - src[0].t0, g.t1 - src[0].t0, tb(hx0, hy0, hx1, hy1), tb(bx0, by0, bx1, by1), out); } catch (e) {}
+      }
+    }
     if (pack.pixels && !g.single) vsProPixels(ctx, W, H, { x0: bx0 + mx, x1: bx1 + mx, y0: by0 + my, y1: by1 + my }, local - g.t0, out, gi, pack.pixels);
     if (!vstudio.rendering) {
       const hw = (bx1 - bx0) * sc / 2, hh = (by1 - by0) * sc / 2;
