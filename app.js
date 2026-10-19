@@ -31871,7 +31871,7 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)),
     img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side, bg: assets && assets.bg };
   const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout,
-    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrow, number: vsTplNumber, pop: vsTplPop, arrowpro: vsTplArrowPro, behind: vsTplBehind }[template] || vsTplBold;
+    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrowPro, number: vsTplNumber, pop: vsTplPop, arrowpro: vsTplArrowPro, behind: vsTplBehind }[template] || vsTplBold;
   // the professional looks stand the person out of the picture: cut them out
   if (tplDef.pro) {
     try { await vsProLoadFonts(); } catch (e) {}
@@ -31919,7 +31919,7 @@ const VS_THUMB_TEMPLATES = [
   { id: "stamp",   name: "Stamp",   fa: "مهر",     accent: "#5fe0b0" },
   { id: "versus",  name: "Versus",  fa: "مقایسه",  accent: "#2563ff" },
   { id: "beforeafter", name: "Before / After", fa: "قبل و بعد", accent: "#ffd400" },
-  { id: "arrow",   name: "Circle & arrow", fa: "فلش و دایره", accent: "#ff2d2d" },
+  { id: "arrow",   name: "Circle & arrow", fa: "فلش و دایره", accent: "#ff2d2d", pro: true },
   { id: "number",  name: "Big number", fa: "عدد بزرگ", accent: "#ffd400" },
   { id: "cutout",  name: "Cut-out", fa: "سوژهٔ جدا", accent: "#ffcc00", video: true },
 ];
@@ -34033,7 +34033,7 @@ function vsThumbPerson(R, side, hk) {
 }
 // two or three huge words: heavy capitals, thick black edge, hard shadow, the
 // key word on a box of the accent
-function vsThumbHeavy(R, box, align, onBox) {
+function vsThumbBig(R, box, align, onBox) {
   const { ctx, W, H, accent } = R;
   const words = R.words.slice(0, 6), emph = R.emph;
   const fit = vsThumbFitBox(ctx, words, box.w, box.h, Math.min(W, H) * 0.24, Math.min(W, H) * 0.07, 900, VS_PRO_THUMB_FAM);
@@ -34069,11 +34069,11 @@ function vsTplPop(R) {
   if (H > W) {
     // standing: the words across the top, the person below them
     vsThumbPerson(R, "center", 0.6);
-    vsThumbHeavy(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.34 }, "center", true);
+    vsThumbBig(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.34 }, "center", true);
     return;
   }
   const per = vsThumbPerson(R, "right");
-  vsThumbHeavy(R, { x: M, y: H * 0.1, w: per ? Math.max(W * 0.42, per.x - M * 1.2) : W - M * 2, h: H * 0.8 }, "left", true);
+  vsThumbBig(R, { x: M, y: H * 0.1, w: per ? Math.max(W * 0.42, per.x - M * 1.2) : W - M * 2, h: H * 0.8 }, "left", true);
 }
 function vsTplArrowPro(R) {
   const { ctx, W, H, M, accent } = R;
@@ -34081,7 +34081,7 @@ function vsTplArrowPro(R) {
   const portrait = H > W;
   const per = vsThumbPerson(R, portrait ? "center" : "right", portrait ? 0.58 : 1.02);
   const tb = portrait ? { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.3 } : { x: M, y: H * 0.08, w: per ? Math.max(W * 0.4, per.x - M * 1.5) : W * 0.55, h: H * 0.5 };
-  const t = vsThumbHeavy(R, tb, portrait ? "center" : "left", false);
+  const t = vsThumbBig(R, tb, portrait ? "center" : "left", false);
   // the ring, glowing, round the face (or the right of the frame)
   const f = per ? per.face : { x: W * 0.62, y: H * 0.25, w: W * 0.24, h: H * 0.3 };
   const cx = f.x + f.w / 2, cy = f.y + f.h * 0.55, rx = f.w * 0.75, ry = f.h * 0.75, U = Math.min(W, H);
@@ -34115,8 +34115,8 @@ function vsTplBehind(R) {
   vsThumbBack(R, 0.55);
   // the words huge first, the person standing in front of their end only -
   // the depth of the look, every word still read
-  if (H > W) { vsThumbHeavy(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.4 }, "center", false); vsThumbPerson(R, "center", 0.62); return; }
-  vsThumbHeavy(R, { x: M, y: H * 0.06, w: W * 0.66, h: H * 0.7 }, "left", false);
+  if (H > W) { vsThumbBig(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.4 }, "center", false); vsThumbPerson(R, "center", 0.62); return; }
+  vsThumbBig(R, { x: M, y: H * 0.06, w: W * 0.66, h: H * 0.7 }, "left", false);
   vsThumbPerson(R, "right", 0.95);
 }
 function vsTplCutout(R) {
