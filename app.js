@@ -14113,6 +14113,7 @@ const VS_GX_PALETTES = [
 // [id, display face, weight, capitals, body face, weight, italic display]
 const VS_GX_FONTS = [
   ["editorial", "Archivo", 800, 0, "Libre Caslon Text", 400],
+  ["stoicmix", "Arimo", 700, 0, "Libre Caslon Text", 400],
   ["clean", "Manrope", 800, 0, "Manrope", 500],
   ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
   ["archivo", "Archivo", 800, 0, "Archivo", 500],
@@ -14138,7 +14139,7 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
   "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700&family=Bangers" +
@@ -14174,7 +14175,7 @@ const VS_GX_STYLES = [
   // on a black bar; a huge faint word behind; a heavy black arrow in the
   // corner, fine curves crossing, paper shards drifting; pictures black and
   // white on a dot grid, a dashed ring turning round them.
-  { id: "stoic", n: ["Stoic editorial", "ادیتوریال رواقی"], cat: "reels", headTop: 0.2, pals: ["stoic"], fonts: ["editorial"],
+  { id: "stoic", n: ["Stoic editorial", "ادیتوریال رواقی"], cat: "reels", headTop: 0.2, cine: true, kickSans: true, bigPic: true, pals: ["stoic"], fonts: ["stoicmix", "editorial"],
     el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "stoic", fr: "none", cp: "plain", kd: "invert", tr: ["zoom", "zoomblur"],
     of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2) sepia(0.25) hue-rotate(220deg) saturate(1.3)" },
   // Copied from the McLaren After Effects reel: a white sheet on cream, a
@@ -14399,7 +14400,14 @@ function vsGxReal(what) {
       const S = 512, c = document.createElement("canvas"); c.width = S; c.height = S;
       const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(im, 0, 0, S, S);
       const id = x.getImageData(0, 0, S, S), d = id.data, seen = new Uint8Array(S * S), q = [];
-      const white = (i) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return Math.min(r, g, b) > 226 && Math.max(r, g, b) - Math.min(r, g, b) < 22; };
+      // the backdrop's own colour, from the border (the model's "white" is
+      // often a pale grey with a soft falloff); anything close to it and
+      // light enough is backdrop
+      const bord = [];
+      for (let k = 0; k < S; k += 4) [k, (S - 1) * S + k, k * S, k * S + S - 1].forEach((i) => bord.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]));
+      const med = (j) => bord.map((v) => v[j]).sort((m1, m2) => m1 - m2)[bord.length >> 1];
+      const br = med(0), bgc = med(1), bb = med(2);
+      const white = (i) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; const dr = r - br, dg = g - bgc, db = b - bb; return dr * dr + dg * dg + db * db < 46 * 46 && r + g + b > 470 && Math.max(r, g, b) - Math.min(r, g, b) < 30; };
       for (let k = 0; k < S; k++) [k, (S - 1) * S + k, k * S, k * S + S - 1].forEach((i) => { if (!seen[i] && white(i)) { seen[i] = 1; q.push(i); } });
       while (q.length) {
         const i = q.pop(), px = i % S, py = (i - px) / S;
@@ -14909,7 +14917,95 @@ function vsGxChalk(ctx, color) {
   return ctx.createPattern(vsGxChalkPats.get(color), "repeat");
 }
 
+// The cinematic layer of the looks copied from After Effects reels: the scene
+// is drawn flat onto its sheet, and the sheet is then set in space - turned a
+// little in true perspective and settling, the camera pushing in - over a
+// soft grey backdrop, with its own shadow, light falling across it and the
+// blurred shadows of palm leaves drifting over everything.
+let vsGxCineC = null, vsGxLeaves = null;
+function vsGxLeafCanvas() {
+  if (vsGxLeaves) return vsGxLeaves;
+  const c = document.createElement("canvas"); c.width = 900; c.height = 900;
+  const x = c.getContext("2d"); x.fillStyle = "#000";
+  // three palm fronds: a curved stem, long leaflets either side
+  [[120, 980, 520, 120, 1], [900, 860, 420, 300, -1], [-60, 420, 380, 640, 1]].forEach(([x0, y0, x1, y1, sd]) => {
+    const n = 26;
+    for (let k = 2; k < n; k++) {
+      const u = k / n, px = x0 + (x1 - x0) * u + Math.sin(u * 3) * 40 * sd, py = y0 + (y1 - y0) * u;
+      const ang = Math.atan2(y1 - y0, x1 - x0);
+      [1, -1].forEach((side) => {
+        x.save(); x.translate(px, py); x.rotate(ang + side * (1.15 - u * 0.5));
+        const L = 150 * Math.sin(Math.PI * Math.min(1, u * 1.1)) + 30;
+        x.beginPath(); x.ellipse(L / 2, 0, L / 2, 9, 0, 0, Math.PI * 2); x.fill(); x.restore();
+      });
+    }
+    x.lineWidth = 8; x.strokeStyle = "#000"; x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo((x0 + x1) / 2 + 60 * sd, (y0 + y1) / 2, x1, y1); x.stroke();
+  });
+  // blurred once here, not on every frame
+  const b = document.createElement("canvas"); b.width = 900; b.height = 900;
+  const bx = b.getContext("2d"); try { bx.filter = "blur(10px)"; } catch (e) {} bx.drawImage(c, 0, 0);
+  // faded out towards its edges, so it never shows as a rectangle
+  bx.filter = "none"; bx.globalCompositeOperation = "destination-in";
+  const fade = bx.createRadialGradient(450, 450, 200, 450, 450, 450);
+  fade.addColorStop(0, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
+  bx.fillStyle = fade; bx.fillRect(0, 0, 900, 900);
+  vsGxLeaves = b;
+  return b;
+}
+function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
+  const U = Math.min(W, H * 0.62);
+  if (!vsGxCineC) vsGxCineC = document.createElement("canvas");
+  const F = vsGxCineC;
+  if (F.width !== W || F.height !== H) { F.width = W; F.height = H; }
+  const fx = F.getContext("2d");
+  fx.setTransform(1, 0, 0, 1, 0, 0); fx.clearRect(0, 0, W, H);
+  vsGxDrawScene(fx, W, H, sc, t, dur, Object.assign({}, tk, { _flat: true }), cap);
+  // only the sheet, its corners round
+  const sx = W * 0.07, sy = H * 0.07, sw = W * 0.86, sh = H * 0.84, r = U * 0.05;
+  fx.save(); fx.globalCompositeOperation = "destination-in"; fx.beginPath(); if (fx.roundRect) fx.roundRect(sx, sy, sw, sh, r); else fx.rect(sx, sy, sw, sh); fx.fill(); fx.restore();
+  // the backdrop: soft grey, light from the top left, bands of window light
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#e2e2e0"); g.addColorStop(1, "#bdbdbb");
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.35;
+  for (let k = -3; k < 8; k++) {
+    const bg = ctx.createLinearGradient(0, 0, W * 0.16, 0); bg.addColorStop(0, "rgba(255,255,255,0)"); bg.addColorStop(0.5, "rgba(255,255,255,0.8)"); bg.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.save(); ctx.translate(k * W * 0.26 + t * U * 0.01, 0); ctx.transform(1, 0, -0.6, 1, 0, 0); ctx.translate(H * 0.3, 0); ctx.fillStyle = bg; ctx.fillRect(0, 0, W * 0.16, H); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // the camera: turned towards one side and settling, pushing in
+  const e = (u) => { u = Math.max(0, Math.min(1, u)); return 1 - Math.pow(1 - u, 3); };
+  const dir = (Number(sc._idx) || 0) % 2 ? -1 : 1, q = Math.min(1, t / Math.max(1, dur));
+  const a = dir * (0.2 - 0.11 * e(q * 1.4)), z = 0.9 + 0.06 * q, cx = W / 2 + dir * W * 0.015 * (1 - e(q)), cy = H * 0.505;
+  const hw = (sw * z) / 2, f = W * 2.3, N = 56;
+  const proj = (u) => { const zz = u * hw * Math.sin(a), k = f / (f + zz); return { x: cx + u * hw * Math.cos(a) * k, k }; };
+  const L = proj(-1), R = proj(1);
+  // its shadow
+  ctx.save(); try { ctx.filter = "blur(" + Math.round(U * 0.04) + "px)"; } catch (er) {}
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath(); ctx.moveTo(L.x + U * 0.03, cy - (sh * z * L.k) / 2 + U * 0.05); ctx.lineTo(R.x + U * 0.03, cy - (sh * z * R.k) / 2 + U * 0.05);
+  ctx.lineTo(R.x + U * 0.03, cy + (sh * z * R.k) / 2 + U * 0.05); ctx.lineTo(L.x + U * 0.03, cy + (sh * z * L.k) / 2 + U * 0.05); ctx.closePath(); ctx.fill(); ctx.restore();
+  // the sheet, strip by strip in perspective
+  for (let i = 0; i < N; i++) {
+    const u0 = -1 + (2 * i) / N, u1 = -1 + (2 * (i + 1)) / N, p0 = proj(u0), p1 = proj(u1), km = (p0.k + p1.k) / 2, hh = sh * z * km;
+    ctx.drawImage(F, sx + ((u0 + 1) / 2) * sw, sy, sw / N + 0.6, sh, p0.x, cy - hh / 2, p1.x - p0.x + 0.8, hh);
+  }
+  // light falling across it
+  ctx.save(); ctx.beginPath(); ctx.moveTo(L.x, cy - (sh * z * L.k) / 2); ctx.lineTo(R.x, cy - (sh * z * R.k) / 2); ctx.lineTo(R.x, cy + (sh * z * R.k) / 2); ctx.lineTo(L.x, cy + (sh * z * L.k) / 2); ctx.closePath(); ctx.clip();
+  const lg = ctx.createLinearGradient(L.x, 0, R.x, 0);
+  lg.addColorStop(0, dir > 0 ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"); lg.addColorStop(1, dir > 0 ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.10)");
+  ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H); ctx.restore();
+  // palm-leaf shadows over everything, soft, drifting
+  const lv = vsGxLeafCanvas();
+  ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.16;
+  const ls = Math.max(W, H) * 0.9;
+  ctx.drawImage(lv, W * 0.35 + Math.sin(t * 0.35) * U * 0.03, -H * 0.12 + Math.cos(t * 0.3) * U * 0.02, ls, ls);
+  ctx.drawImage(lv, -W * 0.55 + Math.cos(t * 0.27) * U * 0.03, H * 0.45, ls * 0.8, ls * 0.8);
+  ctx.restore();
+  vsGxGrain(ctx, W, H, t, 0.045);
+  ctx.restore();
+}
 function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
+  if (tk.st && tk.st.cine && !tk._flat) { vsGxCine(ctx, W, H, sc, t, dur, tk, cap); return; }
   const st = tk.st || VS_GX_STYLES[0];
   const U = Math.min(W, H * 0.62), mv = vsGxMove(tk), a = sc.assets || { objs: [], icons: [] };
   const port = H > W, left = st.al === "l";
@@ -15540,14 +15636,14 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       if (r.boxes.length && (st.tt === "plain" || st.tt === "glow" || st.tt === "swiss" || st.tt === "serif" || st.tt === "label")) { const b = r.boxes[r.boxes.length - 1]; bar(left ? b.x : b.x, b.y + r.px * 0.64, left ? U * 0.2 : b.w, U * (st.tt === "serif" ? 0.004 : 0.014), acc, 0.35); }
       if (sc.kicker) {
         const ky = (r.boxes[0] ? r.boxes[0].y : ty0) - r.px * 0.62 - U * 0.08;
-        if (st.tt === "blurword") text(sc.kicker, Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
+        if (st.tt === "blurword") text(sc.kicker, st.kickSans ? { fam: disp.fam, w: 400, italic: true } : Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
         else if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif") text(sc.kicker.toUpperCase(), body, U * 0.04, tx, ky, mw, al, st.tt === "label" ? tk.muted : acc, 0.05, { maxLines: 1 });
         else if (left) { ctx.save(); ctx.font = font(body, U * 0.042); const kw = ctx.measureText(sc.kicker).width + U * 0.042 * 1.6; ctx.restore(); pill(sc.kicker, tx + kw / 2, ky, acc, on(acc), 0.05); }
         else pill(sc.kicker, W / 2, ky, acc, on(acc), 0.05);
       }
       const bottom = r.boxes.length ? r.boxes[r.boxes.length - 1].y + r.px * 0.7 : ty0;
       objs.slice(0, 2).forEach((im, i, arr) => {
-        const sz = U * (arr.length > 1 ? 0.3 : 0.38);
+        const sz = U * (arr.length > 1 ? (st.bigPic ? 0.38 : 0.3) : (st.bigPic ? 0.56 : 0.38));
         const cx = left ? W * (arr.length > 1 ? (i ? 0.78 : 0.42) : 0.66) : W / 2 + (arr.length > 1 ? (i ? 1 : -1) * U * 0.22 : 0);
         obj(im, cx, Math.max(H * (port ? 0.66 : 0.75), bottom + sz * 0.72), sz, 0.35 + i * mv.st, i);
       });
