@@ -10303,7 +10303,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 //   burn  - the picture burns out to the look's own light colour and the
 //           next comes out of it (the Alight Motion / walking-realtor reels)
 //   invert- a moment of negative between the two (the $150-edit reel)
-const VS_TRANS_LEN = { whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
+const VS_TRANS_LEN = { expo: 0.22, rack: 0.55, whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
 function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
   const W = canvas.width, H = canvas.height;
   const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
@@ -10353,6 +10353,26 @@ function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
       const band = W * 0.075 * Math.sin(Math.PI * p);
       ctx.fillStyle = vsEditAccent(s); ctx.fillRect(edge - band, 0, band, H);
       ctx.fillStyle = "#141414"; ctx.fillRect(edge, 0, Math.max(2, band * 0.18), H);
+    } else if (type === "expo") {
+      // the reels' cut: the picture blows out in a burst of light and blur,
+      // smeared up and down, and the new shot comes sharp out of it
+      const k = Math.exp(-Math.pow((p - 0.38) / 0.2, 2)), src = p < 0.38 ? A : B, zz = 1 + 0.07 * k;
+      ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(zz, zz); ctx.translate(-W / 2, -H / 2);
+      try { ctx.filter = "blur(" + Math.round(Math.min(W, H) * 0.025 * k) + "px) brightness(" + (1 + 0.9 * k).toFixed(2) + ") saturate(" + (1 - 0.3 * k).toFixed(2) + ")"; } catch (er) {}
+      ctx.drawImage(src, 0, 0); ctx.filter = "none";
+      ctx.globalCompositeOperation = "screen";
+      for (let j = 1; j <= 3; j++) { ctx.globalAlpha = 0.16 * k; ctx.drawImage(src, 0, -H * 0.025 * j * k); ctx.drawImage(src, 0, H * 0.025 * j * k); }
+      ctx.restore();
+      ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+      if (idx % 2) vsProLeak(ctx, W, H, k * 0.85, (idx % 3) / 3);
+      else { ctx.globalAlpha = 0.3 * k * k; ctx.fillStyle = "#fffaf2"; ctx.fillRect(0, 0, W, H); }
+    } else if (type === "rack") {
+      // a focus pull: the new angle opens soft and bright and sharpens
+      const e2 = vsEase.out(p), k = 1 - e2;
+      ctx.save(); ctx.translate(W / 2, H / 2); const zz = 1 + 0.04 * k; ctx.scale(zz, zz); ctx.translate(-W / 2, -H / 2);
+      try { ctx.filter = "blur(" + Math.round(Math.min(W, H) * 0.03 * k) + "px) brightness(" + (1 + 0.3 * k).toFixed(2) + ")"; } catch (er) {}
+      ctx.drawImage(B, 0, 0); ctx.filter = "none"; ctx.restore();
+      if (p < 0.2) { ctx.globalAlpha = 1 - p / 0.2; ctx.drawImage(A, 0, 0); ctx.globalAlpha = 1; }
     } else if (type === "zoomblur") {
       // the old frame rushes in and smears outwards, the new one arrives out
       // of the same rush and settles (the pro edit's cut)
@@ -10402,6 +10422,18 @@ function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
       ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = 0.35 * amt;
       ctx.drawImage(src, W * 0.012 * amt, 0);
     }
+    ctx.restore();
+  }
+  // the viewfinder corners round the face as a focus pull lands
+  if (type === "rack" && s && s._faceScr && local < 1.5 && (VS_PRO_PACKS[s._pro] || {}).finder) {
+    const a = Math.min(1, local / 0.2) * Math.max(0, Math.min(1, (1.5 - local) / 0.3)), f = s._faceScr;
+    const sz = f.h * 1.7 * (1.12 - 0.12 * vsEase.out(Math.min(1, local / 0.5))), arm = sz * 0.2;
+    const x0 = f.x - sz / 2, y0 = f.y - sz / 2;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.9 * a; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(2, W * 0.0035); ctx.lineCap = "square";
+    ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = W * 0.006;
+    [[x0, y0, 1, 1], [x0 + sz, y0, -1, 1], [x0, y0 + sz, 1, -1], [x0 + sz, y0 + sz, -1, -1]].forEach(([x, y, dx, dy]) => {
+      ctx.beginPath(); ctx.moveTo(x + dx * arm, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * arm); ctx.stroke();
+    });
     ctx.restore();
   }
   // keep the finished last frames of each clip, for the transition after it
@@ -10893,7 +10925,7 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&family=Outfit:wght@500;800&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Bodoni+Moda:ital,wght@1,600&display=swap";
 const VS_PRO_PACKS = {
   // Copied from the podcast-clip reels (the mic reel, the Estate interview):
   // plain bold white words with a soft dark shadow, two or three at a time,
@@ -10928,14 +10960,14 @@ const VS_PRO_PACKS = {
   yellowcaps: { hero: { fam: "Archivo Black", w: 400, size: 0.19, colors: ["#f7c41b"], upper: true, track: -0.02, enter: "snap" },
            small: { fam: "Manrope", w: 600, size: 0.045, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Archivo Black", w: 400, size: 0.15, colors: ["#f7c41b"], upper: true, track: -0.02, y: 0.3, enter: "snap" },
-           grade: "contrast(1.08) saturate(1.14) brightness(1.03)", warm: "", noBw: true, trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+           grade: "contrast(1.08) saturate(1.14) brightness(1.03)", warm: "", noBw: true, trans: ["zoomblur", "expo", "zoomblur", "leak"] },
   // Copied from the street-interview reel ("what comes to your mind when you
   // hear the word home"): small bold capitals on two lines, the word that
   // matters in sky blue.
   street: { hero: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#38b6f4"], upper: true, enter: "snap", shade: true }, line: true, maxWords: 6, maxLetters: 30,
            small: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, enter: "snap", shade: true },
            single: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, y: 0.4, enter: "snap", shade: true },
-           grade: "contrast(1.08) saturate(1.16)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+           grade: "contrast(1.08) saturate(1.16)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "expo"] },
   // Copied from the 25-acre estate reel: the word that matters as big 3D
   // letters standing in the place - a pale face, its depth falling back and
   // down - behind the speaker; drone and room footage around it.
@@ -10960,7 +10992,38 @@ const VS_PRO_PACKS = {
   listing: { hero: { fam: "DM Serif Display", w: 400, italic: true, size: 0.24, colors: ["#9b72dc", "#a7ad45", "#e0579b"], hgrad: true, enter: "blur" },
            small: { fam: "Montserrat", w: 300, size: 0.085, colors: ["#ffffff"], track: -0.02, enter: "blur", shade: true },
            single: { fam: "Montserrat", w: 300, size: 0.1, colors: ["#ffffff"], track: -0.02, y: 0.3, enter: "blur", shade: true },
-           grade: "contrast(1.08) saturate(1.12) brightness(1.03)", warm: "rgba(255,190,120,0.05)", outT: 0.3, trans: ["leak", "zoomblur", "leak", "flash"] },
+           grade: "contrast(1.08) saturate(1.12) brightness(1.03)", warm: "rgba(255,190,120,0.05)", outT: 0.3, trans: ["leak", "zoomblur", "leak", "expo"] },
+  // Copied from the Utah realtor reel (the office over the lake): the word
+  // that matters in a heavy rounded grotesk, pale yellow with a soft glow,
+  // behind the speaker's head; the rest small and white at the chest; cuts
+  // that burst into light and come sharp, a focus pull onto a new angle.
+  suite: { hero: { fam: "Outfit", w: 800, size: 0.17, colors: ["#f1ee8c", "#e8e27a"], track: -0.02, glowSoft: true, enter: "blur" },
+           small: { fam: "Outfit", w: 500, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "Outfit", w: 500, size: 0.056, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           grade: "contrast(1.1) saturate(0.94) brightness(0.97)", warm: "", outT: 0.2, finder: true, trans: ["expo", "rack", "expo", "leak"] },
+  // Copied from the "top 1%" realtor reel (the white kitchen): the word that
+  // matters in purple serif italic capitals across the speaker, a figure in
+  // wide capitals going pink to ice blue with a glow, small white words.
+  trust: { hero: { fam: "Bodoni Moda", w: 600, italic: true, upper: true, size: 0.11, colors: ["#5a2d86", "#46256f"], track: -0.045, enter: "blur" },
+           statHero: { fam: "Outfit", w: 800, upper: true, size: 0.16, colors: ["#e46cff"], grad2: ["#e46cff", "#9ef4ff"], glowSoft: true, track: -0.01, enter: "blur" },
+           small: { fam: "Arimo", w: 400, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, size: 0.054, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           grade: "contrast(1.03) saturate(1.03) brightness(1.05)", warm: "rgba(255,200,170,0.04)", outT: 0.22, trans: ["expo", "expo", "rack", "expo"] },
+  // Copied from the bridge-and-park walk reel: the line in a bold italic
+  // grotesk, white, the words before it small and light italic overlapping
+  // its top; out of focus and into it between the walks.
+  walk: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.105, colors: ["#ffffff"], track: -0.045, enter: "blur", shade: true },
+           small: { fam: "Arimo", w: 400, italic: true, size: 0.052, colors: ["#f2f2f2"], track: -0.03, enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, italic: true, size: 0.056, colors: ["#ffffff"], track: -0.03, y: 0.58, enter: "fade", shade: true },
+           grade: "contrast(1.06) saturate(1.1) brightness(1.03)", warm: "rgba(255,190,140,0.04)", outT: 0.22, trans: ["rack", "expo", "rack", "expo"] },
+  // Copied from the content-agency reel (two speakers, many rooms): the word
+  // that matters in a bold italic grotesk going violet to pink, the rest tiny
+  // and white; a number in tall teal serif behind the speaker.
+  focus: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.13, colors: ["#b45cff"], grad2: ["#a64dff", "#ff7fd6"], track: -0.04, glowSoft: true, enter: "blur" },
+           statHero: { fam: "DM Serif Display", w: 400, size: 0.2, colors: ["#2f6a6a"], track: -0.03, enter: "blur" },
+           small: { fam: "Arimo", w: 400, size: 0.04, colors: ["#ffffff"], track: -0.02, enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, size: 0.058, colors: ["#ffffff"], track: -0.04, y: 0.58, enter: "fade", shade: true },
+           grade: "contrast(1.08) saturate(1.05) brightness(1.01)", warm: "", outT: 0.2, trans: ["expo", "zoomblur", "expo", "rack"] },
   // Copied from the Kelsie realtor reel: small light white words as they are
   // said; the word that matters in a bold lowercase grotesk, a colour taken
   // from a calm palette (stone grey, teal, wine) going lighter to the right,
@@ -10990,14 +11053,14 @@ const VS_PRO_PACKS = {
            small: { fam: "Manrope", w: 600, size: 0.055, colors: ["#ffffff", "#ffd60a"], enter: "fade", shade: true },
            single: { fam: "Manrope", w: 800, size: 0.05, colors: ["#16120a"], marker: "#ffd60a", y: 0.15, enter: "slide" },
            grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, bgfill: "dim", callColor: true,
-           trans: ["flash", "zoomblur", "leak", "zoomblur"] },
+           trans: ["expo", "zoomblur", "leak", "zoomblur"] },
   // Copied from the caption-placement tutorial reel: one or two words at a
   // time, a tight semibold grotesk in white, low in the frame; the word that
   // matters on a translucent olive-yellow pill with round ends.
   pill: { hero: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, marker: "rgba(201,180,25,0.78)", pill: true, enter: "focus", shade: true }, line: true, maxWords: 2, maxLetters: 13,
            small: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, enter: "focus", shade: true },
            single: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, y: 0.76, enter: "focus", shade: true },
-           grade: "contrast(1.05) saturate(1.02)", warm: "", trans: ["zoomblur", "leak", "zoomblur", "flash"] },
+           grade: "contrast(1.05) saturate(1.02)", warm: "", trans: ["zoomblur", "leak", "zoomblur", "expo"] },
   // Copied from the $150-edit reel: small white captions word by word at the
   // chest; the word that matters in huge condensed gold capitals; the
   // background behind the speaker washed gold or red as it lands (the speaker
@@ -11026,63 +11089,63 @@ const VS_PRO_PACKS = {
   viral: { hero: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffe600", "#3dff6e"], upper: true, stroke: 0.2, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 16,
            small: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, enter: "snap" },
            single: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, y: 0.68, enter: "snap" },
-           grade: "contrast(1.12) saturate(1.2)", warm: "", trans: ["leak", "flash", "zoomblur", "leak"] },
+           grade: "contrast(1.12) saturate(1.2)", warm: "", trans: ["leak", "expo", "zoomblur", "leak"] },
   punch: { hero: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#2bff6a", "#ffe11a"], upper: true, stroke: 0.17, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 15,
            small: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, enter: "snap" },
            single: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, y: 0.7, enter: "snap" },
-           grade: "contrast(1.08) saturate(1.06)", warm: "", trans: ["leak", "zoomblur", "flash", "leak"] },
+           grade: "contrast(1.08) saturate(1.06)", warm: "", trans: ["leak", "zoomblur", "expo", "leak"] },
   // the whole line up at once, dimmed, a coloured box running under each
   // word as it is said
   karaoke: { hero: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" }, line: true, maxWords: 4, maxLetters: 20,
            small: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" },
            single: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", y: 0.7, enter: "karaoke" },
-           grade: "contrast(1.08) saturate(1.1)", warm: "", trans: ["leak", "flash", "zoomblur", "leak"] },
+           grade: "contrast(1.08) saturate(1.1)", warm: "", trans: ["leak", "expo", "zoomblur", "leak"] },
   clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "rise" },
            small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "rise", shade: true },
            single: { fam: "Poppins", w: 700, size: 0.1, colors: ["#ffffff"], y: 0.6, enter: "rise", shade: true },
-           grade: "contrast(1.1) saturate(1.1) brightness(1.03)", warm: "rgba(255,176,96,0.07)", trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+           grade: "contrast(1.1) saturate(1.1) brightness(1.03)", warm: "rgba(255,176,96,0.07)", trans: ["zoomblur", "expo", "zoomblur", "leak"] },
   neon:  { hero: { fam: "Bebas Neue", w: 400, size: 0.21, colors: ["#38d8ff"], upper: true, glow: true, enter: "type" }, halves: true,
            small: { fam: "Sacramento", w: 400, size: 0.14, colors: ["#ffffff"], enter: "write", shade: true },
            single: { fam: "Bebas Neue", w: 400, size: 0.32, colors: ["#38d8ff"], upper: true, glow: true, y: 0.3, enter: "type" },
-           grade: "contrast(1.12) saturate(1.12)", warm: "", trans: ["leak", "zoomblur", "flash", "zoomblur"] },
+           grade: "contrast(1.12) saturate(1.12)", warm: "", trans: ["leak", "zoomblur", "expo", "zoomblur"] },
   luxe:  { hero: { fam: "Montserrat", w: 900, size: 0.25, colors: ["#c8b4e6"], texture: ["#b892f2", "#6a3fb8"], enter: "blur", shade: true },
            small: { fam: "Montserrat", w: 800, size: 0.1, colors: ["#ffffff"], enter: "blur", shade: true },
            single: { fam: "Montserrat", w: 300, size: 0.062, colors: ["#ffffff"], upper: true, track: 0.08, y: 0.62, enter: "fade", shade: true },
            stat: ["#3fb6ff", "#c2188f"],
-           grade: "contrast(1.08) saturate(1.18) brightness(1.03)", warm: "", trans: ["zoomblur", "zoomblur", "flash", "leak"] },
+           grade: "contrast(1.08) saturate(1.18) brightness(1.03)", warm: "", trans: ["zoomblur", "zoomblur", "expo", "leak"] },
   pop:   { hero: { fam: "Poppins", w: 800, size: 0.23, colors: ["#f6b400", "#1fd3ea"], enter: "pop" },
            small: { fam: "DM Serif Display", w: 400, italic: true, size: 0.145, colors: ["#ffffff", "#1fd3ea", "#f6b400"], enter: "pop", shade: true },
            single: { fam: "Poppins", w: 800, size: 0.16, colors: ["#f6b400", "#1fd3ea"], y: 0.3, enter: "pop" },
-           grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoomblur", "flash", "leak", "zoomblur"] },
+           grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoomblur", "expo", "leak", "zoomblur"] },
   // glowing condensed capitals in a colour taken from the video itself (an
   // orange shirt gives orange), a dark band at the foot, a neon line drawn
   // around the speaker at the start
   glow:  { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["auto"], upper: true, glow: true, enter: "flicker" },
            small: { fam: "Manrope", w: 800, size: 0.08, colors: ["#ffffff"], enter: "slide", shade: true },
            single: { fam: "Anton", w: 400, size: 0.19, colors: ["auto"], upper: true, glow: true, y: 0.62, enter: "flicker" },
-           grade: "contrast(1.12) saturate(1.06) brightness(0.96)", warm: "", band: true, trail: true, trans: ["flash", "zoomblur", "leak", "zoomblur"] },
+           grade: "contrast(1.12) saturate(1.06) brightness(0.96)", warm: "", band: true, trail: true, trans: ["expo", "zoomblur", "leak", "zoomblur"] },
   // metallic gold capitals with a shine across them, and a wash of colour over
   // the picture as each one lands
   gold:  { hero: { fam: "Oswald", w: 700, size: 0.25, colors: ["#f3c969"], upper: true, metal: true, enter: "shine", shade: true },
            small: { fam: "Manrope", w: 600, size: 0.072, colors: ["#ffffff"], enter: "slide", shade: true },
            single: { fam: "Oswald", w: 700, size: 0.17, colors: ["#f3c969"], upper: true, metal: true, y: 0.62, enter: "shine", shade: true },
-           grade: "contrast(1.1) saturate(1.04) sepia(0.1)", warm: "", tint: ["#b3202a", "#b8860b", "#1f4fa3"], trans: ["zoomblur", "flash", "zoomblur", "leak"] },
+           grade: "contrast(1.1) saturate(1.04) sepia(0.1)", warm: "", tint: ["#b3202a", "#b8860b", "#1f4fa3"], trans: ["zoomblur", "expo", "zoomblur", "leak"] },
   // clean captions on one line, a marker sliding in behind the word that matters
   highlight: { hero: { fam: "Manrope", w: 800, size: 0.085, colors: ["#141414"], marker: "#f7d038", enter: "slide" }, line: true,
            small: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], enter: "slide", shade: true },
            single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], y: 0.7, enter: "slide", shade: true },
-           grade: "contrast(1.06) saturate(1.04)", warm: "", paper: true, trans: ["whip", "flash", "whip", "zoomblur"] },
+           grade: "contrast(1.06) saturate(1.04)", warm: "", paper: true, trans: ["whip", "expo", "whip", "zoomblur"] },
   // words coloured by what they mean - money green, warnings red - in gradients,
   // landing with a bounce
   vivid: { hero: { fam: "Poppins", w: 800, size: 0.24, colors: ["#ffffff", "#4fa9ff"], gradFill: true, enter: "bounce" }, semantic: true,
            small: { fam: "Poppins", w: 700, size: 0.075, colors: ["#ffffff"], enter: "blur", shade: true },
            single: { fam: "Poppins", w: 800, size: 0.15, colors: ["#ffffff", "#4fa9ff"], gradFill: true, y: 0.6, enter: "bounce" },
-           grade: "contrast(1.1) saturate(1.15)", warm: "", trans: ["zoomblur", "whip", "flash", "zoomblur"] },
+           grade: "contrast(1.1) saturate(1.15)", warm: "", trans: ["zoomblur", "whip", "expo", "zoomblur"] },
   // black and white, a serif, and one word in colour
   editorial: { hero: { fam: "DM Serif Display", w: 400, italic: true, size: 0.15, colors: ["#c43b4c", "#8e44ad"], enter: "glitch" },
            small: { fam: "DM Serif Display", w: 400, size: 0.075, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "DM Serif Display", w: 400, size: 0.085, colors: ["#ffffff"], y: 0.62, enter: "fade", shade: true },
-           grade: "grayscale(1) contrast(1.18) brightness(1.04)", warm: "", paper: true, trans: ["flash", "zoomblur", "flash", "zoomblur"] },
+           grade: "grayscale(1) contrast(1.18) brightness(1.04)", warm: "", paper: true, trans: ["expo", "zoomblur", "expo", "zoomblur"] },
 };
 // The accent a look draws from the video itself ("auto"), set as an edit is made.
 function vsProAccent() { return vstudio._proAccent || "#ffb21a"; }
@@ -11134,7 +11197,8 @@ function vsProLoadFonts() {
     }
     const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '700 40px "Montserrat"', '600 40px "Montserrat"', '300 40px "Montserrat"',
       '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
-      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"', '400 40px "Archivo Black"'];
+      '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"', '400 40px "Archivo Black"',
+      '800 40px "Outfit"', '500 40px "Outfit"', '400 40px "Arimo"', 'italic 400 40px "Arimo"', 'italic 700 40px "Arimo"', 'italic 600 40px "Bodoni Moda"'];
     try { await Promise.race([Promise.all(faces.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 6000))]); } catch (e) {}
   })();
   return vsProFontsP;
@@ -11210,6 +11274,7 @@ function vsProGroups(s) {
 // overlapping the hero's edge, set against the hero's left or right side.
 function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
   if (g._lay && g._lay.W === W && g._lay.H === H) return g._lay;
+  if (g.stat && pack.statHero) pack = Object.assign({}, pack, { hero: pack.statHero });
   const U = Math.min(W, H * 0.62);
   const n = g.items.length, h = g.hero;
   const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
@@ -11535,7 +11600,8 @@ function vsProFace(F, W, H, mask) {
       // the biggest face is the speaker's; widened for hair and a turn of the head
       const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
       const k = k0, x = b.originX * k, y = b.originY * k, w = b.width * k, h = b.height * k;
-      return { x: x - w * 0.22, y: y - h * 0.38, w: w * 1.44, h: h * 1.58 };
+      // down past the chin: in a close shot a word under the box sat on the jaw
+      return { x: x - w * 0.22, y: y - h * 0.38, w: w * 1.44, h: h * 1.85 };
     }
     // only drop through when nothing was found
   }
@@ -11605,6 +11671,10 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     // polished gold: light, a dark band through the middle, light again
     const gr = ctx.createLinearGradient(0, wd.y - px * 0.45, 0, wd.y + px * 0.4);
     [[0, "#fff6d0"], [0.3, "#f6cf6a"], [0.52, "#b9842a"], [0.57, "#7d5210"], [0.78, "#f1c95b"], [1, "#fff0b0"]].forEach(([o, c]) => gr.addColorStop(o, c));
+    fill = gr;
+  } else if (st.grad2) {
+    const gr = ctx.createLinearGradient(wd.x, 0, wd.x + wd.w, 0);
+    gr.addColorStop(0, st.grad2[0]); gr.addColorStop(1, st.grad2[1]);
     fill = gr;
   } else if (st.hgrad && typeof fill === "string") {
     const gr = ctx.createLinearGradient(wd.x, 0, wd.x + wd.w, 0);
@@ -13531,6 +13601,64 @@ function vsProTrail(ctx, W, H, t, face, mask, behindPass) {
   ctx.restore();
 }
 
+// The camera of the reels, out of one fixed shot: every cut a new angle -
+// wide, medium on the chest, close on the face - framed on the speaker's own
+// face (found once per clip), then held the way a gimbal holds it: landing
+// softly, a slow push, a slight drift across.
+function vsProFaceN(s, media) {
+  if (s._faceN || s._faceN === false) return s._faceN || null;
+  const det = vstudio._proFaceDet;
+  if (!det) {
+    if (!vstudio._proFaceLoading) { vstudio._proFaceLoading = true; vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => { vstudio._proFaceLoading = false; }); }
+    return null;
+  }
+  const mw = media && (media.videoWidth || media.naturalWidth), mh = media && (media.videoHeight || media.naturalHeight);
+  if (!mw || !mh || (media.readyState != null && media.readyState < 2)) return null;
+  const c = vstudio._camC || (vstudio._camC = document.createElement("canvas"));
+  for (const cw of [480, 960]) {
+    const ch = Math.round((cw * mh) / mw);
+    if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+    let r = null;
+    try { c.getContext("2d").drawImage(media, 0, 0, cw, ch); r = det.detect(c); } catch (e) { return null; }
+    const ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+    if (ds.length) {
+      const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
+      s._faceN = { x: (b.originX + b.width / 2) / cw, y: (b.originY + b.height / 2) / ch, h: b.height / ch };
+      return s._faceN;
+    }
+  }
+  s._faceN = false;
+  return null;
+}
+function vsProCam(s, media, W, H, local, dur) {
+  const mw = (media && (media.videoWidth || media.naturalWidth)) || W, mh = (media && (media.videoHeight || media.naturalHeight)) || H;
+  const c = Math.max(W / mw, H / mh);
+  // never blown up past what the footage holds
+  const zCap = Math.max(1, Math.max(1.6, c * 1.15) / c);
+  let f = vsProFaceN(s, media);
+  // a clip where no face was found takes the last one of the same footage
+  if (f) vstudio._camFace = { f, src: s.url }; else if (vstudio._camFace && vstudio._camFace.src === s.url) f = vstudio._camFace.f;
+  const shot = s._shot;
+  let z = 1;
+  if (f) {
+    const fh = (f.h * mh * c) / H;   // the face's height in the frame, wide
+    const zm = Math.max(1.12, 0.16 / fh);
+    z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? zm : 1;
+  } else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
+  z = Math.min(zCap, z);
+  const q = dur > 0 ? Math.max(0, Math.min(1, local / dur)) : 0;
+  const land = 1 - Math.pow(1 - Math.min(1, local / 0.55), 3);
+  const push = (1 + (shot === "close" ? 0.03 : 0.05) * q) * (1 + 0.025 * (1 - land));
+  const dx = (s._camDir || 1) * 0.014 * (q - 0.5);
+  let fx = s._focusX != null ? s._focusX : 0.5, fy = null;
+  if (f) {
+    fx = f.x;
+    const place = shot === "close" ? 0.4 : shot === "medium" ? 0.36 : null;
+    if (place != null) fy = f.y + ((0.5 - place) * H) / (mh * c * z * push);
+  }
+  return { z, push, fx, fy, dx, f, mw, mh, c };
+}
+
 // The whole pro frame: graded picture, camera, words in front of and behind
 // the speaker, light.
 function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
@@ -13546,8 +13674,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   // the hero's moment still times the Gold look's colour wash
   const heroT = g && !g.single ? g.items[g.hero].t0 : -9;
   const userZ = Math.max(0.5, Math.min(3, Number(off && off.mediaScale) || 1));
-  const baseZ = s._broll ? 1 : (s._proZ || 1);
-  const z = baseZ * (1 + (s._photoStory ? 0.13 : 0.05) * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
+  const cam = s._shot && !s._broll && !s._photoStory && media ? vsProCam(s, media, W, H, local, dur) : null;
+  const baseZ = cam ? cam.z : s._broll ? 1 : (s._proZ || 1);
+  const z = baseZ * (cam ? cam.push : 1 + (s._photoStory ? 0.13 : 0.05) * (dur > 0 ? local / dur : 0)) * (1 + 0.035 * kick) * userZ;
   const shake = kick > 0.05 ? W * 0.006 * kick : 0;
   const sxo = shake * Math.sin(local * 91), syo = shake * Math.cos(local * 77);
   const F = vstudio._proF || (vstudio._proF = document.createElement("canvas"));
@@ -13558,9 +13687,18 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   fx.fillStyle = "#000"; fx.fillRect(0, 0, W, H);
   const gradeF = s._bw ? "grayscale(1) contrast(1.3) brightness(1.06)" : pack.grade;
   try { fx.filter = gradeF; } catch (e) {}
-  const focusX = s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
-  const drift = s._photoStory && dur > 0 ? (idx % 2 ? 1 : -1) * 0.08 * (local / dur - 0.5) : 0;
-  vsDrawFramed(fx, media, 0, 0, W, H, s, z, focusX, (Number(off && off.mediaDX) || 0) + drift, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
+  const focusX = cam ? cam.fx : s._broll ? 0.5 : (s._focusX != null ? s._focusX : 0.5);
+  const drift = cam ? cam.dx : s._photoStory && dur > 0 ? (idx % 2 ? 1 : -1) * 0.08 * (local / dur - 0.5) : 0;
+  const sF = cam && cam.fy != null ? Object.assign(Object.create(s), { _focusY: cam.fy }) : s;
+  vsDrawFramed(fx, media, 0, 0, W, H, sF, z, focusX, (Number(off && off.mediaDX) || 0) + drift, Number(off && off.mediaDY) || 0, false);   // full bleed, like the reels
+  // where the face now stands in the frame (the viewfinder corners use it)
+  if (cam && cam.f) {
+    const dw = cam.mw * cam.c * z, dh = cam.mh * cam.c * z, fyy = cam.fy != null ? cam.fy : (cam.mh / cam.mw > H / W ? 0.32 : 0.5);
+    const mxX = Math.max(0, (dw - W) / 2), mxY = Math.max(0, (dh - H) / 2);
+    const ox = Math.max(-mxX, Math.min(mxX, -(cam.fx - 0.5) * dw + ((Number(off && off.mediaDX) || 0) + drift) * W));
+    const oy = Math.max(-mxY, Math.min(mxY, -(fyy - 0.5) * dh + (Number(off && off.mediaDY) || 0) * H));
+    s._faceScr = { x: (W - dw) / 2 + ox + cam.f.x * dw, y: (H - dh) / 2 + oy + cam.f.y * dh, h: cam.f.h * dh };
+  } else s._faceScr = null;
   fx.filter = "none";
   if (pack.warm && !s._bw) { fx.globalCompositeOperation = "soft-light"; fx.fillStyle = pack.warm; fx.fillRect(0, 0, W, H); fx.globalCompositeOperation = "source-over"; }
   // the Gold look washes the picture in a colour as a key word lands
@@ -13949,7 +14087,12 @@ function vsProSfxEvents(slides) {
   (slides || []).forEach((sl, i) => {
     const d = Number(sl.duration) || 4;
     if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "riser", t: t + 0.32, g: 0.5 }); }
-    if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
+    // a whoosh peaking on the burst with a low hit under it; a soft rise into
+    // a focus pull; a light swish on a plain cut that punches in close
+    if (sl._transIn === "expo") { ev.push({ n: pick("cut"), t: t + 0.07, g: 0.8 }); ev.push({ n: "impact", t: t + 0.04, g: 0.3 }); }
+    else if (sl._transIn === "rack") ev.push({ n: "riser", t: t + 0.32, g: 0.45 });
+    else if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
+    else if (i > 0 && sl._shot === "close" && !sl._broll) ev.push({ n: "whoosh", t: t + 0.03, g: 0.3 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
     (sl._calls || []).forEach((c) => { ev.push({ n: pick("land"), t: t + c.at + 0.1, g: 0.45 }); if (c.kind === "map") ev.push({ n: "sparkle", t: t + c.at + 0.9, g: 0.3 }); });
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
@@ -16512,6 +16655,10 @@ function vsEditStudio(preset, filesIn) {
   ov.id = "emOv";
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-suite", L("Lake office", "دفتر رو به دریاچه"), L("From the Utah realtor reel · the key word in pale glowing yellow behind you, small white words, cuts that burst into light, a new camera angle on every cut", "از ریلز مشاور یوتا · کلمهٔ اصلی زرد کم‌رنگ درخشان پشت سرت، کلمات ریز سفید، کات‌هایی که در نور باز می‌شوند، هر کات یک زاویهٔ تازه")],
+    ["pro-trust", L("Purple serif", "سریف بنفش"), L("From the top-1% realtor reel · the key word in purple serif italic capitals, figures glowing pink to blue, bright cuts", "از ریلز مشاور یک درصد برتر · کلمهٔ اصلی با حروف سریف ایتالیک بنفش، عددها درخشان صورتی تا آبی، کات‌های روشن")],
+    ["pro-walk", L("Walk & talk", "قدم و گفتگو"), L("From the bridge walk reel · bold white italic lines, light italic words over them, focus pulls between shots", "از ریلز قدم‌زدن روی پل · خطوط سفید ایتالیک پررنگ، کلمات ایتالیک نازک رویشان، فوکوس‌کشی بین نماها")],
+    ["pro-focus", L("Creator", "کریتور"), L("From the content-agency reel · the key word in violet-to-pink bold italic, tiny white words, figures in a tall teal serif", "از ریلز آژانس محتوا · کلمهٔ اصلی ایتالیک پررنگ بنفش تا صورتی، کلمات ریز سفید، عددها با سریف بلند سبزآبی")],
     ["pro-podcast", L("Podcast clip", "کلیپ پادکست"), L("From the mic and interview reels · plain bold white words, wide and close jump cuts, the topic in a white box", "از ریلزهای پادکست و مصاحبه · کلمات سفید پررنگ ساده، کات بین نمای باز و بسته، موضوع در کادر سفید")],
     ["pro-vlog", L("Film vlog", "ولاگ فیلمی"), L("From the Seattle realtor vlog · small white words, a filmic grade, whip pans", "از ولاگ مشاور سیاتل · کلمات کوچک سفید، رنگ فیلمی، ویپ پن")],
     ["pro-reveal", L("Caps reveal", "حروف بزرگ تدریجی"), L("From the new-listing reel · small spaced capitals, each word turning white as it is said", "از ریلز ملک جدید · حروف بزرگ کوچک با فاصله، هر کلمه موقع گفتن سفید می‌شود")],
@@ -19085,8 +19232,15 @@ async function vsEditMyVideo(fileIn, o) {
       vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
       vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
       vstudio._proHook = String(vstudio._editTitle || "").trim();
+      // a new camera angle on every cut, never the same one twice running
+      const SHOTS = ["close", "wide", "medium", "close", "medium", "wide"];
+      let sk = 0;
+      try { vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => {}); } catch (e) {}
+      vstudio._camFace = null;
       vstudio.slides.forEach((sl, i) => {
-        sl._pro = pro; sl._noCaps = true; sl._proZ = pk.altZoom ? pk.altZoom[i % pk.altZoom.length] : i % 2 ? 1.06 : 1;
+        sl._pro = pro; sl._noCaps = true; sl._proZ = 1; delete sl._faceN;
+        sl._shot = sl._broll ? "" : i === 0 ? "medium" : SHOTS[sk++ % SHOTS.length];
+        sl._camDir = i % 2 ? -1 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
         if (i === 0 || !o.trans) { delete sl._transIn; return; }
         if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
