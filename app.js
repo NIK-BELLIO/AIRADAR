@@ -14047,6 +14047,7 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
   ["silver", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#7a2a9a", "#4a4a4a", "#111111"],
+  ["stoic", 0, "#d4d4d2", "#f1f1ef", "#151515", "#8a8a87", "#7b2fbf", "#111111", "#5a5a5a"],
   ["silverwine", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#8e1f3a", "#4a4a4a", "#111111"],
   ["steel", 0, "#ece9e1", "#fbfaf6", "#56708f", "#a3aebb", "#7fa9d8", "#26364b", "#c9d6e6"],
   ["steelrust", 0, "#ece9e1", "#fbfaf6", "#3f5266", "#a3aebb", "#c8743c", "#26364b", "#e6d3c3"],
@@ -14110,6 +14111,7 @@ const VS_GX_PALETTES = [
 // [id, display face, weight, capitals, body face, weight, italic display]
 const VS_GX_FONTS = [
   ["editorial", "Archivo", 800, 0, "Libre Caslon Text", 400],
+  ["clean", "Manrope", 800, 0, "Manrope", 500],
   ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
   ["archivo", "Archivo", 800, 0, "Archivo", 500],
   ["grotesk", "Space Grotesk", 700, 0, "Manrope", 500],
@@ -14149,6 +14151,22 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 const VS_GX_CATS = { explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Copied from the Marcus Aurelius After Effects reel: a pale card on grey
+  // under leaf shadows; a small book serif leading into the key word, every
+  // word sharpening out of a blur one after another, the key word in purple or
+  // on a black bar; a huge faint word behind; a heavy black arrow in the
+  // corner, fine curves crossing, paper shards drifting; pictures black and
+  // white on a dot grid, a dashed ring turning round them.
+  { id: "stoic", n: ["Stoic editorial", "ادیتوریال رواقی"], cat: "elegant", pals: ["stoic"], fonts: ["editorial"],
+    el: ["3d", "hc"], bg: "window", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "stoic", fr: "none", cp: "plain", kd: "invert", tr: ["zoom", "zoomblur"],
+    of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2) sepia(0.25) hue-rotate(220deg) saturate(1.3)" },
+  // Copied from the McLaren After Effects reel: a white sheet on cream, a
+  // light grey sans with the words that matter in bold steel blue, each word
+  // sharpening in; pictures on a dot grid; a fine curve and a soft blue ribbon
+  // sweeping across; a barcode and fine print.
+  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "clean", pals: ["steel", "steelrust"], fonts: ["clean"],
+    el: ["3d", "color"], bg: "poster", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "number", de: "curves", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
+    of: "saturate(0.55) contrast(1.05)", pf: "saturate(0.6) contrast(1.05)" },
   // Copied from the After Effects "Godfather" / "Peaky Blinders" reels: a
   // white card standing on a pale grey ground crossed by window light, black
   // and white pictures, a small book serif leading into the key word in a
@@ -14778,6 +14796,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
   // background; the ambient layer; then the content, drifting a little
   ctx.save();
   ctx.drawImage(vsGxTexture(tk, W, H), 0, 0);
+  tk._scWord = String(sc.title || sc.value || sc.kicker || "").trim().split(/\s+/).sort((a2, b2) => b2.length - a2.length)[0] || "";
   vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd);
   const push = dur > 6.5 ? 0.07 * mv.e((t - dur * 0.5) / 1.1) : 0;
   const drift = 1 + 0.025 * Math.min(1, t / Math.max(1, dur)) + push;
@@ -14817,6 +14836,50 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     if (!str) return { h: 0, boxes: [], px };
     const tt = o.tt || st.tt, hand = tt === "hand" || tt === "chalk";
     const ws0 = String(str).trim().split(/\s+/);
+    if (tt === "blurword") {
+      // the reels' word reveal: each word sharpens out of a sideways blur in
+      // turn - a lead in the small body face, the last word big in the
+      // display face, in the accent (or white on a black bar)
+      const words = String(str).trim().split(/\s+/), keyW = words.length > 1 ? words.pop() : words.pop();
+      const lead = words.join(" ");
+      const leadPx = px * 0.42, keyPx = px * (lead ? 1.05 : 1);
+      const ly = lead ? y - keyPx * 0.6 : y, ky = lead ? y + keyPx * 0.22 : y;
+      const drawWords = (txt, f, fpx, yy, t1, color, isKey) => {
+        if (!txt) return { boxes: [], h: 0, px: fpx };
+        const w0 = wrap(isKey && disp.upper ? String(txt).toUpperCase() : txt, f, fpx, maxW, 2); fpx = w0.px;
+        ctx.font = font(f, fpx);
+        const lh = fpx * 1.08, y0 = yy - ((w0.lines.length - 1) * lh) / 2, boxes = [];
+        let k = 0;
+        w0.lines.forEach((ln, li) => {
+          const lw = ctx.measureText(ln).width, x0 = align === "center" ? x - lw / 2 : align === "right" ? x - lw : x;
+          let xx = x0;
+          const by = y0 + li * lh;
+          boxes.push({ x: x0, y: by, w: lw, h: fpx, ln });
+          ln.split(" ").forEach((wd) => {
+            const ww = ctx.measureText(wd).width, q = Math.max(0, Math.min(1, (t - t1 - k * 0.09) / 0.28)), e = 1 - Math.pow(1 - q, 3);
+            k++;
+            if (q > 0) {
+              ctx.save(); ctx.font = font(f, fpx); ctx.textBaseline = "middle"; ctx.textAlign = "left";
+              if (isKey && st.kd === "invert" && keyW.length % 2 === 0) {
+                const pad = fpx * 0.12, bw = (ww + pad * 2) * e;
+                ctx.fillStyle = ink; ctx.fillRect(xx - pad, by - fpx * 0.6, bw, fpx * 1.18);
+                ctx.fillStyle = tk.paper;
+              } else ctx.fillStyle = color;
+              ctx.globalAlpha = Math.min(1, q * 1.8);
+              try { if (e < 1) ctx.filter = "blur(" + ((1 - e) * fpx * 0.12).toFixed(1) + "px)"; } catch (er) {}
+              ctx.fillText(wd, xx + (1 - e) * fpx * 0.35, by);
+              ctx.restore();
+            }
+            xx += ww + ctx.measureText(" ").width;
+          });
+        });
+        return { boxes, h: w0.lines.length * lh, px: fpx };
+      };
+      const lr = drawWords(lead, body, leadPx, ly, t0, ink, false);
+      const keyCol = st.kd === "invert" && keyW.length % 2 === 0 ? ink : acc;
+      const kr = drawWords(keyW, disp, keyPx, ky, t0 + (lead ? 0.12 + words.length * 0.09 : 0), keyCol, true);
+      return { h: lr.h + kr.h, boxes: lr.boxes.concat(kr.boxes), px: kr.px };
+    }
     if (tt === "select" && !o.whole && ws0.length > 1) {
       // as in the editorial reels: "He never raised his" small in the serif,
       // then "voice" big in the grotesk, in its selection box
@@ -15067,6 +15130,23 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         [x0, x0 + bs].forEach((xx) => { ctx.beginPath(); ctx.moveTo(xx, y0 + bs + size * 0.035); ctx.lineTo(xx, y0 + bs + size * 0.085); ctx.stroke(); });
       }
       ctx.globalAlpha = fade; const [w, h] = fit(0.62); ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+    } else if (ef === "grid") {
+      // the reels' picture: a soft dot grid behind it, a long drop shadow,
+      // and round every other one a dashed ring turning slowly with crop marks
+      const gs = size * 1.1, n = 9, gap = gs / (n - 1);
+      ctx.globalAlpha = fade * 0.5; ctx.fillStyle = tk.muted;
+      for (let a = 0; a < n; a++) for (let b2 = 0; b2 < n; b2++) { const dx = -gs / 2 + a * gap, dy = -gs / 2 + b2 * gap; if (Math.hypot(dx, dy) > gs * 0.62) continue; ctx.fillRect(cx + dx - 1, cy + dy - 1, Math.max(1.5, U * 0.0028), Math.max(1.5, U * 0.0028)); }
+      if (i % 2 === 1) {
+        ctx.save(); ctx.globalAlpha = fade * 0.75; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, U * 0.004);
+        ctx.setLineDash([U * 0.012, U * 0.01]); ctx.translate(cx, cy); ctx.rotate(t * 0.6);
+        ctx.beginPath(); ctx.arc(0, 0, size * 0.58, 0, Math.PI * 1.55 * Math.min(1, p)); ctx.stroke(); ctx.restore();
+        const L = size * 0.12, b = size * 0.78;
+        ctx.globalAlpha = fade * 0.55; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, U * 0.0025);
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { const xx = cx + sx * b, yy = cy + sy * b; ctx.beginPath(); ctx.moveTo(xx - sx * L, yy); ctx.lineTo(xx, yy); ctx.lineTo(xx, yy - sy * L); ctx.stroke(); });
+      }
+      ctx.globalAlpha = fade; ctx.translate(cx, cy + bob); ctx.rotate(Math.sin(t * 0.9 + i) * 0.025);
+      ctx.shadowColor = "rgba(0,0,0,0.32)"; ctx.shadowBlur = size * 0.1; ctx.shadowOffsetX = size * 0.04; ctx.shadowOffsetY = size * 0.06;
+      const [w, h] = fit(0.82); ctx.drawImage(img, -w / 2, -h / 2, w, h);
     } else if (ef === "chalk" || ef === "doodle" || ef === "sketch") {
       ring(cx, cy, s * 0.55, s * 0.5, ef === "chalk" ? ink : ef === "sketch" ? ink : tk.a2, t0 + 0.1, size * 0.014);
       if (ef === "sketch") ring(cx + size * 0.02, cy - size * 0.02, s * 0.58, s * 0.52, ink, t0 + 0.25, size * 0.008);
@@ -15159,7 +15239,8 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       if (r.boxes.length && (st.tt === "plain" || st.tt === "glow" || st.tt === "swiss" || st.tt === "serif" || st.tt === "label")) { const b = r.boxes[r.boxes.length - 1]; bar(left ? b.x : b.x, b.y + r.px * 0.64, left ? U * 0.2 : b.w, U * (st.tt === "serif" ? 0.004 : 0.014), acc, 0.35); }
       if (sc.kicker) {
         const ky = (r.boxes[0] ? r.boxes[0].y : ty0) - r.px * 0.62 - U * 0.08;
-        if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif") text(sc.kicker.toUpperCase(), body, U * 0.04, tx, ky, mw, al, st.tt === "label" ? tk.muted : acc, 0.05, { maxLines: 1 });
+        if (st.tt === "blurword") text(sc.kicker, Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
+        else if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif") text(sc.kicker.toUpperCase(), body, U * 0.04, tx, ky, mw, al, st.tt === "label" ? tk.muted : acc, 0.05, { maxLines: 1 });
         else if (left) { ctx.save(); ctx.font = font(body, U * 0.042); const kw = ctx.measureText(sc.kicker).width + U * 0.042 * 1.6; ctx.restore(); pill(sc.kicker, tx + kw / 2, ky, acc, on(acc), 0.05); }
         else pill(sc.kicker, W / 2, ky, acc, on(acc), 0.05);
       }
@@ -15484,6 +15565,50 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
       const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, cols[i % 3] + "38"); g.addColorStop(1, cols[i % 3] + "00");
       ctx.globalAlpha = ap; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     });
+  } else if (de === "stoic" || de === "curves") {
+    const sm2 = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+    if (de === "stoic" && tk._scWord) {
+      // a huge faint word behind everything, drifting
+      ctx.save(); ctx.globalAlpha = 0.07 * ap; ctx.fillStyle = tk.ink;
+      ctx.font = vsGxFont(tk.disp, U * 0.32); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(tk._scWord.toUpperCase().slice(0, 9), W / 2 + Math.sin(t * 0.2) * U * 0.02, H * 0.2);
+      ctx.restore();
+    }
+    // fine curves sweeping across, drawn on
+    ctx.save(); ctx.strokeStyle = tk.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(1, U * 0.002);
+    [[-0.1, 0.42, 0.55, 0.15, 1.1, 0.55], [-0.05, 0.95, 0.35, 0.7, 0.75, 1.1]].forEach(([x0, y0, cxp, cyp, x1, y1], k) => {
+      const q = sm2(t / 1.2 - k * 0.3); if (q <= 0) return;
+      ctx.beginPath(); ctx.setLineDash([W * 2 * q, W * 2]);
+      ctx.moveTo(W * x0, H * y0); ctx.quadraticCurveTo(W * cxp, H * cyp, W * x1, H * y1); ctx.stroke();
+    });
+    ctx.setLineDash([]); ctx.restore();
+    if (de === "curves") {
+      // a soft ribbon in the accent sweeping across the lower part
+      const q = sm2((t - 0.3) / 1.0);
+      if (q > 0) {
+        ctx.save(); ctx.globalAlpha = 0.38 * q; ctx.strokeStyle = tk.a1; ctx.lineCap = "round"; ctx.lineWidth = U * 0.05;
+        ctx.beginPath(); ctx.setLineDash([W * 2 * q, W * 2]); ctx.moveTo(W * 0.02, H * 0.62); ctx.bezierCurveTo(W * 0.35, H * 0.58, W * 0.6, H * 0.8, W * 1.02, H * 0.86); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    if (de === "stoic") {
+      // the heavy black arrow coming into the top corner, motion-blurred on its way
+      const q = sm2(t / 0.5), ax = W * 0.1 + (1 - q) * -W * 0.12, ay = H * 0.1 + (1 - q) * -H * 0.06, L = U * 0.17, th = U * 0.045;
+      ctx.save(); ctx.globalAlpha = q; try { if (q < 1) ctx.filter = "blur(" + ((1 - q) * U * 0.02).toFixed(1) + "px)"; } catch (er) {}
+      ctx.fillStyle = "#111111"; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = U * 0.03; ctx.shadowOffsetY = U * 0.01;
+      ctx.translate(ax, ay);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(L, 0); ctx.lineTo(L, th); ctx.lineTo(th, th); ctx.lineTo(th, L); ctx.lineTo(0, L); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      // paper shards drifting and turning
+      for (let k = 0; k < 4; k++) {
+        const sx = W * [0.08, 0.86, 0.18, 0.78][k], sy = H * [0.55, 0.28, 0.82, 0.7][k] - t * U * 0.012 * (k % 2 ? 1 : 0.6);
+        const z = U * [0.06, 0.04, 0.05, 0.035][k];
+        ctx.save(); ctx.globalAlpha = 0.35 * ap; ctx.fillStyle = k % 2 ? "#9a9a98" : "#6f6f6d";
+        ctx.translate(sx, sy); ctx.rotate(t * (0.3 + k * 0.1) + k);
+        ctx.beginPath(); ctx.moveTo(-z, -z * 0.6); ctx.lineTo(z * 0.8, -z * 0.9); ctx.lineTo(z, z * 0.5); ctx.lineTo(-z * 0.5, z * 0.8); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
   } else if (de === "plus") {
     ctx.strokeStyle = tk.ink; ctx.lineWidth = Math.max(1, U * 0.003); ctx.globalAlpha = ap * 0.45;
     spots.concat([[0.5, 0.04], [0.5, 0.96]]).forEach(([fx, fy], i) => {
