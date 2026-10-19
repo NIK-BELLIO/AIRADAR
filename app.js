@@ -14049,6 +14049,7 @@ const VS_GX_PALETTES = [
   ["silver", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#7a2a9a", "#4a4a4a", "#111111"],
   ["stoic", 0, "#d4d4d2", "#f1f1ef", "#151515", "#8a8a87", "#7b2fbf", "#111111", "#5a5a5a"],
   ["pastel", 0, "#f3f4f6", "#ffffff", "#1c1d22", "#9aa0a8", "#111214", "#33dcf0", "#9b5cf0"],
+  ["doc", 1, "#1a1c20", "#f4f1ea", "#ffffff", "#9aa0a8", "#d8232f", "#f6d330", "#3fbf4a"],
   ["silverwine", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#8e1f3a", "#4a4a4a", "#111111"],
   ["steel", 0, "#ece9e1", "#fbfaf6", "#56708f", "#a3aebb", "#7fa9d8", "#26364b", "#c9d6e6"],
   ["steelrust", 0, "#ece9e1", "#fbfaf6", "#3f5266", "#a3aebb", "#c8743c", "#26364b", "#e6d3c3"],
@@ -14152,6 +14153,15 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 const VS_GX_CATS = { explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Copied from the Semmelweis documentary reel: every scene a full-bleed
+  // photograph (an AI picture of what is said, or the user's own), slowly
+  // pushed in, the words swiping in heavy and blurred; a name on a torn paper
+  // strip; a quote as a newspaper on a red cutting mat with a yellow
+  // highlighter; a point on a clipboard on a wooden desk with the key word in
+  // red; numbers on a chalkboard; a single word in italic serif under a
+  // spotlight.
+  { id: "documentary", n: ["Documentary", "مستند"], cat: "news", pals: ["doc"], fonts: ["archivoblack"], doc: true, aiImg: true,
+    el: ["3d", "color"], bg: "flat", al: "c", tt: "plain", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "none", cp: "plain", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the SFX-pack reel: a pastel sky of pink clouds over soft
   // green hills fading to white; glossy 3D objects popping in on a cyan glow
   // and floating; dark bold words sharpening out of a blur; labels in black
@@ -14354,6 +14364,25 @@ function vsGxImage(url) {
     im.src = url;
   }));
   return vsGxImgCache.get(url);
+}
+// A photograph made for a scene by the free image model (through our worker),
+// waited on longer than a library picture - the model can take half a minute.
+const vsGxAiCache = new Map();
+function vsGxAiImage(what) {
+  what = String(what || "").trim();
+  if (!what) return Promise.resolve(null);
+  if (!vsGxAiCache.has(what)) vsGxAiCache.set(what, (async () => {
+    try {
+      const prompt = what + ", cinematic documentary photograph, realistic, dramatic natural light, rich colour, shallow depth of field, vertical composition, no text";
+      const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
+      const r = await fetch(VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=768&h=1024&flux=1", { headers: await arGuestHeaders(), signal: ctrl.signal });
+      clearTimeout(tm);
+      if (!r.ok) return null;
+      const u = URL.createObjectURL(await r.blob());
+      return await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = u; });
+    } catch (e) { return null; }
+  })());
+  return vsGxAiCache.get(what);
 }
 async function vsGx3D(query) {
   try { const list = await vsGxIndex("3d"); const e = vsGxMatch(list, query, 2); return e ? await vsGxImage(VS_GX_FLUENT + e[1].split("/").map(encodeURIComponent).join("/")) : null; } catch (e) { return null; }
@@ -14782,8 +14811,13 @@ async function vsGxResolve(sc, tk) {
     try { a.world = await vsGxWorld(); a.hits = vsGxCountries(a.world, sc.countries); } catch (e) {}
     if (!a.hits.length) sc.type = "keyword";
   }
+  // the documentary look: a photograph behind every scene that says something
+  if (tk.st && tk.st.aiImg && ["title", "keyword", "photo", "objects", "stat"].includes(sc.type)) {
+    a.bg = sc._userImg || await vsGxAiImage(String(sc.photo || (sc.objects || []).join(", ") || sc.title || "").slice(0, 120));
+    if (a.bg && sc.type === "photo") sc.type = "keyword";
+  }
   // the user's own photo for this scene: it is the photo, or the first picture
-  if (sc._userImg) {
+  if (sc._userImg && !(tk.st && tk.st.aiImg)) {
     if (sc.type === "photo") a.photo = sc._userImg;
     else if (["title", "keyword", "objects", "stat", "compare"].includes(sc.type)) a.objs = [sc._userImg].concat(a.objs.filter(Boolean)).slice(0, 2);
   }
@@ -15287,9 +15321,165 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     ctx.beginPath(); ctx.arc(cx, cy, r * (0.7 + 0.3 * Math.min(1, pg)), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   };
 
+  // ── the documentary look: its own scenes ──
+  const docScene = () => {
+    const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+    // heavy capitals swiping in from the right, smeared, settling
+    const swipe = (str, y, px, t0, colors) => {
+      const words = String(str || "").toUpperCase().split(/\s+/).filter(Boolean);
+      ctx.font = font(disp, px);
+      const lines = vsGxWrap(ctx, words.join(" "), W * 0.86).slice(0, 3);
+      lines.forEach((ln, li) => {
+        const lw = ctx.measureText(ln).width, q = sm((t - t0 - li * 0.12) / 0.45), e = 1 - Math.pow(1 - q, 3);
+        if (q <= 0) return;
+        const yy = y + (li - (lines.length - 1) / 2) * px * 1.05, x0 = W / 2 - lw / 2 + (1 - e) * W * 0.5;
+        ctx.save(); ctx.font = font(disp, px); ctx.textBaseline = "middle"; ctx.textAlign = "left";
+        const col = colors ? colors[li % colors.length] : "#ffffff";
+        if (e < 0.98) for (let k = 1; k <= 5; k++) { ctx.globalAlpha = 0.12 * (1 - e); ctx.fillStyle = col; ctx.fillText(ln, x0 + k * px * 0.35 * (1 - e), yy); }
+        ctx.globalAlpha = Math.min(1, q * 2);
+        try { if (e < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.12).toFixed(1) + "px)"; } catch (er) {}
+        ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = px * 0.25; ctx.shadowOffsetY = px * 0.05;
+        ctx.fillStyle = col; ctx.fillText(ln, x0, yy);
+        ctx.restore();
+      });
+    };
+    const wood = () => {
+      const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#8a4a26"); g.addColorStop(0.5, "#a85c30"); g.addColorStop(1, "#6f3a1d");
+      ctx.fillStyle = g; ctx.fillRect(-W, -H, W * 3, H * 3);
+      ctx.globalAlpha = 0.18; ctx.strokeStyle = "#3a1d0c"; ctx.lineWidth = Math.max(1, U * 0.003);
+      for (let k = 0; k < 40; k++) { const y0 = (k / 40) * H * 1.2 - H * 0.1; ctx.beginPath(); ctx.moveTo(0, y0); ctx.bezierCurveTo(W * 0.3, y0 + Math.sin(k) * U * 0.03, W * 0.7, y0 - Math.cos(k * 1.3) * U * 0.03, W, y0 + Math.sin(k * 0.7) * U * 0.02); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      const v = ctx.createRadialGradient(W * 0.6, H * 0.3, U * 0.1, W / 2, H / 2, Math.max(W, H) * 0.8); v.addColorStop(0, "rgba(255,220,170,0.25)"); v.addColorStop(1, "rgba(0,0,0,0.45)");
+      ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    };
+    const pushIn = (im) => {
+      const z = 1.04 + 0.08 * Math.min(1, t / Math.max(1, dur)), k = Math.max(W / im.naturalWidth, H / im.naturalHeight) * z;
+      const dw = im.naturalWidth * k, dh = im.naturalHeight * k;
+      ctx.drawImage(im, (W - dw) / 2 + Math.sin(t * 0.25) * W * 0.01, (H - dh) / 2, dw, dh);
+      const sh = ctx.createLinearGradient(0, H * 0.25, 0, H); sh.addColorStop(0, "rgba(0,0,0,0.05)"); sh.addColorStop(1, "rgba(0,0,0,0.5)");
+      ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
+    };
+    if (a.bg) {
+      pushIn(a.bg);
+      if (ty === "stat" && sc.value) swipe(sc.value, H * 0.42, U * 0.22, 0.2, [tk.a2]);
+      swipe(sc.title, H * (ty === "stat" ? 0.56 : 0.45), U * (sc.title.length > 18 ? 0.085 : 0.11), ty === "stat" ? 0.5 : 0.25);
+      // a name or label on a torn paper strip
+      const lab = sc.kicker || sc.caption || sc.label || "";
+      if (lab) {
+        const q = sm((t - 0.7) / 0.35);
+        if (q > 0) {
+          ctx.save(); ctx.font = "700 italic " + Math.round(U * 0.045) + 'px "Libre Caslon Text", Georgia, serif';
+          const lw = ctx.measureText(lab).width + U * 0.08, lh = U * 0.08, lx = W / 2 - lw / 2, ly = H * 0.68;
+          ctx.translate(W / 2, ly); ctx.rotate(-0.03); ctx.scale(q, q); ctx.translate(-W / 2, -ly);
+          ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.02; ctx.fillStyle = "#f4f1ea";
+          ctx.beginPath(); ctx.moveTo(lx, ly - lh / 2);
+          for (let k = 0; k <= 14; k++) ctx.lineTo(lx + (lw * k) / 14, ly - lh / 2 + (k % 2 ? -1 : 1) * U * 0.004);
+          for (let k = 14; k >= 0; k--) ctx.lineTo(lx + (lw * k) / 14, ly + lh / 2 + (k % 2 ? 1 : -1) * U * 0.004);
+          ctx.closePath(); ctx.fill(); ctx.shadowColor = "transparent";
+          ctx.fillStyle = tk.a1; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(lab, W / 2, ly + U * 0.004);
+          ctx.restore();
+        }
+      }
+      return true;
+    }
+    if (ty === "quote") {
+      // a newspaper on a red cutting mat, the headline highlighted in yellow
+      ctx.fillStyle = "#b3202b"; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1;
+      for (let gx = 0; gx < W; gx += U * 0.04) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      for (let gy = 0; gy < H; gy += U * 0.04) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+      const q = sm(t / 0.5), nw = W * 0.74, nh = H * 0.5, nx = W / 2 - nw / 2, ny = H * 0.26;
+      ctx.save(); ctx.translate(W / 2, ny + nh / 2 + (1 - q) * H * 0.1); ctx.rotate(-0.05 + (1 - q) * 0.1); ctx.translate(-W / 2, -(ny + nh / 2));
+      ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.02;
+      ctx.fillStyle = "#efe9dc"; ctx.fillRect(nx, ny, nw, nh); ctx.shadowColor = "transparent";
+      ctx.fillStyle = "#1a1a1a"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "700 " + Math.round(U * 0.055) + 'px "Libre Caslon Text", Georgia, serif'; ctx.fillText(sc.kicker || "The Daily Chronicle", W / 2, ny + U * 0.06);
+      ctx.fillRect(nx + U * 0.03, ny + U * 0.1, nw - U * 0.06, Math.max(1, U * 0.003));
+      ctx.font = "700 " + Math.round(U * 0.06) + 'px "Libre Caslon Text", Georgia, serif'; ctx.textAlign = "left";
+      const hl = vsGxWrap(ctx, String(sc.text || sc.title || ""), nw - U * 0.08).slice(0, 4), hp = sm((t - 0.6) / 0.6);
+      hl.forEach((ln, i) => {
+        const y = ny + U * 0.17 + i * U * 0.075, lw = ctx.measureText(ln).width;
+        ctx.fillStyle = "rgba(246,211,48,0.85)"; ctx.fillRect(nx + U * 0.035, y - U * 0.03, lw * Math.max(0, Math.min(1, hp * hl.length - i)) + U * 0.01, U * 0.06);
+        ctx.fillStyle = "#151515"; ctx.fillText(ln, nx + U * 0.04, y);
+      });
+      ctx.fillStyle = "rgba(30,30,30,0.35)";
+      for (let k = 0; k < 9; k++) ctx.fillRect(nx + U * 0.04 + (k % 2) * nw * 0.48, ny + nh * 0.62 + Math.floor(k / 2) * U * 0.03, nw * 0.42, Math.max(1, U * 0.006));
+      ctx.restore();
+      return true;
+    }
+    if (ty === "list" || ty === "keyword" || ty === "title" || ty === "compare") {
+      // a clipboard on a wooden desk, the words in heavy capitals, the key word red
+      wood();
+      const q = sm(t / 0.5), cw = W * 0.66, chh = H * 0.5, cx0 = W / 2 - cw / 2, cy0 = H * 0.24;
+      ctx.save(); ctx.translate(W / 2, cy0 + chh / 2 + (1 - q) * H * 0.08); ctx.rotate(0.03 * (1 - q) - 0.02); ctx.translate(-W / 2, -(cy0 + chh / 2));
+      ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.025;
+      ctx.fillStyle = "#2a2622"; rr(cx0, cy0, cw, chh, U * 0.03); ctx.fill(); ctx.shadowColor = "transparent";
+      ctx.fillStyle = "#fbfaf6"; ctx.fillRect(cx0 + U * 0.025, cy0 + U * 0.05, cw - U * 0.05, chh - U * 0.075);
+      ctx.fillStyle = "#c8c8c8"; rr(W / 2 - U * 0.09, cy0 - U * 0.02, U * 0.18, U * 0.07, U * 0.015); ctx.fill();
+      ctx.fillStyle = "#e33"; ctx.globalAlpha = 0.35; ctx.fillRect(cx0 + U * 0.08, cy0 + U * 0.05, Math.max(1, U * 0.002), chh - U * 0.075); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#d9d9d9"; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(cx0 + U * 0.05, cy0 + chh * (0.25 + k * 0.17), U * 0.01, 0, Math.PI * 2); ctx.fill(); }
+      const words = (ty === "list" ? [sc.title].concat(sc.items) : ty === "compare" ? [sc.left + " vs " + sc.right] : [sc.title]).filter(Boolean);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      let y = cy0 + chh * 0.3;
+      words.slice(0, 5).forEach((wline, li) => {
+        const px = U * (li === 0 ? 0.068 : 0.05), qq = sm((t - 0.3 - li * 0.35) / 0.35);
+        if (qq <= 0) { y += px * 1.6; return; }
+        ctx.font = font(disp, px);
+        const lines = vsGxWrap(ctx, String(wline).toUpperCase(), cw - U * 0.2).slice(0, 3);
+        lines.forEach((ln) => {
+          let xx = cx0 + U * 0.11;
+          ln.split(" ").forEach((wd, wi) => {
+            ctx.globalAlpha = qq; ctx.fillStyle = li === 0 && wi === 1 ? tk.a1 : "#2b2b2b"; ctx.fillText(wd, xx, y); xx += ctx.measureText(wd + " ").width;
+          });
+          y += px * 1.15;
+        });
+        y += px * 0.4;
+      });
+      ctx.globalAlpha = 1; ctx.restore();
+      return true;
+    }
+    if (ty === "chart" || ty === "stat" || ty === "timeline") {
+      // a chalkboard in a wooden frame on grid paper, a green line climbing
+      ctx.fillStyle = "#e9e6de"; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(60,80,120,0.15)"; ctx.lineWidth = 1;
+      for (let gx = 0; gx < W; gx += U * 0.035) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      for (let gy = 0; gy < H; gy += U * 0.035) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+      const bw = W * 0.8, bh = H * 0.42, bx = W / 2 - bw / 2, by = H * 0.3;
+      ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.02;
+      ctx.fillStyle = "#8b6a44"; ctx.fillRect(bx - U * 0.02, by - U * 0.02, bw + U * 0.04, bh + U * 0.04); ctx.shadowColor = "transparent";
+      ctx.fillStyle = "#1d211f"; ctx.fillRect(bx, by, bw, bh); ctx.restore();
+      ctx.fillStyle = "#ffffff"; ctx.font = font(body, U * 0.045); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(sc.title || "").toUpperCase(), W / 2, by + U * 0.06);
+      if (ty === "stat") { ctx.fillStyle = tk.a3; ctx.font = font(disp, U * 0.16); ctx.fillText(sc.value || "", W / 2, by + bh * 0.58); }
+      else {
+        const vals = ty === "chart" ? sc.bars.map((b) => Math.abs(b.num.n)) : (sc.years || []).map((_, i) => i + 1);
+        const mxv = Math.max(...vals, 1), n2 = Math.max(2, vals.length), pr = sm((t - 0.3) / 1.2);
+        ctx.strokeStyle = tk.a3; ctx.lineWidth = U * 0.008; ctx.lineJoin = "round"; ctx.shadowColor = tk.a3; ctx.shadowBlur = U * 0.02;
+        ctx.beginPath();
+        vals.forEach((v, i) => { const px = bx + U * 0.06 + (bw - U * 0.12) * (i / (n2 - 1)), py = by + bh - U * 0.05 - (bh - U * 0.16) * (v / mxv); if ((i / (n2 - 1)) > pr) return; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.fillStyle = "#3a3d42"; ctx.font = font(body, U * 0.034);
+        const labs = ty === "chart" ? sc.bars.map((b) => b.label) : (sc.years || []).map((y2) => y2.year);
+        labs.forEach((l2, i) => ctx.fillText(String(l2).slice(0, 10), bx + U * 0.06 + (bw - U * 0.12) * (i / (n2 - 1)), by + bh + U * 0.05));
+      }
+      return true;
+    }
+    // anything else: one word in an italic serif under a spotlight
+    const g = ctx.createRadialGradient(W / 2, -H * 0.1, U * 0.05, W / 2, H * 0.3, H * 0.9);
+    g.addColorStop(0, "#f2f2f0"); g.addColorStop(0.5, "#b9bcc0"); g.addColorStop(1, "#5c6168");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const q = sm((t - 0.2) / 0.4);
+    ctx.globalAlpha = q; ctx.fillStyle = "#1b1b1b"; ctx.font = "italic 400 " + Math.round(U * 0.08) + 'px "Libre Caslon Text", Georgia, serif';
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(sc.title || "").split(/\s+/).slice(0, 3).join(" "), W / 2, H * 0.48);
+    ctx.globalAlpha = 1;
+    return true;
+  };
+
   // ── the scene ──
   const ty = sc.type;
-  if (ty === "title" || ty === "keyword") {
+  if (st.doc && docScene()) {
+    // drawn
+  } else if (ty === "title" || ty === "keyword") {
     const big = ty === "keyword";
     const objs = a.objs.filter(Boolean);
     const tx = left ? xL : xC, al = left ? "left" : "center", mw = W * 0.84;
