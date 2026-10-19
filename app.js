@@ -14473,8 +14473,16 @@ function vsGxCountries(world, names) {
 
 // ── textures, made once per theme and size ──
 const vsGxTexCache = new Map();
+// The pastel style's sky: a rendered cloudscape (ours, made once with the
+// free image model), the drawn one standing in while it loads.
+let vsGxSky = null;
+function vsGxSkyImg() {
+  if (!vsGxSky) { vsGxSky = new Image(); vsGxSky.onload = () => { try { vsGxTexCache.clear(); } catch (e) {} }; vsGxSky.src = "/gx/bg/sky.jpg"; }
+  return vsGxSky.complete && vsGxSky.naturalWidth ? vsGxSky : null;
+}
 function vsGxTexture(tk, W, H) {
-  const key = [tk.tex, tk.bg, tk.paper, tk.ink, tk.a1, tk.a2, tk.a3, W, H].join("|");
+  const sky = tk.tex === "clouds" ? vsGxSkyImg() : null;
+  const key = [tk.tex, tk.bg, tk.paper, tk.ink, tk.a1, tk.a2, tk.a3, W, H, sky ? 1 : 0].join("|");
   if (vsGxTexCache.has(key)) return vsGxTexCache.get(key);
   if (vsGxTexCache.size > 16) vsGxTexCache.clear();
   const c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -14587,6 +14595,13 @@ function vsGxTexture(tk, W, H) {
     for (let yy = 0; yy < H; yy += s * 2) x.fillRect(0, yy, W, s);
   } else if (tex === "dots") {
     dotsAt(Math.max(10, Math.round(W / 22)), Math.max(1.5, W / 520), tk.ink, tk.dark ? 0.25 : 0.22);
+  } else if (tex === "clouds" && sky) {
+    // the rendered cloudscape, filling the frame, warmed a little pink
+    const k = Math.max(W / sky.naturalWidth, H / sky.naturalHeight), dw = sky.naturalWidth * k, dh = sky.naturalHeight * k;
+    x.drawImage(sky, (W - dw) / 2, (H - dh) * 0.35, dw, dh);
+    const pk = x.createLinearGradient(0, 0, 0, H * 0.55);
+    pk.addColorStop(0, "rgba(240,150,205,0.25)"); pk.addColorStop(0.5, "rgba(240,150,205,0.7)"); pk.addColorStop(1, "rgba(240,150,205,0)");
+    x.globalCompositeOperation = "soft-light"; x.fillStyle = pk; x.fillRect(0, 0, W, H * 0.6); x.globalCompositeOperation = "source-over";
   } else if (tex === "clouds") {
     // a pastel sky: blue at the top into pink, clouds of soft pink and white,
     // pale green hills, then white haze over the lower part
