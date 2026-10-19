@@ -14116,6 +14116,7 @@ const VS_GX_FONTS = [
   ["stoicmix", "Arimo", 700, 0, "Libre Caslon Text", 400],
   ["steelmix", "Heebo", 700, 0, "Heebo", 300],
   ["pastelmix", "Arimo", 700, 0, "Arimo", 400],
+  ["postermix", "Anton", 400, 1, "Heebo", 300],
   ["docheavy", "Montserrat", 900, 1, "Montserrat", 700],
   ["clean", "Manrope", 800, 0, "Manrope", 500],
   ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
@@ -14193,13 +14194,13 @@ const VS_GX_STYLES = [
   // and white pictures, a small book serif leading into the key word in a
   // bold grotesk with a design-tool selection box around it, one word in a
   // purple accent.
-  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "reels", headTop: 0.2, pals: ["silver", "silverwine"], fonts: ["editorial"],
-    el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "select", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
+  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "reels", bigPic: true, kickSans: true, cine: { bands: true, leaves: false, tilt: 0.16 }, headTop: 0.2, pals: ["silver", "silverwine"], fonts: ["stoicmix", "editorial"],
+    el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "select", ef: "grid", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
     of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2)" },
   // Copied from the French poster reel: a white sheet on cream, huge
   // condensed steel-blue type, pale blue 3D objects (a camera, a gear) half
   // out of the sheet, a barcode, fine print and crop marks.
-  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "reels", headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["anton", "bebas"],
+  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "reels", bigPic: true, cine: { bg: ["#efece4", "#d9d5ca"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["postermix", "anton"],
     el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "number", de: "plus", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "grayscale(1) sepia(0.35) hue-rotate(175deg) saturate(1.9) brightness(1.12)", pf: "grayscale(1) sepia(0.3) hue-rotate(175deg) saturate(1.4)" },
   // Copied from the baashokooh clinic explainer: an off-white sheet, black
@@ -15117,7 +15118,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     if (tt === "select" && !o.whole && ws0.length > 1) {
       // as in the editorial reels: "He never raised his" small in the serif,
       // then "voice" big in the grotesk, in its selection box
-      const lead = text(ws0.slice(0, -1).join(" "), body, px * 0.4, x, y - px * 0.62, maxW, align, ink, t0, { maxLines: 2 });
+      const lead = text(ws0.slice(0, -1).join(" "), body, px * 0.4, x, y - px * 0.82, maxW, align, ink, t0, { maxLines: 2 });
       const k = title(ws0[ws0.length - 1], px * 1.15, x, y + px * 0.18, maxW, align, t0 + 0.3, Object.assign({}, o, { whole: true }));
       return { h: lead.h + k.h, boxes: k.boxes, px: k.px };
     }
@@ -15678,7 +15679,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     objs.forEach((im, i) => {
       const sp = spots[i]; if (!sp) return;
       const cx = W * sp[0], cy = Math.max(y + U * sp[2] * 0.6, H * sp[1]);
-      const lb = sc.labels[i] || sc.objects[i] || "";
+      const lb = sc.labels[i] || "";
       const t0 = when(lb, 0.2 + i * mv.st * 1.5);
       ghost(cx, cy, U * sp[2] * 0.48, t0, 0.15 + i * 0.08);
       obj(im, cx, cy, U * sp[2], t0, i);
