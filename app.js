@@ -13744,7 +13744,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
 
 function vsDrawEditFrame(ctx, canvas, W, H, s, idx, local, dur, elapsed, off) {
   const media = s.mediaEl;
-  if (!s._gfx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
+  if (!s._gfx && !s._gx && (!media || !(media.videoWidth || media.naturalWidth))) return false;
   if (s._gx) {
     vsGxFrame(ctx, W, H, s, idx, local, dur);
     vstudio._frameHasMedia = true;
@@ -15581,7 +15581,9 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     text(sc.title, body, U * 0.06, tx, ny + px * 0.6 + U * 0.13, W * 0.8, al, tk.muted, 0.4, { maxLines: 2 });
   } else if (ty === "list") {
     const y = head(sc.title, H * (port ? 0.16 : 0.14), 0.05);
-    const n = sc.items.length, gap = Math.min(U * 0.24, (H * 0.82 - y) / n), r = U * 0.07, x = W * 0.08;
+    // on a sheet the list starts inside it, clear of its edge
+    const onSh = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
+    const n = sc.items.length, gap = Math.min(U * 0.24, (H * (onSh ? 0.78 : 0.82) - y) / n), r = U * 0.07, x = W * (onSh ? 0.17 : 0.08);
     const y1 = Math.max(y, y + ((H * 0.82 - y) - gap * n) / 2);
     const ls = st.ls;
     let last = 0;
@@ -16554,11 +16556,13 @@ function vsEditStudio(preset, filesIn) {
           '<span class="ts-drop-t">' + L("Choose your video", "انتخاب ویدیو") + "</span>" +
           '<span class="ts-drop-s" id="emDropS">' + L("or drop it here · MP4, MOV, WebM · several clips play in order", "یا اینجا رها کن · MP4، MOV، WebM · چند کلیپ به ترتیب پخش می‌شوند") + "</span></button>" +
         '<input id="emFile" type="file" accept="video/*" multiple hidden/>' +
+        '<button id="emRec" type="button" class="ts-ghost em-showadd" hidden>' + L("Record my voice", "ضبط صدای خودم") + "</button>" +
         '<ol id="emList" class="em-list" hidden></ol>' +
         '<p id="emSwapNote" class="ts-note" hidden>' + L("For a finished video: every text and footage in it is found; you change the ones you want and the design, motion and sound stay exactly as they are.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش پیدا می‌شود؛ هر کدام را خواستی عوض کن و طراحی، حرکت و صدا همان می‌ماند.") + "</p></div>" +
       '<div id="emGx" class="ts-field em-gxf" hidden><div class="ts-lbl">' + L("Theme", "تم") + "</div>" +
         '<div class="em-gxrow"><canvas id="emGxCv" width="216" height="384" aria-hidden="true"></canvas><div class="em-gxinfo"><div id="emGxName" class="em-gxname"></div><div id="emGxMeta" class="ts-note"></div>' +
         '<button id="emGxPick" type="button" class="ts-ghost">' + L("Choose from " + vsGxThemes().length.toLocaleString("en-US") + " themes", "انتخاب از " + vsGxThemes().length.toLocaleString("fa-IR") + " تم") + "</button></div></div>" +
+        '<label class="ts-switch" style="margin-top:12px"><input type="checkbox" id="emGxCap"/><span class="ts-sw"></span><span>' + L("Captions", "زیرنویس") + "</span></label>" +
         '<div class="ts-lbl" style="margin-top:12px">' + L("Your photos & clips", "عکس‌ها و کلیپ‌هایت") + "</div>" +
         '<div id="emGxMedList" class="em-showl"></div>' +
         '<button id="emGxMedAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos or clips", "افزودن عکس یا کلیپ") + "</button>" +
@@ -16954,6 +16958,11 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => b.setAttribute("aria-selected", String(b.dataset.mode === m)));
     ov.querySelectorAll(".em-edit").forEach((el) => { el.hidden = m === "swap"; });
     $$("emSwapNote").hidden = m !== "swap";
+    // a graphic video needs only a voice: a clip, an audio file or a recording
+    $$("emRec").hidden = m !== "graphic";
+    $$("emFile").accept = m === "graphic" ? "video/*,audio/*" : "video/*";
+    ov.querySelector("#emDrop .ts-drop-t").textContent = m === "graphic" ? L("Choose your video or voice", "انتخاب ویدیو یا صدا") : L("Choose your video", "انتخاب ویدیو");
+    $$("emDropS").textContent = m === "graphic" ? L("or drop it here · a clip, MP3, M4A or WAV · several play in order", "یا اینجا رها کن · کلیپ، MP3، M4A یا WAV · چندتا به ترتیب پخش می‌شوند") : L("or drop it here · MP4, MOV, WebM · several clips play in order", "یا اینجا رها کن · MP4، MOV، WebM · چند کلیپ به ترتیب پخش می‌شوند");
     $$("emStyleF").hidden = m === "graphic" || m === "swap";   // after the line above, which shows every .em-edit
     // photos + text: no video to choose, nothing of a video's to add
     $$("emPh").hidden = m !== "photos";
@@ -16977,6 +16986,15 @@ function vsEditStudio(preset, filesIn) {
     }
   });
   $$("emGxPick").onclick = pickTheme;
+  // the captions switch beside the theme is the same option as in the list
+  {
+    const capOpt = ov.querySelector('input[data-opt="captions"]'), capSw = $$("emGxCap");
+    if (capOpt && capSw) {
+      capSw.checked = capOpt.checked;
+      capSw.onchange = () => { capOpt.checked = capSw.checked; capOpt.dispatchEvent(new Event("change", { bubbles: true })); remember(); };
+      capOpt.addEventListener("change", () => { capSw.checked = capOpt.checked; });
+    }
+  }
   const drawList = () => {
     const list = $$("emList");
     const use = mode === "swap" ? files.slice(0, 1) : files;
@@ -16994,7 +17012,8 @@ function vsEditStudio(preset, filesIn) {
     [files[k], files[j]] = [files[j], files[k]];
     drawList(); if (!k || !j) drawStyles();
   });
-  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "");
+  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "") ||
+    (mode === "graphic" && (/^audio\//.test(f.type || "") || /\.(mp3|m4a|wav|ogg|oga|aac|opus)$/i.test(f.name || "")));
   const addFiles = (list) => {
     const add = Array.from(list || []).filter(isVideo).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     if (!add.length) return;
@@ -17002,6 +17021,26 @@ function vsEditStudio(preset, filesIn) {
     drawList(); drawStyles(); showEmpty();
   };
   $$("emDrop").onclick = () => { const f = $$("emFile"); f.value = ""; f.click(); };
+  // the voice, recorded here: press to start, press again to stop
+  let rec = null, recChunks = [], recStream = null;
+  $$("emRec").onclick = async () => {
+    if (rec && rec.state === "recording") { rec.stop(); return; }
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const mt = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find((x) => window.MediaRecorder && MediaRecorder.isTypeSupported(x)) || "";
+      rec = new MediaRecorder(recStream, mt ? { mimeType: mt } : undefined); recChunks = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+      rec.onstop = () => {
+        try { recStream.getTracks().forEach((tr) => tr.stop()); } catch (e) {}
+        const type = (rec.mimeType || "audio/webm").split(";")[0], ext = /mp4/.test(type) ? "m4a" : /ogg/.test(type) ? "ogg" : "webm";
+        const f = new File(recChunks, "my-voice-" + (files.length + 1) + "." + ext, { type, lastModified: Date.now() });
+        $$("emRec").textContent = L("Record my voice", "ضبط صدای خودم"); $$("emRec").classList.remove("on");
+        if (f.size > 2000) addFiles([f]);
+      };
+      rec.start();
+      $$("emRec").textContent = L("Stop recording", "توقف ضبط"); $$("emRec").classList.add("on");
+    } catch (e) { vsToast(L("The microphone could not be opened.", "میکروفون باز نشد.")); }
+  };
   $$("emFile").onchange = (e) => addFiles(e.target.files);
   const drop = $$("emDrop");
   ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("drag"); }));
@@ -17262,12 +17301,13 @@ function vsPlanEdit(words, total, o) {
 }
 
 // A <video> of the customer's file, ready to draw.
-function vsEditVideoEl(url) {
+function vsEditVideoEl(url, audioOk) {
   return new Promise((resolve) => {
     const el = document.createElement("video");
     el.muted = true; el.playsInline = true; el.preload = "auto"; el.loop = false;
     let done = false;
-    const fin = (ok) => { if (done) return; done = true; resolve(ok ? el : null); };
+    // (a voice alone has no picture, and is fine for a graphic video)
+    const fin = (ok) => { if (done) return; done = true; resolve(ok || (audioOk && isFinite(el.duration) && el.duration > 0) ? el : null); };
     // A file recorded in a browser often says its length is Infinity until it
     // has been read to the end; seeking far past it makes it look, and every
     // timing in the studio needs a real number.
@@ -18516,7 +18556,8 @@ async function vsEditMyVideo(fileIn, o) {
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
   const files = (Array.isArray(fileIn) ? fileIn : [fileIn]).filter(Boolean).slice(0, VS_EDIT_MAX_FILES);
-  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "");
+  const isVideo = (f) => /^video\//.test(f.type || "") || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || "") ||
+    (!!(o && o.graphic) && (/^audio\//.test(f.type || "") || /\.(mp3|m4a|wav|ogg|oga|aac|opus)$/i.test(f.name || "")));
   if (!files.length || !files.every(isVideo)) {
     vsAutoStatus(L("Pick a video file.", "یک فایل ویدیو انتخاب کن.")); return;
   }
@@ -18554,7 +18595,7 @@ async function vsEditMyVideo(fileIn, o) {
       const f = files[k];
       vsAutoStatus(many ? L(`Reading video ${k + 1} of ${files.length}…`, `در حال خواندن ویدیوی ${k + 1} از ${files.length}…`) : L("Listening to your video…", "در حال گوش‌دادن به ویدیو…"));
       const u = URL.createObjectURL(f);
-      const el = await vsEditVideoEl(u);
+      const el = await vsEditVideoEl(u, !!o.graphic);
       const nm = many ? " (" + f.name + ")" : "";
       if (!el) throw new Error(L("this video could not be opened in the browser", "این ویدیو در مرورگر باز نشد") + nm);
       let decoded;
@@ -18786,7 +18827,7 @@ async function vsEditMyVideo(fileIn, o) {
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
       const sx = srcs[srcOf(p.start)];
-      const el = !sx.used ? (sx.used = true, sx.el) : await vsEditVideoEl(sx.url);
+      const el = !sx.used ? (sx.used = true, sx.el) : await vsEditVideoEl(sx.url, !!o.graphic);
       if (!el) continue;
       const k = sentOf(p.words[0] ? p.words[0].s : p.start);
       const sp = sPlan[k] || {};
