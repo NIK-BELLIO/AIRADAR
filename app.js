@@ -14150,7 +14150,7 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 //  ec  picture colour role ls  how a list is set        de  ambient decoration
 //  fr  the frame on top    cp  captions                 kd  a key word's device
 //  tr  cuts between scenes
-const VS_GX_CATS = { explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
+const VS_GX_CATS = { reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
   // Copied from the Semmelweis documentary reel: every scene a full-bleed
@@ -14160,13 +14160,13 @@ const VS_GX_STYLES = [
   // highlighter; a point on a clipboard on a wooden desk with the key word in
   // red; numbers on a chalkboard; a single word in italic serif under a
   // spotlight.
-  { id: "documentary", n: ["Documentary", "مستند"], cat: "news", pals: ["doc"], fonts: ["archivoblack"], doc: true, aiImg: true,
+  { id: "documentary", n: ["Documentary", "مستند"], cat: "reels", pals: ["doc"], fonts: ["archivoblack"], doc: true, aiImg: true,
     el: ["3d", "color"], bg: "flat", al: "c", tt: "plain", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "none", cp: "plain", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the SFX-pack reel: a pastel sky of pink clouds over soft
   // green hills fading to white; glossy 3D objects popping in on a cyan glow
   // and floating; dark bold words sharpening out of a blur; labels in black
   // pills.
-  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "fun", pals: ["pastel"], fonts: ["clean"],
+  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "reels", pals: ["pastel"], fonts: ["clean"],
     el: ["3d", "color"], bg: "clouds", al: "c", tt: "blurword", bwSame: true, ef: "bloom", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "pill", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the Marcus Aurelius After Effects reel: a pale card on grey
   // under leaf shadows; a small book serif leading into the key word, every
@@ -14174,35 +14174,35 @@ const VS_GX_STYLES = [
   // on a black bar; a huge faint word behind; a heavy black arrow in the
   // corner, fine curves crossing, paper shards drifting; pictures black and
   // white on a dot grid, a dashed ring turning round them.
-  { id: "stoic", n: ["Stoic editorial", "ادیتوریال رواقی"], cat: "elegant", pals: ["stoic"], fonts: ["editorial"],
-    el: ["3d", "hc"], bg: "window", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "stoic", fr: "none", cp: "plain", kd: "invert", tr: ["zoom", "zoomblur"],
+  { id: "stoic", n: ["Stoic editorial", "ادیتوریال رواقی"], cat: "reels", headTop: 0.2, pals: ["stoic"], fonts: ["editorial"],
+    el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "stoic", fr: "none", cp: "plain", kd: "invert", tr: ["zoom", "zoomblur"],
     of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2) sepia(0.25) hue-rotate(220deg) saturate(1.3)" },
   // Copied from the McLaren After Effects reel: a white sheet on cream, a
   // light grey sans with the words that matter in bold steel blue, each word
   // sharpening in; pictures on a dot grid; a fine curve and a soft blue ribbon
   // sweeping across; a barcode and fine print.
-  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "clean", pals: ["steel", "steelrust"], fonts: ["clean"],
-    el: ["3d", "color"], bg: "poster", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "number", de: "curves", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
+  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "reels", headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["clean"],
+    el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "curves", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "saturate(0.55) contrast(1.05)", pf: "saturate(0.6) contrast(1.05)" },
   // Copied from the After Effects "Godfather" / "Peaky Blinders" reels: a
   // white card standing on a pale grey ground crossed by window light, black
   // and white pictures, a small book serif leading into the key word in a
   // bold grotesk with a design-tool selection box around it, one word in a
   // purple accent.
-  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "elegant", pals: ["silver", "silverwine"], fonts: ["editorial"],
-    el: ["3d", "hc"], bg: "window", al: "c", tt: "select", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
+  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "reels", headTop: 0.2, pals: ["silver", "silverwine"], fonts: ["editorial"],
+    el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "select", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
     of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2)" },
   // Copied from the French poster reel: a white sheet on cream, huge
   // condensed steel-blue type, pale blue 3D objects (a camera, a gear) half
   // out of the sheet, a barcode, fine print and crop marks.
-  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "clean", pals: ["steel", "steelrust"], fonts: ["anton", "bebas"],
-    el: ["3d", "color"], bg: "poster", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "number", de: "plus", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
+  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "reels", headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["anton", "bebas"],
+    el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "number", de: "plus", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "grayscale(1) sepia(0.35) hue-rotate(175deg) saturate(1.9) brightness(1.12)", pf: "grayscale(1) sepia(0.3) hue-rotate(175deg) saturate(1.4)" },
   // Copied from the baashokooh clinic explainer: an off-white sheet, black
   // and white cut-out pictures, numbers in a dark green circle, points as
   // round badges, a wavy line across the page.
-  { id: "clinic", n: ["Clinic explainer", "توضیحی کلینیک"], cat: "explain", pals: ["sagepaper"], fonts: ["archivoblack", "grotesk"],
-    el: ["3d", "hc"], bg: "sheet", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "badge", de: "wave", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "zoom"],
+  { id: "clinic", n: ["Clinic explainer", "توضیحی کلینیک"], cat: "reels", headTop: 0.2, pals: ["sagepaper"], fonts: ["archivoblack", "grotesk"],
+    el: ["real", "3d", "hc"], bg: "sheet", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "badge", de: "wave", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "zoom"],
     of: "grayscale(1) contrast(1.1)", pf: "grayscale(1) contrast(1.15)" },
   { id: "explainer", n: ["Explainer paper", "کاغذی توضیحی"], cat: "explain", pals: ["cream", "newsprint", "teal", "kraft", "peach", "sage"], fonts: ["archivoblack", "grotesk", "archivo"],
     el: ["3d", "color"], bg: "paper", al: "c", tt: "marker", ef: "float", ec: "ink", ls: "badge", de: "scraps", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "wipe"] },
@@ -14255,7 +14255,7 @@ const VS_GX_STYLES = [
 ];
 const VS_GX_MOTIONS = ["snappy", "smooth", "bouncy", "calm"];
 const VS_GX_MOTION_NAME = { snappy: ["Snappy", "تند"], smooth: ["Smooth", "نرم"], bouncy: ["Bouncy", "فنری"], calm: ["Calm", "آرام"] };
-const VS_GX_ELEM_NAME = { "3d": ["3D objects", "اشیای سه‌بعدی"], color: ["Colour emoji", "ایموجی رنگی"], flat: ["Flat art", "طرح تخت"], hc: ["Ink drawings", "طرح جوهری"],
+const VS_GX_ELEM_NAME = { real: ["Real objects", "اشیای واقعی"], "3d": ["3D objects", "اشیای سه‌بعدی"], color: ["Colour emoji", "ایموجی رنگی"], flat: ["Flat art", "طرح تخت"], hc: ["Ink drawings", "طرح جوهری"],
   "ph-thin": ["Thin icons", "آیکون نازک"], "ph-light": ["Light icons", "آیکون سبک"], "ph-regular": ["Line icons", "آیکون خطی"], "ph-bold": ["Bold icons", "آیکون ضخیم"],
   "ph-fill": ["Solid icons", "آیکون توپر"], "ph-duo": ["Duotone icons", "آیکون دورنگ"], tb: ["Tech icons", "آیکون فنی"] };
 // Every combination the styles allow, each with a stable id
@@ -14368,21 +14368,60 @@ function vsGxImage(url) {
 // A photograph made for a scene by the free image model (through our worker),
 // waited on longer than a library picture - the model can take half a minute.
 const vsGxAiCache = new Map();
+async function vsGxAiFetch(prompt, w, h) {
+  try {
+    const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
+    const r = await fetch(VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=" + w + "&h=" + h + "&flux=1", { headers: await arGuestHeaders(), signal: ctrl.signal });
+    clearTimeout(tm);
+    if (!r.ok) return null;
+    const u = URL.createObjectURL(await r.blob());
+    return await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = u; });
+  } catch (e) { return null; }
+}
 function vsGxAiImage(what) {
   what = String(what || "").trim();
   if (!what) return Promise.resolve(null);
-  if (!vsGxAiCache.has(what)) vsGxAiCache.set(what, (async () => {
+  if (!vsGxAiCache.has(what)) vsGxAiCache.set(what, vsGxAiFetch(what + ", cinematic documentary photograph, realistic, dramatic natural light, rich colour, shallow depth of field, vertical composition, no text", 768, 1024));
+  return vsGxAiCache.get(what);
+}
+// A real-looking object, as in the After Effects reels: a studio photograph of
+// the thing said (made by the free image model on pure white), cut out by
+// filling the white in from the edges - so white inside it (an eye, a page)
+// stays - and trimmed. The scene gives it its own shadow.
+const vsGxRealCache = new Map();
+function vsGxReal(what) {
+  what = String(what || "").trim().slice(0, 60);
+  if (!what) return Promise.resolve(null);
+  if (!vsGxRealCache.has(what)) vsGxRealCache.set(what, (async () => {
+    const im = await vsGxAiFetch("studio product photograph of " + what + ", a single object, centered, whole object in frame, isolated on a pure white background, soft studio light, photorealistic, high detail, no text, no shadow", 768, 768);
+    if (!im) return null;
     try {
-      const prompt = what + ", cinematic documentary photograph, realistic, dramatic natural light, rich colour, shallow depth of field, vertical composition, no text";
-      const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 70000);
-      const r = await fetch(VS_AI_IMAGE + "?p=" + encodeURIComponent(prompt) + "&w=768&h=1024&flux=1", { headers: await arGuestHeaders(), signal: ctrl.signal });
-      clearTimeout(tm);
-      if (!r.ok) return null;
-      const u = URL.createObjectURL(await r.blob());
-      return await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = u; });
+      const S = 512, c = document.createElement("canvas"); c.width = S; c.height = S;
+      const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(im, 0, 0, S, S);
+      const id = x.getImageData(0, 0, S, S), d = id.data, seen = new Uint8Array(S * S), q = [];
+      const white = (i) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return Math.min(r, g, b) > 226 && Math.max(r, g, b) - Math.min(r, g, b) < 22; };
+      for (let k = 0; k < S; k++) [k, (S - 1) * S + k, k * S, k * S + S - 1].forEach((i) => { if (!seen[i] && white(i)) { seen[i] = 1; q.push(i); } });
+      while (q.length) {
+        const i = q.pop(), px = i % S, py = (i - px) / S;
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const nx = px + dx, ny = py + dy; if (nx < 0 || ny < 0 || nx >= S || ny >= S) return; const j = ny * S + nx; if (!seen[j] && white(j)) { seen[j] = 1; q.push(j); } });
+      }
+      let x0 = S, y0 = S, x1 = -1, y1 = -1;
+      for (let i = 0; i < S * S; i++) {
+        if (seen[i]) { d[i * 4 + 3] = 0; continue; }
+        // a soft edge where it meets the white
+        const px = i % S, py = (i - px) / S;
+        if ((px > 0 && seen[i - 1]) || (px < S - 1 && seen[i + 1]) || (py > 0 && seen[i - S]) || (py < S - 1 && seen[i + S])) d[i * 4 + 3] = 150;
+        if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+      }
+      if (x1 < x0 || (x1 - x0) * (y1 - y0) < S * S * 0.02) return null;
+      x.putImageData(id, 0, 0);
+      const o = document.createElement("canvas"); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+      o.getContext("2d").drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+      o.naturalWidth = o.width; o.naturalHeight = o.height;
+      return o;
     } catch (e) { return null; }
   })());
-  return vsGxAiCache.get(what);
+  return vsGxRealCache.get(what);
 }
 async function vsGx3D(query) {
   try { const list = await vsGxIndex("3d"); const e = vsGxMatch(list, query, 2); return e ? await vsGxImage(VS_GX_FLUENT + e[1].split("/").map(encodeURIComponent).join("/")) : null; } catch (e) { return null; }
@@ -14432,7 +14471,8 @@ async function vsGxPh(query, weight, color, color2) {
 async function vsGxElem(query, kind, color, color2) {
   if (!query) return null;
   let im = null;
-  if (kind === "3d") im = await vsGx3D(query);
+  if (kind === "real") im = (await vsGxReal(query)) || (await vsGx3D(query));
+  else if (kind === "3d") im = await vsGx3D(query);
   else if (kind === "color" || kind === "flat" || kind === "hc") im = await vsGxFluent(query, kind, color);
   else if (kind && kind.indexOf("ph-") === 0) im = await vsGxPh(query, { "ph-duo": "duotone" }[kind] || kind.slice(3), color, color2);
   else if (kind === "tb") im = await vsGxIcon(query, color);
@@ -14680,11 +14720,10 @@ function vsGxTexture(tk, W, H) {
     }
     if (tex === "poster") {
       // fine print, a barcode and crop marks
-      x.fillStyle = tk.muted; x.globalAlpha = 0.55;
-      for (let k = 0; k < 5; k++) x.fillRect(sx + sw * 0.18, sy + sh * 0.79 + k * U * 0.016, sw * (0.64 - (k % 2) * 0.12), Math.max(1, U * 0.004));
+      // the barcode in the top corner, as in the reel - nothing under the words
       x.globalAlpha = 0.85; x.fillStyle = tk.ink;
-      let bx = sx + sw * 0.36;
-      for (let k = 0; k < 34; k++) { const w = Math.max(1, U * (rnd() < 0.5 ? 0.003 : 0.007)); x.fillRect(bx, sy + sh * 0.89, w, U * 0.045); bx += w + U * 0.004; }
+      let bx = sx + U * 0.06;
+      for (let k = 0; k < 26; k++) { const w = Math.max(1, U * (rnd() < 0.5 ? 0.003 : 0.006)); x.fillRect(bx, sy + U * 0.05, w, U * 0.04); bx += w + U * 0.004; }
       x.globalAlpha = 0.5; x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.002);
       [[sx + sw * 0.5, sy + U * 0.04], [sx + U * 0.05, sy + sh * 0.5], [sx + sw - U * 0.05, sy + sh * 0.5]].forEach(([cx, cy]) => { x.beginPath(); x.moveTo(cx - U * 0.02, cy); x.lineTo(cx + U * 0.02, cy); x.moveTo(cx, cy - U * 0.02); x.lineTo(cx, cy + U * 0.02); x.stroke(); x.beginPath(); x.arc(cx, cy, U * 0.009, 0, Math.PI * 2); x.stroke(); });
       x.globalAlpha = 1;
@@ -14803,9 +14842,9 @@ function vsGxFiltered(im, filter) {
 }
 async function vsGxResolve(sc, tk) {
   const a = { objs: [], icons: [], photo: null, world: null, hits: [] };
-  const kind = tk.elem, c = vsGxElemColors(tk);
+  const kind = tk.elem === "real" && sc._preview ? "3d" : tk.elem, c = vsGxElemColors(tk);
   a.objs = await Promise.all((sc.objects || []).map((q) => vsGxElem(q, kind, c.ec, c.ec2)));
-  if (sc.type === "list") a.icons = await Promise.all(sc.items.map((it, i) => vsGxElem(sc.icons[i] || it, kind, c.lc, c.ec2)));
+  if (sc.type === "list" && !(kind === "real" && tk.st && tk.st.ls === "dash")) a.icons = await Promise.all(sc.items.map((it, i) => vsGxElem(sc.icons[i] || it, kind === "real" ? "3d" : kind, c.lc, c.ec2)));
   if ((sc.type === "stat" || sc.type === "keyword" || sc.type === "title") && !a.objs.filter(Boolean).length && sc.icons[0]) a.objs = [await vsGxElem(sc.icons[0], kind, c.ec, c.ec2)];
   if (sc.type === "map") {
     try { a.world = await vsGxWorld(); a.hits = vsGxCountries(a.world, sc.countries); } catch (e) {}
@@ -14835,7 +14874,7 @@ async function vsGxResolve(sc, tk) {
     if (!a.photo) sc.type = sc.objects.length ? "objects" : "keyword";
   }
   // the style's own look for its pictures (black and white, a blue tint)
-  if (tk.st && tk.st.of && (kind === "3d" || kind === "color")) { a.objs = a.objs.map((im) => vsGxFiltered(im, tk.st.of)); a.icons = a.icons.map((im) => vsGxFiltered(im, tk.st.of)); }
+  if (tk.st && tk.st.of && (kind === "3d" || kind === "color" || kind === "real")) { a.objs = a.objs.map((im) => vsGxFiltered(im, tk.st.of)); a.icons = a.icons.map((im) => vsGxFiltered(im, tk.st.of)); }
   return a;
 }
 // A picture's silhouette grown by a border - the white edge of a sticker,
@@ -15108,6 +15147,8 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
   // the heading of a scene, in the style's manner and alignment
   const head = (str, y, t0) => {
     if (!str) return y;
+    // clear of anything in the top corner of the sheet (the arrow)
+    if (st.headTop) y = Math.max(y, H * st.headTop);
     const x = left ? W * 0.08 : W / 2, al = left ? "left" : "center";
     const r = title(str, U * (st.tt === "spaced" ? 0.07 : 0.085), x, y, W * 0.84, al, t0, { maxLines: 2 });
     const last = r.boxes[r.boxes.length - 1];
@@ -15159,7 +15200,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     if (!img) return;
     const p = P(t0); if (p <= 0) return;
     const ef = st.ef, bob = Math.sin(t * 1.7 + i * 1.3) * size * 0.025;
-    const s = size * Math.max(0.01, p), ar = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+    const s = size * Math.max(0.01, p), ar = (img.naturalWidth || img.videoWidth || 1) / (img.naturalHeight || img.videoHeight || 1);
     const fit = (k) => { const w = ar >= 1 ? s * k : s * k * ar, h = ar >= 1 ? (s * k) / ar : s * k; return [w, h]; };
     const col = colAt(i);
     ctx.save();
@@ -15243,7 +15284,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         ctx.save(); ctx.globalAlpha = fade * 0.75; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, U * 0.004);
         ctx.setLineDash([U * 0.012, U * 0.01]); ctx.translate(cx, cy); ctx.rotate(t * 0.6);
         ctx.beginPath(); ctx.arc(0, 0, size * 0.58, 0, Math.PI * 1.55 * Math.min(1, p)); ctx.stroke(); ctx.restore();
-        const L = size * 0.12, b = size * 0.78;
+        const L = size * 0.09, b = size * 0.62;
         ctx.globalAlpha = fade * 0.55; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, U * 0.0025);
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { const xx = cx + sx * b, yy = cy + sy * b; ctx.beginPath(); ctx.moveTo(xx - sx * L, yy); ctx.lineTo(xx, yy); ctx.lineTo(xx, yy - sy * L); ctx.stroke(); });
       }
@@ -15353,8 +15394,9 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
     };
     const pushIn = (im) => {
-      const z = 1.04 + 0.08 * Math.min(1, t / Math.max(1, dur)), k = Math.max(W / im.naturalWidth, H / im.naturalHeight) * z;
-      const dw = im.naturalWidth * k, dh = im.naturalHeight * k;
+      const iw = im.naturalWidth || im.videoWidth || 1, ih = im.naturalHeight || im.videoHeight || 1;
+      const z = 1.04 + 0.08 * Math.min(1, t / Math.max(1, dur)), k = Math.max(W / iw, H / ih) * z;
+      const dw = iw * k, dh = ih * k;
       ctx.drawImage(im, (W - dw) / 2 + Math.sin(t * 0.25) * W * 0.01, (H - dh) / 2, dw, dh);
       const sh = ctx.createLinearGradient(0, H * 0.25, 0, H); sh.addColorStop(0, "rgba(0,0,0,0.05)"); sh.addColorStop(1, "rgba(0,0,0,0.5)");
       ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
@@ -15691,7 +15733,9 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     const y = head(sc.title, H * (port ? 0.14 : 0.12), 0.05);
     const im = a.photo;
     if (im) {
-      const p = P(0.1), cw = W * 0.8, chh = Math.min(H * 0.55, cw * 1.15), cx = W / 2, cy = Math.max(y + chh / 2 + U * 0.04, H * 0.5);
+      // on a sheet the photo leaves room for its caption and the words being said
+      const onSheet = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
+      const p = P(0.1), cw = W * (onSheet ? 0.7 : 0.8), chh = Math.min(H * (onSheet ? 0.44 : 0.55), cw * 1.15), cx = W / 2, cy = Math.max(y + chh / 2 + U * 0.04, H * (onSheet ? 0.47 : 0.5));
       const kindP = ["paper", "newsprint", "lined", "comic", "sunburst"].includes(st.bg) || st.ef === "sticker" ? "print" : st.ef === "hard" ? "hard" : st.tt === "glow" ? "neon" : st.fr === "gold" ? "gold" : "round";
       ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.4);
       ctx.translate(cx, cy + (1 - p) * U * 0.12); if (kindP === "print") ctx.rotate(0.02 - 0.03 * p);
@@ -15708,7 +15752,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       ctx.save(); if (kindP === "round" || kindP === "neon" || kindP === "gold") rr(clip[0], clip[1], clip[2], clip[3], U * 0.04); else { ctx.beginPath(); ctx.rect(clip[0], clip[1], clip[2], clip[3]); } ctx.clip();
       try { ctx.filter = st.pf || (st.bg === "newsprint" || st.id === "explainer" || st.id === "collage" || st.id === "cinema" ? "grayscale(1) contrast(1.2)" : "contrast(1.05) saturate(1.1)"); } catch (e) {}
       const z = 1.06 + 0.06 * (t / Math.max(1, dur));
-      const iw = im.naturalWidth, ih = im.naturalHeight, sc2 = Math.max(clip[2] / iw, clip[3] / ih) * z;
+      const iw = im.naturalWidth || im.videoWidth || 1, ih = im.naturalHeight || im.videoHeight || 1, sc2 = Math.max(clip[2] / iw, clip[3] / ih) * z;
       ctx.drawImage(im, -iw * sc2 / 2, -ih * sc2 / 2 - U * 0.01, iw * sc2, ih * sc2);
       ctx.filter = "none";
       if (st.id === "explainer" || st.id === "collage") { ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = tk.a2 + "55"; ctx.fillRect(ix, iy, cw, chh); ctx.globalCompositeOperation = "source-over"; }
@@ -15826,16 +15870,19 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
     });
   } else if (de === "stoic" || de === "curves") {
     const sm2 = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
-    if (de === "stoic" && tk._scWord) {
+    // (the reel's huge faint word is left out: in a 9:16 sheet it always
+    // ended up behind a title, a label or a picture)
+    if (de === "stoic" && tk._scWord && false) {
       // a huge faint word behind everything, drifting
       ctx.save(); ctx.globalAlpha = 0.07 * ap; ctx.fillStyle = tk.ink;
       ctx.font = vsGxFont(tk.disp, U * 0.32); ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(tk._scWord.toUpperCase().slice(0, 9), W / 2 + Math.sin(t * 0.2) * U * 0.02, H * 0.2);
+      ctx.fillText(tk._scWord.toUpperCase().slice(0, 9), W / 2 + Math.sin(t * 0.2) * U * 0.02, H * 0.62);
       ctx.restore();
     }
     // fine curves sweeping across, drawn on
     ctx.save(); ctx.strokeStyle = tk.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(1, U * 0.002);
-    [[-0.1, 0.42, 0.55, 0.15, 1.1, 0.55], [-0.05, 0.95, 0.35, 0.7, 0.75, 1.1]].forEach(([x0, y0, cxp, cyp, x1, y1], k) => {
+    // low, under the words being said - never across a title or a picture
+    [[-0.1, 0.9, 0.5, 0.99, 1.1, 0.92], [-0.05, 1.02, 0.4, 0.9, 0.9, 1.05]].forEach(([x0, y0, cxp, cyp, x1, y1], k) => {
       const q = sm2(t / 1.2 - k * 0.3); if (q <= 0) return;
       ctx.beginPath(); ctx.setLineDash([W * 2 * q, W * 2]);
       ctx.moveTo(W * x0, H * y0); ctx.quadraticCurveTo(W * cxp, H * cyp, W * x1, H * y1); ctx.stroke();
@@ -15846,13 +15893,14 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
       const q = sm2((t - 0.3) / 1.0);
       if (q > 0) {
         ctx.save(); ctx.globalAlpha = 0.38 * q; ctx.strokeStyle = tk.a1; ctx.lineCap = "round"; ctx.lineWidth = U * 0.05;
-        ctx.beginPath(); ctx.setLineDash([W * 2 * q, W * 2]); ctx.moveTo(W * 0.02, H * 0.62); ctx.bezierCurveTo(W * 0.35, H * 0.58, W * 0.6, H * 0.8, W * 1.02, H * 0.86); ctx.stroke();
+        // along the foot, below the words, never across them
+        ctx.beginPath(); ctx.setLineDash([W * 2 * q, W * 2]); ctx.moveTo(-W * 0.05, H * 0.9); ctx.bezierCurveTo(W * 0.3, H * 0.97, W * 0.6, H * 0.93, W * 1.05, H * 1.0); ctx.stroke();
         ctx.restore();
       }
     }
     if (de === "stoic") {
       // the heavy black arrow coming into the top corner, motion-blurred on its way
-      const q = sm2(t / 0.5), ax = W * 0.1 + (1 - q) * -W * 0.12, ay = H * 0.1 + (1 - q) * -H * 0.06, L = U * 0.17, th = U * 0.045;
+      const q = sm2(t / 0.5), ax = W * 0.07 + U * 0.035 + (1 - q) * -W * 0.12, ay = H * 0.07 + U * 0.035 + (1 - q) * -H * 0.06, L = U * 0.11, th = U * 0.032;
       ctx.save(); ctx.globalAlpha = q; try { if (q < 1) ctx.filter = "blur(" + ((1 - q) * U * 0.02).toFixed(1) + "px)"; } catch (er) {}
       ctx.fillStyle = "#111111"; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = U * 0.03; ctx.shadowOffsetY = U * 0.01;
       ctx.translate(ax, ay);
@@ -15860,8 +15908,9 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
       ctx.restore();
       // paper shards drifting and turning
       for (let k = 0; k < 4; k++) {
-        const sx = W * [0.08, 0.86, 0.18, 0.78][k], sy = H * [0.55, 0.28, 0.82, 0.7][k] - t * U * 0.012 * (k % 2 ? 1 : 0.6);
-        const z = U * [0.06, 0.04, 0.05, 0.035][k];
+        // in the grey margin outside the sheet, never over its words
+        const sx = W * [0.03, 0.97, 0.035, 0.965][k], sy = H * [0.45, 0.3, 0.75, 0.62][k] - t * U * 0.012 * (k % 2 ? 1 : 0.6);
+        const z = U * [0.03, 0.025, 0.028, 0.022][k];
         ctx.save(); ctx.globalAlpha = 0.35 * ap; ctx.fillStyle = k % 2 ? "#9a9a98" : "#6f6f6d";
         ctx.translate(sx, sy); ctx.rotate(t * (0.3 + k * 0.1) + k);
         ctx.beginPath(); ctx.moveTo(-z, -z * 0.6); ctx.lineTo(z * 0.8, -z * 0.9); ctx.lineTo(z, z * 0.5); ctx.lineTo(-z * 0.5, z * 0.8); ctx.closePath(); ctx.fill();
@@ -16022,7 +16071,8 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   const start = Math.floor(cur / 4) * 4, chunk = ws.slice(start, start + 4);
   const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" ? tk.body : { fam: tk.body.fam, w: 800 };
   const px = U * (cp === "hand" ? 0.062 : cp === "sub" ? 0.048 : 0.05);
-  const y = st.fr === "ticker" ? H * 0.84 : st.fr === "letterbox" ? H * 0.958 : st.fr === "wood" || st.fr === "thick" ? H * 0.88 : H * 0.9;
+  const sheet = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
+  const y = sheet ? H * 0.845 : st.fr === "ticker" ? H * 0.84 : st.fr === "letterbox" ? H * 0.958 : st.fr === "wood" || st.fr === "thick" ? H * 0.88 : H * 0.9;
   ctx.save();
   ctx.font = vsGxFont(f, px); ctx.textBaseline = "middle"; ctx.textAlign = "left";
   const txt = chunk.map((w) => w.w.replace(/^["'(]+|["')]+$/g, ""));
@@ -16061,6 +16111,8 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
 // keep their places across the cuts after it, so t is counted from the
 // scene's own start, not the cut's.
 function vsGxFrame(ctx, W, H, s, idx, local, dur) {
+  const uv = s._gx && s._gx._userImg;
+  if (uv && uv.tagName === "VIDEO" && !vstudio.rendering) { if (vstudio.looping && uv.paused) uv.play().catch(() => {}); else if (!vstudio.looping && !uv.paused) uv.pause(); }
   const sl = vstudio.slides;
   let before = 0, total = 0, j = idx - 1;
   while (j >= 0 && sl[j]._gx === s._gx) { before += Number(sl[j].duration) || 0; j--; }
@@ -16183,7 +16235,7 @@ function vsGxSampleFor(sample, th, redraw) {
   else {
     const w = { wait: redraw ? [redraw] : [] };
     m.set(key, w);
-    vsGxResolve(Object.assign({}, sample), tk).then((a) => { m.set(key, a); w.wait.forEach((f) => { try { f(); } catch (e) {} }); }).catch(() => { m.delete(key); });
+    vsGxResolve(Object.assign({}, sample, { _preview: true }), tk).then((a) => { m.set(key, a); w.wait.forEach((f) => { try { f(); } catch (e) {} }); }).catch(() => { m.delete(key); });
   }
   return Object.assign({}, sample, { assets: { objs: [], icons: [] } });
 }
@@ -16225,8 +16277,8 @@ function vsGxThemePicker(cur, onPick, sampleTitle) {
       '<button class="gp-b" id="gpShuffle" type="button">' + L("Shuffle", "درهم") + '</button>' +
       '<button class="gp-b" id="gpX" type="button" aria-label="' + L("Close", "بستن") + '">✕</button></div>' +
     '<div class="gp-f" role="group" aria-label="' + L("Kind of style", "نوع سبک") + '">' +
-      '<button class="gp-chip" type="button" data-f="" aria-pressed="true">' + L("All", "همه") + "</button>" +
-      cats.map((c) => '<button class="gp-chip" type="button" data-f="' + c + '" aria-pressed="false">' + (fa ? VS_GX_CATS[c][1] : VS_GX_CATS[c][0]) + "</button>").join("") +
+      '<button class="gp-chip" type="button" data-f="" aria-pressed="false">' + L("All", "همه") + "</button>" +
+      cats.map((c) => '<button class="gp-chip" type="button" data-f="' + c + '" aria-pressed="' + (c === "reels") + '">' + (fa ? VS_GX_CATS[c][1] : VS_GX_CATS[c][0]) + "</button>").join("") +
       '<select id="gpStyle" aria-label="' + L("Style", "سبک") + '"><option value="">' + L("Every style", "همهٔ سبک‌ها") + "</option>" + VS_GX_STYLES.map((s) => '<option value="' + s.id + '">' + (fa ? s.n[1] : s.n[0]) + "</option>").join("") + "</select>" +
       '<select id="gpMotion" aria-label="' + L("Motion", "حرکت") + '"><option value="">' + L("Any motion", "هر حرکتی") + "</option>" + VS_GX_MOTIONS.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_MOTION_NAME[m][1] : VS_GX_MOTION_NAME[m][0]) + "</option>").join("") + "</select>" +
       '<select id="gpElem" aria-label="' + L("Pictures", "تصاویر") + '"><option value="">' + L("Any pictures", "هر تصویری") + "</option>" + kinds.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_ELEM_NAME[m][1] : VS_GX_ELEM_NAME[m][0]) + "</option>").join("") + "</select>" +
@@ -16235,7 +16287,7 @@ function vsGxThemePicker(cur, onPick, sampleTitle) {
   document.body.appendChild(ov);
   const $$ = (id) => ov.querySelector("#" + id);
   const grid = $$("gpGrid");
-  let cat = "", list = all.slice(), shown = 0, anim = 0, seed = 0, ready = false;
+  let cat = "reels", list = all.slice(), shown = 0, anim = 0, seed = 0, ready = false;
   const close = () => { cancelAnimationFrame(anim); io.disconnect(); moreIo.disconnect(); ov.remove(); };
   $$("gpX").onclick = close;
   ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
@@ -16329,6 +16381,8 @@ function vsEditStudio(preset, filesIn) {
   let showFiles = (mem && mem.show) ? mem.show.slice() : [];
   // photos for a video made without one (Photos + text)
   let phFiles = (mem && mem.photos) ? mem.photos.slice() : [];
+  // photos and clips for a graphic video's scenes
+  let gxMed = (mem && mem.gxMed) ? mem.gxMed.slice() : [];
   // their own screenshots, floated beside them as they talk about them
   let shotFiles = (mem && mem.shots) ? mem.shots.slice() : [];
   let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
@@ -16481,10 +16535,10 @@ function vsEditStudio(preset, filesIn) {
         '<button type="button" role="tab" data-mode="swap">' + L("Change text or footage", "عوض کردن متن یا فوتیج") + "</button>" +
         '<button type="button" role="tab" data-mode="graphic">' + L("Graphic video", "ویدیوی گرافیکی") + "</button>" +
         '<button type="button" role="tab" data-mode="photos">' + L("Photos + text", "عکس + متن") + "</button></div>" +
-      '<div id="emPh" class="ts-field" hidden><div class="ts-lbl">' + L("Your photos", "عکس‌هایت") + "</div>" +
+      '<div id="emPh" class="ts-field" hidden><div class="ts-lbl">' + L("Your photos & clips", "عکس‌ها و کلیپ‌هایت") + "</div>" +
         '<div id="emPhList" class="em-showl"></div>' +
-        '<button id="emPhAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos", "افزودن عکس") + "</button>" +
-        '<input id="emPhFile" type="file" accept="image/*" multiple hidden/>' +
+        '<button id="emPhAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos or clips", "افزودن عکس یا کلیپ") + "</button>" +
+        '<input id="emPhFile" type="file" accept="image/*,video/*" multiple hidden/>' +
         '<div class="ts-lbl" style="margin-top:10px">' + L("Text or news link", "متن یا لینک خبر") + "</div>" +
         '<textarea id="emPhText" class="em-txt" rows="4" dir="auto" placeholder="' + L("Paste your text or a link", "متن یا لینک را بچسبان") + '"></textarea>' +
         '<div class="ts-lbl" style="margin-top:10px">' + L("Voice", "صدا") + "</div>" +
@@ -16505,7 +16559,11 @@ function vsEditStudio(preset, filesIn) {
       '<div id="emGx" class="ts-field em-gxf" hidden><div class="ts-lbl">' + L("Theme", "تم") + "</div>" +
         '<div class="em-gxrow"><canvas id="emGxCv" width="216" height="384" aria-hidden="true"></canvas><div class="em-gxinfo"><div id="emGxName" class="em-gxname"></div><div id="emGxMeta" class="ts-note"></div>' +
         '<button id="emGxPick" type="button" class="ts-ghost">' + L("Choose from " + vsGxThemes().length.toLocaleString("en-US") + " themes", "انتخاب از " + vsGxThemes().length.toLocaleString("fa-IR") + " تم") + "</button></div></div>" +
-        '<p class="ts-note">' + L("You are not shown: your voice plays and every moment becomes a designed scene - maps, numbers, lists, timelines, quotes, 3D objects and photos, chosen from what you say.",
+        '<div class="ts-lbl" style="margin-top:12px">' + L("Your photos & clips", "عکس‌ها و کلیپ‌هایت") + "</div>" +
+        '<div id="emGxMedList" class="em-showl"></div>' +
+        '<button id="emGxMedAdd" type="button" class="ts-ghost em-showadd">' + L("Add photos or clips", "افزودن عکس یا کلیپ") + "</button>" +
+        '<input id="emGxMedFile" type="file" accept="image/*,video/*" multiple hidden/>' +
+        '<p class="ts-note" hidden>' + L("You are not shown: your voice plays and every moment becomes a designed scene - maps, numbers, lists, timelines, quotes, 3D objects and photos, chosen from what you say.",
           "خودت دیده نمی‌شوی: صدایت پخش می‌شود و هر لحظه یک صحنهٔ طراحی‌شده است - نقشه، عدد، فهرست، خط زمانی، نقل‌قول، اشیای سه‌بعدی و عکس، بر اساس حرف‌هایت.") + "</p></div>" +
       '<div id="emStyleF" class="ts-field em-edit"><div class="ts-lbl">' + L("Style", "سبک") + '</div><div class="em-styles" role="radiogroup" aria-label="' + L("Style", "سبک") + '">' +
         STYLES.map(([v, n], i) => '<label class="em-style"><input type="radio" name="emStyle" value="' + v + '"' + (v === style0 ? " checked" : "") + '/><canvas width="180" height="260" data-style="' + v + '" aria-hidden="true"></canvas><span class="em-style-n">' + n + "</span></label>").join("") +
@@ -16562,7 +16620,7 @@ function vsEditStudio(preset, filesIn) {
   let doneSeq = mem ? mem.doneSeq : -1, running = mem ? mem.running : null;
   const remember = () => {
     const st = settingsNow();
-    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice(), shots: shotFiles.slice(), photos: phFiles.slice(), phText: ($$("emPhText") || {}).value || "" };
+    vsEditStudioMem = { files: files.slice(), mode, settings: st, doneSeq, running, show: showFiles.slice(), shots: shotFiles.slice(), photos: phFiles.slice(), phText: ($$("emPhText") || {}).value || "", gxMed: gxMed.slice() };
     try { localStorage.setItem(VS_EDIT_STUDIO_LS, JSON.stringify(st)); } catch (e) {}
   };
   const close = () => {
@@ -17047,17 +17105,28 @@ function vsEditStudio(preset, filesIn) {
   $$("emShotAdd").onclick = () => { $$("emShotFile").value = ""; $$("emShotFile").click(); };
   $$("emShotFile").onchange = () => { shotFiles = shotFiles.concat([...($$("emShotFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 6); drawShots(); remember(); };
   drawShots();
+  // the graphic video's photos and clips, the same way
+  const gmUrls = [];
+  const drawGm = () => {
+    gmUrls.splice(0).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
+    $$("emGxMedList").innerHTML = gxMed.map((f, i) => { const u = URL.createObjectURL(f); gmUrls.push(u); return '<div class="em-sht">' + (/^video\//.test(f.type) ? '<video src="' + u + '" muted playsinline></video>' : '<img src="' + u + '" alt=""/>') + '<button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>'; }).join("");
+    $$("emGxMedAdd").textContent = gxMed.length ? L("Add more", "افزودن بیشتر") : L("Add photos or clips", "افزودن عکس یا کلیپ");
+  };
+  $$("emGxMedList").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; gxMed.splice(Number(b.dataset.i), 1); drawGm(); remember(); });
+  $$("emGxMedAdd").onclick = () => { $$("emGxMedFile").value = ""; $$("emGxMedFile").click(); };
+  $$("emGxMedFile").onchange = () => { gxMed = gxMed.concat([...($$("emGxMedFile").files || [])].filter((f) => /^(image|video)\//.test(f.type))).slice(0, 12); drawGm(); remember(); };
+  drawGm();
   // the photos, the same way
   const phUrls = [];
   const drawPh = () => {
     phUrls.splice(0).forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) {} });
-    $$("emPhList").innerHTML = phFiles.map((f, i) => { const u = URL.createObjectURL(f); phUrls.push(u); return '<div class="em-sht"><img src="' + u + '" alt=""/><button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>'; }).join("");
-    $$("emPhAdd").textContent = phFiles.length ? L("Add more", "افزودن بیشتر") : L("Add photos", "افزودن عکس");
+    $$("emPhList").innerHTML = phFiles.map((f, i) => { const u = URL.createObjectURL(f); phUrls.push(u); return '<div class="em-sht">' + (/^video\//.test(f.type) ? '<video src="' + u + '" muted playsinline></video>' : '<img src="' + u + '" alt=""/>') + '<button type="button" data-i="' + i + '" aria-label="' + L("Remove", "حذف") + '">✕</button></div>'; }).join("");
+    $$("emPhAdd").textContent = phFiles.length ? L("Add more", "افزودن بیشتر") : L("Add photos or clips", "افزودن عکس یا کلیپ");
     drawList();
   };
   $$("emPhList").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; phFiles.splice(Number(b.dataset.i), 1); drawPh(); remember(); });
   $$("emPhAdd").onclick = () => { $$("emPhFile").value = ""; $$("emPhFile").click(); };
-  $$("emPhFile").onchange = () => { phFiles = phFiles.concat([...($$("emPhFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 12); drawPh(); remember(); };
+  $$("emPhFile").onchange = () => { phFiles = phFiles.concat([...($$("emPhFile").files || [])].filter((f) => /^(image|video)\//.test(f.type))).slice(0, 12); drawPh(); remember(); };
   if (mem && mem.phText) $$("emPhText").value = mem.phText;
   ov.querySelectorAll('input[name="emPhLook"]').forEach((r) => r.addEventListener("change", () => setMode(mode)));
   $$("emPhText").addEventListener("input", () => { drawList(); });
@@ -17079,7 +17148,7 @@ function vsEditStudio(preset, filesIn) {
       aspect: (ov.querySelector('input[name="emShape"]:checked') || {}).value || "9:16", layout: $$("emLayout").value, host: true };
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
-    if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; }
+    if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; if (gxMed.length) o.gxMedia = gxMed.slice(); }
     if (shotFiles.length && o.style !== "classic" && !o.graphic) o.shots = shotFiles.slice();
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
@@ -18235,10 +18304,20 @@ async function vsSwapSeekExport(s, local) {
 // written into one spoken line per photo, the photos are the footage - each
 // with a slow camera move, cut in the chosen look's own way - the lines are
 // spoken (the free voice, or the user's own) and set in the look's words.
+// A user's photo or clip, ready to draw: an <img>, or a muted looping <video>.
+async function vsGxUserMedia(f) {
+  const u = URL.createObjectURL(f);
+  if (/^video\//.test(f.type || "")) {
+    const el = await vsEditVideoEl(u);
+    if (el) { el.loop = true; el.muted = true; }
+    return el;
+  }
+  return await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u; });
+}
 async function vsPhotoStory(photos, o) {
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
-  photos = (photos || []).filter((f) => /^image\//.test(f.type || "")).slice(0, 12);
+  photos = (photos || []).filter((f) => /^(image|video)\//.test(f.type || "")).slice(0, 12);
   const src0 = String(o.text || "").trim();
   if (!photos.length || !src0) { vsAutoStatus(L("Add your photos and a text or a link.", "عکس‌ها و یک متن یا لینک بده.")); return; }
   const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "viral";
@@ -18262,9 +18341,8 @@ async function vsPhotoStory(photos, o) {
     vsAutoStatus(L("Reading your photos…", "در حال خواندن عکس‌ها…"));
     const imgs = [];
     for (const f of photos) {
-      const u = URL.createObjectURL(f);
-      const im = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u; });
-      if (im) imgs.push({ im, u, name: f.name });
+      const im = await vsGxUserMedia(f);
+      if (im) imgs.push({ im, u: im.src || im.currentSrc || "", name: f.name, vid: im.tagName === "VIDEO" });
     }
     if (!imgs.length) { const er = new Error(L("The photos could not be opened.", "عکس‌ها باز نشدند.")); er.plain = true; throw er; }
     // the script: one spoken line per photo, only what the source says
@@ -18299,7 +18377,7 @@ async function vsPhotoStory(photos, o) {
     Object.assign(base, { _textDX: 0, _textDY: 0, _textScale: 1, _mediaDX: 0, _mediaDY: 0, _mediaScale: 1, "#vsMotion": "none", "#vsOverlay": "none" });
     lines.forEach((line, i) => {
       const ph = imgs[i % imgs.length];
-      vstudio.slides.push({ url: ph.u, isVideo: false, mediaEl: ph.im, ready: true, isIntro: false, headline: "", duration: 3.5,
+      vstudio.slides.push({ url: ph.u, isVideo: !!ph.vid, mediaEl: ph.im, ready: true, isIntro: false, headline: "", duration: 3.5, _clipIn: 0,
         settings: Object.assign({}, base), _narration: line, _photoStory: true, _fit: "fill",
         _timelineLabel: line.split(/\s+/).slice(0, 4).join(" ") });
     });
@@ -18907,6 +18985,25 @@ async function vsEditMyVideo(fileIn, o) {
         sl._gx = sc; sl._noCaps = true;
         delete sl._pro; delete sl._ins; delete sl._bw; delete sl._sticker; delete sl._hook; delete sl._gfx;
       });
+      // their own photos and clips, in turn, in the scenes that show something -
+      // a word or a title scene becomes the picture, framed, with its title
+      if (o.gxMedia && o.gxMedia.length) {
+        const med = (await Promise.all(o.gxMedia.slice(0, 12).map(vsGxUserMedia))).filter(Boolean);
+        if (med.length) {
+          const seenSc = new Map();
+          let mk = 0;
+          vstudio.slides.forEach((sl) => {
+            const sc0 = sl._gx;
+            if (!sc0 || !["title", "keyword", "objects", "photo", "stat", "compare"].includes(sc0.type)) return;
+            if (!seenSc.has(sc0)) {
+              const sc = Object.assign({}, sc0, { _userImg: med[mk++ % med.length] });
+              if (sc.type === "keyword" || sc.type === "title") { sc.type = "photo"; sc.photo = sc.photo || sc.title || "photo"; }
+              seenSc.set(sc0, vsGxCheck(sc));
+            }
+            sl._gx = seenSc.get(sc0);
+          });
+        }
+      }
       vstudio._gxCaps = o.captions !== false;
       await vsGxLoadFonts();
       await vsGxResolveAll(vstudio.slides);
@@ -31047,6 +31144,15 @@ async function _vsSeekActiveFootage(t) {
   if (!vstudio.slides.length) return;
   let at = slideAtTime(t);
   const slide = vstudio.slides[at.index];
+  // a graphic scene showing the user's own clip (on a photo slide too)
+  const uv = slide && slide._gx && slide._gx._userImg;
+  if (uv && uv.tagName === "VIDEO" && uv.duration) {
+    const target = at.local % Math.max(0.1, uv.duration - 0.05);
+    if (Math.abs((uv.currentTime || 0) - target) > 0.01) {
+      await _vsSeekVideo(uv, target, _vsSeekPatient(uv, target));
+      if (uv.requestVideoFrameCallback) await Promise.race([new Promise((r) => uv.requestVideoFrameCallback(() => r())), new Promise((r) => setTimeout(r, 150))]);
+    }
+  }
   if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
   if (slide._swap) await vsSwapSeekExport(slide, at.local);
   // a pro edit's cinematic insert: its own footage, from the insert's start
