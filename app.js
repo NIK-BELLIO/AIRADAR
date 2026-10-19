@@ -14048,6 +14048,7 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 const VS_GX_PALETTES = [
   ["silver", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#7a2a9a", "#4a4a4a", "#111111"],
   ["stoic", 0, "#d4d4d2", "#f1f1ef", "#151515", "#8a8a87", "#7b2fbf", "#111111", "#5a5a5a"],
+  ["pastel", 0, "#f3f4f6", "#ffffff", "#1c1d22", "#9aa0a8", "#111214", "#33dcf0", "#9b5cf0"],
   ["silverwine", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#8e1f3a", "#4a4a4a", "#111111"],
   ["steel", 0, "#ece9e1", "#fbfaf6", "#56708f", "#a3aebb", "#7fa9d8", "#26364b", "#c9d6e6"],
   ["steelrust", 0, "#ece9e1", "#fbfaf6", "#3f5266", "#a3aebb", "#c8743c", "#26364b", "#e6d3c3"],
@@ -14151,6 +14152,12 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 const VS_GX_CATS = { explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Copied from the SFX-pack reel: a pastel sky of pink clouds over soft
+  // green hills fading to white; glossy 3D objects popping in on a cyan glow
+  // and floating; dark bold words sharpening out of a blur; labels in black
+  // pills.
+  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "fun", pals: ["pastel"], fonts: ["clean"],
+    el: ["3d", "color"], bg: "clouds", al: "c", tt: "blurword", bwSame: true, ef: "bloom", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "pill", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the Marcus Aurelius After Effects reel: a pale card on grey
   // under leaf shadows; a small book serif leading into the key word, every
   // word sharpening out of a blur one after another, the key word in purple or
@@ -14580,6 +14587,34 @@ function vsGxTexture(tk, W, H) {
     for (let yy = 0; yy < H; yy += s * 2) x.fillRect(0, yy, W, s);
   } else if (tex === "dots") {
     dotsAt(Math.max(10, Math.round(W / 22)), Math.max(1.5, W / 520), tk.ink, tk.dark ? 0.25 : 0.22);
+  } else if (tex === "clouds") {
+    // a pastel sky: blue at the top into pink, clouds of soft pink and white,
+    // pale green hills, then white haze over the lower part
+    const sky = x.createLinearGradient(0, 0, 0, H * 0.6);
+    sky.addColorStop(0, "#b9d3ea"); sky.addColorStop(0.55, "#e9d6ea"); sky.addColorStop(1, "#f6e4ee");
+    x.fillStyle = sky; x.fillRect(0, 0, W, H);
+    const cl = document.createElement("canvas"); cl.width = W; cl.height = H;
+    const cx2 = cl.getContext("2d");
+    for (let k = 0; k < 9; k++) {
+      // a cloud: a few puffs side by side, lit from above
+      const bx = (k / 8) * W + (rnd() - 0.5) * W * 0.1, by = H * (0.08 + rnd() * 0.3), r0 = U * (0.13 + rnd() * 0.09);
+      for (let j = 0; j < 4; j++) {
+        const cx = bx + (j - 1.5) * r0 * 0.75, cy = by + (j % 2 ? -r0 * 0.25 : 0), r = r0 * (0.8 + rnd() * 0.4);
+        const g = cx2.createRadialGradient(cx, cy - r * 0.35, r * 0.05, cx, cy, r);
+        g.addColorStop(0, "rgba(255,250,253,0.9)"); g.addColorStop(0.6, "rgba(244,206,228,0.55)"); g.addColorStop(1, "rgba(240,196,222,0)");
+        cx2.fillStyle = g; cx2.beginPath(); cx2.arc(cx, cy, r, 0, Math.PI * 2); cx2.fill();
+      }
+    }
+    x.save(); try { x.filter = "blur(" + Math.round(U * 0.012) + "px)"; } catch (e) {} x.drawImage(cl, 0, 0); x.restore();
+    [[0.5, "#dff0b8", "#c9e59a"], [0.58, "#e8f4c8", "#d4ebb0"]].forEach(([yy, c0, c1], k) => {
+      const g = x.createLinearGradient(0, H * yy, 0, H * (yy + 0.15)); g.addColorStop(0, c0); g.addColorStop(1, c1);
+      x.fillStyle = g; x.beginPath(); x.moveTo(0, H * (yy + 0.04));
+      x.bezierCurveTo(W * 0.25, H * (yy - 0.03 + k * 0.02), W * 0.55, H * (yy + 0.06), W, H * (yy - 0.01));
+      x.lineTo(W, H); x.lineTo(0, H); x.closePath(); x.fill();
+    });
+    const haze = x.createLinearGradient(0, H * 0.55, 0, H * 0.82);
+    haze.addColorStop(0, "rgba(247,247,248,0)"); haze.addColorStop(1, "rgba(247,247,248,1)");
+    x.fillStyle = haze; x.fillRect(0, H * 0.55, W, H * 0.45);
   } else if (tex === "window" || tex === "poster" || tex === "sheet") {
     // a sheet standing on the ground (the editorial and poster reels)
     if (tex === "window") {
@@ -14612,7 +14647,7 @@ function vsGxTexture(tk, W, H) {
     }
   }
   // a quiet vignette for depth (not on the flat, printed grounds)
-  if (tex !== "flat" && tex !== "swiss" && tex !== "dots" && tex !== "lined" && tex !== "window" && tex !== "poster" && tex !== "sheet") {
+  if (tex !== "flat" && tex !== "swiss" && tex !== "dots" && tex !== "lined" && tex !== "window" && tex !== "poster" && tex !== "sheet" && tex !== "clouds") {
     const v = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.75);
     v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, tk.dark ? "rgba(0,0,0,0.45)" : "rgba(60,40,20,0.12)");
     x.fillStyle = v; x.fillRect(0, 0, W, H);
@@ -14732,7 +14767,12 @@ async function vsGxResolve(sc, tk) {
     try { a.world = await vsGxWorld(); a.hits = vsGxCountries(a.world, sc.countries); } catch (e) {}
     if (!a.hits.length) sc.type = "keyword";
   }
-  if (sc.type === "photo") {
+  // the user's own photo for this scene: it is the photo, or the first picture
+  if (sc._userImg) {
+    if (sc.type === "photo") a.photo = sc._userImg;
+    else if (["title", "keyword", "objects", "stat", "compare"].includes(sc.type)) a.objs = [sc._userImg].concat(a.objs.filter(Boolean)).slice(0, 2);
+  }
+  if (sc.type === "photo" && !a.photo) {
     try {
       const j = await vsPexelsSearch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(sc.photo) + "&per_page=6&orientation=portrait", VS_PEXELS_KEY);
       const ph = j && j.photos && j.photos[0];
@@ -14842,8 +14882,8 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       // display face, in the accent (or white on a black bar)
       const words = String(str).trim().split(/\s+/), keyW = words.length > 1 ? words.pop() : words.pop();
       const lead = words.join(" ");
-      const leadPx = px * 0.42, keyPx = px * (lead ? 1.05 : 1);
-      const ly = lead ? y - keyPx * 0.6 : y, ky = lead ? y + keyPx * 0.22 : y;
+      const leadPx = px * (st.bwSame ? 0.78 : 0.42), keyPx = px * (st.bwSame ? 0.78 : lead ? 1.05 : 1);
+      const ly = lead ? y - keyPx * (st.bwSame ? 0.55 : 0.6) : y, ky = lead ? y + keyPx * (st.bwSame ? 0.55 : 0.22) : y;
       const drawWords = (txt, f, fpx, yy, t1, color, isKey) => {
         if (!txt) return { boxes: [], h: 0, px: fpx };
         const w0 = wrap(isKey && disp.upper ? String(txt).toUpperCase() : txt, f, fpx, maxW, 2); fpx = w0.px;
@@ -14875,8 +14915,8 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         });
         return { boxes, h: w0.lines.length * lh, px: fpx };
       };
-      const lr = drawWords(lead, body, leadPx, ly, t0, ink, false);
-      const keyCol = st.kd === "invert" && keyW.length % 2 === 0 ? ink : acc;
+      const lr = drawWords(lead, st.bwSame ? disp : body, leadPx, ly, t0, ink, false);
+      const keyCol = st.bwSame ? ink : st.kd === "invert" && keyW.length % 2 === 0 ? ink : acc;
       const kr = drawWords(keyW, disp, keyPx, ky, t0 + (lead ? 0.12 + words.length * 0.09 : 0), keyCol, true);
       return { h: lr.h + kr.h, boxes: lr.boxes.concat(kr.boxes), px: kr.px };
     }
@@ -15130,6 +15170,20 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         [x0, x0 + bs].forEach((xx) => { ctx.beginPath(); ctx.moveTo(xx, y0 + bs + size * 0.035); ctx.lineTo(xx, y0 + bs + size * 0.085); ctx.stroke(); });
       }
       ctx.globalAlpha = fade; const [w, h] = fit(0.62); ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+    } else if (ef === "bloom") {
+      // the pastel reel's objects: a soft glow of the accent under each, a pop
+      // in that overshoots a little and settles, then a slow float and tilt
+      const q = Math.max(0, Math.min(1, (t - t0) / 0.42));
+      const pop = q < 1 ? 1 + 0.1 * Math.sin(Math.PI * q) * (1 - q) : 1, e = 1 - Math.pow(1 - q, 3);
+      const gcol = i % 3 === 2 ? tk.a3 : tk.a2;
+      const gl = ctx.createRadialGradient(cx, cy + size * 0.05, size * 0.05, cx, cy + size * 0.05, size * 0.75);
+      gl.addColorStop(0, gcol + "aa"); gl.addColorStop(0.5, gcol + "44"); gl.addColorStop(1, gcol + "00");
+      ctx.globalAlpha = fade; ctx.fillStyle = gl; ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+      ctx.translate(cx, cy + Math.sin(t * 1.4 + i * 1.7) * size * 0.04);
+      ctx.rotate((i % 2 ? 1 : -1) * (0.12 * (1 - e)) + Math.sin(t * 0.9 + i) * 0.05);
+      ctx.scale(e * pop, e * pop);
+      ctx.shadowColor = gcol + "88"; ctx.shadowBlur = size * 0.12; ctx.shadowOffsetY = size * 0.04;
+      const [w, h] = fit(0.95); ctx.drawImage(img, -w / 2, -h / 2, w, h);
     } else if (ef === "grid") {
       // the reels' picture: a soft dot grid behind it, a long drop shadow,
       // and round every other one a dashed ring turning slowly with crop marks
@@ -16231,6 +16285,9 @@ function vsEditStudio(preset, filesIn) {
         '<div class="ts-lbl" style="margin-top:10px">' + L("Voice", "صدا") + "</div>" +
         '<div class="em-row"><label class="em-opt"><input type="radio" name="emPhVoice" value="ai" checked/> ' + L("AI voice · Free", "صدای AI · رایگان") + "</label>" +
         '<label class="em-opt"><input type="radio" name="emPhVoice" value="mine"/> ' + L("My own voice", "صدای خودم") + "</label></div>" +
+        '<div class="ts-lbl" style="margin-top:10px">' + L("Look", "ظاهر") + "</div>" +
+        '<div class="em-row"><label class="em-opt"><input type="radio" name="emPhLook" value="edit" checked/> ' + L("Edit look", "سبک ادیت") + "</label>" +
+        '<label class="em-opt"><input type="radio" name="emPhLook" value="graphic"/> ' + L("Graphic video", "ویدیوی گرافیکی") + "</label></div>" +
       "</div>" +
       '<div class="ts-field">' +
         '<button id="emDrop" type="button" class="ts-drop">' +
@@ -16638,6 +16695,9 @@ function vsEditStudio(preset, filesIn) {
     // photos + text: no video to choose, nothing of a video's to add
     $$("emPh").hidden = m !== "photos";
     $$("emDrop").parentElement.hidden = m === "photos";
+    // photos + text in a graphic look: the theme, not the edit styles
+    const phGx = m === "photos" && (ov.querySelector('input[name="emPhLook"]:checked') || {}).value === "graphic";
+    if (m === "photos") { $$("emGx").hidden = !phGx; $$("emStyleF").hidden = phGx; if (phGx) drawGx(); }
     ov.querySelectorAll(".em-show").forEach((el) => { if (m === "photos") el.hidden = true; });
     $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : m === "photos" ? L("Make my video", "ساختن ویدیو") : L("Edit it", "ادیتش کن");
     drawList();
@@ -16794,6 +16854,7 @@ function vsEditStudio(preset, filesIn) {
   $$("emPhAdd").onclick = () => { $$("emPhFile").value = ""; $$("emPhFile").click(); };
   $$("emPhFile").onchange = () => { phFiles = phFiles.concat([...($$("emPhFile").files || [])].filter((f) => /^image\//.test(f.type))).slice(0, 12); drawPh(); remember(); };
   if (mem && mem.phText) $$("emPhText").value = mem.phText;
+  ov.querySelectorAll('input[name="emPhLook"]').forEach((r) => r.addEventListener("change", () => setMode(mode)));
   $$("emPhText").addEventListener("input", () => { drawList(); });
   $$("emPhText").addEventListener("change", remember);
   drawPh();
@@ -16822,6 +16883,7 @@ function vsEditStudio(preset, filesIn) {
       if (!phFiles.length || !$$("emPhText").value.trim()) return;
       o.text = $$("emPhText").value; o.voice = (ov.querySelector('input[name="emPhVoice"]:checked') || {}).value || "ai";
       if (!/^pro-/.test(o.style)) o.style = "pro-viral";
+      if ((ov.querySelector('input[name="emPhLook"]:checked') || {}).value === "graphic") { o.graphic = true; o.gxTheme = gxTheme; }
       const runP = vsPhotoStory(phFiles.slice(), o)
         .then(() => ({ ok: vstudio._buildSeq !== before && vstudio.slides.some((x) => x._photoStory) }), (e) => ({ err: e }));
       running = runP;
@@ -18045,6 +18107,41 @@ async function vsPhotoStory(photos, o) {
     let voiced = false;
     if (!own) voiced = await vsAddVoiceover({ language: lang });
 
+    // a graphic look: every line a designed scene, their photos in the scenes
+    if (o.graphic) {
+      vsAutoStatus(L("Designing the scenes…", "در حال طراحی صحنه‌ها…"));
+      vstudio._gxTheme = vsGxTheme(o.gxTheme || vstudio._gxTheme || VS_GX_DEFAULT).id;
+      vsGxLoadFonts(); vsGxIndex("3d").catch(() => {}); vsGxIndex("icons").catch(() => {});
+      let acc0 = 0;
+      const sentences = vstudio.slides.map((sl, i) => { const st0 = acc0; acc0 += Number(sl.duration) || 0; return { i, start: st0, end: acc0, text: sl._narration }; });
+      let plan = null;
+      const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 90000);
+      try {
+        const r = await fetch(VS_GX_PLAN_URL, { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await arGuestHeaders()),
+          body: JSON.stringify({ sentences, aspect: o.aspect }), signal: gc.signal });
+        if (r.status === 401 && await arIsGuestWall(r)) { vsBuildOverlay(false); return; }
+        const jj = await r.json();
+        if (jj && jj.ok && jj.plan) plan = jj.plan;
+      } catch (e) {}
+      clearTimeout(gt);
+      const scenes = ((plan && plan.scenes) || []).map((x) => Object.assign(vsGxCheck(x), { from: Number(x.from), to: Number(x.to) })).filter((x) => isFinite(x.from));
+      vstudio.slides.forEach((sl, i) => {
+        let sc = scenes.find((x) => i >= x.from && i <= (isFinite(x.to) ? x.to : x.from)) || null;
+        // each line its own scene with its own photo; a word or a title scene
+        // becomes the photo itself, framed, with its title
+        sc = Object.assign({}, sc || { type: "keyword", title: String(sl._narration || "").split(/\s+/).slice(0, 4).join(" ") });
+        if (sc.type === "keyword" || sc.type === "title") { sc.type = "photo"; sc.photo = sc.photo || sc.title || "photo"; }
+        sc._userImg = imgs[i % imgs.length].im;
+        sl._gx = vsGxCheck(sc); sl._noCaps = true;
+        delete sl._pro; delete sl._ins; delete sl._transIn;
+      });
+      vstudio._gxCaps = true;
+      vstudio._editLayout = "full";
+      await vsGxLoadFonts();
+      await vsGxResolveAll(vstudio.slides);
+      vsGxCuts(vstudio.slides);
+    }
+
     // the look
     vsAutoStatus(L("Setting the words…", "در حال چیدن کلمات…"));
     await vsProLoadFonts();
@@ -18057,7 +18154,7 @@ async function vsPhotoStory(photos, o) {
     vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
     vstudio._proHook = title;
     vstudio._editLayout = "full";
-    vstudio.slides.forEach((sl, i) => {
+    if (!o.graphic) vstudio.slides.forEach((sl, i) => {
       sl._pro = pro; sl._noCaps = true; sl._proZ = 1;
       delete sl._transIn;
       // a new photo is a new shot: every cut is one of the look's own
