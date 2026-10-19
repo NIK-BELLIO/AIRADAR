@@ -31871,7 +31871,17 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)),
     img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side, bg: assets && assets.bg };
   const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout,
-    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrow, number: vsTplNumber }[template] || vsTplBold;
+    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrow, number: vsTplNumber, pop: vsTplPop, arrowpro: vsTplArrowPro, behind: vsTplBehind }[template] || vsTplBold;
+  // the professional looks stand the person out of the picture: cut them out
+  if (tplDef.pro) {
+    try { await vsProLoadFonts(); } catch (e) {}
+    if (!R.cut && R.hasImg) {
+      try {
+        const fc = document.createElement("canvas"); fc.width = img.naturalWidth || img.width; fc.height = img.naturalHeight || img.height;
+        fc.getContext("2d").drawImage(img, 0, 0); R.cut = await vsThumbCutout(fc);
+      } catch (e) {}
+    }
+  }
   // A canvas draws with a font only once the browser has it: Persian words
   // came out in the fallback face on the first thumbnail of a visit.
   if (vsThumbRtlText(coverTitle) && document.fonts && document.fonts.load) {
@@ -31898,6 +31908,9 @@ async function vsCoverRenderAt(assets, W, H, opts) {
 // hasImg } (photo already painted underneath) and draws its own overlays +
 // text. Each carries a signature accent so the picker chips read distinctly.
 const VS_THUMB_TEMPLATES = [
+  { id: "pop",      name: "Creator pop", fa: "کریتور پاپ", accent: "#ffd400", pro: true },
+  { id: "arrowpro", name: "Arrow pro",   fa: "فلش حرفه‌ای", accent: "#ff2d2d", pro: true },
+  { id: "behind",   name: "Behind",      fa: "پشت سوژه",   accent: "#ffd400", pro: true },
   { id: "bold",    name: "Bold",    fa: "درشت",    accent: "#2563ff" },
   { id: "band",    name: "Band",    fa: "نواری",   accent: "#f5c451" },
   { id: "center",  name: "Center",  fa: "وسط‌چین",  accent: "#f87171" },
@@ -33974,6 +33987,138 @@ async function vsThumbReadVideo(file, topic, say) {
 // CUT-OUT — the person cut from the video frame, large, outlined in white
 // with a glow of the accent; the frame itself blurred and darkened behind;
 // big heavy words on the free side. Without a person it falls back to Bold.
+// ── The professional looks ───────────────────────────────────────────────
+// What makes a thumbnail read as made by a pro: the person cut out of the
+// picture, big, outlined in white with a glow of colour; the picture behind
+// soft and dark; two or three huge words in a heavy face with a thick black
+// edge and a hard shadow, one of them on a coloured box; for the arrow look a
+// fat outlined arrow and a glowing ring on the face.
+const VS_PRO_THUMB_FAM = '"Montserrat", "Vazirmatn", system-ui, sans-serif';
+function vsThumbBack(R, dark) {
+  const { ctx, W, H, img, accent } = R;
+  ctx.save(); ctx.fillStyle = "#0b0c10"; ctx.fillRect(0, 0, W, H);
+  if (img && (img.naturalWidth || img.width)) {
+    const back = R.bg && (R.bg.naturalWidth || R.bg.width) ? R.bg : img;
+    const mw = back.naturalWidth || back.width, mh = back.naturalHeight || back.height, k = Math.max(W / mw, H / mh) * 1.1;
+    ctx.filter = "blur(" + Math.round(Math.max(W, H) * 0.012) + "px) brightness(" + (dark || 0.45) + ") saturate(1.3)";
+    ctx.drawImage(back, (W - mw * k) / 2, (H - mh * k) / 2, mw * k, mh * k); ctx.filter = "none";
+  }
+  // a glow of the accent behind where the person stands, a dark edge round it
+  const gl = ctx.createRadialGradient(W * 0.7, H * 0.55, Math.min(W, H) * 0.05, W * 0.7, H * 0.55, Math.max(W, H) * 0.6);
+  gl.addColorStop(0, accent + "88"); gl.addColorStop(0.5, accent + "22"); gl.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.globalCompositeOperation = "screen"; ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over";
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.78);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.6)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+// the person, outlined in white with a colour glow, standing on the bottom edge
+function vsThumbPerson(R, side, hk) {
+  const { ctx, W, H, accent } = R, cut = R.cut;
+  if (!cut || !cut._box) return null;
+  const b = cut._box, k = Math.min((H * (hk || 1.02)) / b.h, (W * (side === "center" ? 0.9 : 0.58)) / b.w), pw = b.w * k, ph = b.h * k;
+  const x = side === "left" ? W * 0.02 : side === "center" ? (W - pw) / 2 : W - pw - W * 0.02, y = H - ph + (cut._touchBottom ? 0 : H * 0.02);
+  const sil = document.createElement("canvas"); sil.width = Math.ceil(pw); sil.height = Math.ceil(ph);
+  const sx = sil.getContext("2d"); sx.drawImage(cut, b.x, b.y, b.w, b.h, 0, 0, pw, ph);
+  sx.globalCompositeOperation = "source-in"; sx.fillStyle = "#ffffff"; sx.fillRect(0, 0, pw, ph);
+  ctx.save();
+  // the glow, then the white edge, then the person - punchier than the picture
+  ctx.shadowColor = accent; ctx.shadowBlur = Math.min(W, H) * 0.06; ctx.drawImage(sil, x, y); ctx.shadowColor = "transparent";
+  const r = Math.max(3, Math.min(W, H) * 0.008);
+  for (let a = 0; a < 16; a++) ctx.drawImage(sil, x + Math.cos((a / 16) * Math.PI * 2) * r, y + Math.sin((a / 16) * Math.PI * 2) * r);
+  ctx.filter = "contrast(1.12) saturate(1.2) brightness(1.04)";
+  ctx.drawImage(cut, b.x, b.y, b.w, b.h, x, y, pw, ph);
+  ctx.filter = "none";
+  ctx.restore();
+  return { x, y, w: pw, h: ph, face: { x: x + pw * 0.3, y: y + ph * 0.04, w: pw * 0.4, h: ph * 0.26 } };
+}
+// two or three huge words: heavy capitals, thick black edge, hard shadow, the
+// key word on a box of the accent
+function vsThumbHeavy(R, box, align, onBox) {
+  const { ctx, W, H, accent } = R;
+  const words = R.words.slice(0, 6), emph = R.emph;
+  const fit = vsThumbFitBox(ctx, words, box.w, box.h, Math.min(W, H) * 0.24, Math.min(W, H) * 0.07, 900, VS_PRO_THUMB_FAM);
+  const px = fit.px, lh = px * 1.02, top = box.y + (box.h - fit.lines.length * lh) / 2 + lh / 2;
+  ctx.save(); ctx.textBaseline = "middle"; ctx.lineJoin = "round"; ctx.font = "900 " + px + "px " + VS_PRO_THUMB_FAM;
+  fit.lines.forEach((ln, li) => {
+    const txt = ln.map((o) => o.w).join(" "), lw = ctx.measureText(txt).width;
+    let x = align === "center" ? box.x + (box.w - lw) / 2 : align === "right" ? box.x + box.w - lw : box.x;
+    const y = top + li * lh;
+    ln.forEach((o, wi) => {
+      const ww = ctx.measureText(o.w).width, isE = o.i === emph;
+      ctx.save(); ctx.translate(x + ww / 2, y); ctx.rotate(isE && onBox ? -0.035 : (li % 2 ? 0.012 : -0.012)); ctx.translate(-(x + ww / 2), -y);
+      if (isE && onBox) {
+        const pad = px * 0.12;
+        ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(x - pad + px * 0.06, y - px * 0.52 + px * 0.08, ww + pad * 2, px * 1.04);
+        ctx.fillStyle = accent; ctx.fillRect(x - pad, y - px * 0.52, ww + pad * 2, px * 1.04);
+        ctx.fillStyle = "#0b0c10"; ctx.fillText(o.w, x, y + px * 0.04);
+      } else {
+        ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillText(o.w, x + px * 0.06, y + px * 0.08);
+        ctx.lineWidth = px * 0.14; ctx.strokeStyle = "#000000"; ctx.strokeText(o.w, x, y);
+        ctx.fillStyle = isE ? accent : "#ffffff"; ctx.fillText(o.w, x, y);
+      }
+      ctx.restore();
+      x += ww + ctx.measureText(" ").width;
+    });
+  });
+  ctx.restore();
+  return { lines: fit.lines.length, px, top, lh };
+}
+function vsTplPop(R) {
+  const { W, H, M } = R;
+  vsThumbBack(R);
+  if (H > W) {
+    // standing: the words across the top, the person below them
+    vsThumbPerson(R, "center", 0.6);
+    vsThumbHeavy(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.34 }, "center", true);
+    return;
+  }
+  const per = vsThumbPerson(R, "right");
+  vsThumbHeavy(R, { x: M, y: H * 0.1, w: per ? Math.max(W * 0.42, per.x - M * 1.2) : W - M * 2, h: H * 0.8 }, "left", true);
+}
+function vsTplArrowPro(R) {
+  const { ctx, W, H, M, accent } = R;
+  vsThumbBack(R);
+  const portrait = H > W;
+  const per = vsThumbPerson(R, portrait ? "center" : "right", portrait ? 0.58 : 1.02);
+  const tb = portrait ? { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.3 } : { x: M, y: H * 0.08, w: per ? Math.max(W * 0.4, per.x - M * 1.5) : W * 0.55, h: H * 0.5 };
+  const t = vsThumbHeavy(R, tb, portrait ? "center" : "left", false);
+  // the ring, glowing, round the face (or the right of the frame)
+  const f = per ? per.face : { x: W * 0.62, y: H * 0.25, w: W * 0.24, h: H * 0.3 };
+  const cx = f.x + f.w / 2, cy = f.y + f.h * 0.55, rx = f.w * 0.75, ry = f.h * 0.75, U = Math.min(W, H);
+  ctx.save(); ctx.lineWidth = U * 0.022; ctx.strokeStyle = accent; ctx.shadowColor = accent; ctx.shadowBlur = U * 0.04;
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, -0.12, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  // the fat arrow, from under the words round to the ring, never across them:
+  // it leaves heading right and only turns up once it is past the words
+  const textBottom = t.top + (t.lines - 0.5) * t.lh;
+  const x0 = portrait ? W * 0.18 : M + W * 0.05, y0 = textBottom + U * 0.07;
+  const x1 = cx - rx * 0.98, y1 = cy + ry * 0.25;
+  const c1x = portrait ? x0 : x1 - U * 0.02, c1y = portrait ? y1 + U * 0.02 : Math.max(y0, y1) + U * 0.04;
+  const pt = (u) => [(1 - u) * (1 - u) * x0 + 2 * (1 - u) * u * c1x + u * u * x1, (1 - u) * (1 - u) * y0 + 2 * (1 - u) * u * c1y + u * u * y1];
+  const [ex, ey] = pt(1), [px2, py2] = pt(0.9), ang = Math.atan2(ey - py2, ex - px2), hw = U * 0.07;
+  const path = () => {
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(c1x, c1y, ex - Math.cos(ang) * hw * 0.8, ey - Math.sin(ang) * hw * 0.8);
+  };
+  const head = () => {
+    ctx.beginPath(); ctx.moveTo(ex + Math.cos(ang) * hw * 0.3, ey + Math.sin(ang) * hw * 0.3);
+    ctx.lineTo(ex - Math.cos(ang - 0.6) * hw * 1.3, ey - Math.sin(ang - 0.6) * hw * 1.3);
+    ctx.lineTo(ex - Math.cos(ang + 0.6) * hw * 1.3, ey - Math.sin(ang + 0.6) * hw * 1.3); ctx.closePath();
+  };
+  ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = U * 0.03; ctx.shadowOffsetY = U * 0.012;
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = U * 0.06; path(); ctx.stroke(); head(); ctx.lineWidth = U * 0.02; ctx.stroke(); ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = accent; ctx.lineWidth = U * 0.036; path(); ctx.stroke(); head(); ctx.fillStyle = accent; ctx.fill();
+  ctx.restore();
+}
+function vsTplBehind(R) {
+  const { W, H, M } = R;
+  vsThumbBack(R, 0.55);
+  // the words huge first, the person standing in front of their end only -
+  // the depth of the look, every word still read
+  if (H > W) { vsThumbHeavy(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * 0.4 }, "center", false); vsThumbPerson(R, "center", 0.62); return; }
+  vsThumbHeavy(R, { x: M, y: H * 0.06, w: W * 0.66, h: H * 0.7 }, "left", false);
+  vsThumbPerson(R, "right", 0.95);
+}
 function vsTplCutout(R) {
   const { ctx, W, H, M, accent } = R;
   const cut = R.cut, img = R.img;
