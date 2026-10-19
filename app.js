@@ -14114,6 +14114,9 @@ const VS_GX_PALETTES = [
 const VS_GX_FONTS = [
   ["editorial", "Archivo", 800, 0, "Libre Caslon Text", 400],
   ["stoicmix", "Arimo", 700, 0, "Libre Caslon Text", 400],
+  ["steelmix", "Heebo", 700, 0, "Heebo", 300],
+  ["pastelmix", "Arimo", 700, 0, "Arimo", 400],
+  ["docheavy", "Montserrat", 900, 1, "Montserrat", 700],
   ["clean", "Manrope", 800, 0, "Manrope", 500],
   ["archivoblack", "Archivo Black", 400, 0, "Manrope", 600],
   ["archivo", "Archivo", 800, 0, "Archivo", 500],
@@ -14139,7 +14142,7 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
   "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700&family=Bangers" +
@@ -14161,13 +14164,13 @@ const VS_GX_STYLES = [
   // highlighter; a point on a clipboard on a wooden desk with the key word in
   // red; numbers on a chalkboard; a single word in italic serif under a
   // spotlight.
-  { id: "documentary", n: ["Documentary", "مستند"], cat: "reels", pals: ["doc"], fonts: ["archivoblack"], doc: true, aiImg: true,
+  { id: "documentary", n: ["Documentary", "مستند"], cat: "reels", pals: ["doc"], fonts: ["docheavy", "archivoblack"], doc: true, aiImg: true,
     el: ["3d", "color"], bg: "flat", al: "c", tt: "plain", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "none", cp: "plain", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the SFX-pack reel: a pastel sky of pink clouds over soft
   // green hills fading to white; glossy 3D objects popping in on a cyan glow
   // and floating; dark bold words sharpening out of a blur; labels in black
   // pills.
-  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "reels", pals: ["pastel"], fonts: ["clean"],
+  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "reels", kickPill: true, parallax: true, pals: ["pastel"], fonts: ["pastelmix", "clean"],
     el: ["3d", "color"], bg: "clouds", al: "c", tt: "blurword", bwSame: true, ef: "bloom", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "pill", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the Marcus Aurelius After Effects reel: a pale card on grey
   // under leaf shadows; a small book serif leading into the key word, every
@@ -14182,7 +14185,7 @@ const VS_GX_STYLES = [
   // light grey sans with the words that matter in bold steel blue, each word
   // sharpening in; pictures on a dot grid; a fine curve and a soft blue ribbon
   // sweeping across; a barcode and fine print.
-  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "reels", headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["clean"],
+  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "reels", bigPic: true, kickSans: true, cine: { bg: ["#f2efe7", "#dcd8cd"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["steelmix", "clean"],
     el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "curves", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "saturate(0.55) contrast(1.05)", pf: "saturate(0.6) contrast(1.05)" },
   // Copied from the After Effects "Godfather" / "Peaky Blinders" reels: a
@@ -14963,11 +14966,13 @@ function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
   // only the sheet, its corners round
   const sx = W * 0.07, sy = H * 0.07, sw = W * 0.86, sh = H * 0.84, r = U * 0.05;
   fx.save(); fx.globalCompositeOperation = "destination-in"; fx.beginPath(); if (fx.roundRect) fx.roundRect(sx, sy, sw, sh, r); else fx.rect(sx, sy, sw, sh); fx.fill(); fx.restore();
-  // the backdrop: soft grey, light from the top left, bands of window light
-  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#e2e2e0"); g.addColorStop(1, "#bdbdbb");
+  const cn = typeof tk.st.cine === "object" ? tk.st.cine : {};
+  const bgc = cn.bg || ["#e2e2e0", "#bdbdbb"], bands = cn.bands !== false, leaves = cn.leaves !== false, tilt = cn.tilt || 0.2;
+  // the backdrop: soft, light from the top left, bands of window light
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, bgc[0]); g.addColorStop(1, bgc[1]);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.globalAlpha = 0.35;
-  for (let k = -3; k < 8; k++) {
+  ctx.globalAlpha = bands ? 0.35 : 0;
+  for (let k = -3; k < 8 && bands; k++) {
     const bg = ctx.createLinearGradient(0, 0, W * 0.16, 0); bg.addColorStop(0, "rgba(255,255,255,0)"); bg.addColorStop(0.5, "rgba(255,255,255,0.8)"); bg.addColorStop(1, "rgba(255,255,255,0)");
     ctx.save(); ctx.translate(k * W * 0.26 + t * U * 0.01, 0); ctx.transform(1, 0, -0.6, 1, 0, 0); ctx.translate(H * 0.3, 0); ctx.fillStyle = bg; ctx.fillRect(0, 0, W * 0.16, H); ctx.restore();
   }
@@ -14975,7 +14980,7 @@ function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
   // the camera: turned towards one side and settling, pushing in
   const e = (u) => { u = Math.max(0, Math.min(1, u)); return 1 - Math.pow(1 - u, 3); };
   const dir = (Number(sc._idx) || 0) % 2 ? -1 : 1, q = Math.min(1, t / Math.max(1, dur));
-  const a = dir * (0.2 - 0.11 * e(q * 1.4)), z = 0.9 + 0.06 * q, cx = W / 2 + dir * W * 0.015 * (1 - e(q)), cy = H * 0.505;
+  const a = dir * (tilt - tilt * 0.55 * e(q * 1.4)), z = 0.9 + 0.06 * q, cx = W / 2 + dir * W * 0.015 * (1 - e(q)), cy = H * 0.505;
   const hw = (sw * z) / 2, f = W * 2.3, N = 56;
   const proj = (u) => { const zz = u * hw * Math.sin(a), k = f / (f + zz); return { x: cx + u * hw * Math.cos(a) * k, k }; };
   const L = proj(-1), R = proj(1);
@@ -14996,7 +15001,7 @@ function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
   ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H); ctx.restore();
   // palm-leaf shadows over everything, soft, drifting
   const lv = vsGxLeafCanvas();
-  ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.16;
+  ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = leaves ? 0.16 : 0;
   const ls = Math.max(W, H) * 0.9;
   ctx.drawImage(lv, W * 0.35 + Math.sin(t * 0.35) * U * 0.03, -H * 0.12 + Math.cos(t * 0.3) * U * 0.02, ls, ls);
   ctx.drawImage(lv, -W * 0.55 + Math.cos(t * 0.27) * U * 0.03, H * 0.45, ls * 0.8, ls * 0.8);
@@ -15020,6 +15025,11 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
   // background; the ambient layer; then the content, drifting a little
   ctx.save();
   ctx.drawImage(vsGxTexture(tk, W, H), 0, 0);
+  if (st.parallax) {
+    // the sky a little bigger than the frame, drifting slower than the objects
+    const tex = vsGxTexture(tk, W, H), k = 1.1 + 0.03 * Math.min(1, t / Math.max(1, dur));
+    ctx.drawImage(tex, (W - W * k) / 2 + Math.sin(t * 0.25) * W * 0.02, (H - H * k) / 2 - t * U * 0.006, W * k, H * k);
+  }
   tk._scWord = String(sc.title || sc.value || sc.kicker || "").trim().split(/\s+/).sort((a2, b2) => b2.length - a2.length)[0] || "";
   vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd);
   const push = dur > 6.5 ? 0.07 * mv.e((t - dur * 0.5) / 1.1) : 0;
@@ -15362,6 +15372,14 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       const q = Math.max(0, Math.min(1, (t - t0) / 0.42));
       const pop = q < 1 ? 1 + 0.1 * Math.sin(Math.PI * q) * (1 - q) : 1, e = 1 - Math.pow(1 - q, 3);
       const gcol = i % 3 === 2 ? tk.a3 : tk.a2;
+      // soft rays of its light fanning up behind it
+      ctx.save(); ctx.globalAlpha = fade * 0.45 * e; ctx.translate(cx, cy);
+      for (let k2 = -1; k2 <= 1; k2++) {
+        const rg = ctx.createLinearGradient(0, 0, 0, -size * 1.1); rg.addColorStop(0, gcol + "aa"); rg.addColorStop(1, gcol + "00");
+        ctx.save(); ctx.rotate(k2 * 0.42 + Math.sin(t * 0.8) * 0.04); ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.moveTo(-size * 0.06, 0); ctx.lineTo(size * 0.06, 0); ctx.lineTo(size * 0.16, -size * 1.1); ctx.lineTo(-size * 0.16, -size * 1.1); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+      ctx.restore();
       const gl = ctx.createRadialGradient(cx, cy + size * 0.05, size * 0.05, cx, cy + size * 0.05, size * 0.75);
       gl.addColorStop(0, gcol + "aa"); gl.addColorStop(0.5, gcol + "44"); gl.addColorStop(1, gcol + "00");
       ctx.globalAlpha = fade; ctx.fillStyle = gl; ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
@@ -15491,9 +15509,14 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     };
     const pushIn = (im) => {
       const iw = im.naturalWidth || im.videoWidth || 1, ih = im.naturalHeight || im.videoHeight || 1;
-      const z = 1.04 + 0.08 * Math.min(1, t / Math.max(1, dur)), k = Math.max(W / iw, H / ih) * z;
+      const qd = Math.min(1, t / Math.max(1, dur)), z = 1.05 + 0.12 * qd, k = Math.max(W / iw, H / ih) * z;
       const dw = iw * k, dh = ih * k;
-      ctx.drawImage(im, (W - dw) / 2 + Math.sin(t * 0.25) * W * 0.01, (H - dh) / 2, dw, dh);
+      ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate((((Number(sc._idx) || 0) % 2) ? 1 : -1) * 0.012 * qd); ctx.translate(-W / 2, -H / 2);
+      ctx.drawImage(im, (W - dw) / 2 + Math.sin(t * 0.25) * W * 0.012, (H - dh) / 2 - qd * H * 0.015, dw, dh);
+      ctx.restore();
+      // a film vignette
+      const vg = ctx.createRadialGradient(W / 2, H * 0.45, U * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+      vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
       const sh = ctx.createLinearGradient(0, H * 0.25, 0, H); sh.addColorStop(0, "rgba(0,0,0,0.05)"); sh.addColorStop(1, "rgba(0,0,0,0.5)");
       ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
     };
@@ -15636,7 +15659,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       if (r.boxes.length && (st.tt === "plain" || st.tt === "glow" || st.tt === "swiss" || st.tt === "serif" || st.tt === "label")) { const b = r.boxes[r.boxes.length - 1]; bar(left ? b.x : b.x, b.y + r.px * 0.64, left ? U * 0.2 : b.w, U * (st.tt === "serif" ? 0.004 : 0.014), acc, 0.35); }
       if (sc.kicker) {
         const ky = (r.boxes[0] ? r.boxes[0].y : ty0) - r.px * 0.62 - U * 0.08;
-        if (st.tt === "blurword") text(sc.kicker, st.kickSans ? { fam: disp.fam, w: 400, italic: true } : Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
+        if (st.tt === "blurword" && !st.kickPill) text(sc.kicker, st.kickSans ? { fam: disp.fam, w: 400, italic: true } : Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
         else if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif") text(sc.kicker.toUpperCase(), body, U * 0.04, tx, ky, mw, al, st.tt === "label" ? tk.muted : acc, 0.05, { maxLines: 1 });
         else if (left) { ctx.save(); ctx.font = font(body, U * 0.042); const kw = ctx.measureText(sc.kicker).width + U * 0.042 * 1.6; ctx.restore(); pill(sc.kicker, tx + kw / 2, ky, acc, on(acc), 0.05); }
         else pill(sc.kicker, W / 2, ky, acc, on(acc), 0.05);
