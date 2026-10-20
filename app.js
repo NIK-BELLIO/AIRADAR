@@ -9014,13 +9014,11 @@ function vsSpeechSpans() {
   (vstudio.slides || []).forEach((s) => {
     const v = s && s._voice;
     if (v && Array.isArray(v.words)) v.words.forEach((w) => { if (isFinite(w.t0) && isFinite(w.t1)) out.push([t + (v.at || 0) + w.t0, t + (v.at || 0) + w.t1]); });
-    // the video's own moment (a blast, a reveal) has its own sound: the music gives way
-    if (s && s._moment) out.push([t, t + (Number(s.duration) || 0)]);
     t += Number(s && s.duration) || 0;
   });
   return out;
 }
-async function vsComposeMusic(spec, dur, speech, seed) {
+async function vsComposeMusic(spec, dur, speech, seed, drop) {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OAC) return null;
   const plan = vsMusicPlan(spec), G = plan.genre, hi = plan.energy === "high", lo = plan.energy === "low";
@@ -9029,7 +9027,9 @@ async function vsComposeMusic(spec, dur, speech, seed) {
   const beat = 60 / plan.bpm, bar = beat * 4, nBars = Math.ceil(dur / bar) + 1;
   const sw = VS_MUSIC_GENRES[G].swing;
   // the beat grid the cuts were snapped to (vsSnapCutsToBeat: beats from 2s)
-  const T0 = 2.0 % beat;
+  // with a moment to land on, the bars are laid so the drop hits it exactly
+  const dropAt = isFinite(drop) && drop > 0.6 ? drop : null;
+  const T0 = dropAt != null ? dropAt % bar : 2.0 % beat;
   const at16 = (b, k) => T0 + b * bar + k * beat / 4 + (k % 2 ? sw * beat / 2 : 0);   // a sixteenth, swung
   const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -9183,9 +9183,9 @@ async function vsComposeMusic(spec, dur, speech, seed) {
   const motif = Array.from({ length: 8 }, () => (rnd() < (hi ? 0.85 : 0.65) ? Math.floor(rnd() * 4) : -1));
 
   // ── the arrangement ──
-  const dropBar = 1, outroBar = Math.max(dropBar + 1, Math.floor((dur - 1.2 - T0) / bar));
+  const dropBar = dropAt != null ? Math.round((dropAt - T0) / bar) : 1, outroBar = Math.max(dropBar + 1, Math.floor((dur - 1.2 - T0) / bar));
   const isBreak = (b) => b > dropBar && (b - dropBar) % 8 >= 6 && b < outroBar - 1;
-  const riserLen = Math.min(bar, 2.4);
+  const riserLen = dropAt != null ? Math.min(dropAt - 0.2, Math.max(bar, 2.4)) : Math.min(bar, 2.4);
   tone.frequency.setValueAtTime(700, 0); tone.frequency.exponentialRampToValueAtTime(18000, T0 + dropBar * bar);
   hit(Math.max(0, T0 + dropBar * bar - riserLen), 0.16, fxBus, "riser", len2(riserLen));
   for (let b = 0; b < nBars; b++) {
@@ -9196,7 +9196,7 @@ async function vsComposeMusic(spec, dur, speech, seed) {
     if (brk && !isBreak(b - 1)) { tone.frequency.setValueAtTime(18000, t); tone.frequency.exponentialRampToValueAtTime(1400, t + beat); }
     if (b > dropBar && isBreak(b - 1) && !brk) tone.frequency.setValueAtTime(18000, t);
     if (brk && !isBreak(b + 1)) hit(t, 0.14, fxBus, "riser", len2(bar));
-    if (b === dropBar || (b > dropBar && isBreak(b - 1) && !brk)) { hit(t, 0.22, fxBus, "crash"); hit(t, 0.5, fxBus, "boom"); }
+    if (b === dropBar || (b > dropBar && isBreak(b - 1) && !brk)) { hit(t, b === dropBar && dropAt != null ? 0.32 : 0.22, fxBus, "crash"); hit(t, b === dropBar && dropAt != null ? 0.75 : 0.5, fxBus, "boom"); }
     // chords
     if (G === "house") {
       if (!outro) [0.5, 1.5, 2.5, 3.5].forEach((k) => hit(t + k * beat, 0.05, musBus, "stab", ch.notes.slice(0, 4), len2(beat * 0.4)));
@@ -9332,7 +9332,8 @@ async function vsEnsureDefaultMusic(data) {
       (typeof studioDuration === "function" ? studioDuration() : 20) || 20)));
     const spec = (data && data.music) || {};
     const plan = vsMusicPlan(spec), speech = vsSpeechSpans(), seed = vsMusicSeed(data, targetDur);
-    const cacheKey = [targetDur, plan.genre, plan.energy, plan.bpm, seed, speech.length].join(":");
+    const drop = vstudio._beat && vstudio._beat.drop != null && (vstudio.slides || []).some((x) => x && x._moment) ? vstudio._beat.drop : null;
+    const cacheKey = [targetDur, plan.genre, plan.energy, plan.bpm, seed, speech.length, drop].join(":");
     vstudio._defaultMusicCache = vstudio._defaultMusicCache || {};
     const cached = vstudio._defaultMusicCache[cacheKey];
     if (cached) {
@@ -9340,7 +9341,7 @@ async function vsEnsureDefaultMusic(data) {
       vstudio._defaultMusicUrl = cached.url;
       vstudio._defaultMusicContentEnd = cached.buffer.duration;
     } else {
-      const rendered = await vsComposeMusic(spec, targetDur, speech, seed);
+      const rendered = await vsComposeMusic(spec, targetDur, speech, seed, drop);
       if (!rendered) return null;
       vstudio._defaultMusicBuffer = rendered;     // raw buffer → reliably captured in export
       vstudio._defaultMusicUrl = URL.createObjectURL(vsAudioBufferToWav(rendered));
@@ -9348,7 +9349,7 @@ async function vsEnsureDefaultMusic(data) {
       vstudio._defaultMusicCache[cacheKey] = { buffer: rendered, url: vstudio._defaultMusicUrl };
     }
     // the beat it is built on: motion looks breathe on it and cut on it
-    vstudio._musicBeat = { period: 60 / plan.bpm, t0: 2.0 % (60 / plan.bpm) };
+    vstudio._musicBeat = { period: 60 / plan.bpm, t0: drop != null ? drop % (240 / plan.bpm) : 2.0 % (60 / plan.bpm) };
     vstudio._musicStyle = plan.genre;
     // Return a FRESH element each time so createMediaElementSource (which can only
     // run once per element) always succeeds for every video's export.
@@ -10264,11 +10265,17 @@ function vsDrawEditOverlays(ctx, W, H, elapsed) {
 // own end (never cutting into the speech), on the grid the default music bed
 // plays its kick on - every beat from 2.0s at the bed's tempo.
 function vsSnapCutsToBeat(slides, bpm) {
-  const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100)), grid0 = 2.0;
+  const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100));
+  // the grid runs from the video's moment (the blast, the reveal) when it has
+  // one - the music drops on it - else from 2s; the clips before the moment
+  // keep their length so it stays where it is
+  let anchor = -1, a0 = 0;
+  for (const s of slides) { if (s._moment) { anchor = a0 + (Number(s._hit) || 0); break; } a0 += Number(s.duration) || 0; }
+  const grid0 = anchor >= 0 ? anchor : 2.0;
   let cum = 0;
   slides.forEach((s, i) => {
     const dur = Number(s.duration);
-    if (s._moment || (slides[i + 1] && slides[i + 1]._moment)) { cum += dur; return; }
+    if (s._moment || (slides[i + 1] && slides[i + 1]._moment) || cum < anchor) { cum += dur; return; }
     const speechEnd = s._voice && s._voice.words.length ? s._voice.words[s._voice.words.length - 1].t1 + 0.06 : 0.5;
     // Only ever SHORTEN, into the clip's own quiet tail. Lengthening a clip to
     // reach the next beat left the speaker mouthing words with no sound for
@@ -10277,7 +10284,7 @@ function vsSnapCutsToBeat(slides, bpm) {
     if (snapped - cum >= speechEnd && snapped < cum + dur) s.duration = Math.round((snapped - cum) * 1000) / 1000;
     cum += Number(s.duration);
   });
-  vstudio._beat = { bpm: 60 / beat, beat, grid0 };
+  vstudio._beat = { bpm: 60 / beat, beat, grid0, drop: anchor >= 0 ? anchor : null };
 }
 // Whisper now and then stretches a word over the silence next to it (a
 // 3.1-second "affordability" swallowed a 1.4-second pause, which then played
@@ -10343,17 +10350,26 @@ async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
   const add = [];
   for (const [g0, g1] of gaps.slice(0, 12)) {
     const len = g1 - g0;
-    let loud = 0, n = 0;
-    for (let t = g0; t < g1 - 0.05; t += 0.05) { n++; if (db(t, t + 0.05) > voiceDb - 9) loud++; }
+    let loud = 0, n = 0, run = 0, hitA = -1, peak = -99, peakT = g0;
+    for (let t = g0; t < g1 - 0.05; t += 0.05) {
+      n++;
+      const v = db(t, t + 0.05);
+      if (v > voiceDb - 9) { loud++; run++; if (run === 3 && hitA < 0) hitA = t - 0.1; } else run = 0;
+      if (v > peak) { peak = v; peakT = t; }
+    }
     const loudShare = n ? loud / n : 0;
-    let moved = 0;
+    let moved = 0, movedT = -1;
     if (loudShare < 0.5 && len <= 20) {
       let prev = await frameAt(g0 + 0.05);
-      for (let t = g0 + 0.35; t < g1; t += 0.35) { const f = await frameAt(t); moved = Math.max(moved, diff(prev, f)); prev = f; }
+      for (let t = g0 + 0.35; t < g1; t += 0.35) { const f = await frameAt(t); const dv = diff(prev, f); if (dv > moved) { moved = dv; movedT = t - 0.175; } prev = f; }
       const first = await frameAt(g0 + 0.05), last = await frameAt(g1 - 0.05);
       moved = Math.max(moved, diff(first, last) * 0.6);
     }
-    if (loudShare >= 0.5 || moved > 14) add.push({ start: g0, end: Math.min(g1, g0 + 15), words: [], moment: true });
+    if (loudShare >= 0.5 || moved > 14) {
+      // the hit: where the sound comes up (or, silent, where the picture jumps)
+      const hitT = hitA >= 0 ? hitA : movedT >= 0 ? movedT : peakT;
+      add.push({ start: g0, end: Math.min(g1, g0 + 15), words: [], moment: true, hit: Math.max(0, Math.min(len - 0.3, hitT - g0)) });
+    }
   }
   if (!add.length) return;
   plan.push(...add);
@@ -10460,10 +10476,15 @@ function vsDrawFramed(ctx, media, rx, ry, rw, rh, s, z, focusX, nx, ny, autoWhol
   // not covering: a soft, darkened copy of the clip fills the frame behind it
   ctx.save();
   ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip();
-  const tw = Math.max(8, Math.round(rw / 16)), th = Math.max(8, Math.round(rh / 16));
+  // (a quarter-size copy blurred there, then scaled up: the 1/16 one came
+  // out as visible blocks)
+  const tw = Math.max(16, Math.round(rw / 4)), th = Math.max(16, Math.round(rh / 4));
   const tiny = vstudio._edFitTiny || (vstudio._edFitTiny = document.createElement("canvas"));
   if (tiny.width !== tw || tiny.height !== th) { tiny.width = tw; tiny.height = th; }
-  vsDrawCover(tiny.getContext("2d"), media, 0, 0, tw, th, 1.15, focusX, 0, 0, fy);
+  const tx = tiny.getContext("2d");
+  tx.save(); try { tx.filter = "blur(" + Math.max(4, Math.round(tw / 40)) + "px) saturate(1.15)"; } catch (e) {}
+  vsDrawCover(tx, media, -tw * 0.06, -th * 0.06, tw * 1.12, th * 1.12, 1.15, focusX, 0, 0, fy);
+  tx.restore();
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   ctx.drawImage(tiny, rx - rw * 0.05, ry - rh * 0.05, rw * 1.1, rh * 1.1);
   ctx.fillStyle = "rgba(6,7,10,0.38)"; ctx.fillRect(rx, ry, rw, rh);
@@ -13209,7 +13230,9 @@ async function vsProPlaceCallouts(slides, ai, words, sentences, shots) {
   // too few: a 3D object for an everyday word that has one, one per sentence
   const speech = words.length ? words[words.length - 1].e - words[0].s : 0;
   const want = Math.max(1, Math.floor(speech / 6));
-  if (marks.length < want) {
+  // (the 3D object for any everyday word - a house for "home" over an empty
+  // lot - meant nothing: only the analysis's own picks, made for the talk)
+  if (false && marks.length < want) {
     sentences.forEach((sn, si) => {
       if (marks.length >= want || marks.some((m) => m.si === si)) return;
       const ws = words.filter((w) => w.s >= sn.start - 0.05 && w.s <= sn.end + 0.05);
@@ -13931,19 +13954,31 @@ function vsProFaceN(s, media) {
 function vsProCam(s, media, W, H, local, dur) {
   const mw = (media && (media.videoWidth || media.naturalWidth)) || W, mh = (media && (media.videoHeight || media.naturalHeight)) || H;
   const c = Math.max(W / mw, H / mh);
-  // never blown up past what the footage holds
-  const zCap = Math.max(1, Math.max(1.6, c * 1.15) / c);
+  // never blown up much past what the footage holds - but a small clip still
+  // gets room for its angles (a 640px video had none, and no camera at all)
+  const zCap = Math.max(1.3, Math.max(1.6, c * 1.15) / c);
   let f = vsProFaceN(s, media);
   // a clip where no face was found takes the last one of the same footage
   if (f) vstudio._camFace = { f, src: s.url }; else if (vstudio._camFace && vstudio._camFace.src === s.url) f = vstudio._camFace.f;
-  const shot = s._shot;
-  let z = 1;
-  if (f) {
-    const fh = (f.h * mh * c) / H;   // the face's height in the frame, wide
-    const zm = Math.max(1.12, 0.16 / fh);
-    z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? zm : 1;
-  } else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
-  z = Math.min(zCap, z);
+  const fh = f ? (f.h * mh * c) / H : 0;   // the face's height in the frame, wide
+  const zOf = (shot) => {
+    let z = 1;
+    if (f) { const zm = Math.max(1.12, 0.16 / fh); z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? zm : 1; }
+    else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
+    return Math.min(zCap, z);
+  };
+  const placeOf = (shot) => (shot === "close" ? 0.4 : shot === "medium" ? 0.36 : null);
+  // the framing at this moment: the clip's shot, then each reframe on a bar
+  // of the music easing over to the next one (no jump - the camera moves)
+  let shot = s._shot, z = zOf(shot), place = placeOf(shot);
+  const D = 0.45, ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+  for (const r of s._reframes || []) {
+    if (local < r.t - D) break;
+    const k = ease(Math.min(1, (local - (r.t - D)) / D));
+    const z1 = zOf(r.shot), p0 = place == null ? 0.5 : place, p1 = placeOf(r.shot) == null ? 0.5 : placeOf(r.shot);
+    z = z + (z1 - z) * k; place = p0 + (p1 - p0) * k;
+    if (k >= 1) { shot = r.shot; z = z1; place = placeOf(shot); } else break;
+  }
   const q = dur > 0 ? Math.max(0, Math.min(1, local / dur)) : 0;
   const land = s._camCont ? 1 : 1 - Math.pow(1 - Math.min(1, local / 0.55), 3);
   const pk2 = shot === "close" ? 0.03 : 0.05;
@@ -13953,10 +13988,35 @@ function vsProCam(s, media, W, H, local, dur) {
   let fx = s._focusX != null ? s._focusX : 0.5, fy = null;
   if (f) {
     fx = f.x;
-    const place = shot === "close" ? 0.4 : shot === "medium" ? 0.36 : null;
     if (place != null) fy = f.y + ((0.5 - place) * H) / (mh * c * z * push);
   }
   return { z, push, fx, fy, dx, f, mw, mh, c };
+}
+// The camera moves of a long take, on the music: every bar a smooth reframe
+// to another angle (wide, close, medium), landing on the downbeat - a
+// one-shot video still feels cut. A moment opens with a push in on its hit.
+function vsProBeatReframes(slides) {
+  const mb = vstudio._musicBeat;
+  const bar = mb && mb.period ? mb.period * 4 : 2.2, t0 = mb && isFinite(mb.t0) ? mb.t0 : 0;
+  const NEXT = { wide: "close", close: "medium", medium: "wide" };
+  let at = 0;
+  (slides || []).forEach((s) => {
+    const d = Number(s.duration) || 0;
+    delete s._reframes;
+    if (s._broll || !s._shot) { at += d; return; }
+    const rf = [];
+    let cur = s._shot;
+    if (s._moment) { cur = cur === "close" ? "medium" : "close"; rf.push({ t: (Number(s._hit) || 0) + 0.4, shot: cur }); }
+    // the downbeats inside the clip, a bar apart, clear of its ends
+    const k = Math.ceil((at + 1.2 - t0) / bar);
+    for (let tb = t0 + k * bar; tb < at + d - 1.0; tb += bar) {
+      const lt = tb - at;
+      if (rf.length && lt - rf[rf.length - 1].t < bar * 0.6) continue;
+      cur = NEXT[cur] || "wide"; rf.push({ t: lt, shot: cur });
+    }
+    if (rf.length) s._reframes = rf;
+    at += d;
+  });
 }
 
 // The whole pro frame: graded picture, camera, words in front of and behind
@@ -14416,6 +14476,8 @@ function vsProSfxEvents(slides) {
   (slides || []).forEach((sl, i) => {
     const d = Number(sl.duration) || 4;
     if (i === 0) { ev.push({ n: "boom", t: t + 0.05, g: 0.9 }); ev.push({ n: "riser", t: t + 0.32, g: 0.5 }); }
+    if (sl._moment) { const h = t + (Number(sl._hit) || 0); ev.push({ n: "riser", t: h - 0.02, g: 0.6 }); ev.push({ n: "impact", t: h + 0.02, g: 0.55 }); }
+    (sl._reframes || []).forEach((r) => ev.push({ n: "whoosh", t: t + r.t - 0.05, g: 0.22 }));
     // a whoosh peaking on the burst with a low hit under it; a soft rise into
     // a focus pull; a light swish on a plain cut that punches in close
     if (sl._transIn === "expo") { ev.push({ n: pick("cut"), t: t + 0.07, g: 0.8 }); ev.push({ n: "impact", t: t + 0.04, g: 0.3 }); }
@@ -19482,7 +19544,7 @@ async function vsEditMyVideo(fileIn, o) {
         _timelineLabel: (p.teaser ? L("Teaser · ", "تیزر · ") : "") + ((p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ"))
       };
       if (p.teaser) slide._teaser = true;
-      if (p.moment) slide._moment = true;
+      if (p.moment) { slide._moment = true; slide._hit = Number(p.hit) || 0; }
       // the speaker's place in the frame (the renderer centres it) and, on a
       // key moment, when the smooth zoom starts
       slide._focusX = fr.length ? focusAt((p.start + p.end) / 2) : 0.5;
@@ -19610,6 +19672,12 @@ async function vsEditMyVideo(fileIn, o) {
       vstudio._camFace = null;
       vstudio.slides.forEach((sl, i) => {
         sl._pro = pro; sl._noCaps = true; sl._proZ = 1; delete sl._faceN;
+        // a square or wide clip in a tall frame: the whole picture in the
+        // middle at its own sharpness, a soft copy of it above and below -
+        // cropping a 640px square to the full height blew it up three times,
+        // cut the building off at the sides and left her off centre
+        { const me = sl.mediaEl, ar = me && me.videoWidth ? me.videoWidth / me.videoHeight : 0;
+          if (!sl._broll && ar >= 0.85 && (o.aspect || "9:16") === "9:16") sl._fit = "whole"; }
         sl._shot = sl._broll ? "" : i === 0 ? "medium" : SHOTS[sk++ % SHOTS.length];
         sl._camDir = i % 2 ? -1 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
@@ -19727,6 +19795,7 @@ async function vsEditMyVideo(fileIn, o) {
         vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
       }
     } else if (!o.music && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
+    if (pro) { try { vsProBeatReframes(vstudio.slides); } catch (e) {} }
 
     vstudio.activeSlide = 0;
     renderSlideList();
