@@ -14168,7 +14168,11 @@ function vsProCam(s, media, W, H, local, dur) {
   // a clip where no face was found takes the last one of the same footage
   if (f) vstudio._camFace = { f, src: s.url }; else if (vstudio._camFace && vstudio._camFace.src === s.url) f = vstudio._camFace.f;
   const fh = f ? (f.h * mh * c) / H : 0;   // the face's height in the frame, wide
-  const zOf = (shot) => {
+  // (someone seated far off, the whole scene around them - a lot turning into
+  // a tower - is what the video shows: no close-up on the face there)
+  const small = f && fh < 0.085;
+  const zOf = (shot0) => {
+    const shot = small && shot0 === "close" ? "medium" : shot0;
     let z = 1;
     if (f) { const zm = Math.max(1.12, 0.16 / fh); z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? zm : 1; }
     else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
@@ -14205,21 +14209,25 @@ function vsProCam(s, media, W, H, local, dur) {
 function vsProBeatReframes(slides) {
   const mb = vstudio._musicBeat;
   const bar = mb && mb.period ? mb.period * 4 : 2.2, t0 = mb && isFinite(mb.t0) ? mb.t0 : 0;
-  const NEXT = { wide: "close", close: "medium", medium: "wide" };
+  // a moment and the clips joined to it in one take: wide, held - the scene
+  // is the subject, a push onto the face only cut it off
+  (slides || []).forEach((s, i) => {
+    if (!s || !s._moment) return;
+    for (let j = i; j >= 0 && slides[j] && !slides[j]._broll; j--) { slides[j]._shot = "wide"; if (!slides[j]._camCont) break; }
+    for (let j = i + 1; j < slides.length && slides[j] && slides[j]._camCont; j++) slides[j]._shot = "wide";
+  });
   let at = 0;
   (slides || []).forEach((s) => {
     const d = Number(s.duration) || 0;
     delete s._reframes;
-    if (s._broll || !s._shot) { at += d; return; }
+    if (s._broll || !s._shot || s._moment || s._camCont || d < 4) { at += d; return; }
+    // a long take: every two bars a calm move between wide and medium,
+    // landing on the downbeat - never into a close-up
     const rf = [];
-    let cur = s._shot;
-    if (s._moment) { cur = cur === "close" ? "medium" : "close"; rf.push({ t: (Number(s._hit) || 0) + 0.4, shot: cur }); }
-    // the downbeats inside the clip, a bar apart, clear of its ends
-    const k = Math.ceil((at + 1.2 - t0) / bar);
-    for (let tb = t0 + k * bar; tb < at + d - 1.0; tb += bar) {
-      const lt = tb - at;
-      if (rf.length && lt - rf[rf.length - 1].t < bar * 0.6) continue;
-      cur = NEXT[cur] || "wide"; rf.push({ t: lt, shot: cur });
+    let cur = s._shot === "close" ? "medium" : s._shot;
+    const k = Math.ceil((at + 1.6 - t0) / (bar * 2));
+    for (let tb = t0 + k * bar * 2; tb < at + d - 1.4; tb += bar * 2) {
+      cur = cur === "wide" ? "medium" : "wide"; rf.push({ t: tb - at, shot: cur });
     }
     if (rf.length) s._reframes = rf;
     at += d;
@@ -31155,6 +31163,13 @@ function previewStudioVideo(fromStart) {
           try { s.mediaEl.pause(); } catch {}
         }
       });
+      // the next clip waits, already at its own first frame: seeked only at
+      // the cut, every cut stalled the preview for a moment
+      const cur = vstudio.slides[at.index], nx = vstudio.slides[at.index + 1];
+      if (nx && nx.ready && nx.isVideo && nx.mediaEl && (!cur || nx.mediaEl !== cur.mediaEl) && nx.mediaEl.paused && !nx.mediaEl.seeking) {
+        const want = Number(nx._clipIn) || 0;
+        if (Math.abs((nx.mediaEl.currentTime || 0) - want) > 0.06) { try { nx.mediaEl.currentTime = want; } catch (e) {} }
+      }
     }
     vstudio.position = elapsed;          // remember where we are
     // Never let one bad frame break the preview loop (same guard as the export).
