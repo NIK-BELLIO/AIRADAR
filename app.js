@@ -13374,7 +13374,9 @@ async function vsProPlaceCallouts(slides, ai, words, sentences, shots) {
     return inS.find((w) => key(w.w) === key(want)) || inS[0] || null;
   };
   (ai && Array.isArray(ai.callouts) ? ai.callouts : []).slice(0, 12).forEach((c) => {
-    if (!c || !/^(icon|map|photo|stat|search|notify|orbit|shot)$/.test(c.kind)) return;
+    // (no floating 3D icons: a house for "home" beside someone on an empty
+    // lot meant nothing - the owner turned them down twice)
+    if (!c || !/^(map|photo|stat|search|notify|orbit|shot)$/.test(c.kind)) return;
     if (c.kind === "shot" && !shots[Number(c.shot)]) return;
     const w = wordAt(c.i, c.at_word);
     if (!w) return;
