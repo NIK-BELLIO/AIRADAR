@@ -8930,7 +8930,8 @@ async function vsGenerateAiMusic(data) {
   const cacheKey = [mood, energy, bpm, duration].join(":");
   vstudio._aiMusicCache = vstudio._aiMusicCache || {};
   if (vstudio._aiMusicCache[cacheKey]) return vstudio._aiMusicCache[cacheKey];
-  const prompt = `${mood} ${energy}-energy cinematic news underscore, ${bpm} BPM, instrumental only, no vocals, clear opening, subtle build, restrained ending, mixed under spoken narration`;
+  const mp = vsMusicPlan(spec), styleName = { house: "modern deep house with plucky chord stabs", pop: "bright modern pop with piano and claps", lofi: "warm lo-fi hip hop with electric piano", cinema: "cinematic pulse with low strings and big drums" }[mp.genre];
+  const prompt = `${styleName}, ${mood}, ${energy} energy, ${mp.bpm} BPM, instrumental only, no vocals, catchy hook in the first bar, a drop, a breakdown and a lift, clean ending, for a social media reel`;
   try {
     const ctrl = new AbortController();
     const tm = setTimeout(() => ctrl.abort(), 90000);
@@ -8976,6 +8977,336 @@ async function vsDecodeAudioUrl(url) {
   }
 }
 
+// ── The music bed, composed for each video ──────────────────────────────────
+// What the motion-design skills ask of a bed: a style that fits the mood, the
+// hook on the first bar, a drop with a crash, a breakdown and a riser into the
+// next drop every eight bars, a resolve at the end; drums, bass, chords and a
+// melody line; cuts on its beat; and the music lifting in the gaps of the
+// voice. Composed here in the browser - free, original, nothing downloaded.
+// Seeded, so the same video always gets the same track (and the shuffle
+// button the next one).
+function vsMusicRng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const VS_MUSIC_GENRES = {
+  house: { bpm: [116, 124], swing: 0 },
+  pop: { bpm: [98, 110], swing: 0 },
+  lofi: { bpm: [76, 88], swing: 0.14 },
+  cinema: { bpm: [86, 98], swing: 0 },
+};
+// the style and tempo for a {mood, energy, bpm} spec - the cuts snap to this
+function vsMusicPlan(spec) {
+  spec = spec || {};
+  const mood = String(spec.mood || "upbeat").toLowerCase(), energy = String(spec.energy || "medium").toLowerCase();
+  let genre;
+  if (/calm|reflective|warm|chill|soft/.test(mood)) genre = energy === "high" ? "pop" : "lofi";
+  else if (/tense|dramatic|investigative|serious|dark|mystery/.test(mood)) genre = "cinema";
+  else if (/inspiring|hopeful|optimistic/.test(mood)) genre = energy === "low" ? "lofi" : "pop";
+  else genre = energy === "low" ? "lofi" : "house";
+  const r = VS_MUSIC_GENRES[genre].bpm, want = Math.round(Number(spec.bpm)) || Math.round((r[0] + r[1]) / 2);
+  return { genre, energy, bpm: Math.max(r[0], Math.min(r[1], want)) };
+}
+// the stretches of the timeline where someone is speaking
+function vsSpeechSpans() {
+  const out = [];
+  let t = 0;
+  (vstudio.slides || []).forEach((s) => {
+    const v = s && s._voice;
+    if (v && Array.isArray(v.words)) v.words.forEach((w) => { if (isFinite(w.t0) && isFinite(w.t1)) out.push([t + (v.at || 0) + w.t0, t + (v.at || 0) + w.t1]); });
+    t += Number(s && s.duration) || 0;
+  });
+  return out;
+}
+async function vsComposeMusic(spec, dur, speech, seed) {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) return null;
+  const plan = vsMusicPlan(spec), G = plan.genre, hi = plan.energy === "high", lo = plan.energy === "low";
+  const rnd = vsMusicRng(seed || 1), pick = (a) => a[Math.floor(rnd() * a.length) % a.length];
+  const sr = 44100, ctx = new OAC(2, Math.ceil(sr * dur), sr);
+  const beat = 60 / plan.bpm, bar = beat * 4, nBars = Math.ceil(dur / bar) + 1;
+  const sw = VS_MUSIC_GENRES[G].swing;
+  // the beat grid the cuts were snapped to (vsSnapCutsToBeat: beats from 2s)
+  const T0 = 2.0 % beat;
+  const at16 = (b, k) => T0 + b * bar + k * beat / 4 + (k % 2 ? sw * beat / 2 : 0);   // a sixteenth, swung
+  const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  // ── the mix: drums and music into a glue compressor, a room, an echo ──
+  const out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = 0.008; comp.release.value = 0.18;
+  // nothing under 40Hz, and the low end a little thinner so a voice sits on it
+  const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 40; hp.Q.value = 0.7;
+  const shelf = ctx.createBiquadFilter(); shelf.type = "lowshelf"; shelf.frequency.value = 140; shelf.gain.value = -4;
+  comp.connect(hp); hp.connect(shelf); shelf.connect(out);
+  const room = ctx.createConvolver();
+  { const n = Math.floor(sr * 2.2), ir = ctx.createBuffer(2, n, sr);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (rnd() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+    room.buffer = ir; }
+  const roomRet = ctx.createGain(); roomRet.gain.value = 0.32; room.connect(roomRet); roomRet.connect(comp);
+  const echo = ctx.createDelay(1.5); echo.delayTime.value = beat * 0.75;
+  const echoFb = ctx.createGain(); echoFb.gain.value = 0.32;
+  const echoLp = ctx.createBiquadFilter(); echoLp.type = "lowpass"; echoLp.frequency.value = 2600;
+  echo.connect(echoLp); echoLp.connect(echoFb); echoFb.connect(echo);
+  const echoRet = ctx.createGain(); echoRet.gain.value = 0.35; echoLp.connect(echoRet); echoRet.connect(comp);
+  const drums = ctx.createGain(); drums.gain.value = lo ? 0.7 : 0.9; drums.connect(comp);
+  // the music bus: opens from a muffled intro to full at the drop, dips in a
+  // breakdown; pumped by the kick in house
+  const tone = ctx.createBiquadFilter(); tone.type = "lowpass"; tone.Q.value = 0.8; tone.frequency.value = 18000;
+  const pump = ctx.createGain(); pump.gain.value = 1;
+  pump.connect(tone); tone.connect(comp);
+  const send = (node, rAmt, eAmt) => {
+    if (rAmt) { const g = ctx.createGain(); g.gain.value = rAmt; node.connect(g); g.connect(room); }
+    if (eAmt) { const g = ctx.createGain(); g.gain.value = eAmt; node.connect(g); g.connect(echo); }
+  };
+  const noise = ctx.createBuffer(1, sr, sr);
+  { const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = rnd() * 2 - 1; }
+
+  // the buses the sampled sounds play into: drums (a little room), music
+  // (pumped and filtered, more room), the melody (room and echo), effects
+  const drumBus = ctx.createGain(); drumBus.connect(drums); send(drumBus, 0.1, 0);
+  const musBus = ctx.createGain(); musBus.connect(pump); send(musBus, 0.3, 0);
+  const leadBus = ctx.createGain(); leadBus.connect(pump); send(leadBus, 0.2, 0.55);
+  const fxBus = ctx.createGain(); fxBus.connect(comp); send(fxBus, 0.35, 0);
+
+  // ── instruments: each sound rendered once (a recipe at t=0, unit level),
+  // then replayed - a few thousand synth voices became a few dozen ──
+  const R = {};
+  const envAt = (g, a, d, sus, hold, rel) => {
+    g.gain.setValueAtTime(0.0001, 0); g.gain.linearRampToValueAtTime(1, a);
+    const dd = hold ? Math.min(d, Math.max(0.01, hold - a - 0.001)) : d;
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, sus), a + dd);
+    if (hold) { g.gain.setValueAtTime(Math.max(0.0001, sus), hold); g.gain.exponentialRampToValueAtTime(0.0001, hold + rel); }
+  };
+  const nzR = (c, dst, at, len, type, f, q, gain) => {
+    const s = c.createBufferSource(); s.buffer = noise; s.loop = true;
+    const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(gain, at + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    s.connect(fl); fl.connect(g); g.connect(dst); s.start(at, rnd() * 0.5); s.stop(at + len + 0.05);
+  };
+  R.kick = (c, d) => {
+    const o = c.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(G === "lofi" ? 120 : 165, 0); o.frequency.exponentialRampToValueAtTime(G === "cinema" ? 40 : 48, 0.1);
+    const a = c.createGain(); envAt(a, 0.002, G === "cinema" ? 0.7 : 0.38, 0.001);
+    o.connect(a); a.connect(d); o.start(0); o.stop(0.8);
+    nzR(c, d, 0, 0.012, "highpass", 3500, 0.7, 0.35);
+  };
+  R.snare = (c, d) => {
+    if (G === "house" || G === "pop") { [0, 0.011, 0.023].forEach((t, i) => nzR(c, d, t, i === 2 ? 0.16 : 0.03, "bandpass", 1300, 0.9, 0.8)); return; }
+    nzR(c, d, 0, G === "lofi" ? 0.12 : 0.22, "bandpass", G === "lofi" ? 1500 : 1900, 0.6, 0.85);
+    const o = c.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(210, 0); o.frequency.exponentialRampToValueAtTime(150, 0.08);
+    const a = c.createGain(); envAt(a, 0.002, 0.1, 0.001);
+    const k = c.createGain(); k.gain.value = 0.45; o.connect(a); a.connect(k); k.connect(d); o.start(0); o.stop(0.2);
+  };
+  R.hat = (c, d) => nzR(c, d, 0, 0.035, "highpass", G === "lofi" ? 6500 : 8000, 0.7, 1);
+  R.ohat = (c, d) => nzR(c, d, 0, 0.22, "highpass", G === "lofi" ? 6500 : 8000, 0.7, 1);
+  R.crash = (c, d) => nzR(c, d, 0, 1.6, "highpass", 4200, 0.5, 1);
+  R.dust = (c, d) => nzR(c, d, 0, 0.004, "highpass", 2500, 0.5, 1);
+  R.boom = (c, d) => {
+    const o = c.createOscillator(); o.type = "sine"; o.frequency.setValueAtTime(70, 0); o.frequency.exponentialRampToValueAtTime(32, 1.2);
+    const a = c.createGain(); envAt(a, 0.004, 1.4, 0.001); o.connect(a); a.connect(d); o.start(0); o.stop(1.6);
+  };
+  R.riser = (c, d, len) => {
+    const s = c.createBufferSource(); s.buffer = noise; s.loop = true;
+    const fl = c.createBiquadFilter(); fl.type = "bandpass"; fl.Q.value = 2.5;
+    fl.frequency.setValueAtTime(300, 0); fl.frequency.exponentialRampToValueAtTime(7000, len);
+    const a = c.createGain(); a.gain.setValueAtTime(0.0001, 0); a.gain.exponentialRampToValueAtTime(1, len - 0.02); a.gain.linearRampToValueAtTime(0.0001, len + 0.03);
+    s.connect(fl); fl.connect(a); a.connect(d); s.start(0); s.stop(len + 0.1);
+  };
+  R.bass = (c, d, m, len) => {
+    const o = c.createOscillator(), o2 = c.createOscillator();
+    o.type = G === "lofi" ? "sine" : "sawtooth"; o2.type = "sine"; o.frequency.value = mf(m); o2.frequency.value = mf(m - 12);
+    const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.Q.value = G === "house" ? 6 : 1;
+    fl.frequency.setValueAtTime(G === "house" ? 1400 : 700, 0); fl.frequency.exponentialRampToValueAtTime(G === "house" ? 260 : 300, Math.min(len, 0.25));
+    const a = c.createGain(); envAt(a, 0.006, len * 0.9, 0.35, len, 0.05);
+    // (the sub an octave under, kept low: at full level it buried the voice)
+    const sub = c.createGain(); sub.gain.value = 0.4;
+    o.connect(fl); o2.connect(sub); sub.connect(a); fl.connect(a); a.connect(d); o.start(0); o2.start(0); o.stop(len + 0.1); o2.stop(len + 0.1);
+  };
+  // an electric piano: two sines in FM, the bell fading as the note sustains
+  const keyNote = (c, d, m, t, len) => {
+    const car = c.createOscillator(), md = c.createOscillator(), mg = c.createGain();
+    car.frequency.value = mf(m); md.frequency.value = mf(m);
+    mg.gain.setValueAtTime(mf(m) * 1.6, t); mg.gain.exponentialRampToValueAtTime(mf(m) * 0.15, t + 0.9);
+    md.connect(mg); mg.connect(car.frequency);
+    const a = c.createGain(); a.gain.setValueAtTime(0.0001, t); a.gain.linearRampToValueAtTime(1, t + 0.004);
+    a.gain.exponentialRampToValueAtTime(0.35, t + Math.min(1.1, Math.max(0.05, len - 0.01))); a.gain.setValueAtTime(0.35, t + len); a.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.25);
+    car.connect(a); a.connect(d); car.start(t); md.start(t); car.stop(t + len + 0.4); md.stop(t + len + 0.4);
+  };
+  R.keys = (c, d, notes, len, strum) => notes.forEach((m, i) => keyNote(c, d, m, i * strum, len));
+  // a stab: two detuned saws per note through a closing filter
+  R.stab = (c, d, notes, len) => {
+    const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.Q.value = 3;
+    fl.frequency.setValueAtTime(4200, 0); fl.frequency.exponentialRampToValueAtTime(700, len);
+    const a = c.createGain(); envAt(a, 0.003, len, 0.2, len, 0.06);
+    notes.forEach((m) => [-9, 9].forEach((dt) => { const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = mf(m); o.detune.value = dt; o.connect(fl); o.start(0); o.stop(len + 0.1); }));
+    fl.connect(a); a.connect(d);
+  };
+  R.pad = (c, d, notes, len) => {
+    const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = G === "cinema" ? 900 : 1500;
+    const a = c.createGain(); envAt(a, Math.min(0.8, len * 0.4), 0.3, 0.85, len, 0.6);
+    notes.forEach((m) => [-7, 0, 7].forEach((dt) => { const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.value = mf(m); o.detune.value = dt; o.connect(fl); o.start(0); o.stop(len + 0.7); }));
+    fl.connect(a); a.connect(d);
+  };
+  R.pluck = (c, d, m) => {
+    const o = c.createOscillator(), o2 = c.createOscillator(); o.type = "triangle"; o2.type = "sine";
+    o.frequency.value = mf(m); o2.frequency.value = mf(m + 12);
+    const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.setValueAtTime(5000, 0); fl.frequency.exponentialRampToValueAtTime(1200, 0.2);
+    const a = c.createGain(); envAt(a, 0.002, 0.32, 0.001);
+    o.connect(fl); o2.connect(fl); fl.connect(a); a.connect(d); o.start(0); o2.start(0); o.stop(0.4); o2.stop(0.4);
+  };
+  // the score: what plays when, at what level, into which bus
+  const score = [];
+  const hit = (t, g, bus, kind, ...args) => {
+    if (t >= dur) return;
+    // the drums in three takes each, so no two hits are the very same
+    const take = /^(snare|hat|ohat|crash|dust)$/.test(kind) ? Math.floor(rnd() * 3) : 0;
+    score.push({ t, g, bus, key: kind + ":" + take + ":" + JSON.stringify(args), kind, args });
+  };
+  const len2 = (x) => Math.round(x * 100) / 100;
+  const kicks = [];
+  const kick = (t, g) => { hit(t, g, drumBus, "kick"); if (t < dur) kicks.push(t); };
+
+  // ── harmony: a key, a four-bar progression, voiced around middle C ──
+  const Q = { maj: [0, 4, 7, 14], min: [0, 3, 7, 14], maj7: [0, 4, 7, 11, 14], min7: [0, 3, 7, 10, 14], dom7: [0, 4, 10, 14, 16] };
+  const PROG = {
+    major: [[[0, "maj"], [7, "maj"], [9, "min"], [5, "maj"]], [[9, "min"], [5, "maj"], [0, "maj"], [7, "maj"]], [[0, "maj"], [9, "min"], [5, "maj"], [7, "maj"]], [[5, "maj"], [7, "maj"], [9, "min"], [0, "maj"]]],
+    minor: [[[0, "min"], [8, "maj"], [3, "maj"], [10, "maj"]], [[0, "min"], [5, "min"], [8, "maj"], [7, "maj"]], [[0, "min"], [10, "maj"], [8, "maj"], [7, "maj"]]],
+    jazz: [[[2, "min7"], [7, "dom7"], [0, "maj7"], [9, "min7"]], [[5, "maj7"], [4, "min7"], [2, "min7"], [0, "maj7"]], [[0, "maj7"], [9, "min7"], [2, "min7"], [7, "dom7"]]],
+  };
+  const prog = pick(PROG[G === "lofi" ? "jazz" : G === "cinema" ? "minor" : "major"]);
+  const key = Math.floor(rnd() * 7) - 3;   // around C
+  const chordAt = (b) => { const [off, q] = prog[((b % 4) + 4) % 4]; let root = 48 + ((key + off) % 12 + 12) % 12; if (root > 54) root -= 12; return { root, notes: Q[q].map((i) => root + 12 + i) }; };
+  // the melody: a motif of chord tones over each bar, repeated with variation
+  const motif = Array.from({ length: 8 }, () => (rnd() < (hi ? 0.85 : 0.65) ? Math.floor(rnd() * 4) : -1));
+
+  // ── the arrangement ──
+  const dropBar = 1, outroBar = Math.max(dropBar + 1, Math.floor((dur - 1.2 - T0) / bar));
+  const isBreak = (b) => b > dropBar && (b - dropBar) % 8 >= 6 && b < outroBar - 1;
+  const riserLen = Math.min(bar, 2.4);
+  tone.frequency.setValueAtTime(700, 0); tone.frequency.exponentialRampToValueAtTime(18000, T0 + dropBar * bar);
+  hit(Math.max(0, T0 + dropBar * bar - riserLen), 0.16, fxBus, "riser", len2(riserLen));
+  for (let b = 0; b < nBars; b++) {
+    const t = T0 + b * bar;
+    if (t >= dur) break;
+    const ch = chordAt(b), intro = b < dropBar, outro = b >= outroBar, brk = isBreak(b);
+    // at the start of a breakdown the music dips, and opens again on the drop
+    if (brk && !isBreak(b - 1)) { tone.frequency.setValueAtTime(18000, t); tone.frequency.exponentialRampToValueAtTime(1400, t + beat); }
+    if (b > dropBar && isBreak(b - 1) && !brk) tone.frequency.setValueAtTime(18000, t);
+    if (brk && !isBreak(b + 1)) hit(t, 0.14, fxBus, "riser", len2(bar));
+    if (b === dropBar || (b > dropBar && isBreak(b - 1) && !brk)) { hit(t, 0.22, fxBus, "crash"); hit(t, 0.5, fxBus, "boom"); }
+    // chords
+    if (G === "house") {
+      if (!outro) [0.5, 1.5, 2.5, 3.5].forEach((k) => hit(t + k * beat, 0.05, musBus, "stab", ch.notes.slice(0, 4), len2(beat * 0.4)));
+      if (brk || intro || outro) hit(t, 0.035, musBus, "pad", ch.notes, len2(bar));
+    } else if (G === "pop") {
+      [0, 1.5, 2.5].forEach((k) => hit(t + k * beat, 0.055, musBus, "keys", ch.notes, len2(beat * (k ? 0.9 : 1.4)), 0.008));
+      if (!lo) hit(t, 0.022, musBus, "pad", ch.notes.slice(0, 3), len2(bar));
+    } else if (G === "lofi") hit(t, 0.06, musBus, "keys", ch.notes, len2(bar * 0.95), 0.022);
+    else hit(t, 0.04, musBus, "pad", ch.notes, len2(bar));
+    // bass
+    if (!intro && !brk && !outro) {
+      if (G === "house") [0.5, 1.5, 2.5, 3.5].forEach((k) => hit(t + k * beat, 0.26, musBus, "bass", ch.root - 12, len2(beat * 0.45)));
+      else if (G === "pop") for (let k = 0; k < 8; k++) hit(t + k * beat / 2, 0.2, musBus, "bass", ch.root - 12 + (k === 7 ? 7 : 0), len2(beat * 0.42));
+      else if (G === "lofi") { hit(t, 0.32, musBus, "bass", ch.root - 12, len2(beat * 1.8)); hit(t + beat * 2.5, 0.24, musBus, "bass", ch.root - 12, len2(beat * 1.2)); }
+      else for (let k = 0; k < 16; k++) hit(t + k * beat / 4, 0.15 + (k % 4 === 0 ? 0.06 : 0), musBus, "bass", ch.root - 12, len2(beat * 0.2));
+    }
+    // drums
+    if (!intro && !brk && !outro) {
+      for (let k = 0; k < 4; k++) {
+        if (G === "house" || G === "pop") kick(t + k * beat, 0.9);
+        else if (G === "lofi") { if (k === 0 || (k === 2 && rnd() < 0.5)) kick(t + k * beat + (k ? beat * 0.5 : 0), 0.75); }
+        else if (k === 0 || k === 2) kick(t + k * beat, 0.95);
+        if (k % 2 === 1) hit(t + k * beat, G === "cinema" ? 0.5 : 0.55, drumBus, "snare");
+      }
+      if (G === "cinema" && b % 2 === 1) hit(t + beat * 3.5, 0.25, drumBus, "snare");
+      for (let k = 0; k < 16; k++) {
+        const s16 = at16(b, k);
+        if (G === "house") { if (k % 4 === 2) hit(s16, 0.16, drumBus, "ohat"); else if (hi || k % 2 === 0) hit(s16, k % 4 === 0 ? 0.07 : 0.1, drumBus, "hat"); }
+        else if (G === "pop") { if (k % 2 === 0) hit(s16, k % 4 === 0 ? 0.08 : 0.12, drumBus, "hat"); else if (hi) hit(s16, 0.05, drumBus, "hat"); }
+        else if (G === "lofi") { if (k % 2 === 0) hit(s16, 0.07 + rnd() * 0.04, drumBus, "hat"); }
+        else if (hi || k % 2 === 0) hit(s16, k % 4 === 0 ? 0.05 : 0.08, drumBus, "hat");
+      }
+    } else if (intro || brk) for (let k = 0; k < 8; k++) hit(at16(b, k * 2), 0.04, drumBus, "hat");
+    // the melody line
+    if (!outro && !(intro && G === "house")) {
+      const step = G === "house" || (G === "cinema" && !lo) ? 2 : 4;   // eighths or quarters (in sixteenths)
+      for (let k = 0; k < 16; k += step) {
+        const n = motif[(k / step + (b % 2) * 3) % motif.length];
+        if (n < 0 || (lo && rnd() < 0.4)) continue;
+        const tones = ch.notes.slice(1);
+        hit(at16(b, k), brk ? 0.05 : 0.07, leadBus, "pluck", tones[n % tones.length] + 12 + (b % 4 === 3 && k >= 8 ? 2 : 0));
+      }
+    }
+    if (outro && b === outroBar) hit(t, 0.05, musBus, G === "house" || G === "cinema" ? "pad" : "keys", ch.notes, len2(Math.max(0.5, dur - t - 0.3)), 0.02);
+  }
+  // vinyl dust under the lo-fi
+  if (G === "lofi") for (let t = 0; t < dur; t += 0.05 + rnd() * 0.25) hit(t, 0.03 + rnd() * 0.03, fxBus, "dust");
+
+  // the house pump: the music ducks on every kick and swells back - one
+  // curve, not an automation event per kick (thousands of those slowed the
+  // render to a crawl)
+  if (G === "house" && kicks.length) {
+    const rate = 200, cv = new Float32Array(Math.ceil(dur * rate)).fill(1), rl = beat * 0.8;
+    kicks.forEach((t) => { for (let i = Math.floor(t * rate), e = Math.min(cv.length, Math.ceil((t + rl) * rate)); i < e; i++) cv[i] = Math.min(cv[i], 0.35 + 0.65 * Math.max(0, (i / rate - t) / rl)); });
+    pump.gain.setValueCurveAtTime(cv, 0, dur);
+  }
+  // render each distinct sound once, then lay the score
+  const LEN = { kick: 0.8, snare: 0.3, hat: 0.06, ohat: 0.3, crash: 1.7, dust: 0.02, boom: 1.7 };
+  const bank = new Map();
+  const uniq = [...new Map(score.map((e) => [e.key, e])).values()];
+  await Promise.all(uniq.map(async (e) => {
+    const a = e.args;
+    const len = LEN[e.kind] || (e.kind === "riser" ? a[0] + 0.15 : e.kind === "pluck" ? 0.45 : e.kind === "bass" ? a[1] + 0.15 : (a[1] || 1) + 0.9);
+    const c = new OAC(1, Math.ceil(sr * len), sr);
+    R[e.kind](c, c.destination, ...a);
+    bank.set(e.key, await c.startRendering());
+  }));
+  // mixed into one track per bus right here (a source node per hit stayed in
+  // the graph for the whole render: 90 seconds took half a minute)
+  const N0 = Math.ceil(sr * dur), mix = new Map();
+  score.forEach((e) => {
+    let arr = mix.get(e.bus);
+    if (!arr) { arr = new Float32Array(N0); mix.set(e.bus, arr); }
+    const d = bank.get(e.key).getChannelData(0), o = Math.floor(e.t * sr), n = Math.min(d.length, N0 - o);
+    for (let i = 0; i < n; i++) arr[o + i] += d[i] * e.g;
+  });
+  mix.forEach((arr, bus) => {
+    const b = ctx.createBuffer(1, N0, sr); b.copyToChannel(arr, 0);
+    const s = ctx.createBufferSource(); s.buffer = b; s.connect(bus); s.start(0);
+  });
+
+  const buf = await ctx.startRendering();
+  // lifted in the gaps of the voice, under it while someone speaks; then
+  // levelled to a steady bed, the last second and a half fading out
+  const N = buf.length, cur = new Float32Array(N);
+  const spans = (speech || []).slice().sort((a, b) => a[0] - b[0]);
+  let j = 0, g = 1;
+  const kA = 1 - Math.exp(-1 / (sr * 0.08)), kR = 1 - Math.exp(-1 / (sr * 0.45));
+  for (let i = 0; i < N; i++) {
+    const t = i / sr;
+    while (j < spans.length && spans[j][1] + 0.15 < t) j++;
+    const talking = j < spans.length && spans[j][0] - 0.1 <= t;
+    const want = spans.length ? (talking ? 0.6 : 1) : 1;
+    g += (want - g) * (want < g ? kA : kR);
+    cur[i] = g * Math.min(1, (dur - t) / 1.5);
+  }
+  let sum = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < N; i++) { d[i] *= cur[i]; sum += d[i] * d[i]; } }
+  const rms = Math.sqrt(sum / (N * buf.numberOfChannels)) || 1;
+  let k = 0.14 / rms, pk = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < N; i++) pk = Math.max(pk, Math.abs(d[i])); }
+  k = Math.min(k, 0.95 / (pk || 1));
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < N; i++) d[i] *= k; }
+  buf._plan = Object.assign({ t0: T0 }, plan);
+  return buf;
+}
+function vsMusicSeed(data, dur) {
+  const k = String((vstudio._editSrc && vstudio._editSrc.name) || (data && (data.title || data.headline)) || "") + "|" + dur + "|" + (vstudio._musicShuffle || 0);
+  let h = 2166136261;
+  for (let i = 0; i < k.length; i++) { h ^= k.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
 async function vsEnsureDefaultMusic(data) {
   try {
     const generated = await vsGenerateAiMusic(data || vstudio.storyData);
@@ -8993,170 +9324,30 @@ async function vsEnsureDefaultMusic(data) {
     // customer is not told about it. It used to announce that "Pollinations
     // music isn't available on this account" - our supplier's balance, in the
     // customer's status bar, on every single build.
-    // This offline synth composes its own intro swell / outro fade directly
-    // into the buffer (see the gain ramps below) — it's a one-shot cue, not a
-    // seamless loop bed. It used to always render a fixed 20s buffer and cache
-    // it globally, then loop that same clip under every video regardless of
-    // that video's real length; anything longer than ~20s looped mid-scene
-    // and you'd hear the composed fade-out/fade-in dip happen again in the
-    // middle of the video, on top of the real fade the export already applies
-    // at the true start/end. Render it to match this video's actual duration
-    // instead, cached per duration, so it only ever plays once, start to end.
-    const targetDur = Math.max(8, Math.min(90, Math.ceil(
+    // the bed composed for this video: its style, its length, lifting in
+    // the gaps of the voice (see vsComposeMusic)
+    const targetDur = Math.max(8, Math.min(240, Math.ceil(
       (typeof studioDuration === "function" ? studioDuration() : 20) || 20)));
-    // This is the ONLY music most videos actually get (the AI generator above
-    // fails whenever the paid Pollinations audio tier is out of credit), yet
-    // it used to be a single fixed cue — always the same minor-key, 100bpm
-    // bed no matter the script's requested mood/energy. Read the same
-    // {mood, energy, bpm} spec the AI path uses so at least this fallback
-    // varies: major-key voicing for upbeat moods vs the original minor for
-    // serious/tense ones, tempo from the script, and an energy scale that
-    // thins out the beat for "low" and thickens it for "high".
     const spec = (data && data.music) || {};
-    const mood = String(spec.mood || "investigative").toLowerCase();
-    const energyName = String(spec.energy || "medium").toLowerCase();
-    const upbeat = /hopeful|inspiring|upbeat|optimistic|excited/.test(mood);
-    const energyScale = energyName === "low" ? 0.65 : energyName === "high" ? 1.35 : 1;
-    const bpmSpec = Math.max(70, Math.min(132, Math.round(Number(spec.bpm)) || 100));
-    // the beat this bed is built on (its kicks start at 2s): motion looks
-    // breathe on it and cut on it
-    vstudio._musicBeat = { period: 60 / bpmSpec, t0: 2.0 };
-    const cacheKey = [targetDur, mood, energyName, bpmSpec].join(":");
+    const plan = vsMusicPlan(spec), speech = vsSpeechSpans(), seed = vsMusicSeed(data, targetDur);
+    const cacheKey = [targetDur, plan.genre, plan.energy, plan.bpm, seed, speech.length].join(":");
     vstudio._defaultMusicCache = vstudio._defaultMusicCache || {};
     const cached = vstudio._defaultMusicCache[cacheKey];
     if (cached) {
       vstudio._defaultMusicBuffer = cached.buffer;
       vstudio._defaultMusicUrl = cached.url;
-      vstudio._defaultMusicContentEnd = cached.buffer.duration;   // synth fills the whole buffer
+      vstudio._defaultMusicContentEnd = cached.buffer.duration;
     } else {
-      const sr = 44100, dur = targetDur;
-      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-      if (!OAC) return null;
-      const ctx = new OAC(2, sr * dur, sr);
-    const master = ctx.createGain(); master.gain.value = 0.28 * (0.8 + energyScale * 0.2); master.connect(ctx.destination);
-
-    // soft saturation/limiter so the bass stays warm, not clippy
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -18; comp.knee.value = 24; comp.ratio.value = 3;
-    comp.attack.value = 0.02; comp.release.value = 0.3; comp.connect(master);
-
-    // sidechain bus — the melodic/pad layers route through this and get "pumped"
-    // (ducked) on every kick, the signature feel of modern cinematic/ad music
-    const sideGain = ctx.createGain(); sideGain.gain.value = 1.0; sideGain.connect(comp);
-
-    // ── BASS layer: a deep sub + fifth drone with a slow heartbeat pulse ──
-    const bassLP = ctx.createBiquadFilter(); bassLP.type = "lowpass"; bassLP.frequency.value = 260; bassLP.connect(sideGain);
-    const bassPulse = ctx.createGain(); bassPulse.gain.value = 0.5; bassPulse.connect(bassLP);
-    const pulse = ctx.createOscillator(); pulse.type = "sine"; pulse.frequency.value = 0.5; // ~30 bpm swell
-    const pulseAmt = ctx.createGain(); pulseAmt.gain.value = 0.32;
-    pulse.connect(pulseAmt); pulseAmt.connect(bassPulse.gain); pulse.start(0); pulse.stop(dur);
-    [
-      { f: 49.0, t: "sine", g: 0.9 },   // G1 sub
-      { f: 65.41, t: "sine", g: 0.7 },  // C2
-      { f: 98.0, t: "triangle", g: 0.35 } // G2 body
-    ].forEach(n => {
-      const o = ctx.createOscillator(); o.type = n.t; o.frequency.value = n.f;
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, 0);
-      g.gain.linearRampToValueAtTime(n.g, 3); g.gain.setValueAtTime(n.g, dur - 5);
-      g.gain.linearRampToValueAtTime(0.0001, dur);
-      o.connect(g); g.connect(bassPulse); o.start(0); o.stop(dur);
-    });
-
-    // ── PAD layer: a moody Cm9 chord, filtered + slow tremolo (cinematic) ──
-    const padLP = ctx.createBiquadFilter(); padLP.type = "lowpass"; padLP.frequency.value = 1600; padLP.Q.value = 0.7; padLP.connect(sideGain);
-    // slow filter sweep for movement
-    const sweep = ctx.createOscillator(); sweep.type = "sine"; sweep.frequency.value = 0.05;
-    const sweepAmt = ctx.createGain(); sweepAmt.gain.value = 700;
-    sweep.connect(sweepAmt); sweepAmt.connect(padLP.frequency); sweep.start(0); sweep.stop(dur);
-    // major voicing (brighter/hopeful) vs the original minor (serious/tense)
-    const chord = upbeat
-      ? [130.81, 164.81, 196.00, 246.94, 329.63] // C E G B D5 → Cmaj9
-      : [130.81, 155.56, 196.00, 233.08, 311.13]; // C Eb G Bb Eb5 → Cm9
-    chord.forEach((f, i) => {
-      [0, 2.2].forEach(det => {
-        const o = ctx.createOscillator(); o.type = i % 2 ? "sine" : "triangle";
-        o.frequency.value = f; o.detune.value = det;
-        const g = ctx.createGain(); const peak = 0.12 / (1 + i * 0.18);
-        const t0 = 2 + i * 0.5;
-        g.gain.setValueAtTime(0.0001, 0);
-        g.gain.linearRampToValueAtTime(peak, t0 + 2.5);
-        g.gain.setValueAtTime(peak, dur - 4.5);
-        g.gain.linearRampToValueAtTime(0.0001, dur);
-        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07 + i * 0.015;
-        const lg = ctx.createGain(); lg.gain.value = peak * 0.45;
-        lfo.connect(lg); lg.connect(g.gain); lfo.start(0); lfo.stop(dur);
-        o.connect(g); g.connect(padLP); o.start(0); o.stop(dur);
-      });
-    });
-
-    // ── faint high shimmer for sparkle ──
-    const shim = ctx.createOscillator(); shim.type = "sine"; shim.frequency.value = 1046.5;
-    const sg = ctx.createGain(); sg.gain.value = 0.0;
-    sg.gain.setValueAtTime(0.0001, 0); sg.gain.linearRampToValueAtTime(0.02, 6);
-    sg.gain.setValueAtTime(0.02, dur - 5); sg.gain.linearRampToValueAtTime(0.0001, dur);
-    shim.connect(sg); sg.connect(sideGain); shim.start(0); shim.stop(dur);
-
-    // ── RHYTHM: an advertising-style beat (kick + hats + snare + pulsing bass)
-    //    so the bed feels cinematic AND rhythmic, not just ambient ──
-    const bpm = bpmSpec, beat = 60 / bpm;
-    const drumBus = ctx.createGain(); drumBus.gain.value = 0.9 * energyScale; drumBus.connect(comp);
-    const nbuf = ctx.createBuffer(1, sr * 0.5, sr);
-    const nd = nbuf.getChannelData(0);
-    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-    const noiseAt = (t, dur2, hp, gain) => {
-      const s = ctx.createBufferSource(); s.buffer = nbuf;
-      const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hp;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(gain, t + 0.004);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur2);
-      s.connect(f); f.connect(g); g.connect(drumBus); s.start(t); s.stop(t + dur2 + 0.02);
-    };
-    const kickAt = (t, gain) => {
-      const o = ctx.createOscillator(); o.type = "sine";
-      o.frequency.setValueAtTime(135, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(gain, t + 0.006);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      o.connect(g); g.connect(drumBus); o.start(t); o.stop(t + 0.26);
-    };
-    const bassRoots = [49.0, 51.91, 43.65, 46.25];
-    const bassAt = (t, freq) => {
-      const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = freq;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.5, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + beat * 0.5);
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 200;
-      o.connect(g); g.connect(lp); lp.connect(comp); o.start(t); o.stop(t + beat * 0.6);
-    };
-    const introT = 2.0, tailT = dur - 2.5;
-    // "low" energy skips every other kick and drops the off-beat hats/bass for
-    // a sparser, calmer bed; "high" keeps every hit (plus the full hat/bass
-    // pattern below) for a busier, more energetic feel.
-    const sparse = energyName === "low";
-    let bidx = 0;
-    for (let t = introT; t < tailT; t += beat, bidx++) {
-      const env = Math.min(1, (t - introT) / 3) * Math.min(1, (tailT - t) / 3);
-      if (!sparse || bidx % 2 === 0) kickAt(t, 0.95 * env);
-      // sidechain pump: duck the pads/bass on the kick, then recover
-      sideGain.gain.setValueAtTime(0.5, t);
-      sideGain.gain.linearRampToValueAtTime(1.0, t + Math.min(0.32, beat * 0.85));
-      if (bidx % 2 === 1 && !sparse) noiseAt(t, 0.14, 1800, 0.32 * env);
-      noiseAt(t, 0.04, 8000, 0.16 * env);
-      if (!sparse) noiseAt(t + beat / 2, 0.04, 8000, 0.12 * env);
-      const root = bassRoots[Math.floor(bidx / 4) % bassRoots.length];
-      bassAt(t, root); if (!sparse) bassAt(t + beat / 2, root * 1.5);
-    }
-
-      const rendered = await ctx.startRendering();
+      const rendered = await vsComposeMusic(spec, targetDur, speech, seed);
+      if (!rendered) return null;
       vstudio._defaultMusicBuffer = rendered;     // raw buffer → reliably captured in export
-      const blob = vsAudioBufferToWav(rendered);
-      vstudio._defaultMusicUrl = URL.createObjectURL(blob);
-      vstudio._defaultMusicContentEnd = rendered.duration;   // synth fills the whole buffer
+      vstudio._defaultMusicUrl = URL.createObjectURL(vsAudioBufferToWav(rendered));
+      vstudio._defaultMusicContentEnd = rendered.duration;
       vstudio._defaultMusicCache[cacheKey] = { buffer: rendered, url: vstudio._defaultMusicUrl };
     }
+    // the beat it is built on: motion looks breathe on it and cut on it
+    vstudio._musicBeat = { period: 60 / plan.bpm, t0: 2.0 % (60 / plan.bpm) };
+    vstudio._musicStyle = plan.genre;
     // Return a FRESH element each time so createMediaElementSource (which can only
     // run once per element) always succeeds for every video's export.
     const el = vsAudio(vstudio._defaultMusicUrl);
@@ -11004,7 +11195,7 @@ const VS_PRO_PACKS = {
   // Copied from the "top 1%" realtor reel (the white kitchen): the word that
   // matters in purple serif italic capitals across the speaker, a figure in
   // wide capitals going pink to ice blue with a glow, small white words.
-  trust: { hero: { fam: "Bodoni Moda", w: 600, italic: true, upper: true, size: 0.11, colors: ["#5a2d86", "#46256f"], track: -0.045, enter: "blur" },
+  trust: { hero: { fam: "Bodoni Moda", w: 600, italic: true, upper: true, size: 0.125, colors: ["#5a2d86", "#46256f"], adapt: ["#4f2380", "#e4d6ff"], track: -0.04, enter: "blur" },
            statHero: { fam: "Outfit", w: 800, upper: true, size: 0.16, colors: ["#e46cff"], grad2: ["#e46cff", "#9ef4ff"], glowSoft: true, track: -0.01, enter: "blur" },
            small: { fam: "Arimo", w: 400, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Arimo", w: 400, size: 0.054, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
@@ -11272,7 +11463,7 @@ function vsProGroups(s) {
 
 // Where each word of a group stands: lines stacked tight, the small line
 // overlapping the hero's edge, set against the hero's left or right side.
-function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
+function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   if (g._lay && g._lay.W === W && g._lay.H === H) return g._lay;
   if (g.stat && pack.statHero) pack = Object.assign({}, pack, { hero: pack.statHero });
   const U = Math.min(W, H * 0.62);
@@ -11383,6 +11574,9 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       [def].concat(headYs, face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).forEach((y) => {
         const yy = inside(y, ys);
         if (heroBehind && face && (yy < face.y - face.h * 0.35 || yy > face.y + face.h * 1.45)) return;
+        // never across an icon or card on screen at the same time
+        if (avoid && avoid.length && lines.some((L) => { const by = yy + ys.get(L) - L.px * 0.55, bh = L.px * 1.1;
+          return avoid.some((a) => !(L.x0 + L.m.tw < a.x || L.x0 > a.x + a.w || by + bh < a.y || by > a.y + a.h)); })) return;
         if (!face || lines.every((L) => (heroBehind && L === hero) || clear(L, yy + ys.get(L)))) out.push({ y: yy, ys, mode });
       });
     });
@@ -11395,7 +11589,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face) {
       setHero(k, align);
       const nL = hero.m.ws2.reduce((n, w) => n + w.pieces.length, 0) || 1;
       const lw = hero.m.tw / nL;
-      const allow = nL >= 4 ? Math.floor(nL / 4) : 0;   // as in the reels: "KN W", "Oak ont"
+      const allow = nL >= 7 ? 1 : 0;   // a letter at most ("KN W"); "WHETHER" cut to "HET" did not read
       candsFor(true).forEach((c0) => {
         let hidden = 0, touched = 0, ends = 0;
         for (let j = 0; j < nL; j++) {
@@ -11659,6 +11853,21 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
   ctx.textBaseline = "middle"; ctx.textAlign = "left";
   try { ctx.direction = "ltr"; } catch (e) {}
   let fill = wd.color;
+  // a colour that reads on what is behind it: the dark ink on a light wall,
+  // its light tint on a dark one (measured once, where the word stands)
+  if (st.adapt && F && wd._ink == null) {
+    let lum = 0.6;
+    try {
+      const c = vstudio._adaptC || (vstudio._adaptC = document.createElement("canvas")); c.width = 16; c.height = 4;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(F, Math.max(0, wd.x), Math.max(0, wd.y - px * 0.4), Math.max(1, Math.min(W - wd.x, wd.w)), Math.max(1, px * 0.8), 0, 0, 16, 4);
+      const d = x.getImageData(0, 0, 16, 4).data; let t2 = 0;
+      for (let i = 0; i < d.length; i += 4) t2 += (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+      lum = t2 / 64;
+    } catch (e) {}
+    wd._ink = lum < 0.5 ? st.adapt[1] : st.adapt[0];
+  }
+  if (st.adapt && wd._ink) fill = wd._ink;
   if (wd.stat && VS_PRO_PACKS.luxe.stat && st === VS_PRO_PACKS.luxe.hero) {
     const gr = ctx.createLinearGradient(wd.x, 0, wd.x + wd.w, 0);
     gr.addColorStop(0, VS_PRO_PACKS.luxe.stat[0]); gr.addColorStop(1, VS_PRO_PACKS.luxe.stat[1]);
@@ -11726,6 +11935,8 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
       ctx.strokeText(c, x, y); ctx.restore();
     } else if (st.shade) { ctx.shadowColor = "rgba(0,0,0,0.38)"; ctx.shadowBlur = px * 0.14; ctx.shadowOffsetY = px * 0.03; }
     if (st.halo) { ctx.shadowColor = st.halo; ctx.shadowBlur = px * 0.22; ctx.shadowOffsetY = 0; }
+    // a soft halo of the opposite tone, so the ink holds on a busy picture
+    if (st.adapt && wd._ink) { ctx.shadowColor = wd._ink === st.adapt[1] ? "rgba(24,6,44,0.55)" : "rgba(255,255,255,0.5)"; ctx.shadowBlur = px * 0.16; ctx.shadowOffsetY = 0; }
     if (st.glowSoft && !st.glow && typeof wd.color === "string" && !/^#f{3,6}$/i.test(wd.color)) { ctx.shadowColor = wd.color + "aa"; ctx.shadowBlur = px * 0.2; ctx.shadowOffsetY = 0; }
     if (st.glow) { ctx.shadowColor = st.glowColor || (typeof fill === "string" ? fill : "#38d8ff"); ctx.shadowBlur = px * 0.28; ctx.shadowOffsetY = 0; }
     // a number every other time as a thin glowing outline (the clinic reel's 5)
@@ -12321,8 +12532,9 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
   ctx.fillStyle = sh; ctx.fillRect(0, 0, W, H);
   if (kind !== "list") { const tg = ctx.createLinearGradient(0, 0, 0, H * 0.35); tg.addColorStop(0, "rgba(0,0,0,0.45)"); tg.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = tg; ctx.fillRect(0, 0, W, H * 0.35); }
   else { ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(0, 0, W, H); }
-  const bar = H * 0.07 * ein;
-  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
+  // (letterbox bars only on a wide frame - on a vertical one they read as a fault)
+  const bar = W > H ? H * 0.07 * ein : 0;
+  if (bar) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar); }
   if (t < 0.16) { ctx.fillStyle = "rgba(255,255,255," + (0.6 * (1 - t / 0.16)) + ")"; ctx.fillRect(0, 0, W, H); }
 
   const word = (...a) => { const w = vsProInsWord(ctx, ...a); vsProWord(ctx, w, t, fade, F, W, H); return w; };
@@ -12343,7 +12555,9 @@ function vsProInsert(ctx, W, H, s, ins, t, F, pack) {
     return ph;
   };
   const items = (ins.items || []).slice(0, 4);
-  let pip = kind !== "place";
+  // (the speaker's face in a circle in the corner looked pasted on: the
+  // voice carries over the shot as in the reels)
+  let pip = false;
   if (kind === "product") {
     if (ins.sub) word(ins.sub, small, small.size * U * 0.9, W * 0.07, H * 0.62, "#ffffff", 0.25, W * 0.86, "left");
     word(ins.title, hero, hero.size * U, W * 0.07, H * 0.7, accent === "#ffffff" ? "#ffffff" : colors[0], 0.15, W * 0.86, "left");
@@ -13056,6 +13270,9 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   const pin = eo(t / 0.55), pout = 1 - sm((t - (c.len - 0.4)) / 0.4);
   const vis = Math.min(pin, pout);
   if (vis <= 0.001) return;
+  // where it stands is kept in pixels: a preview at one size and the export
+  // at another put the San Diego card on the speaker's head
+  if (c._W !== W || c._H !== H) { c._W = W; c._H = H; delete c._pos; delete c._face; delete c._side; }
   const FONT = (w, px) => w + " " + Math.round(px) + 'px "SF Pro Display", Manrope, "Vazirmatn", system-ui, sans-serif';
   const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
   const colors = (pack.hero.colors || ["#ffffff"]).map((x) => (x === "auto" ? vsProAccent() : x));
@@ -13091,6 +13308,7 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   const side = c._side || 1;
   let S = Math.min(W * 0.4, U * 0.42);
   if (c.kind === "search" || c.kind === "notify") S = Math.min(W * 0.84, U * 0.86);
+  const S0 = S;
   let cx = side > 0 ? W - W * 0.05 - S / 2 : W * 0.05 + S / 2;
   if (c.kind === "search" || c.kind === "notify") cx = W / 2;
   let cy0 = c.kind === "notify" || c.kind === "search" ? H * 0.5 : H * 0.32;
@@ -13132,6 +13350,30 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     if (!best) { const k2 = 0.75; w *= k2; h *= k2; best = { x: side > 0 ? W - W * 0.035 - w / 2 : W * 0.035 + w / 2, y: H * 0.34, w, h }; }
     c._pos = best;
   }
+  // anything else beside them: tried at both sides, five heights and four
+  // sizes, it goes where nothing of the speaker - hair, shoulder, hand - is
+  // under it or its label; fixed once found
+  if (c.kind !== "shot" && c.kind !== "notify" && c.kind !== "search" && !c._pos) {
+    const m = vsProMaskHeld(F, W, H, s, c.at + t);
+    // with the cut-out: clear of the whole person; without it yet (the first
+    // frames of an export): clear of the face, at full size
+    if ((m && m.a) || (f && t > 0.15) || t > 0.5) {
+      let best = null;
+      [S0, S0 * 0.86, S0 * 0.74, S0 * 0.64, S0 * 0.54].forEach((sz, zi) => [side, -side].forEach((sd, si) => [0.3, 0.24, 0.38, 0.46, 0.18, 0.56].forEach((fy, yi) => {
+        const x = sd > 0 ? W - W * 0.035 - sz / 2 : W * 0.035 + sz / 2, y = H * fy;
+        const box = { x: x - sz * 0.55, y: y - sz * 0.62, w: sz * 1.1, h: sz * 1.4 };
+        if (box.y < H * 0.07 || box.y + box.h > H * 0.8) return;
+        // the face weighs most, then the rest of the person, then size and place
+        const fo = f ? Math.max(0, Math.min(box.x + box.w, f.x + f.w) - Math.max(box.x, f.x)) * Math.max(0, Math.min(box.y + box.h, f.y + f.h) - Math.max(box.y, f.y)) / (box.w * box.h) : 0;
+        const cov = m && m.a ? vsProCover(m, W, H, box) : 0;
+        const score = -fo * 200 - cov * 60 - zi * 1.2 - si * 0.8 - yi * 0.3;
+        if (!best || score > best.score) best = { score, x, y, sz };
+      })));
+      if (best) c._pos = { x: best.x, y: best.y, S: best.sz };
+      else c._pos = { x: side > 0 ? W - W * 0.04 - S0 * 0.32 : W * 0.04 + S0 * 0.32, y: H * 0.5, S: S0 * 0.64 };
+    }
+  }
+  if (c._pos && c._pos.S) S = c._pos.S;
   if (c._pos) { cx = c._pos.x; cy0 = c._pos.y; }
   const cy = cy0 + Math.sin(t * 1.3) * H * 0.003;
   ctx.save();
@@ -13430,7 +13672,7 @@ function vsProInsertPaper(ctx, W, H, s, ins, t, F, pack) {
     ctx.restore();
   };
   const items = (ins.items || []).slice(0, 4);
-  let pip = true;
+  let pip = false;   // (no face circle: it looked pasted on)
   if (kind === "list") {
     word(ins.title, head, head.size * U * 0.85, W * 0.08, H * 0.17, ink, 0.2, W * 0.84, "left");
     if (ins.sub) word(ins.sub, body, body.size * U, W * 0.08, H * 0.17 + U * 0.11, soft, 0.35, W * 0.84, "left");
@@ -13786,8 +14028,12 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     if (m && m.P) ctx.drawImage(m.P, 0, 0);
     vsProTrail(ctx, W, H, local - 0.1, fc, m, false);
   }
-  // graphics beside the speaker, under their words
-  if (!ins && s._calls && !s._broll) s._calls.forEach((c) => { if (local >= c.at && local < c.at + c.len) { try { vsProCallout(ctx, W, H, s, c, local - c.at, F, pack); } catch (e) {} } });
+  // graphics beside the speaker: a screenshot tucked behind their shoulder
+  // goes under everything; the rest are laid over the speaker's cut-out (put
+  // back over a word behind them), so an icon never slips behind their hair
+  const callsWhere = (pred) => { if (!ins && s._calls && !s._broll) s._calls.forEach((c) => { if (pred(c) && local >= c.at && local < c.at + c.len) { try { vsProCallout(ctx, W, H, s, c, local - c.at, F, pack); } catch (e) {} } }); };
+  callsWhere((c) => c.kind === "shot");
+  let callsLeft = true;
   if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
   else if (g && !g.off && !(ed && ed.off)) {
     let mask = null, face = null;
@@ -13801,7 +14047,16 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       g._layTry = local;
       if (blind && face && mask && mask.a) delete g._lay;
     }
-    const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face);
+    const avoid = [];
+    if (!g._lay) (s._calls || []).forEach((c) => {
+      if (c.kind === "shot" || c.kind === "orbit" || c.at >= g.t1 || c.at + c.len <= g.t0) return;
+      if (c.kind === "notify" || c.kind === "search") { avoid.push({ x: W * 0.06, y: H * 0.36, w: W * 0.88, h: H * 0.24 }); return; }
+      if (c._pos && c._pos.S) { const S2 = c._pos.S; avoid.push({ x: c._pos.x - S2 * 0.6, y: c._pos.y - S2 * 0.7, w: S2 * 1.2, h: S2 * 1.5 }); return; }
+      // not placed yet: the side away from the face, upper half, where it will go
+      const sd = c._side || (face && face.x + face.w / 2 > W / 2 ? -1 : 1);
+      avoid.push({ x: sd > 0 ? W * 0.5 : 0, y: H * 0.08, w: W * 0.5, h: H * 0.52 });
+    });
+    const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face, avoid);
     const outT = pack.outT || (pack.hero.enter === "swipe" ? 0.18 : 0.15);
     const out = local > g.t1 - outT ? Math.max(0, (g.t1 - local) / outT) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
@@ -13814,6 +14069,20 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       // behind the speaker where the layout chose it (or the customer did);
       // in front otherwise - it could land on their face
       behind = !!(mask && mask.P) && wantBehind;
+      // The speaker may have moved since the words were laid out, hiding
+      // letters ("STRE TH"). Decided once, on the word's first frame, and
+      // kept: a word jumping from behind to in front is the flicker the owner
+      // saw on the icons. In front only where that keeps it off the face.
+      if (behind && !(ed && ed.front === false) && g._front == null && mask.a && lay.box) g._front = (() => {
+        const hb = lay.box, n = 10; let hid = 0;
+        for (let j = 0; j < n; j++) if (vsProCover(mask, W, H, { x: hb.x + (j + 0.15) * hb.w / n, y: hb.y + hb.h * 0.2, w: hb.w / n * 0.7, h: hb.h * 0.6 }) > 0.25) hid++;
+        // the face itself (forehead to just under the chin) - a word in front
+        // may cross the shoulders and chest, never this
+        const fs = s._faceScr, fb = fs ? { x: fs.x - fs.h * 0.55, y: fs.y - fs.h * 0.7, w: fs.h * 1.1, h: fs.h * 1.45 } : null;
+        const onFace = !fb || !(hb.x + hb.w < fb.x || hb.x > fb.x + fb.w || hb.y + hb.h < fb.y || hb.y > fb.y + fb.h);
+        return hid >= 1 && !onFace;
+      })();
+      if (behind && g._front && !(ed && ed.front === false)) behind = false;
       // placed across the head to go behind it, and nothing to put in front
       // of it: not drawn this frame rather than drawn on the face
       if (wantBehind && !behind && !(ed && ed.front === false)) heroes.length = 0;
@@ -13838,6 +14107,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       moved(() => heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H)));
       ctx.drawImage(mask.P, 0, 0);
     }
+    callsWhere((c) => c.kind !== "shot"); callsLeft = false;
     const hideHero = !behind && !lay.front && !(ed && ed.front === true) && !heroes.length && lay.words.some((w) => w.role === "hero" && local >= w.t0);
     moved(() => lay.words.forEach((w) => { if (!((behind || hideHero) && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
     {
@@ -13859,6 +14129,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
     }
   }
+  if (callsLeft) callsWhere((c) => c.kind !== "shot");
   if (pack.hookBox && idx === 0 && !ins && vstudio._proHook && local < 3) {
     const U = Math.min(W, H * 0.62), k = Math.min(1, local / 0.15) * Math.min(1, (3 - local) / 0.2);
     ctx.save(); ctx.globalAlpha = Math.max(0, k);
@@ -16869,7 +17140,7 @@ function vsEditStudio(preset, filesIn) {
       '<p class="ts-note">' + L("Stock by", "فوتیج از") + ' <a href="https://www.pexels.com" target="_blank" rel="noopener" style="color:#c9ccd3">Pexels</a></p>' +
       '<p id="emWeak" class="ts-warn" hidden>' + L("This device has no graphics acceleration: a Pro edit is limited to 3 minutes, exports at 720p and takes longer. A computer is faster.",
         "این دستگاه شتاب گرافیکی ندارد: ادیت حرفه‌ای حداکثر ۳ دقیقه است، با کیفیت 720p خروجی می‌دهد و بیشتر طول می‌کشد. با کامپیوتر سریع‌تر است.") + "</p>" +
-      '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Edit it", "ادیتش کن") + "</button></div>" +
+      '<div class="ts-foot"><button id="emGo" type="button" class="ts-primary" disabled>' + L("Make my video", "ساختن ویدیو") + "</button></div>" +
     "</aside>" +
     '<section class="ts-main" aria-live="polite">' +
       '<div class="ts-main-h"><div class="ts-eye">' + L("Your edit", "ادیت تو") + '</div><span style="flex:1"></span><button id="emNew" type="button" class="ts-ghost em-new" hidden>' + L("New project", "پروژهٔ جدید") + '</button><button id="emClose" type="button" class="ts-x" aria-label="' + L("Close", "بستن") + '">' + icoX + "</button></div>" +
@@ -16980,6 +17251,7 @@ function vsEditStudio(preset, filesIn) {
       '<div class="em-snd" role="group" aria-label="' + L("Sound", "صدا") + '">' +
         '<label class="ts-switch"><input type="checkbox" id="emSndMusic"' + (vstudio.musicEl ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Music", "موسیقی") + "</span></label>" +
         '<input id="emMusicVol" type="range" min="0" max="100" step="5" value="' + Math.round(vsMusicLevel() * 100) + '" aria-label="' + L("Music volume", "بلندی موسیقی") + '"/>' +
+        '<button id="emMusicNext" type="button" class="ts-ghost" style="grid-column:1/-1;justify-self:start">' + L("Another track", "آهنگ دیگر") + "</button>" +
         '<label class="ts-switch"><input type="checkbox" id="emSndFx"' + (vstudio._editSfxOn ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Sound effects", "افکت صوتی") + "</span></label>" +
         '<input id="emFxVol" type="range" min="0" max="200" step="10" value="' + Math.round((vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) * 100) + '" aria-label="' + L("Sound effects volume", "بلندی افکت‌ها") + '"/>' +
         '<div style="grid-column:1/-1">' + vsWmToggleHtml("emWm") + "</div>" +
@@ -17134,6 +17406,22 @@ function vsEditStudio(preset, filesIn) {
         sync();
       };
       mv.oninput = () => { vstudio._musicLevel = Number(mv.value) / 100; };
+      $$("emMusicNext").onclick = async (e) => {
+        if (busy || vstudio._userMusic) return;
+        e.target.disabled = true;
+        if (vstudio.looping) pause();
+        vstudio._musicShuffle = (vstudio._musicShuffle || 0) + 1;
+        try {
+          const dm = await vsEnsureDefaultMusic(vstudio.storyData);
+          if (dm) {
+            if (vstudio.musicEl && vstudio.musicEl !== dm) { try { vstudio.musicEl.pause(); } catch (er) {} }
+            vstudio.musicEl = dm; vstudio._musicBuffer = vstudio._defaultMusicBuffer || null; vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null;
+            vsAttachMusicLoopTrim(dm); vstudio._musicStash = null; $$("emSndMusic").checked = true;
+          }
+        } catch (er) {}
+        e.target.disabled = false;
+        sync();
+      };
       $$("emSndFx").onchange = async (e) => {
         const on = e.target.checked;
         if (on) { try { await vsPrepareEditSfx(); } catch (er) {} }
@@ -17238,7 +17526,7 @@ function vsEditStudio(preset, filesIn) {
     const phGx = m === "photos" && (ov.querySelector('input[name="emPhLook"]:checked') || {}).value === "graphic";
     if (m === "photos") { $$("emGx").hidden = !phGx; $$("emStyleF").hidden = phGx; if (phGx) drawGx(); }
     ov.querySelectorAll(".em-show").forEach((el) => { if (m === "photos") el.hidden = true; });
-    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : m === "photos" ? L("Make my video", "ساختن ویدیو") : L("Edit it", "ادیتش کن");
+    $$("emGo").textContent = m === "swap" ? L("Find text & footage", "پیدا کردن متن و فوتیج") : m === "graphic" ? L("Make the graphic video", "ساختن ویدیوی گرافیکی") : L("Make my video", "ساختن ویدیو");
     drawList();
   };
   ov.querySelectorAll('.ts-seg[role="tablist"] button').forEach((b) => { b.onclick = () => setMode(b.dataset.mode); });
@@ -17499,8 +17787,11 @@ function vsEditStudio(preset, filesIn) {
     if (!res.ok) { showEmpty(); remember(); return; }   // stopped before it began (a sign-in wall)
     doneSeq = vstudio._buildSeq;
     remember();
-    $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن");
+    $$("emGo").textContent = L("Make it again", "دوباره بساز");
     showDone();
+    // one click: the finished MP4 comes straight out - changing words, music
+    // or sound is there to use, never a step to get through
+    setTimeout(() => { const b = $$("emExport"); if (b && !b.disabled && document.body.contains(ov)) b.click(); }, 300);
   };
 
   setMode(mode);
@@ -17509,7 +17800,7 @@ function vsEditStudio(preset, filesIn) {
   const stillThere = doneSeq >= 0 && doneSeq === vstudio._buildSeq && vstudio.slides.some((x) => x._ownSpeech || x._photoStory);
   $$("emNew").hidden = !(running || stillThere || files.length);
   if (running) follow(running);
-  else if (stillThere && !(filesIn && filesIn.length)) { $$("emGo").textContent = L("Edit it again", "دوباره ادیت کن"); showDone(); }
+  else if (stillThere && !(filesIn && filesIn.length)) { $$("emGo").textContent = L("Make it again", "دوباره بساز"); showDone(); }
   else showEmpty();
   drawStyles();
   vsProLoadFonts().then(drawStyles).catch(() => {});
@@ -19335,7 +19626,7 @@ async function vsEditMyVideo(fileIn, o) {
 
     // cuts on the beat of the bed the music step is about to make
     if (o.cut) vsTightenEditTails(vstudio.slides);
-    if (o.beat) vsSnapCutsToBeat(vstudio.slides, vstudio.storyData.music.bpm);
+    if (o.beat) vsSnapCutsToBeat(vstudio.slides, vsMusicPlan(vstudio.storyData.music).bpm);
     // the edit's own transitions only: no fade or punch on every cut
     const tsel = $("#vsTransition"); if (tsel) { tsel.value = "none"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "none"; }); }
 
