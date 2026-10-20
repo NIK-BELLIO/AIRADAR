@@ -9014,6 +9014,8 @@ function vsSpeechSpans() {
   (vstudio.slides || []).forEach((s) => {
     const v = s && s._voice;
     if (v && Array.isArray(v.words)) v.words.forEach((w) => { if (isFinite(w.t0) && isFinite(w.t1)) out.push([t + (v.at || 0) + w.t0, t + (v.at || 0) + w.t1]); });
+    // the video's own moment (a blast, a reveal) has its own sound: the music gives way
+    if (s && s._moment) out.push([t, t + (Number(s.duration) || 0)]);
     t += Number(s && s.duration) || 0;
   });
   return out;
@@ -10264,8 +10266,9 @@ function vsDrawEditOverlays(ctx, W, H, elapsed) {
 function vsSnapCutsToBeat(slides, bpm) {
   const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100)), grid0 = 2.0;
   let cum = 0;
-  slides.forEach((s) => {
+  slides.forEach((s, i) => {
     const dur = Number(s.duration);
+    if (s._moment || (slides[i + 1] && slides[i + 1]._moment)) { cum += dur; return; }
     const speechEnd = s._voice && s._voice.words.length ? s._voice.words[s._voice.words.length - 1].t1 + 0.06 : 0.5;
     // Only ever SHORTEN, into the clip's own quiet tail. Lengthening a clip to
     // reach the next beat left the speaker mouthing words with no sound for
@@ -10306,8 +10309,59 @@ function vsTrimLongWords(words, data, sr) {
 
 // A cut lands just after the last word: no long quiet tail before the next
 // clip starts talking.
+// The gaps the cut would drop that are really moments: loud like the voice
+// without being speech (an effect, a blast, music), or the picture changing
+// a lot. Each is put back in the plan as its own part, flush with its
+// neighbours, so it plays through untouched.
+async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
+  if (!plan.length) return;
+  const gaps = [];
+  let prevEnd = 0;
+  plan.forEach((p) => { if (p.start - prevEnd > 0.7) gaps.push([prevEnd, p.start]); prevEnd = Math.max(prevEnd, p.end); });
+  if (total - prevEnd > 0.7) gaps.push([prevEnd, total]);
+  if (!gaps.length) return;
+  // loudness in 50ms windows; the voice's own level from the kept parts
+  const db = (a, b) => {
+    if (!mono) return -99;
+    const d = mono.getChannelData(0), sr = mono.sampleRate, i0 = Math.max(0, Math.floor(a * sr)), i1 = Math.min(d.length, Math.floor(b * sr));
+    let e = 0; for (let i = i0; i < i1; i++) e += d[i] * d[i];
+    return 10 * Math.log10(e / Math.max(1, i1 - i0) + 1e-12);
+  };
+  const speech = [];
+  plan.forEach((p) => { for (let t = p.start; t < p.end - 0.05; t += 0.05) speech.push(db(t, t + 0.05)); });
+  speech.sort((a, b) => a - b);
+  const voiceDb = speech.length ? speech[Math.floor(speech.length * 0.6)] : -20;
+  // how much the picture changes, from small frames a third of a second apart
+  const cv = document.createElement("canvas"); cv.width = 48; cv.height = 48;
+  const cx = cv.getContext("2d", { willReadFrequently: true });
+  const frameAt = async (t) => {
+    const sx = srcs[srcOf(t)], el = sx.el;
+    await new Promise((r) => { let done = false; const fin = () => { if (!done) { done = true; r(); } }; el.addEventListener("seeked", fin, { once: true }); setTimeout(fin, 900); try { el.currentTime = Math.max(0, Math.min(sx.dur - 0.05, t - sx.offset)); } catch (e) { fin(); } });
+    try { cx.drawImage(el, 0, 0, 48, 48); return cx.getImageData(0, 0, 48, 48).data; } catch (e) { return null; }
+  };
+  const diff = (a, b) => { if (!a || !b) return 0; let s2 = 0; for (let i = 0; i < a.length; i += 4) s2 += Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]); return s2 / (a.length / 4) / 3; };
+  const add = [];
+  for (const [g0, g1] of gaps.slice(0, 12)) {
+    const len = g1 - g0;
+    let loud = 0, n = 0;
+    for (let t = g0; t < g1 - 0.05; t += 0.05) { n++; if (db(t, t + 0.05) > voiceDb - 9) loud++; }
+    const loudShare = n ? loud / n : 0;
+    let moved = 0;
+    if (loudShare < 0.5 && len <= 20) {
+      let prev = await frameAt(g0 + 0.05);
+      for (let t = g0 + 0.35; t < g1; t += 0.35) { const f = await frameAt(t); moved = Math.max(moved, diff(prev, f)); prev = f; }
+      const first = await frameAt(g0 + 0.05), last = await frameAt(g1 - 0.05);
+      moved = Math.max(moved, diff(first, last) * 0.6);
+    }
+    if (loudShare >= 0.5 || moved > 14) add.push({ start: g0, end: Math.min(g1, g0 + 15), words: [], moment: true });
+  }
+  if (!add.length) return;
+  plan.push(...add);
+  plan.sort((a, b) => a.start - b.start);
+}
 function vsTightenEditTails(slides) {
   slides.forEach((s) => {
+    if (s._moment) return;
     const w = s._voice && s._voice.words;
     if (!w || !w.length) return;
     const end = w[w.length - 1].t1 + 0.14;
@@ -13849,6 +13903,8 @@ function vsProTrail(ctx, W, H, t, face, mask, behindPass) {
 // softly, a slow push, a slight drift across.
 function vsProFaceN(s, media) {
   if (s._faceN || s._faceN === false) return s._faceN || null;
+  // one continuous take keeps the framing of the clip it carries on from
+  if (s._camPrev && s._camPrev._faceN) return (s._faceN = s._camPrev._faceN);
   const det = vstudio._proFaceDet;
   if (!det) {
     if (!vstudio._proFaceLoading) { vstudio._proFaceLoading = true; vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => { vstudio._proFaceLoading = false; }); }
@@ -13889,9 +13945,11 @@ function vsProCam(s, media, W, H, local, dur) {
   } else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
   z = Math.min(zCap, z);
   const q = dur > 0 ? Math.max(0, Math.min(1, local / dur)) : 0;
-  const land = 1 - Math.pow(1 - Math.min(1, local / 0.55), 3);
-  const push = (1 + (shot === "close" ? 0.03 : 0.05) * q) * (1 + 0.025 * (1 - land));
-  const dx = (s._camDir || 1) * 0.014 * (q - 0.5);
+  const land = s._camCont ? 1 : 1 - Math.pow(1 - Math.min(1, local / 0.55), 3);
+  const pk2 = shot === "close" ? 0.03 : 0.05;
+  // (carrying on from where the clip before it ended, in one take)
+  const push = (s._camCont ? 1 + pk2 + pk2 * q : 1 + pk2 * q) * (1 + 0.025 * (1 - land));
+  const dx = (s._camDir || 1) * 0.014 * (s._camCont ? 0.5 : q - 0.5);
   let fx = s._focusX != null ? s._focusX : 0.5, fy = null;
   if (f) {
     fx = f.x;
@@ -16924,7 +16982,10 @@ function vsEditStudio(preset, filesIn) {
   let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
-  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
+  // centred by its own margins, not by the overlay: a window taller than the
+  // screen (every phone) had its top - the tabs, the video picker - pushed
+  // out of reach above the scroll
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
     ["pro-suite", L("Lake office", "دفتر رو به دریاچه"), L("From the Utah realtor reel · the key word in pale glowing yellow behind you, small white words, cuts that burst into light, a new camera angle on every cut", "از ریلز مشاور یوتا · کلمهٔ اصلی زرد کم‌رنگ درخشان پشت سرت، کلمات ریز سفید، کات‌هایی که در نور باز می‌شوند، هر کات یک زاویهٔ تازه")],
     ["pro-trust", L("Purple serif", "سریف بنفش"), L("From the top-1% realtor reel · the key word in purple serif italic capitals, figures glowing pink to blue, bright cuts", "از ریلز مشاور یک درصد برتر · کلمهٔ اصلی با حروف سریف ایتالیک بنفش، عددها درخشان صورتی تا آبی، کات‌های روشن")],
@@ -17009,7 +17070,18 @@ function vsEditStudio(preset, filesIn) {
 #emModal #emGxCv{width:96px;aspect-ratio:9/16;border-radius:9px;box-shadow:0 0 0 1px rgba(255,255,255,.12);flex:none;background:#14171d}
 #emModal .em-gxinfo{display:flex;flex-direction:column;gap:6px;min-width:0}
 #emModal .em-gxname{font:700 14px Manrope,Vazirmatn,system-ui,sans-serif;color:#fff}
-#emModal .em-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:0}
+#emModal{margin:auto;flex:none}
+#emModal .em-stage{flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:0}
+#emModal .em-stage>:first-child{margin-top:auto}
+#emModal .em-stage>:last-child{margin-bottom:auto}
+#emModal .em-done{display:grid;grid-template-columns:minmax(0,auto) minmax(260px,340px);gap:20px;align-items:start;justify-content:center;width:100%}
+#emModal .em-vcol{display:flex;flex-direction:column;gap:10px;align-items:center;min-width:0;position:sticky;top:0}
+#emModal .em-ccol{display:flex;flex-direction:column;gap:12px;min-width:0}
+#emModal .em-done .em-frame{max-height:none}
+#emModal .em-ccol .em-insp,#emModal .em-ccol .em-prog{width:100%}
+#emModal .em-ccol .em-acts{justify-content:stretch}
+#emModal .em-ccol .em-acts>button{flex:1}
+@media (max-width:1060px){#emModal .em-done{grid-template-columns:minmax(0,1fr)}#emModal .em-vcol{position:static}}
 #emModal .em-frame{position:relative;max-width:100%;max-height:min(560px,62vh);border-radius:12px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 #emModal .em-frame canvas{display:block;width:100%;height:100%}
 #emModal .em-prog{width:min(360px,90%);display:flex;flex-direction:column;gap:10px;text-align:center}
@@ -17047,10 +17119,12 @@ function vsEditStudio(preset, filesIn) {
 #emModal .em-acts .ts-primary{width:auto;padding:0 22px}
 #emModal .em-acts .ts-ghost{min-height:46px;padding:0 18px;border-radius:11px}
 #emModal .em-err{max-width:420px;font-size:13px;color:#f4f5f7;border-inline-start:2px solid #f87171;padding:4px 0 4px 10px;text-align:start}
-#emModal .em-frame canvas{cursor:pointer;touch-action:none}
+#emModal .em-frame canvas{cursor:pointer;touch-action:pan-y}
+#emModal .em-frame.drag canvas{touch-action:none}
 #emModal .em-frame canvas:focus-visible{outline:2px solid #12d6f5;outline-offset:2px}
 #emModal .em-sel{position:absolute;border:1.5px solid #12d6f5;border-radius:6px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.18)}
 #emModal .em-scrub{display:flex;align-items:center;gap:8px;width:min(520px,100%)}
+#emModal .em-scrub .ts-x{position:static;flex:none}
 #emModal .em-scrub input[type=range]{flex:1;accent-color:#2563ff;min-width:0}
 #emModal .em-play{min-height:34px;min-width:68px}
 #emModal .em-time{font:500 12px "JetBrains Mono",ui-monospace,monospace;color:#8a919c;min-width:34px;text-align:end}
@@ -17233,12 +17307,13 @@ function vsEditStudio(preset, filesIn) {
     const W = (src && src.width) || 1080, H = (src && src.height) || 1920;
     const icoL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
     const icoR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-    stage.innerHTML = '<div class="em-frame" style="aspect-ratio:' + W + "/" + H + ';height:min(470px,52vh)"><canvas id="emCv" width="' + W + '" height="' + H + '" tabindex="0" aria-label="' + L("The edited video. Click a word to change it; drag it to move it.", "ویدیوی ادیت‌شده. روی یک کلمه کلیک کن تا تغییرش دهی؛ بکش تا جابه‌جا شود.") + '"></canvas><div id="emSel" class="em-sel" hidden></div></div>' +
+    const R = Math.round(W / H * 10000) / 10000;
+    stage.innerHTML = '<div class="em-done"><div class="em-vcol"><div class="em-frame" style="aspect-ratio:' + W + "/" + H + ";width:min(100%,calc((94vh - 170px) * " + R + "),calc(680px * " + R + '))"><canvas id="emCv" width="' + W + '" height="' + H + '" tabindex="0" aria-label="' + L("The edited video. Click a word to change it; drag it to move it.", "ویدیوی ادیت‌شده. روی یک کلمه کلیک کن تا تغییرش دهی؛ بکش تا جابه‌جا شود.") + '"></canvas><div id="emSel" class="em-sel" hidden></div></div>' +
       '<div class="em-scrub"><button id="emPrev" type="button" class="ts-x" aria-label="' + L("Previous words", "کلمات قبلی") + '">' + icoL + '</button>' +
         '<button id="emPlay" type="button" class="ts-ghost em-play">' + L("Play", "پخش") + '</button>' +
         '<input id="emPos" type="range" min="0" max="1000" value="0" aria-label="' + L("Position in the video", "جای پخش") + '"/>' +
         '<span id="emTime" class="em-time">0:00</span>' +
-        '<button id="emNext" type="button" class="ts-x" aria-label="' + L("Next words", "کلمات بعدی") + '">' + icoR + "</button></div>" +
+        '<button id="emNext" type="button" class="ts-x" aria-label="' + L("Next words", "کلمات بعدی") + '">' + icoR + "</button></div></div><div class=\"em-ccol\">" +
       '<div id="emInsp" class="em-insp"><p class="ts-note" id="emHint">' + L("Click a word on the video to change it - or step through them with the arrows.", "روی یک کلمه در ویدیو کلیک کن تا تغییرش دهی - یا با فلش‌ها یکی‌یکی برو.") + "</p>" +
         '<div id="emCtl" hidden>' +
           '<label class="ts-lbl" for="emTxt">' + L("Words", "کلمات") + "</label>" +
@@ -17259,8 +17334,10 @@ function vsEditStudio(preset, filesIn) {
       '<div class="em-acts">' +
       (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
       '<button id="emExport" type="button" class="ts-primary">' + L("Export MP4", "خروجی MP4") + "</button></div>" +
-      '<div id="emExp" class="em-prog" hidden>' + expProg + "</div>";
+      '<div id="emExp" class="em-prog" hidden>' + expProg + "</div></div></div>";
     const cv = $$("emCv"), cx = cv.getContext("2d");
+    // on a phone the settings sit above: bring the finished video into view
+    try { if (window.matchMedia("(max-width:860px)").matches) setTimeout(() => stage.scrollIntoView({ block: "start", behavior: "smooth" }), 60); } catch (e) {}
     const copy = () => { const c = document.querySelector("#vsCanvas"); if (c && c.width) { if (cv.width !== c.width || cv.height !== c.height) { cv.width = c.width; cv.height = c.height; } cx.drawImage(c, 0, 0); } drawSel(); };
     const total = () => Math.max(0.1, studioDuration());
     const fmt = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
@@ -17353,10 +17430,11 @@ function vsEditStudio(preset, filesIn) {
       const p = toCanvas(ev), h = vstudio._proHit;
       if (h && p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) {
         select({ s: h.s, gi: h.gi });
+        cv.parentNode.classList.add("drag");
         const e = edOf();
         drag = { x: p.x, y: p.y, dx: e.dx || 0, dy: e.dy || 0 };
         try { cv.setPointerCapture(ev.pointerId); } catch (er) {}
-      } else select(null);
+      } else { select(null); cv.parentNode.classList.remove("drag"); }
     });
     cv.addEventListener("pointermove", (ev) => {
       if (!drag || !sel) return;
@@ -17476,7 +17554,6 @@ function vsEditStudio(preset, filesIn) {
         L("Download", "دانلود") + " · " + Math.round(blob.size / 1048576 * 10) / 10 + " MB</a>" +
         // what comes next: a thumbnail for this same video, in Thumbnail Studio
         '<div class="em-next"><span>' + L("A thumbnail for this video?", "برای این ویدیو تامبنیل هم بسازیم؟") + '</span><button id="emThumb" type="button" class="ts-ghost">' + L("Make a thumbnail", "ساخت تامبنیل") + "</button></div>";
-      try { $$("emExp").querySelector("a").click(); } catch (e) {}
       $$("emThumb").onclick = () => {
         // a graphic video's own frames are its pictures; a speaker's edit is
         // better read from the raw video - no captions burnt over the face
@@ -17789,9 +17866,6 @@ function vsEditStudio(preset, filesIn) {
     remember();
     $$("emGo").textContent = L("Make it again", "دوباره بساز");
     showDone();
-    // one click: the finished MP4 comes straight out - changing words, music
-    // or sound is there to use, never a step to get through
-    setTimeout(() => { const b = $$("emExport"); if (b && !b.disabled && document.body.contains(ov)) b.click(); }, 300);
   };
 
   setMode(mode);
@@ -17805,7 +17879,7 @@ function vsEditStudio(preset, filesIn) {
   drawStyles();
   vsProLoadFonts().then(drawStyles).catch(() => {});
   vsProSegmenter().then((x) => { vstudio._proSeg = x; if (document.body.contains(ov)) syncStyle(); }).catch(() => {});
-  try { (files.length ? $$("emGo") : $$("emDrop")).focus(); } catch (e) {}
+  try { (files.length ? $$("emGo") : $$("emDrop")).focus({ preventScroll: true }); } catch (e) {}
 }
 
 // The speech in a decoded mono buffer, as 16 kHz WAV for Whisper.
@@ -19324,6 +19398,11 @@ async function vsEditMyVideo(fileIn, o) {
 
     vsAutoStatus(L("Cutting…", "در حال برش…"));
     const plan = vsPlanEdit(kept.length ? kept : words, total, o);
+    // A stretch with no words is not always a pause: a lot turning into a
+    // tower with a blast, a reveal, a product shot with its own sound. A gap
+    // that is loud like the voice, or where the picture changes a lot, is
+    // the video's moment and stays in, whole.
+    if (o.cut !== false) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf); } catch (e) {} }
     // the teaser: the strongest moment, up front, under the hook
     let teaser = null;
     const tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
@@ -19403,6 +19482,7 @@ async function vsEditMyVideo(fileIn, o) {
         _timelineLabel: (p.teaser ? L("Teaser · ", "تیزر · ") : "") + ((p.words[0] && p.words.slice(0, 4).map((w) => w.w).join(" ")) || L("Clip", "کلیپ"))
       };
       if (p.teaser) slide._teaser = true;
+      if (p.moment) slide._moment = true;
       // the speaker's place in the frame (the renderer centres it) and, on a
       // key moment, when the smooth zoom starts
       slide._focusX = fr.length ? focusAt((p.start + p.end) / 2) : 0.5;
@@ -19533,6 +19613,10 @@ async function vsEditMyVideo(fileIn, o) {
         sl._shot = sl._broll ? "" : i === 0 ? "medium" : SHOTS[sk++ % SHOTS.length];
         sl._camDir = i % 2 ? -1 : 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
+        // a moment and the clip either side of it are one continuous take:
+        // the same framing and the camera carrying on, no cut to see
+        const pv = vstudio.slides[i - 1];
+        if (pv && (sl._moment || pv._moment) && !pv._broll && !sl._broll) { sl._shot = pv._shot; sl._camDir = pv._camDir; sl._camCont = true; sl._camPrev = pv; delete sl._transIn; return; }
         if (i === 0 || !o.trans) { delete sl._transIn; return; }
         if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
       });
