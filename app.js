@@ -8977,6 +8977,143 @@ async function vsDecodeAudioUrl(url) {
   }
 }
 
+// ── The music library ───────────────────────────────────────────────────────
+// Real tracks, all CC0 (public domain: no credit owed, free inside an app):
+// HoliznaCC0 and Loyalty Freak Music from the Free Music Archive, and FreePD.
+// Each cut to 90s around its drop, in /music/. For each: its tempo, where its
+// first beat falls and where it drops - so the cuts land on its beat and the
+// drop lands on the video's moment.
+const VS_MUSIC_LIB = [
+  {"id": "lofi-still-life", "bpm": 76.52, "beat0": 0.049, "drop": 12.595, "dur": 90.0, "steady": 1},
+  {"id": "lofi-fractured", "bpm": 71.01, "beat0": 0.026, "drop": 6.786, "dur": 90.0, "steady": 1},
+  {"id": "lofi-bubbles", "bpm": 130.01, "beat0": 0.043, "drop": 14.812, "dur": 90.0, "steady": 1},
+  {"id": "lofi-tranquil-mindscape", "bpm": 71.01, "beat0": 0.026, "drop": 13.545, "dur": 90.0, "steady": 1},
+  {"id": "lofi-when-time-called", "bpm": 119.98, "beat0": 0.0, "drop": 28.005, "dur": 90.0, "steady": 1},
+  {"id": "lofi-calm-currents", "bpm": 126.87, "beat0": 0.222, "drop": 11.571, "dur": 90.0, "steady": 0},
+  {"id": "lofi-one-night-in-france", "bpm": 84.98, "beat0": 0.706, "drop": 28.241, "dur": 36.63, "steady": 1},
+  {"id": "lofi-birds", "bpm": 139.99, "beat0": 0.0, "drop": 27.431, "dur": 87.39, "steady": 1},
+  {"id": "phonk-only-human", "bpm": 108.36, "beat0": 0.0, "drop": 28.793, "dur": 33.29, "steady": 0},
+  {"id": "phonk-re-adjustment", "bpm": 119.98, "beat0": 0.5, "drop": 28.005, "dur": 90.0, "steady": 1},
+  {"id": "phonk-pantheon", "bpm": 106.0, "beat0": 0.0, "drop": 27.17, "dur": 90.0, "steady": 1},
+  {"id": "lofi-roof-tops", "bpm": 79.98, "beat0": 0.75, "drop": 27.008, "dur": 90.0, "steady": 1},
+  {"id": "lofi-summer-felt-longer", "bpm": 79.98, "beat0": 0.727, "drop": 12.73, "dur": 90.0, "steady": 0},
+  {"id": "disco-roller-fever", "bpm": 129.98, "beat0": 0.0, "drop": 5.539, "dur": 90.0, "steady": 1},
+  {"id": "disco-dance-robot", "bpm": 159.99, "beat0": 0.129, "drop": 6.129, "dur": 90.0, "steady": 1},
+  {"id": "disco-im-on-fire", "bpm": 71.51, "beat0": 0.0, "drop": 13.425, "dur": 90.0, "steady": 1},
+  {"id": "happy-go-to-the-picnic", "bpm": 139.99, "beat0": 0.429, "drop": 27.431, "dur": 90.0, "steady": 1},
+  {"id": "happy-hug-convoy", "bpm": 80.03, "beat0": 0.047, "drop": 6.045, "dur": 90.0, "steady": 1},
+  {"id": "happy-love-train", "bpm": 119.97, "beat0": 0.484, "drop": 16.488, "dur": 90.0, "steady": 1},
+  {"id": "rnb-sunglasses", "bpm": 87.49, "beat0": 0.0, "drop": 27.432, "dur": 87.3, "steady": 0},
+  {"id": "rnb-friend-to-friend", "bpm": 129.98, "beat0": 0.462, "drop": 27.696, "dur": 90.0, "steady": 1},
+  {"id": "rnb-sensual-melancholia", "bpm": 139.99, "beat0": 0.0, "drop": 27.431, "dur": 90.0, "steady": 0},
+  {"id": "electro-everyone-alive", "bpm": 106.66, "beat0": 0.0, "drop": 27.002, "dur": 90.0, "steady": 0},
+  {"id": "electro-beat-explosion", "bpm": 93.35, "beat0": 0.0, "drop": 28.279, "dur": 90.0, "steady": 0},
+  {"id": "electro-once-more", "bpm": 112.51, "beat0": 0.183, "drop": 8.716, "dur": 90.0, "steady": 1},
+  {"id": "chill-coexistenz", "bpm": 100.01, "beat0": 0.0, "drop": 28.798, "dur": 35.34, "steady": 0},
+  {"id": "epic-adventure", "bpm": 119.88, "beat0": 0.0, "drop": 28.029, "dur": 82.58, "steady": 1},
+  {"id": "epic-battle-ready", "bpm": 87.99, "beat0": 0.0, "drop": 27.276, "dur": 47.68, "steady": 1},
+  {"id": "epic-blockbuster", "bpm": 112.46, "beat0": 0.534, "drop": 27.744, "dur": 90.0, "steady": 0},
+  {"id": "epic-emotional-blockbuster", "bpm": 117.48, "beat0": 0.0, "drop": 28.601, "dur": 90.0, "steady": 1},
+  {"id": "epic-heroic-adventure", "bpm": 119.96, "beat0": 0.5, "drop": 28.01, "dur": 68.76, "steady": 1},
+  {"id": "epic-kings-trailer", "bpm": 106.66, "beat0": 0.0, "drop": 27.002, "dur": 36.57, "steady": 0},
+  {"id": "epic-new-hero", "bpm": 114.95, "beat0": 0.375, "drop": 23.342, "dur": 56.55, "steady": 0},
+  {"id": "epic-strength-titans", "bpm": 88.99, "beat0": 0.0, "drop": 26.969, "dur": 37.29, "steady": 0},
+  {"id": "epic-honor-bound", "bpm": 111.11, "beat0": 0.27, "drop": 11.07, "dur": 90.0, "steady": 1},
+  {"id": "epic-night-vigil", "bpm": 113.71, "beat0": 0.0, "drop": 27.439, "dur": 90.0, "steady": 0},
+  {"id": "upbeat-advertime", "bpm": 119.98, "beat0": 0.5, "drop": 28.005, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-city-sunshine", "bpm": 84.98, "beat0": 0.706, "drop": 28.241, "dur": 90.0, "steady": 0},
+  {"id": "upbeat-funshine", "bpm": 95.97, "beat0": 0.625, "drop": 27.507, "dur": 42.51, "steady": 1},
+  {"id": "upbeat-inspiration", "bpm": 119.98, "beat0": 0.5, "drop": 28.005, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-motions", "bpm": 119.97, "beat0": 0.5, "drop": 28.006, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-inventing-flight", "bpm": 145.01, "beat0": 0.272, "drop": 6.892, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-be-chillin", "bpm": 89.34, "beat0": 0.252, "drop": 5.625, "dur": 90.0, "steady": 0},
+  {"id": "electro-beat-one", "bpm": 120.01, "beat0": 0.5, "drop": 27.999, "dur": 90.0, "steady": 1},
+  {"id": "electro-backbeat", "bpm": 130.01, "beat0": 0.043, "drop": 5.581, "dur": 46.21, "steady": 1},
+  {"id": "electro-chronos", "bpm": 119.98, "beat0": 0.297, "drop": 6.298, "dur": 90.0, "steady": 1},
+  {"id": "electro-fireworks", "bpm": 117.01, "beat0": 0.0, "drop": 28.717, "dur": 90.0, "steady": 1},
+  {"id": "electro-3am-west-end", "bpm": 90.99, "beat0": 0.0, "drop": 5.275, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-energizing", "bpm": 89.99, "beat0": 0.0, "drop": 26.67, "dur": 90.0, "steady": 0},
+  {"id": "upbeat-celebration", "bpm": 119.98, "beat0": 0.0, "drop": 8.001, "dur": 90.0, "steady": 1},
+  {"id": "upbeat-journey-of-hope", "bpm": 74.02, "beat0": 0.659, "drop": 7.143, "dur": 90.0, "steady": 1},
+  {"id": "funk-downtown-boogie", "bpm": 105.0, "beat0": 0.036, "drop": 18.321, "dur": 90.0, "steady": 1},
+  {"id": "funk-funkeriffic", "bpm": 112.0, "beat0": 0.536, "drop": 27.856, "dur": 90.0, "steady": 1}
+];
+const VS_MUSIC_VER = 1;
+// the styles that fit a mood, best first
+const VS_MUSIC_MOODS = {
+  upbeat: ["disco", "upbeat", "electro", "funk", "happy"],
+  playful: ["happy", "funk", "upbeat", "disco"],
+  calm: ["lofi", "chill", "rnb"],
+  warm: ["lofi", "rnb", "chill", "happy"],
+  reflective: ["lofi", "chill", "epic"],
+  tense: ["phonk", "electro", "epic"],
+  dramatic: ["epic", "phonk"],
+  investigative: ["electro", "phonk", "epic"],
+  inspiring: ["upbeat", "epic", "happy", "electro"],
+  hopeful: ["upbeat", "happy", "epic"],
+};
+function vsMusicStyleOf(t) { return String(t.id).split("-")[0]; }
+// one track for this video: from the styles its mood calls for, the seed
+// choosing among them (the same video, the same track; "Another track" the next)
+function vsMusicPick(spec, seed) {
+  if (!VS_MUSIC_LIB.length) return null;
+  const mood = String((spec && spec.mood) || "upbeat").toLowerCase();
+  const key = Object.keys(VS_MUSIC_MOODS).find((k) => mood.includes(k)) || "upbeat";
+  const energy = String((spec && spec.energy) || "medium").toLowerCase();
+  let pool = [];
+  VS_MUSIC_MOODS[key].forEach((st, i) => { if (i < 2 || !pool.length) pool = pool.concat(VS_MUSIC_LIB.filter((t) => vsMusicStyleOf(t) === st)); });
+  if (energy === "high") { const fast = pool.filter((t) => t.bpm >= 100); if (fast.length >= 2) pool = fast; }
+  if (energy === "low") { const slow = pool.filter((t) => t.bpm < 110); if (slow.length >= 2) pool = slow; }
+  // a steady beat first: the cuts and the camera land on it
+  { const st = pool.filter((t) => t.steady); if (st.length >= 2) pool = st; }
+  if (!pool.length) pool = VS_MUSIC_LIB.slice();
+  return pool[(seed >>> 0) % pool.length];
+}
+function vsMusicPickFor(data) { return vsMusicPick((data && data.music) || {}, vsMusicSeed(data, 0)); }
+// The track laid under this video: started so its drop lands on the anchor
+// (the moment's hit, or 2s in - the end of the hook), looped by whole bars
+// after its drop when the video runs longer, lifted in the gaps of the voice
+// and ducked under it, levelled, faded out at the end.
+async function vsMusicLibBuffer(t, dur, speech, anchor) {
+  const r = await fetch("/music/" + t.id + ".mp3?v=" + VS_MUSIC_VER);
+  if (!r.ok) return null;
+  if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = await vstudio._playCtx.decodeAudioData(await r.arrayBuffer());
+  const sr = src.sampleRate, N = Math.ceil(dur * sr), ch = Math.min(2, src.numberOfChannels);
+  const out = new AudioBuffer({ length: N, numberOfChannels: 2, sampleRate: sr });
+  const bar = 240 / t.bpm, off = t.drop - anchor;
+  const clipEnd = src.length / sr - 3;   // the clip's own fade-out stays out of the loop
+  const loopLen = Math.max(bar, Math.floor((clipEnd - t.drop) / bar) * bar);
+  for (let c = 0; c < 2; c++) {
+    const s = src.getChannelData(Math.min(c, ch - 1)), d = out.getChannelData(c);
+    for (let i = 0; i < N; i++) {
+      let ts = i / sr + off;
+      if (ts < 0) continue;
+      if (ts > t.drop + loopLen) ts = t.drop + ((ts - t.drop) % loopLen);
+      const k = Math.floor(ts * sr);
+      if (k < s.length) d[i] = s[k];
+    }
+  }
+  // under the voice, up in its gaps; the last second and a half fading
+  const spans = (speech || []).slice().sort((a, b) => a[0] - b[0]);
+  const kA = 1 - Math.exp(-1 / (sr * 0.08)), kR = 1 - Math.exp(-1 / (sr * 0.45));
+  let j = 0, g = 1, sum = 0, pk = 0;
+  const L = out.getChannelData(0), Rr = out.getChannelData(1);
+  for (let i = 0; i < N; i++) {
+    const tt = i / sr;
+    while (j < spans.length && spans[j][1] + 0.15 < tt) j++;
+    const want = spans.length ? (j < spans.length && spans[j][0] - 0.1 <= tt ? 0.6 : 1) : 1;
+    g += (want - g) * (want < g ? kA : kR);
+    const k2 = g * Math.min(1, (dur - tt) / 1.5);
+    L[i] *= k2; Rr[i] *= k2;
+    sum += L[i] * L[i] + Rr[i] * Rr[i]; pk = Math.max(pk, Math.abs(L[i]), Math.abs(Rr[i]));
+  }
+  const rms = Math.sqrt(sum / (2 * N)) || 1, k = Math.min(0.14 / rms, 0.95 / (pk || 1));
+  for (let i = 0; i < N; i++) { L[i] *= k; Rr[i] *= k; }
+  out._plan = { genre: vsMusicStyleOf(t), bpm: t.bpm, t0: ((anchor % bar) + bar) % bar, track: t.id };
+  return out;
+}
+
 // ── The music bed, composed for each video ──────────────────────────────────
 // What the motion-design skills ask of a bed: a style that fits the mood, the
 // hook on the first bar, a drop with a crash, a breakdown and a riser into the
@@ -9311,6 +9448,28 @@ function vsMusicSeed(data, dur) {
 }
 async function vsEnsureDefaultMusic(data) {
   try {
+    // a real track from the library, its drop on the video's moment
+    const lt = vsMusicPickFor(data || vstudio.storyData);
+    if (lt) {
+      const ldur = Math.max(8, Math.min(240, Math.ceil((typeof studioDuration === "function" ? studioDuration() : 20) || 20)));
+      const anchor = vstudio._beat && vstudio._beat.drop != null && (vstudio.slides || []).some((x) => x && x._moment) ? vstudio._beat.drop : 2.0;
+      const speech = vsSpeechSpans();
+      const key = ["lib", lt.id, ldur, anchor, speech.length].join(":");
+      vstudio._defaultMusicCache = vstudio._defaultMusicCache || {};
+      let hit = vstudio._defaultMusicCache[key];
+      if (!hit) {
+        let buf = null;
+        try { buf = await vsMusicLibBuffer(lt, ldur, speech, anchor); } catch (e) { buf = null; }
+        if (buf) { hit = { buffer: buf, url: URL.createObjectURL(vsAudioBufferToWav(buf)) }; vstudio._defaultMusicCache[key] = hit; }
+      }
+      if (hit) {
+        vstudio._defaultMusicBuffer = hit.buffer; vstudio._defaultMusicUrl = hit.url; vstudio._defaultMusicContentEnd = hit.buffer.duration;
+        vstudio._musicBeat = { period: 60 / lt.bpm, t0: hit.buffer._plan.t0 };
+        vstudio._musicStyle = hit.buffer._plan.genre; vstudio._musicTrack = lt.id;
+        const el0 = vsAudio(hit.url); el0.loop = true; el0.preload = "auto";
+        return el0;
+      }
+    }
     const generated = await vsGenerateAiMusic(data || vstudio.storyData);
     if (generated) {
       vstudio._musicBeat = null;   // a generated track's beat is not known
@@ -10265,7 +10424,9 @@ function vsDrawEditOverlays(ctx, W, H, elapsed) {
 // own end (never cutting into the speech), on the grid the default music bed
 // plays its kick on - every beat from 2.0s at the bed's tempo.
 function vsSnapCutsToBeat(slides, bpm) {
-  const beat = 60 / Math.max(70, Math.min(132, Math.round(bpm) || 100));
+  // (a real track's own tempo, not rounded or clamped into a range: a
+  // phonk track at 140 snapped to 132 drifted off its beat)
+  const beat = 60 / Math.max(60, Math.min(190, Number(bpm) || 100));
   // the grid runs from the video's moment (the blast, the reveal) when it has
   // one - the music drops on it - else from 2s; the clips before the moment
   // keep their length so it stays where it is
@@ -19778,7 +19939,7 @@ async function vsEditMyVideo(fileIn, o) {
 
     // cuts on the beat of the bed the music step is about to make
     if (o.cut) vsTightenEditTails(vstudio.slides);
-    if (o.beat) vsSnapCutsToBeat(vstudio.slides, vsMusicPlan(vstudio.storyData.music).bpm);
+    if (o.beat) vsSnapCutsToBeat(vstudio.slides, (vsMusicPickFor(vstudio.storyData) || vsMusicPlan(vstudio.storyData.music)).bpm);
     // the edit's own transitions only: no fade or punch on every cut
     const tsel = $("#vsTransition"); if (tsel) { tsel.value = "none"; vstudio.slides.forEach((x) => { x.settings["#vsTransition"] = "none"; }); }
 
