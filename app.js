@@ -14109,8 +14109,52 @@ function vsProFaceN(s, media) {
       return s._faceN;
     }
   }
+  // a small face (someone seated far off, whole body in the frame) is too
+  // small for the face model: looked for again in crops, enlarged
+  for (const [cx0, cy0, cs] of [[0.25, 0.15, 0.5], [0.25, 0.35, 0.5], [0.15, 0.05, 0.7], [0.15, 0.3, 0.7]]) {
+    const sw = mw * cs, sh = Math.min(mh, sw), px = mw * cx0, py = Math.min(mh - sh, mh * cy0);
+    const side = 640;
+    if (c.width !== side || c.height !== side) { c.width = side; c.height = side; }
+    let r = null;
+    try { const x = c.getContext("2d"); x.clearRect(0, 0, side, side); x.drawImage(media, px, py, sw, sh, 0, 0, side, side); r = det.detect(c); } catch (e) { return null; }
+    const ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
+    if (ds.length) {
+      const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
+      const k = sw / side;
+      s._faceN = { x: (px + (b.originX + b.width / 2) * k) / mw, y: (py + (b.originY + b.height / 2) * (sh / side)) / mh, h: (b.height * (sh / side)) / mh };
+      return s._faceN;
+    }
+  }
   s._faceN = false;
   return null;
+}
+// Every clip's face found before the first frame is drawn: found on the fly,
+// the opening frame went out wide (the whole lot behind her) and the next one
+// jumped in once the face turned up.
+async function vsProPrepFaces(slides) {
+  let det = vstudio._proFaceDet;
+  if (!det) { try { det = vstudio._proFaceDet = await vsProFaceDetector(); } catch (e) { return; } }
+  for (const s of slides || []) {
+    if (!s || s._broll || !s.mediaEl || s._faceN) continue;
+    const el = s.mediaEl, want = Math.max(0, (Number(s._clipIn) || 0) + 0.05);
+    try {
+      if (Math.abs((el.currentTime || 0) - want) > 0.03) {
+        await new Promise((r) => { let done = false; const fin = () => { if (!done) { done = true; r(); } }; el.addEventListener("seeked", fin, { once: true }); setTimeout(fin, 1500); el.currentTime = want; });
+      }
+    } catch (e) {}
+    delete s._faceN;
+    vsProFaceN(s, el);
+  }
+  // one continuous take keeps the face of the clip it carries on from; a
+  // clip where none was found takes the nearest one of the same footage
+  (slides || []).forEach((s) => { if (s && s._camPrev && s._camPrev._faceN) s._faceN = s._camPrev._faceN; });
+  (slides || []).forEach((s, i) => {
+    if (!s || s._broll || s._faceN) return;
+    for (let d = 1; d < slides.length; d++) {
+      const o = [slides[i - d], slides[i + d]].find((x) => x && !x._broll && x._faceN && x.url === s.url);
+      if (o) { s._faceN = o._faceN; break; }
+    }
+  });
 }
 function vsProCam(s, media, W, H, local, dur) {
   const mw = (media && (media.videoWidth || media.naturalWidth)) || W, mh = (media && (media.videoHeight || media.naturalHeight)) || H;
@@ -19956,7 +20000,7 @@ async function vsEditMyVideo(fileIn, o) {
         vstudio._musicContentEnd = vstudio._defaultMusicContentEnd || null; vsAttachMusicLoopTrim(dm);
       }
     } else if (!o.music && !vstudio._userMusic) { vstudio.musicEl = null; vstudio._musicBuffer = null; }
-    if (pro) { try { vsProBeatReframes(vstudio.slides); } catch (e) {} }
+    if (pro) { try { await vsProPrepFaces(vstudio.slides); } catch (e) {} try { vsProBeatReframes(vstudio.slides); } catch (e) {} }
 
     vstudio.activeSlide = 0;
     renderSlideList();
