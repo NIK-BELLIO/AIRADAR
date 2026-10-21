@@ -8722,6 +8722,59 @@ function vsStockRelevance(query, item) {
   return q.reduce((n, w) => n + (desc.has(w) ? 1 : 0), 0) / q.length;
 }
 // Rotation keeps scenes on different results; relevance decides the order.
+// Places, for the B-roll: the one the talk is about goes into the search, and
+// a stock clip whose title names somewhere else is passed over (an Indian
+// street in a video about Canada). Cities map to their country.
+const VS_PLACES = {
+  canada: ["canada", "canadian", "toronto", "vancouver", "montreal", "calgary", "ottawa", "edmonton", "winnipeg", "quebec", "halifax", "victoria bc"],
+  usa: ["united states", "usa", "america", "american", "new york", "los angeles", "san diego", "san francisco", "chicago", "miami", "seattle", "houston", "dallas", "austin", "boston", "las vegas", "phoenix", "atlanta", "denver", "florida", "california", "texas", "utah"],
+  uk: ["united kingdom", "england", "britain", "british", "london", "manchester", "scotland", "edinburgh"],
+  uae: ["dubai", "abu dhabi", "emirates", "uae"],
+  iran: ["iran", "tehran", "isfahan", "shiraz", "mashhad", "tabriz", "\u0627\u06cc\u0631\u0627\u0646", "\u062a\u0647\u0631\u0627\u0646"],
+  turkey: ["turkey", "istanbul", "ankara", "antalya"],
+  germany: ["germany", "berlin", "munich", "hamburg", "frankfurt"],
+  france: ["france", "paris", "lyon", "nice"],
+  spain: ["spain", "madrid", "barcelona"],
+  italy: ["italy", "rome", "milan", "venice", "florence"],
+  australia: ["australia", "sydney", "melbourne", "brisbane", "perth"],
+  india: ["india", "mumbai", "delhi", "bangalore", "kolkata", "patna", "jaipur", "chennai", "hyderabad"],
+  china: ["china", "beijing", "shanghai", "shenzhen", "hong kong"],
+  japan: ["japan", "tokyo", "osaka", "kyoto"],
+  mexico: ["mexico", "cancun", "tulum"],
+  brazil: ["brazil", "rio de janeiro", "sao paulo"],
+  thailand: ["thailand", "bangkok", "phuket"],
+  indonesia: ["indonesia", "bali", "jakarta"],
+  vietnam: ["vietnam", "hanoi", "ho chi minh"],
+  netherlands: ["netherlands", "amsterdam", "rotterdam"],
+  portugal: ["portugal", "lisbon", "porto"],
+  greece: ["greece", "athens", "santorini"],
+  egypt: ["egypt", "cairo"],
+  russia: ["russia", "moscow"],
+  saudi: ["saudi", "riyadh", "jeddah"],
+  singapore: ["singapore"], korea: ["korea", "seoul"], malaysia: ["malaysia", "kuala lumpur"], pakistan: ["pakistan", "karachi", "lahore"],
+  nigeria: ["nigeria", "lagos"], kenya: ["kenya", "nairobi"], morocco: ["morocco", "marrakech"], philippines: ["philippines", "manila"],
+};
+// the country (and its city named first) the talk is about, or null
+function vsTalkPlace(text) {
+  const t = " " + String(text || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ") + " ";
+  let best = null;
+  Object.entries(VS_PLACES).forEach(([c, names]) => {
+    let n = 0, city = "";
+    names.forEach((nm, k) => { const re = new RegExp("\\s" + nm + "\\s", "g"); const m = t.match(re); if (m) { n += m.length; if (k > 0 && !city && nm.length > 3 && !/an$/.test(nm)) city = nm; } });
+    // (the search is in English: a city written in Persian searches as its country)
+    if (n && (!best || n > best.n)) best = { country: c, city, n, label: city && /^[a-z ]+$/.test(city) ? city : names[0] };
+  });
+  return best;
+}
+// does a stock clip's own title name a place other than the talk's?
+function vsStockElsewhere(it, place) {
+  const slug = " " + String((it && (it.url || it.alt)) || "").toLowerCase().replace(/[^a-z0-9]+/g, " ") + " ";
+  for (const [c, names] of Object.entries(VS_PLACES)) {
+    if (place && c === place.country) continue;
+    if (names.some((nm) => /^[a-z ]+$/.test(nm) && slug.includes(" " + nm + " "))) return true;
+  }
+  return false;
+}
 function vsStockOrder(items, query, variant, extra) {
   const rot = [];
   for (let k = 0; k < items.length; k++) rot.push(items[(variant + k) % items.length]);
@@ -8744,13 +8797,14 @@ function vsSceneClip(s, local, dur) {
 }
 function vsHdFootageOn() { const t = document.querySelector("#vsHdClips"); return !t || !!t.checked; }
 function vsMultiClipOn() { const t = document.querySelector("#vsMultiClip"); return !!(t && t.checked); }
-async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline) {
+async function vsFetchPexelsClip(query, key, aspect, variant, taken, deadline, place) {
   variant = variant || 0;
   const orient = aspect === "16:9" ? "landscape" : aspect === "1:1" ? "square" : "portrait";
   const url = "https://api.pexels.com/videos/search?query=" + encodeURIComponent(query) +
               "&per_page=12&orientation=" + orient;
   const json = await vsPexelsSearch(url, key);
-  const vids = (json && json.videos) || [];
+  // (place === false: a talk with no known place - nothing named anywhere)
+  const vids = ((json && json.videos) || []).filter((v) => place === undefined || !vsStockElsewhere(v, place || null));
   if (!vids.length) return null;
   // A clip long enough to play at normal speed through a scene is worth a little.
   const order = vsStockOrder(vids, query, variant, (v) => (v.duration >= 6 ? 0.15 : 0));
@@ -11850,7 +11904,8 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   let pick = null, front = !behind;
   if (behind) {
     let bestScore = -1;
-    [[1, "c"], [1, "l"], [1, "r"], [0.82, "c"], [0.82, "l"], [0.82, "r"], [0.66, "l"], [0.66, "r"], [0.66, "c"], [0.52, "l"], [0.52, "r"]].forEach(([k, align]) => {
+    // (no small word pushed into a corner: centred, or full size to a side)
+    [[1, "c"], [0.86, "c"], [1, "l"], [1, "r"], [0.74, "c"]].forEach(([k, align]) => {
       setHero(k, align);
       const nL = hero.m.ws2.reduce((n, w) => n + w.pieces.length, 0) || 1;
       const lw = hero.m.tw / nL;
@@ -13536,7 +13591,8 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   const U = Math.min(W, H * 0.62);
   const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
   const eo = (u) => 1 - Math.pow(1 - Math.max(0, Math.min(1, u)), 3);
-  const pin = eo(t / 0.55), pout = 1 - sm((t - (c.len - 0.4)) / 0.4);
+  // eased in over most of a second and out over half of one: no snap
+  const pin = 1 - Math.pow(1 - Math.max(0, Math.min(1, t / 0.75)), 4), pout = 1 - sm((t - (c.len - 0.5)) / 0.5);
   const vis = Math.min(pin, pout);
   if (vis <= 0.001) return;
   // where it stands is kept in pixels: a preview at one size and the export
@@ -13571,7 +13627,9 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
 
   // ── the rest sit beside the speaker, the side away from the face ──
   if (!c._side) {
-    const f = vsProFace(F, W, H, null);
+    // the face the camera framed on is known already; the finder only if not
+    const fs = s._faceScr;
+    const f = fs ? { x: fs.x - fs.h * 0.6, y: fs.y - fs.h * 0.75, w: fs.h * 1.2, h: fs.h * 1.9 } : vsProFace(F, W, H, null);
     if (f || t > 0.3) { c._side = f && f.x + f.w / 2 > W / 2 ? -1 : 1; c._face = f || null; }
   }
   const side = c._side || 1;
@@ -13599,24 +13657,27 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   // A screenshot is mostly in view with only a corner tucked behind the
   // speaker, as in the reel: tried at both edges and three heights, it goes
   // where the person covers a little of it (never most), clear of the face.
+  // (not placed blind: until the face or the cut-out is known, it waits)
+  if (c.kind === "shot" && c.img && !c._pos && !c._face && t < 0.5) { const m0 = vsProMaskHeld(F, W, H, s, c.at + t); if (!(m0 && m0.a)) return; }
   if (c.kind === "shot" && c.img && !c._pos) {
     const ar = c.img.width / c.img.height;
     let w = ar < 0.8 ? Math.min(W * 0.44, H * 0.42 * ar) : Math.min(W * 0.52, U * 0.62), h = w / ar;
     if (h > H * 0.44) { h = H * 0.44; w = h * ar; }
     const m = vsProMaskHeld(F, W, H, s, c.at + t);
     let best = null;
-    [side, -side].forEach((sd, si) => [0.3, 0.38, 0.24, 0.46].forEach((fy, yi) => [0.035, 0.0].forEach((mg, mi) => {
-      const x = sd > 0 ? W - W * mg - w / 2 : W * mg + w / 2, y = H * fy;
-      if (y - h / 2 < H * 0.07 || y + h / 2 > H * 0.62) return;
-      const box = { x: x - w / 2, y: y - h / 2, w, h };
+    [1, 0.8, 0.66].forEach((zk, zi) => [side, -side].forEach((sd, si) => [0.3, 0.38, 0.24, 0.46, 0.54].forEach((fy, yi) => [0.035, 0.0].forEach((mg, mi) => {
+      const ww = w * zk, hh = h * zk;
+      const x = sd > 0 ? W - W * mg - ww / 2 : W * mg + ww / 2, y = H * fy;
+      if (y - hh / 2 < H * 0.07 || y + hh / 2 > H * 0.62) return;
+      const box = { x: x - ww / 2, y: y - hh / 2, w: ww, h: hh };
       if (f && !(box.x + box.w < f.x || box.x > f.x + f.w || box.y + box.h < f.y || box.y > f.y + f.h)) return;
       const cov = m && m.a ? vsProCover(m, W, H, box) : 0;
-      if (cov > 0.22) return;
-      // a little behind them is the look; then this side, then higher in frame
-      const score = -Math.abs(cov - 0.1) * 10 - si * 0.6 - yi * 0.15 - mi * 0.2;
-      if (!best || score > best.score) best = { score, x, y, w, h };
-    })));
-    if (!best) { const k2 = 0.75; w *= k2; h *= k2; best = { x: side > 0 ? W - W * 0.035 - w / 2 : W * 0.035 + w / 2, y: H * 0.34, w, h }; }
+      // clear of the person: their cut-out over the card flickered as it moved;
+      // then the biggest, this side, higher in frame
+      const score = -cov * 40 - zi * 1.5 - si * 0.6 - yi * 0.15 - mi * 0.2;
+      if (!best || score > best.score) best = { score, x, y, w: ww, h: hh };
+    }))));
+    if (!best) { const k2 = 0.6; w *= k2; h *= k2; best = { x: side > 0 ? W - W * 0.035 - w / 2 : W * 0.035 + w / 2, y: H * 0.5, w, h }; }
     c._pos = best;
   }
   // anything else beside them: tried at both sides, five heights and four
@@ -13671,7 +13732,6 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
     g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.18)"); g.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = g; ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.restore();
-    c._behind = true;
   } else if (c.kind === "icon" && c.img) {
     // a silver object, a soft shadow on an invisible floor
     const sil = pack.callColor ? c.img : vsCallSilver(c.img), z = S * 0.9;
@@ -14269,7 +14329,7 @@ function vsProBeatReframes(slides) {
 function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   const pack = VS_PRO_PACKS[s._pro] || VS_PRO_PACKS.clean;
   const media = s.mediaEl;
-  const groups = s._broll ? [] : vsProGroups(s);
+  const groups = vsProGroups(s);
   let gi = -1;
   for (let k = 0; k < groups.length; k++) if (groups[k].t0 <= local + 0.001 && local < groups[k].t1) gi = k;
   const g = gi >= 0 ? groups[gi] : null;
@@ -14395,7 +14455,6 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   // goes under everything; the rest are laid over the speaker's cut-out (put
   // back over a word behind them), so an icon never slips behind their hair
   const callsWhere = (pred) => { if (!ins && s._calls && !s._broll) s._calls.forEach((c) => { if (pred(c) && local >= c.at && local < c.at + c.len) { try { vsProCallout(ctx, W, H, s, c, local - c.at, F, pack); } catch (e) {} } }); };
-  callsWhere((c) => c.kind === "shot");
   let callsLeft = true;
   if (ins) vsProInsert(ctx, W, H, s, ins, local - ins.at, F, pack);
   else if (g && !g.off && !(ed && ed.off)) {
@@ -14405,14 +14464,15 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     // the face was, and kept its words on it for good (the export too). It is
     // tried again until they are there.
     const blind = g._lay && g._lay.blind && (vstudio.rendering || !(Math.abs(local - (g._layTry || -9)) < 0.25));
-    if (!g._lay || blind) {
+    if ((!g._lay || blind) && !s._broll) {
       mask = vsProMask(F, W, H, s, local); face = vsProFace(F, W, H, mask);
       g._layTry = local;
       if (blind && face && mask && mask.a) delete g._lay;
     }
     const avoid = [];
     if (!g._lay) (s._calls || []).forEach((c) => {
-      if (c.kind === "shot" || c.kind === "orbit" || c.at >= g.t1 || c.at + c.len <= g.t0) return;
+      if (c.kind === "orbit" || c.at >= g.t1 || c.at + c.len <= g.t0) return;
+      if (c.kind === "shot") { if (c._pos && c._pos.w) avoid.push({ x: c._pos.x - c._pos.w / 2 - W * 0.02, y: c._pos.y - c._pos.h / 2 - H * 0.01, w: c._pos.w + W * 0.04, h: c._pos.h + H * 0.02 }); else { const sd = c._side || (face && face.x + face.w / 2 > W / 2 ? -1 : 1); avoid.push({ x: sd > 0 ? W * 0.45 : 0, y: H * 0.07, w: W * 0.55, h: H * 0.55 }); } return; }
       if (c.kind === "notify" || c.kind === "search") { avoid.push({ x: W * 0.06, y: H * 0.36, w: W * 0.88, h: H * 0.24 }); return; }
       if (c._pos && c._pos.S) { const S2 = c._pos.S; avoid.push({ x: c._pos.x - S2 * 0.6, y: c._pos.y - S2 * 0.7, w: S2 * 1.2, h: S2 * 1.5 }); return; }
       // not placed yet: the side away from the face, upper half, where it will go
@@ -14471,7 +14531,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       moved(() => heroes.forEach((w) => vsProWord(ctx, w, local, out, F, W, H)));
       ctx.drawImage(mask.P, 0, 0);
     }
-    callsWhere((c) => c.kind !== "shot"); callsLeft = false;
+    callsWhere(() => true); callsLeft = false;
     const hideHero = !behind && !lay.front && !(ed && ed.front === true) && !heroes.length && lay.words.some((w) => w.role === "hero" && local >= w.t0);
     moved(() => lay.words.forEach((w) => { if (!((behind || hideHero) && w.role === "hero")) vsProWord(ctx, w, local, out, F, W, H); }));
     {
@@ -14493,7 +14553,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       vstudio._proHit = { s, gi, behind, x: gcx + mx - hw + sxo, y: gcy + my - hh + syo, w: hw * 2, h: hh * 2 };
     }
   }
-  if (callsLeft) callsWhere((c) => c.kind !== "shot");
+  if (callsLeft) callsWhere(() => true);
   if (pack.hookBox && idx === 0 && !ins && vstudio._proHook && local < 3) {
     const U = Math.min(W, H * 0.62), k = Math.min(1, local / 0.15) * Math.min(1, (3 - local) / 0.2);
     ctx.save(); ctx.globalAlpha = Math.max(0, k);
@@ -14754,7 +14814,7 @@ function vsProSfxEvents(slides) {
       if (ins.kind === "product" && ins.value) ev.push({ n: "hit", t: t + ins.at + 0.5, g: 0.6 });
       (ins.items || []).forEach((it, j) => { const at = ins.at + (ins.kind === "list" ? 0.5 + j * 0.5 : 0.65 + j * 0.45); if (at < ins.at + ins.len - 0.2) ev.push({ n: pick("land"), t: t + at, g: 0.8, w: 1 }); });
     }
-    if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
+    if (sl._pro) vsProGroups(sl).forEach((g, gi) => {
       if (g.t0 >= d - 0.1 || g.off || (sl._proEdit && sl._proEdit[gi] && sl._proEdit[gi].off)) return;   // words the customer removed take their click with them
       if (ins && g.t0 >= ins.at - 0.05 && g.t0 < ins.at + ins.len) return;   // the insert has its own words
       ev.push({ n: pick("land"), t: t + g.t0, g: 0.95, w: 1 });
@@ -17692,7 +17752,7 @@ function vsEditStudio(preset, filesIn) {
       const out = []; let t = 0;
       vstudio.slides.forEach((sl) => {
         const d = Number(sl.duration) || 0;
-        if (sl._pro && !sl._broll) vsProGroups(sl).forEach((g, gi) => {
+        if (sl._pro) vsProGroups(sl).forEach((g, gi) => {
           const last = g.items[g.items.length - 1];
           // shown once its last word is on, before it goes
           out.push({ s: sl, gi, at: t + Math.min(g.t1 - 0.05, (last ? last.t0 : g.t0) + 0.4) });
@@ -19863,13 +19923,20 @@ async function vsEditMyVideo(fileIn, o) {
     if (brollJobs.length) {
       vsAutoStatus(L("Finding B-roll…", "در حال پیدا کردن B-roll…"));
       const used = new Set();
+      // where the talk is: its city or country goes into every search; with
+      // no place known, footage that names nowhere (close, neutral shots)
+      const place = vsTalkPlace(((ai && ai.summary) || "") + " " + words.map((w) => w.w).join(" "));
+      brollJobs.forEach((bj) => {
+        if (place) { if (!bj.q.toLowerCase().includes(place.label)) bj.q = (bj.q + " " + place.label).slice(0, 70); }
+        else bj.q = bj.q.replace(/\b(street|city|downtown|market|traffic|crowd|town)\b/gi, "").replace(/\s+/g, " ").trim() || bj.q;
+      });
       await Promise.all(brollJobs.map(async (bj, n) => {
         // A night shot reads as a black hole between two bright talking
         // shots: up to three tries for a clip with light in it.
         let clip = null;
         for (let k = 0; k < 3 && !clip; k++) {
           let c2 = null;
-          try { c2 = await vsFetchPexelsClip(bj.q, VS_PEXELS_KEY, o.aspect, n + k * 3, used, 12000); } catch (e) {}
+          try { c2 = await vsFetchPexelsClip(bj.q, VS_PEXELS_KEY, o.aspect, n + k * 3, used, 12000, place || false); } catch (e) {}
           if (!c2) break;
           used.add(c2.currentSrc || c2.src);
           if (await vsClipLuma(c2) >= 0.24) clip = c2;
