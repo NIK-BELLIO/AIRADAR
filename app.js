@@ -11459,28 +11459,12 @@ const VS_PRO_PACKS = {
            small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Oswald", w: 700, size: 0.2, colors: ["#f4f2f6"], upper: true, extrude: 0.07, y: 0.4, enter: "rise" },
            grade: "contrast(1.06) saturate(1.1) brightness(1.02)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "zoomblur"] },
-  // Motion-graphic looks in the Lime manner, each with its own colour, faces
-  // and set of moves round the word that matters:
-  //   studio - electric blue, selection frames, viewfinder corners, UI chips
-  //   doodle - orange and yellow marker strokes: loops, sparks, arrows
-  //   neonui - magenta and cyan glow, the gizmo, frames and sparks
-  //   mintui - clean mint: marker underlines, chips, frames
-  studio: { hero: { fam: "Outfit", w: 800, size: 0.13, colors: ["#5b8cff", "#ffffff"], track: -0.025, glowSoft: true, enter: "swipe", shade: true }, moves: ["select", "bracket", "tag", "fly"],
-           small: { fam: "Outfit", w: 500, size: 0.072, colors: ["#ffffff"], track: -0.015, enter: "swipe", shade: true },
-           single: { fam: "Outfit", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "swipe", shade: true },
-           grade: "contrast(1.08) saturate(1.02) brightness(0.98)", warm: "", band: true, pixels: "#5b8cff", trans: ["zoomblur", "expo", "zoomblur", "rack"] },
+  // Doodle pop: orange and yellow marker strokes round the word that matters -
+  // hand-drawn loops, sparks, curved arrows, underlines
   doodle: { hero: { fam: "Archivo Black", w: 400, size: 0.13, colors: ["#ff7a2f", "#ffd23f"], track: -0.02, enter: "pop", shade: true }, moves: ["circle", "spark", "arrow", "underline"],
            small: { fam: "Manrope", w: 700, size: 0.07, colors: ["#ffffff"], track: -0.015, enter: "pop", shade: true },
            single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "pop", shade: true },
            grade: "contrast(1.06) saturate(1.12) brightness(1.02)", warm: "rgba(255,180,120,0.05)", trans: ["expo", "zoomblur", "expo", "leak"] },
-  neonui: { hero: { fam: "Montserrat", w: 900, size: 0.12, colors: ["#ff4fb8", "#3ef0ff"], track: -0.02, glowSoft: true, enter: "swipe", shade: true }, moves: ["gizmo", "select", "spark", "fly"],
-           small: { fam: "Montserrat", w: 600, size: 0.07, colors: ["#ffffff"], track: -0.01, enter: "swipe", shade: true },
-           single: { fam: "Montserrat", w: 700, size: 0.08, colors: ["#ffffff"], track: -0.015, y: 0.62, enter: "swipe", shade: true },
-           grade: "contrast(1.1) saturate(1.08) brightness(0.95)", warm: "", band: true, pixels: "#ff4fb8", trans: ["burn", "zoomblur", "burn", "expo"], burn: "#ff7fd0" },
-  mintui: { hero: { fam: "Outfit", w: 800, size: 0.125, colors: ["#5ef2c4", "#ffffff"], track: -0.025, glowSoft: true, enter: "rise", shade: true }, moves: ["underline", "tag", "select", "fly"],
-           small: { fam: "Outfit", w: 500, size: 0.07, colors: ["#ffffff"], track: -0.015, enter: "rise", shade: true },
-           single: { fam: "Outfit", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "rise", shade: true },
-           grade: "contrast(1.05) saturate(1.04) brightness(1.02)", warm: "", band: true, pixels: "#5ef2c4", trans: ["zoomblur", "leak", "zoomblur", "expo"] },
   // Copied from the motion-designer reel: white captions in a bold and a
   // light weight side by side, the word that matters in lime; small lime
   // squares and a lime cursor gliding in beside the words; lists shown as the
@@ -12185,6 +12169,7 @@ function vsProLeak(ctx, W, H, a, seed) {
 }
 
 // One word, at its own moment, with its pack's entrance.
+const VS_PRO_EXIT = { rise: "up", slide: "up", bounce: "up", snap: "shrink", focus: "shrink", pop: "shrink", shine: "shrink", blur: "grow", glitch: "grow", fade: "spread", type: "soft", write: "soft", flicker: "soft", karaoke: "soft" };
 function vsProWord(ctx, wd, local, out, F, W, H) {
   const st = wd.st;
   const since = (local - wd.t0) * (wd.spd || 1);
@@ -12296,6 +12281,18 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   };
   const cx = wd.x + wd.w / 2, cy = wd.y;
+  // Leaving: the Lime look slides out on its trail; every other look goes in
+  // the manner it came - risen words drift up, settled ones draw back, blurred
+  // ones open out - softening as they go, never just switched off
+  const gone = st.enter === "swipe" ? 0 : 1 - Math.max(0, Math.min(1, out));
+  if (gone > 0.001) {
+    const ge = gone * gone * (3 - 2 * gone), kind = VS_PRO_EXIT[st.enter] || "soft";
+    if (kind === "up") ctx.translate(0, -ge * px * 0.32);
+    else if (kind === "shrink") { const k = 1 - 0.08 * ge; ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); }
+    else if (kind === "grow") { const k = 1 + 0.1 * ge; ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); }
+    else if (kind === "spread") ctx.translate(0, ge * px * 0.06);
+    try { ctx.filter = "blur(" + (ge * px * 0.07).toFixed(1) + "px)"; } catch (er) {}
+  }
   if (st.enter === "focus") {
     const p = Math.max(0, Math.min(1, since / 0.12)), e = 1 - Math.pow(1 - p, 2), k = 1.06 - 0.06 * e;
     ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
@@ -12855,23 +12852,6 @@ function vsProMotion(ctx, W, H, pack, gi, t, len, hb, gb, out) {
     ctx.strokeStyle = col; ctx.lineWidth = Math.max(3, U * 0.011); ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(x0, y); ctx.quadraticCurveTo(x0 + w / 2, y + U * 0.008, x0 + w, y - U * 0.004); ctx.stroke();
     if (w > 2) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + w, y - U * 0.004, U * 0.009, 0, Math.PI * 2); ctx.fill(); }
-  } else if (mv === "bracket") {
-    // viewfinder corners close in on the word, a small REC dot blinking by them
-    const pad = U * 0.02 + U * 0.05 * (1 - sm(t / 0.3)), x0 = hb.x - pad, y0 = hb.y - pad, w = hb.w + pad * 2, h = hb.h + pad * 2, arm = Math.min(w, h) * 0.25;
-    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, U * 0.0045);
-    [[x0, y0, 1, 1], [x0 + w, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + w, y0 + h, -1, -1]].forEach(([x, y, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x + dx * arm, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * arm); ctx.stroke(); });
-    if (Math.floor(t * 2.5) % 2 === 0) { ctx.fillStyle = "#ff3b3b"; ctx.beginPath(); ctx.arc(x0 + U * 0.012, y0 - U * 0.022, U * 0.008, 0, Math.PI * 2); ctx.fill(); }
-  } else if (mv === "tag") {
-    // a small UI chip slides out above the word: a dot and the word's length in letters as a "layer" name
-    const p = sm(t / 0.28), fs = U * 0.026, label = "LAYER " + String(((hb.w * 7) | 0) % 90 + 10);
-    ctx.font = "700 " + Math.round(fs) + 'px Manrope, "Vazirmatn", sans-serif'; ctx.textBaseline = "middle";
-    const tw = ctx.measureText(label).width, ph = fs * 1.7, pw = (tw + fs * 2.2) * p, x = hb.x, y = hb.y - ph * 0.9;
-    if (pw > 4) {
-      ctx.fillStyle = col; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - ph / 2, pw, ph, ph / 2); else ctx.rect(x, y - ph / 2, pw, ph); ctx.fill();
-      ctx.save(); ctx.beginPath(); ctx.rect(x, y - ph / 2, pw, ph); ctx.clip();
-      ctx.fillStyle = "#0b0d12"; ctx.beginPath(); ctx.arc(x + fs * 0.75, y, fs * 0.22, 0, Math.PI * 2); ctx.fill();
-      ctx.fillText(label, x + fs * 1.25, y + fs * 0.04); ctx.restore();
-    }
   } else if (mv === "gizmo") {
     // a 3x3 grid of dots opens into a square with handles, a cross in the
     // middle, and turns slowly while the line is up
@@ -17466,10 +17446,7 @@ function vsEditStudio(preset, filesIn) {
     ["pro-yellowcaps", L("Yellow caps", "حروف زرد"), L("From the coming-soon listing reel · the hook in huge yellow capitals behind your head", "از ریلز ملک به‌زودی · قلاب با حروف زرد بزرگ پشت سرت")],
     ["pro-street", L("Street interview", "مصاحبهٔ خیابانی"), L("From the street-interview reel · small bold capitals, the key word in sky blue", "از ریلز مصاحبهٔ خیابانی · حروف بزرگ کوچک پررنگ، کلمهٔ اصلی آبی")],
     ["pro-block3d", L("3D letters", "حروف سه‌بعدی"), L("From the 25-acre estate reel · the key word as big 3D letters standing behind you", "از ریلز ملک ۲۵ جریبی · کلمهٔ اصلی با حروف سه‌بعدی بزرگ پشتت")],
-    ["pro-studio", L("Studio UI", "استودیو UI"), L("Motion UI in electric blue · selection frames, viewfinder corners and layer chips round the key word", "رابط موشن آبی برقی · کادر انتخاب، گوشه‌های ویزور و برچسب لایه دور کلمهٔ اصلی")],
     ["pro-doodle", L("Doodle pop", "دودل پاپ"), L("Orange and yellow marker strokes · hand-drawn loops, sparks and arrows on the key word", "خطوط ماژیک نارنجی و زرد · دایره، جرقه و فلش دست‌کشیده روی کلمهٔ اصلی")],
-    ["pro-neonui", L("Neon UI", "نئون UI"), L("Magenta and cyan glow · the gizmo, selection frames and sparks", "درخشش سرخابی و فیروزه‌ای · گیزمو، کادر انتخاب و جرقه")],
-    ["pro-mintui", L("Mint UI", "مینت UI"), L("Clean mint · marker underlines, layer chips and frames", "نعنایی تمیز · خط‌کشی ماژیکی، برچسب لایه و کادر")],
     ["pro-lime", L("Lime UI", "رابط لیمویی"), L("From the motion-designer reel · bold and light white words, lime highlights, a lime cursor, lists as an editor timeline", "از ریلز موشن دیزاینر · کلمات سفید پررنگ و نازک، هایلایت لیمویی، نشانگر لیمویی، لیست به شکل تایم‌لاین ادیتور")],
     ["pro-listing", L("Listing tour", "تور ملک"), L("From the drone realtor reels · big thin white words, the key word in a lilac or rose serif italic, soft dissolves", "از ریلزهای ملک با پهپاد · کلمات بزرگ نازک سفید، کلمهٔ اصلی سریف ایتالیک یاسی یا صورتی، محو نرم")],
     ["pro-agent", L("Agent", "مشاور"), L("From the Kelsie realtor reel · small light words, the key word bold in grey, teal or wine behind your head", "از ریلز مشاور کلسی · کلمات ریز سفید، کلمهٔ اصلی پررنگ طوسی، سبزآبی یا شرابی پشت سرت")],
