@@ -11638,11 +11638,30 @@ function vsProFont(st, px) {
 // a group ends at a breath, a comma or full stop, or after a second and a half.
 // Each has a hero - the word that carries it (a number first, then the longest
 // word that is not a little one).
+// Each look has a pace, so the looks do not all move alike: calm (the
+// realtor and editorial reels - words held, easing in and out slowly, few
+// cuts, a still camera, a gentler track), medium, or punchy (the trending
+// caption looks - quick words, more cuts, the camera on the bars, a driving
+// track). Words always land as they are said; the pace sets how long they stay.
+const VS_PRO_PACE = {
+  reveal: "calm", serif: "calm", listing: "calm", suite: "calm", trust: "calm", walk: "calm", focus: "calm", agent: "calm",
+  editorial: "calm", luxe: "calm", goldpro: "calm", highlight: "calm", block3d: "calm", vlog: "calm",
+  street: "punchy", viral: "punchy", punch: "punchy", karaoke: "punchy",
+};
+const VS_PACE = {
+  //        a group spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
+  calm:   { span: 2.8, gap: 0.5, comma: false, hold: 1.4, linger: 1.0, spd: 0.62, outT: 0.38, cutEvery: 4, bars: 0, energy: "medium" },
+  medium: { span: 2.1, gap: 0.4, comma: true, hold: 1.0, linger: 0.85, spd: 0.8, outT: 0.28, cutEvery: 3, bars: 2, energy: null },
+  punchy: { span: 1.6, gap: 0.32, comma: true, hold: 0.75, linger: 0.7, spd: 1, outT: 0.2, cutEvery: 2, bars: 1, energy: "high" },
+};
+function vsProPace(id) { return VS_PACE[VS_PRO_PACE[id] || "medium"]; }
 function vsProGroups(s) {
   const v = s._voice;
   if (!v || !v.words || !v.words.length) return [];
   const dur = Number(s.duration) || 4;
-  const pk = VS_PRO_PACKS[s._pro] || {}, maxW = pk.maxWords || 4, maxL = pk.maxLetters || 19;
+  const pk = VS_PRO_PACKS[s._pro] || {}, P = vsProPace(s._pro);
+  // a calm look holds a phrase together: a word or two more, on more lines
+  const maxW = (pk.maxWords || 4) + (P === VS_PACE.calm ? 1 : 0), maxL = (pk.maxLetters || 19) + (P === VS_PACE.calm ? 6 : 0);
   if (s._proG && s._proG.n === v.words.length && s._proG.d === dur && s._proG.e === (s._proEditV || 0) && s._proG.p === s._pro) return s._proG.g;
   const ws = v.words;
   const idx = [];
@@ -11652,11 +11671,21 @@ function vsProGroups(s) {
     if (cur.length) {
       const prev = ws[cur[cur.length - 1]];
       const letters = cur.reduce((n, j) => n + ws[j].w.length, 0);
-      if (cur.length >= maxW || letters + w.w.length > maxL || w.t0 - prev.t1 > 0.3 || /[.!?,;:؟،]["')”]*$/.test(prev.w) || w.t0 - ws[cur[0]].t0 > 1.5) { idx.push(cur); cur = []; }
+      const stop = /[.!?؟]["')”]*$/.test(prev.w) || (P.comma && /[,;:،]["')”]*$/.test(prev.w));
+      if (cur.length >= maxW || letters + w.w.length > maxL || w.t0 - prev.t1 > P.gap || stop || w.t0 - ws[cur[0]].t0 > P.span) { idx.push(cur); cur = []; }
     }
     cur.push(k);
   });
   if (cur.length) idx.push(cur);
+  // a group that would flash past (gone within the least time on screen) joins
+  // the next one, when they fit together
+  for (let i = 0; i < idx.length - 1; i++) {
+    const a = idx[i], b = idx[i + 1];
+    const shown = ws[b[0]].t0 - ws[a[0]].t0;
+    const letters = a.concat(b).reduce((n, j) => n + ws[j].w.length, 0);
+    const endsSentence = /[.!?؟]["')”]*$/.test(ws[a[a.length - 1]].w);
+    if (shown < P.hold && !endsSentence && a.length + b.length <= maxW + 1 && letters <= maxL + 6) { idx.splice(i, 2, a.concat(b)); i--; }
+  }
   const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
   const shape = (g) => {
     let hero = 0, best = -1;
@@ -11689,9 +11718,9 @@ function vsProGroups(s) {
   groups.forEach((g, i) => {
     const last = g.items[g.items.length - 1];
     const next = groups[i + 1];
-    // on screen until the next group, or a moment after its last word when
-    // the speaker pauses
-    g.t1 = Math.min(dur, next ? Math.min(next.t0, last.t1 + 0.7) : last.t1 + 0.6);
+    // on screen until the next group, or a while after its last word when
+    // the speaker pauses - never less than the look's least time on screen
+    g.t1 = Math.min(dur, next ? Math.min(next.t0, Math.max(last.t1 + P.linger, g.t0 + P.hold)) : last.t1 + P.linger);
   });
   s._proG = { n: ws.length, d: dur, e: s._proEditV || 0, p: s._pro, g: groups };
   return groups;
@@ -12078,7 +12107,7 @@ function vsProLeak(ctx, W, H, a, seed) {
 // One word, at its own moment, with its pack's entrance.
 function vsProWord(ctx, wd, local, out, F, W, H) {
   const st = wd.st;
-  const since = local - wd.t0;
+  const since = (local - wd.t0) * (wd.spd || 1);
   if (since < 0 && st.enter !== "karaoke") return;
   const px = wd.px;
   const ease = vsEase.out;
@@ -14220,13 +14249,14 @@ function vsProBeatReframes(slides) {
   (slides || []).forEach((s) => {
     const d = Number(s.duration) || 0;
     delete s._reframes;
-    if (s._broll || !s._shot || s._moment || s._camCont || d < 4) { at += d; return; }
+    const P = vsProPace(s._pro);
+    if (s._broll || !s._shot || s._moment || s._camCont || d < 4 || !P.bars) { at += d; return; }
     // a long take: every two bars a calm move between wide and medium,
     // landing on the downbeat - never into a close-up
     const rf = [];
     let cur = s._shot === "close" ? "medium" : s._shot;
-    const k = Math.ceil((at + 1.6 - t0) / (bar * 2));
-    for (let tb = t0 + k * bar * 2; tb < at + d - 1.4; tb += bar * 2) {
+    const step = bar * P.bars, k = Math.ceil((at + 1.6 - t0) / step);
+    for (let tb = t0 + k * step; tb < at + d - 1.4; tb += step) {
       cur = cur === "wide" ? "medium" : "wide"; rf.push({ t: tb - at, shot: cur });
     }
     if (rf.length) s._reframes = rf;
@@ -14390,7 +14420,8 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       avoid.push({ x: sd > 0 ? W * 0.5 : 0, y: H * 0.08, w: W * 0.5, h: H * 0.52 });
     });
     const lay = vsProLayout(ctx, W, H, g, gi, pack, mask && mask.a ? (b) => vsProCover(mask, W, H, b) : null, face, avoid);
-    const outT = pack.outT || (pack.hero.enter === "swipe" ? 0.18 : 0.15);
+    { const sp = vsProPace(s._pro).spd; lay.words.forEach((w) => { if (w.spd == null) w.spd = sp; }); }
+    const outT = Math.max(pack.outT || 0, vsProPace(s._pro).outT);
     const out = local > g.t1 - outT ? Math.max(0, (g.t1 - local) / outT) : 1;
     const heroes = lay.words.filter((w) => w.role === "hero" && local >= w.t0);
     let behind = false;
@@ -14659,6 +14690,12 @@ function vsBuildSfxEvents(slides) {
 // boom under the hook, a pluck when a key word pops on, and on a graphic card
 // a button-click for the icon and a soft tick as each big word lands.
 function vsEditSfxEvents(slides) {
+  if ((slides || []).some((x) => x && x._gx) && (slides || []).some((x) => x && x._pro && !x._gx)) {
+    const rng = []; let t = 0;
+    slides.forEach((x) => { const d = Number(x.duration) || 0; if (x._gx) rng.push([t, t + d]); t += d; });
+    const inGx = (e) => rng.some(([a, b]) => e.t >= a + 0.2 && e.t < b);
+    return vsProSfxEvents(slides).concat(vsGxSfxEvents(slides).filter(inGx)).sort((a, b) => a.t - b.t);
+  }
   if ((slides || []).some((x) => x && x._gx)) return vsGxSfxEvents(slides);
   if ((slides || []).some((x) => x && x._pro)) return vsProSfxEvents(slides);
   const ev = [];
@@ -14700,6 +14737,8 @@ function vsProSfxEvents(slides) {
     else if (sl._transIn) ev.push({ n: sl._transIn === "flash" ? pick("big") : pick("cut"), t: t + 0.14, g: sl._transIn === "flash" ? 0.6 : 0.8 });
     else if (i > 0 && sl._shot === "close" && !sl._broll) ev.push({ n: "whoosh", t: t + 0.03, g: 0.3 });
     if (sl._bw) ev.push({ n: "hit2", t: t + 0.04, g: 0.5 });
+    // (a graphic slide in a mixed edit has the slide's own sounds)
+    if (sl._gx) { t += d; return; }
     (sl._calls || []).forEach((c) => { ev.push({ n: pick("land"), t: t + c.at + 0.1, g: 0.45 }); if (c.kind === "map") ev.push({ n: "sparkle", t: t + c.at + 0.9, g: 0.3 }); });
     const ins = sl._ins && !sl._ins.off ? sl._ins : null;
     if (ins && ins.shots) {
@@ -14773,7 +14812,7 @@ const VS_EDIT_MAX_SECONDS = 12 * 60;
 
 const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zoom: "vsEmZoom", title: "vsEmTitle", music: "vsEmMusic",
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
-const VS_EM_DEFAULTS = { sfx: true, inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
+const VS_EM_DEFAULTS = { mix: false, sfx: true, inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
 // ── Graphic video: the speaker's voice, a motion designer's pictures ────────
 // "Edit my video" as a fully graphic video - the person never on screen - in
@@ -17300,7 +17339,8 @@ function vsEditStudio(preset, filesIn) {
   const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
   const OPTS = [
     ["inserts", L("Cinematic shots and graphics when you name a product, place or number", "نمای سینمایی و گرافیک وقتی از محصول، مکان یا عدد حرف می‌زنی"), "p"],
-    ["callouts", L("Icons, maps and photos beside you as you talk", "آیکون، نقشه و عکس کنارت وقتی حرف می‌زنی"), "p"],
+    ["callouts", L("Maps, figures and photos beside you as you talk", "نقشه، عدد و عکس کنارت وقتی حرف می‌زنی"), "p"],
+    ["mix", L("Graphic slides between your shots", "اسلایدهای گرافیکی بین نماهایت"), "p"],
     ["cut", L("Cut the pauses", "حذف مکث‌ها و سکوت‌ها"), ""],
     ["fillers", L("Remove “um” and “uh”", "حذف «اِ» و «اوم»"), ""],
     ["trans", L("Transitions", "ترنزیشن"), ""],
@@ -17895,6 +17935,17 @@ function vsEditStudio(preset, filesIn) {
     }
   });
   $$("emGxPick").onclick = pickTheme;
+  {
+    const mixSw = ov.querySelector('input[data-opt="mix"]');
+    if (mixSw) {
+      const lab = mixSw.closest("label");
+      lab.insertAdjacentHTML("afterend", '<button id="emMixTheme" type="button" class="ts-ghost em-p" style="min-height:34px;margin:-2px 0 4px"></button>');
+      const showMix = () => { const b = $$("emMixTheme"); b.hidden = !mixSw.checked; b.textContent = L("Slides theme: ", "تم اسلایدها: ") + vsGxThemeName(vsGxTheme(gxTheme), fa); };
+      mixSw.addEventListener("change", showMix);
+      $$("emMixTheme").onclick = () => vsGxThemePicker(gxTheme, (id) => { gxTheme = id; vstudio._gxTheme = id; showMix(); try { drawGx(); } catch (e) {} remember(); });
+      showMix();
+    }
+  }
   // the captions switch beside the theme is the same option as in the list
   {
     const capOpt = ov.querySelector('input[data-opt="captions"]'), capSw = $$("emGxCap");
@@ -18097,6 +18148,7 @@ function vsEditStudio(preset, filesIn) {
     ov.querySelectorAll("input[data-opt]").forEach((c) => { o[c.dataset.opt] = c.checked; });
     o.name = $$("emName").value; o.role = $$("emRole").value; o.cta = $$("emCta").value;
     if (mode === "graphic") { o.graphic = true; o.gxTheme = gxTheme; o.style = "graphic"; if (gxMed.length) o.gxMedia = gxMed.slice(); }
+    if (o.mix && mode === "edit") o.gxTheme = gxTheme;
     if (shotFiles.length && o.style !== "classic" && !o.graphic) o.shots = shotFiles.slice();
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
     ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
@@ -19482,6 +19534,9 @@ async function vsEditMyVideo(fileIn, o) {
   const pro = /^pro-/.test(String(o.style || "")) && VS_PRO_PACKS[String(o.style).slice(4)] ? String(o.style).slice(4) : "";
   // a graphic video: the voice only, every moment a designed scene
   const gx = !!o.graphic;
+  // graphic slides mixed into a pro edit of their own footage
+  const mix = !gx && !!o.mix && /^pro-/.test(String(o.style || ""));
+  if (mix) vstudio._gxTheme = vsGxTheme(o.gxTheme || vstudio._gxTheme || VS_GX_DEFAULT).id;
   if (gx) {
     o = Object.assign({}, o, { title: false, stickers: false, gfx: false, broll: false, inserts: false, layout: "full" });
     vstudio._gxTheme = vsGxTheme(o.gxTheme || vstudio._gxTheme || VS_GX_DEFAULT).id;
@@ -19612,8 +19667,8 @@ async function vsEditMyVideo(fileIn, o) {
     // (a plan made on Whisper's pieces numbers its sentences differently: not reused)
     let ai = cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.ai : null;
     // a graphic video is designed from the words (/graphic-plan), not from frames
-    let gxPlan = gx && cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.gx || null : null;
-    if (gx && !gxPlan) {
+    let gxPlan = (gx || mix) && cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.gx || null : null;
+    if ((gx || mix) && !gxPlan) {
       vsAutoStatus(L("Designing the scenes…", "در حال طراحی صحنه‌ها…"));
       const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 70000);
       try {
@@ -19831,7 +19886,7 @@ async function vsEditMyVideo(fileIn, o) {
 
     const mu = (ai && ai.music) || {};
     vstudio.storyData = { title: hookText || file.name.replace(/\.[a-z0-9]+$/i, ""), language: lang2, summary: (ai && ai.summary) || "",
-      music: { mood: String(mu.mood || "upbeat"), energy: String(mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
+      music: { mood: String(mu.mood || "upbeat"), energy: String((pro && vsProPace(pro).energy) || mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
     const lay = o.layout && o.layout !== "auto" ? o.layout : ((vstudio._editSrcAspect || 1) < 0.8 ? "full" : "card");
@@ -19901,7 +19956,7 @@ async function vsEditMyVideo(fileIn, o) {
         const pv = vstudio.slides[i - 1];
         if (pv && (sl._moment || pv._moment) && !pv._broll && !sl._broll) { sl._shot = pv._shot; sl._camDir = pv._camDir; sl._camCont = true; sl._camPrev = pv; delete sl._transIn; return; }
         if (i === 0 || !o.trans) { delete sl._transIn; return; }
-        if (sl._transIn || i % 3 === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
+        if (sl._transIn || i % vsProPace(pro).cutEvery === 0) sl._transIn = pk.trans[tk2++ % pk.trans.length];
       });
       const tot = vstudio.slides.reduce((n, x) => n + (Number(x.duration) || 0), 0);
       if (vstudio.slides.length >= 5 && !pk.noBw) {
@@ -19928,6 +19983,42 @@ async function vsEditMyVideo(fileIn, o) {
     if (pro && o.showcase && o.showcase.files && o.showcase.files.length) {
       vsAutoStatus(L("Cutting in your product shots…", "در حال گذاشتن نماهای محصولت…"));
       try { vstudio._editStats.showcase = await vsProPlaceShowcase(vstudio.slides, o.showcase); } catch (e) {}
+    }
+    // Mixed: the strongest points (a figure, a list, a comparison, a chart, a
+    // timeline, a quote) become full graphic slides while the voice carries
+    // on - about a third of the cuts at most, never two in a row, never the
+    // opening, the video's moment or a cut already showing a cinematic shot.
+    if (mix && gxPlan && Array.isArray(gxPlan.scenes)) {
+      vsAutoStatus(L("Adding graphic slides…", "در حال افزودن اسلایدهای گرافیکی…"));
+      const scenes = gxPlan.scenes.map((x) => Object.assign(vsGxCheck(x), { from: Number(x.from), to: Number(x.to) })).filter((x) => isFinite(x.from));
+      const W8 = { stat: 3, list: 3, compare: 3, chart: 3, timeline: 3, quote: 2, map: 2, objects: 1 };
+      const cand = [];
+      vstudio.slides.forEach((sl, i) => {
+        if (i === 0 || sl._broll || sl._moment || sl._camCont || sl._ins || sl._teaser || (Number(sl.duration) || 0) < 1.6) return;
+        const k = sentOf((sl._srcOffset || 0) + (sl._clipIn || 0) + 0.1);
+        const sc = scenes.find((x) => k >= x.from && k <= (isFinite(x.to) ? x.to : x.from));
+        if (sc && W8[sc.type]) cand.push({ i, sc, w: W8[sc.type] });
+      });
+      cand.sort((a, b) => b.w - a.w || a.i - b.i);
+      const maxN = Math.max(1, Math.round(vstudio.slides.length * 0.34)), used = new Set(), at = [];
+      for (const c of cand) {
+        if (at.length >= maxN) break;
+        if (used.has(c.sc) || at.some((j) => Math.abs(j - c.i) < 2)) continue;
+        used.add(c.sc); at.push(c.i);
+        const sl = vstudio.slides[c.i];
+        sl._gx = c.sc; sl._gxMix = true; sl._noCaps = true;
+        delete sl._ins; delete sl._calls; delete sl._bw; delete sl._reframes;
+        // into the slide on a soft light, back to the footage on the look's burst
+        sl._transIn = "leak";
+        const nx = vstudio.slides[c.i + 1];
+        if (nx && !nx._gx) nx._transIn = nx._transIn || "expo";
+      }
+      if (at.length) {
+        vstudio._gxCaps = o.captions !== false;
+        await vsGxLoadFonts();
+        await vsGxResolveAll(vstudio.slides.filter((x) => x._gx));
+      }
+      vstudio._editStats.mixed = at.length;
     }
     if (gx) {
       // every cut gets the scene its sentence belongs to; a scene can span cuts
@@ -28972,7 +29063,7 @@ function drawStudioFrameCore(elapsed) {
     } else {
       targetT = Math.min(clipLen, localTime);
     }
-    if (media.playbackRate !== rate) {
+    if (media.playbackRate !== rate && !vstudio._offline) {
       try { media.playbackRate = rate; } catch {}
     }
     // if the video has drifted from where it should be (e.g. after a
@@ -28983,7 +29074,7 @@ function drawStudioFrameCore(elapsed) {
       try { media.currentTime = targetT; } catch {}
     }
     // make sure it is actually playing during the live loop / render
-    if ((vstudio.looping || vstudio.rendering) && media.paused) {
+    if ((vstudio.looping || vstudio.rendering) && media.paused && !vstudio._offline) {
       media.play().catch(() => {});
     }
   }
@@ -32100,13 +32191,43 @@ function vsAudioBufferToWavBytes(buf) {
 // a hard timeout so a slow/remote clip can never HANG the offline render (it
 // just draws whatever frame is currently decoded). This is what lets footage
 // decks be rendered deterministically instead of played in real time.
+// Moving a little ahead: played forward to the frame instead of seeked to it.
+// A seek decodes again from the last keyframe - an AI-made clip with two
+// keyframes in twelve seconds re-decoded up to the whole clip for every
+// frame of the export (about seven frames a second). Playing on decodes each
+// frame once.
+function _vsAdvanceVideo(vid, target) {
+  // The clip keeps playing through the export and each frame
+  // waits for it to reach its time - started and stopped per frame, the
+  // start-up alone cost as much as a seek. (A video not in the page gets no
+  // frame callbacks, so its clock is watched.)
+  return new Promise((res) => {
+    let done = false;
+    const t0 = vid.currentTime || 0, began = performance.now();
+    const fin = (ok) => { if (done) return; done = true; res(ok !== false); };
+    if (vstudio._advVid && vstudio._advVid !== vid) { try { vstudio._advVid.pause(); } catch (e) {} }
+    vstudio._advVid = vid;
+    try { vid.muted = true; if (vid.playbackRate !== 1) vid.playbackRate = 1; } catch (e) {}
+    if (vid.paused) { const p = vid.play(); if (p && p.catch) p.catch(() => fin(false)); }
+    const watch = () => {
+      if (done) return;
+      const ct = vid.currentTime || 0, el = performance.now() - began;
+      if (ct >= target - 0.012) { fin(); return; }
+      // not moving at all (a hidden tab, a stalled file): seek instead
+      if (el > 300 && ct <= t0 + 0.001) { try { vid.pause(); } catch (e) {} fin(false); return; }
+      if (el > 1500) { fin(); return; }
+      setTimeout(watch, 2);
+    };
+    watch();
+  });
+}
 function _vsSeekVideo(vid, target, patient) {
   return new Promise(res => {
     let done = false;
     const fin = () => { if (done) return; done = true; try { vid.removeEventListener("seeked", fin); } catch (e) {} res(); };
     try { vid.addEventListener("seeked", fin, { once: true }); } catch (e) {}
     try { vid.currentTime = target; } catch (e) { fin(); return; }
-    setTimeout(fin, patient ? 4000 : 180);
+    setTimeout(fin, patient ? 1500 : 180);
   });
 }
 // A file on this device (Edit my video) or a clip already buffered at the
@@ -32135,6 +32256,9 @@ async function _vsSeekActiveFootage(t) {
     }
   }
   if (!slide || !slide.isVideo || !slide.mediaEl || (slide._gfx && Number(slide._gfx.v) !== 3)) return;
+  // a graphic slide does not show the footage under it: nothing to seek (a
+  // mixed edit spent seconds a frame seeking a clip no one sees)
+  if (slide._gx) return;
   if (slide._swap) await vsSwapSeekExport(slide, at.local);
   // a pro edit's cinematic insert: its own footage, from the insert's start
   const ins = slide._ins;
@@ -32169,7 +32293,18 @@ async function _vsSeekActiveFootage(t) {
   const span = at.dur > 0 ? at.dur : vdur;
   let target = span > vdur ? (Math.min(at.local, span) / span) * vdur : at.local;
   target = Math.max(0, Math.min(vdur - 0.05, target)) + clipIn;
+  // never onto the file's very last frame: a seek there often fires no
+  // "seeked" at all, and each such frame waited out the whole timeout
+  if (isFinite(vid.duration) && vid.duration > 0.3) target = Math.min(target, vid.duration - 0.12);
   if (Math.abs((vid.currentTime || 0) - target) < 0.008) return;
+  const ahead = target - (vid.currentTime || 0);
+  // the running clip a hair past the frame already: that frame it is
+  if (vstudio._offline && vid === vstudio._advVid && !vid.paused && ahead <= 0 && ahead > -0.08) return;
+  if (ahead > 0 && ahead < 0.6 && vid.requestVideoFrameCallback && vstudio._offline && !vid.seeking && !document.hidden && !vid._noAdvance) {
+    if (await _vsAdvanceVideo(vid, target)) return;
+    vid._noAdvance = true;   // this one does not play on here: seek it from now on
+  }
+  if (vstudio._offline && !vid.paused) { try { vid.pause(); } catch (e) {} }
   await _vsSeekVideo(vid, target, _vsSeekPatient(vid, target));
 }
 
@@ -32207,6 +32342,9 @@ async function vsExportOfflineEncode(canvas, duration, fps) {
   const posterAt = Math.min(Math.round(1.3 * fps), Math.max(1, Math.round(total * 0.22)));
   const _overlayFa = state.lang === "fa";
 
+  // frame by frame: the footage is moved here, never left playing by the draw
+  vstudio._offline = true;
+  vstudio.slides.forEach((x) => { if (x.mediaEl) x.mediaEl._noAdvance = false; });
   for (let i = 0; i < total; i++) {
     if (vstudio._batchCancel) { try { encoder.close(); } catch (e) {} return null; }
     const t = i / fps;
@@ -39776,7 +39914,11 @@ async function exportStudioVideo() {
   const _singleClipFootage = (vstudio.isVideo && media && !vstudio.slides.length);
   if (!_singleClipFootage && typeof VideoEncoder !== "undefined") {
     try {
-      const _off = await vsExportOfflineEncode(canvas, duration, fps);
+      let _off = null;
+      try { _off = await vsExportOfflineEncode(canvas, duration, fps); } finally {
+        vstudio._offline = false;
+        if (vstudio._advVid) { try { vstudio._advVid.pause(); vstudio._advVid.playbackRate = 1; } catch (e) {} vstudio._advVid = null; }
+      }
       if (_off && _off.blob && _off.blob.size) {
         vstudio.rendering = false;
         if (!vstudio._returnBlob) vsStatus(state.lang === "fa" ? "ویدیوی MP4 ذخیره شد." : "MP4 video saved.");
