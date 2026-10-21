@@ -10565,6 +10565,9 @@ async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
   const add = [];
   for (const [g0, g1] of gaps.slice(0, 12)) {
     const len = g1 - g0;
+    // the join between two of their files is not a moment: one clip ending
+    // and the next beginning changes the picture completely
+    if (srcOf(g0 + 0.05) !== srcOf(g1 - 0.05)) continue;
     let loud = 0, n = 0, run = 0, hitA = -1, peak = -99, peakT = g0;
     for (let t = g0; t < g1 - 0.05; t += 0.05) {
       n++;
@@ -11456,6 +11459,28 @@ const VS_PRO_PACKS = {
            small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Oswald", w: 700, size: 0.2, colors: ["#f4f2f6"], upper: true, extrude: 0.07, y: 0.4, enter: "rise" },
            grade: "contrast(1.06) saturate(1.1) brightness(1.02)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "zoomblur"] },
+  // Motion-graphic looks in the Lime manner, each with its own colour, faces
+  // and set of moves round the word that matters:
+  //   studio - electric blue, selection frames, viewfinder corners, UI chips
+  //   doodle - orange and yellow marker strokes: loops, sparks, arrows
+  //   neonui - magenta and cyan glow, the gizmo, frames and sparks
+  //   mintui - clean mint: marker underlines, chips, frames
+  studio: { hero: { fam: "Outfit", w: 800, size: 0.13, colors: ["#5b8cff", "#ffffff"], track: -0.025, glowSoft: true, enter: "swipe", shade: true }, moves: ["select", "bracket", "tag", "fly"],
+           small: { fam: "Outfit", w: 500, size: 0.072, colors: ["#ffffff"], track: -0.015, enter: "swipe", shade: true },
+           single: { fam: "Outfit", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "swipe", shade: true },
+           grade: "contrast(1.08) saturate(1.02) brightness(0.98)", warm: "", band: true, pixels: "#5b8cff", trans: ["zoomblur", "expo", "zoomblur", "rack"] },
+  doodle: { hero: { fam: "Archivo Black", w: 400, size: 0.13, colors: ["#ff7a2f", "#ffd23f"], track: -0.02, enter: "pop", shade: true }, moves: ["circle", "spark", "arrow", "underline"],
+           small: { fam: "Manrope", w: 700, size: 0.07, colors: ["#ffffff"], track: -0.015, enter: "pop", shade: true },
+           single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "pop", shade: true },
+           grade: "contrast(1.06) saturate(1.12) brightness(1.02)", warm: "rgba(255,180,120,0.05)", trans: ["expo", "zoomblur", "expo", "leak"] },
+  neonui: { hero: { fam: "Montserrat", w: 900, size: 0.12, colors: ["#ff4fb8", "#3ef0ff"], track: -0.02, glowSoft: true, enter: "swipe", shade: true }, moves: ["gizmo", "select", "spark", "fly"],
+           small: { fam: "Montserrat", w: 600, size: 0.07, colors: ["#ffffff"], track: -0.01, enter: "swipe", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.08, colors: ["#ffffff"], track: -0.015, y: 0.62, enter: "swipe", shade: true },
+           grade: "contrast(1.1) saturate(1.08) brightness(0.95)", warm: "", band: true, pixels: "#ff4fb8", trans: ["burn", "zoomblur", "burn", "expo"], burn: "#ff7fd0" },
+  mintui: { hero: { fam: "Outfit", w: 800, size: 0.125, colors: ["#5ef2c4", "#ffffff"], track: -0.025, glowSoft: true, enter: "rise", shade: true }, moves: ["underline", "tag", "select", "fly"],
+           small: { fam: "Outfit", w: 500, size: 0.07, colors: ["#ffffff"], track: -0.015, enter: "rise", shade: true },
+           single: { fam: "Outfit", w: 700, size: 0.085, colors: ["#ffffff"], track: -0.02, y: 0.62, enter: "rise", shade: true },
+           grade: "contrast(1.05) saturate(1.04) brightness(1.02)", warm: "", band: true, pixels: "#5ef2c4", trans: ["zoomblur", "leak", "zoomblur", "expo"] },
   // Copied from the motion-designer reel: white captions in a bold and a
   // light weight side by side, the word that matters in lime; small lime
   // squares and a lime cursor gliding in beside the words; lists shown as the
@@ -11700,7 +11725,7 @@ function vsProFont(st, px) {
 const VS_PRO_PACE = {
   reveal: "calm", serif: "calm", listing: "calm", suite: "calm", trust: "calm", walk: "calm", focus: "calm", agent: "calm",
   editorial: "calm", luxe: "calm", goldpro: "calm", highlight: "calm", block3d: "calm", vlog: "calm",
-  street: "punchy", viral: "punchy", punch: "punchy", karaoke: "punchy",
+  street: "punchy", viral: "punchy", punch: "punchy", karaoke: "punchy", doodle: "punchy",
 };
 const VS_PACE = {
   //        a group spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
@@ -12737,7 +12762,10 @@ function vsProLimeEditor(ctx, W, H, s, ins, t, F, pack) {
 // slowly. One per line, in turn, every fourth line left plain. All eased,
 // nothing shakes.
 const VS_PRO_MOVES = ["select", "fly", "gizmo", ""];
-function vsProMoveOf(gi) { return VS_PRO_MOVES[((gi % VS_PRO_MOVES.length) + VS_PRO_MOVES.length) % VS_PRO_MOVES.length]; }
+function vsProMoveOf(gi, pack) {
+  const L = pack && Array.isArray(pack.moves) ? pack.moves : VS_PRO_MOVES;
+  return L[((gi % L.length) + L.length) % L.length];
+}
 function vsProMoveColor(pack) {
   if (pack.burn && pack.burn !== "#ffffff") return pack.burn;
   if (pack.pixels) return pack.pixels;
@@ -12750,7 +12778,7 @@ function vsProCursor(ctx, x, y, z, col) {
   ctx.lineWidth = Math.max(1, z * 0.05); ctx.strokeStyle = "#10140a"; ctx.lineJoin = "round"; ctx.stroke();
 }
 function vsProMotion(ctx, W, H, pack, gi, t, len, hb, gb, out) {
-  const mv = vsProMoveOf(gi);
+  const mv = vsProMoveOf(gi, pack);
   if (!mv || mv === "fly" || t < 0 || !hb) return;
   const U = Math.min(W, H * 0.62), col = vsProMoveColor(pack);
   const sm = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
@@ -12791,6 +12819,58 @@ function vsProMotion(ctx, W, H, pack, gi, t, len, hb, gb, out) {
         const [px, py] = at(c);
         vsProCursor(ctx, px, py, U * 0.05, col);
       }
+    }
+  } else if (mv === "circle") {
+    // a hand-drawn loop round the word, drawn on in one stroke, a little past its start
+    const cx = hb.x + hb.w / 2, cy = hb.y + hb.h / 2, rx = hb.w * 0.62 + U * 0.02, ry = hb.h * 0.85 + U * 0.012;
+    const p = sm(t / 0.42), a0 = -2.2, span = Math.PI * 2.15 * p;
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, U * 0.0075); ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let k = 0; k <= 48; k++) { const a = a0 + span * (k / 48), wob = 1 + 0.035 * Math.sin(a * 3); const x = cx + Math.cos(a) * rx * wob, y = cy + Math.sin(a) * ry * wob - (k / 48) * U * 0.006; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  } else if (mv === "spark") {
+    // three short strokes bursting from the word's top corner, then gone
+    const ox = hb.x + hb.w + U * 0.012, oy = hb.y - U * 0.004, p = sm(t / 0.22), q = sm((t - 0.26) / 0.3);
+    if (q < 1) {
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, U * 0.007); ctx.lineCap = "round"; ctx.globalAlpha = fade * (1 - q);
+      [-0.15, -0.75, -1.35].forEach((a) => {
+        const r0 = U * 0.018 + q * U * 0.02, r1 = r0 + U * 0.045 * p;
+        ctx.beginPath(); ctx.moveTo(ox + Math.cos(a) * r0, oy + Math.sin(a) * r0); ctx.lineTo(ox + Math.cos(a) * r1, oy + Math.sin(a) * r1); ctx.stroke();
+      });
+    }
+  } else if (mv === "arrow") {
+    // a curved arrow drawn in from the side, its head landing at the word
+    const toR = hb.x + hb.w / 2 < W / 2, ex = toR ? hb.x + hb.w + U * 0.02 : hb.x - U * 0.02, ey = hb.y + hb.h * 0.5;
+    const sx = ex + (toR ? 1 : -1) * U * 0.2, sy = ey + U * 0.16, cx2 = ex + (toR ? 1 : -1) * U * 0.2, cy2 = ey - U * 0.02;
+    const p = sm(t / 0.4), at = (u) => [(1 - u) * (1 - u) * sx + 2 * (1 - u) * u * cx2 + u * u * ex, (1 - u) * (1 - u) * sy + 2 * (1 - u) * u * cy2 + u * u * ey];
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, U * 0.0065); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); for (let k = 0; k <= 30; k++) { const [x, y] = at(p * k / 30); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    if (p > 0.9) {
+      const [x1, y1] = at(p), [x0, y0] = at(Math.max(0, p - 0.08)), ang = Math.atan2(y1 - y0, x1 - x0), hl = U * 0.03;
+      ctx.beginPath(); ctx.moveTo(x1 - Math.cos(ang - 0.5) * hl, y1 - Math.sin(ang - 0.5) * hl); ctx.lineTo(x1, y1); ctx.lineTo(x1 - Math.cos(ang + 0.5) * hl, y1 - Math.sin(ang + 0.5) * hl); ctx.stroke();
+    }
+  } else if (mv === "underline") {
+    // a marker stroke sweeping under the word, a dot riding its end
+    const y = hb.y + hb.h + U * 0.012, x0 = hb.x - U * 0.01, w = (hb.w + U * 0.02) * sm(t / 0.3);
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(3, U * 0.011); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.quadraticCurveTo(x0 + w / 2, y + U * 0.008, x0 + w, y - U * 0.004); ctx.stroke();
+    if (w > 2) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + w, y - U * 0.004, U * 0.009, 0, Math.PI * 2); ctx.fill(); }
+  } else if (mv === "bracket") {
+    // viewfinder corners close in on the word, a small REC dot blinking by them
+    const pad = U * 0.02 + U * 0.05 * (1 - sm(t / 0.3)), x0 = hb.x - pad, y0 = hb.y - pad, w = hb.w + pad * 2, h = hb.h + pad * 2, arm = Math.min(w, h) * 0.25;
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, U * 0.0045);
+    [[x0, y0, 1, 1], [x0 + w, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + w, y0 + h, -1, -1]].forEach(([x, y, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x + dx * arm, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * arm); ctx.stroke(); });
+    if (Math.floor(t * 2.5) % 2 === 0) { ctx.fillStyle = "#ff3b3b"; ctx.beginPath(); ctx.arc(x0 + U * 0.012, y0 - U * 0.022, U * 0.008, 0, Math.PI * 2); ctx.fill(); }
+  } else if (mv === "tag") {
+    // a small UI chip slides out above the word: a dot and the word's length in letters as a "layer" name
+    const p = sm(t / 0.28), fs = U * 0.026, label = "LAYER " + String(((hb.w * 7) | 0) % 90 + 10);
+    ctx.font = "700 " + Math.round(fs) + 'px Manrope, "Vazirmatn", sans-serif'; ctx.textBaseline = "middle";
+    const tw = ctx.measureText(label).width, ph = fs * 1.7, pw = (tw + fs * 2.2) * p, x = hb.x, y = hb.y - ph * 0.9;
+    if (pw > 4) {
+      ctx.fillStyle = col; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - ph / 2, pw, ph, ph / 2); else ctx.rect(x, y - ph / 2, pw, ph); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.rect(x, y - ph / 2, pw, ph); ctx.clip();
+      ctx.fillStyle = "#0b0d12"; ctx.beginPath(); ctx.arc(x + fs * 0.75, y, fs * 0.22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText(label, x + fs * 1.25, y + fs * 0.04); ctx.restore();
     }
   } else if (mv === "gizmo") {
     // a 3x3 grid of dots opens into a square with handles, a cross in the
@@ -14516,7 +14596,7 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     const by0 = Math.min(...lay.words.map((w) => w.y - w.px * 0.55)), by1 = Math.max(...lay.words.map((w) => w.y + w.px * 0.55));
     const gcx = (bx0 + bx1) / 2, gcy = (by0 + by1) / 2;
     const sc = ed && ed.scale ? ed.scale : 1, mx = ed && ed.dx ? ed.dx * W : 0, my = ed && ed.dy ? ed.dy * H : 0;
-    const flyE = pack.moves && vsProMoveOf(gi) === "fly" && !g.single ? 1 - Math.pow(1 - Math.max(0, Math.min(1, (local - g.t0) / 0.42)), 3) : 1;
+    const flyE = pack.moves && vsProMoveOf(gi, pack) === "fly" && !g.single ? 1 - Math.pow(1 - Math.max(0, Math.min(1, (local - g.t0) / 0.42)), 3) : 1;
     const moved = (fn) => {
       ctx.save();
       if (sc !== 1 || mx || my) { ctx.translate(gcx + mx, gcy + my); ctx.scale(sc, sc); ctx.translate(-gcx, -gcy); }
@@ -14959,9 +15039,11 @@ const VS_GX_PALETTES = [
   ["sepia", 0, "#eadfc8", "#f5eddc", "#2e2116", "#8a7258", "#a4452c", "#2e2116", "#4f6d7a"],
 ];
 // [id, display face, weight, capitals, body face, weight, italic display]
+// (one family per theme, labels and captions in the title's own face: a
+// serif under a grotesk title read as two designs - the owner, twice)
 const VS_GX_FONTS = [
-  ["editorial", "Archivo", 800, 0, "Libre Caslon Text", 400],
-  ["stoicmix", "Arimo", 700, 0, "Libre Caslon Text", 400],
+  ["editorial", "Archivo", 800, 0, "Archivo", 500],
+  ["stoicmix", "Arimo", 700, 0, "Arimo", 400],
   ["steelmix", "Heebo", 700, 0, "Heebo", 300],
   ["pastelmix", "Arimo", 700, 0, "Arimo", 400],
   ["postermix", "Anton", 400, 1, "Heebo", 300],
@@ -15826,10 +15908,20 @@ function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
     ctx.save(); ctx.translate(k * W * 0.26 + t * U * 0.01, 0); ctx.transform(1, 0, -0.6, 1, 0, 0); ctx.translate(H * 0.3, 0); ctx.fillStyle = bg; ctx.fillRect(0, 0, W * 0.16, H); ctx.restore();
   }
   ctx.globalAlpha = 1;
-  // the camera: turned towards one side and settling, pushing in
   const e = (u) => { u = Math.max(0, Math.min(1, u)); return 1 - Math.pow(1 - u, 3); };
-  const dir = (Number(sc._idx) || 0) % 2 ? -1 : 1, q = Math.min(1, t / Math.max(1, dur));
-  const a = dir * (tilt - tilt * 0.55 * e(q * 1.4)), z = 0.9 + 0.06 * q, cx = W / 2 + dir * W * 0.015 * (1 - e(q)), cy = H * 0.505;
+  const idx = Number(sc._idx) || 0, dir = idx % 2 ? -1 : 1, q = Math.min(1, t / Math.max(1, dur));
+  // a soft glow of the accent behind every other scene: the scenes do not all sit on the same grey
+  if (idx % 2) { const rg = ctx.createRadialGradient(W * (dir > 0 ? 0.8 : 0.2), H * 0.25, 0, W * (dir > 0 ? 0.8 : 0.2), H * 0.25, Math.max(W, H) * 0.7); rg.addColorStop(0, (tk.a1 || "#888888") + "33"); rg.addColorStop(1, (tk.a1 || "#888888") + "00"); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H); }
+  // the camera, a different framing scene by scene: turned and settling;
+  // straight on, drifting up; close, the sheet past the frame, a slight roll;
+  // sliding in from the side as it straightens
+  const mode = idx % 4;
+  let a, z, cx = W / 2, cy = H * 0.505, roll = 0;
+  if (mode === 1) { a = dir * 0.04 * (1 - e(q)); z = 0.95 + 0.04 * q; cy = H * 0.515 - q * H * 0.012; }
+  else if (mode === 2) { a = -dir * tilt * 0.35 * (1 - 0.5 * e(q)); z = 1.06 + 0.06 * q; roll = dir * 0.018 * (1 - 0.4 * q); }
+  else if (mode === 3) { a = dir * tilt * (1 - e(q * 2)); z = 0.92 + 0.05 * q; cx = W / 2 + dir * W * 0.12 * (1 - e(q * 2.2)); }
+  else { a = dir * (tilt - tilt * 0.55 * e(q * 1.4)); z = 0.9 + 0.06 * q; cx = W / 2 + dir * W * 0.015 * (1 - e(q)); }
+  if (roll) { ctx.translate(W / 2, H / 2); ctx.rotate(roll); ctx.translate(-W / 2, -H / 2); }
   const hw = (sw * z) / 2, f = W * 2.3, N = 56;
   const proj = (u) => { const zz = u * hw * Math.sin(a), k = f / (f + zz); return { x: cx + u * hw * Math.cos(a) * k, k }; };
   const L = proj(-1), R = proj(1);
@@ -17374,6 +17466,10 @@ function vsEditStudio(preset, filesIn) {
     ["pro-yellowcaps", L("Yellow caps", "حروف زرد"), L("From the coming-soon listing reel · the hook in huge yellow capitals behind your head", "از ریلز ملک به‌زودی · قلاب با حروف زرد بزرگ پشت سرت")],
     ["pro-street", L("Street interview", "مصاحبهٔ خیابانی"), L("From the street-interview reel · small bold capitals, the key word in sky blue", "از ریلز مصاحبهٔ خیابانی · حروف بزرگ کوچک پررنگ، کلمهٔ اصلی آبی")],
     ["pro-block3d", L("3D letters", "حروف سه‌بعدی"), L("From the 25-acre estate reel · the key word as big 3D letters standing behind you", "از ریلز ملک ۲۵ جریبی · کلمهٔ اصلی با حروف سه‌بعدی بزرگ پشتت")],
+    ["pro-studio", L("Studio UI", "استودیو UI"), L("Motion UI in electric blue · selection frames, viewfinder corners and layer chips round the key word", "رابط موشن آبی برقی · کادر انتخاب، گوشه‌های ویزور و برچسب لایه دور کلمهٔ اصلی")],
+    ["pro-doodle", L("Doodle pop", "دودل پاپ"), L("Orange and yellow marker strokes · hand-drawn loops, sparks and arrows on the key word", "خطوط ماژیک نارنجی و زرد · دایره، جرقه و فلش دست‌کشیده روی کلمهٔ اصلی")],
+    ["pro-neonui", L("Neon UI", "نئون UI"), L("Magenta and cyan glow · the gizmo, selection frames and sparks", "درخشش سرخابی و فیروزه‌ای · گیزمو، کادر انتخاب و جرقه")],
+    ["pro-mintui", L("Mint UI", "مینت UI"), L("Clean mint · marker underlines, layer chips and frames", "نعنایی تمیز · خط‌کشی ماژیکی، برچسب لایه و کادر")],
     ["pro-lime", L("Lime UI", "رابط لیمویی"), L("From the motion-designer reel · bold and light white words, lime highlights, a lime cursor, lists as an editor timeline", "از ریلز موشن دیزاینر · کلمات سفید پررنگ و نازک، هایلایت لیمویی، نشانگر لیمویی، لیست به شکل تایم‌لاین ادیتور")],
     ["pro-listing", L("Listing tour", "تور ملک"), L("From the drone realtor reels · big thin white words, the key word in a lilac or rose serif italic, soft dissolves", "از ریلزهای ملک با پهپاد · کلمات بزرگ نازک سفید، کلمهٔ اصلی سریف ایتالیک یاسی یا صورتی، محو نرم")],
     ["pro-agent", L("Agent", "مشاور"), L("From the Kelsie realtor reel · small light words, the key word bold in grey, teal or wine behind your head", "از ریلز مشاور کلسی · کلمات ریز سفید، کلمهٔ اصلی پررنگ طوسی، سبزآبی یا شرابی پشت سرت")],
@@ -19794,7 +19890,9 @@ async function vsEditMyVideo(fileIn, o) {
     // tower with a blast, a reveal, a product shot with its own sound. A gap
     // that is loud like the voice, or where the picture changes a lot, is
     // the video's moment and stays in, whole.
-    if (o.cut !== false) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf); } catch (e) {} }
+    // (not in a graphic video: its footage is never shown, a wordless stretch
+    // would be an empty scene)
+    if (o.cut !== false && !gx) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf); } catch (e) {} }
     // the teaser: the strongest moment, up front, under the hook
     let teaser = null;
     const tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
