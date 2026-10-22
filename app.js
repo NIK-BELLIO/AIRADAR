@@ -16685,7 +16685,9 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     let px = U * 0.26; const fw = ctx.measureText(up(sc.value)).width; if (fw > W * 0.8) px *= (W * 0.8) / fw;
     const ny = H * (port ? 0.5 : 0.52), tx = left ? xL : xC, al = left ? "left" : "center";
     backdrop(left ? tx + fw * px / (U * 0.26) / 2 : tx, ny, fw * px / (U * 0.26), px, 0.05);
-    const r = title(v, px, tx, ny, W * 0.95, al, 0.1, { maxLines: 1, color: st.tt === "glow" || st.ec === "a1" ? acc : undefined });
+    // set against the left margin, the room is what is left of the frame after it
+    // ("1-800-TO-ADOPT" ran off the right edge with the whole width allowed)
+    const r = title(v, px, tx, ny, left ? W * 0.94 - tx : W * 0.9, al, 0.1, { maxLines: 1, color: st.tt === "glow" || st.ec === "a1" ? acc : undefined });
     device(r, 0.1);
     // under the number and clear of its device (a frame, rules, a bar)
     text(sc.title, body, U * 0.06, tx, ny + px * 0.6 + U * 0.13, W * 0.8, al, tk.muted, 0.4, { maxLines: 2 });
@@ -35817,6 +35819,8 @@ function vsThumbStudio(prefillTopic, preset) {
       }
     }
     gen.disabled = false; gen.style.opacity = "1"; gen.textContent = fa ? "دوباره بساز" : "Generate again";
+    // a server render (vsHeadlessRenderDeckId) is waiting for these files
+    try { const f = vstudio._onThumbsDone; if (typeof f === "function") { vstudio._onThumbsDone = null; f(results.slice()); } } catch (e) {}
     renderPreviews();   // the looks now preview with the words as they came out
     if (zipBtn && results.length) zipBtn.style.display = "";
   };
@@ -40037,6 +40041,77 @@ async function vsHeadlessRender(deck, opts) {
   return { ok: true, ext: res.ext || "mp4", bytes: buf.length, ms: Date.now() - t0, log: log, base64: btoa(bin) };
 }
 
+// ── Any video the API made, rendered on the server ─────────────────────────
+// The render service (render-service/server.js) opens the studio headless and
+// calls this with a deck id. The deck opens exactly as its link opens it - a
+// script, an edit of the customer's own video, a photo video - and the
+// finished video is encoded and handed back. The account's worker ticket comes
+// with the job, so the transcription and the edit plan run as that account,
+// not as a guest on the server's address.
+async function vsHeadlessRenderDeckId(id, opts) {
+  opts = opts || {};
+  const t0 = Date.now();
+  const log = [];
+  const say = (m) => { log.push(Math.round((Date.now() - t0) / 100) / 10 + "s " + m); };
+  if (!/^deck_[0-9a-f]{32}$/.test(String(id || ""))) throw new Error("bad deck id");
+  if (opts.ticket) { _vsFalTicket = String(opts.ticket); _vsFalTicketUntil = Date.now() + 9 * 60 * 1000; _vsFalNoTicketUntil = 0; }
+  const j = await (await fetch("/api/decks/" + id)).json().catch(() => null);
+  if (!j || !j.ok || !j.script) throw new Error("deck not found");
+  if (["graphic", "carousel"].includes(String(j.skill))) throw new Error("not a video: " + j.skill);
+  if (j.skill === "thumbnail") {
+    say("thumbnails");
+    const done = new Promise((res) => { vstudio._onThumbsDone = res; });
+    const late = new Promise((res) => setTimeout(() => res(null), 8 * 60 * 1000));
+    await vsOpenThumbDeck(j);
+    const files = await Promise.race([done, late]);
+    vstudio._onThumbsDone = null;
+    if (!files || !files.length) throw new Error("no thumbnail was made");
+    const images = [];
+    for (const f of files) {
+      const b = new Uint8Array(await f.blob.arrayBuffer());
+      let s = "";
+      for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+      images.push({ name: f.name, type: f.blob.type || "image/jpeg", bytes: b.length, base64: btoa(s) });
+    }
+    say(images.length + " thumbnails");
+    return { ok: true, kind: "thumbnail", images, bytes: images.reduce((n, x) => n + x.bytes, 0), ms: Date.now() - t0, log };
+  }
+  const kind = j.skill === "edit" ? (j.script.kind === "photos" ? "photos" : j.script.kind === "swap" ? "swap" : "edit") : (j.skill || "script");
+  // a guest wall or an error status shows up as page text; keep the last one
+  let lastStatus = "";
+  const status0 = window.vsAutoStatus;
+  const before = vstudio._buildSeq;
+  say("opening " + kind);
+  try {
+    window.vsAutoStatus = (m) => { lastStatus = String(m || ""); try { status0 && status0(m); } catch (e) {} };
+    if (j.skill === "edit") await vsOpenEditDeck(j.script);
+    else if (j.skill === "reel") await vsOpenReelDeck(j.script);
+    else await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "AI Radar API" });
+  } finally { window.vsAutoStatus = status0; }
+  if (window.__arGuestWall) throw new Error("the account's free allowance is used up (" + lastStatus.slice(0, 120) + ")");
+  if (vstudio._buildSeq === before || !vstudio.slides.length || !vstudio.slides.some((x) => x.ready)) {
+    throw new Error("the video was not built" + (lastStatus ? ": " + lastStatus.slice(0, 160) : ""));
+  }
+  say("built " + vstudio.slides.length + " scenes");
+  try { stopStudioPreview(); } catch (e) {}
+  vstudio.looping = false;
+  if (opts.size) { const el = document.querySelector("#vsExportSize"); if (el) { el.value = String(opts.size); try { el.dispatchEvent(new Event("change")); } catch (e) {} } }
+  if (opts.quality) { const el = document.querySelector("#vsExportQuality"); if (el) { el.value = String(opts.quality); try { el.dispatchEvent(new Event("change")); } catch (e) {} } }
+  say("encoding");
+  vstudio._batchCancel = false;
+  vstudio._returnBlob = true;
+  vstudio._exportName = String(j.script.title || j.script.name || "AI Radar video").slice(0, 80);
+  let res = null;
+  try { res = await exportStudioVideo(); }
+  finally { vstudio._returnBlob = false; vstudio._exportName = null; }
+  if (!res || !res.blob || !res.blob.size) throw new Error("export produced nothing");
+  say("encoded " + Math.round(res.blob.size / 1048576 * 10) / 10 + "MB");
+  const buf = new Uint8Array(await res.blob.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+  return { ok: true, kind, ext: res.ext || "mp4", bytes: buf.length, ms: Date.now() - t0, log, base64: btoa(bin) };
+}
+
 async function exportStudioVideo() {
   let canvas = $("#vsCanvas");
   const media = vstudio.mediaEl;
@@ -40607,7 +40682,14 @@ NARRATION: ${x.heading ? String(x.body || "") : ""}
       handle: c.handle || "", photo, maxSlides: 8 });
     return;
   }
-  if (j.skill === "thumbnail" && j.script && j.script.fromVideo) {
+  if (j.skill === "thumbnail") { await vsOpenThumbDeck(j); return; }
+  await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
+}
+
+/** A thumbnail deck (create_thumbnail, create_thumbnail_from_video), opened in the Thumbnail Studio. */
+async function vsOpenThumbDeck(j) {
+  const fa = state.lang === "fa";
+  if (j.script && j.script.fromVideo) {
     // a thumbnail from the user's own video (MCP create_thumbnail_from_video)
     const t = j.script;
     let file = null;
@@ -40620,14 +40702,10 @@ NARRATION: ${x.heading ? String(x.body || "") : ""}
       : { askVideo: true, text: t.text || "", template: t.template, sizes: t.sizes, removeText: t.removeText !== false, variations: t.variations, note: t.note || "" });
     return;
   }
-  if (j.skill === "thumbnail") {
-    const t = j.script || {};
-    const image = t.image ? await vsLoadOwnImage(t.image) : null;
-    vsAutoStatus(fa ? "تامبنیلی که AIِ تو فرستاد…" : "The thumbnail your AI sent…");
-    vsThumbStudio(t.text || t.topic || "", { template: t.template, sizes: t.sizes, image, autoGenerate: true });
-    return;
-  }
-  await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "your AI (MCP)" });
+  const t = j.script || {};
+  const image = t.image ? await vsLoadOwnImage(t.image) : null;
+  vsAutoStatus(fa ? "تامبنیلی که AIِ تو فرستاد…" : "The thumbnail your AI sent…");
+  vsThumbStudio(t.text || t.topic || "", { template: t.template, sizes: t.sizes, image, autoGenerate: true });
 }
 
 /**
