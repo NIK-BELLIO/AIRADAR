@@ -101,6 +101,18 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    hx2Free: "Free",
+    hx2Soon: "Soon",
+    hx2Kind: "AI video editor",
+    hx2Tools: "Tools:",
+    hx2tVs: "Edit, captions, music",
+    hx2tSp: "Hooks, posts, thumbnails",
+    hx2tPl: "Prompts for image and video",
+    hx2tAs: "A chat that remembers you",
+    hx2tRe: "Copy a format that worked",
+    hx2tCi: "Era, lens, light, camera move",
+    hx2tMk: "Product shots and ads",
+    hx2tMo: "Video and image models",
     homeH1: "Raw video in, pro reel out.",
     homeLede: "A free AI video editor in your browser. It cuts the pauses and adds animated captions, music, b-roll and motion graphics in one click. No install.",
     vsEditMine: "Edit my video",
@@ -604,6 +616,18 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    hx2Free: "رایگان",
+    hx2Soon: "به‌زودی",
+    hx2Kind: "ادیتور ویدیو با هوش مصنوعی",
+    hx2Tools: "ابزارها:",
+    hx2tVs: "ادیت، زیرنویس، موزیک",
+    hx2tSp: "هوک، پست، تامبنیل",
+    hx2tPl: "پرامپت برای عکس و ویدیو",
+    hx2tAs: "چتی که تو را یادش می‌ماند",
+    hx2tRe: "کپی فرمتی که جواب داده",
+    hx2tCi: "دوره، لنز، نور، حرکت دوربین",
+    hx2tMk: "عکس محصول و تبلیغ",
+    hx2tMo: "مدل‌های ویدیو و عکس",
     homeH1: "ویدیوی خام بده، ریلز حرفه‌ای بگیر.",
     homeLede: "ادیتور ویدیوی رایگان با هوش مصنوعی، داخل مرورگر. مکث‌ها را می‌بُرد و زیرنویس متحرک، موزیک، بی‌رول و موشن‌گرافیک را با یک کلیک اضافه می‌کند. بدون نصب.",
     vsEditMine: "ادیت ویدیوی من",
@@ -43609,7 +43633,7 @@ function arSoonPage() {
   css.textContent =
     ".ar-soon{opacity:.55;cursor:default!important;pointer-events:auto}" +
     ".ar-soon:hover{transform:none!important}" +
-    ".ar-soon-b{display:inline-block;margin-inline-start:6px;padding:1px 6px;border-radius:4px;font:600 8.5px/1.6 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#f5c451;background:rgba(245,196,81,.1);border:1px solid rgba(245,196,81,.28);vertical-align:middle;white-space:nowrap}" +
+    ".ar-soon-b{display:inline-block;margin-inline-start:6px;padding:1px 6px;border-radius:4px;font:600 8.5px/1.6 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#a3a9b3;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);vertical-align:middle;white-space:nowrap}" +
     ".ar-soon-page{position:fixed;inset:0;z-index:100000;display:flex;background:rgba(6,7,10,.92);backdrop-filter:blur(8px);padding:16px;overflow:auto}" +
     ".ar-soon-card{margin:auto;max-width:440px;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;color:#f4f5f7;font:500 15px/1.5 Manrope,Vazirmatn,system-ui,sans-serif}" +
     ".ar-soon-card h1{margin:0;font:700 28px/1.2 'Space Grotesk',Vazirmatn,system-ui,sans-serif}" +
@@ -43625,4 +43649,86 @@ function arSoonPage() {
   // (at most twice a second: the studio changes the page all the time)
   let soonT = 0;
   try { new MutationObserver(() => { if (soonT) return; soonT = setTimeout(() => { soonT = 0; arSoonMark(document); }, 500); }).observe(document.body || document.documentElement, { childList: true, subtree: true }); } catch (e) {}
+})();
+
+
+// ── The front door's moving parts ──────────────────────────────────────────
+// The captions tile writes a line a word at a time, the way the editor does;
+// the device leans toward the pointer, eased, never snapping; the tool strip
+// steps a card at a time. All of it stands still for reduced motion.
+(function () {
+  const go = () => {
+    const strip = document.getElementById("hx2Strip");
+    if (!strip) return;
+    const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rtl = document.documentElement.dir === "rtl";
+    document.querySelectorAll(".hx2-arr").forEach((b) => b.addEventListener("click", () => {
+      const cell = strip.querySelector(".hx2-tool");
+      const step = (cell ? cell.getBoundingClientRect().width : 300) * Number(b.dataset.dir) * (rtl ? -1 : 1);
+      strip.scrollBy({ left: step, behavior: calm ? "auto" : "smooth" });
+    }));
+    const cap = document.getElementById("hx2Cap");
+    if (cap) {
+      const fa = state.lang === "fa";
+      const lines = fa ? [["مکث‌ها", "بریده", "شد"], ["زیرنویس", "آماده", "است"], ["موزیک", "روی", "ریتم"]]
+        : [["cut", "the", "pauses"], ["add", "the", "captions"], ["drop", "the", "beat"]];
+      let n = 0;
+      const show = () => {
+        const w = lines[n++ % lines.length];
+        cap.innerHTML = "";
+        w.forEach((t, i) => {
+          const el = document.createElement("span");
+          el.textContent = t;
+          if (i === w.length - 1) el.className = "hx2-hi";
+          el.style.animationDelay = calm ? "0s" : (i * 0.16).toFixed(2) + "s";
+          cap.appendChild(el);
+        });
+      };
+      show();
+      if (!calm) setInterval(show, 2600);
+    }
+    const stage = document.querySelector(".hx2-stage"), dev = document.querySelector(".hx2-dev");
+    if (stage && dev && !calm && matchMedia("(hover: hover)").matches) {
+      let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+      const tick = () => {
+        x += (tx - x) * 0.08; y += (ty - y) * 0.08;
+        dev.style.setProperty("--rx", y.toFixed(2) + "deg");
+        dev.style.setProperty("--ry", x.toFixed(2) + "deg");
+        raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.01 ? requestAnimationFrame(tick) : 0;
+      };
+      const aim = (e) => {
+        const r = stage.getBoundingClientRect();
+        tx = ((e.clientX - r.left) / r.width - 0.5) * 16;
+        ty = -((e.clientY - r.top) / r.height - 0.5) * 12;
+        if (!raf) raf = requestAnimationFrame(tick);
+      };
+      document.querySelector(".hx2").addEventListener("pointermove", aim);
+      document.querySelector(".hx2").addEventListener("pointerleave", () => { tx = 0; ty = 0; if (!raf) raf = requestAnimationFrame(tick); });
+    }
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
+
+// ── Language: EN | فا in the header of every static page ───────────────────
+// The two languages are two sets of URLs (tools/build-fa.cjs builds /fa/), so
+// the switch is a pair of links. A page with no Persian twin offers the
+// Persian home page.
+(function () {
+  const go = () => {
+    const right = document.querySelector(".arh-right");
+    if (!right || right.querySelector(".arh-lang")) return;
+    const fa = state.lang === "fa";
+    let en = location.pathname.replace(/^\/fa(?=\/)/, "") || "/";
+    if (en === "/index.html") en = "/";
+    const twin = en === "/" || en === "/studio/" || en === "/spark/";
+    const box = document.createElement("div");
+    box.className = "arh-lang";
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", fa ? "زبان" : "Language");
+    box.innerHTML =
+      '<a href="' + en + location.hash + '" hreflang="en" lang="en"' + (fa ? "" : ' aria-current="true"') + ">EN</a>" +
+      '<a href="' + (twin ? "/fa" + en : "/fa/") + (twin ? location.hash : "") + '" hreflang="fa" lang="fa"' + (fa ? ' aria-current="true"' : "") + ">فا</a>";
+    right.insertBefore(box, right.firstChild);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();

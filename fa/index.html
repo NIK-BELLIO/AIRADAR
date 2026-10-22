@@ -37,8 +37,8 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v879" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=v880" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -671,403 +671,49 @@
 
         <main id="top">
 
-        <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
-
-        <!-- ── THE WORK, LARGE ───────────────────────────────────────────
-             Four cards at the top of the page, before anything explains
-             itself. Real clips, full width, captions underneath in the same
-             small uppercase the reference uses. -->
-        <section class="ft-row">
-            <a class="ft-card" href="/reverse-engineer/">
-              <span class="ft-media">
-                <video class="ft-vid" src="/prev/reverse.mp4" poster="/prev/reverse.jpg"
-                       muted loop playsinline preload="none"></video>
-              </span>
-              <span class="ft-name">Reverse Engineer</span>
-              <span class="ft-line" data-i18n="home01">یک پست موفق را بده و همان را، این بار با خودت، بگیر.</span>
-            </a>
-            <a class="ft-card" href="/fa/studio/">
-              <span class="ft-media">
-                <video class="ft-vid" src="/prev/studio.mp4" poster="/prev/studio.jpg"
-                       muted loop playsinline preload="none"></video>
-              </span>
-              <span class="ft-name">Video Studio</span>
-              <span class="ft-line" data-i18n="home02">یک لینک، یک مقاله یا یک ایده به ویدیوی آماده تبدیل می‌شود.</span>
-            </a>
-            <a class="ft-card" href="/workflows/cinema-studio">
-              <span class="ft-media">
-                <video class="ft-vid" src="/prev/cinema.mp4" poster="/prev/cinema.jpg"
-                       muted loop playsinline preload="none"></video>
-              </span>
-              <span class="ft-name">Cinema Studio</span>
-              <span class="ft-line" data-i18n="home03">نما را کارگردانی کن: دوره، لنز، نور، حرکت دوربین.</span>
-            </a>
-            <a class="ft-card" href="/marketing-studio">
-              <span class="ft-media">
-                <video class="ft-vid" src="/prev/marketing.mp4" poster="/prev/marketing.jpg"
-                       muted loop playsinline preload="none"></video>
-              </span>
-              <span class="ft-name">Marketing Studio</span>
-              <span class="ft-line" data-i18n="home04">عکس محصول و تبلیغ، از عکس خودت.</span>
-            </a>
-        </section>
-
-        <!-- ── LEDE ──────────────────────────────────────────────────────
-             Not a hero. The reference this page follows opens straight onto
-             work, with no introduction at all; a centred headline holding
-             half a screen of black was the single biggest reason this page
-             read as empty. One sentence, two doors, and then the work. -->
-        <section class="hx-lede">
-          <div class="hx-lede-in">
-            <h1 class="hx-lede-h" data-i18n="homeH1">ویدیوی خام بده، ریلز حرفه‌ای بگیر.</h1>
-            <p class="hx-lede-p" data-i18n="homeLede">ادیتور ویدیوی رایگان با هوش مصنوعی، داخل مرورگر. مکث‌ها را می‌بُرد و زیرنویس متحرک، موزیک، بی‌رول و موشن‌گرافیک را با یک کلیک اضافه می‌کند. بدون نصب.</p>
-            <span class="hx-lede-cta">
-              <a class="hero-x-go" href="/fa/studio/" data-i18n="home05">باز کردن استودیوی ویدیو</a>
-              <a class="hero-x-alt" href="/models" data-i18n="home06">دیدن مدل‌ها</a>
-            </span>
+        <!-- ── FRONT DOOR ────────────────────────────────────────────────
+             A drawing board: hairline columns, one sentence running the full
+             width, the editor as the one door, and every tool on a single
+             strip underneath - the free ones open, the rest marked Soon.
+             Nothing on it plays a video. -->
+        <section class="hx2">
+          <div class="hx2-cols" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="hx2-gap" aria-hidden="true"></div>
+          <div class="hx2-run">
+            <span class="hx2-sq" aria-hidden="true"></span><span class="hx2-sq" aria-hidden="true"></span>
+            <h1 class="hx2-h1"><span class="hx2-track"><span data-i18n="homeH1">ویدیوی خام بده، ریلز حرفه‌ای بگیر.</span><span aria-hidden="true" data-i18n="homeH1">ویدیوی خام بده، ریلز حرفه‌ای بگیر.</span><span aria-hidden="true" data-i18n="homeH1">ویدیوی خام بده، ریلز حرفه‌ای بگیر.</span></span></h1>
+            <p class="hx2-tags"><span class="hx2-sq" aria-hidden="true"></span><span data-i18n="hx2Free">رایگان</span><span data-i18n="hx2Kind">ادیتور ویدیو با هوش مصنوعی</span></p>
+            <span class="hx2-sq" aria-hidden="true"></span>
           </div>
-        </section>
-
-
-
-        <!-- ── THE WORK ──────────────────────────────────────────────────
-             A rail of real output rather than a description of it. The
-             clips ship with the site already - the template picker draws
-             from the same fifteen - so this costs one request each and no
-             new asset.
-
-             They autoplay only while on screen and only after their poster
-             has done the waiting: fifteen videos all decoding at once on a
-             phone is how a landing page becomes a heater. -->
-        <section id="work" class="sc-wrap">
-          <div class="sc-rail" id="scRail">
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home11">تایپوگرافی متحرک</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home12">اسکچ</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card">
-              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home11">تایپوگرافی متحرک</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home12">اسکچ</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
-            </figure>
-            <figure class="sc-card" aria-hidden="true">
-              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
-                     muted loop playsinline preload="none"></video>
-              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
-            </figure>
-          </div>
-        </section>
-
-        <!-- ── WHAT WE MAKE ──────────────────────────────────────────────
-             The home page used to open onto a directory of other people's
-             AI tools. Good work, and none of it about what this site does.
-             That lives on /radar/ now, and this is the first thing instead:
-             the eight things you can actually make here. -->
-        <section id="make" class="panel">
-          <div class="section-head">
-            <div>
-              <span class="sec-eyebrow" data-i18n="home13">چه می‌توانی بسازی</span>
-              <h2 data-i18n="home14">ابزارهای رایگان، همین حالا</h2>
-              <p data-i18n="home15">Video Studio و Spark رایگان‌اند. بقیهٔ استودیوها به‌زودی باز می‌شوند.</p>
+          <div class="hx2-main">
+            <div class="hx2-lede">
+              <p data-i18n="homeLede">ادیتور ویدیوی رایگان با هوش مصنوعی، داخل مرورگر. مکث‌ها را می‌بُرد و زیرنویس متحرک، موزیک، بی‌رول و موشن‌گرافیک را با یک کلیک اضافه می‌کند. بدون نصب.</p>
+              <a class="hx2-cta" href="/fa/studio/" data-i18n="home05">باز کردن استودیوی ویدیو</a>
             </div>
-          </div>
-          <div class="mk-grid">
-            <a class="mk-card" href="/fa/studio/">
-              <span class="mk-top">
-                <img class="mk-ic" src="/video-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Video Studio</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home16">متن، فیلم، زیرنویس و صدا، از یک لینک.</span>
-            </a>
-            <a class="mk-card" href="/fa/spark/">
-              <span class="mk-top">
-                <img class="mk-ic" src="/spark-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindText">متن</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Spark</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home17">هوک، پست، تصویر بندانگشتی، کاروسل. بیشترشان رایگان.</span>
-            </a>
-            <a class="mk-card" href="/reverse-engineer/">
-              <span class="mk-top">
-                <img class="mk-ic" src="/re-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Reverse Engineer</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home18">چیزی که جواب داده را، با خودت، دوباره بساز.</span>
-            </a>
-            <a class="mk-card" href="/models">
-              <span class="mk-top">
-                <img class="mk-ic" src="/models-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindVidImg">ویدیو · تصویر</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name" data-i18n="cardModels">مدل‌ها</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home19">سیزده مدل، همهٔ تنظیمات، یک قیمت به کردیت.</span>
-            </a>
-            <a class="mk-card" href="/workflows/cinema-studio">
-              <span class="mk-top">
-                <img class="mk-ic" src="/cinema-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Cinema Studio</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home20">دوره، لنز، نور، حرکت دوربین.</span>
-            </a>
-            <a class="mk-card" href="/marketing-studio">
-              <span class="mk-top">
-                <img class="mk-ic" src="/marketing-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindImage">تصویر</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Marketing Studio</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home21">عکس محصول و تبلیغ، از عکس خودت.</span>
-            </a>
-            <a class="mk-card" href="/prompt-lab/">
-              <span class="mk-top">
-                <img class="mk-ic" src="/lab-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindText">متن</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Prompt Lab</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home22">پرامپت‌هایی که از قبل جواب داده‌اند.</span>
-            </a>
-            <a class="mk-card" href="/assistant">
-              <span class="mk-top">
-                <img class="mk-ic" src="/chat-icon.svg" alt="" />
-                <span class="mk-kind" data-i18n="kindText">متن</span>
-              </span>
-              <span class="mk-card-head">
-                <span class="mk-card-name">Assistant</span>
-              </span>
-              <span class="mk-card-line" data-i18n="home23">بپرس، ابزار درست را برایت باز می‌کند.</span>
-            </a>
-          </div>
-          <a class="mk-radar" href="/radar/">
-            <span class="mk-radar-txt">
-              <b data-i18n="home25">هنوز رادار را می‌خواهی؟</b>
-              <span data-i18n="home24">مقایسهٔ چهل‌وچهار ابزار هوش مصنوعی، محبوبیت زندهٔ GitHub، نقشهٔ جهانی زیرساخت هوش مصنوعی و خبرهای روز.</span>
-            </span>
-            <span class="mk-radar-go" aria-hidden="true">&rarr;</span>
-          </a>
-        </section>
-
-
-
-
-
-
-
-
-        <!-- ── BANNER ────────────────────────────────────────────────────
-             Composed from the product's own interface rather than from
-             stock or from a generated still. Higgsfield's equivalent panel
-             does the same thing, and it is the only part of their page that
-             can be copied honestly: the interface in ours is ours. -->
-        <section class="bn-block">
-          <div class="bn-glow" aria-hidden="true"></div>
-          <div class="bn-in">
-
-            <div class="bn-side bn-left">
-              <figure class="bn-clip">
-                <video class="ft-vid bn-clipvid" src="/prev/made.mp4"
-                       poster="/prev/made.jpg" muted loop playsinline preload="none"></video>
-                <figcaption data-i18n="home26">ساخته‌شده در استودیوی ویدیو</figcaption>
-              </figure>
+            <div class="hx2-stage" aria-hidden="true">
+              <div class="hx2-dev"><div class="hx2-face"><span class="hx2-mark"></span></div></div>
+              <div class="hx2-base"></div>
             </div>
-
-            <div class="bn-mid">
-              <h2 class="bn-title" data-i18n="home27">یک موجودی.<br />Every model.</h2>
-              <p class="bn-sub" data-i18n="home29">سیزده مدل تصویر و ویدیو و چهار استودیو، همه با یک کردیت. بدون اشتراک جدا برای هر ابزار.</p>
-              <a class="hero-x-go" href="/pricing" data-i18n="home30">هر کار چقدر می‌شود</a>
-            </div>
-
-            <div class="bn-side bn-right">
-              <div class="bn-card">
-                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span><span data-i18n="home30">هر کار چقدر می‌شود</span></div>
-                <span class="bn-row">
-                  <span class="bn-m">Soul 2<i data-i18n="home32">همهٔ قیمت‌ها ←</i></span>
-                  <b>5</b>
-                </span>
-                <span class="bn-row">
-                  <span class="bn-m">Kling 3.0<i>5s</i></span>
-                  <b>26</b>
-                </span>
-                <span class="bn-row">
-                  <span class="bn-m">Seedance 2.0<i>5s · 480p</i></span>
-                  <b>41</b>
-                </span>
-                <span class="bn-row">
-                  <span class="bn-m">Cinema Studio<i>5s · 480p</i></span>
-                  <b>62</b>
-                </span>
-                <a class="bn-more" href="/pricing" data-i18n="home32">همهٔ قیمت‌ها ←</a>
+            <div class="hx2-side">
+              <div class="hx2-demo" aria-hidden="true"><i></i><i></i><i></i><i></i><p class="hx2-cap" id="hx2Cap"></p></div>
+              <div class="hx2-bar">
+                <span data-i18n="hx2Tools">ابزارها:</span>
+                <button type="button" class="hx2-arr" data-dir="-1" aria-label="Previous tools"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+                <button type="button" class="hx2-arr" data-dir="1" aria-label="Next tools"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
               </div>
             </div>
-
+          </div>
+          <div class="hx2-strip" id="hx2Strip">
+            <a class="hx2-tool" href="/fa/studio/"><span class="hx2-tn">Video Studio</span><small data-i18n="hx2tVs">ادیت، زیرنویس، موزیک</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/fa/spark/"><span class="hx2-tn">Spark</span><small data-i18n="hx2tSp">هوک، پست، تامبنیل</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/prompt-lab"><span class="hx2-tn">Prompt Lab</span><small data-i18n="hx2tPl">پرامپت برای عکس و ویدیو</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/assistant"><span class="hx2-tn">Assistant</span><small data-i18n="hx2tAs">چتی که تو را یادش می‌ماند</small><em data-i18n="hx2Free">رایگان</em></a>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Reverse Engineer</span><small data-i18n="hx2tRe">کپی فرمتی که جواب داده</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Cinema Studio</span><small data-i18n="hx2tCi">دوره، لنز، نور، حرکت دوربین</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Marketing Studio</span><small data-i18n="hx2tMk">عکس محصول و تبلیغ</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Models</span><small data-i18n="hx2tMo">مدل‌های ویدیو و عکس</small><em data-i18n="hx2Soon">به‌زودی</em></div>
           </div>
         </section>
-
-        <!-- ── AI MODELS TICKER ──────────────────────────────────────────
-             The ticker belongs after the promise, not in front of it.
-
-             It was the first thing on the page: a scrolling strip of other
-             companies' logos, above the headline, so the first thing anybody
-             read was a list of products that are not this one. None of the
-             sites this design follows put anything above their own sentence.
-
-             Down here it does the job it was always doing - showing the
-             breadth of what the finder tracks - as evidence for the claim
-             rather than as a queue in front of it. -->
-        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
-          <div class="models-ticker" id="modelsTicker"></div>
-        </div>
 
         <footer class="ar-foot">
           <div class="ar-foot-in">
@@ -1914,7 +1560,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v879"></script>
+    <script src="/app.js?v=v880"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────
