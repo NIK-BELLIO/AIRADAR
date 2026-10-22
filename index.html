@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=v882" />
+    <link rel="stylesheet" href="styles.css?v=v883" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -630,15 +630,15 @@
       <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
       <nav class="arh-nav" aria-label="Primary navigation">
         <!-- AI Creator temporarily hidden — output quality not ready yet. -->
-        <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
-        <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free">FREE</span></a>
-        <a href="/spark/" class="arh-link">Spark<span class="arh-free">FREE</span></a>
-        <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models/video" class="arh-link">Models<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
-      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
-      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new" data-i18n="badgeNew">NEW</span></a>
-      <a href="/assistant" class="arh-link">Assistant</a>
-      <a href="/radar/" class="arh-link">Radar</a>
+        <a href="/prompt-lab/" class="arh-link"><span data-i18n="hdrLab">Prompt Lab</span></a>
+        <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free" data-i18n="hdrFree">FREE</span></a>
+        <a href="/spark/" class="arh-link"><span data-i18n="hdrSpark">Spark</span><span class="arh-free" data-i18n="hdrFree">FREE</span></a>
+        <a href="/reverse-engineer/" class="arh-link"><span data-i18n="hdrRe">Reverse Engineer</span></a>
+      <a href="/models/video" class="arh-link"><span data-i18n="hdrModels">Models</span><span class="arh-new" data-i18n="badgeNew">NEW</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link"><span data-i18n="hdrCinema">Cinema</span><span class="arh-new" data-i18n="badgeNew">NEW</span></a>
+      <a href="/marketing-studio" class="arh-link"><span data-i18n="hdrMarketing">Marketing</span><span class="arh-new" data-i18n="badgeNew">NEW</span></a>
+      <a href="/assistant" class="arh-link"><span data-i18n="hdrAssistant">Assistant</span></a>
+      <a href="/radar/" class="arh-link"><span data-i18n="hdrRadar">Radar</span></a>
       </nav>
       <div class="arh-right">
         <!-- Unified auth: signed out shows "Sign in"; signed in shows an account
@@ -653,9 +653,9 @@
               <p id="authEmail" class="auth-menu-email"></p>
               <p id="authCredits" class="auth-menu-credits"></p>
             </div>
-            <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+            <a href="/dashboard" class="auth-menu-item" data-i18n="hdrDash">My dashboard</a>
             <!-- AI Creator temporarily hidden -->
-            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger" data-i18n="hdrLogout">Log out</button>
           </div>
         </div>
       </div>
@@ -702,14 +702,14 @@
             </div>
           </div>
           <div class="hx2-strip" id="hx2Strip">
-            <a class="hx2-tool" href="/studio/"><span class="hx2-tn">Video Studio</span><small data-i18n="hx2tVs">Edit, captions, music</small><em data-i18n="hx2Free">Free</em></a>
-            <a class="hx2-tool" href="/spark/"><span class="hx2-tn">Spark</span><small data-i18n="hx2tSp">Hooks, posts, thumbnails</small><em data-i18n="hx2Free">Free</em></a>
-            <a class="hx2-tool" href="/prompt-lab"><span class="hx2-tn">Prompt Lab</span><small data-i18n="hx2tPl">Prompts for image and video</small><em data-i18n="hx2Free">Free</em></a>
-            <a class="hx2-tool" href="/assistant"><span class="hx2-tn">Assistant</span><small data-i18n="hx2tAs">A chat that remembers you</small><em data-i18n="hx2Free">Free</em></a>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Reverse Engineer</span><small data-i18n="hx2tRe">Copy a format that worked</small><em data-i18n="hx2Soon">Soon</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Cinema Studio</span><small data-i18n="hx2tCi">Era, lens, light, camera move</small><em data-i18n="hx2Soon">Soon</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Marketing Studio</span><small data-i18n="hx2tMk">Product shots and ads</small><em data-i18n="hx2Soon">Soon</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Models</span><small data-i18n="hx2tMo">Video and image models</small><em data-i18n="hx2Soon">Soon</em></div>
+            <a class="hx2-tool" href="/studio/"><span class="hx2-tn" data-i18n="navStudio">Video Studio</span><small data-i18n="hx2tVs">Edit, captions, music</small><em data-i18n="hx2Free">Free</em></a>
+            <a class="hx2-tool" href="/spark/"><span class="hx2-tn" data-i18n="hdrSpark">Spark</span><small data-i18n="hx2tSp">Hooks, posts, thumbnails</small><em data-i18n="hx2Free">Free</em></a>
+            <a class="hx2-tool" href="/prompt-lab"><span class="hx2-tn" data-i18n="hdrLab">Prompt Lab</span><small data-i18n="hx2tPl">Prompts for image and video</small><em data-i18n="hx2Free">Free</em></a>
+            <a class="hx2-tool" href="/assistant"><span class="hx2-tn" data-i18n="hdrAssistant">Assistant</span><small data-i18n="hx2tAs">A chat that remembers you</small><em data-i18n="hx2Free">Free</em></a>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrRe">Reverse Engineer</span><small data-i18n="hx2tRe">Copy a format that worked</small><em data-i18n="hx2Soon">Soon</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrCinemaS">Cinema Studio</span><small data-i18n="hx2tCi">Era, lens, light, camera move</small><em data-i18n="hx2Soon">Soon</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrMarketingS">Marketing Studio</span><small data-i18n="hx2tMk">Product shots and ads</small><em data-i18n="hx2Soon">Soon</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrModels">Models</span><small data-i18n="hx2tMo">Video and image models</small><em data-i18n="hx2Soon">Soon</em></div>
           </div>
         </section>
 
@@ -1558,7 +1558,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="app.js?v=v882"></script>
+    <script src="app.js?v=v883"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────

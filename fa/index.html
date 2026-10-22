@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v882" />
+    <link rel="stylesheet" href="/styles.css?v=v883" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -632,15 +632,15 @@
       <a href="/fa/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
       <nav class="arh-nav" aria-label="Primary navigation">
         <!-- AI Creator temporarily hidden — output quality not ready yet. -->
-        <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
-        <a href="/fa/studio/" class="arh-link"><span data-i18n="navStudio">استودیوی ویدیو</span><span class="arh-free">FREE</span></a>
-        <a href="/fa/spark/" class="arh-link">Spark<span class="arh-free">FREE</span></a>
-        <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models/video" class="arh-link">Models<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
-      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
-      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
-      <a href="/assistant" class="arh-link">Assistant</a>
-      <a href="/radar/" class="arh-link">Radar</a>
+        <a href="/prompt-lab/" class="arh-link"><span data-i18n="hdrLab">پرامپت‌ساز</span></a>
+        <a href="/fa/studio/" class="arh-link"><span data-i18n="navStudio">استودیوی ویدیو</span><span class="arh-free" data-i18n="hdrFree">رایگان</span></a>
+        <a href="/fa/spark/" class="arh-link"><span data-i18n="hdrSpark">اسپارک</span><span class="arh-free" data-i18n="hdrFree">رایگان</span></a>
+        <a href="/reverse-engineer/" class="arh-link"><span data-i18n="hdrRe">مهندسی معکوس</span></a>
+      <a href="/models/video" class="arh-link"><span data-i18n="hdrModels">مدل‌ها</span><span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link"><span data-i18n="hdrCinema">سینما</span><span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/marketing-studio" class="arh-link"><span data-i18n="hdrMarketing">مارکتینگ</span><span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/assistant" class="arh-link"><span data-i18n="hdrAssistant">دستیار</span></a>
+      <a href="/radar/" class="arh-link"><span data-i18n="hdrRadar">رادار</span></a>
       </nav>
       <div class="arh-right">
         <!-- Unified auth: signed out shows "Sign in"; signed in shows an account
@@ -655,9 +655,9 @@
               <p id="authEmail" class="auth-menu-email"></p>
               <p id="authCredits" class="auth-menu-credits"></p>
             </div>
-            <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+            <a href="/dashboard" class="auth-menu-item" data-i18n="hdrDash">داشبورد من</a>
             <!-- AI Creator temporarily hidden -->
-            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger" data-i18n="hdrLogout">خروج</button>
           </div>
         </div>
       </div>
@@ -704,14 +704,14 @@
             </div>
           </div>
           <div class="hx2-strip" id="hx2Strip">
-            <a class="hx2-tool" href="/fa/studio/"><span class="hx2-tn">Video Studio</span><small data-i18n="hx2tVs">ادیت، زیرنویس، موزیک</small><em data-i18n="hx2Free">رایگان</em></a>
-            <a class="hx2-tool" href="/fa/spark/"><span class="hx2-tn">Spark</span><small data-i18n="hx2tSp">هوک، پست، تامبنیل</small><em data-i18n="hx2Free">رایگان</em></a>
-            <a class="hx2-tool" href="/prompt-lab"><span class="hx2-tn">Prompt Lab</span><small data-i18n="hx2tPl">پرامپت برای عکس و ویدیو</small><em data-i18n="hx2Free">رایگان</em></a>
-            <a class="hx2-tool" href="/assistant"><span class="hx2-tn">Assistant</span><small data-i18n="hx2tAs">چتی که تو را یادش می‌ماند</small><em data-i18n="hx2Free">رایگان</em></a>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Reverse Engineer</span><small data-i18n="hx2tRe">کپی فرمتی که جواب داده</small><em data-i18n="hx2Soon">به‌زودی</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Cinema Studio</span><small data-i18n="hx2tCi">دوره، لنز، نور، حرکت دوربین</small><em data-i18n="hx2Soon">به‌زودی</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Marketing Studio</span><small data-i18n="hx2tMk">عکس محصول و تبلیغ</small><em data-i18n="hx2Soon">به‌زودی</em></div>
-            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn">Models</span><small data-i18n="hx2tMo">مدل‌های ویدیو و عکس</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <a class="hx2-tool" href="/fa/studio/"><span class="hx2-tn" data-i18n="navStudio">استودیوی ویدیو</span><small data-i18n="hx2tVs">ادیت، زیرنویس، موزیک</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/fa/spark/"><span class="hx2-tn" data-i18n="hdrSpark">اسپارک</span><small data-i18n="hx2tSp">هوک، پست، تامبنیل</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/prompt-lab"><span class="hx2-tn" data-i18n="hdrLab">پرامپت‌ساز</span><small data-i18n="hx2tPl">پرامپت برای عکس و ویدیو</small><em data-i18n="hx2Free">رایگان</em></a>
+            <a class="hx2-tool" href="/assistant"><span class="hx2-tn" data-i18n="hdrAssistant">دستیار</span><small data-i18n="hx2tAs">چتی که تو را یادش می‌ماند</small><em data-i18n="hx2Free">رایگان</em></a>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrRe">مهندسی معکوس</span><small data-i18n="hx2tRe">کپی فرمتی که جواب داده</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrCinemaS">استودیو سینما</span><small data-i18n="hx2tCi">دوره، لنز، نور، حرکت دوربین</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrMarketingS">استودیو مارکتینگ</span><small data-i18n="hx2tMk">عکس محصول و تبلیغ</small><em data-i18n="hx2Soon">به‌زودی</em></div>
+            <div class="hx2-tool is-soon" aria-disabled="true"><span class="hx2-tn" data-i18n="hdrModels">مدل‌ها</span><small data-i18n="hx2tMo">مدل‌های ویدیو و عکس</small><em data-i18n="hx2Soon">به‌زودی</em></div>
           </div>
         </section>
 
@@ -1560,7 +1560,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v882"></script>
+    <script src="/app.js?v=v883"></script>
 
     <script>
       /* ── scRailPlayback ──────────────────────────────────────────────

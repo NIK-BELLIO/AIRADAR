@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=Archivo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Alice&family=Viaoda+Libre&family=Prata&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v882" />
+    <link rel="stylesheet" href="/styles.css?v=v883" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -838,15 +838,15 @@
       <a href="/fa/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
       <nav class="arh-nav" aria-label="Primary navigation">
         <!-- AI Creator temporarily hidden — output quality not ready yet. -->
-        <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
-        <a href="/fa/studio/" class="arh-link"><span data-i18n="navStudio">استودیوی ویدیو</span><span class="arh-free">FREE</span></a>
-        <a href="/fa/spark/" class="arh-link">Spark<span class="arh-free">FREE</span></a>
-        <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models/video" class="arh-link">Models<span class="arh-new">NEW</span></a>
-      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new">NEW</span></a>
-      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new">NEW</span></a>
-      <a href="/assistant" class="arh-link">Assistant</a>
-      <a href="/radar/" class="arh-link">Radar</a>
+        <a href="/prompt-lab/" class="arh-link"><span data-i18n="hdrLab">پرامپت‌ساز</span></a>
+        <a href="/fa/studio/" class="arh-link"><span data-i18n="navStudio">استودیوی ویدیو</span><span class="arh-free" data-i18n="hdrFree">رایگان</span></a>
+        <a href="/fa/spark/" class="arh-link"><span data-i18n="hdrSpark">اسپارک</span><span class="arh-free" data-i18n="hdrFree">رایگان</span></a>
+        <a href="/reverse-engineer/" class="arh-link"><span data-i18n="hdrRe">مهندسی معکوس</span></a>
+      <a href="/models/video" class="arh-link"><span data-i18n="hdrModels">مدل‌ها</span><span class="arh-new">NEW</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link"><span data-i18n="hdrCinema">سینما</span><span class="arh-new">NEW</span></a>
+      <a href="/marketing-studio" class="arh-link"><span data-i18n="hdrMarketing">مارکتینگ</span><span class="arh-new">NEW</span></a>
+      <a href="/assistant" class="arh-link"><span data-i18n="hdrAssistant">دستیار</span></a>
+      <a href="/radar/" class="arh-link"><span data-i18n="hdrRadar">رادار</span></a>
       </nav>
       <div class="arh-right">
         <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">ورود</button>
@@ -859,9 +859,9 @@
               <p id="authEmail" class="auth-menu-email"></p>
               <p id="authCredits" class="auth-menu-credits"></p>
             </div>
-            <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+            <a href="/dashboard" class="auth-menu-item" data-i18n="hdrDash">داشبورد من</a>
             <!-- AI Creator temporarily hidden -->
-            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger" data-i18n="hdrLogout">خروج</button>
           </div>
         </div>
       </div>
@@ -1179,7 +1179,7 @@
                     <option value="vivid">Vivid</option>
                   </select>
                 </label>
-                <label class="vs-global-filter"><span data-i18n="vFontLabel">Headline font (all slides)</span>
+                <label class="vs-global-filter"><span data-i18n="vFontLabel">فونت تیتر (همهٔ اسلایدها)</span>
                   <select id="vsHeadlineFont">
                     <option value="Archivo, ui-sans-serif, sans-serif">Archivo (MAISON)</option>
                     <option value="'Space Grotesk', ui-sans-serif, sans-serif">Space Grotesk</option>
@@ -1845,7 +1845,7 @@
                     <em id="vsLogoSizeVal" style="min-width:42px;text-align:right;font-weight:800;">16%</em>
                   </span>
                 </label>
-                <p class="vstudio-note" data-i18n="vLogoSizeHint">Drag the slider — or scroll on the logo in the preview — to resize it.</p>
+                <p class="vstudio-note" data-i18n="vLogoSizeHint">برای تغییر اندازه، اسلایدر را بکش یا روی لوگو در پیش‌نمایش اسکرول کن.</p>
                 <label><span data-i18n="vLogoMotionLabel">موشن لوگو</span>
                   <select id="vsLogoMotion">
                     <option value="none">None (static)</option>
@@ -2902,7 +2902,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v882"></script>
+    <script src="/app.js?v=v883"></script>
 
     <script>
       /* Receive a script handed off from the standalone Reverse Engineer page

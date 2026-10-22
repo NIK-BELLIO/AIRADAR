@@ -33,7 +33,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&family=Prata&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=v882" />
+  <link rel="stylesheet" href="/styles.css?v=v883" />
   <style>
     /* Page-specific — prefixed spk- so nothing collides with the shared /styles.css */
     body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -131,15 +131,15 @@
   <header class="arh">
     <a href="/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
     <nav class="arh-nav" aria-label="Primary navigation">
-      <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
-      <a href="/studio/" class="arh-link">Video Studio<span class="arh-free">FREE</span></a>
-      <a href="/spark/" class="arh-link" aria-current="page">Spark<span class="arh-free">FREE</span></a>
-      <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
-      <a href="/models/video" class="arh-link">Models<span class="arh-new">NEW</span></a>
-      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new">NEW</span></a>
-      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new">NEW</span></a>
-      <a href="/assistant" class="arh-link">Assistant</a>
-      <a href="/radar/" class="arh-link">Radar</a>
+      <a href="/prompt-lab/" class="arh-link"><span data-i18n="hdrLab">Prompt Lab</span></a>
+      <a href="/studio/" class="arh-link"><span data-i18n="navStudio">Video Studio</span><span class="arh-free" data-i18n="hdrFree">FREE</span></a>
+      <a href="/spark/" class="arh-link" aria-current="page"><span data-i18n="hdrSpark">Spark</span><span class="arh-free" data-i18n="hdrFree">FREE</span></a>
+      <a href="/reverse-engineer/" class="arh-link"><span data-i18n="hdrRe">Reverse Engineer</span></a>
+      <a href="/models/video" class="arh-link"><span data-i18n="hdrModels">Models</span><span class="arh-new">NEW</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link"><span data-i18n="hdrCinema">Cinema</span><span class="arh-new">NEW</span></a>
+      <a href="/marketing-studio" class="arh-link"><span data-i18n="hdrMarketing">Marketing</span><span class="arh-new">NEW</span></a>
+      <a href="/assistant" class="arh-link"><span data-i18n="hdrAssistant">Assistant</span></a>
+      <a href="/radar/" class="arh-link"><span data-i18n="hdrRadar">Radar</span></a>
     </nav>
     <div class="arh-right">
       <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">Sign in</button>
@@ -152,8 +152,8 @@
             <p id="authEmail" class="auth-menu-email"></p>
             <p id="authCredits" class="auth-menu-credits"></p>
           </div>
-          <a href="/dashboard" class="auth-menu-item">My dashboard</a>
-          <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+          <a href="/dashboard" class="auth-menu-item" data-i18n="hdrDash">My dashboard</a>
+          <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger" data-i18n="hdrLogout">Log out</button>
         </div>
       </div>
     </div>
@@ -478,7 +478,7 @@ function arCredits(n){
     </main>
   </div>
 
-  <script src="/app.js?v=v882"></script>
+  <script src="/app.js?v=v883"></script>
   <script>
     (function () {
       var tries = 0;

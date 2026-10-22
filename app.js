@@ -100,7 +100,22 @@ const i18n = {
     themeDark: "Dark",
     navPerformance: "Live charts",
     navMedia: "Caption AI",
-    navStudio: "Video studio",
+    navStudio: "Video Studio",
+    vFontLabel: "Headline font (all slides)",
+    vLogoSizeHint: "Drag the slider, or scroll on the logo in the preview, to resize it.",
+    hdrLab: "Prompt Lab",
+    hdrSpark: "Spark",
+    hdrRe: "Reverse Engineer",
+    hdrModels: "Models",
+    hdrCinema: "Cinema",
+    hdrMarketing: "Marketing",
+    hdrAssistant: "Assistant",
+    hdrRadar: "Radar",
+    hdrFree: "FREE",
+    hdrDash: "My dashboard",
+    hdrLogout: "Log out",
+    hdrCinemaS: "Cinema Studio",
+    hdrMarketingS: "Marketing Studio",
     hx2Free: "Free",
     hx2Soon: "Soon",
     hx2Kind: "AI video editor",
@@ -616,6 +631,21 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    vFontLabel: "فونت تیتر (همهٔ اسلایدها)",
+    vLogoSizeHint: "برای تغییر اندازه، اسلایدر را بکش یا روی لوگو در پیش‌نمایش اسکرول کن.",
+    hdrLab: "پرامپت‌ساز",
+    hdrSpark: "اسپارک",
+    hdrRe: "مهندسی معکوس",
+    hdrModels: "مدل‌ها",
+    hdrCinema: "سینما",
+    hdrMarketing: "مارکتینگ",
+    hdrAssistant: "دستیار",
+    hdrRadar: "رادار",
+    hdrFree: "رایگان",
+    hdrDash: "داشبورد من",
+    hdrLogout: "خروج",
+    hdrCinemaS: "استودیو سینما",
+    hdrMarketingS: "استودیو مارکتینگ",
     hx2Free: "رایگان",
     hx2Soon: "به‌زودی",
     hx2Kind: "ادیتور ویدیو با هوش مصنوعی",
@@ -43353,21 +43383,22 @@ function vsJobCard(title) {
   const faPage = /^\/fa(\/|$)/.test(location.pathname);
   const path = location.pathname.replace(/^\/fa(?=\/)/, "") || "/";
   const loc = (h) => (faPage && (h === "/" || h === "/studio/" || h === "/spark/") ? "/fa" + h : h);
+  const T = (en, fa) => (faPage ? fa : en);
   const MAIN = [
-    { href: "/", label: "Home", icon: "home", on: path === "/" || path === "/index.html" },
-    { href: "/studio/", label: "Studio", icon: "studio", on: path.indexOf("/studio") === 0 },
-    { href: "/prompt-lab", label: "Prompt Lab", icon: "lab", on: path.indexOf("/prompt-lab") === 0 },
-    { href: "/assistant", label: "Assistant", icon: "assistant", on: path.indexOf("/assistant") === 0 }
+    { href: "/", label: T("Home", "خانه"), icon: "home", on: path === "/" || path === "/index.html" },
+    { href: "/studio/", label: T("Studio", "استودیو"), icon: "studio", on: path.indexOf("/studio") === 0 },
+    { href: "/prompt-lab", label: T("Prompt Lab", "پرامپت‌ساز"), icon: "lab", on: path.indexOf("/prompt-lab") === 0 },
+    { href: "/assistant", label: T("Assistant", "دستیار"), icon: "assistant", on: path.indexOf("/assistant") === 0 }
   ];
   const MORE = [
-    ["/dashboard", "Library", "Your videos, images and credits"],
-    ["/spark/", "Spark", "Hooks, posts, carousels"],
-    ["/reverse-engineer/", "Reverse Engineer", "Copy a viral format"],
-    ["/models/video", "Models", "Every video and image model"],
-    ["/workflows/cinema-studio", "Cinema Studio", "Cinematic shots"],
-    ["/marketing-studio", "Marketing Studio", "Product ads"],
-    ["/radar/", "Radar", "Compare AI tools"],
-    ["/pricing", "Pricing", "Credit packs"]
+    ["/dashboard", T("Library", "کتابخانه"), T("Your videos, images and credits", "ویدیوها، عکس‌ها و کردیت‌هایت")],
+    ["/spark/", T("Spark", "اسپارک"), T("Hooks, posts, carousels", "هوک، پست، کاروسل")],
+    ["/reverse-engineer/", T("Reverse Engineer", "مهندسی معکوس"), T("Copy a viral format", "کپی یک فرمت وایرال")],
+    ["/models/video", T("Models", "مدل‌ها"), T("Every video and image model", "همهٔ مدل‌های ویدیو و عکس")],
+    ["/workflows/cinema-studio", T("Cinema Studio", "استودیو سینما"), T("Cinematic shots", "نماهای سینمایی")],
+    ["/marketing-studio", T("Marketing Studio", "استودیو مارکتینگ"), T("Product ads", "تبلیغ محصول")],
+    ["/radar/", T("Radar", "رادار"), T("Compare AI tools", "مقایسهٔ ابزارهای هوش مصنوعی")],
+    ["/pricing", T("Pricing", "قیمت‌ها"), T("Credit packs", "بسته‌های کردیت")]
   ];
   const moreOn = !MAIN.some((m) => m.on);
   const nav = document.createElement("nav");
@@ -43377,7 +43408,7 @@ function vsJobCard(title) {
     '<a href="' + loc(m.href) + '" class="mtb-item' + (m.on ? " mtb-on" : "") + '"' + (m.on ? ' aria-current="page"' : "") + ">" +
     svg(m.icon) + "<span>" + m.label + "</span></a>").join("") +
     '<button type="button" class="mtb-item' + (moreOn ? " mtb-on" : "") + '" aria-haspopup="dialog" aria-expanded="false">' +
-    svg("more") + "<span>More</span></button>";
+    svg("more") + "<span>" + T("More", "بیشتر") + "</span></button>";
   document.body.appendChild(nav);
 
   const moreBtn = nav.querySelector("button");
@@ -43397,9 +43428,9 @@ function vsJobCard(title) {
     scrim = document.createElement("div");
     scrim.className = "mtb-scrim";
     scrim.innerHTML =
-      '<div class="mtb-sheet" role="dialog" aria-modal="true" aria-label="All studios">' +
+      '<div class="mtb-sheet" role="dialog" aria-modal="true" aria-label="' + T("All studios", "همهٔ استودیوها") + '">' +
       '<div class="mtb-grip" aria-hidden="true"></div>' +
-      '<div class="mtb-sheet-head"><span>All studios</span><button type="button" class="mtb-close" aria-label="Close">Close</button></div>' +
+      '<div class="mtb-sheet-head"><span>' + T("All studios", "همهٔ استودیوها") + '</span><button type="button" class="mtb-close" aria-label="' + T("Close", "بستن") + '">' + T("Close", "بستن") + '</button></div>' +
       '<ul class="mtb-list">' + MORE.map((m) => {
         const here = path.indexOf(m[0].replace(/\/$/, "")) === 0;
         return '<li><a href="' + loc(m[0]) + '"' + (here ? ' class="mtb-here"' : "") + "><b>" + m[1] + "</b><small>" + m[2] + "</small></a></li>";
