@@ -5670,7 +5670,6 @@ b, strong { font-weight: 600; }
 .hx2-track > span::after { content: ""; display: inline-block; width: .16em; height: .16em; margin-inline-start: .5em; vertical-align: .3em; background: var(--accent); }
 [dir="rtl"] .hx2-track > span { direction: rtl; }
 [dir="rtl"] .hx2-h1 { direction: ltr; letter-spacing: 0; font-weight: 800 !important; line-height: 1.25 !important; }
-[dir="rtl"] .hx2-track { animation-direction: reverse; }
 @keyframes hx2-run { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
 .hx2-tags { display: flex; align-items: center; gap: 28px; margin: clamp(14px, 2vw, 26px) 0 0; padding-inline-start: 16px;
   font: 500 13px/1 "JetBrains Mono", Vazirmatn, ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
