@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs>
+<linearGradient id="r6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f5f7"/><stop offset="1" stop-color="#2563ff"/></linearGradient>
+<radialGradient id="g6" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#16203a"/><stop offset="1" stop-color="#050608"/></radialGradient>
+<clipPath id="c6"><circle cx="32" cy="32" r="22.5"/></clipPath>
+<filter id="f6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="64" height="64" fill="#0b0d11"/>
+<circle cx="32" cy="32" r="27" fill="none" stroke="url(#r6)" stroke-width="4"/>
+<circle cx="32" cy="32" r="22.5" fill="url(#g6)"/>
+<g clip-path="url(#c6)" stroke="#ffffff" stroke-opacity=".06" stroke-width=".6"><path d="M16 10V54" /><path d="M24 10V54" /><path d="M32 10V54" /><path d="M40 10V54" /><path d="M48 10V54" /><path d="M10 16H54" /><path d="M10 24H54" /><path d="M10 32H54" /><path d="M10 40H54" /><path d="M10 48H54" /></g>
+<g filter="url(#f6)"><rect x="22.5" y="24.5" width="6.5" height="14" rx="3.25" fill="#f4f5f7"/><path d="M34.5 32.5Q38.5 28.5 42.5 32.5" fill="none" stroke="#12d6f5" stroke-width="3" stroke-linecap="round"/></g>
+</svg>

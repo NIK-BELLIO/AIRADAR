@@ -43502,6 +43502,19 @@ function vsJobCard(title) {
 })();
 
 // ── Account menu on the static pages ──────────────────────────────────────
+// The face on the account: one of eight drawn avatars (/avatars/aN.svg). A
+// choice made in the menu is kept in localStorage "ar_avatar" - the Next
+// pages read the same key - and with no choice the email picks one.
+const AR_AVATARS = 8;
+function arAvatarOf(email) {
+  let n = 0;
+  try { n = parseInt(localStorage.getItem("ar_avatar") || "0", 10) || 0; } catch (e) {}
+  if (n >= 1 && n <= AR_AVATARS) return n;
+  let h = 0;
+  for (const ch of String(email || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return (h % AR_AVATARS) + 1;
+}
+
 // The Next pages have the full panel (aistudio components/AccountMenu.tsx):
 // who you are, the balance and what it buys, Top up, library, credits,
 // admin, sign out - opening on hover. These pages kept the first version (an
@@ -43514,34 +43527,59 @@ function vsJobCard(title) {
     var btn = document.getElementById("authAccountBtn");
     if (!acct || !menu || !btn || menu.classList.contains("am")) return;
     var ico = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+    // in the page's language; while the paid studios are closed (AR_SOON) the
+    // two ways to buy credits are left out rather than shown as Soon
+    var fa = state.lang === "fa";
+    var T = function (en, f) { return fa ? f : en; };
+    var paid = true; try { paid = !AR_SOON.length; } catch (e) {}
     menu.classList.add("am");
     menu.setAttribute("role", "menu");
-    menu.setAttribute("aria-label", "Account");
+    menu.setAttribute("aria-label", T("Account", "حساب کاربری"));
+    var picks = "";
+    for (var n = 1; n <= AR_AVATARS; n++) picks += '<button type="button" data-av="' + n + '" aria-label="' + T("Avatar ", "آواتار ") + n + '"><img src="/avatars/a' + n + '.svg" alt=""></button>';
     menu.innerHTML =
-      '<div class="am-who"><span class="am-av" id="amAv">?</span><span class="am-id"><p id="authEmail" class="auth-menu-email"></p><span class="am-since" id="amSince">Pay as you go</span></span></div>' +
-      '<div class="am-box"><div class="am-row"><span class="am-lbl">Credits</span><span class="am-num" id="amNum">0</span></div>' +
-      '<div class="am-grid" id="amGrid" hidden><span id="amImg"><b>Images</b><i></i></span><span id="amVid"><b>Video</b><i></i></span></div>' +
+      '<div class="am-who"><span class="am-av" id="amAv">?</span><span class="am-id"><p id="authEmail" class="auth-menu-email"></p><span class="am-since" id="amSince"></span></span></div>' +
+      '<div class="am-pick" role="group" aria-label="' + T("Choose your avatar", "آواتارت را انتخاب کن") + '">' + picks + '</div>' +
+      '<div class="am-box"><div class="am-row"><span class="am-lbl">' + T("Credits", "کردیت") + '</span><span class="am-num" id="amNum">0</span></div>' +
+      '<div class="am-grid" id="amGrid" hidden><span id="amImg"><b>' + T("Images", "عکس") + '</b><i></i></span><span id="amVid"><b>' + T("Video", "ویدیو") + '</b><i></i></span></div>' +
       '<p class="am-note" id="amNote"></p><p id="authCredits" class="auth-menu-credits"></p>' +
-      '<a class="am-top" href="/pricing" role="menuitem">Top up</a></div>' +
+      (paid ? '<a class="am-top" href="/pricing" role="menuitem">' + T("Top up", "افزایش کردیت") + '</a>' : "") + '</div>' +
       '<div class="am-links">' +
-      '<a href="/dashboard" role="menuitem">' + ico("M4 5h6v6H4zM14 5h6v4h-6zM14 13h6v6h-6zM4 15h6v4H4z") + 'Your library</a>' +
-      '<a href="/pricing" role="menuitem">' + ico("M12 3v18M7.5 7.5h6.8a2.6 2.6 0 0 1 0 5.2H9.7a2.6 2.6 0 0 0 0 5.2h6.8") + 'Credits &amp; plans</a>' +
-      '<a href="/admin" role="menuitem" id="amAdmin" hidden>' + ico("M12 3l7.5 3.4v5c0 4.2-3 7.9-7.5 9.3-4.5-1.4-7.5-5.1-7.5-9.3v-5z") + 'Admin</a>' +
-      '</div><div class="am-foot"><button type="button" class="am-out" id="authLogoutBtn" role="menuitem">' + ico("M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5") + 'Sign out</button></div>';
+      '<a href="/dashboard" role="menuitem">' + ico("M4 5h6v6H4zM14 5h6v4h-6zM14 13h6v6h-6zM4 15h6v4H4z") + T("Your library", "کتابخانهٔ من") + '</a>' +
+      (paid ? '<a href="/pricing" role="menuitem">' + ico("M12 3v18M7.5 7.5h6.8a2.6 2.6 0 0 1 0 5.2H9.7a2.6 2.6 0 0 0 0 5.2h6.8") + T("Credits &amp; plans", "کردیت و پلن‌ها") + '</a>' : "") +
+      '<a href="/admin" role="menuitem" id="amAdmin" hidden>' + ico("M12 3l7.5 3.4v5c0 4.2-3 7.9-7.5 9.3-4.5-1.4-7.5-5.1-7.5-9.3v-5z") + T("Admin", "مدیریت") + '</a>' +
+      '</div><div class="am-foot"><button type="button" class="am-out" id="authLogoutBtn" role="menuitem">' + ico("M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5") + T("Sign out", "خروج") + '</button></div>';
 
     document.getElementById("authLogoutBtn").addEventListener("click", async function () {
       try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch (e) {}
       location.href = "/";
     });
 
+    var who = "";
+    function face() {
+      var n = arAvatarOf(who), src = "/avatars/a" + n + ".svg";
+      document.getElementById("amAv").innerHTML = '<img src="' + src + '" alt="">';
+      var img = btn.querySelector(".ar-avimg");
+      if (!img) { img = document.createElement("img"); img.className = "ar-avimg"; img.alt = ""; btn.appendChild(img); }
+      img.src = src;
+      btn.classList.add("has-av");
+      menu.querySelectorAll(".am-pick button").forEach(function (b) { b.setAttribute("aria-pressed", String(Number(b.dataset.av) === n)); });
+    }
+    menu.querySelector(".am-pick").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-av]");
+      if (!b) return;
+      try { localStorage.setItem("ar_avatar", b.dataset.av); } catch (er) {}
+      face();
+    });
     function render(me) {
       if (!me || !me.ok || !me.user) return;
       var email = String(me.user.email || "");
+      who = email;
       var credits = Number(me.credits || 0);
       document.getElementById("authEmail").textContent = email;
-      document.getElementById("amAv").textContent = (email[0] || "?").toUpperCase();
-      var since = me.user.created_at ? new Date(me.user.created_at * 1000).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
-      document.getElementById("amSince").textContent = "Pay as you go" + (since ? " · since " + since : "");
+      face();
+      var since = me.user.created_at ? new Date(me.user.created_at * 1000).toLocaleDateString(fa ? "fa-IR" : undefined, { month: "short", year: "numeric" }) : "";
+      document.getElementById("amSince").textContent = since ? T("Member since ", "عضو از ") + since : "";
       document.getElementById("amNum").textContent = credits.toLocaleString();
       var r = me.rates || {};
       document.getElementById("amGrid").hidden = !(credits > 0 && (r.perImage > 0 || r.perSecond > 0));
@@ -43550,10 +43588,10 @@ function vsJobCard(title) {
       if (r.perImage > 0) document.querySelector("#amImg i").textContent = Math.floor(credits / r.perImage).toLocaleString();
       if (r.perSecond > 0) document.querySelector("#amVid i").textContent = Math.floor(credits / r.perSecond).toLocaleString() + "s";
       document.getElementById("amNote").textContent = credits > 0
-        ? "At each model's cheapest setting. Longer and sharper costs more."
-        : "Nothing left — top up to keep generating.";
+        ? T("At each model's cheapest setting. Longer and sharper costs more.", "با ارزان‌ترین تنظیم هر مدل. طولانی‌تر و باکیفیت‌تر، کردیت بیشتری می‌خواهد.")
+        : paid ? T("Nothing left — top up to keep generating.", "کردیتی نمانده؛ برای ادامه کردیت بخر.") : "";
       document.getElementById("amAdmin").hidden = !me.isAdmin;
-      btn.setAttribute("aria-label", "Account — " + credits + " credits");
+      btn.setAttribute("aria-label", T("Account — " + credits + " credits", "حساب کاربری — " + credits + " کردیت"));
     }
     function load() { fetch("/api/me", { credentials: "include" }).then(function (r) { return r.json(); }).then(render).catch(function () {}); }
     load();
