@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#08090c" />
+<title>AI Radar API - Video Studio for your own system</title>
+<meta name="description" content="The AI Radar REST API: make, edit and render short videos from your own system. Script to video, talking-video edits with captions and music, photo videos, thumbnails, and MP4 output." />
+<link rel="canonical" href="https://airadar.me/developers/" />
+<meta property="og:site_name" content="AI Radar" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="AI Radar API - Video Studio for your own system" />
+<meta property="og:description" content="Make, edit and render short videos from your own system with one key." />
+<meta property="og:url" content="https://airadar.me/developers/" />
+<meta property="og:image" content="https://airadar.me/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root { --bg:#08090c; --surface:#0e1014; --surface-2:#14171d; --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14); --text:#f4f5f7; --muted:#8a919c; --accent:#2563ff; --cyan:#12d6f5; --ok:#5fe0b0; --err:#f87171; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; scroll-padding-top:24px; }
+body { margin:0; background:var(--bg); color:var(--text); font:400 15.5px/1.65 Manrope, system-ui, sans-serif; }
+a { color:var(--cyan); }
+.skip { position:absolute; left:-9999px; } .skip:focus { left:16px; top:16px; background:var(--accent); color:#fff; padding:8px 12px; z-index:9; }
+.top { display:flex; align-items:center; gap:14px; padding:14px clamp(16px,4vw,40px); border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(8,9,12,.92); backdrop-filter:blur(10px); z-index:5; }
+.top img { height:26px; display:block; }
+.top .tag { font:600 11px/1 "JetBrains Mono", monospace; letter-spacing:.08em; color:var(--muted); border:1px solid var(--line-2); border-radius:4px; padding:5px 7px; }
+.top .sp { flex:1; }
+.top a.btn { font:600 13px/1 Manrope, sans-serif; color:#fff; background:var(--accent); text-decoration:none; padding:10px 14px; border-radius:6px; }
+.wrap { display:grid; grid-template-columns:250px minmax(0,1fr); gap:clamp(20px,4vw,56px); max-width:1240px; margin:0 auto; padding:0 clamp(16px,4vw,40px); }
+nav.side { position:sticky; top:70px; align-self:start; max-height:calc(100vh - 80px); overflow:auto; padding:28px 0; }
+nav.side h4 { margin:18px 0 8px; font:600 11px/1 "JetBrains Mono", monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+nav.side a { display:flex; align-items:center; gap:8px; color:var(--text); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+nav.side a:hover { background:var(--surface-2); }
+main { padding:36px 0 120px; min-width:0; }
+h1 { font:700 clamp(32px,5vw,52px)/1.05 "Space Grotesk", sans-serif; letter-spacing:-.02em; margin:0 0 14px; }
+h2 { font:600 clamp(22px,2.6vw,28px)/1.2 "Space Grotesk", sans-serif; margin:0 0 10px; }
+h3 { font:600 12px/1 "JetBrains Mono", monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:26px 0 10px; }
+.lede { font-size:18px; color:#c9ccd3; max-width:62ch; margin:0 0 26px; }
+section { padding:34px 0; border-top:1px solid var(--line); }
+code { font:500 .88em/1.5 "JetBrains Mono", monospace; background:var(--surface-2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; word-break:break-word; }
+.code { position:relative; margin:12px 0; }
+.code pre { margin:0; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px 18px; overflow:auto; }
+.code pre code { background:none; border:0; padding:0; font-size:13px; line-height:1.6; color:#dfe3ea; white-space:pre; }
+.copy { position:absolute; top:8px; right:8px; font:600 11px/1 "JetBrains Mono", monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--line-2); border-radius:5px; padding:6px 8px; cursor:pointer; }
+.copy:hover, .copy:focus-visible { color:var(--text); outline:none; border-color:var(--cyan); }
+.path { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px; }
+.path code { font-size:15px; }
+.m { display:inline-block; min-width:44px; text-align:center; font:700 10.5px/1 "JetBrains Mono", monospace; letter-spacing:.06em; padding:5px 6px; border-radius:4px; }
+.m-post { background:rgba(37,99,255,.18); color:#8fb0ff; } .m-get { background:rgba(95,224,176,.14); color:var(--ok); }
+.tbl { overflow:auto; border:1px solid var(--line); border-radius:8px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { text-align:left; font:600 11px/1 "JetBrains Mono", monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:12px 14px; background:var(--surface); border-bottom:1px solid var(--line); }
+td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+tr:last-child td { border-bottom:0; }
+td:first-child { white-space:nowrap; }
+.req { font:600 10px/1 "JetBrains Mono", monospace; color:var(--err); margin-left:4px; }
+.enum { margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; } .enum code { font-size:11.5px; }
+.steps { counter-reset:s; list-style:none; padding:0; margin:0; }
+.steps li { counter-increment:s; position:relative; padding:0 0 18px 44px; }
+.steps li::before { content:counter(s); position:absolute; left:0; top:0; width:28px; height:28px; display:grid; place-items:center; border-radius:6px; background:var(--accent); color:#fff; font:700 13px/1 "JetBrains Mono", monospace; }
+.note { border-left:3px solid var(--accent); background:var(--surface); padding:12px 16px; border-radius:0 8px 8px 0; color:#c9ccd3; }
+@media (max-width:900px) { .wrap { grid-template-columns:1fr; } nav.side { display:none; } }
+@media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a href="/" aria-label="AI Radar home"><img src="/logo-lockup.svg" alt="AI Radar" /></a>
+  <span class="tag">API v1</span>
+  <span class="sp"></span>
+  <a class="btn" href="/dashboard#connect-ai">Get an API key</a>
+</header>
+<div class="wrap">
+<nav class="side" aria-label="API reference">
+  <h4>Start</h4>
+  <a href="#start">Quick start</a>
+  <a href="#auth">Keys and answers</a>
+  <a href="#render">Getting the MP4</a>
+  <h4>Video Studio</h4>
+  <a href="#create"><span class="m m-post">POST</span>Make a video from a script</a>
+  <a href="#edit"><span class="m m-post">POST</span>Edit a talking video</a>
+  <a href="#photos"><span class="m m-post">POST</span>Make a video from photos and a text</a>
+  <a href="#swap"><span class="m m-post">POST</span>Change the text or footage of a finished video</a>
+  <a href="#thumb"><span class="m m-post">POST</span>Thumbnail from a video</a>
+  <a href="#cover"><span class="m m-post">POST</span>Thumbnail from a title</a>
+  <h4>Reference</h4>
+  <a href="#help">Guide and templates</a>
+  <a href="#errors">Errors and limits</a>
+  <a href="#agents">For AI agents</a>
+</nav>
+<main id="main">
+<h1>AI Radar API</h1>
+<p class="lede">Make, edit and render short videos from your own system: a script into a video, a talking video into an edited reel with captions and music, photos into a narrated video, and thumbnails - delivered as MP4 and image files.</p>
+<p class="note">Base URL <code>https://airadar.me/api/v1</code> &middot; JSON in, JSON out &middot; one key per account.</p>
+
+<section id="start">
+<h2>Quick start</h2>
+<ol class="steps">
+<li>Sign in to AI Radar, open <a href="/dashboard#connect-ai">Dashboard &rarr; Connect your AI</a> and create a key. It starts with <code>arx_</code> and is shown once.</li>
+<li>Check it:<div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X GET https://airadar.me/api/v1/me \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot;</code></pre></div></li>
+<li>Edit a video, then render it and download the MP4:<div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/edits \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{ &quot;video_url&quot;: &quot;https://example.com/talk.mp4&quot;, &quot;style&quot;: &quot;pro-viral&quot; }&#x27;
+
+# data.id in the answer is the video id
+curl -X POST https://airadar.me/api/v1/videos/{id}/render \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot;
+
+# poll until data.state is done (usually one to four minutes)
+curl -X GET https://airadar.me/api/v1/videos/{id}/render \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot;
+
+curl -L -o video.mp4 https://airadar.me/api/v1/videos/{id}/file \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot;</code></pre></div></li>
+</ol>
+</section>
+
+<section id="auth">
+<h2>Keys and answers</h2>
+<p>Send the key on every request as <code>Authorization: Bearer arx_...</code>. Keys are made and revoked in the Dashboard; an account can hold five.</p>
+<p>Every answer is JSON. A success is <code>{ "ok": true, "message": "...", "data": { ... } }</code>; anything else is <code>{ "ok": false, "error": "..." }</code> with the HTTP status below. Requests are checked before anything runs: an unknown field, a wrong type or a value outside the allowed list is a <code>400</code> that names the field.</p>
+<div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>{
+  &quot;ok&quot;: true,
+  &quot;message&quot;: &quot;The edit is ready to open: https://airadar.me/studio/?deck=deck_0902...&quot;,
+  &quot;data&quot;: { &quot;id&quot;: &quot;deck_0902...&quot;, &quot;video_id&quot;: &quot;deck_0902...&quot;, &quot;url&quot;: &quot;https://airadar.me/studio/?deck=deck_0902...&quot;, &quot;started&quot;: true, &quot;clips&quot;: 1 }
+}</code></pre></div>
+</section>
+
+<section id="render">
+<h2>Getting the MP4</h2>
+<p>Every create call answers at once with an id and a studio link (the same video, editable in the browser). To get the file without a browser, render it on AI Radar's servers:</p>
+<div class="tbl"><table><thead><tr><th></th><th>Endpoint</th><th>What it does</th></tr></thead><tbody>
+<tr><td><span class="m m-post">POST</span></td><td><code>/api/v1/videos/{id}/render</code></td><td>Start the render. Answers at once; the video is made on AI Radar&#x27;s servers.</td></tr>
+<tr><td><span class="m m-get">GET</span></td><td><code>/api/v1/videos/{id}/render</code></td><td>Where it has got to: data.state is not_started, queued, rendering, done or failed. When done, data.file_url is the MP4 (thumbnails: data.images).</td></tr>
+<tr><td><span class="m m-get">GET</span></td><td><code>/api/v1/videos/{id}/file</code></td><td>The finished MP4, with your key. Byte ranges are supported.</td></tr>
+</tbody></table></div>
+<p>A render takes about as long as the video plus the build: roughly one minute for a 20-second script video, up to four for an edit of a 40-second talk. Poll every 10 to 20 seconds. Thumbnails come back as a list of image links in <code>data.images</code>.</p>
+</section>
+
+<section id="create" class="ep">
+  <h2>Make a video from a script</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/videos</code></p>
+  <p>Send a script (intro, 2 to 10 scenes, outro) and AI Radar builds a vertical video around it: footage, captions, motion and music. GET /api/v1/video-guide returns the exact script shape and the rules for writing it.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>script</code> <span class="req">required</span></td><td>object</td><td>The script object: title, subtitle, kicker, intro, sections[], outro.</td></tr>
+<tr><td><code>style</code></td><td>string</td><td>footage (default), editorial or motion_graphic<div class="enum"><code>footage</code> <code>editorial</code> <code>motion_graphic</code></div></td></tr>
+<tr><td><code>aspect</code></td><td>string</td><td>Default 9:16<div class="enum"><code>9:16</code> <code>16:9</code> <code>1:1</code> <code>4:5</code></div></td></tr>
+<tr><td><code>template</code></td><td>string</td><td>Optional look for the whole video; see list_templates<div class="enum"><code>maison</code> <code>noir</code> <code>ivory</code> <code>editorial</code> <code>warm</code> <code>neon</code> <code>ocean</code> <code>sunset</code> <code>mono</code> <code>forest</code> <code>platinum</code> <code>champagne</code> <code>obsidian</code> <code>porcelain</code> <code>midnight</code> <code>marble</code> <code>emerald</code> <code>sand</code> <code>ruby</code> <code>slate</code> <code>amber</code> <code>frost</code> <code>rosegold</code></div></td></tr>
+<tr><td><code>font</code></td><td>string</td><td>Optional headline font for the whole video. A scene can override it with look.font.<div class="enum"><code>archivo</code> <code>space-grotesk</code> <code>alice</code> <code>viaoda</code> <code>inter</code> <code>georgia</code> <code>prata</code> <code>manrope</code> <code>jetbrains-mono</code></div></td></tr>
+<tr><td><code>look</code></td><td>string</td><td>Optional motion-design look instead of footage: the spoken words become kinetic typography, each scene gets a self-drawing icon, shape transitions and cuts on the music&#x27;s beat. kinetic (bold type, cream + yellow), neon (dark tech glow), minimal (clean white + blue), news (navy + red), paper (hand-made paper craft), luxe (black + champagne serif). Leave it out for real footage.<div class="enum"><code>kinetic</code> <code>neon</code> <code>minimal</code> <code>news</code> <code>paper</code> <code>luxe</code></div></td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/videos \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;script&quot;: {
+    &quot;title&quot;: &quot;Why rents keep rising&quot;,
+    &quot;language&quot;: &quot;en&quot;,
+    &quot;intro&quot;: { &quot;main&quot;: &quot;Rents are up again&quot;, &quot;narration&quot;: &quot;Rents rose for the ninth month running.&quot; },
+    &quot;sections&quot;: [
+      { &quot;type&quot;: &quot;text&quot;, &quot;headline&quot;: &quot;Supply is the problem&quot;, &quot;narration&quot;: &quot;Cities are building half the homes they need.&quot; }
+    ],
+    &quot;outro&quot;: { &quot;main&quot;: &quot;Follow for more&quot;, &quot;narration&quot;: &quot;Follow for the next one.&quot; }
+  },
+  &quot;aspect&quot;: &quot;9:16&quot;
+}&#x27;</code></pre></div>
+</section>
+
+<section id="edit" class="ep">
+  <h2>Edit a talking video</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/edits</code></p>
+  <p>Send a link to a video someone filmed (or 2 to 6 clips, joined in order). AI Radar cuts the pauses and the um/uh, adds a hook, word-by-word captions in one of 33 looks, music, sound effects and camera moves - or turns it into a fully graphic video in their voice.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>video_url</code></td><td>string</td><td>Optional public https link to the video file, up to 24 MB</td></tr>
+<tr><td><code>video_urls</code></td><td>array of strings</td><td>Several clips edited as ONE video, in this order (2 to 6 links, each up to 24 MB). Use instead of video_url when the user filmed it in parts.</td></tr>
+<tr><td><code>hook</code></td><td>string</td><td>Optional hook for the first seconds: 3 to 7 punchy words in the video&#x27;s language, true to what is said. Leave out to let AI Radar pick one from the speech.</td></tr>
+<tr><td><code>captions</code></td><td>boolean</td><td>Word-by-word captions (default true)</td></tr>
+<tr><td><code>key_words</code></td><td>boolean</td><td>Key words and icons on screen (default true)</td></tr>
+<tr><td><code>cards</code></td><td>boolean</td><td>Motion-graphic cards on the key points (default true)</td></tr>
+<tr><td><code>mode</code></td><td>string</td><td>edit (default): the user on screen, edited. graphic: a fully graphic video - their voice over motion-graphic scenes, the person never on screen<div class="enum"><code>edit</code> <code>graphic</code></div></td></tr>
+<tr><td><code>style</code></td><td>string</td><td>The caption and motion look (default pro-viral). pro-lime, pro-listing, pro-doodle, pro-karaoke, pro-neon, pro-luxe ... ; classic is the plain edit<div class="enum"><code>pro-suite</code> <code>pro-trust</code> <code>pro-walk</code> <code>pro-focus</code> <code>pro-podcast</code> <code>pro-vlog</code> <code>pro-reveal</code> <code>pro-serif</code> <code>pro-yellowcaps</code> <code>pro-street</code> <code>pro-block3d</code> <code>pro-doodle</code> <code>pro-lime</code> <code>pro-listing</code> <code>pro-agent</code> <code>pro-cyan</code> <code>pro-yellow</code> <code>pro-pill</code> <code>pro-goldpro</code> <code>pro-stack</code> <code>pro-viral</code> <code>pro-punch</code> <code>pro-karaoke</code> <code>pro-clean</code> <code>pro-neon</code> <code>pro-luxe</code> <code>pro-pop</code> <code>pro-glow</code> <code>pro-gold</code> <code>pro-highlight</code> <code>pro-vivid</code> <code>pro-editorial</code> <code>classic</code></div></td></tr>
+<tr><td><code>graphic_style</code></td><td>string</td><td>The design of the graphic scenes, for mode graphic or graphic_slides (default explainer)<div class="enum"><code>documentary</code> <code>pastel</code> <code>stoic</code> <code>steel</code> <code>silver</code> <code>poster</code> <code>clinic</code> <code>explainer</code> <code>newsroom</code> <code>neon</code> <code>swiss</code> <code>cutout</code> <code>blueprint</code> <code>chalk</code> <code>comic</code> <code>luxe</code> <code>glass</code> <code>retro</code> <code>notebook</code> <code>playful</code> <code>terminal</code> <code>blocks</code> <code>minimal</code> <code>brutal</code> <code>collage</code> <code>studio</code> <code>water</code> <code>cinema</code> <code>sticker</code> <code>dash</code> <code>ink</code></div></td></tr>
+<tr><td><code>broll</code></td><td>boolean</td><td>Stock B-roll where the picture is static (default false)</td></tr>
+<tr><td><code>cinematic_shots</code></td><td>boolean</td><td>Cinematic stock shots and graphics when a product, place or number is named (default false)</td></tr>
+<tr><td><code>side_cards</code></td><td>boolean</td><td>Maps, figures and photos beside the person as they talk (default true)</td></tr>
+<tr><td><code>graphic_slides</code></td><td>boolean</td><td>Graphic slides mixed in between the person&#x27;s shots (default false)</td></tr>
+<tr><td><code>sound_effects</code></td><td>boolean</td><td>Sound effects on cuts and words (default true)</td></tr>
+<tr><td><code>zoom</code></td><td>boolean</td><td>Camera moves and zooms on the key moments (default true)</td></tr>
+<tr><td><code>beat_cuts</code></td><td>boolean</td><td>Cuts on the music&#x27;s beat (default true)</td></tr>
+<tr><td><code>hook_card</code></td><td>boolean</td><td>A hook card in the first seconds (default true)</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>Optional name for the lower third</td></tr>
+<tr><td><code>role</code></td><td>string</td><td>Optional role or title under the name</td></tr>
+<tr><td><code>cta</code></td><td>string</td><td>Optional closing call to action</td></tr>
+<tr><td><code>transitions</code></td><td>boolean</td><td>Transitions with sound between sections (default true)</td></tr>
+<tr><td><code>music</code></td><td>boolean</td><td>Quiet music underneath (default true)</td></tr>
+<tr><td><code>cut_pauses</code></td><td>boolean</td><td>Cut the pauses (default true)</td></tr>
+<tr><td><code>remove_fillers</code></td><td>boolean</td><td>Remove um and uh (default true)</td></tr>
+<tr><td><code>look</code></td><td>string</td><td>auto (default): full frame for a tall video, a framed card for a square or wide one<div class="enum"><code>auto</code> <code>card</code> <code>full</code></div></td></tr>
+<tr><td><code>aspect</code></td><td>string</td><td>Default 9:16<div class="enum"><code>9:16</code> <code>16:9</code> <code>1:1</code> <code>4:5</code></div></td></tr>
+<tr><td><code>font</code></td><td>string</td><td>Optional font for the hook, key words and cards<div class="enum"><code>archivo</code> <code>space-grotesk</code> <code>alice</code> <code>viaoda</code> <code>inter</code> <code>georgia</code> <code>prata</code> <code>manrope</code> <code>jetbrains-mono</code></div></td></tr>
+<tr><td><code>accent</code></td><td>string</td><td>Optional accent colour as #RRGGBB</td></tr>
+<tr><td><code>note</code></td><td>string</td><td>Optional one line shown to the user when the link opens</td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/edits \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;video_url&quot;: &quot;https://example.com/talk.mp4&quot;,
+  &quot;style&quot;: &quot;pro-lime&quot;,
+  &quot;sound_effects&quot;: true,
+  &quot;name&quot;: &quot;Sara Ahmadi&quot;,
+  &quot;role&quot;: &quot;Founder&quot;
+}&#x27;</code></pre></div>
+</section>
+
+<section id="photos" class="ep">
+  <h2>Make a video from photos and a text</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/photo-videos</code></p>
+  <p>Send 1 to 12 photos and a text (or a link to an article). AI Radar writes a short voice-over from the text, reads it with an AI voice and cuts the photos to it, with captions and music.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>photo_urls</code> <span class="req">required</span></td><td>array of strings</td><td>1 to 12 public https links to JPEG, PNG, WebP or GIF images, up to 12 MB each</td></tr>
+<tr><td><code>text</code> <span class="req">required</span></td><td>string</td><td>The text the video is about, or one link to an article</td></tr>
+<tr><td><code>style</code></td><td>string</td><td>The caption and motion look (default pro-viral)<div class="enum"><code>pro-suite</code> <code>pro-trust</code> <code>pro-walk</code> <code>pro-focus</code> <code>pro-podcast</code> <code>pro-vlog</code> <code>pro-reveal</code> <code>pro-serif</code> <code>pro-yellowcaps</code> <code>pro-street</code> <code>pro-block3d</code> <code>pro-doodle</code> <code>pro-lime</code> <code>pro-listing</code> <code>pro-agent</code> <code>pro-cyan</code> <code>pro-yellow</code> <code>pro-pill</code> <code>pro-goldpro</code> <code>pro-stack</code> <code>pro-viral</code> <code>pro-punch</code> <code>pro-karaoke</code> <code>pro-clean</code> <code>pro-neon</code> <code>pro-luxe</code> <code>pro-pop</code> <code>pro-glow</code> <code>pro-gold</code> <code>pro-highlight</code> <code>pro-vivid</code> <code>pro-editorial</code> <code>classic</code></div></td></tr>
+<tr><td><code>graphic</code></td><td>boolean</td><td>Graphic scenes instead of the photos edit look (default false)</td></tr>
+<tr><td><code>graphic_style</code></td><td>string</td><td>The design of the graphic scenes when graphic is true<div class="enum"><code>documentary</code> <code>pastel</code> <code>stoic</code> <code>steel</code> <code>silver</code> <code>poster</code> <code>clinic</code> <code>explainer</code> <code>newsroom</code> <code>neon</code> <code>swiss</code> <code>cutout</code> <code>blueprint</code> <code>chalk</code> <code>comic</code> <code>luxe</code> <code>glass</code> <code>retro</code> <code>notebook</code> <code>playful</code> <code>terminal</code> <code>blocks</code> <code>minimal</code> <code>brutal</code> <code>collage</code> <code>studio</code> <code>water</code> <code>cinema</code> <code>sticker</code> <code>dash</code> <code>ink</code></div></td></tr>
+<tr><td><code>aspect</code></td><td>string</td><td>Default 9:16<div class="enum"><code>9:16</code> <code>16:9</code> <code>1:1</code> <code>4:5</code></div></td></tr>
+<tr><td><code>note</code></td><td>string</td><td>Optional one line shown to the user when the link opens</td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/photo-videos \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;photo_urls&quot;: [&quot;https://example.com/1.jpg&quot;, &quot;https://example.com/2.jpg&quot;, &quot;https://example.com/3.jpg&quot;],
+  &quot;text&quot;: &quot;Our new studio opens on Friday with free classes all weekend.&quot;,
+  &quot;style&quot;: &quot;pro-listing&quot;
+}&#x27;</code></pre></div>
+</section>
+
+<section id="swap" class="ep">
+  <h2>Change the text or footage of a finished video</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/swaps</code></p>
+  <p>Send a finished video and the texts or shots to change. The design, timing and music stay; only what you name changes.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>video_url</code></td><td>string</td><td>Public https link to the finished video, up to 24 MB</td></tr>
+<tr><td><code>texts</code></td><td>array of objects</td><td>Texts to change (up to 30)</td></tr>
+<tr><td><code>footage</code></td><td>array of objects</td><td>Footage areas to change (up to 8)</td></tr>
+<tr><td><code>note</code></td><td>string</td><td>Optional one line shown to the user when the link opens</td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/swaps \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;video_url&quot;: &quot;https://example.com/finished.mp4&quot;,
+  &quot;texts&quot;: [ { &quot;find&quot;: &quot;SUMMER SALE&quot;, &quot;replace&quot;: &quot;WINTER SALE&quot; } ]
+}&#x27;</code></pre></div>
+</section>
+
+<section id="thumb" class="ep">
+  <h2>Thumbnail from a video</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/thumbnails/from-video</code></p>
+  <p>Send a video: AI Radar picks the best frames, takes the video&#x27;s own text off them, cuts the person out and sets your title on it.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>video_url</code></td><td>string</td><td>Public https link to the video, up to 24 MB</td></tr>
+<tr><td><code>text</code></td><td>string</td><td>Optional: the words on the thumbnail, 2 to 6 punchy words in the user&#x27;s language. Leave out to write them from what is said in the video.</td></tr>
+<tr><td><code>template</code></td><td>string</td><td>Default cutout (the person cut out beside big words)<div class="enum"><code>cutout</code> <code>bold</code> <code>band</code> <code>center</code> <code>sidebar</code> <code>minimal</code> <code>stamp</code> <code>versus</code> <code>beforeafter</code> <code>arrow</code> <code>number</code></div></td></tr>
+<tr><td><code>sizes</code></td><td>array of strings</td><td>e.g. [&quot;1280x720&quot;] for YouTube, 1080x1920 vertical, 1080x1080 square. Default 1280x720.</td></tr>
+<tr><td><code>variations</code></td><td>number</td><td>1 to 3, each from a different frame (default 1)</td></tr>
+<tr><td><code>remove_text</code></td><td>boolean</td><td>Take the text already on the video off the frame (default true)</td></tr>
+<tr><td><code>note</code></td><td>string</td><td>Optional one line shown to the user when the link opens</td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/thumbnails/from-video \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;video_url&quot;: &quot;https://example.com/talk.mp4&quot;,
+  &quot;text&quot;: &quot;How I doubled my sales&quot;,
+  &quot;sizes&quot;: [&quot;1280x720&quot;]
+}&#x27;</code></pre></div>
+</section>
+
+<section id="cover" class="ep">
+  <h2>Thumbnail from a title</h2>
+  <p class="path"><span class="m m-post">POST</span><code>/api/v1/thumbnails</code></p>
+  <p>A cover image from a title, optionally on your own picture.</p>
+  <h3>Body</h3>
+  <div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead><tbody>
+<tr><td><code>text</code> <span class="req">required</span></td><td>string</td><td>The words on the thumbnail: 2 to 6 punchy words, the user&#x27;s language</td></tr>
+<tr><td><code>topic</code></td><td>string</td><td>What the video is about - used to make a picture when image_url is not given</td></tr>
+<tr><td><code>image_url</code></td><td>string</td><td>Optional public https link to a picture you made (JPEG/PNG/WebP). Keep faces off money and housing topics; no text in the picture.</td></tr>
+<tr><td><code>template</code></td><td>string</td><td>versus = two sides (split the text with vs / or), beforeafter = grey before vs vivid after, arrow = red ring and arrow on the subject, number = a number in the text made huge (needs a number in the text)<div class="enum"><code>bold</code> <code>band</code> <code>center</code> <code>sidebar</code> <code>minimal</code> <code>stamp</code> <code>versus</code> <code>beforeafter</code> <code>arrow</code> <code>number</code></div></td></tr>
+<tr><td><code>sizes</code></td><td>array of strings</td><td>e.g. [&quot;1280x720&quot;] for YouTube, 1080x1920 vertical, 1080x1080 square, 496x279 small. Default 1280x720.</td></tr>
+  </tbody></table></div>
+  <h3>Example</h3>
+  <div class="code"><button type="button" class="copy" aria-label="Copy code">Copy</button><pre><code>curl -X POST https://airadar.me/api/v1/thumbnails \
+  -H &quot;Authorization: Bearer $AIRADAR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+  &quot;text&quot;: &quot;How I doubled my sales&quot;,
+  &quot;template&quot;: &quot;bold&quot;
+}&#x27;</code></pre></div>
+</section>
+
+<section id="help">
+<h2>Guide and templates</h2>
+<p><code>GET /api/v1/video-guide</code> returns the script shape for <code>/videos</code> and how to write each scene. <code>GET /api/v1/templates</code> lists the template ids and fonts. The 33 caption looks for <code>/edits</code> and <code>/photo-videos</code> are the values of <code>style</code>:</p>
+<p><code>pro-suite</code> <code>pro-trust</code> <code>pro-walk</code> <code>pro-focus</code> <code>pro-podcast</code> <code>pro-vlog</code> <code>pro-reveal</code> <code>pro-serif</code> <code>pro-yellowcaps</code> <code>pro-street</code> <code>pro-block3d</code> <code>pro-doodle</code> <code>pro-lime</code> <code>pro-listing</code> <code>pro-agent</code> <code>pro-cyan</code> <code>pro-yellow</code> <code>pro-pill</code> <code>pro-goldpro</code> <code>pro-stack</code> <code>pro-viral</code> <code>pro-punch</code> <code>pro-karaoke</code> <code>pro-clean</code> <code>pro-neon</code> <code>pro-luxe</code> <code>pro-pop</code> <code>pro-glow</code> <code>pro-gold</code> <code>pro-highlight</code> <code>pro-vivid</code> <code>pro-editorial</code> <code>classic</code></p>
+</section>
+
+<section id="errors">
+<h2>Errors and limits</h2>
+<div class="tbl"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>400</code></td><td>The request is wrong: a missing or unknown field, a wrong type, a value not in the list, or a link that could not be fetched. <code>error</code> says which.</td></tr>
+<tr><td><code>401</code></td><td>No key, or a key that was revoked.</td></tr>
+<tr><td><code>404</code></td><td>No such endpoint, or no video with that id on this account.</td></tr>
+<tr><td><code>409</code></td><td>The video is not rendered yet.</td></tr>
+<tr><td><code>503</code></td><td>Server rendering is not available right now; try again later.</td></tr>
+<tr><td><code>500</code></td><td>Something failed on AI Radar's side.</td></tr>
+</tbody></table></div>
+<h3>Limits</h3>
+<ul>
+<li>40 videos per account per day (all create endpoints together).</li>
+<li>Videos up to 24 MB each, up to 12 minutes; images up to 12 MB (JPEG, PNG, WebP, GIF). Links must be public <code>https</code> addresses; Google Drive and Dropbox share links work.</li>
+<li>Uploaded files are kept for two days; rendered thumbnails for a week; rendered MP4s stay in the account's library.</li>
+</ul>
+</section>
+
+<section id="agents">
+<h2>For AI agents</h2>
+<p>The same tools are available to Claude, ChatGPT and other agents over MCP at <code>https://airadar.me/mcp</code>, with the same keys.</p>
+</section>
+</main>
+</div>
+<script>
+document.querySelectorAll(".copy").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var t = b.parentNode.querySelector("code").innerText;
+    var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
+    try { navigator.clipboard.writeText(t).then(done, function () {}); } catch (e) {}
+  });
+});
+</script>
+</body>
+</html>
