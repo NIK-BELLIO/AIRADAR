@@ -1,0 +1,2204 @@
+<!doctype html>
+<!-- Built by tools/build-fa.cjs from index.html - do not edit by hand. -->
+<html lang="fa" dir="rtl">
+  <head>
+    <style id="ar-custom-fonts">
+    </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#08090c" />
+    <title>ادیتور ویدیوی رایگان با هوش مصنوعی | AI Radar</title>
+    <meta name="description" content="ویدیوی خامت را بده و ریلز آماده بگیر: حذف خودکار مکث‌ها، زیرنویس متحرک فارسی، موزیک، بی‌رول و موشن‌گرافیک. رایگان و داخل مرورگر، بدون نصب." />
+    <link rel="canonical" href="https://airadar.me/fa/" />
+    <link rel="alternate" hreflang="en" href="https://airadar.me/" />
+    <link rel="alternate" hreflang="fa" href="https://airadar.me/fa/" />
+    <link rel="alternate" hreflang="x-default" href="https://airadar.me/" />
+    <meta property="og:site_name" content="AI Radar" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fa_IR" />
+    <meta property="og:title" content="ادیتور ویدیوی رایگان با هوش مصنوعی | AI Radar" />
+    <meta property="og:description" content="ویدیوی خامت را بده و ریلز آماده بگیر: حذف خودکار مکث‌ها، زیرنویس متحرک فارسی، موزیک، بی‌رول و موشن‌گرافیک. رایگان و داخل مرورگر، بدون نصب." />
+    <meta property="og:url" content="https://airadar.me/fa/" />
+    <meta property="og:image" content="https://airadar.me/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ادیتور ویدیوی رایگان با هوش مصنوعی | AI Radar" />
+    <meta name="twitter:description" content="ویدیوی خامت را بده و ریلز آماده بگیر: حذف خودکار مکث‌ها، زیرنویس متحرک فارسی، موزیک، بی‌رول و موشن‌گرافیک. رایگان و داخل مرورگر، بدون نصب." />
+    <meta name="twitter:image" content="https://airadar.me/og.png" />
+    <script type="application/ld+json" id="ar-ld">{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://airadar.me/#org", "name": "AI Radar", "url": "https://airadar.me/", "logo": "https://airadar.me/icons/icon-512.png", "sameAs": ["https://www.instagram.com/airadarme/"]}, {"@type": "WebSite", "@id": "https://airadar.me/#site", "name": "AI Radar", "url": "https://airadar.me/fa/", "inLanguage": "fa", "publisher": {"@id": "https://airadar.me/#org"}}]}</script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="AI Radar" />
+    <meta name="application-name" content="AI Radar" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=v879" />
+    <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
+    <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
+    <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
+         only when a render actually needs it — see vsGetFfmpeg() in app.js.
+         It's vendored (not pulled from a CDN) because v0.12's worker needs a
+         same-origin script URL; a cross-origin CDN URL makes the browser
+         refuse to construct the Worker at all. -->
+
+    <style id="ar-extra">
+      @keyframes panelFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+      .panel{animation:panelFadeIn 0.45s ease both}
+      .vs-slide-section,.vstudio-block{animation:panelFadeIn 0.3s ease both}
+      .twin-panels{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:20px}
+      .twin-col{display:flex;flex-direction:column;gap:16px}
+      .nav-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+      .nav-group-grid a{padding:9px 8px;font-size:12px}
+      .nav-group-grid .nav-ic{width:18px;font-size:12px}
+      .sidebar.collapsed .nav-group-grid{grid-template-columns:1fr}
+      .about-compact-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+      input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;border:none;padding:0;min-height:4px;cursor:pointer}
+      input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 0 3px rgba(37,99,255,0.2)}
+      input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:none;background:var(--gold);cursor:pointer}
+      .hero-stat strong{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-size:28px;color:var(--gold-2);line-height:1;display:block}
+      @media(max-width:960px){.twin-panels{grid-template-columns:1fr}}
+      @media(max-width:760px){.about-compact-grid{grid-template-columns:1fr}}
+    
+      /* ── GITHUB DASHBOARD ────────────────────────────── */
+      .gh-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 4px 0 14px; }
+      @media (max-width: 720px) { .gh-summary { grid-template-columns: 1fr 1fr; } }
+      .gh-sum-card { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+      .gh-sum-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 22px; color: var(--gold-2); line-height: 1; }
+      .gh-sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; }
+      .gh-sum-sub { font-size: 11px; color: var(--text); margin-top: 3px; font-weight: 600; }
+      .gh-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+      .gh-sort { display: flex; gap: 6px; }
+      .gh-sort-btn { padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .gh-sort-btn.active, .gh-sort-btn:hover { border-color: rgba(37,99,255,0.5); color: var(--gold-2); background: rgba(37,99,255,0.08); }
+      .gh-search { flex: 1; min-width: 140px; max-width: 240px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 13px; }
+      .gh-search:focus { outline: none; border-color: rgba(37,99,255,0.5); }
+      /* multi-metric rows */
+      .gh-multi-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+      .gh-multi-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .gh-multi-bars { display: flex; flex-direction: column; gap: 5px; }
+      .gh-multi-bar { display: grid; grid-template-columns: 54px 1fr 60px; gap: 8px; align-items: center; font-size: 10px; }
+      .gh-multi-bar-label { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+      .gh-multi-track { height: 7px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .gh-multi-fill { height: 100%; border-radius: 6px; }
+      .gh-multi-fill.stars { background: linear-gradient(90deg, #2563ff, #5b9bff); }
+      .gh-multi-fill.forks { background: linear-gradient(90deg, #8a919c, #5b9bff); }
+      .gh-multi-fill.activity { background: linear-gradient(90deg, #5fe0b0, #5fe0b0); }
+      .gh-multi-val { color: var(--gold-2); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+      /* logo auto-brand button + tip */
+      .vs-logo-layer { position: relative; height: 26px; margin-bottom: 6px; }
+      .vs-logo-layer-bar { position: absolute; top: 0; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 6px; background: linear-gradient(90deg, rgba(0,212,255,0.3), rgba(37,99,255,0.3)); border: 1px solid rgba(0,212,255,0.6); font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: grab; user-select: none; overflow: hidden; }
+      .vs-logo-layer-bar:active { cursor: grabbing; }
+      .vs-logo-handle { position: absolute; top: 0; bottom: 0; width: 11px; cursor: ew-resize; z-index: 2; }
+      .vs-logo-handle::after { content: ""; position: absolute; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: rgba(255,255,255,0.85); }
+      .vs-logo-handle-l { left: 0; } .vs-logo-handle-l::after { left: 3px; }
+      .vs-logo-handle-r { right: 0; } .vs-logo-handle-r::after { right: 3px; }
+      .vs-logo-layer-ico { color: #5b9bff; }
+      .vs-logo-adv { margin: 2px 0 4px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+      .vs-logo-adv summary { cursor: pointer; padding: 9px 12px; font-size: 12px; font-weight: 700; color: var(--muted); list-style: none; user-select: none; display: flex; align-items: center; gap: 6px; }
+      .vs-logo-adv summary::-webkit-details-marker { display: none; }
+      .vs-logo-adv summary::before { content: "⚙"; font-size: 12px; }
+      .vs-logo-adv[open] summary { border-bottom: 1px solid var(--line); color: var(--gold); }
+      .vs-logo-adv > label { padding: 0 12px; }
+      .vs-logo-adv > label:last-child { padding-bottom: 10px; }
+      .vs-logo-uprow { display: flex; align-items: stretch; gap: 8px; }
+      .vs-logo-remove { flex-shrink: 0; width: 40px; border-radius: 10px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.12); color: #f87171; font-size: 15px; font-weight: 800; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .vs-logo-remove:hover { background: rgba(224,83,61,0.25); }
+      .vs-autobrand-btn { width: 100%; margin: 4px 0 2px; padding: 11px; border-radius: 14px; cursor: pointer; font-size: 13px; font-weight: 800; color: #08090c; background: linear-gradient(90deg, var(--gold), #5b9bff); border: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s, box-shadow .15s; }
+      .vs-autobrand-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(37,99,255,0.3); }
+      .vs-logo-tip { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 2px 0 6px; }
+
+      /* ══ AI COMMAND CENTER — premium fullscreen dashboard ══ */
+      .dash-launch-btn { display: inline-flex; align-items: center; gap: 7px; position: relative; border-color: rgba(37,99,255,0.5) !important; }
+      .dash-launch-btn:hover { background: rgba(37,99,255,0.12); box-shadow: 0 0 20px rgba(37,99,255,0.25); }
+      .dash-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fe0b0; box-shadow: 0 0 8px rgba(0,255,136,0.8); animation: aimonPulse 2s infinite; }
+      .dash-hint { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; color: var(--gold-2); font-size: 13px; font-weight: 600; opacity: .9; animation: dashHintFloat 2.4s ease-in-out infinite; }
+      .dash-hint-arrow { width: 44px; height: 18px; color: var(--gold); transform: scaleX(-1); }
+      @keyframes dashHintFloat { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+      @media (max-width: 700px) { .dash-hint { display: none; } }
+
+      .live-dash { position: fixed; inset: 0; z-index: 9999; color: #fff; display: none; flex-direction: column;
+        padding: 16px 22px 0; overflow: hidden; font-feature-settings: "tnum";
+        background:
+          radial-gradient(ellipse 70% 50% at 25% 0%, rgba(244,213,141,0.10), transparent 55%),
+          radial-gradient(ellipse 60% 50% at 90% 20%, rgba(0,212,255,0.08), transparent 55%),
+          radial-gradient(ellipse 70% 60% at 60% 110%, rgba(0,212,255,0.06), transparent 55%),
+          linear-gradient(155deg, #0e1014 0%, #08090c 55%, #08090c 100%); }
+      .live-dash::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+        background-image: linear-gradient(rgba(244,213,141,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
+        background-size: 46px 46px; mask-image: radial-gradient(ellipse 110% 90% at 50% 35%, #000 35%, transparent 100%); }
+      .live-dash.open { display: flex; animation: ldFadeIn .45s cubic-bezier(.2,.7,.3,1) both; }
+      @keyframes ldFadeIn { from { opacity:0; transform: scale(1.015); } to { opacity:1; transform: scale(1); } }
+
+      /* glass card base */
+      .ld-card { position: relative; border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+        background: linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015));
+        border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 40px rgba(0,0,0,0.45); transition: transform .25s, border-color .25s, box-shadow .25s; }
+      .ld-card:hover { transform: translateY(-3px); border-color: rgba(244,213,141,0.32); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 24px 60px rgba(0,0,0,0.55), 0 0 30px rgba(244,213,141,0.08); }
+      .ld-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-shrink: 0; }
+      .ld-card-title { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #5b9bff; }
+
+      /* TOP NAVBAR */
+      .ld-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 4px 16px; border-bottom: 1px solid rgba(244,213,141,0.18); position: relative; z-index:2; }
+      .ld-nav-left { display: flex; align-items: center; gap: 13px; }
+      .ld-logo { font-size: 26px; color: #5b9bff; filter: drop-shadow(0 0 10px rgba(244,213,141,0.5)); animation: ldSpin 9s linear infinite; }
+      @keyframes ldSpin { to { transform: rotate(360deg); } }
+      .ld-title { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 24px; color: #fff; letter-spacing: .06em; line-height:1; }
+      .ld-brand-sub { font-size: 10px; color: #5b9bff; text-transform: uppercase; letter-spacing: .22em; margin-top: 5px; }
+      .ld-nav-center { display:flex; justify-content:center; }
+      .ld-nav-right { display:flex; align-items:center; justify-content:flex-end; gap: 14px; }
+      .ld-clock { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 30px; color: #fff; font-variant-numeric: tabular-nums; display:flex; align-items:baseline; gap:1px; text-shadow: 0 0 24px rgba(244,213,141,0.4); }
+      .ld-clock .ld-ms { font-size: 13px; color: #5b9bff; margin-left:3px; }
+      .ld-clock .ld-sep { color:#5b9bff; animation: ldBlink 1s steps(1) infinite; }
+      @keyframes ldBlink { 50% { opacity:.25; } }
+      .ld-clock-side { display:flex; flex-direction:column; gap:3px; }
+      .ld-date { font-size: 11px; color: #8a919c; text-transform: uppercase; letter-spacing: .08em; }
+      .ld-tz { font-size: 9px; color: #5e646e; text-transform: uppercase; letter-spacing: .12em; }
+      .ld-live-chip { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:800; letter-spacing:.12em; color:#5fe0b0; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:7px 13px; border-radius:999px; }
+      .ld-live-chip .dot { width:7px; height:7px; border-radius:50%; background:#5fe0b0; box-shadow:0 0 8px #5fe0b0; animation: aimonPulse 2s infinite; }
+      .ld-close { display:inline-flex; align-items:center; gap:7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #8a919c; border-radius: 14px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .ld-monitor-btn { display:inline-flex; align-items:center; gap:7px; text-decoration:none; background: rgba(53,208,127,0.12); border: 1px solid rgba(53,208,127,0.4); color: #5fe0b0; border-radius: 14px; padding: 9px 15px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .ld-monitor-btn:hover { background: rgba(53,208,127,0.22); border-color: rgba(53,208,127,0.6); color:#5fe0b0; }
+      .ld-close:hover { background: rgba(224,83,61,0.16); border-color: rgba(224,83,61,0.45); color: #f87171; }
+
+      /* HEALTH GAUGE */
+      .ld-gauge { position: relative; width: 96px; height: 96px; }
+      .ld-gauge svg { width:100%; height:100%; transform: rotate(-90deg); }
+      .ld-gauge-bg { fill:none; stroke: rgba(255,255,255,0.08); stroke-width: 8; }
+      .ld-gauge-fg { fill:none; stroke: url(#ldGaugeGrad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 327; stroke-dashoffset: 327; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.7,.3,1); filter: drop-shadow(0 0 6px rgba(0,212,255,0.6)); }
+      .ld-gauge-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+      .ld-gauge-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 28px; color:#fff; line-height:1; }
+      .ld-gauge-lbl { font-size: 8px; letter-spacing:.16em; color:#5b9bff; margin-top:3px; }
+
+      /* HERO STRIP */
+      .ld-hero { position: relative; z-index:1; margin: 16px 0 14px; padding: 14px 20px; border-radius: 14px;
+        background: linear-gradient(120deg, rgba(244,213,141,0.08), rgba(0,212,255,0.05) 70%, transparent);
+        border: 1px solid rgba(244,213,141,0.16); display:flex; align-items:center; gap:26px; overflow:hidden; }
+      .ld-hero-label { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 18px; color:#5b9bff; letter-spacing:.08em; white-space:nowrap; flex-shrink:0; }
+      .ld-hero-stats { display:flex; gap:30px; flex:1; flex-wrap:wrap; }
+      .ld-hero-stat { display:flex; flex-direction:column; gap:3px; }
+      .ld-hero-stat b { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size:20px; color:#fff; line-height:1; }
+      .ld-hero-stat span { font-size:10px; color:#8a919c; text-transform:uppercase; letter-spacing:.1em; }
+      .ld-hero-stat .up { color:#5fe0b0; }
+
+      /* MAIN GRID */
+      .ld-grid { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: 1.25fr 1fr; gap: 16px; padding: 2px 0 16px; min-height: 0; position: relative; z-index:1; }
+
+      /* WORLD MAP */
+      .ld-map-card { grid-row: span 1; }
+      .ld-map { flex:1; position: relative; border-radius: 14px; overflow: hidden; min-height:0;
+        background: radial-gradient(ellipse at 50% 40%, rgba(0,212,255,0.06), transparent 70%); }
+      .ld-map svg { width:100%; height:100%; display:block; }
+      .ld-map-land { fill: rgba(255,255,255,0.05); stroke: rgba(244,213,141,0.22); stroke-width:.4; }
+      .ld-map-link { stroke: rgba(0,212,255,0.35); stroke-width:.5; fill:none; stroke-dasharray: 3 4; animation: ldDash 18s linear infinite; }
+      @keyframes ldDash { to { stroke-dashoffset: -200; } }
+      .ld-map-core { fill:#5b9bff; filter: drop-shadow(0 0 4px rgba(244,213,141,0.9)); }
+      .ld-map-glow { fill: rgba(0,212,255,0.22); }
+      .ld-map-ring { fill:none; stroke:#5b9bff; }
+      .ld-map-hub { cursor:pointer; }
+      .ld-map-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; max-height:54px; overflow-y:auto; }
+      .ld-map-legend span { font-size:10px; color:#8a919c; display:flex; align-items:center; gap:5px; }
+      .ld-map-legend i { width:6px; height:6px; border-radius:50%; background:#5b9bff; box-shadow:0 0 6px rgba(244,213,141,0.7); }
+
+      /* TRENDING MODELS chart */
+      .ld-chart-metric { font-size:10px; color:#5b9bff; letter-spacing:.1em; }
+      .ld-chart-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 11px; }
+      .ld-chart-row { display: grid; grid-template-columns: 96px 1fr 58px; gap: 10px; align-items: center; }
+      .ld-chart-name { font-size: 13px; font-weight: 600; color:#fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ld-chart-track { height: 10px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
+      .ld-chart-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #5b9bff, #5b9bff); box-shadow: 0 0 14px rgba(0,212,255,0.4); animation: ldGrow 1s cubic-bezier(.2,.7,.3,1) both; }
+      @keyframes ldGrow { from { width:0 !important; } }
+      .ld-chart-val { font-size: 12px; font-weight: 700; color: #5b9bff; text-align: right; font-variant-numeric: tabular-nums; }
+
+      /* FEATURED TOOL */
+      .ld-tod-body { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+      .ld-tod-top { display:flex; align-items:center; gap:14px; }
+      .ld-tod-badge { width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:26px; color:#08090c; background:linear-gradient(135deg,#5b9bff,#5b9bff); flex-shrink:0; box-shadow:0 8px 24px rgba(244,213,141,0.3); overflow:hidden; }
+      .ld-tod-badge img { width:34px; height:34px; border-radius:10px; object-fit:contain; }
+      .ld-tod-badge-xl { width:84px; height:84px; border-radius:20px; font-size:38px; box-shadow:0 12px 34px rgba(244,213,141,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset; }
+      .ld-tod-badge-xl img { width:54px; height:54px; border-radius:14px; }
+      .ld-tod-metrics { display:grid; grid-template-columns: repeat(3, 1fr); gap:9px; }
+      .ld-tod-share { display:flex; flex-direction:column; gap:6px; }
+      .ld-tod-share-head { display:flex; justify-content:space-between; align-items:baseline; font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:#8a919c; }
+      .ld-tod-share-head b { font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:15px; color:#5b9bff; letter-spacing:0; }
+      .ld-tod-share-track { height:9px; border-radius:6px; background:rgba(255,255,255,0.06); overflow:hidden; }
+      .ld-tod-share-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#5b9bff,#5b9bff); box-shadow:0 0 12px rgba(0,212,255,0.4); animation: ldGrow 1s cubic-bezier(.2,.7,.3,1) both; }
+      .ld-tod-name { font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:27px; color:#fff; line-height:1.05; }
+      .ld-tod-cat { font-size:10px; text-transform:uppercase; letter-spacing:.16em; color:#5b9bff; margin-top:5px; }
+      .ld-tod-score { margin-left:auto; text-align:center; }
+      .ld-tod-score b { display:block; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:24px; color:#5b9bff; }
+      .ld-tod-score span { font-size:8px; letter-spacing:.12em; color:#8a919c; }
+      .ld-tod-tags { display:flex; flex-wrap:wrap; gap:6px; }
+      .ld-tod-tags span { font-size:10px; font-weight:700; color:#5b9bff; background:rgba(244,213,141,0.1); border:1px solid rgba(244,213,141,0.25); padding:4px 10px; border-radius:999px; }
+      .ld-tod-desc { font-size:13px; color:#f4f5f7; line-height:1.6; }
+      .ld-tod-statsrow { display:flex; gap:9px; }
+      .ld-tod-mini { flex:1; text-align:center; padding:10px 6px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+      .ld-tod-mini b { display:block; font-family:'Space Grotesk',ui-sans-serif,sans-serif; font-size:17px; color:#fff; }
+      .ld-tod-mini span { font-size:8.5px; text-transform:uppercase; letter-spacing:.1em; color:#8a919c; }
+      .ld-tod-actions { margin-top:auto; display:flex; align-items:center; gap:12px; }
+      .ld-tod-visit { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:10px; font-size:13px; font-weight:800; color:#08090c; background:linear-gradient(90deg,#5b9bff,#2563ff); text-decoration:none; box-shadow:0 6px 18px rgba(244,213,141,0.25); transition: transform .15s, box-shadow .15s; }
+      .ld-tod-visit:hover { transform: translateY(-2px); box-shadow:0 10px 26px rgba(244,213,141,0.35); }
+      .ld-tod-foot { font-size:11px; font-weight:700; color:#5b9bff; letter-spacing:.06em; }
+
+      /* ECOSYSTEM KPI cards */
+      .ld-stats-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; align-content: center; }
+      .ld-stat { position:relative; padding: 14px 12px; border-radius: 14px; overflow:hidden;
+        background: linear-gradient(160deg, rgba(244,213,141,0.08), rgba(255,255,255,0.02)); border:1px solid rgba(244,213,141,0.14); }
+      .ld-stat-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 26px; color: #fff; line-height: 1; }
+      .ld-stat-label { font-size: 9px; color: #8a919c; text-transform: uppercase; letter-spacing: .1em; margin-top: 6px; }
+      .ld-stat-spark { position:absolute; right:8px; top:10px; display:flex; align-items:flex-end; gap:2px; height:18px; opacity:.7; }
+      .ld-stat-spark i { width:3px; background:#5b9bff; border-radius:1px; }
+
+      /* BLOOMBERG TICKER */
+      .ld-ticker { display: flex; align-items: center; gap: 14px; border-top: 1px solid rgba(244,213,141,0.2); padding: 11px 0; overflow: hidden; flex-shrink: 0; position: relative; z-index:1; }
+      .ld-ticker-label { font-size: 11px; font-weight: 800; color: #08090c; letter-spacing: .12em; white-space: nowrap; flex-shrink: 0; background: linear-gradient(90deg,#5b9bff,#5b9bff); padding: 6px 13px; border-radius: 6px; position: relative; z-index: 2; }
+      .ld-ticker-label::after { content: ""; position: absolute; left: 100%; top: -12px; bottom: -12px; width: 34px; background: linear-gradient(90deg, rgba(8,8,8,0.95), rgba(8,8,8,0)); pointer-events: none; }
+      .ld-ticker::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: linear-gradient(270deg, rgba(8,8,8,0.95), rgba(8,8,8,0)); pointer-events: none; z-index: 2; }
+      .ld-ticker-track { display: flex; gap: 44px; white-space: nowrap; animation: ldTicker 42s linear infinite; }
+      .ld-ticker-track span { font-size: 14px; color: #f4f5f7; }
+      .ld-ticker-track b { color:#5fe0b0; font-weight:700; margin-right:6px; }
+      @keyframes ldTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+      @media (max-width: 1000px) { .ld-grid { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; } .ld-nav { grid-template-columns: 1fr auto; } .ld-nav-center { display:none; } .ld-clock { font-size: 22px; } }
+      /* ── AI STATUS MONITOR ───────────────────────────── */
+      /* tool-of-day + live radar side by side; tod content centers vertically
+         so there is no dead bottom gap even though the radar column is taller */
+      .tod-radar-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 20px; }
+      @media (max-width: 1100px) { .tod-radar-row { grid-template-columns: 1fr; } }
+      /* min-width:0 is CRITICAL: without it the nowrap ticker forces the grid
+         column to expand to the ticker's full content width and breaks layout */
+      .tod-radar-row > * { min-width: 0; }
+      .tod-radar-row > .tod-panel { margin: 0 !important; display: flex !important; flex-direction: column; justify-content: center; min-width: 0; }
+      .tod-radar-row > .ai-monitor { margin: 0 !important; min-width: 0; max-width: 100%; overflow: hidden; }
+      /* similar tools block inside tod */
+      .tod-related { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); flex: 1; display: flex; flex-direction: column; min-height: 0; }
+      .tod-related-head { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
+      .tod-related-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 10px; flex: 1; align-items: stretch; }
+      @media (max-width: 640px) { .tod-related-grid { grid-template-columns: 1fr; } }
+      .tod-rel-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+      .tod-rel-card:hover { border-color: rgba(37,99,255,0.45); transform: translateY(-2px); }
+      .tod-rel-card img { width: 26px; height: 26px; border-radius: 6px; }
+      .tod-rel-name { font-size: 13px; font-weight: 600; color: var(--text); }
+      .tod-rel-meta { font-size: 11px; color: var(--gold-2); }
+      .tod-rel-desc { font-size: 11px; color: var(--muted); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .ai-monitor { margin: 18px 0; display: flex; flex-direction: column; }
+      .aimon-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .aimon-title-wrap { display: flex; align-items: center; gap: 12px; }
+      .aimon-title-wrap h2 { margin: 2px 0 0; font-size: 22px; }
+      .aimon-pulse { width: 12px; height: 12px; border-radius: 50%; background: #5fe0b0; position: relative; flex-shrink: 0; box-shadow: 0 0 0 0 rgba(53,208,127,0.6); animation: aimonPulse 2s infinite; }
+      @keyframes aimonPulse { 0% { box-shadow: 0 0 0 0 rgba(53,208,127,0.5); } 70% { box-shadow: 0 0 0 10px rgba(53,208,127,0); } 100% { box-shadow: 0 0 0 0 rgba(53,208,127,0); } }
+      .aimon-summary { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--text); }
+      .aimon-summary-dot { width: 9px; height: 9px; border-radius: 50%; background: #5fe0b0; }
+      .aimon-sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
+      .aimon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+      @media (max-width: 1200px) { .aimon-grid { grid-template-columns: 1fr; } }
+      .aimon-card { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); transition: transform .15s, border-color .15s; }
+      .aimon-card:hover { transform: translateY(-2px); border-color: rgba(37,99,255,0.4); }
+      .aimon-card-logo { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--gold); background: rgba(37,99,255,0.1); border: 1px solid rgba(37,99,255,0.2); flex-shrink: 0; overflow: hidden; }
+      .aimon-card-logo img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
+      .aimon-card-body { flex: 1; min-width: 0; }
+      .aimon-card-name { font-weight: 700; font-size: 14px; color: var(--text); }
+      .aimon-card-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+      .aimon-status { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; }
+      .aimon-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+      .aimon-dot.up   { background: #5fe0b0; box-shadow: 0 0 8px rgba(53,208,127,0.6); }
+      .aimon-dot.slow { background: #f5c451; box-shadow: 0 0 8px rgba(232,179,57,0.6); }
+      .aimon-dot.down { background: #f87171; box-shadow: 0 0 8px rgba(224,83,61,0.6); }
+      .aimon-dot.checking { background: var(--muted); animation: aimonBlink 1s infinite; }
+      @keyframes aimonBlink { 50% { opacity: .3; } }
+      .aimon-st-up   { color: #5fe0b0; }
+      .aimon-st-slow { color: #f5c451; }
+      .aimon-st-down { color: #f87171; }
+      .aimon-st-checking { color: var(--muted); }
+      .aimon-latency { font-variant-numeric: tabular-nums; }
+      .aimon-incident { color: #f5c451; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+      /* ── AI WORLD MAP ────────────────────────────────── */
+      /* live metric chips */
+      .aimon-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
+      @media (max-width: 980px) { .aimon-chips { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 640px) { .aimon-chips { grid-template-columns: 1fr 1fr; } }
+      .aimon-chip { position: relative; padding: 10px 11px 8px; border-radius: 14px; background: linear-gradient(160deg, rgba(37,99,255,0.08), rgba(255,255,255,0.02)); border: 1px solid var(--line); overflow: hidden; }
+      .aimon-chip-row { display: flex; align-items: baseline; gap: 5px; }
+      .aimon-chip-val { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; font-size: 18px; color: var(--gold-2); line-height: 1; font-variant-numeric: tabular-nums; transition: color .25s; }
+      .aimon-chip-val.tick { color: #fff; }
+      .aimon-chip-lbl { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .aimon-chip-trend { font-size: 9px; font-weight: 600; color: var(--gold); }
+      .aimon-chip-trend.up { color: #5fe0b0; } .aimon-chip-trend.down { color: #f87171; }
+      .aimon-chip-spark { position: absolute; right: 8px; bottom: 7px; width: 38px; height: 12px; opacity: .55; }
+      .aimon-chip-spark polyline { fill: none; stroke: #5b9bff; stroke-width: 1; vector-effect: non-scaling-stroke; }
+      /* live ticker */
+      .aimon-ticker { display: flex; align-items: center; gap: 12px; margin: 16px 0; padding: 11px 16px; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; background: rgba(255,255,255,0.03); box-shadow: 0 18px 44px -26px rgba(0,0,0,0.6); overflow: hidden; max-width: 100%; min-width: 0; position: relative; }
+      .aimon-ticker-tag { font-size: 10px; font-weight: 800; color: #08090c; background: #5fe0b0; padding: 4px 9px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; letter-spacing: .04em; position: relative; z-index: 2; }
+      /* fade so scrolling text never visually collides with the LIVE tag */
+      /* fade at the right edge too */
+      .aimon-ticker-track { display: flex; gap: 36px; white-space: nowrap; animation: aimonTick 75s linear infinite; }
+      .aimon-ticker-track span { font-size: 12px; color: var(--text); }
+      .aimon-ticker-track b { color: var(--gold); margin-right: 5px; }
+      @keyframes aimonTick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      .ainews-refreshing { margin-left: auto; font-size: 10px; color: #5fe0b0; opacity: 0; transition: opacity .3s; }
+      .ainews-refreshing.on { opacity: 1; }
+      .aimap-wrap { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(ellipse at 50% 30%, rgba(127,166,216,0.08), transparent 70%), #08090c; margin-bottom: 14px; }
+      .aimap { position: relative; width: 100%; aspect-ratio: 2.2 / 1; max-height: 300px; }
+      .aimap svg { width: 100%; height: 100%; display: block; }
+      .aimap-land { fill: rgba(37,99,255,0.10); stroke: rgba(37,99,255,0.22); stroke-width: 0.4; }
+      .aimap-link { stroke: rgba(0,212,255,0.4); stroke-width: 0.5; fill: none; stroke-dasharray: 3 4; animation: aimapDash 16s linear infinite; }
+      @keyframes aimapDash { to { stroke-dashoffset: -200; } }
+      .aimap-packet { fill: #12d6f5; filter: drop-shadow(0 0 4px rgba(0,212,255,0.95)); }
+      .aimap-hub { cursor: pointer; }
+      .aimap-hub-glow { fill: rgba(37,99,255,0.25); }
+      .aimap-hub-core { fill: #2563ff; filter: drop-shadow(0 0 3px rgba(37,99,255,0.9)); }
+      .aimap-hub-ring { fill: none; stroke: #5b9bff; opacity: 0.7; transform-origin: center; }
+      .aimap-hub.active .aimap-hub-core { fill: #5b9bff; }
+      .aimap-hub.active .aimap-hub-glow { fill: rgba(0,212,255,0.4); }
+      .aimap-info { position: absolute; left: 12px; bottom: 12px; right: 12px; background: rgba(8,8,10,0.82); backdrop-filter: blur(8px); border: 1px solid rgba(37,99,255,0.3); border-radius: 10px; padding: 11px 14px; pointer-events: none; opacity: 0; transform: translateY(8px); transition: background-color, border-color, color, box-shadow, transform, opacity, filter .2s; }
+      .aimap-info.show { opacity: 1; transform: translateY(0); }
+      .aimap-info-city { font-weight: 800; font-size: 14px; color: var(--gold-2); }
+      .aimap-info-labs { font-size: 12px; color: var(--text); margin-top: 3px; }
+      .aimap-info-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+      /* ── AI NEWS PULSE ───────────────────────────────── */
+      .ainews-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+      .ainews-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #08090c; background: var(--gold); padding: 4px 10px; border-radius: 6px; }
+      .ainews-sub { font-size: 12px; color: var(--muted); }
+      .ainews-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+      @media (max-width: 700px) { .ainews-list { grid-template-columns: 1fr; } }
+      a.ainews-item { text-decoration: none; color: inherit; cursor: pointer; }
+      .ainews-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); transition: border-color .15s, transform .15s; animation: ainewsIn .4s ease both; }
+      .ainews-item:hover { border-color: rgba(37,99,255,0.4); transform: translateX(2px); }
+      @keyframes ainewsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+      .ainews-tag { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--gold); background: rgba(37,99,255,0.12); padding: 3px 7px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+      .ainews-text { font-size: 13px; color: var(--text); line-height: 1.4; }
+      .ainews-skeleton { height: 38px; border-radius: 10px; background: linear-gradient(90deg, var(--surface-2) 0%, rgba(255,255,255,0.05) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: ainewsShimmer 1.4s infinite; }
+      @keyframes ainewsShimmer { to { background-position: -200% 0; } }
+      .aimon-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: var(--muted); }
+      .aimon-refresh { background: var(--surface-2); border: 1px solid var(--line); color: var(--gold); border-radius: 10px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s; }
+      .aimon-refresh:hover { border-color: rgba(37,99,255,0.5); background: rgba(37,99,255,0.08); }
+      .aimon-spark { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
+      .aimon-spark i { width: 3px; background: var(--gold); border-radius: 1px; opacity: .5; display: block; }
+
+      /* ── TOOL OF THE DAY ─────────────────────────────── */
+      .tod-panel {
+        background: linear-gradient(135deg,
+          rgba(37,99,255,0.07) 0%,
+          rgba(37,99,255,0.03) 50%,
+          rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(37,99,255,0.25);
+        position: relative;
+        overflow: hidden;
+      }
+      .tod-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      }
+      .tod-inner {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 28px;
+        align-items: center;
+      }
+      .tod-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tod-live-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 0 0 rgba(37,99,255,0.5);
+        animation: todPulse 2s infinite;
+        flex-shrink: 0;
+      }
+      @keyframes todPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(37,99,255,0.5); }
+        70%  { box-shadow: 0 0 0 8px rgba(37,99,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(37,99,255,0); }
+      }
+      #todLabel {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        color: var(--gold);
+      }
+      .tod-card-main {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+      .tod-logo-wrap {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        display: grid; place-items: center;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .tod-logo { font-size: 22px; font-weight: 800; color: var(--gold); }
+      .tod-logo img { width: 100%; height: 100%; object-fit: contain; }
+      .tod-info { flex: 1; min-width: 0; }
+      .tod-name {
+        margin: 0 0 3px;
+        font-size: clamp(18px, 2.5vw, 26px);
+        font-family: 'Space Grotesk', ui-sans-serif, sans-serif;
+        color: var(--text);
+        line-height: 1.2;
+      }
+      .tod-category {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--muted);
+        padding: 2px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-2);
+      }
+      .tod-price {
+        font-size: 13px;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 999px;
+        flex-shrink: 0;
+      }
+      .tod-price.free  { background: rgba(95,224,176,.12); color: #5fe0b0; border: 1px solid rgba(95,189,116,0.3); }
+      .tod-price.paid  { background: rgba(37,99,255,0.12); color: var(--gold); border: 1px solid rgba(37,99,255,0.3); }
+      .tod-desc {
+        font-size: 14px;
+        line-height: 1.75;
+        color: var(--muted);
+        margin: 0 0 12px;
+        max-width: 580px;
+      }
+      .tod-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+      .tod-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .tod-btn { min-height: 40px; padding: 0 20px; font-weight: 700; }
+      .tod-next { font-size: 12px; color: var(--muted); }
+      #todCountdown { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+      /* RIGHT: ring */
+      .tod-right {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+      .tod-progress-ring { position: relative; display: inline-flex; }
+      .tod-ring-bg  { fill: none; stroke: rgba(37,99,255,0.12); stroke-width: 6; }
+      .tod-ring-fill {
+        fill: none; stroke: var(--gold); stroke-width: 6;
+        stroke-linecap: round;
+        stroke-dasharray: 326.7;
+        stroke-dashoffset: 326.7;
+        transform: rotate(-90deg);
+        transform-origin: 60px 60px;
+        transition: stroke-dashoffset 1s ease;
+      }
+      .tod-ring-inner {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2px;
+      }
+      .tod-day-num  { font-size: 22px; font-weight: 800; font-family: 'Space Grotesk',ui-sans-serif,sans-serif; color: var(--gold-2); line-height: 1; }
+      .tod-day-label{ font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; }
+      .tod-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 120px;
+      }
+      .tod-stat-row {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 11px;
+      }
+      .tod-stat-label { color: var(--muted); }
+      .tod-stat-val   { font-weight: 700; color: var(--gold-2); }
+
+      /* Enter animation */
+      @keyframes todSlideIn {
+        from { opacity:0; transform: translateY(12px); }
+        to   { opacity:1; transform: translateY(0); }
+      }
+      .tod-animate { animation: todSlideIn 0.5s ease both; }
+
+      @media(max-width:760px){
+        .tod-inner { grid-template-columns: 1fr; }
+        .tod-right  { flex-direction: row; justify-content: space-between; }
+      }
+    
+      /* ── TREND BADGES ────────────────────────────────── */
+      .trend-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        letter-spacing: .04em;
+        margin-bottom: 6px;
+        width: fit-content;
+      }
+      /* A badge states a fact about a tool, and the colour has to agree with
+         what the rest of the system means by that colour.
+
+         Three of these did not. "Trending" was error red - the colour every
+         failed job on the site uses - for a tool doing well. "Established"
+         had a blue background, a blue border and gold text, three colours in
+         one pill. "New" had a blue background and cyan text. All three were
+         left over from a re-theme that changed the values and not the
+         pairings.
+
+         Now: cyan is live movement, green is growth, blue is the brand
+         saying this one is solid. Background, border and text always the
+         same hue. */
+      .badge-hot {
+        background: rgba(18,214,245,.10);
+        border: 1px solid rgba(18,214,245,.32);
+        color: #12d6f5;
+      }
+      .badge-growing {
+        background: rgba(95,224,176,.10);
+        border: 1px solid rgba(95,224,176,.32);
+        color: #5fe0b0;
+      }
+      .badge-free-pick {
+        background: rgba(91,155,255,.10);
+        border: 1px solid rgba(91,155,255,.32);
+        color: #5b9bff;
+      }
+      .badge-new {
+        background: rgba(18,214,245,.10);
+        border: 1px solid rgba(18,214,245,.32);
+        color: #12d6f5;
+      }
+      .badge-established {
+        background: rgba(37,99,255,.10);
+        border: 1px solid rgba(37,99,255,.32);
+        color: #5b9bff;
+      }
+      /* The one badge that is allowed to be louder, because only one tool a
+         day wears it. Still a flat fill, not a gradient with a glow. */
+      .badge-today {
+        background: rgba(245,196,81,.12);
+        border: 1px solid rgba(245,196,81,.38);
+        color: #f4f5f7;
+      }
+      /* in list mode — inline */
+      .tool-row .trend-badge { margin: 0 0 0 6px; vertical-align: middle; }
+          .vs-auto-mode-btn{flex:1;padding:7px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter 0.15s;}
+      .vs-auto-mode-btn.active,.vs-auto-mode-btn:hover{border-color:rgba(37,99,255,0.5);color:var(--gold-2);background:rgba(37,99,255,0.1);}
+      
+    </style>
+  </head>
+  <body>
+  <a class="ar-skip" href="#top" data-i18n="home00">پرش به محتوا</a>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <!-- Announcement: closing it is remembered per data-id; change the id for a new one. -->
+    <div class="ar-ann" id="arAnn" data-id="assistant-2026-10" role="region" aria-label="Announcement" hidden>
+      <svg class="ar-ann-ic" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 12.6V4.5a2 2 0 0 1 2-2h8.1a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8l-8.1 8.1a2 2 0 0 1-2.8 0L3.1 14a2 2 0 0 1-.6-1.4ZM8 9.5A1.5 1.5 0 1 0 8 6.5a1.5 1.5 0 0 0 0 3Z"/></svg>
+      <span class="ar-ann-t" data-i18n="annAsst">چت‌بات ما ارتقا پیدا کرد: شما را به خاطر می‌سپارد و هر روز از بازخوردها باهوش‌تر می‌شود</span>
+      <a class="ar-ann-cta" href="/assistant" data-i18n="annAsstCta">امتحانش کنید</a>
+      <button type="button" class="ar-ann-x" aria-label="Close announcement"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <!-- HEADER with motion ticker -->
+    <!-- ── UNIFIED TOP HEADER (identical on every page) ──────────── -->
+    <header class="arh">
+      <a href="/fa/" class="arh-logo" aria-label="AI Radar"><img src="/logo-mono.svg?v=2" alt="AI Radar" /></a>
+      <nav class="arh-nav" aria-label="Primary navigation">
+        <!-- AI Creator temporarily hidden — output quality not ready yet. -->
+        <a href="/prompt-lab/" class="arh-link">Prompt Lab</a>
+        <a href="/fa/studio/" class="arh-link"><span data-i18n="navStudio">استودیوی ویدیو</span><span class="arh-free">FREE</span></a>
+        <a href="/fa/spark/" class="arh-link">Spark<span class="arh-free">FREE</span></a>
+        <a href="/reverse-engineer/" class="arh-link">Reverse Engineer</a>
+      <a href="/models/video" class="arh-link">Models<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/workflows/cinema-studio" class="arh-link">Cinema<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/marketing-studio" class="arh-link">Marketing<span class="arh-new" data-i18n="badgeNew">جدید</span></a>
+      <a href="/assistant" class="arh-link">Assistant</a>
+      <a href="/radar/" class="arh-link">Radar</a>
+      </nav>
+      <div class="arh-right">
+        <!-- Unified auth: signed out shows "Sign in"; signed in shows an account
+             chip whose menu links to the shared dashboard / logs out. -->
+        <button type="button" id="authSignInBtn" class="arh-signin" data-i18n="signIn">ورود</button>
+        <div id="authAccount" class="auth-account" hidden>
+          <button type="button" id="authAccountBtn" class="arh-avatar" aria-haspopup="true" aria-expanded="false">
+            <span id="authInitial" class="auth-initial">?</span>
+          </button>
+          <div id="authMenu" class="auth-menu" hidden>
+            <div class="auth-menu-head">
+              <p id="authEmail" class="auth-menu-email"></p>
+              <p id="authCredits" class="auth-menu-credits"></p>
+            </div>
+            <a href="/dashboard" class="auth-menu-item">My dashboard</a>
+            <!-- AI Creator temporarily hidden -->
+            <button type="button" id="authLogoutBtn" class="auth-menu-item auth-menu-danger">Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <!-- ── CONTENT AREA ────────────────────────────────── -->
+      <div class="content-area">
+        <button id="sidebarOpenBtn" class="sidebar-open" type="button"
+          aria-label="Open menu" title="Menu">☰</button>
+
+        <main id="top">
+
+        <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
+
+        <!-- ── THE WORK, LARGE ───────────────────────────────────────────
+             Four cards at the top of the page, before anything explains
+             itself. Real clips, full width, captions underneath in the same
+             small uppercase the reference uses. -->
+        <section class="ft-row">
+            <a class="ft-card" href="/reverse-engineer/">
+              <span class="ft-media">
+                <video class="ft-vid" src="/prev/reverse.mp4" poster="/prev/reverse.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Reverse Engineer</span>
+              <span class="ft-line" data-i18n="home01">یک پست موفق را بده و همان را، این بار با خودت، بگیر.</span>
+            </a>
+            <a class="ft-card" href="/fa/studio/">
+              <span class="ft-media">
+                <video class="ft-vid" src="/prev/studio.mp4" poster="/prev/studio.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Video Studio</span>
+              <span class="ft-line" data-i18n="home02">یک لینک، یک مقاله یا یک ایده به ویدیوی آماده تبدیل می‌شود.</span>
+            </a>
+            <a class="ft-card" href="/workflows/cinema-studio">
+              <span class="ft-media">
+                <video class="ft-vid" src="/prev/cinema.mp4" poster="/prev/cinema.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Cinema Studio</span>
+              <span class="ft-line" data-i18n="home03">نما را کارگردانی کن: دوره، لنز، نور، حرکت دوربین.</span>
+            </a>
+            <a class="ft-card" href="/marketing-studio">
+              <span class="ft-media">
+                <video class="ft-vid" src="/prev/marketing.mp4" poster="/prev/marketing.jpg"
+                       muted loop playsinline preload="none"></video>
+              </span>
+              <span class="ft-name">Marketing Studio</span>
+              <span class="ft-line" data-i18n="home04">عکس محصول و تبلیغ، از عکس خودت.</span>
+            </a>
+        </section>
+
+        <!-- ── LEDE ──────────────────────────────────────────────────────
+             Not a hero. The reference this page follows opens straight onto
+             work, with no introduction at all; a centred headline holding
+             half a screen of black was the single biggest reason this page
+             read as empty. One sentence, two doors, and then the work. -->
+        <section class="hx-lede">
+          <div class="hx-lede-in">
+            <h1 class="hx-lede-h" data-i18n="homeH1">ویدیوی خام بده، ریلز حرفه‌ای بگیر.</h1>
+            <p class="hx-lede-p" data-i18n="homeLede">ادیتور ویدیوی رایگان با هوش مصنوعی، داخل مرورگر. مکث‌ها را می‌بُرد و زیرنویس متحرک، موزیک، بی‌رول و موشن‌گرافیک را با یک کلیک اضافه می‌کند. بدون نصب.</p>
+            <span class="hx-lede-cta">
+              <a class="hero-x-go" href="/fa/studio/" data-i18n="home05">باز کردن استودیوی ویدیو</a>
+              <a class="hero-x-alt" href="/models" data-i18n="home06">دیدن مدل‌ها</a>
+            </span>
+          </div>
+        </section>
+
+
+
+        <!-- ── THE WORK ──────────────────────────────────────────────────
+             A rail of real output rather than a description of it. The
+             clips ship with the site already - the template picker draws
+             from the same fifteen - so this costs one request each and no
+             new asset.
+
+             They autoplay only while on screen and only after their poster
+             has done the waiting: fifteen videos all decoding at once on a
+             phone is how a landing page becomes a heater. -->
+        <section id="work" class="sc-wrap">
+          <div class="sc-rail" id="scRail">
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home11">تایپوگرافی متحرک</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home12">اسکچ</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card">
+              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__3.mp4" poster="/tpl/single_take__3.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__10.mp4" poster="/tpl/broll_presenter__10.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__5.mp4" poster="/tpl/fast_montage__5.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/branded_interview__11.mp4" poster="/tpl/branded_interview__11.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/kinetic_type__15.mp4" poster="/tpl/kinetic_type__15.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home11">تایپوگرافی متحرک</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__14.mp4" poster="/tpl/single_take__14.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__12.mp4" poster="/tpl/broll_presenter__12.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/skit__8.mp4" poster="/tpl/skit__8.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home12">اسکچ</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__7.mp4" poster="/tpl/fast_montage__7.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__16.mp4" poster="/tpl/single_take__16.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__4.mp4" poster="/tpl/broll_presenter__4.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/branded_interview__2.mp4" poster="/tpl/branded_interview__2.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home10">مصاحبهٔ برند</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/fast_montage__9.mp4" poster="/tpl/fast_montage__9.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home09">مونتاژ سریع</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/single_take__6.mp4" poster="/tpl/single_take__6.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home07">یک برداشت</figcaption>
+            </figure>
+            <figure class="sc-card" aria-hidden="true">
+              <video class="sc-vid" src="/tpl/broll_presenter__13.mp4" poster="/tpl/broll_presenter__13.jpg"
+                     muted loop playsinline preload="none"></video>
+              <figcaption class="sc-cap" data-i18n="home08">مجری + تصاویر تکمیلی</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <!-- ── WHAT WE MAKE ──────────────────────────────────────────────
+             The home page used to open onto a directory of other people's
+             AI tools. Good work, and none of it about what this site does.
+             That lives on /radar/ now, and this is the first thing instead:
+             the eight things you can actually make here. -->
+        <section id="make" class="panel">
+          <div class="section-head">
+            <div>
+              <span class="sec-eyebrow" data-i18n="home13">چه می‌توانی بسازی</span>
+              <h2 data-i18n="home14">ابزارهای رایگان، همین حالا</h2>
+              <p data-i18n="home15">Video Studio و Spark رایگان‌اند. بقیهٔ استودیوها به‌زودی باز می‌شوند.</p>
+            </div>
+          </div>
+          <div class="mk-grid">
+            <a class="mk-card" href="/fa/studio/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/video-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Video Studio</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home16">متن، فیلم، زیرنویس و صدا، از یک لینک.</span>
+            </a>
+            <a class="mk-card" href="/fa/spark/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/spark-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindText">متن</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Spark</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home17">هوک، پست، تصویر بندانگشتی، کاروسل. بیشترشان رایگان.</span>
+            </a>
+            <a class="mk-card" href="/reverse-engineer/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/re-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Reverse Engineer</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home18">چیزی که جواب داده را، با خودت، دوباره بساز.</span>
+            </a>
+            <a class="mk-card" href="/models">
+              <span class="mk-top">
+                <img class="mk-ic" src="/models-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindVidImg">ویدیو · تصویر</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name" data-i18n="cardModels">مدل‌ها</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home19">سیزده مدل، همهٔ تنظیمات، یک قیمت به کردیت.</span>
+            </a>
+            <a class="mk-card" href="/workflows/cinema-studio">
+              <span class="mk-top">
+                <img class="mk-ic" src="/cinema-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindVideo">ویدیو</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Cinema Studio</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home20">دوره، لنز، نور، حرکت دوربین.</span>
+            </a>
+            <a class="mk-card" href="/marketing-studio">
+              <span class="mk-top">
+                <img class="mk-ic" src="/marketing-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindImage">تصویر</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Marketing Studio</span><span class="arh-new" data-i18n="badgeNew">جدید</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home21">عکس محصول و تبلیغ، از عکس خودت.</span>
+            </a>
+            <a class="mk-card" href="/prompt-lab/">
+              <span class="mk-top">
+                <img class="mk-ic" src="/lab-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindText">متن</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Prompt Lab</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home22">پرامپت‌هایی که از قبل جواب داده‌اند.</span>
+            </a>
+            <a class="mk-card" href="/assistant">
+              <span class="mk-top">
+                <img class="mk-ic" src="/chat-icon.svg" alt="" />
+                <span class="mk-kind" data-i18n="kindText">متن</span>
+              </span>
+              <span class="mk-card-head">
+                <span class="mk-card-name">Assistant</span>
+              </span>
+              <span class="mk-card-line" data-i18n="home23">بپرس، ابزار درست را برایت باز می‌کند.</span>
+            </a>
+          </div>
+          <a class="mk-radar" href="/radar/">
+            <span class="mk-radar-txt">
+              <b data-i18n="home25">هنوز رادار را می‌خواهی؟</b>
+              <span data-i18n="home24">مقایسهٔ چهل‌وچهار ابزار هوش مصنوعی، محبوبیت زندهٔ GitHub، نقشهٔ جهانی زیرساخت هوش مصنوعی و خبرهای روز.</span>
+            </span>
+            <span class="mk-radar-go" aria-hidden="true">&rarr;</span>
+          </a>
+        </section>
+
+
+
+
+
+
+
+
+        <!-- ── BANNER ────────────────────────────────────────────────────
+             Composed from the product's own interface rather than from
+             stock or from a generated still. Higgsfield's equivalent panel
+             does the same thing, and it is the only part of their page that
+             can be copied honestly: the interface in ours is ours. -->
+        <section class="bn-block">
+          <div class="bn-glow" aria-hidden="true"></div>
+          <div class="bn-in">
+
+            <div class="bn-side bn-left">
+              <figure class="bn-clip">
+                <video class="ft-vid bn-clipvid" src="/prev/made.mp4"
+                       poster="/prev/made.jpg" muted loop playsinline preload="none"></video>
+                <figcaption data-i18n="home26">ساخته‌شده در استودیوی ویدیو</figcaption>
+              </figure>
+            </div>
+
+            <div class="bn-mid">
+              <h2 class="bn-title" data-i18n="home27">یک موجودی.<br />Every model.</h2>
+              <p class="bn-sub" data-i18n="home29">سیزده مدل تصویر و ویدیو و چهار استودیو، همه با یک کردیت. بدون اشتراک جدا برای هر ابزار.</p>
+              <a class="hero-x-go" href="/pricing" data-i18n="home30">هر کار چقدر می‌شود</a>
+            </div>
+
+            <div class="bn-side bn-right">
+              <div class="bn-card">
+                <div class="bn-card-h"><span class="bn-dot bn-dot-cy"></span><span data-i18n="home30">هر کار چقدر می‌شود</span></div>
+                <span class="bn-row">
+                  <span class="bn-m">Soul 2<i data-i18n="home32">همهٔ قیمت‌ها ←</i></span>
+                  <b>5</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Kling 3.0<i>5s</i></span>
+                  <b>26</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Seedance 2.0<i>5s · 480p</i></span>
+                  <b>41</b>
+                </span>
+                <span class="bn-row">
+                  <span class="bn-m">Cinema Studio<i>5s · 480p</i></span>
+                  <b>62</b>
+                </span>
+                <a class="bn-more" href="/pricing" data-i18n="home32">همهٔ قیمت‌ها ←</a>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── AI MODELS TICKER ──────────────────────────────────────────
+             The ticker belongs after the promise, not in front of it.
+
+             It was the first thing on the page: a scrolling strip of other
+             companies' logos, above the headline, so the first thing anybody
+             read was a list of products that are not this one. None of the
+             sites this design follows put anything above their own sentence.
+
+             Down here it does the job it was always doing - showing the
+             breadth of what the finder tracks - as evidence for the claim
+             rather than as a queue in front of it. -->
+        <div class="models-ticker-wrap" aria-label="AI model logos ticker">
+          <div class="models-ticker" id="modelsTicker"></div>
+        </div>
+
+        <footer class="ar-foot">
+          <div class="ar-foot-in">
+            <div class="ft-brand">
+              <span data-i18n="home34">بسازش</span>
+              <span data-i18n="home35">در مرورگر خودت.</span>
+            </div>
+            <div class="ft-col">
+              <h3 data-i18n="home36">استودیوها</h3>
+              <a href="/fa/studio/">Video Studio</a>
+              <a href="/fa/spark/">Spark</a>
+              <a href="/reverse-engineer/">Reverse Engineer</a>
+              <a href="/workflows/cinema-studio">Cinema Studio</a>
+              <a href="/marketing-studio">Marketing Studio</a>
+            </div>
+            <div class="ft-col">
+              <h3 data-i18n="ftModels">مدل‌ها</h3>
+              <a href="/models/video" data-i18n="home37">مدل‌های ویدیو</a>
+              <a href="/models/image" data-i18n="home38">مدل‌های تصویر</a>
+              <a href="/prompt-lab/">Prompt Lab</a>
+              <a href="/assistant">Assistant</a>
+            </div>
+            <div class="ft-col">
+              <h3>Radar</h3>
+              <a href="/radar/#tools" data-i18n="home39">جست‌وجوگر ابزار</a>
+              <a href="/radar/#performance" data-i18n="home40">روند زنده</a>
+              <a href="/radar/#aiMonitor" data-i18n="home41">نقشهٔ جهانی هوش مصنوعی</a>
+              <a href="/radar/#toolOfDay" data-i18n="home42">ابزار روز</a>
+            </div>
+            <div class="ft-col">
+              <h3 data-i18n="home43">حساب کاربری</h3>
+              <a href="/dashboard" data-i18n="home44">کتابخانهٔ تو</a>
+              <a href="/pricing" data-i18n="home45">کردیت‌ها</a>
+              <a href="/login">Sign in</a>
+            </div>
+          </div>
+          <div class="ar-foot-note">
+            <p data-i18n="home46">ادیت ویدیو و ابزارهای تولید محتوا با هوش مصنوعی، رایگان. بدون نصب، بدون تبلیغ.</p>
+            <p class="ft-by" data-i18n="home47">ساختهٔ شایان علینیا</p>
+          </div>
+        </footer>
+        <div class="ar-foot-bar">
+          <span>&copy; 2026 AI Radar</span>
+          <span class="ar-foot-links">
+            <a class="ar-lang" href="/" hreflang="en" lang="en">English</a>
+            <a href="/radar/">Radar</a>
+            <a href="/pricing" data-i18n="home45">کردیت‌ها</a>
+            <a href="/assistant">Assistant</a>
+          </span>
+        </div>
+
+      </main>
+      <button id="scrollTopBtn" class="scroll-top" type="button"
+        aria-label="Back to top" title="Back to top">
+        <span class="scroll-top-arrow">↑</span>
+      </button>
+      </div><!-- /.content-area -->
+    </div>
+
+
+    <script>
+    /* ── RANGE SLIDER GOLD FILL ── */
+    document.addEventListener("DOMContentLoaded", function(){
+      function updateRange(r){
+        var pct=((+r.value-+(r.min||0))/(+(r.max||100)-+(r.min||0))*100).toFixed(1)+"%";
+        r.style.background="linear-gradient(to right,rgba(37,99,255,0.6) 0%,rgba(37,99,255,0.6) "+pct+",var(--line) "+pct+",var(--line) 100%)";
+      }
+      document.querySelectorAll("input[type=range]").forEach(function(r){updateRange(r);r.addEventListener("input",function(){updateRange(r);});});
+    });
+    /* ── FONT CHANGE → REDRAW ── */
+    document.addEventListener("DOMContentLoaded", function(){
+      var f=document.getElementById("vsHeadlineFont");
+      if(!f)return;
+      f.addEventListener("change",function(){
+        setTimeout(function(){
+          if(typeof drawStudioFrame==="function"){drawStudioFrame(0);}
+          else{var b=document.getElementById("vsPreviewBtn");if(b)b.click();}
+        },30);
+      });
+    });
+    </script>
+
+    <script>
+    /* ── FONT PRELOAD — prevents canvas text overlap from unloaded fonts ── */
+    (function(){
+      // Force-load all studio fonts so canvas measureText matches render
+      var fontsToLoad = [
+        '700 48px Space Grotesk', '400 48px Space Grotesk',
+        '700 48px Alice', '400 48px Alice',
+        '700 48px "Viaoda Libre"',
+        '900 48px Inter', '800 48px Inter', '700 48px Inter', '600 48px Inter', '500 48px Inter', '400 48px Inter',
+        '700 48px Georgia'
+      ];
+      window._vsFontsReady = false;
+      function loadFonts() {
+        if (!document.fonts || !document.fonts.load) {
+          window._vsFontsReady = true;
+          return;
+        }
+        Promise.all(fontsToLoad.map(function(f){
+          return document.fonts.load(f).catch(function(){});
+        })).then(function(){
+          return document.fonts.ready;
+        }).then(function(){
+          window._vsFontsReady = true;
+          // trigger a redraw if studio is open
+          if (typeof drawStudioFrame === 'function') {
+            try { drawStudioFrame(window.vstudio ? (vstudio.position||0) : 0); } catch(e){}
+          }
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadFonts);
+      } else { loadFonts(); }
+    })();
+    </script>
+    <!-- ── FULLSCREEN LIVE DASHBOARD — AI COMMAND CENTER ── -->
+    <div id="liveDashboard" class="live-dash" aria-hidden="true">
+      <svg width="0" height="0" style="position:absolute"><defs>
+        <linearGradient id="ldGaugeGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#5b9bff"/><stop offset="100%" stop-color="#5b9bff"/>
+        </linearGradient>
+      </defs></svg>
+      <!-- TOP NAVBAR -->
+      <div class="ld-nav">
+        <div class="ld-nav-left">
+          <span class="ld-logo">◉</span>
+          <div>
+            <div class="ld-title" id="ldTitle">AI RADAR</div>
+            <div class="ld-brand-sub" id="ldBrandSub">Real-Time Intelligence Center · v296</div>
+          </div>
+        </div>
+        <div class="ld-nav-center">
+          <div class="ld-gauge" id="ldGauge">
+            <svg viewBox="0 0 120 120">
+              <circle class="ld-gauge-bg" cx="60" cy="60" r="52"/>
+              <circle class="ld-gauge-fg" id="ldGaugeArc" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="ld-gauge-inner">
+              <span class="ld-gauge-val" id="ldHealthVal">…</span>
+              <span class="ld-gauge-lbl" id="ldHealthLbl">AI HEALTH</span>
+            </div>
+          </div>
+        </div>
+        <div class="ld-nav-right">
+          <span class="ld-clock" id="ldClock">--:--:--</span>
+          <div class="ld-clock-side">
+            <span class="ld-date" id="ldDate"></span>
+            <span class="ld-tz" id="ldTz"></span>
+          </div>
+          <span class="ld-live-chip"><span class="dot"></span><span id="ldLiveTxt">LIVE</span></span>
+          <a class="ld-monitor-btn" href="/monitor.html" title="Open the live world monitor: earthquakes, crises and headlines">🌍 <span id="ldMonitorTxt">World Monitor</span></a>
+          <button class="ld-close" id="ldClose" type="button" aria-label="Close"><i>✕</i><span id="ldCloseTxt">Exit</span></button>
+        </div>
+      </div>
+
+      <!-- HERO STRIP -->
+      <div class="ld-hero">
+        <div class="ld-hero-label" id="ldHeroLabel">GLOBAL AI ECOSYSTEM</div>
+        <div class="ld-hero-stats" id="ldHeroStats"></div>
+      </div>
+
+      <!-- MAIN GRID -->
+      <div class="ld-grid">
+        <!-- world map -->
+        <section class="ld-card ld-map-card">
+          <div class="ld-card-head">
+            <span class="ld-card-title" id="ldMapTitle">Global AI Hubs</span>
+            <span class="ld-summary"><span class="ld-summary-dot"></span><span id="ldMonSummaryTxt">…</span></span>
+          </div>
+          <div class="ld-map" id="ldWorldMap"></div>
+          <div class="ld-map-legend" id="ldMapLegend"></div>
+        </section>
+
+        <!-- trending models -->
+        <section class="ld-card ld-chart">
+          <div class="ld-card-head">
+            <span class="ld-card-title" id="ldChartTitle">Trending Models</span>
+            <span class="ld-chart-metric">★ GitHub</span>
+          </div>
+          <div class="ld-chart-body" id="ldChartBody"></div>
+        </section>
+
+        <!-- tool of the day -->
+        <section class="ld-card ld-tod">
+          <div class="ld-card-head"><span class="ld-card-title" id="ldTodTitle">Featured Tool</span></div>
+          <div class="ld-tod-body" id="ldTodBody"></div>
+        </section>
+
+        <!-- ecosystem KPIs -->
+        <section class="ld-card ld-stats">
+          <div class="ld-card-head"><span class="ld-card-title" id="ldStatsTitle">Ecosystem Metrics</span></div>
+          <div class="ld-stats-body" id="ldStatsBody"></div>
+        </section>
+      </div>
+
+      <!-- BLOOMBERG-STYLE NEWS TICKER -->
+      <div class="ld-ticker">
+        <span class="ld-ticker-label" id="ldTickerLabel">◆ AI FEED</span>
+        <div class="ld-ticker-track" id="ldTickerTrack"></div>
+      </div>
+    </div>
+    <!-- /FULLSCREEN LIVE DASHBOARD -->
+
+    <!-- ───────────────  RADAR HELP ASSISTANT (popup)  ─────────────── -->
+    <style>
+      /* ── Professional hero (plain background) ── */
+      .luxury-hero{position:relative}
+      .luxury-hero .luxury-hero-copy{max-width:640px}
+      /* eyebrow as a refined live tag */
+      .luxury-hero .eyebrow{display:inline-flex;align-items:center;gap:9px;
+        font-size:11.5px;font-weight:800;letter-spacing:.26em;text-transform:uppercase;
+        color:#2563ff;margin:0 0 20px;padding:7px 14px;border-radius:999px;
+        background:rgba(37,99,255,.07);border:1px solid rgba(37,99,255,.22)}
+      .luxury-hero .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;
+        background:#5fe0b0;box-shadow:0 0 0 0 rgba(53,208,127,.6);animation:heroLive 2.2s infinite}
+      @keyframes heroLive{0%{box-shadow:0 0 0 0 rgba(53,208,127,.55)}
+        70%{box-shadow:0 0 0 7px rgba(53,208,127,0)}100%{box-shadow:0 0 0 0 rgba(53,208,127,0)}}
+      /* Headline: solid, and no sheen.
+
+         It was clipped to a white-to-blue gradient with a shimmer looping
+         across it every eight seconds, plus a blue text-shadow. Three
+         effects on four words. Gradient text also fails the contrast check
+         at its blue midpoint, and an animation that never stops is a thing
+         the eye keeps returning to for no reason.
+
+         A large, tight, genuinely white Space Grotesk says it better. The
+         colour that was in the headline is now spent on the one button
+         underneath it. */
+      .luxury-hero .motion-title{font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-weight:600;
+        font-size:clamp(52px,5.6vw,92px) !important;line-height:0.94;letter-spacing:-.04em;margin:0 0 20px;
+        color:#fff;background:none;-webkit-text-fill-color:#fff;text-shadow:none;animation:none}
+      /* ── "Live Dashboard" — a green button the SAME height as Live charts,
+            sitting right next to it; its hint sits on its own line below ── */
+      .luxury-hero .hero-actions{align-items:center}
+      .luxury-hero .dash-launch-wrap{display:inline-flex;align-items:center;gap:10px}
+      /* hint sits to the RIGHT of the Live Dashboard button, arrow pointing left at it */
+      .luxury-hero .dash-hint{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+        color:#5fe0b0 !important;font-size:12px;font-weight:600;letter-spacing:.005em}
+      .luxury-hero .dash-hint .dash-hint-arrow{width:30px;height:15px;flex-shrink:0;
+        color:#5fe0b0 !important;opacity:.95}
+      [dir="rtl"] .luxury-hero .dash-hint .dash-hint-arrow{transform:scaleX(-1)}
+      /* the button itself — green glass accent, same height as the other buttons */
+      .luxury-hero .dash-launch-wrap .dash-launch-btn.button{
+        background:rgba(53,208,127,.14) !important;
+        border:1px solid rgba(53,208,127,.42) !important;
+        color:#f4f5f7 !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 22px rgba(0,0,0,.30),0 0 26px rgba(53,208,127,.10) !important}
+      .luxury-hero .dash-launch-wrap .dash-launch-btn.button:hover{
+        background:rgba(53,208,127,.24) !important;border-color:rgba(53,208,127,.60) !important;
+        transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 12px 26px rgba(0,0,0,.36) !important}
+      .luxury-hero .dash-launch-wrap .dash-live-dot{width:8px;height:8px;border-radius:50%;
+        background:#5fe0b0 !important;display:inline-block;margin-right:2px;
+        box-shadow:0 0 0 0 rgba(53,208,127,.6);animation:dashLivePulse 1.8s infinite}
+      @keyframes dashLivePulse{0%{box-shadow:0 0 0 0 rgba(53,208,127,.55)}
+        70%{box-shadow:0 0 0 6px rgba(53,208,127,0)}100%{box-shadow:0 0 0 0 rgba(53,208,127,0)}}
+      @media (max-width:880px){.luxury-hero .dash-hint{white-space:normal;position:static;margin-top:9px}}
+      /* supporting line — readable measure + calm tone */
+      .luxury-hero .luxury-hero-copy > p[data-i18n="heroText"]{max-width:38rem;
+        color:#8a919c;font-size:clamp(15px,1.1vw,18px);line-height:1.72;margin:0 0 18px}
+      /* professional feature chips — that "AI product" feel */
+      .luxury-hero .hero-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px;padding:0;list-style:none}
+      .luxury-hero .hero-chips li{display:inline-flex;align-items:center;gap:7px;
+        font-size:12px;font-weight:600;color:#f4f5f7;letter-spacing:.015em;
+        padding:6px 13px;border-radius:999px;background:rgba(37,99,255,.08);
+        border:1px solid rgba(37,99,255,.22);backdrop-filter:blur(2px)}
+      .luxury-hero .hero-chips li::before{content:"";width:6px;height:6px;border-radius:50%;
+        background:#2563ff;box-shadow:0 0 8px rgba(37,99,255,.7)}
+      /* polished action row */
+      .luxury-hero .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+      .luxury-hero .hero-actions .button{border-radius:14px;font-weight:700;padding:13px 22px;
+        transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+      .luxury-hero .hero-actions .button.primary{box-shadow:0 10px 26px rgba(37,99,255,.30)}
+      .luxury-hero .hero-actions .button:hover{transform:translateY(-2px)}
+      .luxury-hero .hero-actions .button.ghost:hover{filter:brightness(1.15)}
+      @media (max-width:680px){.luxury-hero .motion-title{font-size:clamp(34px,9vw,46px)}}
+
+      /* ── Auto-build toggle switches (clean iOS-style) ── */
+      .vs-auto-opts{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}
+      .vs-switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:13px;color:#f4f5f7;line-height:1.35}
+      .vs-switch input{position:absolute;opacity:0;width:0;height:0}
+      .vs-switch-track{position:relative;flex-shrink:0;width:42px;height:24px;border-radius:999px;
+        background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);transition:background .2s,border-color .2s}
+      .vs-switch-track::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+        background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.45);transition:transform .2s}
+      .vs-switch input:checked + .vs-switch-track{background:rgba(53,208,127,.6);border-color:rgba(53,208,127,.65)}
+      .vs-switch input:checked + .vs-switch-track::after{transform:translateX(18px)}
+      .vs-switch input:focus-visible + .vs-switch-track{outline:2px solid rgba(37,99,255,.75);outline-offset:2px}
+      .vs-switch-txt{flex:1}
+
+      /* ── Batch progress popup ── */
+      #vsBatchProg{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);
+        z-index:10000;min-width:260px;max-width:min(360px,92vw);padding:14px 16px;border-radius:14px;
+        background:rgba(18,15,10,.96);border:1px solid rgba(37,99,255,.30);
+        box-shadow:0 18px 50px rgba(0,0,0,.6);opacity:0;visibility:hidden;
+        -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:opacity .25s ease,transform .25s ease,visibility .25s}
+      #vsBatchProg.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+      #vsBatchProg .vsbp-title{font-weight:800;font-size:13px;color:#f4f5f7;margin-bottom:9px}
+      #vsBatchProg .vsbp-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}
+      #vsBatchProg .vsbp-bar > span{display:block;height:100%;width:0;border-radius:999px;
+        background:linear-gradient(90deg,#2563ff,#5fe0b0);transition:width .35s ease}
+      #vsBatchProg .vsbp-sub{margin-top:8px;font-size:12px;color:#8a919c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #vsBatchProg .vsbp-cancel{margin-top:12px;width:100%;cursor:pointer;font-weight:800;font-size:12px;
+        padding:8px 12px;border-radius:10px;color:#f87171;background:rgba(220,70,60,.16);
+        border:1px solid rgba(220,70,60,.45);transition:background .16s,border-color .16s}
+      #vsBatchProg .vsbp-cancel:hover{background:rgba(220,70,60,.28);border-color:rgba(220,70,60,.7)}
+      #vsBatchProg .vsbp-cancel:disabled{opacity:.6;cursor:default}
+
+      /* ── Batch videos results list ── */
+      .vs-batch-results{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+      .vs-batch-results .vs-batch-head{display:flex;align-items:center;justify-content:space-between;
+        gap:8px;font-size:12px;font-weight:800;letter-spacing:.04em;
+        text-transform:uppercase;color:#8a919c;margin:2px 0 2px}
+      .vs-batch-dlall{font-size:11px;font-weight:800;letter-spacing:.02em;cursor:pointer;
+        padding:6px 12px;border-radius:10px;color:#0e1014;border:0;
+        background:#2563ff;box-shadow:0 4px 12px rgba(37, 99, 255,.3);transition:filter .16s,transform .16s}
+      .vs-batch-dlall:hover{filter:brightness(1.08);transform:translateY(-1px)}
+      .vs-batch-dlall:disabled{opacity:.6;cursor:default;filter:none;transform:none}
+      .vs-batch-item{display:flex;align-items:stretch;gap:6px;width:100%;border-radius:14px;
+        background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);
+        transition:background .18s ease,border-color .18s ease,transform .14s ease}
+      .vs-batch-item:hover{background:rgba(37,99,255,.10);border-color:rgba(37,99,255,.30);transform:translateY(-1px)}
+      .vs-batch-item.active{background:rgba(37,99,255,.16);border-color:rgba(37,99,255,.5);
+        box-shadow:inset 0 1px 0 rgba(255,236,176,.2)}
+      .vs-batch-open{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+        text-align:start;cursor:pointer;padding:10px 13px;background:transparent;border:0;color:#f4f5f7}
+      .vs-batch-open .vs-batch-name{font-weight:700;font-size:13.5px;color:#f4f5f7}
+      .vs-batch-open .vs-batch-meta{font-size:11px;color:#8a919c}
+      .vs-batch-dl{flex-shrink:0;width:42px;cursor:pointer;border:0;border-inline-start:1px solid rgba(255,255,255,.08);
+        background:transparent;color:#2563ff;font-size:16px;border-radius:0 14px 14px 0;transition:background .16s,color .16s}
+      .vs-batch-dl:hover{background:rgba(37,99,255,.18);color:#fff}
+
+      /* ── assistant styles below ── */      /* ── Back-to-top button (centered directly above the assistant) ── */
+      .scroll-top{position:fixed;right:32px;bottom:100px;z-index:9997;width:46px;height:46px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;cursor:pointer;
+        border:1px solid rgba(37,99,255,.4);color:#5b9bff;font-size:20px;
+        background:radial-gradient(120% 120% at 30% 25%,#14171d 0%,#0e1014 72%);
+        box-shadow:0 8px 22px rgba(0,0,0,.5);
+        opacity:0;visibility:hidden;transform:translateY(12px) scale(.9);
+        transition:opacity .25s ease,transform .25s ease,visibility .25s ease,box-shadow .2s ease}
+      .scroll-top.show{opacity:1;visibility:visible;transform:none}
+      .scroll-top:hover{transform:translateY(-2px) scale(1.06);box-shadow:0 12px 28px rgba(0,0,0,.6);color:#fff;border-color:rgba(37,99,255,.7)}
+      .scroll-top-arrow{line-height:1;font-weight:700}
+
+      /* ── Assistant launcher — bright, animated, attention-grabbing ── */
+      #raAsstBtn{position:fixed;right:22px;bottom:22px;z-index:9998;width:66px;height:66px;border-radius:50%;
+        border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+        background:radial-gradient(130% 130% at 30% 22%,#5b9bff 0%,#5b9bff 38%,#2563ff 100%);
+        color:#0e1014;font-size:30px;
+        box-shadow:0 12px 30px rgba(0,0,0,.5),0 6px 22px rgba(37,99,255,.45);
+        animation:raFloat 3s ease-in-out infinite, raPulse 2.4s ease-out infinite;
+        transition:transform .18s ease}
+      #raAsstBtn:hover{transform:translateY(-3px) scale(1.07);animation-play-state:paused}
+      #raAsstBtn .ra-spark{filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));font-weight: 800}
+      #raAsstBtn .ra-dot{position:absolute;top:7px;right:8px;width:12px;height:12px;border-radius:50%;
+        background:#5fe0b0;border:2px solid #0e1014;box-shadow:0 0 8px rgba(53,208,127,.9)}
+      #raAsstBtn .ra-badge{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+        background:#0e1014;color:#5b9bff;font-size:9px;font-weight:800;letter-spacing:.06em;
+        padding:2px 8px;border-radius:10px;white-space:nowrap;border:1px solid rgba(37,99,255,.5);
+        box-shadow:0 4px 10px rgba(0,0,0,.4)}
+      @keyframes raFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+      @keyframes raPulse{0%{box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 0 rgba(37,99,255,.55)}
+        70%{box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 16px rgba(37,99,255,0)}
+        100%{box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 0 rgba(37,99,255,0)}}
+      @media (prefers-reduced-motion: reduce){#raAsstBtn{animation:none}}
+
+      /* ── RTL (Persian): move the whole stack to the bottom-LEFT ── */
+      html[dir="rtl"] #raAsstBtn{right:auto;left:22px}
+      html[dir="rtl"] #raAsstBtn .ra-dot{right:auto;left:8px}
+      html[dir="rtl"] #raAsstPanel{right:auto;left:22px}
+      html[dir="rtl"] .scroll-top{right:auto;left:32px}
+      #raAsstPanel{position:fixed;right:22px;bottom:92px;z-index:9999;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100vh - 130px));
+        display:none;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid rgba(37,99,255,.28);
+        background:linear-gradient(180deg,#0e1014 0%,#08090c 100%);box-shadow:0 24px 70px rgba(0,0,0,.62)}
+      #raAsstPanel.ra-open{display:flex;animation:raPop .22s ease}
+      @keyframes raPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+      .ra-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(37,99,255,.18);background:rgba(37,99,255,.05)}
+      .ra-head .ra-av{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,#2563ff,#5b9bff);color:#0e1014;font-weight:800}
+      .ra-head h4{margin:0;font-family:'Space Grotesk',ui-sans-serif,sans-serif;font-size:15px;color:#5b9bff;line-height:1.1}
+      .ra-head p{margin:1px 0 0;font-size:10.5px;color:#8a919c;letter-spacing:.02em}
+      .ra-head .ra-x{margin-inline-start:auto;background:transparent;border:0;color:#8a919c;font-size:20px;cursor:pointer;line-height:1;padding:4px}
+      .ra-head .ra-x:hover{color:#fff}
+      #raAsstMsgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
+      .ra-msg{max-width:86%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+      .ra-msg.ra-bot{align-self:flex-start;background:#14171d;color:#f4f5f7;border:1px solid rgba(37,99,255,.14);border-bottom-left-radius:6px}
+      .ra-msg.ra-user{align-self:flex-end;background:linear-gradient(135deg,#2563ff,#2563ff);color:#0e1014;border-bottom-right-radius:6px;font-weight:500}
+      .ra-msg.ra-bot b,.ra-msg.ra-bot strong{color:#5b9bff}
+      .ra-typing{align-self:flex-start;display:flex;gap:4px;padding:11px 13px;background:#14171d;border-radius:14px;border:1px solid rgba(37,99,255,.14)}
+      .ra-typing span{width:6px;height:6px;border-radius:50%;background:#8a919c;animation:raBlink 1.2s infinite}
+      .ra-typing span:nth-child(2){animation-delay:.2s}.ra-typing span:nth-child(3){animation-delay:.4s}
+      @keyframes raBlink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+      .ra-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+      .ra-chip{font-size:11px;padding:6px 10px;border-radius:20px;cursor:pointer;color:#f4f5f7;
+        background:rgba(37,99,255,.08);border:1px solid rgba(37,99,255,.22)}
+      .ra-chip:hover{background:rgba(37,99,255,.18);color:#fff}
+      .ra-input{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(37,99,255,.18);background:rgba(0,0,0,.25)}
+      .ra-input textarea{flex:1;resize:none;height:40px;max-height:110px;border-radius:10px;border:1px solid rgba(37,99,255,.25);
+        background:#08090c;color:#f4f5f7;padding:10px 12px;font-size:13px;font-family:inherit;outline:none}
+      .ra-input textarea:focus{border-color:rgba(37,99,255,.55)}
+      .ra-input button{flex-shrink:0;width:42px;border-radius:10px;border:0;cursor:pointer;font-size:18px;
+        background:linear-gradient(135deg,#2563ff,#2563ff);color:#0e1014}
+      .ra-input button:disabled{opacity:.5;cursor:default}
+    </style>
+    <div id="raAsstPanel" role="dialog" aria-label="Radar Assistant">
+      <div class="ra-head">
+        <div class="ra-av">✦</div>
+        <div><h4 id="raAsstTitle">Radar Assistant</h4><p id="raAsstSub">Ask me about the site &amp; Video Studio</p></div>
+        <button class="ra-x" id="raAsstClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="raAsstMsgs"></div>
+      <div class="ra-chips" id="raAsstChips"></div>
+      <div class="ra-input">
+        <textarea id="raAsstInput" rows="1" placeholder="Type your question…"></textarea>
+        <button id="raAsstSend" type="button" aria-label="Send">➤</button>
+      </div>
+    </div>
+    <!-- /RADAR HELP ASSISTANT -->
+    <!-- Assistant help popup removed from the site -->
+    <style>#raAsstBtn,#raAsstPanel{display:none!important}</style>
+
+    <!-- ════════ APPLE LIQUID-GLASS BUTTON SYSTEM (loads last → overrides) ════════ -->
+    <style id="glass-button-system">
+      /* ── Design tokens: one consistent CTA system everywhere ── */
+      .button{
+        --gb-radius:14px;
+        position:relative;
+        display:inline-flex;align-items:center;justify-content:center;gap:9px;
+        border-radius:var(--gb-radius) !important;
+        padding:12px 22px !important;
+        font-weight:600 !important;letter-spacing:.012em;line-height:1.1;
+        border:1px solid rgba(255,255,255,.16) !important;
+        -webkit-backdrop-filter:blur(16px) saturate(1.6);
+        backdrop-filter:blur(16px) saturate(1.6);
+        background:rgba(255,255,255,.06) !important;   /* solid translucent — NO gradients */
+        color:#f4f5f7 !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.22),
+          inset 0 -1px 0 rgba(0,0,0,.18),
+          0 6px 18px rgba(0,0,0,.30) !important;
+        transition:transform .18s cubic-bezier(.2,.8,.2,1),
+                   box-shadow .22s ease, background-color .22s ease,
+                   border-color .22s ease, filter .22s ease !important;
+        -webkit-tap-highlight-color:transparent;
+      }
+      /* PRIMARY — solid premium gold, glass edge + depth */
+      .button.primary{
+        background:linear-gradient(135deg,#2563ff,#2563ff) !important;
+        color:#ffffff !important;
+        border-color:rgba(255,255,255,.16) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.22),
+          0 10px 26px -6px rgba(37,99,255,.55),
+          0 1px 2px rgba(0,0,0,.30) !important;
+      }
+      .button.primary:hover{background:linear-gradient(135deg,#5b9bff,#2563ff) !important;transform:translateY(-2px);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 16px 34px -6px rgba(37,99,255,.62),0 2px 4px rgba(0,0,0,.3) !important;}
+      /* SECONDARY / GHOST — glassy blue */
+      .button.ghost{
+        background:linear-gradient(180deg,rgba(59,120,255,.16),rgba(37,99,255,.05)) !important;
+        color:#f4f5f7 !important;
+        border-color:rgba(91,155,255,.34) !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 18px -10px rgba(0,0,0,.5) !important;
+      }
+      .button.ghost:hover{background:linear-gradient(180deg,rgba(59,120,255,.30),rgba(37,99,255,.13)) !important;transform:translateY(-2px);
+        border-color:rgba(120,160,255,.6) !important;color:#ffffff !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 26px -10px rgba(0,0,0,.4) !important;}
+      /* GHOST GOLD — same glassy blue for consistency */
+      .button.ghost.gold{
+        background:linear-gradient(180deg,rgba(59,120,255,.16),rgba(37,99,255,.05)) !important;
+        color:#f4f5f7 !important;
+        border-color:rgba(91,155,255,.34) !important;
+      }
+      .button.ghost.gold:hover{background:linear-gradient(180deg,rgba(59,120,255,.30),rgba(37,99,255,.13)) !important;transform:translateY(-2px);
+        border-color:rgba(120,160,255,.6) !important;color:#ffffff !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 26px -10px rgba(0,0,0,.4) !important;}
+      /* shared press + focus */
+      .button:active{transform:translateY(0) scale(.97) !important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(0,0,0,.32) !important;filter:brightness(.97);}
+      .button:focus-visible{outline:2px solid rgba(37,99,255,.75);outline-offset:2px;}
+
+      /* ── Floating glass controls (assistant launcher, back-to-top, play) ── */
+      #raAsstBtn{
+        background:rgba(37, 99, 255,.94) !important;   /* solid gold, no gradient */
+        border:1px solid rgba(255,255,255,.34) !important;
+        -webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);
+      }
+      .scroll-top{
+        background:rgba(255,255,255,.07) !important;
+        border:1px solid rgba(255,255,255,.16) !important;
+        -webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 22px rgba(0,0,0,.5) !important;color:#5b9bff !important;
+      }
+      .vs-play-btn{
+        background:rgba(255,255,255,.08) !important;
+        border:1px solid rgba(255,255,255,.20) !important;
+        -webkit-backdrop-filter:blur(12px) saturate(1.5);backdrop-filter:blur(12px) saturate(1.5);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 16px rgba(0,0,0,.42) !important;color:#fff !important;
+        transition:transform .16s ease,background-color .2s ease,box-shadow .2s ease;
+      }
+      .vs-play-btn:hover{background:rgba(255,255,255,.16) !important;transform:scale(1.05);}
+
+      /* ── Segmented / tab controls → consistent glass, no gradients ── */
+      .vtab,.chart-tab,.gh-sort-btn,.seg-btn{
+        background:rgba(255,255,255,.05) !important;
+        border:1px solid rgba(255,255,255,.10) !important;
+        -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+        color:#f4f5f7 !important;
+        transition:background-color .2s ease,color .2s ease,border-color .2s ease !important;
+      }
+      .vtab:hover,.chart-tab:hover,.gh-sort-btn:hover,.seg-btn:hover{
+        background:rgba(59,120,255,.12) !important;color:#ffffff !important;}
+      .vtab.active,.chart-tab.active,.gh-sort-btn.active,.seg-btn.active{
+        background:linear-gradient(135deg,#2563ff,#2563ff) !important;
+        border-color:transparent !important;
+        color:#ffffff !important;
+        box-shadow:0 8px 20px -8px rgba(37,99,255,.6) !important;
+      }
+
+      /* reduced transparency / no-backdrop-filter fallback keeps contrast */
+      @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+        .button.ghost{background:rgba(18,26,48,.92) !important;}
+        .button.ghost.gold{background:rgba(18,26,48,.92) !important;}
+        .scroll-top,.vs-play-btn{background:rgba(24,21,15,.94) !important;}
+      }
+    </style>
+
+    <!-- ══ Unified login modal (talks to the studio Worker's /api/auth on airadar.me) ══ -->
+    <div id="authModal" class="auth-modal" hidden>
+      <div class="auth-modal-backdrop" id="authModalBackdrop"></div>
+      <div class="auth-card auth-card2" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <div class="auth-art" aria-hidden="true">
+          <img src="/login-art.webp" alt="" decoding="async" />
+          <div class="auth-art-cap"><span>One account</span><b>Prompt Lab, Video Studio, Spark and every studio - signed in once.</b></div>
+        </div>
+        <div class="auth-body">
+        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="auth-brand"><img src="/logo-mono.svg" alt="" class="auth-brand-logo" /><span>AI Radar</span></div>
+        <h3 id="authTitle" class="auth-title">Welcome back</h3>
+        <p class="auth-sub" id="authSub">Sign in to pick up where you left off.</p>
+
+        <div class="auth-tabs" role="tablist" aria-label="Sign in or create an account">
+          <button type="button" role="tab" data-auth-tab="signin" aria-selected="true">Sign in</button>
+          <button type="button" role="tab" data-auth-tab="signup" aria-selected="false">Create account</button>
+        </div>
+
+        <button type="button" id="authGoogleBtn" class="auth-google">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.95L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+          Continue with Google
+        </button>
+        <div class="auth-or"><span></span>or with email<span></span></div>
+
+        <p id="authNotice" class="auth-notice" role="status" hidden></p>
+
+        <!-- Email + password: sign in, or create an account (password twice + robot check) -->
+        <form id="authPwForm" class="auth-form">
+          <label class="auth-label" for="authEmailInput">Email</label>
+          <input id="authEmailInput" class="auth-input" type="email" required autocomplete="email" placeholder="you@example.com" />
+          <label class="auth-label" for="authPwInput">Password</label>
+          <div class="auth-pw"><input id="authPwInput" class="auth-input" type="password" required minlength="6" autocomplete="current-password" /><button type="button" class="auth-eye" data-eye="authPwInput" aria-label="Show password" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+          <div id="authSignupBits" hidden>
+            <p class="auth-hint" id="authPwHint">At least 8 characters.</p>
+            <label class="auth-label" for="authPw2Input">Confirm password</label>
+            <div class="auth-pw"><input id="authPw2Input" class="auth-input" type="password" autocomplete="new-password" /><button type="button" class="auth-eye" data-eye="authPw2Input" aria-label="Show password" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <p class="auth-hint" id="authPw2Hint" aria-live="polite"></p>
+            <div id="authCaptcha" class="auth-captcha" aria-label="Robot check"></div>
+          </div>
+          <button type="submit" class="button primary auth-submit" id="authPwSubmit">Sign in</button>
+        </form>
+        <button type="button" class="auth-back" id="authOtpLink" style="margin-top:8px">Email me a sign-in code instead</button>
+
+        <!-- Step 1 (alt): email code -->
+        <form id="authEmailForm" class="auth-form" hidden>
+          <button type="submit" class="button primary auth-submit" id="authEmailSubmit">Send me a code</button>
+        </form>
+
+        <!-- Step 2: code -->
+        <form id="authCodeForm" class="auth-form" hidden>
+          <label class="auth-label" for="authCodeInput">Enter the 6-digit code sent to <b id="authSentTo"></b></label>
+          <input id="authCodeInput" class="auth-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="••••••" />
+          <button type="submit" class="button primary auth-submit" id="authCodeSubmit">Verify &amp; sign in</button>
+          <button type="button" class="auth-back" id="authBackBtn">Use a different email</button>
+        </form>
+
+        <p id="authError" class="auth-error" role="alert" hidden></p>
+        <p class="auth-foot" id="authFoot"></p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+function arCredits(n){
+  n = Number(n) || 0;
+  if (n < 1000) return String(n);
+  // Below 999500, because Math.round would otherwise turn 999,527 into
+  // "1000k" - a unit that does not exist and a number wider than the one it
+  // was meant to shorten.
+  if (n < 999500) {
+    const k = n / 1000;
+    return (k < 10 ? k.toFixed(1).replace(/.0$/, "") : String(Math.round(k))) + "k";
+  }
+  return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
+}
+
+      /* ── Unified auth for airadar.me — one login shared across the whole
+         domain (main site + /studio + /dashboard) via a host-only cookie the
+         studio Worker sets. All calls hit same-origin /api/* which Cloudflare
+         routes to the Worker. ───────────────────────────────────────────── */
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const modal = $("authModal");
+        const err = $("authError");
+        let email = "";
+
+        const showErr = (m) => { err.textContent = m; err.hidden = false; };
+        const clearErr = () => { err.hidden = true; };
+        const openModal = () => { modal.hidden = false; clearErr(); $("authEmailInput").focus(); };
+        const closeModal = () => { modal.hidden = true; };
+
+        async function api(path, body) {
+          const res = await fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            credentials: "include",
+          });
+          return res.json().catch(() => ({ ok: false, error: "Network error" }));
+        }
+
+        // Reflect signed-in state in the header
+        async function refreshAuth() {
+          try {
+            const me = await fetch("/api/me", { credentials: "include" }).then((r) => r.json());
+            if (me && me.ok && me.user) {
+              $("authSignInBtn").hidden = true;
+              $("authAccount").hidden = false;
+              $("authInitial").textContent = (me.user.email[0] || "?").toUpperCase();
+              $("authEmail").textContent = me.user.email;
+              $("authCredits").textContent = (me.credits ?? 0) + " credits";
+              try{ $("authAccountBtn").setAttribute("data-credits", arCredits(me.credits)); }catch(_){}
+            } else {
+              $("authSignInBtn").hidden = false;
+              $("authAccount").hidden = true;
+            }
+          } catch (_) { /* offline — leave as signed-out */ }
+        }
+
+        // Header buttons
+        $("authSignInBtn").addEventListener("click", openModal);
+        $("authCloseBtn").addEventListener("click", closeModal);
+        $("authModalBackdrop").addEventListener("click", closeModal);
+
+        // Account menu
+        const menu = $("authMenu");
+        $("authAccountBtn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          menu.hidden = !menu.hidden;
+        });
+        document.addEventListener("click", (e) => {
+          if (!$("authAccount").contains(e.target)) menu.hidden = true;
+        });
+        $("authLogoutBtn").addEventListener("click", async () => {
+          await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+          menu.hidden = true;
+          refreshAuth();
+        });
+
+        // Google sign-in — works for any Google account (no email delivery needed)
+        $("authGoogleBtn").addEventListener("click", () => {
+          window.location.href = "/api/auth/google/start";
+        });
+
+        // ── Sign in / Create account ──
+        // Two separate acts: a new account types its password twice and passes
+        // Cloudflare Turnstile (the server checks both); signing in needs an
+        // account that already has a password (Google or code accounts use those).
+        const TS_KEY = "0x4AAAAAAFSQCvT5Z7X7Ydgi";
+        let authTab = "signin", tsId = null, tsToken = "";
+        const notice = (m) => { const n = $("authNotice"); if (!n) return; n.textContent = m || ""; n.hidden = !m; };
+        function loadTs() {
+          if (window.turnstile) return Promise.resolve();
+          return new Promise((res, rej) => {
+            let s = document.getElementById("cf-turnstile-api");
+            if (!s) { s = document.createElement("script"); s.id = "cf-turnstile-api"; s.async = true; s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; document.head.appendChild(s); }
+            s.addEventListener("load", () => res()); s.addEventListener("error", () => rej(new Error("captcha")));
+            if (window.turnstile) res();
+          });
+        }
+        function renderTs() {
+          loadTs().then(() => {
+            const box = $("authCaptcha"); if (!box || !window.turnstile || authTab !== "signup") return;
+            if (tsId != null) { try { window.turnstile.reset(tsId); } catch (_) {} return; }
+            box.innerHTML = "";
+            tsId = window.turnstile.render(box, { sitekey: TS_KEY, theme: "dark", size: "flexible",
+              callback: (t) => { tsToken = t; }, "expired-callback": () => { tsToken = ""; }, "error-callback": () => { tsToken = ""; } });
+          }).catch(() => showErr("The robot check could not load - check your connection and try again."));
+        }
+        function setAuthTab(t) {
+          authTab = t === "signup" ? "signup" : "signin";
+          const up = authTab === "signup";
+          document.querySelectorAll("[data-auth-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.authTab === authTab)));
+          $("authTitle").textContent = up ? "Create your account" : "Welcome back";
+          $("authSub").textContent = up ? "Free to start. Your credits and videos live here." : "Sign in to pick up where you left off.";
+          $("authSignupBits").hidden = !up;
+          $("authPwInput").setAttribute("autocomplete", up ? "new-password" : "current-password");
+          $("authPwInput").minLength = up ? 8 : 6;
+          $("authPw2Input").required = up;
+          $("authPwSubmit").textContent = up ? "Create account" : "Sign in";
+          $("authOtpLink").hidden = up || !$("authCodeForm").hidden;
+          $("authFoot").innerHTML = up ? 'Have an account? <button type="button" class="auth-link" data-auth-go="signin">Sign in</button>'
+                                       : 'New here? <button type="button" class="auth-link" data-auth-go="signup">Create an account</button>';
+          clearErr();
+          if (up) renderTs();
+        }
+        document.querySelectorAll("[data-auth-tab]").forEach((b) => b.addEventListener("click", () => { notice(""); setAuthTab(b.dataset.authTab); }));
+        $("authFoot").addEventListener("click", (e) => { const g = e.target.closest("[data-auth-go]"); if (g) { notice(""); setAuthTab(g.dataset.authGo); } });
+        document.querySelectorAll(".auth-eye").forEach((b) => b.addEventListener("click", () => {
+          const inp = $(b.dataset.eye); const on = inp.type === "password";
+          inp.type = on ? "text" : "password"; b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Hide password" : "Show password");
+        }));
+        const pwHints = () => {
+          if (authTab !== "signup") return;
+          const p = $("authPwInput").value, c = $("authPw2Input").value, h1 = $("authPwHint"), h2 = $("authPw2Hint");
+          h1.classList.toggle("bad", p.length > 0 && p.length < 8);
+          h2.textContent = !c ? "" : c === p ? "Passwords match." : "The two passwords are not the same.";
+          h2.className = "auth-hint " + (!c ? "" : c === p ? "ok" : "bad");
+        };
+        $("authPwInput").addEventListener("input", pwHints);
+        $("authPw2Input").addEventListener("input", pwHints);
+        setAuthTab("signin");
+
+        $("authPwForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr(); notice("");
+          const btn = $("authPwSubmit");
+          email = $("authEmailInput").value.trim();
+          const password = $("authPwInput").value, up = authTab === "signup";
+          if (up) {
+            if (password.length < 8) return showErr("Use at least 8 characters for the password.");
+            if (password !== $("authPw2Input").value) return showErr("The two passwords are not the same.");
+            if (!tsToken) return showErr("Please complete the check that you are not a robot.");
+          }
+          btn.disabled = true; btn.textContent = "Please wait…";
+          const r = await api("/api/auth/password", up ? { mode: "signup", email, password, confirm: $("authPw2Input").value, captcha: tsToken } : { mode: "signin", email, password });
+          btn.disabled = false; btn.textContent = up ? "Create account" : "Sign in";
+          if (!r.ok) {
+            if (r.exists) { setAuthTab("signin"); return notice("You already have an account with this email - sign in."); }
+            if (r.missing) { setAuthTab("signup"); return notice("No account with this email yet - create one."); }
+            if (r.captcha || up) { tsToken = ""; try { if (tsId != null) window.turnstile.reset(tsId); } catch (_) {} }
+            return showErr(r.error || "Couldn't sign in. Try again.");
+          }
+          closeModal();
+          $("authPwInput").value = ""; $("authPw2Input").value = "";
+          refreshAuth();
+        });
+
+        // "Email me a code instead" → request an OTP for the typed email
+        $("authOtpLink").addEventListener("click", async () => {
+          clearErr();
+          email = $("authEmailInput").value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr("Enter your email first.");
+          const link = $("authOtpLink");
+          link.disabled = true; link.textContent = "Sending…";
+          const r = await api("/api/auth/request-otp", { email });
+          link.disabled = false; link.textContent = "Email me a code instead";
+          if (!r.ok) return showErr(r.error || "Couldn't send the code. Try again.");
+          $("authSentTo").textContent = email;
+          $("authPwForm").hidden = true;
+          $("authOtpLink").hidden = true;
+          $("authCodeForm").hidden = false;
+          $("authCodeInput").focus();
+        });
+
+        // Step 2 — verify
+        $("authCodeForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          clearErr();
+          const btn = $("authCodeSubmit");
+          const code = $("authCodeInput").value.trim();
+          btn.disabled = true; btn.textContent = "Verifying…";
+          const r = await api("/api/auth/verify-otp", { email, code });
+          btn.disabled = false; btn.textContent = "Verify & sign in";
+          if (!r.ok) return showErr(r.error || "That code didn't work.");
+          closeModal();
+          $("authCodeForm").hidden = true;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = authTab === "signup";
+          $("authCodeInput").value = "";
+          refreshAuth();
+        });
+
+        $("authBackBtn").addEventListener("click", () => {
+          clearErr();
+          $("authCodeForm").hidden = true;
+          $("authPwForm").hidden = false;
+          $("authOtpLink").hidden = authTab === "signup";
+        });
+
+        // Let any element with data-requires-auth open the modal when signed out
+        document.addEventListener("click", (e) => {
+          const t = e.target.closest("[data-requires-auth]");
+          if (t && $("authSignInBtn").hidden === false) { e.preventDefault(); openModal(); }
+        });
+
+        // Wire the "free" promo popup's primary CTA to open this login modal
+        // (the popup is added separately; find its "Try it free" button by text).
+        function wireFreePopup() {
+          const btns = document.querySelectorAll(".free-popup-actions .button, .free-popup button, [id^='freePopup']");
+          btns.forEach((b) => {
+            const t = (b.textContent || "").trim().toLowerCase();
+            if (t.includes("try it free") || t.includes("sign in") || t.includes("start")) {
+              b.addEventListener("click", (e) => {
+                if (b.id === "freePopupDismiss") return;
+                e.preventDefault();
+                const pop = b.closest(".free-popup, [class*='free-popup']");
+                if (pop) pop.hidden = true;
+                openModal();
+              });
+            }
+          });
+        }
+        wireFreePopup();
+
+        // Expose so other scripts can trigger it
+        window.AIRadarAuth = { open: openModal, refresh: refreshAuth };
+        refreshAuth();
+        // Sub-pages (Prompt Lab / AI Creator / Video Studio) send signed-out
+        // users here with ?signin=1 so the one shared login modal opens.
+        if (new URLSearchParams(location.search).get("signin")) openModal();
+      })();
+    </script>
+
+    <!-- Current-page nav highlight (smooth nav handled by CSS @view-transition) -->
+    <script>
+      (function(){
+        try{
+          var here=location.pathname.replace(/index\.html$/,'');
+          document.querySelectorAll('.nav-group-grid a[href],.arh-nav a[href]').forEach(function(a){
+            var p;try{p=new URL(a.getAttribute('href'),location.href).pathname.replace(/index\.html$/,'');}catch(_){return;}
+            if(p==='/')return;
+            if(p===here||here.indexOf(p)===0)a.setAttribute('aria-current','page');
+          });
+        }catch(_){}
+      })();
+    </script>
+
+    <script src="/app.js?v=v879"></script>
+
+    <script>
+      /* ── scRailPlayback ──────────────────────────────────────────────
+         Thirty <video> elements are in the markup so the rail can loop
+         without a seam. Letting all thirty decode at once turns a landing
+         page into a heater and, on a phone, into a stutter.
+
+         So they load nothing until they are on screen, play while they are,
+         and pause the moment they leave. The poster does the waiting, which
+         is what a poster is for. Anyone who has asked for reduced motion
+         gets the posters and nothing else. */
+      (function () {
+        var rail = document.getElementById('scRail');
+        if (!('IntersectionObserver' in window)) return;
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            var v = e.target;
+            if (e.isIntersecting) {
+              if (v.preload !== 'auto') { v.preload = 'auto'; v.load(); }
+              var p = v.play();
+              if (p && p.catch) p.catch(function () {});
+            } else if (!v.paused) {
+              v.pause();
+            }
+          });
+        }, { rootMargin: '120px' });
+
+        if (rail) rail.querySelectorAll('.sc-vid').forEach(function (v) { io.observe(v); });
+        document.querySelectorAll('.ft-vid').forEach(function (v) { io.observe(v); });
+      })();
+    </script>
+
+    <script>
+      /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
+      (function () {
+        var form = document.getElementById('heroSearchForm');
+        var heroInput = document.getElementById('heroSearchInput');
+        var finder = document.getElementById('searchInput');
+        if (!form || !heroInput) return;
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var q = heroInput.value.trim();
+          var tools = document.getElementById('tools');
+          if (finder) {
+            finder.value = q;
+            finder.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (tools) tools.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (finder) setTimeout(function () { finder.focus(); }, 500);
+        });
+      })();
+    </script>
+
+    <script>
+    /* ── TOOL OF THE DAY — robust version ───────────────────── */
+    (function(){
+      function getDayIndex(total) {
+        // Stable daily index — same for all users on the same UTC day
+        const dayNum = Math.floor(Date.now() / 86400000);
+        return dayNum % Math.max(1, total);
+      }
+
+      function fmt(secs) {
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      }
+
+      function fmtNum(n) {
+        if (n == null || n === 0) return '—';
+        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+        return String(n);
+      }
+
+      function renderTOD() {
+        if (typeof tools === 'undefined' || !tools || !tools.length) return;
+        const fa = document.documentElement.lang === 'fa';
+        const get = id => document.getElementById(id);
+        const set = (id, txt) => { const e = get(id); if (e) e.textContent = txt; };
+        const txtVal = v => !v ? '' : typeof v === 'string' ? v : (v[fa ? 'fa' : 'en'] || v.en || '');
+
+        const idx = getDayIndex(tools.length);
+        const tool = tools[idx];
+        if (!tool) return;
+
+        // ── Labels ──
+        set('todLabel',    fa ? 'ابزار روز' : 'Tool of the Day');
+        set('todDayLabel', fa ? 'امروز' : 'Today');
+        set('todBtnLabel', fa ? 'مشاهده ابزار' : 'Visit tool');
+        set('todName',     tool.name || '—');
+        set('todCategory', txtVal(tool.category));
+        set('todDesc',     txtVal(tool.useCase));
+
+        // ── Logo ──
+        const logoWrap = get('todLogoWrap');
+        if (logoWrap && tool.url) {
+          try {
+            const domain = new URL(tool.url).hostname;
+            logoWrap.innerHTML = '<img src="https://www.google.com/s2/favicons?domain=' + domain + '&sz=64" alt="' + tool.name + '" style="width:36px;height:36px;border-radius:6px;"/>';
+          } catch(e) {
+            logoWrap.innerHTML = '<span class="tod-logo">' + (tool.name || '?').slice(0,2).toUpperCase() + '</span>';
+          }
+        }
+
+        // ── Price badge ──
+        const priceEl = get('todPrice');
+        if (priceEl) {
+          const isFree = tool.price === 0 || tool.plan === 'free' || tool.plan === 'freemium';
+          priceEl.textContent = isFree ? (fa ? 'رایگان' : 'Free') : '$' + tool.price;
+          priceEl.className = 'tod-price ' + (isFree ? 'free' : 'paid');
+        }
+
+        // ── Tags ──
+        const tagsEl = get('todTags');
+        if (tagsEl && Array.isArray(tool.tags)) {
+          tagsEl.innerHTML = tool.tags.slice(0, 4)
+            .map(t => '<span class="tag">' + t + '</span>').join('');
+        }
+
+        // ── LINK ──
+        const linkEl = get('todLink');
+        if (linkEl && tool.url && tool.url !== '#') {
+          linkEl.href = tool.url;
+          linkEl.setAttribute('href', tool.url);
+          linkEl.onclick = null; // clear any previous handler
+        }
+
+        // ── Progress ring ──
+        const ring = get('todRingFill');
+        if (ring) {
+          const now = new Date();
+          const secsPassed = now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds();
+          const frac = secsPassed / 86400;
+          const circumference = 2 * Math.PI * 52;
+          ring.style.strokeDashoffset = circumference * (1 - frac);
+        }
+
+        // ── Day of year in ring ──
+        const now2 = new Date();
+        const start2 = new Date(now2.getFullYear(), 0, 0);
+        const dayOfYear = Math.floor((now2 - start2) / 86400000);
+        set('todDayNum', String(dayOfYear));
+
+        // ── Similar tools (same category) — fills the panel & is useful ──
+        const relWrap = get('todRelated');
+        if (relWrap) {
+          set('todRelatedHead', fa ? 'ابزارهای مشابه از همین دسته' : 'More from this category');
+          const catKey = txtVal(tool.category);
+          const related = tools
+            .filter(t2 => t2 !== tool && txtVal(t2.category) === catKey)
+            .slice(0, 6);
+          // if the category is small, fill with top-scored tools
+          if (related.length < 6) {
+            tools.filter(t2 => t2 !== tool && !related.includes(t2))
+              .sort((a,b) => (b.score||0)-(a.score||0))
+              .slice(0, 6 - related.length)
+              .forEach(t2 => related.push(t2));
+          }
+          relWrap.innerHTML = related.map(t2 => {
+            let dom = '';
+            try { dom = new URL(t2.url).hostname; } catch(e) {}
+            const isFree = t2.price === 0 || t2.plan === 'free' || t2.plan === 'freemium';
+            const d2 = txtVal(t2.useCase);
+            return '<a class="tod-rel-card" href="' + (t2.url||'#') + '" target="_blank" rel="noopener">' +
+              '<img src="https://www.google.com/s2/favicons?domain=' + dom + '&sz=64" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>' +
+              '<span class="tod-rel-name">' + (t2.name||'') + '</span>' +
+              '<span class="tod-rel-meta">' + (t2.score ? '★ ' + t2.score : '') + (isFree ? (fa?' · رایگان':' · Free') : '') + '</span>' +
+              (d2 ? '<span class="tod-rel-desc">' + d2 + '</span>' : '') +
+              '</a>';
+          }).join('');
+        }
+
+        // ── Stats ──
+        const statsEl = get('todStats');
+        if (statsEl) {
+          const rows = [
+            { label: fa ? 'امتیاز' : 'Score',  val: tool.score || '—' },
+            { label: fa ? 'ستاره'  : 'Stars',  val: fmtNum(tool.stars) },
+            { label: fa ? 'قیمت'   : 'Price',  val: tool.price === 0 ? (fa ? 'رایگان' : 'Free') : (tool.price ? '$' + tool.price : '—') },
+          ];
+          statsEl.innerHTML = rows.map(r =>
+            '<div class="tod-stat-row"><span class="tod-stat-label">' + r.label + '</span><span class="tod-stat-val">' + r.val + '</span></div>'
+          ).join('');
+        }
+
+        // ── Animate ONCE on first render (avoid jitter on re-renders) ──
+        const panel = get('toolOfDay');
+        if (panel && !window._todAnimated) {
+          window._todAnimated = true;
+          panel.classList.add('tod-animate');
+        }
+      }
+
+      // ── Countdown ──
+      function startCountdown() {
+        function secsToMidnight() {
+          const now = new Date();
+          const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+          return Math.max(0, Math.floor((tomorrow - now) / 1000));
+        }
+        let secs = secsToMidnight();
+        function tick() {
+          const cd = document.getElementById('todCountdown');
+          if (cd) cd.textContent = fmt(secs);
+          if (secs > 0) { secs--; setTimeout(tick, 1000); }
+        }
+        tick();
+      }
+
+      // ── Init — wait for tools array to be populated ──
+      function init() {
+        if (typeof tools === 'undefined' || !tools || !tools.length) {
+          setTimeout(init, 100);
+          return;
+        }
+        // Wait for app.js tools.forEach to complete
+        setTimeout(function() {
+          renderTOD();
+          startCountdown();
+        }, 80);
+
+        // Hook into lang change
+        const orig = window.setLanguage;
+        window.setLanguage = function(lang) {
+          if (orig) orig(lang);
+          renderTOD();
+        };
+
+        // Re-render when GitHub stars load (so stats update) — debounced,
+        // and WITHOUT re-triggering the entrance animation.
+        const origRebuild = window.rebuildLiveChartData;
+        window.rebuildLiveChartData = function() {
+          if (origRebuild) origRebuild.apply(this, arguments);
+          clearTimeout(window._todRebuildT);
+          window._todRebuildT = setTimeout(renderTOD, 300);
+        };
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+    </script>
+
+    <!-- ── FREE ANNOUNCEMENT POPUP ─────────────────────────── -->
+    <style>
+      .free-popup-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(5,8,18,.72);
+        backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+        display:flex;align-items:center;justify-content:center;padding:20px;
+        opacity:0;pointer-events:none;transition:opacity .25s ease;}
+      .free-popup-backdrop.show{opacity:1;}
+      .free-popup-backdrop:not(.show){display:none;}
+      .free-popup{position:relative;width:100%;max-width:420px;border-radius:20px;
+        pointer-events:auto;padding:32px 28px 26px;text-align:center;overflow:hidden;
+        background:linear-gradient(165deg,rgba(37,99,255,.16),rgba(11,16,32,.98) 55%);
+        border:1px solid rgba(91,155,255,.34);
+        box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 60px -20px rgba(37,99,255,.4);
+        transform:scale(.94) translateY(10px);transition:transform .28s cubic-bezier(.2,.8,.3,1.1);}
+      .free-popup-backdrop.show .free-popup{transform:scale(1) translateY(0);}
+      .free-popup-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;
+        border-radius:999px;background:rgba(53,208,127,.14);border:1px solid rgba(53,208,127,.4);
+        color:#5fe0b0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+        margin-bottom:16px;}
+      .free-popup-badge i{width:7px;height:7px;border-radius:50%;background:#5fe0b0;
+        box-shadow:0 0 8px #5fe0b0;animation:aimonPulse 2s infinite;}
+      .free-popup h3{margin:0 0 10px;font-size:26px;font-weight:700;color:#fff;line-height:1.15;}
+      .free-popup p{margin:0 0 22px;font-size:14px;line-height:1.65;color:#5b9bff;}
+      .free-popup-list{display:flex;flex-direction:column;gap:9px;margin:0 0 24px;text-align:left;}
+      .free-popup-list li{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#f4f5f7;
+        padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);}
+      .free-popup-list li svg{flex-shrink:0;color:#5b9bff;}
+      .free-popup-actions{display:flex;flex-direction:column;gap:10px;}
+      .free-popup-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;
+        display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.1);color:#8a919c;cursor:pointer;transition: background-color, border-color, color, box-shadow, transform, opacity, filter .15s;}
+      .free-popup-close:hover{background:rgba(255,255,255,.12);color:#fff;}
+      [dir="rtl"] .free-popup-close{right:auto;left:14px;}
+      [dir="rtl"] .free-popup-list{text-align:right;}
+    </style>
+  </body>
+</html>

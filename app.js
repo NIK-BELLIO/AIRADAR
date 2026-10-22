@@ -101,6 +101,8 @@ const i18n = {
     navPerformance: "Live charts",
     navMedia: "Caption AI",
     navStudio: "Video studio",
+    homeH1: "Raw video in, pro reel out.",
+    homeLede: "A free AI video editor in your browser. It cuts the pauses and adds animated captions, music, b-roll and motion graphics in one click. No install.",
     vsEditMine: "Edit my video",
     vNarrateLbl: "Voice-over",
     vCaptionsLbl: "Word-by-word captions",
@@ -180,8 +182,8 @@ const i18n = {
     home11: "Kinetic type",
     home12: "Skit",
     home13: "What you can make",
-    home14: "Eight studios, one balance",
-    home15: "Every tool draws on the same credits. Start in whichever one matches the job.",
+    home14: "Free tools, ready now",
+    home15: "Video Studio and Spark are free. The other studios open soon.",
     home16: "Script, footage, captions and voice, from one link.",
     home17: "Hooks, posts, thumbnails, carousels. Most of them free.",
     home18: "Copy what worked, with you in it.",
@@ -210,7 +212,7 @@ const i18n = {
     home43: "Account",
     home44: "Your library",
     home45: "Credits",
-    home46: "Every tool draws on one balance. No per-tool subscription, no tracking, no ads.",
+    home46: "Free AI video editing and creator tools. No install, no ads.",
     home47: "Built by Shayan Alinia",
     vsModeSmart: "Smart",
     vsModeLink: "From link",
@@ -602,6 +604,8 @@ const i18n = {
     navPerformance: "چارت زنده",
     navMedia: "\u06a9\u067e\u0634\u0646 AI",
     navStudio: "استودیوی ویدیو",
+    homeH1: "ویدیوی خام بده، ریلز حرفه‌ای بگیر.",
+    homeLede: "ادیتور ویدیوی رایگان با هوش مصنوعی، داخل مرورگر. مکث‌ها را می‌بُرد و زیرنویس متحرک، موزیک، بی‌رول و موشن‌گرافیک را با یک کلیک اضافه می‌کند. بدون نصب.",
     vsEditMine: "ادیت ویدیوی من",
     vNarrateLbl: "صدای گوینده",
     vCaptionsLbl: "زیرنویس کلمه‌به‌کلمه",
@@ -681,8 +685,8 @@ const i18n = {
     home11: "تایپوگرافی متحرک",
     home12: "اسکچ",
     home13: "چه می‌توانی بسازی",
-    home14: "هشت استودیو، یک موجودی",
-    home15: "همهٔ ابزارها از یک کردیت استفاده می‌کنند. با هرکدام که به کارت می‌خورد شروع کن.",
+    home14: "ابزارهای رایگان، همین حالا",
+    home15: "Video Studio و Spark رایگان‌اند. بقیهٔ استودیوها به‌زودی باز می‌شوند.",
     home16: "متن، فیلم، زیرنویس و صدا، از یک لینک.",
     home17: "هوک، پست، تصویر بندانگشتی، کاروسل. بیشترشان رایگان.",
     home18: "چیزی که جواب داده را، با خودت، دوباره بساز.",
@@ -711,7 +715,7 @@ const i18n = {
     home43: "حساب کاربری",
     home44: "کتابخانهٔ تو",
     home45: "کردیت‌ها",
-    home46: "همهٔ ابزارها از یک موجودی استفاده می‌کنند. بدون اشتراک جدا، بدون ردیابی، بدون تبلیغ.",
+    home46: "ادیت ویدیو و ابزارهای تولید محتوا با هوش مصنوعی، رایگان. بدون نصب، بدون تبلیغ.",
     home47: "ساختهٔ شایان علینیا",
     vsModeSmart: "هوشمند",
     vsModeLink: "از لینک",
@@ -1867,7 +1871,10 @@ const motions = [
 ];
 
 const state = {
-  lang: localStorage.getItem("lang") || "en",
+  // The language is the URL's: /fa/... is Persian (built by tools/build-fa.cjs),
+  // everything else English. A stored choice used to decide it, which made the
+  // English URLs Persian for anyone who had been to a Persian page.
+  lang: /^\/fa(\/|$)/.test(location.pathname) ? "fa" : "en",
   query: "",
   category: "all",
   budget: "all",
@@ -43318,7 +43325,10 @@ function vsJobCard(title) {
     more: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>'
   };
   const svg = (n) => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>';
-  const path = location.pathname || "/";
+  // on a Persian page the tabs stay in Persian where a Persian page exists
+  const faPage = /^\/fa(\/|$)/.test(location.pathname);
+  const path = location.pathname.replace(/^\/fa(?=\/)/, "") || "/";
+  const loc = (h) => (faPage && (h === "/" || h === "/studio/" || h === "/spark/") ? "/fa" + h : h);
   const MAIN = [
     { href: "/", label: "Home", icon: "home", on: path === "/" || path === "/index.html" },
     { href: "/studio/", label: "Studio", icon: "studio", on: path.indexOf("/studio") === 0 },
@@ -43340,7 +43350,7 @@ function vsJobCard(title) {
   nav.className = "mtb";
   nav.setAttribute("aria-label", "Main");
   nav.innerHTML = MAIN.map((m) =>
-    '<a href="' + m.href + '" class="mtb-item' + (m.on ? " mtb-on" : "") + '"' + (m.on ? ' aria-current="page"' : "") + ">" +
+    '<a href="' + loc(m.href) + '" class="mtb-item' + (m.on ? " mtb-on" : "") + '"' + (m.on ? ' aria-current="page"' : "") + ">" +
     svg(m.icon) + "<span>" + m.label + "</span></a>").join("") +
     '<button type="button" class="mtb-item' + (moreOn ? " mtb-on" : "") + '" aria-haspopup="dialog" aria-expanded="false">' +
     svg("more") + "<span>More</span></button>";
@@ -43368,7 +43378,7 @@ function vsJobCard(title) {
       '<div class="mtb-sheet-head"><span>All studios</span><button type="button" class="mtb-close" aria-label="Close">Close</button></div>' +
       '<ul class="mtb-list">' + MORE.map((m) => {
         const here = path.indexOf(m[0].replace(/\/$/, "")) === 0;
-        return '<li><a href="' + m[0] + '"' + (here ? ' class="mtb-here"' : "") + "><b>" + m[1] + "</b><small>" + m[2] + "</small></a></li>";
+        return '<li><a href="' + loc(m[0]) + '"' + (here ? ' class="mtb-here"' : "") + "><b>" + m[1] + "</b><small>" + m[2] + "</small></a></li>";
       }).join("") + "</ul></div>";
     scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
     scrim.querySelector(".mtb-close").addEventListener("click", close);
