@@ -5665,7 +5665,8 @@ b, strong { font-weight: 600; }
 .hx2-run > .hx2-sq:nth-of-type(3) { bottom: 22px; inset-inline-end: 16px; }
 .hx2-h1 { margin: 0 !important; font: 700 clamp(64px, 11.5vw, 190px)/.92 "Space Grotesk", Vazirmatn, system-ui, sans-serif !important;
   letter-spacing: -.035em; text-transform: uppercase; color: var(--text) !important; white-space: nowrap; }
-.hx2-track { display: inline-flex; direction: ltr; animation: hx2-run 48s linear infinite; will-change: transform; }
+.hx2-track { display: inline-flex; direction: ltr; animation: hx2-run 48s linear infinite reverse; will-change: transform; }
+[dir="rtl"] .hx2-track { animation-direction: normal; }
 .hx2-track > span { padding-inline-end: .5em; }
 .hx2-track > span::after { content: ""; display: inline-block; width: .16em; height: .16em; margin-inline-start: .5em; vertical-align: .3em; background: var(--accent); }
 [dir="rtl"] .hx2-track > span { direction: rtl; }
