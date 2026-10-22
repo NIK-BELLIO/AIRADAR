@@ -43372,6 +43372,7 @@ function vsJobCard(title) {
       }).join("") + "</ul></div>";
     scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
     scrim.querySelector(".mtb-close").addEventListener("click", close);
+    try { arSoonMark(scrim); } catch (e) {}
     document.body.appendChild(scrim);
     document.body.classList.add("mtb-locked");
     moreBtn.setAttribute("aria-expanded", "true");
@@ -43551,4 +43552,67 @@ function vsJobCard(title) {
 (function () {
   const go = () => { try { vsMotionRenderPicker(); } catch (e) {} };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else setTimeout(go, 0);
+})();
+
+
+// ── The paid studios: closed for now, marked "Soon" ────────────────────────
+// The owner's call (2026-10-22): the focus is Video Studio and the free
+// tools. Every link to a paid page - menus, cards, the footer, the phone
+// sheet - stops being a link and carries a Soon badge; the buttons that only
+// sold credits are hidden, and the Reverse Engineer page itself shows a
+// coming-soon panel. Reopening = emptying AR_SOON.
+const AR_SOON = [/^\/models(\/|$)/i, /^\/workflows\//i, /^\/marketing-studio/i, /^\/pricing\/?$/i, /^\/reverse-engineer\/?$/i, /^\/creator/i];
+function arSoonHref(h) {
+  try { const u = new URL(h, location.href); return u.origin === location.origin && AR_SOON.some((r) => r.test(u.pathname)); } catch (e) { return false; }
+}
+function arSoonFa() { try { return document.documentElement.lang === "fa" || (typeof state !== "undefined" && state.lang === "fa"); } catch (e) { return false; } }
+function arSoonMark(root) {
+  if (!AR_SOON.length) return;
+  (root || document).querySelectorAll("a[href]").forEach((a) => {
+    if (a.dataset.soon || !arSoonHref(a.getAttribute("href"))) return;
+    a.dataset.soon = "1";
+    // the buttons that only sold credits or the model catalogue go
+    if (a.matches(".hero-x-alt, .hero-x-go, .bn-more")) { a.hidden = true; return; }
+    a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); a.tabIndex = -1; a.classList.add("ar-soon");
+    a.querySelectorAll(".arh-new").forEach((b) => b.remove());
+    const b = document.createElement("span"); b.className = "ar-soon-b"; b.textContent = arSoonFa() ? "\u0628\u0647\u200c\u0632\u0648\u062f\u06cc" : "SOON";
+    (a.querySelector(".ft-name, .mk-card-name, b") || a).appendChild(b);
+    a.addEventListener("click", (e) => e.preventDefault());
+  });
+  // the credits banner on the home page
+  (root || document).querySelectorAll(".bn-block").forEach((x) => { x.hidden = true; });
+}
+function arSoonPage() {
+  const fa = arSoonFa();
+  const box = document.createElement("div");
+  box.className = "ar-soon-page";
+  box.innerHTML = '<div class="ar-soon-card"><span class="ar-soon-b">' + (fa ? "\u0628\u0647\u200c\u0632\u0648\u062f\u06cc" : "SOON") + "</span>" +
+    "<h1>" + (fa ? "\u0627\u06cc\u0646 \u0628\u062e\u0634 \u0628\u0647\u200c\u0632\u0648\u062f\u06cc \u0628\u0627\u0632 \u0645\u06cc\u200c\u0634\u0648\u062f" : "This studio opens soon") + "</h1>" +
+    "<p>" + (fa ? "\u062a\u0627 \u0622\u0646 \u0645\u0648\u0642\u0639\u060c \u0648\u06cc\u062f\u06cc\u0648\u06cc \u062d\u0631\u0641\u0647\u200c\u0627\u06cc\u062a \u0631\u0627 \u0631\u0627\u06cc\u06af\u0627\u0646 \u062f\u0631 Video Studio \u0628\u0633\u0627\u0632." : "Meanwhile, make a pro video for free in Video Studio.") + "</p>" +
+    '<div class="ar-soon-go"><a href="/studio/" class="ar-soon-main">' + (fa ? "\u0628\u0627\u0632 \u06a9\u0631\u062f\u0646 Video Studio" : "Open Video Studio") + '</a><a href="/spark/">Spark</a><a href="/prompt-lab">Prompt Lab</a><a href="/assistant">Assistant</a></div></div>';
+  document.body.appendChild(box);
+  document.body.classList.add("ar-soon-locked");
+}
+(function () {
+  if (!AR_SOON.length) return;
+  const css = document.createElement("style");
+  css.textContent =
+    ".ar-soon{opacity:.55;cursor:default!important;pointer-events:auto}" +
+    ".ar-soon:hover{transform:none!important}" +
+    ".ar-soon-b{display:inline-block;margin-inline-start:6px;padding:1px 6px;border-radius:4px;font:600 8.5px/1.6 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.08em;color:#f5c451;background:rgba(245,196,81,.1);border:1px solid rgba(245,196,81,.28);vertical-align:middle;white-space:nowrap}" +
+    ".ar-soon-page{position:fixed;inset:0;z-index:100000;display:flex;background:rgba(6,7,10,.92);backdrop-filter:blur(8px);padding:16px;overflow:auto}" +
+    ".ar-soon-card{margin:auto;max-width:440px;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;color:#f4f5f7;font:500 15px/1.5 Manrope,Vazirmatn,system-ui,sans-serif}" +
+    ".ar-soon-card h1{margin:0;font:700 28px/1.2 'Space Grotesk',Vazirmatn,system-ui,sans-serif}" +
+    ".ar-soon-card p{margin:0;color:#a3a9b3}" +
+    ".ar-soon-go{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px}" +
+    ".ar-soon-go a{padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.14);color:#f4f5f7;text-decoration:none;font-weight:600}" +
+    ".ar-soon-go a.ar-soon-main{background:#2563ff;border-color:#2563ff}" +
+    "body.ar-soon-locked{overflow:hidden}";
+  document.head.appendChild(css);
+  const go = () => { arSoonMark(document); if (/^\/reverse-engineer\/?$/i.test(location.pathname)) arSoonPage(); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+  // menus drawn later (the header, translated text) are marked as they come
+  // (at most twice a second: the studio changes the page all the time)
+  let soonT = 0;
+  try { new MutationObserver(() => { if (soonT) return; soonT = setTimeout(() => { soonT = 0; arSoonMark(document); }, 500); }).observe(document.body || document.documentElement, { childList: true, subtree: true }); } catch (e) {}
 })();
