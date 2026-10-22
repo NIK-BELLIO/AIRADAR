@@ -11833,10 +11833,11 @@ function vsProGroups(s) {
   groups.forEach((g, i) => {
     const e = ed[i];
     if (!e || typeof e.text !== "string") return;
-    const nw = e.text.trim().split(/\s+/).filter(Boolean).slice(0, 6);
+    const nw = e.text.trim().split(/\s+/).filter(Boolean).slice(0, 14);
     if (!nw.length) { g.off = true; return; }
     const a = g.items[0].t0, b = Math.max(a + 0.2, g.items[g.items.length - 1].t1), step = (b - a) / nw.length;
-    g.items = nw.map((w, k) => ({ w, t0: a + k * step * 0.7, t1: a + (k + 1) * step }));
+    const lag = Math.min(step * 0.7, 0.12);
+    g.items = nw.map((w, k) => ({ w, t0: a + k * lag, t1: a + (k + 1) * step }));
     shape(g);
   });
   groups.forEach((g, i) => {
@@ -11857,6 +11858,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   if (g.stat && pack.statHero) pack = Object.assign({}, pack, { hero: pack.statHero });
   const U = Math.min(W, H * 0.62);
   const n = g.items.length, h = g.hero;
+  const rtl = g.items.some((it) => /[؀-ۿ]/.test(it.w));
   const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
   const lines = [];
   if (pack.line) lines.push({ js: range(0, n), st: pack.single, role: "single" });
@@ -11867,11 +11869,12 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
     lines.push({ js: range(0, m), st: heroA ? pack.hero : pack.small, role: heroA ? "hero" : "small" });
     if (m < n) lines.push({ js: range(m, n), st: heroA ? pack.small : pack.hero, role: heroA ? "small" : "hero" });
   } else {
-    if (h > 0) lines.push({ js: range(0, h), st: pack.small, role: "small" });
+    // (four small words to a line at most - typed-in text can be long)
+    const chunks = (a, b) => { const out = [], k = Math.ceil((b - a) / 4); for (let i = 0; i < k; i++) out.push(range(a + Math.floor((b - a) * i / k), a + Math.floor((b - a) * (i + 1) / k))); return out; };
+    if (h > 0) chunks(0, h).forEach((js) => lines.push({ js, st: pack.small, role: "small" }));
     lines.push({ js: [h], st: pack.hero, role: "hero" });
-    if (h < n - 1) lines.push({ js: range(h + 1, n), st: pack.small, role: "small" });
+    if (h < n - 1) chunks(h + 1, n).forEach((js) => lines.push({ js, st: pack.small, role: "small" }));
   }
-  const rtl = g.items.some((it) => /[؀-ۿ]/.test(it.w));
   const words = [];
   lines.forEach((L, li) => {
     const st = L.st;
@@ -11911,7 +11914,13 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   const others = lines.filter((L) => L !== hero);
   const stack = (mode) => {
     const ys = new Map([[hero, 0]]);
-    if (mode === "order") others.forEach((L) => ys.set(L, lines.indexOf(L) < lines.indexOf(hero) ? -upOf(L) : downOf(L)));
+    if (mode === "order") {
+      const hi = lines.indexOf(hero);
+      let y = 0;
+      lines.slice(0, hi).reverse().forEach((L, k) => { y = k ? y - L.px * 0.95 : -upOf(L); ys.set(L, y); });
+      y = 0;
+      lines.slice(hi + 1).forEach((L, k) => { y = k ? y + L.px * 0.95 : downOf(L); ys.set(L, y); });
+    }
     else if (mode === "up") { let y = 0; others.slice().reverse().forEach((L, k) => { y = k ? y - L.px * 0.95 : -upOf(L); ys.set(L, y); }); }
     else { let y = 0; others.forEach((L, k) => { y = k ? y + L.px * 0.95 : downOf(L); ys.set(L, y); }); }
     return ys;
@@ -11929,7 +11938,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
       let x0;
       if (L === hero) x0 = hx0;
       else if (L.m.tw >= hero.m.tw * 0.92) x0 = align === "c" ? W / 2 - L.m.tw / 2 : align === "l" ? W * 0.05 : W * 0.95 - L.m.tw;
-      else x0 = (align === "r" || (align === "c" && gi % 2)) ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge
+      else x0 = (align === "r" || (align === "c" && (rtl || gi % 2))) ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge (a right-to-left script: always its right)
       L.x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
     });
   };
@@ -14993,7 +15002,7 @@ const VS_EDIT_MAX_SECONDS = 12 * 60;
 
 const VS_EM_IDS = { cut: "vsEmCut", fillers: "vsEmFill", captions: "vsEmCap", zoom: "vsEmZoom", title: "vsEmTitle", music: "vsEmMusic",
   stickers: "vsEmStk", beat: "vsEmBeat", broll: "vsEmBroll", trans: "vsEmTrans", gfx: "vsEmGfx" };
-const VS_EM_DEFAULTS = { mix: false, sfx: true, inserts: true, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: true,
+const VS_EM_DEFAULTS = { mix: false, sfx: true, inserts: false, cut: true, fillers: true, captions: true, zoom: true, title: true, stickers: true, beat: true, broll: false,
   trans: true, gfx: true, music: true, layout: "auto", aspect: "9:16" };
 // ── Graphic video: the speaker's voice, a motion designer's pictures ────────
 // "Edit my video" as a fully graphic video - the person never on screen - in
@@ -17549,7 +17558,10 @@ function vsEditStudio(preset, filesIn) {
     ["gfx", L("Motion-graphic cards on the key points", "کارت موشن‌گرافیک روی نکته‌های اصلی"), "c"],
   ];
   const lastOpts = last.opts || {};
-  const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : typeof lastOpts[k] === "boolean" ? lastOpts[k] : VS_EM_DEFAULTS[k] !== false);
+  // graphic slides and stock footage are the customer's to switch on, each
+  // time - a choice from the last edit does not carry them over
+  const OFF0 = { mix: 1, inserts: 1, broll: 1 };
+  const on0 = (k) => (typeof preset[k] === "boolean" ? preset[k] : !OFF0[k] && typeof lastOpts[k] === "boolean" ? lastOpts[k] : VS_EM_DEFAULTS[k] !== false);
   // a first edit gets the look that leads the 2026 caption rankings
   const style0 = STYLES.some((x) => x[0] === preset.style) ? preset.style : STYLES.some((x) => x[0] === last.style) ? last.style : "pro-viral";
   const shape0 = SHAPES.some((x) => x[0] === preset.aspect) ? preset.aspect : SHAPES.some((x) => x[0] === last.shape) ? last.shape : "9:16";
@@ -17828,7 +17840,7 @@ function vsEditStudio(preset, filesIn) {
       '<div id="emInsp" class="em-insp"><p class="ts-note" id="emHint">' + L("Click a word on the video to change it - or step through them with the arrows.", "روی یک کلمه در ویدیو کلیک کن تا تغییرش دهی - یا با فلش‌ها یکی‌یکی برو.") + "</p>" +
         '<div id="emCtl" hidden>' +
           '<label class="ts-lbl" for="emTxt">' + L("Words", "کلمات") + "</label>" +
-          '<input id="emTxt" type="text" class="em-txt" maxlength="60"/>' +
+          '<input id="emTxt" type="text" class="em-txt" maxlength="90" dir="auto"/>' +
           '<div class="ts-seg" id="emDepth"><button type="button" data-d="behind">' + L("Behind the person", "پشت شخص") + '</button><button type="button" data-d="front">' + L("In front", "جلوی شخص") + "</button></div>" +
           '<label class="ts-lbl em-sz" for="emSize">' + L("Size", "اندازه") + ' <span id="emSizeV">100%</span></label><input id="emSize" type="range" min="40" max="180" step="5" value="100"/>' +
           '<div class="em-row"><button id="emReset" type="button" class="ts-ghost">' + L("Undo my changes", "برگرداندن تغییرها") + '</button><button id="emOff" type="button" class="ts-ghost"></button></div>' +
