@@ -40645,6 +40645,9 @@ async function vsOpenEditDeck(e) {
   // change while the rest stays (Edit my video, the second way)
   const swap = e.kind === "swap" ? { texts: Array.isArray(e.texts) ? e.texts : [], footage: Array.isArray(e.footage) ? e.footage : [] } : null;
   if (swap) { preset.mode = "swap"; preset.swap = swap; }
+  // the API names a graphic style family; the studio wants one of its themes
+  if (preset.gxStyle && !preset.gxTheme) { const t = vsGxThemes().find((x) => x.family === preset.gxStyle); if (t) preset.gxTheme = t.id; }
+  if (preset.graphic && e.kind !== "photos") { preset.style = "graphic"; preset.gxTheme = preset.gxTheme || VS_GX_DEFAULT; }
   vstudio._mcpEditPreset = preset;
   let file = null;
   const fetchOne = async (path, name) => {
@@ -40654,6 +40657,23 @@ async function vsOpenEditDeck(e) {
     } catch (er) {}
     return null;
   };
+  // photos + a text (create_photo_video): the photos the API stored, then the
+  // same build as the edit window's "Photos + text"
+  if (e.kind === "photos") {
+    vsAutoStatus(L("Opening the photos…", "باز کردن عکس‌ها…"));
+    const pics = [];
+    for (const ph of Array.isArray(e.photos) ? e.photos : []) {
+      const f = ph && /^\/api\/decks\//.test(ph.path) ? await fetchOne(ph.path, ph.name) : null;
+      if (f) pics.push(new File([f], f.name, { type: f.type && f.type !== "video/mp4" ? f.type : "image/jpeg" }));
+    }
+    if (!pics.length) { vsAutoStatus(L("The photos could not be opened.", "عکس‌ها باز نشدند.")); return; }
+    const o = Object.assign({}, VS_EM_DEFAULTS, preset, { text: String(e.text || ""), voice: "ai", host: true });
+    if (!/^pro-/.test(String(o.style || ""))) o.style = "pro-viral";
+    if (o.graphic) o.gxTheme = o.gxTheme || VS_GX_DEFAULT;
+    try { await vsPhotoStory(pics, o); }
+    catch (er) { vsBuildOverlay(false); vsAutoStatus(L("The video failed: ", "ساخت ویدیو ناموفق بود: ") + String(er && er.message || er).slice(0, 140)); }
+    return;
+  }
   if (Array.isArray(e.videos) && e.videos.length > 1) {
     // several clips: all of them, in the AI's order, or none
     vsAutoStatus(L("Opening the clips your AI sent…", "باز کردن کلیپ‌هایی که AIِ تو فرستاد…"));
