@@ -17499,7 +17499,7 @@ function vsEditStudio(preset, filesIn) {
   let gxMed = (mem && mem.gxMed) ? mem.gxMed.slice() : [];
   // their own screenshots, floated beside them as they talk about them
   let shotFiles = (mem && mem.shots) ? mem.shots.slice() : [];
-  let mode = preset.mode === "swap" ? "swap" : (!preset.mode && mem && mem.mode) || "edit";
+  let mode = ["swap", "graphic", "edit"].includes(preset.mode) ? preset.mode : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
   // centred by its own margins, not by the overlay: a window taller than the
@@ -40084,7 +40084,7 @@ async function vsHeadlessRenderDeckId(id, opts) {
   say("opening " + kind);
   try {
     window.vsAutoStatus = (m) => { lastStatus = String(m || ""); try { status0 && status0(m); } catch (e) {} };
-    if (j.skill === "edit") await vsOpenEditDeck(j.script);
+    if (j.skill === "edit") await vsOpenEditDeck(j.script, { headless: true });
     else if (j.skill === "reel") await vsOpenReelDeck(j.script);
     else await vsBuildFromReadyScript(j.script, { skill: j.skill, template: j.template, aspect: j.aspect, via: "AI Radar API" });
   } finally { window.vsAutoStatus = status0; }
@@ -40714,7 +40714,8 @@ async function vsOpenThumbDeck(j) {
  * the choices the AI made; without it, the same choices wait in the Edit my
  * video window and one button asks for the file on this device.
  */
-async function vsOpenEditDeck(e) {
+async function vsOpenEditDeck(e, how) {
+  how = how || {};
   const fa = state.lang === "fa";
   const L = (en, f) => (fa ? f : en);
   e = e || {};
@@ -40769,6 +40770,12 @@ async function vsOpenEditDeck(e) {
   if (file && swap) {
     try { await vsSwapStart(Array.isArray(file) ? file[0] : file, swap); }
     catch (er) { vsBuildOverlay(false); vsAutoStatus(L("Reading the video failed: ", "خواندن ویدیو ناموفق بود: ") + String(er && er.message || er).slice(0, 140)); }
+    return;
+  }
+  if (file && !how.headless) {
+    vsAutoStatus("");
+    vsEditStudio(Object.assign({}, preset, { mode: preset.graphic ? "graphic" : "edit" }), Array.isArray(file) ? file : [file]);
+    setTimeout(() => { const go = document.querySelector("#emOv #emGo"); if (go && !go.disabled) go.click(); }, 120);
     return;
   }
   if (file) {
