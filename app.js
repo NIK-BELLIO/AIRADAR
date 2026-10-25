@@ -10696,12 +10696,13 @@ function vsTrimLongWords(words, data, sr) {
 // without being speech (an effect, a blast, music), or the picture changing
 // a lot. Each is put back in the plan as its own part, flush with its
 // neighbours, so it plays through untouched.
-async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
+async function vsKeepMoments(plan, srcs, mono, total, srcOf, lo, hi) {
   if (!plan.length) return;
+  lo = Math.max(0, Number(lo) || 0); hi = Math.min(total, Number(hi) || total);
   const gaps = [];
-  let prevEnd = 0;
+  let prevEnd = lo;
   plan.forEach((p) => { if (p.start - prevEnd > 0.7) gaps.push([prevEnd, p.start]); prevEnd = Math.max(prevEnd, p.end); });
-  if (total - prevEnd > 0.7) gaps.push([prevEnd, total]);
+  if (hi - prevEnd > 0.7) gaps.push([prevEnd, hi]);
   if (!gaps.length) return;
   // loudness in 50ms windows; the voice's own level from the kept parts
   const db = (a, b) => {
@@ -10748,7 +10749,7 @@ async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
     // a title slate, a logo card or black frames change the picture too, and
     // kept as a "moment" they opened a reel on six seconds of a slate - the
     // first second is where a viewer decides to stay
-    const edge = g0 < 0.05 || g1 > total - 0.05;
+    const edge = g0 < lo + 0.05 || g1 > hi - 0.05;
     if (loudShare >= 0.5 || (moved > 14 && !edge)) {
       // the hit: where the sound comes up (or, silent, where the picture jumps)
       const hitT = hitA >= 0 ? hitA : movedT >= 0 ? movedT : peakT;
@@ -15217,14 +15218,15 @@ const VS_EDIT_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/edit-pla
 const VS_GX_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/graphic-plan";
 
 // Frames sampled across the video, small JPEGs for the analysis.
-async function vsSampleFrames(el, total, n) {
+async function vsSampleFrames(el, total, n, from) {
+  from = Math.max(0, Number(from) || 0);
   const out = [];
   const c = document.createElement("canvas");
   const vw = el.videoWidth || 640, vh = el.videoHeight || 360;
   c.width = 384; c.height = Math.max(1, Math.round(384 * vh / vw));
   const x = c.getContext("2d");
   for (let k = 0; k < n; k++) {
-    const t = Math.min(Math.max(0.2, total - 0.2), 0.3 + (total - 0.6) * (k / Math.max(1, n - 1)));
+    const t = Math.min(Math.max(from + 0.2, total - 0.2), from + 0.3 + (total - from - 0.6) * (k / Math.max(1, n - 1)));
     await new Promise((res) => {
       let done = false;
       const fin = () => { if (!done) { done = true; el.removeEventListener("seeked", fin); res(); } };
@@ -18101,6 +18103,9 @@ function vsEditStudio(preset, filesIn) {
         '<div style="grid-column:1/-1">' + vsWmToggleHtml("emWm") + "</div>" +
         // a wide video in a tall frame (or the other way): all of it over a
         // blurred copy, or cropped to fill the frame around the speaker
+        '<label class="em-lang" id="emLangRow" style="grid-column:1/-1" hidden><span>' + L("Captions in", "زبان زیرنویس") + '</span><select id="emCapLang">' +
+          [["", L("Original", "زبان اصلی")], ["English", "English"], ["Persian", "فارسی"], ["Arabic", "العربية"], ["Spanish", "Español"], ["French", "Français"], ["German", "Deutsch"], ["Turkish", "Türkçe"]]
+            .map(([v, t]) => '<option value="' + v + '"' + ((vstudio._capLang || "") === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select></label>" +
         '<label class="ts-switch" id="emFitRow" style="grid-column:1/-1" hidden><input type="checkbox" id="emFit"' + (vstudio.slides.some((x) => x._fit === "fill" && !x._broll) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Fill the frame", "پر کردن کادر") + "</span></label>" +
       "</div>" +
       '<div class="em-acts">' +
@@ -18272,6 +18277,24 @@ function vsEditStudio(preset, filesIn) {
         e.target.disabled = false;
         sync();
       };
+      // Captions in another language: every caption group translated at once
+      // and set as the customer's own wording for it (the same path as typing
+      // over a word), so preview, export and timing all follow; Original puts
+      // back what was there, their own edits included
+      {
+        const row = $$("emLangRow"), sel = $$("emCapLang");
+        const pro = vstudio.slides.some((x) => x._pro && x._voice && x._voice.words && x._voice.words.length);
+        if (row) row.hidden = !pro;
+        if (sel) sel.onchange = async () => {
+          const want = sel.value;
+          sel.disabled = true;
+          if (vstudio.looping) pause();
+          try { await vsTranslateCaptions(want); } catch (er) { vsAutoStatus(L("The captions could not be translated - try again.", "زیرنویس ترجمه نشد؛ دوباره امتحان کن.")); sel.value = vstudio._capLang || ""; }
+          sel.disabled = false;
+          try { vsMixVoiceTrack(true); } catch (er) {}
+          redraw();
+        };
+      }
       // Fill the frame: every clip of their own video cropped to cover the
       // frame (centred on the face the camera follows); off, the automatic fit
       {
@@ -18624,7 +18647,7 @@ function vsEditStudio(preset, filesIn) {
     if (o.mix && mode === "edit") o.gxTheme = gxTheme;
     if (shotFiles.length && o.style !== "classic" && !o.graphic) o.shots = shotFiles.slice();
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
-    ["hookText", "font", "accent"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
+    ["hookText", "font", "accent", "range"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
     if (mode === "photos") {
       if (!phFiles.length || !$$("emPhText").value.trim()) return;
@@ -20137,10 +20160,32 @@ async function vsEditMyVideo(fileIn, o) {
       if (last && !/[.!?؟۔…]["')”]*$/.test(last.text) && last.text.length + text.length < 220 && sEnd - last.start < 11) { last.text += " " + text; last.end = sEnd || last.end; return; }
       sentences.push({ i: sentences.length, start: Number(sg.start) || 0, end: Number(sg.end) || 0, text });
     });
+    // ── one stretch of a long video (a clip from Best clips): its own words
+    // and sentences only, its own plan; the transcript is the whole video's
+    let rangeKey = "";
+    if (Array.isArray(o.range) && o.range.length === 2) {
+      const ra = Number(o.range[0]), rb = Number(o.range[1]);
+      rangeKey = ra.toFixed(1) + "-" + rb.toFixed(1);
+      const kw = words.filter((w) => w.s >= ra - 0.05 && w.e <= rb + 0.08);
+      words.length = 0; kw.forEach((w) => words.push(w));
+      const ks = sentences.filter((x) => x.end > ra + 0.1 && x.start < rb - 0.1);
+      sentences.length = 0; ks.forEach((x, i) => sentences.push(Object.assign({}, x, { i })));
+      if (!words.length) { const er = new Error(L("that part of the video has no speech", "این بخش از ویدیو حرفی ندارد")); er.plain = true; throw er; }
+    }
+    // ── Best clips: the whole talk read once, its strongest stretches picked;
+    // nothing edited yet - each clip is edited when it is chosen, from the
+    // same transcript (no second listening, no second build counted)
+    if (o.findClips) {
+      vstudio._editCache = { key: ckey, tr, ai: null, gx: null, aspect: o.aspect, sv: 2, aiBy: {}, gxBy: {} };
+      vsAutoStatus(L("Finding the best moments…", "در حال پیدا کردن بهترین لحظه‌ها…"));
+      vstudio._clipFind = { clips: await vsPickClips(sentences, total, lang2), total, files: files.slice() };
+      vsBuildOverlay(false);
+      return;
+    }
     // (a plan made on Whisper's pieces numbers its sentences differently: not reused)
-    let ai = cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.ai : null;
+    let ai = cache && cache.aspect === o.aspect && cache.sv === 2 ? (rangeKey ? (cache.aiBy || {})[rangeKey] || null : cache.ai) : null;
     // a graphic video is designed from the words (/graphic-plan), not from frames
-    let gxPlan = (gx || mix) && cache && cache.aspect === o.aspect && cache.sv === 2 ? cache.gx || null : null;
+    let gxPlan = (gx || mix) && cache && cache.aspect === o.aspect && cache.sv === 2 ? (rangeKey ? (cache.gxBy || {})[rangeKey] || null : cache.gx || null) : null;
     if ((gx || mix) && !gxPlan) {
       vsAutoStatus(L("Designing the scenes…", "در حال طراحی صحنه‌ها…"));
       const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 70000);
@@ -20173,7 +20218,10 @@ async function vsEditMyVideo(fileIn, o) {
       const nFrames = Math.max(6, Math.min(12, Math.round(total / 3)));
       let frames = [];
       for (const sx of srcs) {
-        const fr = await vsSampleFrames(sx.el, sx.dur, many ? Math.max(2, Math.round(nFrames * sx.dur / total)) : nFrames);
+        // a clip of a long video is watched where it is, not across the whole
+        const ra = rangeKey ? Math.max(0, Number(o.range[0]) - sx.offset) : 0, rb = rangeKey ? Math.min(sx.dur, Number(o.range[1]) - sx.offset) : sx.dur;
+        if (rb - ra < 0.5) continue;
+        const fr = await vsSampleFrames(sx.el, rb, many && !rangeKey ? Math.max(2, Math.round(nFrames * sx.dur / total)) : nFrames, ra);
         fr.forEach((f) => { f.t = Math.round((f.t + sx.offset) * 10) / 10; });
         frames = frames.concat(fr);
       }
@@ -20192,7 +20240,11 @@ async function vsEditMyVideo(fileIn, o) {
       } catch (e) {}
       clearTimeout(planTimer);
     }
-    vstudio._editCache = { key: ckey, tr, ai: ai || (cache && cache.sv === 2 && cache.ai) || null, gx: gxPlan || (cache && cache.sv === 2 && cache.gx) || null, aspect: o.aspect, sv: 2 };
+    vstudio._editCache = rangeKey
+      ? { key: ckey, tr, ai: cache && cache.sv === 2 ? cache.ai || null : null, gx: cache && cache.sv === 2 ? cache.gx || null : null, aspect: o.aspect, sv: 2,
+          aiBy: Object.assign({}, cache && cache.aiBy, ai ? { [rangeKey]: ai } : {}), gxBy: Object.assign({}, cache && cache.gxBy, gxPlan ? { [rangeKey]: gxPlan } : {}) }
+      : { key: ckey, tr, ai: ai || (cache && cache.sv === 2 && cache.ai) || null, gx: gxPlan || (cache && cache.sv === 2 && cache.gx) || null, aspect: o.aspect, sv: 2,
+          aiBy: (cache && cache.aiBy) || {}, gxBy: (cache && cache.gxBy) || {} };
     vstudio._editPlan = ai;
     const sPlan = {};
     ((ai && ai.sentences) || []).forEach((x) => { if (x && isFinite(x.i)) sPlan[Number(x.i)] = x; });
@@ -20209,7 +20261,7 @@ async function vsEditMyVideo(fileIn, o) {
     // the video's moment and stays in, whole.
     // (not in a graphic video: its footage is never shown, a wordless stretch
     // would be an empty scene)
-    if (o.cut !== false && !gx) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf); } catch (e) {} }
+    if (o.cut !== false && !gx) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf, rangeKey ? Number(o.range[0]) : 0, rangeKey ? Number(o.range[1]) : total); } catch (e) {} }
     // the teaser: the strongest moment, up front, under the hook
     let teaser = null;
     let tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
@@ -20377,6 +20429,8 @@ async function vsEditMyVideo(fileIn, o) {
     const mu = (ai && ai.music) || {};
     vstudio.storyData = { title: hookText || file.name.replace(/\.[a-z0-9]+$/i, ""), language: lang2, summary: (ai && ai.summary) || "",
       music: { mood: String(mu.mood || "upbeat"), energy: String((pro && vsProPace(pro).energy) || mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
+    // a new edit: its captions start in their own language
+    vstudio._capSrc = null; vstudio._capLang = "";
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
     const lay = o.layout && o.layout !== "auto" ? o.layout : ((vstudio._editSrcAspect || 1) < 0.8 ? "full" : "card");
@@ -44229,6 +44283,8 @@ function vsStartScreen(force) {
       ico('<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>')],
     ["auto", L("From a link or topic", "از یک لینک یا موضوع"), L("An article or an idea becomes a video", "یک مقاله یا ایده ویدیو می‌شود"),
       ico('<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>')],
+    ["clips", L("Best clips from a long video", "بهترین کلیپ‌ها از یک ویدیوی بلند"), L("A podcast or a live, cut into reels", "پادکست یا لایو، تبدیل به چند ریلز"),
+      ico('<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.2 7.4L20 17M8.2 16.6L20 7"/>')],
     ["swap", L("Change text or footage", "عوض کردن متن یا فوتیج"), L("Keep the design, change the words", "طراحی بماند، متن عوض شود"),
       ico('<path d="M4 7h13l-3-3M20 17H7l3 3"/>')],
     ["thumb", L("Thumbnail", "تامبنیل"), L("A cover from your video or a title", "کاور از ویدیو یا یک تیتر"),
@@ -44259,6 +44315,12 @@ function vsStartScreen(force) {
       if (go === "edit") vsEditStudio(Object.assign({}, vstudio._mcpEditPreset || {}, { mode: "edit" }));
       else if (go === "graphic" || go === "photos" || go === "swap") vsEditStudio({ mode: go });
       else if (go === "thumb") vsThumbStudio("");
+      else if (go === "clips") {
+        const inp = document.createElement("input");
+        inp.type = "file"; inp.accept = "video/*"; inp.multiple = true;
+        inp.onchange = () => { if (inp.files && inp.files.length) vsFindClips(inp.files); };
+        inp.click();
+      }
       else { const t = document.getElementById("vsAutoTopic"); if (t) { t.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => t.focus(), 350); } }
     };
   });
@@ -44294,13 +44356,13 @@ function vsStartScreen(force) {
       ".vss-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.05);color:#12d6f5}" +
       ".vss-t{font:600 clamp(19px,1.8vw,24px)/1.15 'Space Grotesk',Vazirmatn,system-ui,sans-serif}" +
       ".vss-d{font:400 14px/1.45 Manrope,Vazirmatn,system-ui,sans-serif;color:#8a919c}" +
-      ".vss-main{grid-column:span 2;grid-row:span 2;min-height:350px;justify-content:flex-end;background:linear-gradient(160deg,rgba(37,99,255,.22),rgba(14,16,20,0) 60%),#0e1014}" +
+      ".vss-main{grid-column:1/-1;min-height:230px;justify-content:flex-end;background:linear-gradient(120deg,rgba(37,99,255,.24),rgba(14,16,20,0) 55%),#0e1014}" +
       ".vss-main .vss-ic{width:64px;height:64px;background:#2563ff;color:#fff}.vss-main .vss-ic svg{width:34px;height:34px}" +
       ".vss-main .vss-t{font-size:clamp(28px,3.4vw,44px)}.vss-main .vss-d{font-size:16px;color:#c9ccd3}" +
       ".vss-drop{margin-top:10px;padding:8px 12px;border:1px dashed rgba(255,255,255,.22);border-radius:8px;font:500 12px/1 'JetBrains Mono',Vazirmatn,monospace;color:#8a919c}" +
       ".vss-full{margin-top:22px;background:none;border:0;color:#8a919c;font:500 14px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer;padding:6px 0}.vss-full:hover{color:#f4f5f7}" +
       "body.vss-open{overflow:hidden}" +
-      "@media (max-width:820px){.vss-grid{grid-template-columns:1fr 1fr}.vss-main{grid-column:1/-1;grid-row:auto;min-height:220px}}" +
+      "@media (max-width:820px){.vss-grid{grid-template-columns:1fr 1fr}.vss-main{min-height:200px}}" +
       "@media (max-width:520px){.vss-grid{grid-template-columns:1fr}.vss-card{min-height:auto}}" +
       ".vtab-new{margin-inline-end:6px}";
     document.head.appendChild(css);
@@ -44317,4 +44379,150 @@ function vsStartScreen(force) {
     vsStartScreen(false);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
+
+
+// ── Best clips: a long video into several reels ────────────────────────────
+// A podcast, a live, a long talk: the strongest stretches, each a whole point
+// that stands on its own and opens strong, picked from the transcript; each
+// is then edited like any video (vsEditMyVideo with o.range).
+async function vsPickClips(sentences, total, lang) {
+  const list = sentences.map((x) => x.i + ": [" + x.start.toFixed(1) + "-" + x.end.toFixed(1) + "] " + String(x.text).slice(0, 260)).join("\n").slice(0, 24000);
+  const prompt = "You are a short-form video producer. Below is the transcript of a long video as numbered sentences with start and end seconds.\n" +
+    "Pick the 3 to 5 best moments to post as separate vertical reels. Each clip is ONE continuous run of sentences, 20 to 60 seconds long, that:\n" +
+    "- makes sense on its own to someone who never saw the rest (a complete point, story, tip, answer or opinion);\n" +
+    "- opens strong: its first sentence is a claim, a number, a question, a surprise or a strong opinion - never a greeting, filler or 'so', 'and', 'as I said';\n" +
+    "- ends on a complete thought.\n" +
+    "Clips must not overlap. Best first. Never invent anything.\n" +
+    'Return ONLY JSON: {"clips":[{"from":<first sentence index>,"to":<last sentence index>,"title":"3-6 words, in the language of the speech","hook":"3-7 punchy words for its first seconds, same language, true to what is said","score":<0-100, how likely it is to do well>,"why":"under 10 words"}]}\n' +
+    "SENTENCES:\n" + list;
+  let raw = "";
+  try { raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.3 }); } catch (e) {}
+  const j = vsParseAiJson(raw || "") || {};
+  const byI = new Map(sentences.map((x) => [x.i, x]));
+  const out = [];
+  (Array.isArray(j.clips) ? j.clips : []).forEach((c) => {
+    const a = byI.get(Number(c.from)), b = byI.get(Number(c.to));
+    if (!a || !b || b.end <= a.start) return;
+    const start = Math.max(0, a.start - 0.15), end = Math.min(total, b.end + 0.3);
+    if (end - start < 8 || end - start > 120) return;
+    if (out.some((o) => start < o.end && end > o.start)) return;
+    out.push({ start, end, title: String(c.title || "").slice(0, 60), hook: String(c.hook || "").replace(/^["'«“]+|["'»”]+$/g, "").slice(0, 80),
+      score: Math.max(0, Math.min(100, Number(c.score) || 0)), why: ((w) => w.length <= 90 ? w : w.slice(0, 90).replace(/\s+\S*$/, "") + "…")(String(c.why || "").trim()) });
+  });
+  // nothing usable (or a short video): the whole talk is the one clip
+  if (!out.length && sentences.length) out.push({ start: Math.max(0, sentences[0].start - 0.15), end: Math.min(total, sentences[sentences.length - 1].end + 0.3), title: "", hook: "", score: 0, why: "" });
+  return out.slice(0, 5);
+}
+
+async function vsFindClips(files) {
+  const fa = state.lang === "fa", L = (en, f) => (fa ? f : en);
+  files = [...(files || [])].filter((f) => /^video\//.test(f.type));
+  if (!files.length) return;
+  vstudio._clipFind = null;
+  try { await vsEditMyVideo(files.length > 1 ? files : files[0], Object.assign({}, VS_EM_DEFAULTS, { findClips: true, aspect: "9:16" })); }
+  catch (e) { vsBuildOverlay(false); vsAutoStatus(L("Reading the video failed: ", "خواندن ویدیو ناموفق بود: ") + String(e && e.message || e).slice(0, 140)); return; }
+  if (vstudio._clipFind && vstudio._clipFind.clips.length) vsClipsPanel();
+}
+
+function vsClipsPanel() {
+  const cf = vstudio._clipFind;
+  if (!cf || !cf.clips.length) return;
+  const fa = state.lang === "fa", L = (en, f) => (fa ? f : en);
+  const mm = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+  document.getElementById("vsClips")?.remove();
+  document.getElementById("vsClipsPill")?.remove();
+  const box = document.createElement("div");
+  box.id = "vsClips";
+  box.setAttribute("role", "dialog"); box.setAttribute("aria-labelledby", "vsClipsH");
+  if (fa) box.dir = "rtl";
+  box.innerHTML = '<div class="vcl-in"><div class="vcl-head"><div><p class="vss-eye"><span class="vss-sq"></span>' + L("Best clips", "بهترین کلیپ‌ها") + "</p>" +
+    '<h2 id="vsClipsH">' + (cf.clips.length > 1 ? L(cf.clips.length + " reels in your video", cf.clips.length + " ریلز در ویدیوی تو") : L("One reel in your video", "یک ریلز در ویدیوی تو")) + "</h2></div>" +
+    '<button type="button" class="vcl-x" aria-label="' + L("Close", "بستن") + '">✕</button></div>' +
+    '<ol class="vcl-list">' + cf.clips.map((c, i) =>
+      '<li class="vcl-item"><span class="vcl-n">' + (i + 1) + '</span><div class="vcl-body"><b>' + escapeHtml(c.title || L("Clip ", "کلیپ ") + (i + 1)) + "</b>" +
+      '<span class="vcl-meta">' + mm(c.start) + " – " + mm(c.end) + " · " + Math.round(c.end - c.start) + L(" s", " ثانیه") + (c.why ? " · " + escapeHtml(c.why) : "") + "</span>" +
+      (c.score ? '<span class="vcl-score" aria-label="' + L("Strength ", "قدرت ") + c.score + '"><i style="width:' + c.score + '%"></i></span>' : "") +
+      '</div><button type="button" class="vcl-go" data-i="' + i + '">' + L("Make this clip", "ساختن این کلیپ") + "</button></li>").join("") + "</ol></div>";
+  const css = document.getElementById("vsClipsCss") || (() => {
+    const c = document.createElement("style"); c.id = "vsClipsCss";
+    c.textContent = "#vsClips{position:fixed;inset:0;z-index:99990;display:flex;background:rgba(4,5,8,.8);backdrop-filter:blur(6px);padding:16px;overflow:auto}" +
+      ".vcl-in{margin:auto;width:min(720px,100%);background:#0e1014;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:clamp(18px,3vw,30px)}" +
+      ".vcl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}" +
+      "#vsClips h2{margin:0;font:700 clamp(22px,3vw,30px)/1.15 'Space Grotesk',Vazirmatn,system-ui,sans-serif;color:#f4f5f7}" +
+      ".vcl-x{background:none;border:1px solid rgba(255,255,255,.14);color:#c9ccd3;border-radius:8px;width:34px;height:34px;cursor:pointer}" +
+      ".vcl-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}" +
+      ".vcl-item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#14171d}" +
+      ".vcl-n{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);font:700 13px 'JetBrains Mono',monospace;color:#f4f5f7}" +
+      ".vcl-body{display:flex;flex-direction:column;gap:4px;min-width:0}.vcl-body b{font:600 16px/1.3 'Space Grotesk',Vazirmatn,system-ui,sans-serif;color:#f4f5f7}" +
+      ".vcl-meta{font:400 13px/1.4 Manrope,Vazirmatn,system-ui,sans-serif;color:#8a919c}" +
+      ".vcl-score{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;max-width:220px}.vcl-score i{display:block;height:100%;background:#12d6f5}" +
+      ".vcl-go{background:#2563ff;color:#fff;border:0;border-radius:9px;padding:10px 14px;font:600 13px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer;white-space:nowrap}.vcl-go:hover{background:#1b46c9}" +
+      "#vsClipsPill{position:fixed;inset-inline-start:16px;bottom:16px;z-index:99980;background:#14171d;color:#f4f5f7;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:10px 16px;font:600 13px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5)}" +
+      "@media (max-width:560px){.vcl-item{grid-template-columns:auto 1fr}.vcl-go{grid-column:1/-1}}";
+    document.head.appendChild(c); return c;
+  })();
+  void css;
+  const close = () => {
+    box.remove();
+    // a way back to the list while the clips are being made
+    const pill = document.createElement("button");
+    pill.id = "vsClipsPill"; pill.type = "button";
+    pill.textContent = L("All clips (" + cf.clips.length + ")", "همهٔ کلیپ‌ها (" + cf.clips.length + ")");
+    pill.onclick = () => vsClipsPanel();
+    document.body.appendChild(pill);
+  };
+  box.querySelector(".vcl-x").onclick = close;
+  box.querySelectorAll(".vcl-go").forEach((b) => {
+    b.onclick = () => {
+      const c = cf.clips[Number(b.dataset.i)];
+      close();
+      vsEditStudio(Object.assign({}, { mode: "edit", range: [c.start, c.end] }, c.hook ? { hookText: c.hook } : {}), cf.files);
+      setTimeout(() => { const go = document.querySelector("#emOv #emGo"); if (go && !go.disabled) go.click(); }, 150);
+    };
+  });
+  document.body.appendChild(box);
+  setTimeout(() => { try { box.querySelector(".vcl-go").focus(); } catch (e) {} }, 50);
+}
+
+
+// ── Captions in another language ───────────────────────────────────────────
+// The Pro looks' word groups, translated in one request and set as edits; the
+// originals (and the customer's own edits) kept to come back to.
+async function vsTranslateCaptions(lang) {
+  const slides = vstudio.slides.filter((x) => x._pro && x._voice && x._voice.words && x._voice.words.length);
+  if (!slides.length) return;
+  // what was there before any translation: the words of each group and the edits
+  if (!vstudio._capSrc) {
+    vstudio._capSrc = slides.map((x) => ({ s: x, edits: JSON.parse(JSON.stringify(x._proEdit || {})),
+      texts: vsProGroups(x).map((g) => g.items.map((it) => it.w).join(" ")) }));
+  }
+  const src = vstudio._capSrc;
+  const restore = () => src.forEach((r) => { r.s._proEdit = JSON.parse(JSON.stringify(r.edits)); r.s._proEditV = (r.s._proEditV || 0) + 1; delete r.s._proG; });
+  if (!lang) { restore(); vstudio._capLang = ""; return; }
+  const lines = [];
+  src.forEach((r, si) => r.texts.forEach((t, gi) => lines.push({ si, gi, t })));
+  const prompt = "Translate these on-screen video captions into " + lang + ". Each numbered line is one caption shown for a second or two: keep it short and natural to read on a phone (no longer than the original), keep names, numbers and prices exactly, and keep each line's meaning on that line - do not merge or split lines.\n" +
+    'Return ONLY JSON: {"lines":["...", ...]} with exactly ' + lines.length + " lines, in order.\n" +
+    lines.map((l, i) => i + ": " + l.t).join("\n");
+  const raw = await vsAutoAiChat(prompt, { json: false, temperature: 0.2 });
+  const j = vsParseAiJson(raw || "") || {};
+  const out = Array.isArray(j.lines) ? j.lines : null;
+  if (!out || out.length < lines.length * 0.8) throw new Error("translation incomplete");
+  restore();
+  lines.forEach((l, i) => {
+    const t = String(out[i] || "").replace(/^\d+\s*[:.)-]\s*/, "").trim();
+    if (!t) return;
+    const r = src[l.si], e = r.s._proEdit || (r.s._proEdit = {});
+    if (e[l.gi] && e[l.gi].off) return;   // words they removed stay removed
+    e[l.gi] = Object.assign({}, e[l.gi] || {}, { text: t });
+  });
+  src.forEach((r) => { r.s._proEditV = (r.s._proEditV || 0) + 1; delete r.s._proG; });
+  vstudio._capLang = lang;
+}
+(function () {
+  const c = document.createElement("style");
+  c.textContent = ".em-lang{display:flex;align-items:center;justify-content:space-between;gap:10px;font:500 13px Manrope,Vazirmatn,system-ui,sans-serif;color:#c9ccd3}" +
+    ".em-lang select{background:#08090c;color:#f4f5f7;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 9px;font:500 13px Manrope,Vazirmatn,system-ui,sans-serif}";
+  (document.head || document.documentElement).appendChild(c);
 })();
