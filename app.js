@@ -20270,6 +20270,7 @@ async function vsSwapLoadFonts(texts) {
     const caps = /[A-Z]/.test(ln.text || "") && ln.text === String(ln.text).toUpperCase();
     want.add(ln.weight + " 40px " + vsSwapFam(ln.font, ln.weight, caps).split(",")[0]);
   }
+  want.add("400 40px Vazirmatn"); want.add("700 40px Vazirmatn");
   try { await Promise.race([Promise.all([...want].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 5000))]); } catch (e) {}
 }
 
@@ -21181,7 +21182,13 @@ function vsSwapDrawStyled(ctx, b, txt, ox, oy, dw, dh, bx, bw) {
   paras.forEach((p, j) => {
     const k = anchor[j], s = sty[k], g = groups.find((gg) => gg.idx.includes(k));
     ctx.font = `${s.it ? "italic " : ""}${s.w} ${s.px}px ${s.fam}`;
-    try { ctx.letterSpacing = "0px"; ctx.direction = "ltr"; } catch (e) {}
+    // a Persian line is set right to left (its full stop and numbers went to
+    // the wrong end) and in Vazirmatn first: the Latin faces have no Persian
+    // letters, and the system's fallback (Arial on Windows) took them
+    const fa = /[֐-ࣿ]/.test(p);
+    // (its letters stand taller than a Latin face's at one size, so a little smaller)
+    if (fa) ctx.font = `${s.it ? "italic " : ""}${s.w} ${(s.px * 0.86).toFixed(1)}px Vazirmatn, ${s.fam}`;
+    try { ctx.letterSpacing = "0px"; ctx.direction = fa ? "rtl" : "ltr"; } catch (e) {}
     const words = (s.caps ? p.toUpperCase() : p).split(/\s+/).filter(Boolean), out = [];
     let cur = "";
     words.forEach((wd) => { const t2 = cur ? cur + " " + wd : wd; if (ctx.measureText(t2).width > maxW && cur) { out.push(cur); cur = wd; } else cur = t2; });
