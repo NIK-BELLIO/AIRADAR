@@ -10962,7 +10962,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 //   burn  - the picture burns out to the look's own light colour and the
 //           next comes out of it (the Alight Motion / walking-realtor reels)
 //   invert- a moment of negative between the two (the $150-edit reel)
-const VS_TRANS_LEN = { expo: 0.22, rack: 0.55, whip: 0.3, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
+const VS_TRANS_LEN = { expo: 0.22, rack: 0.55, whip: 0.42, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
 function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
   const W = canvas.width, H = canvas.height;
   const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
@@ -18106,6 +18106,8 @@ function vsEditStudio(preset, filesIn) {
         '<label class="em-lang" id="emLangRow" style="grid-column:1/-1" hidden><span>' + L("Captions in", "زبان زیرنویس") + '</span><select id="emCapLang">' +
           [["", L("Original", "زبان اصلی")], ["English", "English"], ["Persian", "فارسی"], ["Arabic", "العربية"], ["Spanish", "Español"], ["French", "Français"], ["German", "Deutsch"], ["Turkish", "Türkçe"]]
             .map(([v, t]) => '<option value="' + v + '"' + ((vstudio._capLang || "") === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select></label>" +
+        '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emProg"' + (vstudio._editProgress === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Progress bar", "نوار پیشرفت") + "</span></label>" +
+        '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emChap"' + (vstudio._editChapters === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Chapter tags", "برچسب فصل‌ها") + "</span></label>" +
         '<label class="ts-switch" id="emFitRow" style="grid-column:1/-1" hidden><input type="checkbox" id="emFit"' + (vstudio.slides.some((x) => x._fit === "fill" && !x._broll) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Fill the frame", "پر کردن کادر") + "</span></label>" +
       "</div>" +
       '<div class="em-acts">' +
@@ -18277,6 +18279,8 @@ function vsEditStudio(preset, filesIn) {
         e.target.disabled = false;
         sync();
       };
+      $$("emProg").onchange = (e) => { vstudio._editProgress = e.target.checked; redraw(); };
+      $$("emChap").onchange = (e) => { vstudio._editChapters = e.target.checked; redraw(); };
       // Captions in another language: every caption group translated at once
       // and set as the customer's own wording for it (the same path as typing
       // over a word), so preview, export and timing all follow; Original puts
@@ -20464,8 +20468,25 @@ async function vsEditMyVideo(fileIn, o) {
       const prev = vstudio.slides[i - 1];
       const k2 = sentOf((sl._srcOffset || 0) + (sl._clipIn != null && !sl._broll ? sl._clipIn : (sl._ownClipIn || 0)) + 0.1);
       const firstOfK = !vstudio.slides.slice(0, i).some((x) => !x._teaser && sentOf((x._srcOffset || 0) + (x._broll ? x._ownClipIn : x._clipIn) + 0.1) === k2);
-      if (sl._gfx || prev._gfx || prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = ["wipe", "whip", "zoom", "wipe", "flash"][tk++ % 5];
+      if (sl._gfx || prev._gfx || prev._teaser || sl._broll || prev._broll || (newPoint[k2] && firstOfK)) sl._transIn = ["wipe", "leak", "zoom", "wipe", "expo"][tk++ % 5];
     });
+    // chapter tags: where the talk moves on to its next point, its number and
+    // its key words - only when there are at least two such points
+    {
+      const marks = [];
+      vstudio.slides.forEach((sl, i) => {
+        delete sl._chapter;
+        if (i === 0 || sl._broll || sl._teaser || !sl._ownSpeech) return;
+        const k2 = sentOf((sl._srcOffset || 0) + (sl._clipIn || 0) + 0.1);
+        if (!newPoint[k2] || marks.some((m) => m.k === k2)) return;
+        const sp = sPlan[k2] || {}, words0 = (sl._voice && sl._voice.words || []).slice(0, 4).map((w) => w.w).join(" ");
+        // (whole words: "call the National Adoption C" was cut mid-word)
+        let title = String(sp.text || words0 || "").replace(/[.,!?؟،]+$/, "").trim();
+        if (title.length > 26) title = title.slice(0, 27).replace(/\s+\S*$/, "");
+        if (title) marks.push({ k: k2, sl, title });
+      });
+      if (marks.length >= 2) marks.slice(0, 8).forEach((m, n) => { m.sl._chapter = { n: n + 2, title: m.title }; });
+    }
     if (pro) {
       // the pro look: every clip graded and worded in it, alternate cuts
       // punched in, the pack's cuts where the talk moves on (and on every
@@ -29433,8 +29454,49 @@ function vsWmEnsureStudioToggle() {
 // Every frame, then the watermark over all of it.
 function drawStudioFrame(elapsed) {
   const r = drawStudioFrameCore(elapsed);
+  try { vsDrawEditExtras(elapsed); } catch (e) {}
   try { vsDrawWatermark(); } catch (e) {}
   return r;
+}
+
+// ── An edit's progress bar and chapter tags ────────────────────────────────
+// A thin bar along the top edge that fills as the video plays (the reel
+// convention that keeps people to the end), and, where the talk moves on to
+// its next point, a small tag - its number and key words - that slides in at
+// the top right, clear of the face and of the app's buttons, then goes.
+function vsDrawEditExtras(elapsed) {
+  const canvas = document.getElementById("vsCanvas");
+  if (!canvas || !vstudio.slides || !vstudio.slides.some((x) => x._ownSpeech) || !vstudio._editLayout) return;
+  const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height, U = Math.min(W, H * 0.62);
+  const total = studioDuration ? studioDuration() : 0;
+  const accent = (() => { try { return vsProAccent(); } catch (e) { return "#2563ff"; } })();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.filter = "none"; ctx.globalCompositeOperation = "source-over";
+  if (vstudio._editProgress !== false && total > 0) {
+    const h = Math.max(3, Math.round(H * 0.0045)), f = Math.max(0, Math.min(1, elapsed / total));
+    ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fillRect(0, 0, W, h);
+    ctx.fillStyle = accent && accent !== "auto" ? accent : "#2563ff"; ctx.fillRect(0, 0, W * f, h);
+  }
+  if (vstudio._editChapters !== false) {
+    const at = slideAtTime(elapsed), s = at && vstudio.slides[at.index], c = s && s._chapter, t = at ? at.local : 0;
+    if (c && t >= 0 && t < 1.9) {
+      const pin = t < 0.35 ? (1 - Math.pow(1 - t / 0.35, 3)) : 1, pout = t > 1.55 ? Math.max(0, (1.9 - t) / 0.35) : 1, a = Math.min(pin, pout);
+      const fam = 'Manrope, "Vazirmatn", system-ui, sans-serif', px = Math.round(U * 0.034);
+      const num = String(c.n).padStart(2, "0"), title = String(c.title || "").toUpperCase();
+      ctx.font = "800 " + px + "px " + fam; const wn = ctx.measureText(num).width;
+      ctx.font = "700 " + px + "px " + fam; const wt = ctx.measureText(title).width;
+      const pad = px * 0.7, gap = px * 0.6, h = px * 2.1, w = pad * 2 + wn + gap + wt;
+      const x = W - W * 0.045 - w, y = Math.max(H * 0.035, U * 0.045) - (1 - pin) * h * 0.6;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "rgba(12,13,16,0.72)";
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, h / 2); else ctx.rect(x, y, w, h); ctx.fill();
+      ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.fillStyle = accent && accent !== "auto" ? accent : "#12d6f5"; ctx.font = "800 " + px + "px " + fam; ctx.fillText(num, x + pad, y + h / 2);
+      ctx.fillStyle = "#ffffff"; ctx.font = "700 " + px + "px " + fam; ctx.fillText(title, x + pad + wn + gap, y + h / 2);
+    }
+  }
+  ctx.restore();
 }
 function drawStudioFrameCore(elapsed) {
   const canvas = $("#vsCanvas");
