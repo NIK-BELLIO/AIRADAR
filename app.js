@@ -10798,7 +10798,7 @@ async function vsEditStylePlan(scenes, lang) {
 // teaser and B-roll): whip, zoom-through, glitch or flash, each with its own
 // sound mixed into the voice track.
 // the sound each transition makes
-const VS_TRANS_SFX = { whip: "whoosh", zoom: "riser", glitch: "digital", flash: "sparkle", wipe: "whoosh", zoomblur: "whoosh", leak: "whoosh" };
+const VS_TRANS_SFX = { onetake: "whoosh", whip: "whoosh", zoom: "riser", glitch: "digital", flash: "sparkle", wipe: "whoosh", zoomblur: "whoosh", leak: "whoosh" };
 const vsEase = {
   out: (p) => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3),
   inOut: (p) => { p = Math.max(0, Math.min(1, p)); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; },
@@ -10962,7 +10962,7 @@ function vsDrawEditScene(ctx, W, H, s, local, dur, off) {
 //   burn  - the picture burns out to the look's own light colour and the
 //           next comes out of it (the Alight Motion / walking-realtor reels)
 //   invert- a moment of negative between the two (the $150-edit reel)
-const VS_TRANS_LEN = { expo: 0.22, rack: 0.55, whip: 0.42, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
+const VS_TRANS_LEN = { onetake: 0.8, expo: 0.22, rack: 0.55, whip: 0.42, zoom: 0.32, wipe: 0.36, flash: 0.3, glitch: 0.24, zoomblur: 0.3, leak: 0.45, burn: 0.34, invert: 0.2 };
 function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
   const W = canvas.width, H = canvas.height;
   const T = vstudio._edTrans || (vstudio._edTrans = { snap: null, inc: null, snapIdx: -1, snapEnd: -1 });
@@ -10984,7 +10984,16 @@ function vsEditTransitionPost(ctx, canvas, idx, local, dur, elapsed) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#0b0d12"; ctx.fillRect(0, 0, W, H);
-    if (type === "whip") {
+    if (type === "onetake") {
+      // one continuous camera (after the One Take films): no cut - it pulls
+      // back a little and travels along one surface on which the next frame
+      // lies beside this one, joined by a line of the accent, then settles in
+      const g = W * 0.06, travel = (W + g) * e, sp = Math.sin(Math.PI * p), z = 1 - 0.16 * sp;
+      ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2 - travel, -H / 2);
+      ctx.drawImage(A, 0, 0); ctx.drawImage(B, W + g, 0);
+      ctx.fillStyle = vsEditAccent(s); ctx.fillRect(W - 1, H * 0.5 - H * 0.004, g + 2, H * 0.008);
+      if (sp > 0.35) { ctx.globalAlpha = 0.16 * sp; ctx.drawImage(A, -W * 0.025, 0); ctx.drawImage(B, W + g - W * 0.025, 0); ctx.globalAlpha = 1; }
+    } else if (type === "whip") {
       ctx.drawImage(A, -W * e, 0);
       ctx.drawImage(B, W * (1 - e), 0);
       // a soft shadow on the arriving edge gives the two depth
@@ -15470,6 +15479,22 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
   // the film styles (after Lemo-Opuscar, MIT): their inks and papers
+  ["dossier", 0, "#efe6d2", "#f7f0de", "#1d2b4f", "#8a8270", "#e8336d", "#2f6fd6", "#d23a2a"],
+  ["manila", 0, "#e9d9b0", "#f3e7c7", "#2a2118", "#8a7a58", "#2a8a86", "#d6a21e", "#d9471f"],
+  ["ukiyoe", 0, "#efe5cf", "#f6eedb", "#1d1d22", "#8f8a7a", "#1f4e8c", "#c9363a", "#7d9a5b"],
+  ["stained", 1, "#141210", "#201c18", "#f4ead2", "#8c826f", "#2a5bd7", "#c8281e", "#e8b52a"],
+  ["wash", 0, "#f3eadb", "#fbf6ec", "#3a2c22", "#9a8b78", "#c8442a", "#5f7486", "#8aa36b"],
+  ["woodcut", 1, "#0f0d0b", "#f1e9d6", "#f1e9d6", "#6e665a", "#d9682b", "#f1e9d6", "#9a8f7d"],
+  ["papercut", 0, "#f1e6cf", "#f8f0de", "#7a1414", "#a08a6a", "#d2201f", "#c9a23a", "#1f3d6b"],
+  ["papernight", 1, "#14213d", "#1d2d50", "#fbe9cc", "#6b7aa0", "#d2201f", "#d9b04a", "#3b5998"],
+  ["keynote", 1, "#07080a", "#121418", "#f5f6f7", "#7c8088", "#b7f34a", "#ff5a4f", "#8b7cff"],
+  ["keyviolet", 1, "#07070b", "#121219", "#f5f5f8", "#7c7f8c", "#8b7cff", "#ff5a4f", "#b7f34a"],
+  ["anime80", 1, "#1b0f3a", "#3a1758", "#fff3c4", "#a58bd0", "#ff3fa4", "#35e6ff", "#ffb347"],
+  ["gameshow", 0, "#ff7a1a", "#fff6e5", "#151515", "#a35a12", "#ffd23f", "#3ec1ff", "#ff3e8a"],
+  ["gamesky", 0, "#3ec1ff", "#fff6e5", "#151515", "#2a7fb0", "#ffd23f", "#ff7a1a", "#ff3e8a"],
+  ["tilt", 0, "#cfe3c4", "#eef5ea", "#14301f", "#6a8a72", "#ff8a1f", "#2f7fd8", "#f2c230"],
+  ["engrave", 0, "#f1e8d2", "#f8f1e0", "#1c1510", "#8a7f6a", "#8e3b2f", "#5f7a6a", "#c49a52"],
+  ["silk", 0, "#f0e6d0", "#f7efdc", "#1f2a2e", "#7d7a6a", "#e2683c", "#2f6f73", "#f2c14e"],
   ["riso", 0, "#f4eee2", "#fbf7ee", "#2b3f86", "#9a95a8", "#ff48b0", "#0078bf", "#ffe800"],
   ["risoteal", 0, "#f4eee2", "#fbf7ee", "#00646a", "#9aa39f", "#ff7477", "#00838a", "#ffb511"],
   ["deco", 1, "#120e0a", "#1c1610", "#f2e8d0", "#a89a7c", "#d8b25a", "#8e1f3a", "#1f6b52"],
@@ -15549,6 +15574,16 @@ const VS_GX_PALETTES = [
 // (one family per theme, labels and captions in the title's own face: a
 // serif under a grotesk title read as two designs - the owner, twice)
 const VS_GX_FONTS = [
+  ["dossierfont", "Alfa Slab One", 400, 0, "Courier Prime", 700],
+  ["ukiyofont", "Shippori Mincho", 800, 0, "Shippori Mincho", 500],
+  ["glassfont", "Cinzel", 700, 1, "EB Garamond", 500],
+  ["washfont", "Cormorant Garamond", 600, 0, "Caveat", 600],
+  ["woodfont", "Grenze Gotisch", 800, 0, "Grenze", 500],
+  ["keyfont", "Manrope", 800, 0, "JetBrains Mono", 500],
+  ["animefont", "Barlow Semi Condensed", 800, 1, "Barlow Semi Condensed", 600],
+  ["signfont", "Overpass", 800, 0, "Overpass", 600],
+  ["engravefont", "Bodoni Moda", 700, 1, "Pinyon Script", 400],
+  ["silkfont", "Big Shoulders Display", 900, 1, "Big Shoulders Text", 600],
   ["risofont", "Bricolage Grotesque", 800, 0, "Jost", 600],
   ["decofont", "Limelight", 400, 1, "Josefin Sans", 600],
   ["spyfont", "League Gothic", 400, 1, "League Spartan", 600],
@@ -15586,7 +15621,7 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Courier+Prime:wght@700&family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@700&family=EB+Garamond:wght@500&family=Cormorant+Garamond:wght@600&family=Grenze+Gotisch:wght@800&family=Grenze:wght@500&family=Barlow+Semi+Condensed:wght@600;800&family=Overpass:wght@600;800&family=Bodoni+Moda:wght@700&family=Pinyon+Script&family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@600&family=Caveat:wght@600;700&family=Jost:wght@600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
   "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700&family=Bangers" +
@@ -15601,6 +15636,55 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Jost:wght@600&f
 const VS_GX_CATS = { film: ["Film styles", "سبک‌های فیلم"], reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Twelve more film styles after Lemo-Opuscar (MIT), drawn by our engine:
+  // Case file: archive paper, halftone, a slab headline that slams in with
+  // an overprint shadow, a rubber stamp.
+  { id: "dossier", n: ["Case file", "پروندهٔ محرمانه"], cat: "film", pals: ["dossier", "manila"], fonts: ["dossierfont"], el: ["flat", "color"],
+    bg: "dossier", al: "l", tt: "slab", ef: "plain", ec: "ink", ls: "number", de: "stamp", fr: "none", cp: "dossier", kd: "block", tr: ["wipe", "flash"] },
+  // Ukiyo-e: washi, a bokashi sky, mist bands, a double ink border and a red
+  // seal; the words printed down from the top, their colour block off register.
+  { id: "ukiyoe", n: ["Ukiyo-e", "چاپ چوبی ژاپنی"], cat: "film", pals: ["ukiyoe"], fonts: ["ukiyofont"], el: ["flat", "ph-thin"],
+    bg: "ukiyoe", al: "c", tt: "mincho", ef: "plain", ec: "ink", ls: "roman", de: "mist", fr: "ukiyo", cp: "cartouche", kd: "under", tr: ["wipe", "zoom"] },
+  // Stained glass: lozenge panes in lead behind an arch of stone; the words
+  // milky until a band of light passes and lights them.
+  { id: "stained", n: ["Stained glass", "شیشهٔ رنگی"], cat: "film", pals: ["stained"], fonts: ["glassfont"], el: ["color", "ph-duo"],
+    bg: "stained", al: "c", tt: "lumen", ef: "glow", ec: "a3", ls: "roman", de: "shafts", fr: "arch", cp: "plaque", kd: "lines", tr: ["flash", "zoom"] },
+  // Watercolour: cotton paper and pooled washes; a ribbon of wash is laid
+  // under each line, then the serif writes over it.
+  { id: "watercolor", n: ["Watercolour", "آبرنگ"], cat: "film", pals: ["wash"], fonts: ["washfont"], el: ["color", "hc"],
+    bg: "wash", al: "l", tt: "brush", ef: "plain", ec: "ink", ls: "check", de: "drops", fr: "none", cp: "hand", kd: "scribble", tr: ["zoom", "wipe"] },
+  // Woodcut: a black block with light carved out of it; the block is a
+  // mirror, so the words turn round to read; one copper plate glows.
+  { id: "woodcut", n: ["Woodcut", "حکاکی چوبی"], cat: "film", pals: ["woodcut"], fonts: ["woodfont"], el: ["hc", "flat"],
+    bg: "woodcut", al: "c", tt: "carve", ef: "plain", ec: "a1", ls: "roman", de: "ember", fr: "none", cp: "margin", kd: "lines", tr: ["zoom", "flash"] },
+  // Red paper-cut: sawtooth strips and a turning rosette; letters cut from
+  // red paper pop in one by one on twelves.
+  { id: "papercut", n: ["Red paper-cut", "کاغذبُری قرمز"], cat: "film", pals: ["papercut", "papernight"], fonts: ["fraunces"], el: ["flat", "color"],
+    bg: "papercut", al: "c", tt: "cutred", ef: "plain", ec: "a1", ls: "badge", de: "rosette", fr: "none", cp: "banner", kd: "block", tr: ["wipe", "zoom"] },
+  // Tech keynote: a near-black stage with a hairline grid; light passes and
+  // turns the words on, the last line in the accent.
+  { id: "keynote", n: ["Tech keynote", "رونمایی فناوری"], cat: "film", pals: ["keynote", "keyviolet"], fonts: ["keyfont"], el: ["ph-thin", "ph-duo"],
+    bg: "keynote", al: "c", tt: "keylight", ef: "card", ec: "a1", ls: "cards", de: "sweep", fr: "none", cp: "toast", kd: "glass", tr: ["zoom", "flash"] },
+  // 80s anime: a sunset sky over a neon city, chrome letters sliding in on
+  // a lens streak, a flare, videotape lines.
+  { id: "anime80", n: ["80s anime", "انیمه دههٔ ۸۰"], cat: "film", pals: ["anime80"], fonts: ["animefont"], el: ["color", "3d"],
+    bg: "anime80", al: "c", tt: "chrome", ef: "glow", ec: "a1", ls: "glow", de: "flare", fr: "vhs", cp: "sub", kd: "glowbox", tr: ["flash", "zoomblur"] },
+  // Game show: candy stripes and a turning sunburst; each line on a card
+  // with a hard shadow that drops in and squashes as it lands.
+  { id: "gameshow", n: ["Game show", "مسابقهٔ تلویزیونی"], cat: "film", pals: ["gameshow", "gamesky"], fonts: ["kids"], el: ["3d", "color"],
+    bg: "gameshow", al: "c", tt: "telop", ef: "sticker", ec: "ink", ls: "pills", de: "spin", fr: "none", cp: "comic", kd: "burst", tr: ["whip", "flash"] },
+  // Miniature world: a model town from above with a tilt-shift blur at the
+  // top and foot; the words on road signs that swing down.
+  { id: "tiltshift", n: ["Miniature world", "دنیای مینیاتوری"], cat: "film", pals: ["tilt"], fonts: ["signfont"], el: ["3d", "color"],
+    bg: "tilt", al: "c", tt: "roadsign", ef: "plain", ec: "ink", ls: "badge", de: "traffic", fr: "tiltshift", cp: "signcap", kd: "ring", tr: ["zoom", "wipe"] },
+  // Engraving: laid paper, a plate mark, a hatched roundel; a hairline rule
+  // is cut first, then the letters are traced and filled.
+  { id: "engraving", n: ["Engraving", "گراور"], cat: "film", pals: ["engrave"], fonts: ["engravefont"], el: ["hc", "ph-thin"],
+    bg: "engrave", al: "c", tt: "burin", ef: "plain", ec: "ink", ls: "roman", de: "none", fr: "none", cp: "slip", kd: "lines", tr: ["zoom", "wipe"] },
+  // Silkscreen poster: a stepped sky, a ringed sun, flat mountains; each
+  // line pulled in two inks from the top with a ragged squeegee edge.
+  { id: "silkscreen", n: ["Silkscreen poster", "پوستر سیلک"], cat: "film", pals: ["silk"], fonts: ["silkfont"], el: ["flat", "color"],
+    bg: "silk", al: "c", tt: "pull", ef: "plain", ec: "ink", ls: "number", de: "sunpulse", fr: "none", cp: "band", kd: "block", tr: ["wipe", "zoom"] },
   // Six film styles after Lemo-Opuscar (lemomo-ai/lemo-opuscar, MIT), each
   // drawn here by our own engine from its style notes:
   // Risograph: two or three translucent inks on warm paper, halftone dots,
@@ -16067,7 +16151,141 @@ function vsGxTexture(tk, W, H) {
     for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = a0 + Math.PI / n; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); x.lineTo(cx + Math.cos(a1) * R, cy + Math.sin(a1) * R); x.closePath(); x.fill(); }
     x.restore();
   };
-  if (tex === "riso") {
+  const vign = (a) => { const vg = x.createRadialGradient(W / 2, H / 2, U * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0," + a + ")"); x.fillStyle = vg; x.fillRect(0, 0, W, H); };
+  if (tex === "dossier") {
+    // archive paper: mottling, a halftone corner, a centre fold, a vignette
+    for (let i = 0; i < 60; i++) { x.globalAlpha = 0.035; x.fillStyle = rnd() < 0.5 ? "#000000" : "#ffffff"; x.beginPath(); x.arc(rnd() * W, rnd() * H, U * (0.05 + rnd() * 0.15), 0, Math.PI * 2); x.fill(); }
+    x.globalAlpha = 1; x.globalCompositeOperation = "multiply";
+    const s2 = Math.max(8, Math.round(U / 45));
+    dotsAt(s2, s2 * 0.42, tk.a2, 0.5, (xx, yy) => Math.max(0, 1 - Math.hypot(xx - W, yy - H) / (U * 0.75)));
+    x.globalCompositeOperation = "source-over";
+    x.fillStyle = "rgba(0,0,0,0.05)"; x.fillRect(W / 2 - 1, 0, 2, H); x.fillStyle = "rgba(255,255,255,0.25)"; x.fillRect(W / 2 + 1, 0, 1, H);
+    vign(0.22); fibres(Math.round(W * H / 3000), 0.04);
+  } else if (tex === "ukiyoe") {
+    // washi; a hand-wiped bokashi of the sky colour whose lower edge wanders;
+    // two long mist bands; a far hill printed flat
+    const top = H * 0.36;
+    for (let xx = 0; xx < W; xx += 2) {
+      const edge = top + Math.sin(xx * 0.011) * H * 0.02 + Math.sin(xx * 0.031) * H * 0.008;
+      const g = x.createLinearGradient(0, 0, 0, edge); g.addColorStop(0, tk.a1); g.addColorStop(0.45, tk.a1 + "cc"); g.addColorStop(1, tk.a1 + "00");
+      x.fillStyle = g; x.fillRect(xx, 0, 2, edge);
+    }
+    x.fillStyle = tk.a3; x.globalAlpha = 0.55; x.beginPath(); x.moveTo(0, H); x.lineTo(0, H * 0.8);
+    for (let xx = 0; xx <= W; xx += W / 24) x.lineTo(xx, H * 0.8 - Math.sin((xx / W) * Math.PI * 1.3) * H * 0.07);
+    x.lineTo(W, H); x.closePath(); x.fill();
+    x.fillStyle = tk.paper; x.globalAlpha = 0.85;
+    [[0.08, 0.3, 0.6], [0.45, 0.42, 0.55]].forEach(([fx, fy, fw]) => { const h2 = H * 0.035; x.beginPath(); if (x.roundRect) x.roundRect(W * fx, H * fy, W * fw, h2, h2 / 2); else x.rect(W * fx, H * fy, W * fw, h2); x.fill(); });
+    x.globalAlpha = 1; fibres(Math.round(W * H / 1500), 0.05);
+  } else if (tex === "stained") {
+    // a window of lozenge quarries in lead, lit from behind, dimmed where the words sit
+    const cols = [tk.a1, tk.a2, tk.a3, "#2e8b57", "#6a3fa0"], q = U * 0.11;
+    for (let yy = -q, r0 = 0; yy < H + q; yy += q * 0.6, r0++) for (let xx = -q; xx < W + q; xx += q) {
+      const cx = xx + (r0 % 2) * q / 2, cy = yy;
+      x.beginPath(); x.moveTo(cx, cy - q * 0.6); x.lineTo(cx + q / 2, cy); x.lineTo(cx, cy + q * 0.6); x.lineTo(cx - q / 2, cy); x.closePath();
+      x.globalAlpha = 0.55 + rnd() * 0.3; x.fillStyle = cols[Math.floor(rnd() * cols.length)]; x.fill();
+      x.globalAlpha = 1; x.lineWidth = Math.max(2, U * 0.007); x.strokeStyle = "#0c0b0a"; x.stroke();
+    }
+    const dim = x.createRadialGradient(W / 2, H * 0.45, U * 0.1, W / 2, H * 0.45, U * 0.75); dim.addColorStop(0, "rgba(10,8,6,0.84)"); dim.addColorStop(1, "rgba(10,8,6,0.3)");
+    x.fillStyle = dim; x.fillRect(0, 0, W, H);
+  } else if (tex === "wash") {
+    // cotton paper; a few big translucent washes whose edges pool darker
+    const blob = (cx, cy, r, c) => { for (let k = 0; k < 3; k++) { x.beginPath(); for (let a = 0; a <= 24; a++) { const an = (a / 24) * Math.PI * 2, rr = r * (0.85 + rnd() * 0.3); x.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr * 0.8); } x.closePath(); x.globalAlpha = 0.12; x.fillStyle = c; x.fill(); x.globalAlpha = 0.18; x.lineWidth = U * 0.003; x.strokeStyle = c; x.stroke(); } };
+    blob(W * 0.86, H * 0.14, U * 0.28, tk.a2); blob(W * 0.12, H * 0.88, U * 0.3, tk.a3); blob(W * 0.9, H * 0.84, U * 0.12, tk.a1);
+    x.globalAlpha = 1; fibres(Math.round(W * H / 1400), 0.05);
+  } else if (tex === "woodcut") {
+    // a black block on paper with a ragged edge; light carved out of its
+    // lower half in gouge sweeps from a low sun, wider where it is brighter
+    x.fillStyle = tk.paper; x.fillRect(0, 0, W, H);
+    const m = U * 0.045, j = () => (rnd() - 0.5) * U * 0.005;
+    x.fillStyle = tk.bg; x.beginPath();
+    for (let k = 0; k <= 40; k++) x.lineTo(m + ((W - m * 2) * k) / 40, m + j());
+    for (let k = 0; k <= 40; k++) x.lineTo(W - m + j(), m + ((H - m * 2) * k) / 40);
+    for (let k = 40; k >= 0; k--) x.lineTo(m + ((W - m * 2) * k) / 40, H - m + j());
+    for (let k = 40; k >= 0; k--) x.lineTo(m + j(), m + ((H - m * 2) * k) / 40);
+    x.closePath(); x.fill(); x.save(); x.clip();
+    const sx2 = W * 0.5, sy2 = H * 0.98; x.strokeStyle = tk.paper; x.lineCap = "round";
+    for (let k = 0; k < 46; k++) { const f = (k + 0.5) / 46, an = Math.PI + f * Math.PI; x.lineWidth = U * (0.002 + 0.006 * Math.pow(Math.sin(f * Math.PI), 3)); x.globalAlpha = 0.85; x.beginPath(); x.moveTo(sx2 + Math.cos(an) * U * 0.2, sy2 + Math.sin(an) * U * 0.2); x.lineTo(sx2 + Math.cos(an) * H * 0.5, sy2 + Math.sin(an) * H * 0.5); x.stroke(); }
+    x.globalAlpha = 1; x.fillStyle = tk.paper; x.beginPath(); x.arc(sx2, sy2, U * 0.16, 0, Math.PI * 2); x.fill();
+    for (let k = 0; k < 120; k++) { x.globalAlpha = 0.55; x.beginPath(); x.arc(rnd() * W, H * 0.5 + rnd() * H * 0.5, U * 0.0015 * (1 + rnd() * 2), 0, Math.PI * 2); x.fill(); }
+    x.restore(); x.globalAlpha = 1;
+  } else if (tex === "papercut") {
+    // the paper ground with sawtooth strips cut from red paper, top and foot
+    fibres(Math.round(W * H / 2400), 0.04);
+    const st2 = U * 0.025;
+    const saw = (yb, d) => { x.beginPath(); x.moveTo(0, yb); for (let xx = 0; xx <= W + st2; xx += st2) { x.lineTo(xx, yb + d * st2 * 0.9); x.lineTo(xx + st2 / 2, yb + d * st2 * 1.6); } x.lineTo(W, yb + d * st2 * 0.9); x.lineTo(W, yb); x.closePath(); x.fill(); };
+    x.fillStyle = "rgba(0,0,0,0.18)"; x.save(); x.translate(U * 0.004, U * 0.004); saw(0, 1); saw(H, -1); x.restore();
+    x.fillStyle = tk.a1; saw(0, 1); saw(H, -1);
+  } else if (tex === "keynote") {
+    // a near-black stage: a lift at the top, a cool glow off centre, a hairline grid
+    const lift = x.createRadialGradient(W / 2, -H * 0.05, 0, W / 2, -H * 0.05, Math.max(W, H) * 0.8); lift.addColorStop(0, "rgba(255,255,255,0.09)"); lift.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = lift; x.fillRect(0, 0, W, H);
+    const glow = x.createRadialGradient(W * 0.85, H * 0.75, 0, W * 0.85, H * 0.75, U * 0.7); glow.addColorStop(0, tk.a1 + "16"); glow.addColorStop(1, tk.a1 + "00");
+    x.fillStyle = glow; x.fillRect(0, 0, W, H);
+    const g2 = U / 12; x.strokeStyle = "#ffffff"; x.lineWidth = 1;
+    for (let k = 0, xx = 0; xx < W; xx += g2, k++) { x.globalAlpha = k % 4 ? 0.025 : 0.05; x.beginPath(); x.moveTo(Math.round(xx) + 0.5, 0); x.lineTo(Math.round(xx) + 0.5, H); x.stroke(); }
+    for (let k = 0, yy = 0; yy < H; yy += g2, k++) { x.globalAlpha = k % 4 ? 0.025 : 0.05; x.beginPath(); x.moveTo(0, Math.round(yy) + 0.5); x.lineTo(W, Math.round(yy) + 0.5); x.stroke(); }
+    x.globalAlpha = 1; vign(0.55);
+  } else if (tex === "anime80") {
+    // an airbrushed sunset over a city of dark towers with lit windows
+    const sky = x.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, tk.bg); sky.addColorStop(0.55, tk.paper); sky.addColorStop(0.76, "#c2416b"); sky.addColorStop(0.84, "#ff9a5a");
+    x.fillStyle = sky; x.fillRect(0, 0, W, H);
+    for (let k = 0; k < 5; k++) { const cy = H * (0.16 + k * 0.1), g = x.createLinearGradient(0, cy, 0, cy + U * 0.035); g.addColorStop(0, "rgba(255,120,180,0)"); g.addColorStop(1, "rgba(255,160,120,0.25)"); x.fillStyle = g; x.beginPath(); if (x.roundRect) x.roundRect(W * (rnd() * 0.6 - 0.1), cy, W * (0.4 + rnd() * 0.4), U * 0.035, U * 0.018); else x.rect(W * 0.1, cy, W * 0.5, U * 0.035); x.fill(); }
+    const hz = H * 0.8, dark = "#120a26"; let xx = 0;
+    while (xx < W) {
+      const bw2 = U * (0.05 + rnd() * 0.08), bh2 = H * (0.06 + rnd() * 0.2);
+      x.fillStyle = dark; x.fillRect(xx, hz - bh2, bw2, bh2 + 2);
+      for (let wy = hz - bh2 + U * 0.015; wy < hz - U * 0.01; wy += U * 0.02) for (let wx = xx + U * 0.01; wx < xx + bw2 - U * 0.01; wx += U * 0.018) if (rnd() < 0.35) { x.fillStyle = rnd() < 0.5 ? "#ffd27a" : tk.a2; x.fillRect(wx, wy, U * 0.007, U * 0.009); }
+      xx += bw2 + U * 0.004;
+    }
+    x.fillStyle = dark; x.fillRect(0, hz, W, H - hz);
+    const hg = x.createLinearGradient(0, hz - U * 0.02, 0, hz + U * 0.03); hg.addColorStop(0, tk.a1 + "00"); hg.addColorStop(0.5, tk.a1 + "aa"); hg.addColorStop(1, tk.a1 + "00");
+    x.fillStyle = hg; x.fillRect(0, hz - U * 0.02, W, U * 0.05);
+  } else if (tex === "gameshow") {
+    // one candy hue with same-hue diagonal stripes a step lighter, a floor band
+    x.save(); x.globalAlpha = 0.16; x.fillStyle = "#ffffff"; const sw = U * 0.07;
+    for (let k = -H; k < W + H; k += sw * 2) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + sw, 0); x.lineTo(k + sw - H, H); x.lineTo(k - H, H); x.closePath(); x.fill(); }
+    x.restore(); x.fillStyle = "rgba(0,0,0,0.16)"; x.fillRect(0, H * 0.86, W, H * 0.14);
+  } else if (tex === "tilt") {
+    // a model town from above: lawn, two roads, little houses with hard sun
+    // shadows and round trees, a light veil so the words still read
+    x.fillStyle = "#7fae6a"; x.fillRect(0, 0, W, H);
+    const ry = H * 0.55, rx = W * 0.3, rw = U * 0.05, houses = [tk.a1, tk.a2, tk.a3, "#f4efe6", "#c9563c"];
+    for (let k = 0, n = Math.round(((W * H) / (U * U)) * 40); k < n; k++) {
+      const hx = rnd() * W, hy = rnd() * H, hw = U * (0.03 + rnd() * 0.04), hh = U * (0.025 + rnd() * 0.03);
+      if (Math.abs(hy + hh / 2 - ry) < rw + hh || Math.abs(hx + hw / 2 - rx) < rw + hw) continue;
+      if (rnd() < 0.35) { x.fillStyle = "rgba(0,0,0,0.25)"; x.beginPath(); x.arc(hx + U * 0.006, hy + U * 0.006, U * 0.018, 0, Math.PI * 2); x.fill(); x.fillStyle = "#3f7a3a"; x.beginPath(); x.arc(hx, hy, U * 0.018, 0, Math.PI * 2); x.fill(); continue; }
+      x.fillStyle = "rgba(0,0,0,0.28)"; x.fillRect(hx + U * 0.008, hy + U * 0.008, hw, hh);
+      x.fillStyle = houses[Math.floor(rnd() * houses.length)]; x.fillRect(hx, hy, hw, hh);
+      x.fillStyle = "rgba(255,255,255,0.25)"; x.fillRect(hx, hy, hw, hh * 0.45);
+    }
+    x.fillStyle = "#8d968c"; x.fillRect(0, ry - rw / 2, W, rw); x.fillRect(rx - rw / 2, 0, rw, H);
+    x.fillStyle = "#f4efe6"; for (let xx = 0; xx < W; xx += U * 0.05) x.fillRect(xx, ry - U * 0.002, U * 0.025, U * 0.004); for (let yy = 0; yy < H; yy += U * 0.05) x.fillRect(rx - U * 0.002, yy, U * 0.004, U * 0.025);
+    x.fillStyle = "rgba(238,245,234,0.3)"; x.fillRect(0, 0, W, H);
+  } else if (tex === "engrave") {
+    // laid paper with its lines, a pressed plate mark, a hatched roundel
+    for (let yy = 0; yy < H; yy += U * 0.006) { x.globalAlpha = 0.035; x.fillStyle = tk.ink; x.fillRect(0, yy, W, 1); }
+    x.globalAlpha = 1; const m = U * 0.06;
+    x.strokeStyle = "rgba(0,0,0,0.18)"; x.lineWidth = U * 0.004; x.strokeRect(m, m, W - 2 * m, H - 2 * m);
+    x.strokeStyle = "rgba(255,255,255,0.6)"; x.lineWidth = U * 0.002; x.strokeRect(m + U * 0.004, m + U * 0.004, W - 2 * m, H - 2 * m);
+    const rx = W * 0.8, ry = H * 0.84, rr = U * 0.12;
+    x.save(); x.beginPath(); x.arc(rx, ry, rr, 0, Math.PI * 2); x.clip(); x.strokeStyle = tk.ink; x.lineWidth = Math.max(0.6, U * 0.0012); x.globalAlpha = 0.55;
+    for (let k = -rr * 1.6; k < rr; k += U * 0.008) { x.beginPath(); x.moveTo(rx + k, ry - rr); x.lineTo(rx + k + rr * 0.6, ry + rr); x.stroke(); }
+    for (let k = -rr * 1.6; k < rr; k += U * 0.012) { x.beginPath(); x.moveTo(rx + k, ry + rr); x.lineTo(rx + k + rr * 0.6, ry - rr); x.stroke(); }
+    x.restore(); x.globalAlpha = 1; x.strokeStyle = tk.ink;
+    x.lineWidth = U * 0.003; x.beginPath(); x.arc(rx, ry, rr, 0, Math.PI * 2); x.stroke(); x.lineWidth = U * 0.0012; x.beginPath(); x.arc(rx, ry, rr * 1.06, 0, Math.PI * 2); x.stroke();
+    fibres(Math.round(W * H / 3000), 0.04);
+  } else if (tex === "silk") {
+    // a sky in stepped flat bands, a sun in rings, flat mountains with a
+    // sliver of paper where the plate slipped, a dark information band
+    for (let k = 0; k < 4; k++) { x.fillStyle = tk.a2; x.fillRect(0, H * 0.14 * k, W, H * 0.14 + 1); x.fillStyle = "rgba(247,239,220," + (k * 0.12) + ")"; x.fillRect(0, H * 0.14 * k, W, H * 0.14 + 1); }
+    x.fillStyle = "#f2dfb8"; x.fillRect(0, H * 0.56, W, H * 0.3);
+    const sx2 = W * 0.72, sy2 = H * 0.64;
+    [[0.2, tk.a1], [0.15, "#f7efdc"], [0.11, tk.a1], [0.07, tk.a3]].forEach(([r, c]) => { x.fillStyle = c; x.beginPath(); x.arc(sx2, sy2, U * r, 0, Math.PI * 2); x.fill(); });
+    const ridge = (y0, amp, c, off) => { x.fillStyle = c; x.beginPath(); x.moveTo(0, H); x.lineTo(0, y0); for (let k = 0; k <= 12; k++) x.lineTo((W * k) / 12 + off, y0 - (k % 2 ? amp : amp * 0.3) * (0.7 + 0.3 * Math.sin(k * 1.3))); x.lineTo(W, H); x.closePath(); x.fill(); };
+    ridge(H * 0.7, H * 0.12, "#f7efdc", U * 0.006); ridge(H * 0.7, H * 0.12, "#2a5558", 0);
+    ridge(H * 0.8, H * 0.08, "#f7efdc", -U * 0.005); ridge(H * 0.8, H * 0.08, tk.ink, 0);
+    x.fillStyle = tk.ink; x.fillRect(0, H * 0.86, W, H * 0.14);
+  } else if (tex === "riso") {
     // warm paper, a disc and a ground of halftone ink, each plate a hair off
     const s2 = Math.max(6, Math.round(U / 95));
     x.globalCompositeOperation = "multiply";
@@ -16749,6 +16967,106 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         ctx.fillStyle = color; ctx.fillText(b.ln.slice(0, n), b.x, b.y);
         const last = i === boxes.length - 1 || n < chars;
         if (last && (n < chars || Math.floor(t * 2) % 2 === 0)) { ctx.fillStyle = acc; ctx.fillRect(b.x + ctx.measureText(b.ln.slice(0, n)).width + px * 0.08, b.y - px * 0.38, px * 0.45, px * 0.78); }
+        ctx.restore(); return;
+      } else if (tt === "slab") {
+        // slammed in like a stamp, with an overprint shadow off register
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.22)), z = 1 + 0.35 * (1 - q) * (1 - q), cx2 = b.x + b.w / 2;
+        ctx.globalAlpha = Math.min(1, q * 2.5); ctx.translate(cx2, b.y); ctx.scale(z, z); ctx.rotate(-0.012 * (1 - q)); ctx.translate(-cx2, -b.y);
+        ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = tk.a2; put(b, 0, px * 0.05, px * 0.05);
+        ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "mincho") {
+        // printed down from the top, the colour block a hair off the key line;
+        // the red seal after the last line
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.55)));
+        ctx.beginPath(); ctx.rect(b.x - px, b.y - px * 0.7, b.w + px * 2, px * 1.4 * q); ctx.clip();
+        ctx.globalAlpha = 0.5; ctx.fillStyle = acc; put(b, 0, px * 0.025, px * 0.02); ctx.globalAlpha = 1; ctx.fillStyle = color; put(b);
+        if (i === w0.lines.length - 1 && q >= 1) { const sz = px * 0.42, sx = b.x + b.w + px * 0.25, sy = b.y - sz / 2; ctx.fillStyle = tk.a2; ctx.fillRect(sx, sy, sz, sz); ctx.fillStyle = tk.paper; ctx.fillRect(sx + sz * 0.25, sy + sz * 0.2, sz * 0.12, sz * 0.6); ctx.fillRect(sx + sz * 0.6, sy + sz * 0.2, sz * 0.12, sz * 0.6); ctx.fillRect(sx + sz * 0.2, sy + sz * 0.45, sz * 0.6, sz * 0.1); }
+        ctx.restore(); return;
+      } else if (tt === "lumen") {
+        // milky glass until the light passes behind it, then it glows
+        const sw = (t - tl) / 0.9, lx = b.x - px + (b.w + px * 2) * Math.min(1, Math.max(0, sw));
+        ctx.globalAlpha = a2 * 0.35; ctx.fillStyle = color; put(b); ctx.globalAlpha = a2;
+        ctx.save(); ctx.beginPath(); ctx.rect(b.x - px, b.y - px, Math.max(0, lx - (b.x - px)), px * 2); ctx.clip(); ctx.shadowColor = tk.a3; ctx.shadowBlur = px * 0.5; ctx.fillStyle = color; put(b); ctx.restore();
+        if (sw > 0 && sw < 1) { const g = ctx.createLinearGradient(lx - px * 0.6, 0, lx + px * 0.2, 0); g.addColorStop(0, "rgba(255,240,200,0)"); g.addColorStop(1, "rgba(255,240,200,0.9)"); ctx.fillStyle = g; put(b); }
+        ctx.restore(); return;
+      } else if (tt === "brush") {
+        // a ribbon of wash laid under the line, then the serif writes over it
+        const q1 = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.5))), q2 = Math.max(0, Math.min(1, (t - tl - 0.2) / 0.5)), rw = (b.w + px * 0.6) * q1;
+        ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = i % 2 ? tk.a3 : tk.a2; ctx.beginPath(); ctx.moveTo(b.x - px * 0.3, b.y + px * 0.05);
+        for (let k = 0; k <= 12; k++) ctx.lineTo(b.x - px * 0.3 + (rw * k) / 12, b.y + px * (0.02 + 0.06 * Math.sin(k * 1.7 + i)));
+        for (let k = 12; k >= 0; k--) ctx.lineTo(b.x - px * 0.3 + (rw * k) / 12, b.y + px * (0.42 + 0.05 * Math.sin(k * 2.3 + i)));
+        ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q2, px * 2); ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "carve") {
+        // the block is a mirror: the words come round from backwards to read
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.6))), k2 = -Math.cos(Math.PI * q), cx2 = b.x + b.w / 2;
+        ctx.globalAlpha = a2; ctx.translate(cx2, b.y); ctx.scale(Math.abs(k2) < 0.02 ? (k2 < 0 ? -0.02 : 0.02) : k2, 1); ctx.translate(-cx2, -b.y);
+        ctx.fillStyle = q < 0.5 ? tk.muted : color; put(b); ctx.restore(); return;
+      } else if (tt === "cutred" && !/[\u0590-\u08ff]/.test(b.ln)) {
+        // red paper letters with a cut rim, popping in one by one on twelves
+        let xx = b.x;
+        Array.from(b.ln).forEach((ch, k) => {
+          const cw = ctx.measureText(ch).width, q = Math.floor(Math.max(0, Math.min(1, (t - tl - k * 0.05) / 0.17)) * 4) / 4;
+          if (q > 0 && ch !== " ") {
+            const z = 0.6 + 0.4 * q + (q < 1 ? 0.1 : 0);
+            ctx.save(); ctx.translate(xx + cw / 2, b.y); ctx.scale(z, z);
+            ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillText(ch, -cw / 2 + px * 0.03, px * 0.04); ctx.fillStyle = acc; ctx.fillText(ch, -cw / 2, 0);
+            ctx.lineWidth = Math.max(1, px * 0.025); ctx.strokeStyle = tk.paper; ctx.globalAlpha = 0.85; ctx.strokeText(ch, -cw / 2, 0); ctx.restore();
+          }
+          xx += cw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "keylight") {
+        // dark until a light passes along it; the last line in the accent
+        const sw = Math.max(0, Math.min(1, (t - tl) / 0.7)), lx = b.x - px * 0.5 + (b.w + px) * vsEase.out(sw);
+        ctx.globalAlpha = 0.07; ctx.fillStyle = color; put(b); ctx.globalAlpha = 1;
+        ctx.save(); ctx.beginPath(); ctx.rect(b.x - px, b.y - px, Math.max(0, lx - b.x + px), px * 2); ctx.clip(); ctx.fillStyle = i === w0.lines.length - 1 ? acc : color; put(b); ctx.restore();
+        if (sw < 1) { const g = ctx.createLinearGradient(lx - px * 0.5, 0, lx + px * 0.1, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,0.95)"); ctx.fillStyle = g; put(b); }
+        ctx.restore(); return;
+      } else if (tt === "chrome") {
+        // chrome letters with a neon rim, sliding in on a lens streak
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.45)));
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(-(1 - q) * px * 1.2, 0);
+        ctx.lineWidth = px * 0.12; ctx.strokeStyle = acc; ctx.shadowColor = acc; ctx.shadowBlur = px * 0.5; ctx.strokeText(b.ln, b.x, b.y); ctx.shadowBlur = 0;
+        const g = ctx.createLinearGradient(0, b.y - px * 0.5, 0, b.y + px * 0.5); g.addColorStop(0, "#e8f7ff"); g.addColorStop(0.48, "#7fc7ff"); g.addColorStop(0.5, "#3a2a5a"); g.addColorStop(0.62, "#c46a8a"); g.addColorStop(1, "#ffe0b0");
+        ctx.fillStyle = g; put(b);
+        const fl = Math.max(0, 1 - Math.abs(t - tl - 0.35) / 0.25);
+        if (fl > 0) { ctx.globalCompositeOperation = "lighter"; const fx = b.x + b.w * Math.min(1, (t - tl) / 0.6), hg = ctx.createLinearGradient(fx - U * 0.4, 0, fx + U * 0.4, 0); hg.addColorStop(0, "rgba(255,255,255,0)"); hg.addColorStop(0.5, "rgba(200,240,255," + (0.8 * fl).toFixed(2) + ")"); hg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = hg; ctx.fillRect(fx - U * 0.4, b.y - px * 0.03, U * 0.8, px * 0.06); }
+        ctx.restore(); return;
+      } else if (tt === "telop") {
+        // a card with a hard shadow drops in and squashes as it lands
+        const r = Math.max(0, (t - tl) / 0.35), q = Math.min(1, r), land = r > 1 ? Math.max(0, 1 - (r - 1) / 0.4) : 0;
+        const dy = -(1 - vsEase.out(q)) * px * 2, sq = 1 + 0.12 * Math.sin(land * Math.PI), cx2 = b.x + b.w / 2;
+        ctx.globalAlpha = Math.min(1, q * 3); ctx.translate(cx2, b.y + dy + px * 0.5); ctx.scale(sq, 1 / sq); ctx.translate(-cx2, -(b.y + px * 0.5));
+        const card = (x0, y0) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, bw, bh, px * 0.3); else ctx.rect(x0, y0, bw, bh); };
+        ctx.fillStyle = "#151515"; card(bx + px * 0.12, by + px * 0.14); ctx.fill();
+        ctx.fillStyle = i % 2 ? acc : tk.paper; card(bx, by); ctx.fill(); ctx.lineWidth = px * 0.07; ctx.strokeStyle = "#151515"; ctx.stroke();
+        ctx.fillStyle = "#151515"; put(b); ctx.restore(); return;
+      } else if (tt === "roadsign") {
+        // a road sign swinging down from its top edge
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.45)));
+        ctx.translate(0, by); ctx.scale(1, Math.max(0.02, q)); ctx.translate(0, -by);
+        const sign = (x0, y0, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, w, h, r); else ctx.rect(x0, y0, w, h); };
+        ctx.fillStyle = "#1f6b3a"; sign(bx, by, bw, bh, px * 0.18); ctx.fill();
+        ctx.lineWidth = px * 0.06; ctx.strokeStyle = "#ffffff"; sign(bx + px * 0.08, by + px * 0.08, bw - px * 0.16, bh - px * 0.16, px * 0.12); ctx.stroke();
+        ctx.fillStyle = "#ffffff"; put(b); ctx.restore(); return;
+      } else if (tt === "burin") {
+        // a hairline rule is cut first; the letters are traced, then filled
+        const q1 = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.35))), q2 = Math.max(0, Math.min(1, (t - tl - 0.15) / 0.6)), q3 = Math.max(0, Math.min(1, (t - tl - 0.5) / 0.4));
+        ctx.fillStyle = color; ctx.fillRect(b.x, b.y + px * 0.62, b.w * q1, Math.max(1, px * 0.025)); ctx.fillRect(b.x + b.w * 0.1, b.y + px * 0.7, b.w * 0.8 * q1, Math.max(1, px * 0.01));
+        ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q2, px * 1.6); ctx.clip();
+        ctx.lineWidth = Math.max(0.8, px * 0.02); ctx.strokeStyle = color; ctx.strokeText(b.ln, b.x, b.y);
+        ctx.globalAlpha = q3; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "pull") {
+        // two pulls from the top, the shadow ink first, each with a ragged
+        // squeegee edge; the second a hair off register
+        [[acc, 0, px * 0.06], [tk.paper, 0.22, 0]].forEach(([c, d, off]) => {
+          const q = Math.max(0, Math.min(1, (t - tl - d) / 0.4)); if (q <= 0) return;
+          const fy = b.y - px * 0.7 + px * 1.5 * q;
+          ctx.save(); ctx.beginPath(); ctx.moveTo(b.x - px, b.y - px * 0.7); ctx.lineTo(b.x + b.w + px, b.y - px * 0.7);
+          for (let k = 10; k >= 0; k--) ctx.lineTo(b.x - px + ((b.w + px * 2) * k) / 10, fy + Math.sin(k * 2.1) * px * 0.04);
+          ctx.closePath(); ctx.clip(); ctx.fillStyle = c; put(b, 0, off, off); ctx.restore();
+        });
         ctx.restore(); return;
       } else if (tt === "riso") {
         // printed twice: the ink plate rolls on from the left, the second
@@ -17616,7 +17934,74 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
   const cols = [tk.a1, tk.a2, tk.a3];
   const spots = [[0.04, 0.05], [0.96, 0.06], [0.05, 0.955], [0.95, 0.945]];
   ctx.save();
-  if (de === "halftone") {
+  if (de === "stamp") {
+    // a rubber stamp slams down at the top right
+    const q = Math.max(0, Math.min(1, (t - 0.6) / 0.16));
+    if (q > 0) {
+      const z = 1 + 0.8 * (1 - q), rtl = /[\u0590-\u08ff]/.test(tk._scWord || ""), w = U * 0.3, h = U * 0.11;
+      ctx.translate(W * 0.8, H * 0.12); ctx.rotate(-0.16); ctx.scale(z, z); ctx.globalAlpha = 0.9 * Math.min(1, q * 2);
+      ctx.strokeStyle = tk.a3; ctx.lineWidth = U * 0.008; ctx.strokeRect(-w / 2, -h / 2, w, h); ctx.lineWidth = U * 0.003; ctx.strokeRect(-w / 2 + U * 0.012, -h / 2 + U * 0.012, w - U * 0.024, h - U * 0.024);
+      ctx.fillStyle = tk.a3; ctx.font = vsGxFont(tk.disp, U * 0.06); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(rtl ? "پرونده" : "FILE", 0, U * 0.004);
+    }
+  } else if (de === "mist") {
+    // long rounded mist bands drifting across
+    ctx.fillStyle = tk.paper;
+    [[0.62, 0.5, 0.012], [0.7, 0.35, -0.008]].forEach(([fy, fw, sp2], k) => {
+      const span = W * 1.6, x0 = ((((t * sp2 * W + k * W * 0.3) % span) + span) % span) - W * 0.3, h2 = H * 0.03;
+      ctx.globalAlpha = 0.8 * ap; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, H * fy, W * fw, h2, h2 / 2); else ctx.rect(x0, H * fy, W * fw, h2); ctx.fill();
+    });
+  } else if (de === "shafts") {
+    // shafts of light falling in, with dust turning in them
+    ctx.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 3; k++) {
+      const x0 = W * (0.15 + k * 0.3) + Math.sin(t * 0.2 + k) * U * 0.02, g = ctx.createLinearGradient(x0, 0, x0 + W * 0.25, H);
+      g.addColorStop(0, "rgba(255,230,170,0)"); g.addColorStop(0.4, "rgba(255,230,170," + (0.07 * ap).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,230,170,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + U * 0.08, 0); ctx.lineTo(x0 + W * 0.25 + U * 0.16, H); ctx.lineTo(x0 + W * 0.25, H); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,240,210,0.5)";
+    for (let k = 0; k < 24; k++) { const fx = Math.sin(k * 51.7) * 0.5 + 0.5, fy = (Math.sin(k * 23.1) * 0.5 + 0.5 + t * 0.01 * (1 + (k % 3))) % 1; ctx.globalAlpha = ap * Math.max(0, 0.3 + 0.4 * Math.sin(t + k)); ctx.fillRect(W * fx, H * fy, U * 0.003, U * 0.003); }
+  } else if (de === "drops") {
+    // blooms of paint spreading where the brush touched
+    [[0.1, 0.12, tk.a1], [0.9, 0.5, tk.a3], [0.16, 0.64, tk.a2]].forEach(([fx, fy, c], k) => {
+      const g2 = mv.e(Math.min(1, Math.max(0, (t - 0.3 - k * 0.4) / 1.2))); if (g2 <= 0) return;
+      ctx.beginPath(); ctx.arc(W * fx, H * fy, U * 0.06 * g2, 0, Math.PI * 2); ctx.globalAlpha = 0.18; ctx.fillStyle = c; ctx.fill(); ctx.globalAlpha = 0.3; ctx.lineWidth = U * 0.003; ctx.strokeStyle = c; ctx.stroke();
+    });
+  } else if (de === "ember") {
+    // the one colour plate, printed only where the light was carved, breathing
+    ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = ap; ctx.fillStyle = tk.a1;
+    ctx.beginPath(); ctx.arc(W * 0.5, H * 0.98, U * (0.24 + 0.03 * Math.sin(t * 1.5)), 0, Math.PI * 2); ctx.fill();
+  } else if (de === "rosette") {
+    // a red paper rosette, folded eight times, turning slowly
+    const r = U * 0.13; ctx.translate(W * 0.86, H * 0.84); ctx.rotate(t * 0.15); ctx.globalAlpha = ap;
+    ctx.fillStyle = tk.a1; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = tk.bg;
+    for (let k = 0; k < 8; k++) { ctx.save(); ctx.rotate((k * Math.PI) / 4); ctx.beginPath(); ctx.ellipse(r * 0.55, 0, r * 0.28, r * 0.09, 0, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(r * 0.88, 0, r * 0.05, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2); ctx.fill();
+  } else if (de === "sweep") {
+    // a soft light crossing the stage every few seconds
+    const ph = (t % 6) / 6, x0 = -W * 0.3 + W * 1.6 * ph, g = ctx.createLinearGradient(x0 - W * 0.15, 0, x0 + W * 0.15, 0);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(255,255,255,0.035)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  } else if (de === "flare") {
+    // a star flare and an anamorphic streak at a light in the sky
+    const fx = W * 0.78, fy = H * 0.3, k = 0.6 + 0.4 * Math.sin(t * 2.2);
+    ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = ap;
+    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, U * 0.12 * k); g.addColorStop(0, "rgba(255,240,255,0.9)"); g.addColorStop(1, "rgba(255,80,180,0)"); ctx.fillStyle = g; ctx.fillRect(fx - U * 0.2, fy - U * 0.2, U * 0.4, U * 0.4);
+    const hg = ctx.createLinearGradient(fx - W * 0.5, 0, fx + W * 0.5, 0); hg.addColorStop(0, "rgba(120,220,255,0)"); hg.addColorStop(0.5, "rgba(160,230,255," + (0.6 * k).toFixed(2) + ")"); hg.addColorStop(1, "rgba(120,220,255,0)");
+    ctx.fillStyle = hg; ctx.fillRect(fx - W * 0.5, fy - U * 0.003, W, U * 0.006);
+    for (let j = 0; j < 4; j++) { ctx.save(); ctx.translate(fx, fy); ctx.rotate((j * Math.PI) / 4 + t * 0.2); ctx.fillStyle = "rgba(255,200,240," + (0.5 * k).toFixed(2) + ")"; ctx.fillRect(-U * 0.09 * k, -U * 0.002, U * 0.18 * k, U * 0.004); ctx.restore(); }
+  } else if (de === "spin") {
+    // a sunburst turning behind the middle of the set
+    const cx = W / 2, cy = H * 0.42, R = Math.hypot(W, H); ctx.globalAlpha = 0.14 * ap; ctx.fillStyle = "#ffffff";
+    for (let k = 0; k < 16; k++) { const a0 = t * 0.25 + (k * Math.PI) / 8; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); ctx.lineTo(cx + Math.cos(a0 + Math.PI / 16) * R, cy + Math.sin(a0 + Math.PI / 16) * R); ctx.closePath(); ctx.fill(); }
+  } else if (de === "traffic") {
+    // little cars along the roads of the model town
+    const cols2 = [tk.a1, tk.a2, tk.a3, "#ffffff"];
+    for (let k = 0; k < 6; k++) { const dir = k % 2 ? 1 : -1, span = W * 1.2, x0 = ((((t * U * 0.08 * dir + k * W * 0.31) % span) + span) % span) - W * 0.1; ctx.fillStyle = cols2[k % 4]; ctx.fillRect(x0, H * 0.55 + (dir > 0 ? -U * 0.016 : U * 0.006), U * 0.03, U * 0.012); }
+    for (let k = 0; k < 3; k++) { const span = H * 1.2, y0 = ((((t * U * 0.06 + k * H * 0.4) % span) + span) % span) - H * 0.1; ctx.fillStyle = cols2[(k + 1) % 4]; ctx.fillRect(W * 0.3 - U * 0.006, y0, U * 0.012, U * 0.03); }
+  } else if (de === "sunpulse") {
+    // rings of the sun's ink spreading slowly outwards
+    for (let k = 0; k < 2; k++) { const ph = (t * 0.25 + k * 0.5) % 1; ctx.globalAlpha = (1 - ph) * 0.5 * ap; ctx.strokeStyle = tk.a1; ctx.lineWidth = U * 0.01; ctx.beginPath(); ctx.arc(W * 0.72, H * 0.64, U * (0.22 + ph * 0.25), 0, Math.PI * 2); ctx.stroke(); }
+  } else if (de === "halftone") {
     // a second ink disc overprinting the first, drifting a little
     ctx.globalCompositeOperation = "multiply";
     const r = U * 0.15, cx = W * (0.16 + 0.025 * Math.sin(t * 0.3)), cy = H * 0.72;
@@ -17806,7 +18191,38 @@ function vsGxOverlay(ctx, W, H, t, tk, st, U, sc) {
   const fr = st.fr;
   if (!fr || fr === "none") return;
   ctx.save();
-  if (fr === "deco") {
+  if (fr === "ukiyo") {
+    // the print's double ink border, a vertical title slip and a red seal
+    const m = U * 0.03; ctx.strokeStyle = tk.ink; ctx.lineWidth = U * 0.008; ctx.strokeRect(m, m, W - 2 * m, H - 2 * m);
+    ctx.lineWidth = U * 0.0025; ctx.strokeRect(m + U * 0.014, m + U * 0.014, W - 2 * m - U * 0.028, H - 2 * m - U * 0.028);
+    const cw = U * 0.06, ch = U * 0.3, cx = W - m - U * 0.05 - cw, cy = m + U * 0.05;
+    ctx.fillStyle = "#f6eedb"; ctx.fillRect(cx, cy, cw, ch); ctx.lineWidth = U * 0.003; ctx.strokeRect(cx, cy, cw, ch); ctx.strokeRect(cx + U * 0.006, cy + U * 0.006, cw - U * 0.012, ch - U * 0.012);
+    const label = String(sc.kicker || sc.type || "").slice(0, 6);
+    if (label && !/[\u0590-\u08ff]/.test(label)) { ctx.fillStyle = tk.ink; ctx.font = vsGxFont(tk.body, cw * 0.5); ctx.textAlign = "center"; ctx.textBaseline = "middle"; Array.from(label.toUpperCase()).forEach((c2, k) => ctx.fillText(c2, cx + cw / 2, cy + ch * 0.12 + k * cw * 0.62)); }
+    ctx.fillStyle = tk.a2; ctx.fillRect(cx + cw * 0.15, cy + ch + U * 0.012, cw * 0.7, cw * 0.7);
+  } else if (fr === "arch") {
+    // the window set in a stone wall: everything outside a round-headed opening is stone
+    const m = U * 0.05, r = Math.min(W, H) * 0.4;
+    ctx.beginPath(); ctx.rect(0, 0, W, H);
+    if (ctx.roundRect) ctx.roundRect(m, m, W - 2 * m, H - 2 * m, [r, r, U * 0.02, U * 0.02]); else ctx.rect(m, m, W - 2 * m, H - 2 * m);
+    ctx.fillStyle = "#2a2622"; ctx.fill("evenodd");
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(m, m, W - 2 * m, H - 2 * m, [r, r, U * 0.02, U * 0.02]); else ctx.rect(m, m, W - 2 * m, H - 2 * m);
+    ctx.strokeStyle = "#0c0b0a"; ctx.lineWidth = U * 0.012; ctx.stroke(); ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = U * 0.004; ctx.stroke();
+  } else if (fr === "vhs") {
+    // videotape on a tube: scanlines, darker corners, a slow chroma band
+    ctx.fillStyle = "rgba(0,0,0,0.18)"; for (let y = 0, st2 = Math.max(3, Math.round(H / 360)); y < H; y += st2) ctx.fillRect(0, y, W, 1);
+    const vg = ctx.createRadialGradient(W / 2, H / 2, U * 0.35, W / 2, H / 2, Math.max(W, H) * 0.72); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.55)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 0.05; ctx.fillStyle = tk.a1; ctx.fillRect(0, ((t * 0.17) % 1) * H, W, H * 0.015);
+  } else if (fr === "tiltshift") {
+    // the tilted lens: only a band across the middle is sharp
+    const cv = ctx.canvas;
+    [[0, 0.08, 0.012], [0.08, 0.08, 0.007], [0.16, 0.06, 0.0035], [0.8, 0.06, 0.0035], [0.86, 0.06, 0.007], [0.92, 0.08, 0.012]].forEach(([y0, h2, b2]) => {
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath(); ctx.rect(0, H * y0, W, H * h2 + 1); ctx.clip();
+      try { ctx.filter = "blur(" + Math.max(1, Math.round(U * b2)) + "px) saturate(1.25)"; } catch (er) {}
+      ctx.drawImage(cv, 0, 0, W, H, 0, 0, W, H); ctx.restore();
+    });
+    ctx.filter = "none";
+  } else if (fr === "deco") {
     // a stepped gold frame: a double keyline with ziggurat corners
     const m = U * 0.035, st2 = U * 0.03;
     ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, U * 0.0028); ctx.globalAlpha = 0.85;
@@ -17913,7 +18329,7 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   for (let k = 0; k < ws.length; k++) if (ws[k].t0 <= lt + 0.02) cur = k;
   if (cur < 0 || lt > ws[ws.length - 1].t1 + 0.4) return;
   const start = Math.floor(cur / 4) * 4, chunk = ws.slice(start, start + 4);
-  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" || cp === "dialog" || cp === "hud" || cp === "card" ? tk.body : { fam: tk.body.fam, w: 800 };
+  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" || cp === "dialog" || cp === "hud" || cp === "card" || cp === "dossier" || cp === "cartouche" || cp === "slip" || cp === "toast" || cp === "band" || cp === "margin" || cp === "signcap" || cp === "plaque" ? tk.body : { fam: tk.body.fam, w: 800 };
   const px = U * (cp === "hand" ? 0.062 : cp === "sub" ? 0.048 : 0.05);
   const sheet = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
   const y = sheet ? H * 0.845 : st.fr === "ticker" ? H * 0.84 : st.fr === "letterbox" ? H * 0.958 : st.fr === "wood" || st.fr === "thick" ? H * 0.88 : H * 0.9;
@@ -17925,7 +18341,47 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   const x0 = W / 2 - tw / 2, bx = x0 - px * 0.6, bw = tw + px * 1.2, by = y - px * 0.9, bh = px * 1.8;
   const rr = (r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh); };
   let col = tk.ink, hi = tk.dark ? tk.a1 : tk.a2;
-  if (cp === "riso") {
+  if (cp === "dossier") {
+    // the dark ink bar with an overprint shadow off register
+    ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = tk.a2; ctx.fillRect(bx + px * 0.12, by + px * 0.12, bw, bh);
+    ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = tk.ink; ctx.fillRect(bx, by, bw, bh); col = tk.paper; hi = tk.a1;
+  } else if (cp === "cartouche") {
+    // a cream slip in a thick and thin border, a small red seal at its head
+    ctx.fillStyle = "#f6eedb"; ctx.fillRect(bx - px * 0.6, by, bw + px * 0.6, bh);
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = px * 0.08; ctx.strokeRect(bx - px * 0.6, by, bw + px * 0.6, bh);
+    ctx.lineWidth = px * 0.025; ctx.strokeRect(bx - px * 0.48, by + px * 0.12, bw + px * 0.36, bh - px * 0.24);
+    ctx.fillStyle = tk.a2; ctx.fillRect(bx - px * 0.4, y - px * 0.18, px * 0.36, px * 0.36); col = tk.ink; hi = tk.a2;
+  } else if (cp === "plaque") {
+    // a stone plaque with a cut edge
+    const g = ctx.createLinearGradient(0, by, 0, by + bh); g.addColorStop(0, "#4a443c"); g.addColorStop(1, "#2a2622"); ctx.fillStyle = g; ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = "#0c0b0a"; ctx.lineWidth = px * 0.06; ctx.strokeRect(bx, by, bw, bh); ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = px * 0.02; ctx.strokeRect(bx + px * 0.08, by + px * 0.08, bw - px * 0.16, bh - px * 0.16);
+    col = "#efe3c4"; hi = tk.a3;
+  } else if (cp === "margin") {
+    // the words printed in the paper margin, in the block's ink
+    ctx.fillStyle = tk.paper; ctx.fillRect(bx, by, bw, bh); col = tk.bg; hi = tk.a1;
+  } else if (cp === "banner") {
+    // a red paper banner with swallow-tail ends
+    const tail = px * 0.7; ctx.fillStyle = "#9e1414"; ctx.beginPath(); ctx.moveTo(bx - tail, by); ctx.lineTo(bx + bw + tail, by); ctx.lineTo(bx + bw + tail * 0.4, by + bh / 2); ctx.lineTo(bx + bw + tail, by + bh); ctx.lineTo(bx - tail, by + bh); ctx.lineTo(bx - tail * 0.4, by + bh / 2); ctx.closePath(); ctx.fill();
+    col = "#fbe9cc"; hi = tk.a2;
+  } else if (cp === "toast") {
+    // a dark toast with a fine edge and a dot that pulses with the voice
+    ctx.fillStyle = "rgba(24,26,30,0.84)"; rr(bh / 2); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = tk.a1; ctx.beginPath(); ctx.arc(bx + px * 0.32, y, px * 0.12 * (0.8 + 0.2 * Math.sin(lt * 8)), 0, Math.PI * 2); ctx.fill(); col = tk.ink; hi = tk.a1;
+  } else if (cp === "signcap") {
+    // a blue information sign with a white keyline
+    ctx.fillStyle = "#1f5fa8"; rr(px * 0.2); ctx.fill(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = px * 0.06;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx + px * 0.1, by + px * 0.1, bw - px * 0.2, bh - px * 0.2, px * 0.14); else ctx.rect(bx + px * 0.1, by + px * 0.1, bw - px * 0.2, bh - px * 0.2); ctx.stroke();
+    col = "#ffffff"; hi = "#ffd23f";
+  } else if (cp === "slip") {
+    // a deckled paper slip
+    ctx.fillStyle = "#f8f1e0"; ctx.beginPath();
+    for (let k = 0; k <= 20; k++) ctx.lineTo(bx + (bw * k) / 20, by + Math.sin(k * 3.1) * px * 0.04);
+    for (let k = 20; k >= 0; k--) ctx.lineTo(bx + (bw * k) / 20, by + bh + Math.sin(k * 2.3) * px * 0.04);
+    ctx.closePath(); ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = px * 0.3; ctx.fill(); ctx.shadowBlur = 0; ctx.shadowColor = "transparent"; col = tk.ink; hi = tk.a1;
+  } else if (cp === "band") {
+    // the poster's dark information band, the width of the frame
+    ctx.fillStyle = tk.ink; ctx.fillRect(0, by - px * 0.3, W, bh + px * 0.6); col = tk.paper; hi = tk.a3;
+  } else if (cp === "riso") {
     // a paper-white knockout strip; the pink plate catches its lower edge
     ctx.fillStyle = tk.paper; ctx.fillRect(bx, by, bw, bh);
     ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.45; ctx.fillStyle = tk.a1; ctx.fillRect(bx + px * 0.08, by + bh - px * 0.1, bw, px * 0.12);
@@ -18042,7 +18498,8 @@ function vsGxCuts(slides) {
   // soft cuts only - light and slow zooms, never a whip or a glitch (the
   // owner: smooth and soft, Vox-like)
   const SOFT = { whip: "leak", wipe: "zoom", glitch: "flash", zoomblur: "zoom" };
-  const list = (vsGxTheme(vstudio._gxTheme).style.tr || ["leak"]).map((x) => SOFT[x] || x);
+  // One take: no cuts at all - the camera travels from scene to scene
+  const list = vstudio._oneTake ? ["onetake"] : (vsGxTheme(vstudio._gxTheme).style.tr || ["leak"]).map((x) => SOFT[x] || x);
   let k = 0;
   slides.forEach((s, i) => {
     delete s._transIn;
@@ -18631,6 +19088,7 @@ function vsEditStudio(preset, filesIn) {
         '<label class="ts-switch"><input type="checkbox" id="emGlow"' + (vstudio._editGlow ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Deep glow", "درخشش عمیق") + "</span></label>" +
         '<input id="emGlowAmt" type="range" min="20" max="200" step="10" value="' + Math.round((vstudio._glowAmt == null ? 1 : vstudio._glowAmt) * 100) + '"' + (vstudio._editGlow ? "" : " disabled") + ' aria-label="' + L("Glow strength", "شدت درخشش") + '"/>' +
         '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emProg"' + (vstudio._editProgress === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Progress bar", "نوار پیشرفت") + "</span></label>" +
+        (vstudio.slides.some((x) => x._gx) ? '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emOneTake"' + (vstudio._oneTake ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("One take (no cuts)", "یک‌برداشت (بدون کات)") + "</span></label>" : "") +
         '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emChap"' + (vstudio._editChapters === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Chapter tags", "برچسب فصل‌ها") + "</span></label>" +
         '<label class="ts-switch" id="emFitRow" style="grid-column:1/-1" hidden><input type="checkbox" id="emFit"' + (vstudio.slides.some((x) => x._fit === "fill" && !x._broll) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Fill the frame", "پر کردن کادر") + "</span></label>" +
       "</div>" +
@@ -18804,6 +19262,7 @@ function vsEditStudio(preset, filesIn) {
         sync();
       };
       $$("emProg").onchange = (e) => { vstudio._editProgress = e.target.checked; redraw(); };
+      if ($$("emOneTake")) $$("emOneTake").onchange = (e) => { vstudio._oneTake = e.target.checked; vsGxCuts(vstudio.slides); try { vsMixVoiceTrack(true); } catch (er) {} redraw(); };
       $$("emGlow").onchange = (e) => { vstudio._editGlow = e.target.checked; $$("emGlowAmt").disabled = !e.target.checked; redraw(); };
       $$("emGlowAmt").oninput = (e) => { vstudio._glowAmt = Number(e.target.value) / 100; redraw(); };
       $$("emChap").onchange = (e) => { vstudio._editChapters = e.target.checked; redraw(); };
@@ -21561,7 +22020,8 @@ function vsElementFields(s, i, id) {
       options: [{ v: "", t: L("Straight cut", "برش ساده") }, { v: "whip", t: L("Slide across + whoosh", "اسلاید + صدای ووش") },
         { v: "zoom", t: L("Zoom through + whoosh", "زوم + صدای ووش") }, { v: "glitch", t: L("Glitch + sound", "گلیچ + صدا") }, { v: "flash", t: L("Light flash + riser", "فلش نور + صدا") },
         { v: "wipe", t: L("Colour wipe + whoosh", "پردهٔ رنگی + صدای ووش") }, { v: "burn", t: L("Light burn", "سوختگی نور") },
-        { v: "invert", t: L("Negative flash", "فلش نگاتیو") }, { v: "zoomblur", t: L("Zoom blur", "زوم بلور") }, { v: "leak", t: L("Light leak", "نشت نور") }],
+        { v: "invert", t: L("Negative flash", "فلش نگاتیو") }, { v: "zoomblur", t: L("Zoom blur", "زوم بلور") }, { v: "leak", t: L("Light leak", "نشت نور") },
+        { v: "onetake", t: L("One take: the camera travels on", "یک‌برداشت: دوربین ادامه می‌دهد") }],
       get: () => s._transIn || "", set: async (v) => {
         s._transIn = v;
         if (v) { vstudio._editSfxOn = true; try { await vsPrepareEditSfx(); } catch (e) {} }
@@ -22129,6 +22589,18 @@ function vsEventImagePrompt(scene, tall) {
 }
 // The picture for a thumbnail: an occasion gets its festive scene and more
 // detail (8 steps instead of 4); anything else the documentary brief.
+// A person for a thumbnail when the user brings no photo: someone whose face
+// says the topic (surprised, pointing, thinking), waist up, on a plain studio
+// ground so they cut out cleanly and stand in the designer looks.
+async function vsCoverPerson(topic, w, h) {
+  let who = "";
+  try {
+    who = String(await vsAutoAiChat(`A YouTube thumbnail is being made about: "${topic}". Describe in English, in under 18 words, ONE person reacting to it for the thumbnail: their age, look, clothes and a strong readable expression or gesture (surprised, pointing, thinking, excited, worried). No text, no props with writing. Reply with the description only.`, { temperature: 0.8 }) || "").replace(/["{}\n]/g, " ").trim().slice(0, 170);
+  } catch (e) {}
+  if (!vsIsLatinPrompt(who)) who = "a confident young presenter with an amazed expression, pointing to the side";
+  const prompt = who + ", waist-up portrait, looking at the camera, plain soft grey studio background, even soft light, sharp focus, professional photograph, no text";
+  return vsEdLoadImage(prompt, w, h, true, null, 8);
+}
 async function vsCoverImage(imgPrompt, topic, w, h) {
   const scene = vsEventScene(topic);
   if (scene) return vsEdLoadImage(vsEventImagePrompt(scene, h > w), w, h, true, null, 8);
@@ -37250,6 +37722,14 @@ function vsThumbStudio(prefillTopic, preset) {
         }
         if (ai && !exactTitle && ai.coverTitle) assets.coverTitle = ai.coverTitle;
       }
+      // no photo and no video for a designer look: a person made for the topic,
+      // in front of a scene of it, as a creator's thumbnail would have
+      if (!assets && !preset.image && (VS_THUMB_TEMPLATES.find((x) => x.id === template) || {}).pro) {
+        try {
+          const [per, scene] = await Promise.all([vsCoverPerson(topic, iw, ih).catch(() => null), vsCoverAssets(topic, source, iw, ih, { exactTitle, backdrop: true }).catch(() => null)]);
+          if (per && scene) assets = Object.assign({}, scene, { img: per, bg: scene.img || null, imgModel: "person" });
+        } catch (e) {}
+      }
       if (!assets) { try { assets = await vsCoverAssets(topic, source, iw, ih, { exactTitle, image: preset.image || null }); } catch (e) {} }
       // a size the words will not read at gets the short version (made once)
       if (assets && assets.coverTitle && (!$$("tsShort") || $$("tsShort").checked) && sizes.some((sz) => !vsThumbReadable(assets.coverTitle, sz.w, sz.h))) {
@@ -42203,6 +42683,7 @@ async function vsOpenEditDeck(e, how) {
   if (typeof preset.cleanVoice === "boolean") vstudio._voicePolish = preset.cleanVoice;
   if (typeof preset.progress === "boolean") vstudio._editProgress = preset.progress;
   if (typeof preset.glow === "boolean") vstudio._editGlow = preset.glow;
+  if (typeof preset.oneTake === "boolean") vstudio._oneTake = preset.oneTake;
   if (typeof preset.chapters === "boolean") vstudio._editChapters = preset.chapters;
   // the API names a graphic style family; the studio wants one of its themes
   if (preset.gxStyle && !preset.gxTheme) { const t = vsGxThemes().find((x) => x.family === preset.gxStyle); if (t) preset.gxTheme = t.id; }
