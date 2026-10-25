@@ -5106,7 +5106,9 @@ function bindIntroEditor() {
       // Nor over someone who already got going: a click or a keypress before
       // the timer means they found their way, and a guide on top of a build
       // in progress only gets in the way. The help button still opens it.
-      if (!localStorage.getItem("vsMgGuideSeen") && !/[?&]deck=/.test(location.search)) {
+      // Nor while the studio's front door (vsStartScreen) is the page: that is
+      // the way in now, and the guide on top of it hid the choices.
+      if (false && !localStorage.getItem("vsMgGuideSeen") && !/[?&]deck=/.test(location.search)) {
         let started = false;
         const go = () => { started = true; };
         document.addEventListener("pointerdown", go, { once: true, capture: true });
@@ -10328,7 +10330,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
   const fit = lineW > maxW ? maxW / lineW : 1;
   // Below the headline band (titles end near two-thirds down) and above the
   // strip a phone app covers with its own buttons.
-  let cy = H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86);
+  let cy = Math.min(H * (portrait ? (look === "subtitle" ? 0.85 : 0.83) : 0.86), vsSafe(W, H).bottom - base * 0.7);
   if (s._ownSpeech && vstudio._editLayout && vstudio._capY) cy = vstudio._capY;
   // Never over the scene's own words: an editorial cover block, or a headline
   // that reaches down into the caption band, pushes the captions above it.
@@ -10340,7 +10342,7 @@ function vsDrawCaptions(ctx, W, H, elapsed) {
       if (b.y < band[1] && b.y + b.h > band[0]) {
         // under the block when the frame has room for it, else above it
         const below = b.y + b.h + base * 0.95;
-        cy = below < H * 0.93 ? below : Math.max(H * 0.22, b.y - base * 1.1);
+        cy = below < vsSafe(W, H).bottom - base * 0.6 ? below : Math.max(H * 0.22, b.y - base * 1.1);
       }
     }
   }
@@ -11105,7 +11107,7 @@ function vsDrawEditChrome(ctx, W, H, s, idx, local, dur, elapsed) {
   const FAM = vsEditFam(s);
   const c = vsEditCardRect(W, H);
   const title = String(vstudio._editTitle || "").trim();
-  vstudio._capY = layout === "card" ? Math.min(H * 0.9, c.y + c.h + (H - c.y - c.h) * 0.36) : (H > W ? H * 0.7 : null);
+  vstudio._capY = layout === "card" ? Math.min(H * 0.9, vsSafe(W, H).bottom - H * 0.035, c.y + c.h + (H - c.y - c.h) * 0.36) : (H > W ? H * 0.7 : null);
 
   const wrap = (text, px, maxW, weight) => {
     ctx.font = `${weight} ${px}px ${FAM}`;
@@ -12004,7 +12006,9 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
       return { ws2, sp, tw: ws2.reduce((a, b) => a + b.w, 0) + sp * (ws2.length - 1) };
     };
     let m = measure();
-    if (m.tw > W * 0.9) { px *= (W * 0.9) / m.tw; m = measure(); }
+    // in a 9:16 frame a line keeps out of the app's buttons down the right
+    const maxTw = vsSafe(W, H).tall ? W * 0.8 : W * 0.9;
+    if (m.tw > maxTw) { px *= maxTw / m.tw; m = measure(); }
     L.px = px; L.m = m;
   });
   // vertical: the hero line at 0, the others overlapping its top and bottom.
@@ -12051,7 +12055,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   // clear of the app's own bars
   const inside = (y, ys) => {
     const top = Math.min(...lines.map((L) => ys.get(L) - L.px * 0.6)), bot = Math.max(...lines.map((L) => ys.get(L) + L.px * 0.6));
-    return Math.max(H * 0.12 - top, Math.min(H * 0.86 - bot, y));
+    return Math.max(H * 0.12 - top, Math.min(vsSafe(W, H).bottom - bot, y));
   };
   // Never over the face (the owner's rule): a line drawn in front of the
   // speaker stays out of their face box. The hero is drawn BEHIND them, as in
@@ -12130,7 +12134,8 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
     cy = inside(face ? face.y + face.h - top + H * 0.015 : def, ys);
   }
   lines.forEach((L, li) => {
-    const x0 = L.x0;
+    // a line in the lower half clear of the app's buttons down the right edge
+    const x0 = vsSafeX(W, H, L.x0, L.m.tw, cy + L.y - L.px * 0.5);
     let x = rtl ? x0 + L.m.tw : x0;
     L.m.ws2.forEach((w, k) => {
       if (rtl) x -= w.w;
@@ -13870,10 +13875,12 @@ function vsProCallout(ctx, W, H, s, c, t, F, pack) {
   }
   const side = c._side || 1;
   let S = Math.min(W * 0.4, U * 0.42);
-  if (c.kind === "search" || c.kind === "notify") S = Math.min(W * 0.84, U * 0.86);
+  const zone = vsSafe(W, H);
+  if (c.kind === "search" || c.kind === "notify") S = Math.min(zone.tall ? W * 0.78 : W * 0.84, U * 0.86);
   const S0 = S;
   let cx = side > 0 ? W - W * 0.05 - S / 2 : W * 0.05 + S / 2;
-  if (c.kind === "search" || c.kind === "notify") cx = W / 2;
+  // a wide card centred in a 9:16 frame sits a little left, clear of the buttons
+  if (c.kind === "search" || c.kind === "notify") cx = zone.tall ? Math.min(W / 2, zone.right - S / 2) : W / 2;
   let cy0 = c.kind === "notify" || c.kind === "search" ? H * 0.5 : H * 0.32;
   const f = c._face;
   if (f && c.kind !== "notify" && c.kind !== "search") {
@@ -14329,6 +14336,24 @@ function vsProInsertPaper(ctx, W, H, s, ins, t, F, pack) {
 
 // The speaker's name on a card as they first appear (the name plates of the
 // reels), and the closing call to action ("comment GUIDE").
+// ── Safe zones ────────────────────────────────────────────────────────────
+// Reels, TikTok and Shorts draw over the bottom fifth of a 9:16 video (the
+// caption, the name, the music line) and down its right edge from the middle
+// (like, comment, share). Words and cards set there are covered on the phone
+// the video is made for. In a 9:16 frame nothing we draw goes below 78% of the
+// height, and nothing in the lower half goes past 86% of the width. Other
+// shapes keep their old room: no app sits over a square or a 16:9 video.
+function vsSafe(W, H) {
+  const tall = H / W > 1.6;
+  return { tall, bottom: H * (tall ? 0.78 : 0.9), right: W * (tall ? 0.86 : 0.95), rightFrom: H * 0.48 };
+}
+// a box moved left, out from under the buttons, when it reaches them
+function vsSafeX(W, H, x, w, y) {
+  const z = vsSafe(W, H);
+  if (!z.tall || y < z.rightFrom || x + w <= z.right) return x;
+  return Math.max(W * 0.04, z.right - w);
+}
+
 function vsProNameCard(ctx, W, H, t, len, pack) {
   const c = vstudio._proCard;
   if (!c || !c.name || t < 0 || t > len) return;
@@ -14341,7 +14366,7 @@ function vsProNameCard(ctx, W, H, t, len, pack) {
   const nw = ctx.measureText(c.name).width;
   ctx.font = "600 " + Math.round(U * 0.032) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
   const rw = c.role ? ctx.measureText(c.role).width : 0;
-  const w = Math.max(nw, rw) + U * 0.1, h = c.role ? U * 0.14 : U * 0.095, x = W * 0.06 - (1 - pin) * (w + W * 0.08), y = H * 0.8;
+  const w = Math.max(nw, rw) + U * 0.1, h = c.role ? U * 0.14 : U * 0.095, x = W * 0.06 - (1 - pin) * (w + W * 0.08), y = Math.min(H * 0.8, vsSafe(W, H).bottom - h - H * 0.06);
   ctx.fillStyle = "rgba(12,13,16,0.82)";
   ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, U * 0.02); else ctx.rect(x, y, w, h); ctx.fill();
   ctx.fillStyle = accent; ctx.fillRect(x, y, U * 0.014, h);
@@ -14360,7 +14385,7 @@ function vsProCta(ctx, W, H, t, len, pack) {
   const accent = pack.hero.colors[0] === "auto" ? vsProAccent() : pack.hero.marker || pack.hero.colors[0] || "#ffb21a";
   ctx.save();
   ctx.font = "800 " + Math.round(U * 0.058) + 'px Manrope, "Vazirmatn", system-ui, sans-serif';
-  const tw = Math.min(W * 0.8, ctx.measureText(txt).width), h = U * 0.12, w = tw + U * 0.14, cx = W / 2, cy = H * 0.83;
+  const tw = Math.min(W * 0.8, ctx.measureText(txt).width), h = U * 0.12, w = tw + U * 0.14, cx = W / 2, cy = Math.min(H * 0.83, vsSafe(W, H).bottom - h * 0.6);
   ctx.translate(cx, cy); ctx.scale(e, e); ctx.translate(-cx, -cy);
   ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.04;
   ctx.fillStyle = "#ffffff";
@@ -17712,7 +17737,7 @@ function vsEditStudio(preset, filesIn) {
   let gxMed = (mem && mem.gxMed) ? mem.gxMed.slice() : [];
   // their own screenshots, floated beside them as they talk about them
   let shotFiles = (mem && mem.shots) ? mem.shots.slice() : [];
-  let mode = ["swap", "graphic", "edit"].includes(preset.mode) ? preset.mode : (!preset.mode && mem && mem.mode) || "edit";
+  let mode = ["swap", "graphic", "edit", "photos"].includes(preset.mode) ? preset.mode : (!preset.mode && mem && mem.mode) || "edit";
   const ov = document.createElement("div");
   ov.id = "emOv";
   // centred by its own margins, not by the overlay: a window taller than the
@@ -44159,6 +44184,124 @@ function arSoonPage() {
       '<a href="' + en + location.hash + '" hreflang="en" lang="en"' + (fa ? "" : ' aria-current="true"') + ">EN</a>" +
       '<a href="' + (twin ? "/fa" + en : "/fa/") + (twin ? location.hash : "") + '" hreflang="fa" lang="fa"' + (fa ? ' aria-current="true"' : "") + ">فا</a>";
     right.insertBefore(box, right.firstChild);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
+
+
+// ── Studio: a front door before the workbench ───────────────────────────────
+// Opening /studio/ dropped people into the full workbench - templates, slides,
+// a timeline - with "Edit my video" a small button down the right column, so
+// most never found the things they came for (the owner: "you don't see edit
+// video at all; you see a studio that confuses users"). The page now opens on
+// a choice of what to make; each card goes straight to its tool, and the
+// workbench is one link away (and a "New" button in it brings this back).
+// Not shown when a link opens something already (?deck=, #tool).
+function vsStartScreen(force) {
+  const topic = document.getElementById("vsAutoTopic");
+  if (!topic) return;
+  if (!force) {
+    if (/[?&]deck=/.test(location.search) || (location.hash || "").length > 1) return;
+    try { if (sessionStorage.getItem("arStudioStart") === "off") return; } catch (e) {}
+  }
+  document.getElementById("vsStart")?.remove();
+  const fa = state.lang === "fa", L = (en, f) => (fa ? f : en);
+  const ico = (d) => '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + "</svg>";
+  const CARDS = [
+    ["edit", L("Edit my video", "ادیت ویدیوی من"), L("Cuts, captions, music and motion in one click", "برش، زیرنویس، موزیک و موشن با یک کلیک"),
+      ico('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor" stroke="none"/>'), true],
+    ["graphic", L("Graphic video", "ویدیوی گرافیکی"), L("Your voice over motion graphics", "صدای تو روی موشن‌گرافیک"),
+      ico('<path d="M4 18V9M10 18V5M16 18v-7M21 18H3"/>')],
+    ["photos", L("Photos + text", "عکس + متن"), L("A narrated video from your photos", "ویدیوی روایت‌شده از عکس‌هایت"),
+      ico('<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>')],
+    ["auto", L("From a link or topic", "از یک لینک یا موضوع"), L("An article or an idea becomes a video", "یک مقاله یا ایده ویدیو می‌شود"),
+      ico('<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>')],
+    ["swap", L("Change text or footage", "عوض کردن متن یا فوتیج"), L("Keep the design, change the words", "طراحی بماند، متن عوض شود"),
+      ico('<path d="M4 7h13l-3-3M20 17H7l3 3"/>')],
+    ["thumb", L("Thumbnail", "تامبنیل"), L("A cover from your video or a title", "کاور از ویدیو یا یک تیتر"),
+      ico('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10M9 9h6"/>')],
+  ];
+  const box = document.createElement("div");
+  box.id = "vsStart";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-labelledby", "vsStartH");
+  if (fa) box.dir = "rtl";
+  box.innerHTML =
+    '<div class="vss-in">' +
+      '<p class="vss-eye"><span class="vss-sq"></span>Video Studio · <span>' + L("Free", "رایگان") + "</span></p>" +
+      '<h1 id="vsStartH">' + L("What do you want to make?", "چه چیزی می‌خواهی بسازی؟") + "</h1>" +
+      '<div class="vss-grid">' + CARDS.map(([id, t, d, ic, main]) =>
+        '<button type="button" class="vss-card' + (main ? " vss-main" : "") + '" data-go="' + id + '">' +
+          '<span class="vss-ic">' + ic + "</span><span class=\"vss-t\">" + t + "</span><span class=\"vss-d\">" + d + "</span>" +
+          (main ? '<span class="vss-drop">' + L("or drop a video here", "یا ویدیو را همین‌جا رها کن") + "</span>" : "") +
+        "</button>").join("") + "</div>" +
+      '<button type="button" class="vss-full">' + L("Open the full studio", "باز کردن استودیوی کامل") + " →</button>" +
+    "</div>";
+  const close = () => { box.remove(); document.body.classList.remove("vss-open"); };
+  box.querySelector(".vss-full").onclick = () => { try { sessionStorage.setItem("arStudioStart", "off"); } catch (e) {} close(); };
+  box.querySelectorAll("[data-go]").forEach((b) => {
+    b.onclick = () => {
+      const go = b.dataset.go;
+      close();
+      if (go === "edit") vsEditStudio(Object.assign({}, vstudio._mcpEditPreset || {}, { mode: "edit" }));
+      else if (go === "graphic" || go === "photos" || go === "swap") vsEditStudio({ mode: go });
+      else if (go === "thumb") vsThumbStudio("");
+      else { const t = document.getElementById("vsAutoTopic"); if (t) { t.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => t.focus(), 350); } }
+    };
+  });
+  // a video dropped anywhere on the page goes straight into the editor
+  box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("vss-drag"); });
+  box.addEventListener("dragleave", (e) => { if (e.target === box) box.classList.remove("vss-drag"); });
+  box.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])].filter((f) => /^video\//.test(f.type));
+    if (!fs.length) { box.classList.remove("vss-drag"); return; }
+    close();
+    vsEditStudio(Object.assign({}, vstudio._mcpEditPreset || {}, { mode: "edit" }), fs);
+  });
+  document.body.appendChild(box);
+  document.body.classList.add("vss-open");
+  setTimeout(() => { try { box.querySelector(".vss-main").focus({ preventScroll: true }); } catch (e) {} }, 60);
+}
+(function () {
+  const go = () => {
+    if (!document.getElementById("vsAutoTopic")) return;
+    const css = document.createElement("style");
+    css.textContent =
+      "#vsStart{position:fixed;inset:56px 0 0 0;z-index:9000;overflow:auto;background:#08090c;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:25% 100%,100% 33.3%;padding:clamp(20px,5vw,64px) 16px 48px}" +
+      "#vsStart.vss-drag{box-shadow:inset 0 0 0 3px #2563ff}" +
+      ".vss-in{max-width:1100px;margin:0 auto}" +
+      ".vss-eye{display:flex;align-items:center;gap:10px;margin:0 0 14px;font:500 12px/1 'JetBrains Mono',Vazirmatn,monospace;letter-spacing:.1em;text-transform:uppercase;color:#8a919c}.vss-eye span:last-child{color:#f4f5f7}" +
+      ".vss-sq{width:10px;height:10px;background:#2563ff;display:inline-block}" +
+      "#vsStart h1{margin:0 0 clamp(20px,3vw,34px);font:700 clamp(30px,5vw,60px)/1.02 'Space Grotesk',Vazirmatn,system-ui,sans-serif;letter-spacing:-.025em;color:#f4f5f7}" +
+      "#vsStart[dir=rtl] h1{letter-spacing:0;line-height:1.3}" +
+      ".vss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}" +
+      ".vss-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:170px;padding:24px;text-align:start;background:#0e1014;color:#f4f5f7;border:0;cursor:pointer;font:inherit;transition:background .22s cubic-bezier(.16,1,.3,1)}" +
+      ".vss-card:hover{background:#14171d}.vss-card:focus-visible{outline:2px solid #2563ff;outline-offset:-2px}" +
+      ".vss-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.05);color:#12d6f5}" +
+      ".vss-t{font:600 clamp(19px,1.8vw,24px)/1.15 'Space Grotesk',Vazirmatn,system-ui,sans-serif}" +
+      ".vss-d{font:400 14px/1.45 Manrope,Vazirmatn,system-ui,sans-serif;color:#8a919c}" +
+      ".vss-main{grid-column:span 2;grid-row:span 2;min-height:350px;justify-content:flex-end;background:linear-gradient(160deg,rgba(37,99,255,.22),rgba(14,16,20,0) 60%),#0e1014}" +
+      ".vss-main .vss-ic{width:64px;height:64px;background:#2563ff;color:#fff}.vss-main .vss-ic svg{width:34px;height:34px}" +
+      ".vss-main .vss-t{font-size:clamp(28px,3.4vw,44px)}.vss-main .vss-d{font-size:16px;color:#c9ccd3}" +
+      ".vss-drop{margin-top:10px;padding:8px 12px;border:1px dashed rgba(255,255,255,.22);border-radius:8px;font:500 12px/1 'JetBrains Mono',Vazirmatn,monospace;color:#8a919c}" +
+      ".vss-full{margin-top:22px;background:none;border:0;color:#8a919c;font:500 14px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer;padding:6px 0}.vss-full:hover{color:#f4f5f7}" +
+      "body.vss-open{overflow:hidden}" +
+      "@media (max-width:820px){.vss-grid{grid-template-columns:1fr 1fr}.vss-main{grid-column:1/-1;grid-row:auto;min-height:220px}}" +
+      "@media (max-width:520px){.vss-grid{grid-template-columns:1fr}.vss-card{min-height:auto}}" +
+      ".vtab-new{margin-inline-end:6px}";
+    document.head.appendChild(css);
+    // a way back to the choice, in the workbench
+    const tabs = document.querySelector('.vtab[data-vtab="template"]');
+    if (tabs && !document.querySelector(".vtab-new")) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "button ghost vtab-new";
+      b.textContent = state.lang === "fa" ? "+ جدید" : "+ New";
+      b.setAttribute("aria-label", state.lang === "fa" ? "شروع یک ویدیوی جدید" : "Start a new video");
+      b.onclick = () => vsStartScreen(true);
+      tabs.parentNode.insertBefore(b, tabs);
+    }
+    vsStartScreen(false);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
 })();
