@@ -10081,6 +10081,103 @@ function vsClearVoiceTrack() {
 // Lay each scene's line into one track at its scene's start time. Rebuilt
 // whenever scenes are reordered, removed or re-timed, so the voice never drifts
 // from the picture after an edit.
+// ── The speaker's voice, cleaned the way an editor would ──────────────────
+// A phone or laptop recording, as it comes: rumble under it, a boxy middle,
+// loud and quiet words a long way apart, the room's hiss between sentences,
+// and a level that is whatever the mic happened to give. In order:
+//   a high-pass at 80 Hz (handling noise, traffic, the desk), a dip at 280 Hz
+//   (the boxiness of a small room), a lift at 4 kHz (the consonants that make
+//   words readable on a phone speaker), a little air at 10 kHz;
+//   a gentle downward expander - between sentences the room falls back
+//   instead of hissing under the music - and a 3:1 compressor that brings the
+//   quiet words up to the loud ones;
+//   then the speech itself levelled to one loudness (about -16 LUFS, what the
+//   platforms play at), with a soft ceiling just under full scale.
+// Plain sample loops: the whole track is done in a few milliseconds a minute,
+// in step with the mix - no audio graph to wait on.
+function vsPolishVoice(x, sr) {
+  const n = x.length;
+  if (!n) return;
+  // RBJ biquads, applied in place
+  const biquad = (type, f0, q, db) => {
+    const A = Math.pow(10, (db || 0) / 40), w = 2 * Math.PI * f0 / sr, cw = Math.cos(w), sw = Math.sin(w), al = sw / (2 * q);
+    let b0, b1, b2, a0, a1, a2;
+    if (type === "hp") { b0 = (1 + cw) / 2; b1 = -(1 + cw); b2 = (1 + cw) / 2; a0 = 1 + al; a1 = -2 * cw; a2 = 1 - al; }
+    else if (type === "peak") { b0 = 1 + al * A; b1 = -2 * cw; b2 = 1 - al * A; a0 = 1 + al / A; a1 = -2 * cw; a2 = 1 - al / A; }
+    else { // high shelf
+      const sq = 2 * Math.sqrt(A) * al;
+      b0 = A * ((A + 1) + (A - 1) * cw + sq); b1 = -2 * A * ((A - 1) + (A + 1) * cw); b2 = A * ((A + 1) + (A - 1) * cw - sq);
+      a0 = (A + 1) - (A - 1) * cw + sq; a1 = 2 * ((A - 1) - (A + 1) * cw); a2 = (A + 1) - (A - 1) * cw - sq;
+    }
+    b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < n; i++) {
+      const xi = x[i], y = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+      x2 = x1; x1 = xi; y2 = y1; y1 = y; x[i] = y;
+    }
+  };
+  biquad("hp", 80, 0.707);
+  biquad("peak", 280, 1.0, -2.5);
+  biquad("peak", 4000, 0.9, 3);
+  biquad("shelf", 10000, 0.707, 1.5);
+  // the level, 20 ms at a time, and the room's own: the quietest tenth of the
+  // windows that are not digital silence
+  const win = Math.max(1, Math.round(sr * 0.02)), nw = Math.ceil(n / win), rms = new Float32Array(nw);
+  for (let w = 0; w < nw; w++) {
+    let ss = 0; const a = w * win, b = Math.min(n, a + win);
+    for (let i = a; i < b; i++) ss += x[i] * x[i];
+    rms[w] = Math.sqrt(ss / Math.max(1, b - a));
+  }
+  const live = Array.from(rms).filter((v) => v > 1e-4).sort((a, b) => a - b);
+  if (live.length < 10) return;
+  const floor = live[Math.floor(live.length * 0.1)];
+  const speechGate = Math.max(floor * 3, live[Math.floor(live.length * 0.5)] * 0.35);
+  // expander + compressor on a smoothed level (5 ms up, 150 ms down)
+  const att = Math.exp(-1 / (sr * 0.005)), rel = Math.exp(-1 / (sr * 0.15));
+  const thr = Math.max(speechGate * 1.6, 0.02), ratio = 3, nf = floor * 2.2;
+  let env = 0, gs = 1, g = 1;
+  const gSm = Math.exp(-1 / (sr * 0.01)), ex = 1 - 1 / ratio;
+  for (let i = 0; i < n; i++) {
+    const a = Math.abs(x[i]);
+    env = a > env ? att * env + (1 - att) * a : rel * env + (1 - rel) * a;
+    if ((i & 31) === 0) {
+      g = 1;
+      if (env > thr) g = Math.pow(thr / env, ex);
+      else if (env < nf && nf > 0) g = Math.max(0.3, Math.pow(env / nf, 0.8));
+    }
+    gs = gSm * gs + (1 - gSm) * g;
+    x[i] *= gs;
+  }
+  // one loudness for the speech: its RMS while talking, to about -15 dBFS
+  // (measured: close to -16 LUFS)
+  let ss = 0, cnt = 0;
+  for (let w = 0; w < nw; w++) {
+    if (rms[w] < speechGate) continue;
+    const a = w * win, b = Math.min(n, a + win);
+    for (let i = a; i < b; i++) { ss += x[i] * x[i]; cnt++; }
+  }
+  if (!cnt) return;
+  const now = Math.sqrt(ss / cnt), want = 0.17;
+  const gain = Math.max(0.25, Math.min(8, want / Math.max(1e-6, now)));
+  // a soft ceiling: nothing above -1 dBFS, and no hard clip below it
+  const ceil = 0.89, knee = 0.7;
+  for (let i = 0; i < n; i++) {
+    let v = x[i] * gain;
+    const av = Math.abs(v);
+    if (av > knee) v = Math.sign(v) * (knee + (ceil - knee) * Math.tanh((av - knee) / (ceil - knee)));
+    x[i] = v;
+  }
+}
+
+// a recording, cleaned once and kept beside it - remixing for a changed word
+// or a switched sound then costs nothing more
+const vsPolishCache = new WeakMap();
+function vsPolishedSource(buf) {
+  let x = vsPolishCache.get(buf);
+  if (!x) { x = buf.getChannelData(0).slice(); try { vsPolishVoice(x, buf.sampleRate); } catch (e) {} vsPolishCache.set(buf, x); }
+  return x;
+}
+
 function vsMixVoiceTrack(force) {
   const slides = vstudio.slides;
   // The auto build's own cut sounds ride on this track too, so they play in the
@@ -10091,7 +10188,7 @@ function vsMixVoiceTrack(force) {
   const anyVoice = voiceOn && slides.some((s) => s._voice);
   if (!anyVoice && !buildFx && !vstudio._editSfxOn) { if (vstudio._narrationBuffer && vstudio._voiceSig) vsClearVoiceTrack(); vstudio._voiceInMix = false; return; }
   const fxEvents = vstudio._editSfxOn ? vsEditSfxEvents(slides) : (buildFx ? vsBuildSfxEvents(slides) : []);
-  const sig = slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" + (vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) : "") + (buildFx ? "bfx" : "") + (voiceOn ? "on" : "off") +
+  const sig = (vstudio._voicePolish === false ? "raw|" : "") + slides.map((s) => (Number(s.duration) || 4).toFixed(3) + (s._voice ? "v" : "") + (s._transIn || "")).join("|") + (vstudio._editSfxOn ? "sfx" + (vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) : "") + (buildFx ? "bfx" : "") + (voiceOn ? "on" : "off") +
     fxEvents.map((e) => e.n + e.t.toFixed(2)).join(",");
   if (!force && sig === vstudio._voiceSig) return;
   if (!vstudio._playCtx) vstudio._playCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -10104,7 +10201,7 @@ function vsMixVoiceTrack(force) {
     const d = Number(s.duration) || 4;
     const v = voiceOn ? s._voice : null;
     if (v && v.buf) {
-      const src = v.buf.getChannelData(0);
+      const src = s._ownSpeech && vstudio._voicePolish !== false ? vsPolishedSource(v.buf) : v.buf.getChannelData(0);
       const from = v.cut * v.buf.sampleRate;
       const ratio = v.buf.sampleRate / sr;   // source samples per output sample
       // Never past the scene's end: a line cut short by a shortened scene stops
@@ -10125,6 +10222,7 @@ function vsMixVoiceTrack(force) {
     }
     start += d;
   });
+
   // the edit's sounds, each with its loudest moment on its beat - and well
   // under the speaker (the owner: "much quieter than the voice, it gets on
   // your nerves"). A fixed level was as loud as a quietly recorded voice, so
@@ -14333,7 +14431,11 @@ function vsProFaceN(s, media) {
     try { c.getContext("2d").drawImage(media, 0, 0, cw, ch); r = det.detect(c); } catch (e) { return null; }
     const ds = (r && r.detections || []).map((d) => d.boundingBox).filter(Boolean);
     if (ds.length) {
-      const b = ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
+      // the speaker, when vsProFindSpeaker found one among several faces;
+      // else the biggest face
+      const spk = media._arSpeaker;
+      const near = (b) => Math.hypot((b.originX + b.width / 2) / cw - spk.x, (b.originY + b.height / 2) / ch - spk.y);
+      const b = spk && ds.length > 1 ? ds.sort((a, z) => near(a) - near(z))[0] : ds.sort((a, z) => z.width * z.height - a.width * a.height)[0];
       s._faceN = { x: (b.originX + b.width / 2) / cw, y: (b.originY + b.height / 2) / ch, h: b.height / ch };
       return s._faceN;
     }
@@ -14360,9 +14462,88 @@ function vsProFaceN(s, media) {
 // Every clip's face found before the first frame is drawn: found on the fly,
 // the opening frame went out wide (the whole lot behind her) and the next one
 // jumped in once the face turned up.
+// Who is speaking, when there is more than one face (a host and a guest, a
+// presenter among children): the face whose mouth moves. Two frames a tenth
+// of a second apart, at points spread over the talk; for each face its mouth
+// and its eyes compared between them. Movement of the whole head moves both;
+// speech moves the mouth on its own - so a face scores what its mouth moved
+// beyond its eyes. The clear winner is the speaker, kept on every video
+// element of that footage (each clip has its own), once per footage.
+async function vsProFindSpeaker(slides, det) {
+  const byUrl = new Map();
+  for (const s of slides || []) {
+    if (!s || s._broll || !s._ownSpeech || !s.mediaEl) continue;
+    const k = s.url || s.mediaEl;
+    if (!byUrl.has(k)) byUrl.set(k, []);
+    byUrl.get(k).push(s);
+  }
+  const seek = (el, t) => new Promise((r) => {
+    let done = false; const fin = () => { if (!done) { done = true; r(); } };
+    el.addEventListener("seeked", fin, { once: true }); setTimeout(fin, 1500);
+    try { el.currentTime = t; } catch (e) { fin(); }
+  });
+  const c = document.createElement("canvas"), p = document.createElement("canvas");
+  const PW = 24, PH = 14;
+  p.width = PW; p.height = PH;
+  const px = p.getContext("2d", { willReadFrequently: true });
+  const patch = (el, rc) => {
+    px.drawImage(el, rc.x, rc.y, rc.w, rc.h, 0, 0, PW, PH);
+    const d = px.getImageData(0, 0, PW, PH).data, g = new Float32Array(PW * PH);
+    for (let i = 0; i < g.length; i++) g[i] = d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11;
+    return g;
+  };
+  const diff = (a, b) => { let t = 0; for (let k = 0; k < a.length; k++) t += Math.abs(a[k] - b[k]); return t / a.length; };
+  for (const list of byUrl.values()) {
+    const els = [...new Set(list.map((s) => s.mediaEl))];
+    if (els.some((e) => e._arSpeaker !== undefined)) continue;
+    const el = els[0], mw = el.videoWidth, mh = el.videoHeight;
+    els.forEach((e) => { e._arSpeaker = null; });
+    if (!mw || !mh) continue;
+    // ten moments of speech, spread over every clip of this footage
+    const times = [];
+    list.forEach((s) => { const a0 = Number(s._clipIn) || 0, d = Number(s.duration) || 2; [0.25, 0.5, 0.75].forEach((f) => times.push(a0 + d * f)); });
+    times.sort((x, y) => x - y);
+    const step = Math.max(1, times.length / 10), pick = [];
+    for (let i = 0; i < times.length && pick.length < 10; i += step) pick.push(times[Math.floor(i)]);
+    const cw = 480, ch = Math.round(cw * mh / mw);
+    c.width = cw; c.height = ch;
+    const cx = c.getContext("2d");
+    const tracks = [];
+    const keep = el.currentTime;
+    for (const t of pick) {
+      await seek(el, t);
+      let r = null;
+      try { cx.drawImage(el, 0, 0, cw, ch); r = det.detect(c); } catch (e) { continue; }
+      const faces = (r && r.detections || []).filter((d) => d.boundingBox && d.keypoints && d.keypoints.length > 3);
+      if (faces.length < 2) continue;
+      const rects = faces.map((d) => {
+        const bx = d.boundingBox, m = d.keypoints[3], e0 = d.keypoints[0], e1 = d.keypoints[1];
+        const w = bx.width * 0.62 * mw / cw, h = bx.height * 0.34 * mh / ch;
+        const at = (q) => ({ x: Math.max(0, q.x * mw - w / 2), y: Math.max(0, q.y * mh - h / 2), w, h });
+        return { mouth: at(m), eyes: at({ x: (e0.x + e1.x) / 2, y: (e0.y + e1.y) / 2 }), fx: (bx.originX + bx.width / 2) / cw, fy: (bx.originY + bx.height / 2) / ch };
+      });
+      const a = rects.map((rc) => [patch(el, rc.mouth), patch(el, rc.eyes)]);
+      await seek(el, t + 0.12);
+      rects.forEach((rc, i) => {
+        const sc = Math.max(0, diff(a[i][0], patch(el, rc.mouth)) - 0.8 * diff(a[i][1], patch(el, rc.eyes)));
+        let tr = tracks.find((q) => Math.abs(q.x - rc.fx) < 0.08 && Math.abs(q.y - rc.fy) < 0.12);
+        if (!tr) tracks.push(tr = { x: rc.fx, y: rc.fy, sum: 0, n: 0 });
+        tr.sum += sc; tr.n++;
+      });
+    }
+    try { el.currentTime = keep; } catch (e) {}
+    const ranked = tracks.filter((q) => q.n >= 3).map((q) => Object.assign(q, { m: q.sum / q.n })).sort((x, y) => y.m - x.m);
+    if (ranked.length >= 2 && ranked[0].m > ranked[1].m * 1.2 && ranked[0].m > 0.5) {
+      const spk = { x: ranked[0].x, y: ranked[0].y };
+      els.forEach((e) => { e._arSpeaker = spk; });
+    }
+  }
+}
+
 async function vsProPrepFaces(slides) {
   let det = vstudio._proFaceDet;
   if (!det) { try { det = vstudio._proFaceDet = await vsProFaceDetector(); } catch (e) { return; } }
+  try { await vsProFindSpeaker(slides, det); } catch (e) {}
   for (const s of slides || []) {
     if (!s || s._broll || !s.mediaEl || s._faceN) continue;
     const el = s.mediaEl, want = Math.max(0, (Number(s._clipIn) || 0) + 0.05);
@@ -14373,6 +14554,30 @@ async function vsProPrepFaces(slides) {
     } catch (e) {}
     delete s._faceN;
     vsProFaceN(s, el);
+  }
+  // Not sure who speaks, and the clips found different faces: the camera
+  // stays with the face most of them found - it jumped from the presenter to
+  // a child beside him and back at the cuts
+  const groups = new Map();
+  (slides || []).forEach((s) => { if (s && !s._broll && s._faceN && s.mediaEl && !s.mediaEl._arSpeaker) { const k = s.url || s.mediaEl; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); } });
+  for (const list of groups.values()) {
+    const xs = list.map((s) => s._faceN.x);
+    if (Math.max(...xs) - Math.min(...xs) < 0.08) continue;
+    const votes = list.map((s) => ({ s, n: list.filter((o) => Math.abs(o._faceN.x - s._faceN.x) < 0.08 && Math.abs(o._faceN.y - s._faceN.y) < 0.12).length }))
+      .sort((a, b) => b.n - a.n || b.s._faceN.h - a.s._faceN.h);
+    const spk = { x: votes[0].s._faceN.x, y: votes[0].s._faceN.y };
+    list.forEach((s) => { s.mediaEl._arSpeaker = spk; });
+    for (const s of list) {
+      if (Math.abs(s._faceN.x - spk.x) < 0.08 && Math.abs(s._faceN.y - spk.y) < 0.12) continue;
+      const el = s.mediaEl, want = Math.max(0, (Number(s._clipIn) || 0) + 0.05);
+      try {
+        if (Math.abs((el.currentTime || 0) - want) > 0.03) {
+          await new Promise((r) => { let done = false; const fin = () => { if (!done) { done = true; r(); } }; el.addEventListener("seeked", fin, { once: true }); setTimeout(fin, 1500); el.currentTime = want; });
+        }
+      } catch (e) {}
+      delete s._faceN;
+      vsProFaceN(s, el);
+    }
   }
   // one continuous take keeps the face of the clip it carries on from; a
   // clip where none was found takes the nearest one of the same footage
@@ -17862,6 +18067,7 @@ function vsEditStudio(preset, filesIn) {
         '<button id="emMusicNext" type="button" class="ts-ghost" style="grid-column:1/-1;justify-self:start">' + L("Another track", "آهنگ دیگر") + "</button>" +
         '<label class="ts-switch"><input type="checkbox" id="emSndFx"' + (vstudio._editSfxOn ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Sound effects", "افکت صوتی") + "</span></label>" +
         '<input id="emFxVol" type="range" min="0" max="200" step="10" value="' + Math.round((vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) * 100) + '" aria-label="' + L("Sound effects volume", "بلندی افکت‌ها") + '"/>' +
+        '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emPolish"' + (vstudio._voicePolish === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Clean up my voice", "تمیز کردن صدایم") + "</span></label>" +
         '<div style="grid-column:1/-1">' + vsWmToggleHtml("emWm") + "</div>" +
         // a wide video in a tall frame (or the other way): all of it over a
         // blurred copy, or cropped to fill the frame around the speaker
@@ -18049,6 +18255,11 @@ function vsEditStudio(preset, filesIn) {
           redraw();
         };
       }
+      $$("emPolish").onchange = (e) => {
+        vstudio._voicePolish = e.target.checked;
+        if (vstudio.looping) pause();
+        try { vsMixVoiceTrack(true); } catch (er) {}
+      };
       $$("emSndFx").onchange = async (e) => {
         const on = e.target.checked;
         if (on) { try { await vsPrepareEditSfx(); } catch (er) {} }
@@ -32398,6 +32609,15 @@ async function vsRenderMixWav(duration) {
     s.start(0);
   }
   const rendered = await ctx.startRendering();
+  // the master: voice, music and effects summed can pass full scale (a
+  // levelled voice with a drop under it did) - a soft ceiling at -1 dBFS
+  for (let c = 0; c < rendered.numberOfChannels; c++) {
+    const x = rendered.getChannelData(c), ceil = 0.89, knee = 0.72, span = ceil - knee;
+    for (let i = 0; i < x.length; i++) {
+      const v = x[i], av = v < 0 ? -v : v;
+      if (av > knee) x[i] = (v < 0 ? -1 : 1) * (knee + span * Math.tanh((av - knee) / span));
+    }
+  }
   return vsAudioBufferToWavBytes(rendered);
 }
 
