@@ -10749,6 +10749,14 @@ function vsDrawFramed(ctx, media, rx, ry, rw, rh, s, z, focusX, nx, ny, autoWhol
   // a clip taller than its frame keeps its upper part - where the face is
   const fy = (s && s._focusY != null) ? s._focusY : (mh / mw > rh / rw ? 0.32 : 0.5);
   const mode = vsEditFitMode(s, rw, rh, media, autoWhole);
+  // A clip the customer chose to fill a frame of another shape: the camera
+  // measured its zoom against the whole clip, and filling is already that
+  // much bigger - its close shots on top left one face filling the frame.
+  // So the zoom is taken as a share of the whole-clip view, never below fill.
+  if (s && s._fit === "fill" && !s._broll && z > 1) {
+    const k = Math.max(rw / mw, rh / mh) / Math.min(rw / mw, rh / mh);
+    if (k > 1.3) z = Math.max(1 + (z - 1) * 0.2, z / k);
+  }
   const base = mode === "whole" ? Math.min(rw / mw, rh / mh) : Math.max(rw / mw, rh / mh);
   const sc = base * z, dw = mw * sc, dh = mh * sc;
   if (dw >= rw - 0.5 && dh >= rh - 0.5) { vsDrawCover(ctx, media, rx, ry, rw, rh, sc / Math.max(rw / mw, rh / mh), focusX, nx, ny, fy); return; }
@@ -17855,6 +17863,9 @@ function vsEditStudio(preset, filesIn) {
         '<label class="ts-switch"><input type="checkbox" id="emSndFx"' + (vstudio._editSfxOn ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Sound effects", "افکت صوتی") + "</span></label>" +
         '<input id="emFxVol" type="range" min="0" max="200" step="10" value="' + Math.round((vstudio._sfxLevel == null ? 1 : vstudio._sfxLevel) * 100) + '" aria-label="' + L("Sound effects volume", "بلندی افکت‌ها") + '"/>' +
         '<div style="grid-column:1/-1">' + vsWmToggleHtml("emWm") + "</div>" +
+        // a wide video in a tall frame (or the other way): all of it over a
+        // blurred copy, or cropped to fill the frame around the speaker
+        '<label class="ts-switch" id="emFitRow" style="grid-column:1/-1" hidden><input type="checkbox" id="emFit"' + (vstudio.slides.some((x) => x._fit === "fill" && !x._broll) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Fill the frame", "پر کردن کادر") + "</span></label>" +
       "</div>" +
       '<div class="em-acts">' +
       (vstudio.slides.some((x) => x._gx) ? '<button id="emReTheme" type="button" class="ts-ghost">' + L("Change theme", "تغییر تم") + "</button>" : "") +
@@ -18025,6 +18036,19 @@ function vsEditStudio(preset, filesIn) {
         e.target.disabled = false;
         sync();
       };
+      // Fill the frame: every clip of their own video cropped to cover the
+      // frame (centred on the face the camera follows); off, the automatic fit
+      {
+        const row = $$("emFitRow"), own = vstudio.slides.find((x) => x._ownSpeech && !x._broll && x.mediaEl);
+        const m = own && own.mediaEl, mw = m && (m.videoWidth || m.naturalWidth), mh = m && (m.videoHeight || m.naturalHeight);
+        const r = mw && mh && cv.width && cv.height ? (mw / mh) / (cv.width / cv.height) : 1;
+        if (row) row.hidden = !(r > 1.15 || r < 1 / 1.15);
+        $$("emFit").onchange = (e) => {
+          const on = e.target.checked;
+          vstudio.slides.forEach((x) => { if (x._broll || x._gx) return; if (on) x._fit = "fill"; else delete x._fit; });
+          redraw();
+        };
+      }
       $$("emSndFx").onchange = async (e) => {
         const on = e.target.checked;
         if (on) { try { await vsPrepareEditSfx(); } catch (er) {} }
