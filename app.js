@@ -10744,7 +10744,12 @@ async function vsKeepMoments(plan, srcs, mono, total, srcOf) {
       const first = await frameAt(g0 + 0.05), last = await frameAt(g1 - 0.05);
       moved = Math.max(moved, diff(first, last) * 0.6);
     }
-    if (loudShare >= 0.5 || moved > 14) {
+    // Before the first word or after the last, only a SOUND earns its place:
+    // a title slate, a logo card or black frames change the picture too, and
+    // kept as a "moment" they opened a reel on six seconds of a slate - the
+    // first second is where a viewer decides to stay
+    const edge = g0 < 0.05 || g1 > total - 0.05;
+    if (loudShare >= 0.5 || (moved > 14 && !edge)) {
       // the hit: where the sound comes up (or, silent, where the picture jumps)
       const hitT = hitA >= 0 ? hitA : movedT >= 0 ? movedT : peakT;
       add.push({ start: g0, end: Math.min(g1, g0 + 15), words: [], moment: true, hit: Math.max(0, Math.min(len - 0.3, hitT - g0)) });
@@ -20207,7 +20212,15 @@ async function vsEditMyVideo(fileIn, o) {
     if (o.cut !== false && !gx) { try { await vsKeepMoments(plan, srcs, mono, total, srcOf); } catch (e) {} }
     // the teaser: the strongest moment, up front, under the hook
     let teaser = null;
-    const tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
+    let tz = ai && ai.hook ? Number(ai.hook.teaser) : -1;
+    // no teaser named in a talk long enough to want one: the first sentence
+    // the analysis marked for emphasis, past the opening quarter of the talk
+    // (what a viewer would want to hear first)
+    if (tz < 0 && ai && sentences.length >= 5 && total >= 20) {
+      const from = sentences[0].start + (sentences[sentences.length - 1].end - sentences[0].start) * 0.25;
+      const pickS = sentences.find((x) => x.start >= from && sPlan[x.i] && sPlan[x.i].keep !== false && sPlan[x.i].zoom === "tight" && (x.end - x.start) >= 1.2);
+      if (pickS) tz = pickS.i;
+    }
     if (o.title && tz >= 0 && sentences[tz] && !(sPlan[tz] && sPlan[tz].keep === false)) {
       const tw = words.filter((w) => w.s >= sentences[tz].start - 0.05 && w.e <= sentences[tz].end + 0.05);
       if (tw.length >= 2) {
