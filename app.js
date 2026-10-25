@@ -15592,13 +15592,13 @@ const VS_GX_STYLES = [
   // highlighter; a point on a clipboard on a wooden desk with the key word in
   // red; numbers on a chalkboard; a single word in italic serif under a
   // spotlight.
-  { id: "documentary", n: ["Documentary", "مستند"], cat: "reels", pals: ["doc"], fonts: ["docheavy", "archivoblack"], doc: true, aiImg: true,
+  { id: "documentary", te: "swipe", n: ["Documentary", "مستند"], cat: "reels", pals: ["doc"], fonts: ["docheavy", "archivoblack"], doc: true, aiImg: true,
     el: ["3d", "color"], bg: "flat", al: "c", tt: "plain", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "none", cp: "plain", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the SFX-pack reel: a pastel sky of pink clouds over soft
   // green hills fading to white; glossy 3D objects popping in on a cyan glow
   // and floating; dark bold words sharpening out of a blur; labels in black
   // pills.
-  { id: "pastel", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "reels", kickPill: true, parallax: true, pals: ["pastel"], fonts: ["pastelmix", "clean"],
+  { id: "pastel", bwm: "up", n: ["Pastel 3D", "پاستلی سه‌بعدی"], cat: "reels", kickPill: true, parallax: true, pals: ["pastel"], fonts: ["pastelmix", "clean"],
     el: ["3d", "color"], bg: "clouds", al: "c", tt: "blurword", bwSame: true, ef: "bloom", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "pill", kd: "none", tr: ["zoomblur", "zoom"] },
   // Copied from the Marcus Aurelius After Effects reel: a pale card on grey
   // under leaf shadows; a small book serif leading into the key word, every
@@ -15613,7 +15613,7 @@ const VS_GX_STYLES = [
   // light grey sans with the words that matter in bold steel blue, each word
   // sharpening in; pictures on a dot grid; a fine curve and a soft blue ribbon
   // sweeping across; a barcode and fine print.
-  { id: "steel", n: ["Steel poster", "پوستر فولادی"], cat: "reels", bigPic: true, kickSans: true, cine: { bg: ["#f2efe7", "#dcd8cd"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["steelmix", "clean"],
+  { id: "steel", bwm: "zoom", n: ["Steel poster", "پوستر فولادی"], cat: "reels", bigPic: true, kickSans: true, cine: { bg: ["#f2efe7", "#dcd8cd"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["steelmix", "clean"],
     el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "blurword", ef: "grid", ec: "ink", ls: "dash", de: "curves", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "saturate(0.55) contrast(1.05)", pf: "saturate(0.6) contrast(1.05)" },
   // Copied from the After Effects "Godfather" / "Peaky Blinders" reels: a
@@ -15621,28 +15621,28 @@ const VS_GX_STYLES = [
   // and white pictures, a small book serif leading into the key word in a
   // bold grotesk with a design-tool selection box around it, one word in a
   // purple accent.
-  { id: "silver", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "reels", bigPic: true, kickSans: true, cine: { bands: true, leaves: false, tilt: 0.16 }, headTop: 0.2, pals: ["silver", "silverwine"], fonts: ["stoicmix", "editorial"],
+  { id: "silver", te: "slideR", n: ["Silver editorial", "ادیتوریال نقره‌ای"], cat: "reels", bigPic: true, kickSans: true, cine: { bands: true, leaves: false, tilt: 0.16 }, headTop: 0.2, pals: ["silver", "silverwine"], fonts: ["stoicmix", "editorial"],
     el: ["real", "3d", "hc"], bg: "window", al: "c", tt: "select", ef: "grid", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"],
     of: "grayscale(1) contrast(1.15)", pf: "grayscale(1) contrast(1.2)" },
   // Copied from the French poster reel: a white sheet on cream, huge
   // condensed steel-blue type, pale blue 3D objects (a camera, a gear) half
   // out of the sheet, a barcode, fine print and crop marks.
-  { id: "poster", n: ["Swiss poster", "پوستر سوئیسی"], cat: "reels", bigPic: true, cine: { bg: ["#efece4", "#d9d5ca"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["postermix", "anton"],
+  { id: "poster", te: "drop", n: ["Swiss poster", "پوستر سوئیسی"], cat: "reels", bigPic: true, cine: { bg: ["#efece4", "#d9d5ca"], bands: false, leaves: false, tilt: 0.1 }, headTop: 0.2, pals: ["steel", "steelrust"], fonts: ["postermix", "anton"],
     el: ["real", "3d", "color"], bg: "poster", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "number", de: "plus", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"],
     of: "grayscale(1) sepia(0.35) hue-rotate(175deg) saturate(1.9) brightness(1.12)", pf: "grayscale(1) sepia(0.3) hue-rotate(175deg) saturate(1.4)" },
   // Copied from the baashokooh clinic explainer: an off-white sheet, black
   // and white cut-out pictures, numbers in a dark green circle, points as
   // round badges, a wavy line across the page.
-  { id: "clinic", n: ["Clinic explainer", "توضیحی کلینیک"], cat: "reels", headTop: 0.2, pals: ["sagepaper"], fonts: ["archivoblack", "grotesk"],
+  { id: "clinic", te: "scale", n: ["Clinic explainer", "توضیحی کلینیک"], cat: "reels", headTop: 0.2, pals: ["sagepaper"], fonts: ["archivoblack", "grotesk"],
     el: ["real", "3d", "hc"], bg: "sheet", al: "c", tt: "plain", ef: "float", ec: "ink", ls: "badge", de: "wave", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "zoom"],
     of: "grayscale(1) contrast(1.1)", pf: "grayscale(1) contrast(1.15)" },
-  { id: "explainer", n: ["Explainer paper", "کاغذی توضیحی"], cat: "explain", pals: ["cream", "newsprint", "teal", "kraft", "peach", "sage"], fonts: ["archivoblack", "grotesk", "archivo"],
+  { id: "explainer", te: "skew", n: ["Explainer paper", "کاغذی توضیحی"], cat: "explain", pals: ["cream", "newsprint", "teal", "kraft", "peach", "sage"], fonts: ["archivoblack", "grotesk", "archivo"],
     el: ["3d", "color"], bg: "paper", al: "c", tt: "marker", ef: "float", ec: "ink", ls: "badge", de: "scraps", fr: "none", cp: "pill", kd: "ring", tr: ["whip", "wipe"] },
   { id: "newsroom", n: ["Newsroom", "اتاق خبر"], cat: "news", pals: ["bulletin", "crimson", "navy", "mono"], fonts: ["anton", "oswald", "bebas"],
     el: ["flat", "ph-fill"], bg: "flat", al: "l", tt: "tape", ef: "tile", ec: "paper", ls: "number", de: "none", fr: "ticker", cp: "box", kd: "block", tr: ["wipe", "flash"] },
-  { id: "neon", n: ["Neon night", "شب نئون"], cat: "dark", pals: ["cyan", "violet", "lime", "sunset"], fonts: ["anton", "bebas", "unbounded", "mono"],
+  { id: "neon", te: "none", n: ["Neon night", "شب نئون"], cat: "dark", pals: ["cyan", "violet", "lime", "sunset"], fonts: ["anton", "bebas", "unbounded", "mono"],
     el: ["ph-thin", "ph-light"], bg: "grain", al: "c", tt: "glow", ef: "glow", ec: "a1", ls: "glow", de: "orbs", fr: "none", cp: "glow", kd: "glowbox", tr: ["zoomblur", "flash"] },
-  { id: "swiss", n: ["Swiss grid", "شبکهٔ سوئیسی"], cat: "clean", pals: ["white", "bone", "sand", "slate"], fonts: ["grotesk", "bricolage", "archivo"],
+  { id: "swiss", te: "slideL", n: ["Swiss grid", "شبکهٔ سوئیسی"], cat: "clean", pals: ["white", "bone", "sand", "slate"], fonts: ["grotesk", "bricolage", "archivo"],
     el: ["ph-bold", "ph-fill"], bg: "swiss", al: "l", tt: "swiss", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "index", cp: "plain", kd: "square", tr: ["whip", "wipe"] },
   { id: "cutout", n: ["Paper cut-out", "کاغذ بریده"], cat: "hand", pals: ["kraft", "cream", "pinkpop", "peach"], fonts: ["archivoblack", "kids", "shrik"],
     el: ["color", "3d"], bg: "paper", al: "c", tt: "strip", ef: "sticker", ec: "ink", ls: "paper", de: "tape", fr: "none", cp: "strip", kd: "scribble", tr: ["whip", "wipe"] },
@@ -15650,13 +15650,13 @@ const VS_GX_STYLES = [
     el: ["tb", "ph-thin"], bg: "blueprint", al: "l", tt: "bracket", ef: "frame", ec: "ink", ls: "bullet", de: "plus", fr: "corners", cp: "mono", kd: "dim", tr: ["glitch", "zoomblur"] },
   { id: "chalk", n: ["Chalkboard", "تخته‌سیاه"], cat: "hand", pals: ["chalkgreen", "chalkblack"], fonts: ["chalk", "hand"],
     el: ["hc", "tb"], bg: "chalk", al: "c", tt: "chalk", ef: "chalk", ec: "ink", ls: "check", de: "doodles", fr: "wood", cp: "hand", kd: "ring", tr: ["wipe", "whip"] },
-  { id: "comic", n: ["Pop comic", "کمیک"], cat: "fun", pals: ["comic", "pop", "sunny", "sky"], fonts: ["bangers", "kids", "bungee"],
+  { id: "comic", te: "pop", n: ["Pop comic", "کمیک"], cat: "fun", pals: ["comic", "pop", "sunny", "sky"], fonts: ["bangers", "kids", "bungee"],
     el: ["color", "3d"], bg: "comic", al: "c", tt: "outline", ef: "burst", ec: "ink", ls: "speech", de: "stars", fr: "thick", cp: "comic", kd: "burst", tr: ["whip", "flash"] },
-  { id: "luxe", n: ["Luxury editorial", "ادیتوریال لوکس"], cat: "elegant", pals: ["gold", "emerald", "wine", "ivory"], fonts: ["instrument", "serif", "caslon"],
+  { id: "luxe", te: "spread", n: ["Luxury editorial", "ادیتوریال لوکس"], cat: "elegant", pals: ["gold", "emerald", "wine", "ivory"], fonts: ["instrument", "serif", "caslon"],
     el: ["color", "ph-thin"], bg: "grain", al: "c", tt: "serif", ef: "plain", ec: "a1", ls: "roman", de: "lines", fr: "gold", cp: "plain", kd: "lines", tr: ["zoom", "flash"] },
-  { id: "glass", n: ["Tech glass", "شیشه‌ای"], cat: "clean", pals: ["slate", "violet", "ocean", "midnight"], fonts: ["sora", "unbounded", "grotesk"],
+  { id: "glass", te: "blur", n: ["Tech glass", "شیشه‌ای"], cat: "clean", pals: ["slate", "violet", "ocean", "midnight"], fonts: ["sora", "unbounded", "grotesk"],
     el: ["ph-duo", "3d"], bg: "mesh", al: "c", tt: "plain", ef: "glass", ec: "ink", ls: "cards", de: "orbs", fr: "none", cp: "glass", kd: "glass", tr: ["zoom", "zoomblur"] },
-  { id: "retro", n: ["70s retro", "رترو هفتادی"], cat: "fun", pals: ["seventies", "mustard", "dusk", "pop"], fonts: ["shrik", "righteous", "fraunces"],
+  { id: "retro", te: "tilt", n: ["70s retro", "رترو هفتادی"], cat: "fun", pals: ["seventies", "mustard", "dusk", "pop"], fonts: ["shrik", "righteous", "fraunces"],
     el: ["flat", "color"], bg: "sunburst", al: "c", tt: "shadow", ef: "sun", ec: "ink", ls: "pills", de: "arcs", fr: "round", cp: "pill", kd: "sun", tr: ["wipe", "whip"] },
   { id: "notebook", n: ["Notebook", "دفترچه"], cat: "hand", pals: ["notebook", "yellowpad"], fonts: ["hand", "marker"],
     el: ["color", "hc"], bg: "lined", al: "l", tt: "hand", ef: "doodle", ec: "ink", ls: "check", de: "doodles", fr: "holes", cp: "hand", kd: "scribble", tr: ["whip", "wipe"] },
@@ -15666,23 +15666,23 @@ const VS_GX_STYLES = [
     el: ["tb", "ph-regular"], bg: "scan", al: "l", tt: "type", ef: "bracket", ec: "a1", ls: "bullet", de: "none", fr: "crt", cp: "mono", kd: "bracket", tr: ["glitch"] },
   { id: "blocks", n: ["Bold blocks", "بلوک‌های پررنگ"], cat: "bold", pals: ["pop", "candy", "ocean", "crimson"], fonts: ["anton", "bebas", "archivoblack"],
     el: ["ph-fill", "flat"], bg: "flat", al: "c", tt: "block", ef: "plain", ec: "a1", ls: "number", de: "blocks", fr: "none", cp: "box", kd: "block", tr: ["wipe", "whip"] },
-  { id: "minimal", n: ["Minimal mono", "مینیمال"], cat: "clean", pals: ["white", "sand", "sage", "slate"], fonts: ["grotesk", "sora", "instrument"],
+  { id: "minimal", te: "rise", n: ["Minimal mono", "مینیمال"], cat: "clean", pals: ["white", "sand", "sage", "slate"], fonts: ["grotesk", "sora", "instrument"],
     el: ["ph-light", "ph-thin"], bg: "flat", al: "c", tt: "plain", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "whip"] },
   { id: "brutal", n: ["Brutalist", "بروتالیست"], cat: "bold", pals: ["brutal", "limepaper", "pinkpop"], fonts: ["mono", "archivoblack", "grotesk"],
     el: ["ph-bold", "flat"], bg: "dots", al: "l", tt: "hard", ef: "hard", ec: "ink", ls: "hard", de: "none", fr: "thick", cp: "hard", kd: "hard", tr: ["whip", "glitch"] },
   { id: "collage", n: ["Magazine collage", "کلاژ مجله"], cat: "news", pals: ["newsprint", "cream", "mono"], fonts: ["archivoblack", "serif", "fraunces"],
     el: ["color", "3d"], bg: "newsprint", al: "c", tt: "ransom", ef: "sticker", ec: "ink", ls: "tape", de: "scraps", fr: "none", cp: "strip", kd: "scribble", tr: ["whip", "wipe"] },
-  { id: "studio", n: ["3D studio", "استودیو سه‌بعدی"], cat: "bold", pals: ["studioblue", "studiopeach", "studiomint", "studiodark"], fonts: ["sora", "unbounded", "grotesk"],
+  { id: "studio", te: "zoomout", n: ["3D studio", "استودیو سه‌بعدی"], cat: "bold", pals: ["studioblue", "studiopeach", "studiomint", "studiodark"], fonts: ["sora", "unbounded", "grotesk"],
     el: ["3d", "color"], bg: "studio", al: "c", tt: "plain", ef: "pedestal", ec: "ink", ls: "cards", de: "sparkles", fr: "none", cp: "pill", kd: "spot", tr: ["zoom", "zoomblur"] },
-  { id: "water", n: ["Watercolour", "آبرنگ"], cat: "elegant", pals: ["forest", "peach", "lavender", "sage"], fonts: ["fraunces", "serif", "hand"],
+  { id: "water", te: "flip", n: ["Watercolour", "آبرنگ"], cat: "elegant", pals: ["forest", "peach", "lavender", "sage"], fonts: ["fraunces", "serif", "hand"],
     el: ["color", "flat"], bg: "water", al: "c", tt: "plain", ef: "wash", ec: "ink", ls: "dash", de: "leaves", fr: "none", cp: "plain", kd: "wash", tr: ["zoom", "whip"] },
-  { id: "cinema", n: ["Cinematic", "سینمایی"], cat: "dark", pals: ["noir", "tealorange", "gold"], fonts: ["bebas", "caslon", "instrument"],
+  { id: "cinema", te: "curtain", n: ["Cinematic", "سینمایی"], cat: "dark", pals: ["noir", "tealorange", "gold"], fonts: ["bebas", "caslon", "instrument"],
     el: ["hc", "ph-thin"], bg: "grain", al: "c", tt: "spaced", ef: "plain", ec: "ink", ls: "dash", de: "none", fr: "letterbox", cp: "sub", kd: "lines", tr: ["zoom", "flash"] },
-  { id: "sticker", n: ["Sticker pop", "استیکری"], cat: "fun", pals: ["candy", "sky", "sunny", "limepaper"], fonts: ["kids", "archivoblack", "unbounded"],
+  { id: "sticker", te: "slap", n: ["Sticker pop", "استیکری"], cat: "fun", pals: ["candy", "sky", "sunny", "limepaper"], fonts: ["kids", "archivoblack", "unbounded"],
     el: ["3d", "color"], bg: "dots", al: "c", tt: "sticker", ef: "sticker", ec: "ink", ls: "pills", de: "confetti", fr: "none", cp: "pill", kd: "burst", tr: ["whip", "zoomblur"] },
-  { id: "dash", n: ["Data dashboard", "داشبورد داده"], cat: "clean", pals: ["slate", "midnight", "paperlab", "white"], fonts: ["grotesk", "mono", "sora"],
+  { id: "dash", te: "unmask", n: ["Data dashboard", "داشبورد داده"], cat: "clean", pals: ["slate", "midnight", "paperlab", "white"], fonts: ["grotesk", "mono", "sora"],
     el: ["ph-duo", "ph-bold"], bg: "flat", al: "l", tt: "label", ef: "card", ec: "a1", ls: "bars", de: "none", fr: "header", cp: "glass", kd: "card", tr: ["zoom", "wipe"] },
-  { id: "ink", n: ["Ink sketch", "طرح جوهری"], cat: "hand", pals: ["inkpaper", "sepia"], fonts: ["marker", "hand"],
+  { id: "ink", te: "bleed", n: ["Ink sketch", "طرح جوهری"], cat: "hand", pals: ["inkpaper", "sepia"], fonts: ["marker", "hand"],
     el: ["hc", "ph-regular"], bg: "paper", al: "c", tt: "hand", ef: "sketch", ec: "ink", ls: "check", de: "splats", fr: "none", cp: "hand", kd: "scribble", tr: ["whip", "wipe"] },
 ];
 const VS_GX_MOTIONS = ["snappy", "smooth", "bouncy", "calm"];
@@ -16539,7 +16539,10 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
               } else ctx.fillStyle = color;
               ctx.globalAlpha = Math.min(1, q * 1.8);
               try { if (e < 1) ctx.filter = "blur(" + ((1 - e) * fpx * 0.12).toFixed(1) + "px)"; } catch (er) {}
-              ctx.fillText(wd, xx + (1 - e) * fpx * 0.35, by);
+              // sideways (the reels' own), floating up, or settling from close
+              if (st.bwm === "up") ctx.fillText(wd, xx, by + (1 - e) * fpx * 0.45);
+              else if (st.bwm === "zoom") { const z = 1 + 0.3 * (1 - e); ctx.translate(xx + ww / 2, by); ctx.scale(z, z); ctx.fillText(wd, -ww / 2, 0); }
+              else ctx.fillText(wd, xx + (1 - e) * fpx * 0.35, by);
               ctx.restore();
             }
             xx += ww + ctx.measureText(" ").width;
@@ -16561,7 +16564,18 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
     }
     const sp = tt === "spaced" ? 0.18 : 0;
     const label = tt === "spaced" || tt === "tape" || tt === "block" ? String(str).toUpperCase() : up(str);
-    const w0 = wrap(label, disp, px, maxW - (tt === "tape" || tt === "block" || tt === "hard" || tt === "strip" ? px * 0.6 : 0), o.maxLines || 3); px = w0.px;
+    const mx = maxW - (tt === "tape" || tt === "block" || tt === "hard" || tt === "strip" ? px * 0.6 : 0);
+    let w0 = wrap(label, disp, px, mx, o.maxLines || 3); px = w0.px;
+    // until every line fits: letter-spaced lines wrapped again narrower, and
+    // a word that cannot wrap (a phone number, a big figure) made smaller
+    for (let g = 0; g < 12; g++) {
+      ctx.font = font(disp, px);
+      const widest = Math.max(...w0.lines.map((l) => ctx.measureText(l).width + sp * px * (l.length - 1)));
+      if (widest <= mx) break;
+      const n0 = w0.lines.length;
+      if (sp) { w0 = wrap(label, disp, px, mx * Math.max(0.3, 0.82 - g * 0.07), o.maxLines || 3); px = w0.px; }
+      if (!sp || w0.lines.length === n0) { px *= Math.max(0.7, Math.min(0.95, mx / widest)); w0 = wrap(label, disp, px, mx, o.maxLines || 3); px = w0.px; }
+    }
     const lh = px * (tt === "swiss" ? 0.98 : tt === "tape" || tt === "block" || tt === "strip" || tt === "ransom" ? 1.28 : 1.1);
     const y0 = y - ((w0.lines.length - 1) * lh) / 2;
     ctx.font = font(disp, px);
@@ -16640,6 +16654,19 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         const last = i === boxes.length - 1 || n < chars;
         if (last && (n < chars || Math.floor(t * 2) % 2 === 0)) { ctx.fillStyle = acc; ctx.fillRect(b.x + ctx.measureText(b.ln.slice(0, n)).width + px * 0.08, b.y - px * 0.38, px * 0.45, px * 0.78); }
         ctx.restore(); return;
+      } else if (tt === "hand" && st.te === "bleed") {
+        // ink soaking into the paper: word by word, a soft blot sharpening
+        let xx = b.x; const spw = ctx.measureText(" ").width;
+        b.ln.split(" ").forEach((wd, k) => {
+          const q = Math.max(0, Math.min(1, (t - tl - k * 0.14) / 0.42));
+          if (q > 0) {
+            ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.6);
+            try { if (q < 1) ctx.filter = "blur(" + ((1 - q) * px * 0.18).toFixed(1) + "px)"; } catch (er) {}
+            ctx.fillStyle = color; ctx.fillText(wd, xx, b.y); ctx.restore();
+          }
+          xx += ctx.measureText(wd).width + spw;
+        });
+        ctx.restore(); return;
       } else if (tt === "hand") {
         // written left to right
         const q = Math.max(0, Math.min(1, (t - tl) / (0.25 + b.ln.length * 0.03)));
@@ -16662,8 +16689,30 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         ctx.fillStyle = acc; const s = px * 0.42 * a2; ctx.fillRect(b.x, b.y - px * 1.05 - s, s, s);
       }
       ctx.globalAlpha = a2;
-      const dy = (1 - p) * px * 0.9;
-      ctx.beginPath(); ctx.rect(b.x - px * 1.2, b.y - px * 0.85, b.w + px * 2.4, px * 1.7); ctx.clip();
+      // each style brings its lines in its own way (st.te); all of them eased
+      const te = st.te || "rise", q1 = 1 - Math.min(1, p), cxl = b.x + b.w / 2;
+      const dy = te === "rise" || te === "skew" ? (1 - p) * px * 0.9 : te === "drop" ? -(1 - p) * px * 0.9 : te === "tilt" ? q1 * px * 0.5 : 0;
+      ctx.beginPath();
+      if (te === "unmask") ctx.rect(b.x - px * 0.3, b.y - px * 0.85, (b.w + px * 0.6) * Math.min(1, p), px * 1.7);
+      else if (te === "curtain") ctx.rect(cxl - (b.w / 2 + px * 0.3) * Math.min(1, p), b.y - px * 0.85, (b.w + px * 0.6) * Math.min(1, p), px * 1.7);
+      else if (te === "rise" || te === "drop" || te === "slideL" || te === "slideR" || te === "swipe") ctx.rect(b.x - px * 1.2, b.y - px * 0.85, b.w + px * 2.4, px * 1.7);
+      else ctx.rect(b.x - b.w * 0.4 - px, b.y - px * 1.8, b.w * 1.8 + px * 2, px * 3.6);
+      ctx.clip();
+      if (te === "slideL" || te === "swipe") ctx.translate(-q1 * px * 1.1, 0);
+      else if (te === "slideR") ctx.translate(q1 * px * 1.1, 0);
+      const raw = Math.max(0, Math.min(1, (t - tl) / Math.max(0.3, mv.d))), back = 1 + 2.7 * Math.pow(raw - 1, 3) + 1.7 * Math.pow(raw - 1, 2);
+      let sx = 1, sy = 1, rot = 0, skx = 0;
+      if (te === "scale") sx = sy = 0.82 + 0.18 * Math.min(1, p);
+      else if (te === "zoomout") sx = sy = 1 + 0.32 * q1;
+      else if (te === "pop") { sx = sy = 0.55 + 0.45 * back; ctx.globalAlpha = Math.min(1, raw * 3); }
+      else if (te === "slap") { sx = sy = 1 + 0.45 * q1; rot = -0.07 * q1; }
+      else if (te === "spread") sx = 1 + 0.16 * q1;
+      else if (te === "flip") sy = Math.max(0.02, Math.min(1, p));
+      else if (te === "tilt") rot = -0.11 * q1;
+      else if (te === "skew") skx = -0.32 * q1;
+      else if (te === "blur") sx = sy = 1 + 0.05 * q1;
+      if (sx !== 1 || sy !== 1 || rot || skx) { ctx.translate(cxl, b.y); if (rot) ctx.rotate(rot); if (skx) ctx.transform(1, 0, skx, 1, 0, 0); ctx.scale(sx, sy); ctx.translate(-cxl, -b.y); }
+      if ((te === "blur" || te === "swipe") && q1 > 0.01) { try { ctx.filter = "blur(" + (q1 * px * 0.14).toFixed(1) + "px)"; } catch (er) {} }
       if (tt === "glow") {
         // switched on: a flicker, then a steady glow
         const fl = t - tl < 0.3 ? (Math.floor((t - tl) * 30) % 3 ? 1 : 0.35) : 1;
