@@ -11584,56 +11584,56 @@ async function vsClipLuma(el) {
 //   neon  - condensed caps with a cyan glow under a thin script (reel 2)
 //   luxe  - a heavy wide sans filled with a lilac texture, thin spaced caps (reel 3)
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
-const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&family=Outfit:wght@500;800&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Bodoni+Moda:ital,wght@1,600&display=swap";
+const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Space+Grotesk:wght@500;600&family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&family=Outfit:wght@500;800&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Bodoni+Moda:ital,wght@1,600&display=swap";
 const VS_PRO_PACKS = {
   // Copied from the podcast-clip reels (the mic reel, the Estate interview):
   // plain bold white words with a soft dark shadow, two or three at a time,
   // over the chest; jump cuts that switch between a wide and a close framing;
   // the topic in a white box with black words at the start.
-  podcast: { hero: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "snap", shade: true }, line: true, maxWords: 3, maxLetters: 18,
-           small: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "snap", shade: true },
-           single: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, y: 0.62, enter: "snap", shade: true },
-           grade: "contrast(1.04) saturate(1.04)", warm: "", hookBox: true, altZoom: [1, 1.2], noBw: true, trans: ["", "", "zoomblur", ""] },
+  podcast: { hero: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "slide", shade: true }, line: true, maxWords: 3, maxLetters: 18,
+           small: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, enter: "slide", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.062, colors: ["#ffffff"], track: -0.015, y: 0.62, enter: "slide", shade: true },
+           grade: "contrast(1.04) saturate(1.04)", warm: "", hookBox: true, altZoom: [1, 1.2], noBw: true, trans: ["zoom", "expo", "zoom", "leak"] },
   // Copied from the Seattle realtor vlog (the man getting out of the car):
   // small bold white words at the chest, a filmic grade - deep greens, a pink
   // sky - and a whip pan between places.
-  vlog: { hero: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true }, line: true, maxWords: 3, maxLetters: 20,
-           small: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true },
-           single: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "fade", shade: true },
-           grade: "contrast(1.12) saturate(0.92) sepia(0.08) hue-rotate(-6deg) brightness(0.98)", warm: "rgba(255,150,170,0.06)", noBw: true, trans: ["whip", "zoomblur", "whip", "leak"] },
+  vlog: { hero: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "track", shade: true }, line: true, maxWords: 3, maxLetters: 20,
+           small: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, enter: "track", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.042, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "track", shade: true },
+           grade: "contrast(1.12) saturate(0.92) sepia(0.08) hue-rotate(-6deg) brightness(0.98)", warm: "rgba(255,150,170,0.06)", noBw: true, trans: ["leak", "rack", "leak", "expo"] },
   // Copied from the new-listing reel (the flyer that blows away): small
   // spaced capitals, low, the whole line up at once in grey and each word
   // turning white as it is said.
-  reveal: { hero: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "karaoke", dim: 0.42 }, line: true, maxWords: 4, maxLetters: 26,
-           small: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "karaoke", dim: 0.42 },
-           single: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, y: 0.76, enter: "karaoke", dim: 0.42 },
-           grade: "contrast(1.08) saturate(1.06) brightness(1.02)", warm: "rgba(255,190,130,0.05)", noBw: true, trans: ["zoomblur", "whip", "leak", "zoomblur"] },
+  reveal: { hero: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "mask", dim: 0.42 }, line: true, maxWords: 4, maxLetters: 26,
+           small: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, enter: "mask", dim: 0.42 },
+           single: { fam: "Montserrat", w: 600, size: 0.036, colors: ["#ffffff"], upper: true, track: 0.06, y: 0.76, enter: "mask", dim: 0.42 },
+           grade: "contrast(1.08) saturate(1.06) brightness(1.02)", warm: "rgba(255,190,130,0.05)", noBw: true, trans: ["wipe", "zoomblur", "wipe", "expo"] },
   // Copied from the handheld walk-and-talk reel: one word at a time in a
   // heavy white serif, at the chest.
-  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "snap", shade: true }, line: true, maxWords: 1, maxLetters: 14,
-           small: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "snap", shade: true },
-           single: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], y: 0.5, enter: "snap", shade: true },
-           grade: "contrast(1.06) saturate(1.08)", warm: "", noBw: true, trans: ["whip", "zoomblur", "whip", "zoomblur"] },
+  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true }, line: true, maxWords: 1, maxLetters: 14,
+           small: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true },
+           single: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], y: 0.5, enter: "flip", shade: true },
+           grade: "contrast(1.06) saturate(1.08)", warm: "", noBw: true, trans: ["rack", "leak", "rack", "zoomblur"] },
   // Copied from the "coming soon" listing reel: the hook in huge heavy yellow
   // capitals stacked over the head, behind it; small white words for the rest.
   yellowcaps: { hero: { fam: "Archivo Black", w: 400, size: 0.19, colors: ["#f7c41b"], upper: true, track: -0.02, enter: "snap" },
            small: { fam: "Manrope", w: 600, size: 0.045, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Archivo Black", w: 400, size: 0.15, colors: ["#f7c41b"], upper: true, track: -0.02, y: 0.3, enter: "snap" },
-           grade: "contrast(1.08) saturate(1.14) brightness(1.03)", warm: "", noBw: true, trans: ["zoomblur", "expo", "zoomblur", "leak"] },
+           grade: "contrast(1.08) saturate(1.14) brightness(1.03)", warm: "", noBw: true, trans: ["zoomblur", "expo", "wipe", "leak"] },
   // Copied from the street-interview reel ("what comes to your mind when you
   // hear the word home"): small bold capitals on two lines, the word that
   // matters in sky blue.
-  street: { hero: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#38b6f4"], upper: true, enter: "snap", shade: true }, line: true, maxWords: 6, maxLetters: 30,
-           small: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, enter: "snap", shade: true },
-           single: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, y: 0.4, enter: "snap", shade: true },
-           grade: "contrast(1.08) saturate(1.16)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "expo"] },
+  street: { hero: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#38b6f4"], upper: true, enter: "drop", shade: true }, line: true, maxWords: 6, maxLetters: 30,
+           small: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, enter: "drop", shade: true },
+           single: { fam: "Montserrat", w: 800, size: 0.04, colors: ["#ffffff"], upper: true, y: 0.4, enter: "drop", shade: true },
+           grade: "contrast(1.08) saturate(1.16)", warm: "", noBw: true, trans: ["zoom", "leak", "expo", "zoom"] },
   // Copied from the 25-acre estate reel: the word that matters as big 3D
   // letters standing in the place - a pale face, its depth falling back and
   // down - behind the speaker; drone and room footage around it.
   block3d: { hero: { fam: "Oswald", w: 700, size: 0.24, colors: ["#f4f2f6", "#c6b2e6", "#e7e7e7"], upper: true, extrude: 0.07, enter: "rise" },
            small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
            single: { fam: "Oswald", w: 700, size: 0.2, colors: ["#f4f2f6"], upper: true, extrude: 0.07, y: 0.4, enter: "rise" },
-           grade: "contrast(1.06) saturate(1.1) brightness(1.02)", warm: "", noBw: true, trans: ["zoomblur", "leak", "zoomblur", "zoomblur"] },
+           grade: "contrast(1.06) saturate(1.1) brightness(1.02)", warm: "", noBw: true, trans: ["zoom", "zoomblur", "leak", "zoom"] },
   // Doodle pop: orange and yellow marker strokes round the word that matters -
   // hand-drawn loops, sparks, curved arrows, underlines
   doodle: { hero: { fam: "Archivo Black", w: 400, size: 0.13, colors: ["#ff7a2f", "#ffd23f"], track: -0.02, enter: "pop", shade: true }, moves: ["circle", "spark", "arrow", "underline"],
@@ -11662,41 +11662,41 @@ const VS_PRO_PACKS = {
   // that matters in a heavy rounded grotesk, pale yellow with a soft glow,
   // behind the speaker's head; the rest small and white at the chest; cuts
   // that burst into light and come sharp, a focus pull onto a new angle.
-  suite: { hero: { fam: "Outfit", w: 800, size: 0.17, colors: ["#f1ee8c", "#e8e27a"], track: -0.02, glowSoft: true, enter: "blur" },
+  suite: { hero: { fam: "Outfit", w: 800, size: 0.17, colors: ["#f1ee8c", "#e8e27a"], track: -0.02, glowSoft: true, enter: "bloom" },
            small: { fam: "Outfit", w: 500, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
-           single: { fam: "Outfit", w: 500, size: 0.056, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           single: { fam: "Outfit", w: 500, size: 0.056, colors: ["#ffffff"], y: 0.6, enter: "bloom", shade: true },
            grade: "contrast(1.1) saturate(0.94) brightness(0.97)", warm: "", outT: 0.2, finder: true, trans: ["expo", "rack", "expo", "leak"] },
   // Copied from the "top 1%" realtor reel (the white kitchen): the word that
   // matters in purple serif italic capitals across the speaker, a figure in
   // wide capitals going pink to ice blue with a glow, small white words.
-  trust: { hero: { fam: "Bodoni Moda", w: 600, italic: true, upper: true, size: 0.125, colors: ["#5a2d86", "#46256f"], adapt: ["#4f2380", "#e4d6ff"], track: -0.04, enter: "blur" },
+  trust: { hero: { fam: "Bodoni Moda", w: 600, italic: true, upper: true, size: 0.125, colors: ["#5a2d86", "#46256f"], adapt: ["#4f2380", "#e4d6ff"], track: -0.04, enter: "skew" },
            statHero: { fam: "Outfit", w: 800, upper: true, size: 0.16, colors: ["#e46cff"], grad2: ["#e46cff", "#9ef4ff"], glowSoft: true, track: -0.01, enter: "blur" },
            small: { fam: "Arimo", w: 400, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
-           single: { fam: "Arimo", w: 400, size: 0.054, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, size: 0.054, colors: ["#ffffff"], y: 0.6, enter: "skew", shade: true },
            grade: "contrast(1.03) saturate(1.03) brightness(1.05)", warm: "rgba(255,200,170,0.04)", outT: 0.22, trans: ["expo", "expo", "rack", "expo"] },
   // Copied from the bridge-and-park walk reel: the line in a bold italic
   // grotesk, white, the words before it small and light italic overlapping
   // its top; out of focus and into it between the walks.
-  walk: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.105, colors: ["#ffffff"], track: -0.045, enter: "blur", shade: true },
+  walk: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.105, colors: ["#ffffff"], track: -0.045, enter: "cascade", shade: true },
            small: { fam: "Arimo", w: 400, italic: true, size: 0.052, colors: ["#f2f2f2"], track: -0.03, enter: "fade", shade: true },
-           single: { fam: "Arimo", w: 400, italic: true, size: 0.056, colors: ["#ffffff"], track: -0.03, y: 0.58, enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, italic: true, size: 0.056, colors: ["#ffffff"], track: -0.03, y: 0.58, enter: "cascade", shade: true },
            grade: "contrast(1.06) saturate(1.1) brightness(1.03)", warm: "rgba(255,190,140,0.04)", outT: 0.22, trans: ["rack", "expo", "rack", "expo"] },
   // Copied from the content-agency reel (two speakers, many rooms): the word
   // that matters in a bold italic grotesk going violet to pink, the rest tiny
   // and white; a number in tall teal serif behind the speaker.
-  focus: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.13, colors: ["#b45cff"], grad2: ["#a64dff", "#ff7fd6"], track: -0.04, glowSoft: true, enter: "blur" },
+  focus: { hero: { fam: "Arimo", w: 700, italic: true, size: 0.13, colors: ["#b45cff"], grad2: ["#a64dff", "#ff7fd6"], track: -0.04, glowSoft: true, enter: "focus" },
            statHero: { fam: "DM Serif Display", w: 400, size: 0.2, colors: ["#2f6a6a"], track: -0.03, enter: "blur" },
            small: { fam: "Arimo", w: 400, size: 0.04, colors: ["#ffffff"], track: -0.02, enter: "fade", shade: true },
-           single: { fam: "Arimo", w: 400, size: 0.058, colors: ["#ffffff"], track: -0.04, y: 0.58, enter: "fade", shade: true },
+           single: { fam: "Arimo", w: 400, size: 0.058, colors: ["#ffffff"], track: -0.04, y: 0.58, enter: "focus", shade: true },
            grade: "contrast(1.08) saturate(1.05) brightness(1.01)", warm: "", outT: 0.2, trans: ["expo", "zoomblur", "expo", "rack"] },
   // Copied from the Kelsie realtor reel: small light white words as they are
   // said; the word that matters in a bold lowercase grotesk, a colour taken
   // from a calm palette (stone grey, teal, wine) going lighter to the right,
   // behind the speaker's head; the small words overlapping its top; each
   // line dissolving out as the next comes.
-  agent: { hero: { fam: "Manrope", w: 800, size: 0.2, colors: ["#5d5b58", "#23897f", "#74183a"], track: -0.03, hgrad: true, enter: "fade" },
-           small: { fam: "Manrope", w: 600, size: 0.06, colors: ["#ffffff"], track: -0.01, enter: "fade", shade: true },
-           single: { fam: "Manrope", w: 600, size: 0.062, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "fade", shade: true },
+  agent: { hero: { fam: "Manrope", w: 800, size: 0.2, colors: ["#5d5b58", "#23897f", "#74183a"], track: -0.03, hgrad: true, enter: "split" },
+           small: { fam: "Manrope", w: 600, size: 0.06, colors: ["#ffffff"], track: -0.01, enter: "split", shade: true },
+           single: { fam: "Manrope", w: 600, size: 0.062, colors: ["#ffffff"], track: -0.01, y: 0.62, enter: "split", shade: true },
            grade: "contrast(1.04) saturate(1.02) brightness(1.02)", warm: "", outT: 0.24, insColors: ["#ffffff", "#3fb8ac"], trans: ["leak", "zoomblur", "leak", "zoomblur"] },
   // Copied from the Alight Motion personal-brand reel: a small white line
   // with a soft glow over the word that matters in heavy wide capitals, cyan
@@ -11704,11 +11704,11 @@ const VS_PRO_PACKS = {
   // gives way to a dark teal set lit cyan from the side with a neon line at
   // the foot; lists on that set - a condensed cyan heading, a white line under
   // it, the points on a thin rail with diamond bullets.
-  cyan: { hero: { fam: "Montserrat", w: 900, size: 0.2, colors: ["#2feef4"], upper: true, vgrad: true, glow: true, glowColor: "rgba(31,227,238,0.85)", enter: "rise" },
-           small: { fam: "Montserrat", w: 800, size: 0.072, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", enter: "rise" },
-           single: { fam: "Montserrat", w: 800, size: 0.08, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", y: 0.66, enter: "rise" },
+  cyan: { hero: { fam: "Montserrat", w: 900, size: 0.2, colors: ["#2feef4"], upper: true, vgrad: true, glow: true, glowColor: "rgba(31,227,238,0.85)", enter: "wave" },
+           small: { fam: "Montserrat", w: 800, size: 0.072, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", enter: "wave" },
+           single: { fam: "Montserrat", w: 800, size: 0.08, colors: ["#ffffff"], halo: "rgba(200,255,255,0.55)", y: 0.66, enter: "wave" },
            grade: "contrast(1.06) saturate(1.02)", warm: "", bgfill: "teal", tealList: true, clear: true,
-           burn: "#2fb9ff", trans: ["burn", "burn", "zoomblur", "burn"] },
+           burn: "#2fb9ff", trans: ["burn", "expo", "zoomblur", "burn"] },
   // Copied from the dental-clinic product reel: the word that matters in
   // condensed yellow capitals glowing like neon, behind the speaker, the room
   // behind them dimmed as it lands; a small white line over a yellow glowing
@@ -11716,24 +11716,24 @@ const VS_PRO_PACKS = {
   // either solid or as a thin glowing outline; a dark foot; props in colour.
   yellow: { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["#ffd60a"], upper: true, glow: true, outlineNum: true, enter: "flicker" },
            small: { fam: "Manrope", w: 600, size: 0.055, colors: ["#ffffff", "#ffd60a"], enter: "fade", shade: true },
-           single: { fam: "Manrope", w: 800, size: 0.05, colors: ["#16120a"], marker: "#ffd60a", y: 0.15, enter: "slide" },
+           single: { fam: "Manrope", w: 800, size: 0.05, colors: ["#16120a"], marker: "#ffd60a", y: 0.15, enter: "flicker" },
            grade: "contrast(1.08) saturate(1.04) brightness(0.97)", warm: "", band: true, bgfill: "dim", callColor: true,
            trans: ["expo", "zoomblur", "leak", "zoomblur"] },
   // Copied from the caption-placement tutorial reel: one or two words at a
   // time, a tight semibold grotesk in white, low in the frame; the word that
   // matters on a translucent olive-yellow pill with round ends.
-  pill: { hero: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, marker: "rgba(201,180,25,0.78)", pill: true, enter: "focus", shade: true }, line: true, maxWords: 2, maxLetters: 13,
-           small: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, enter: "focus", shade: true },
-           single: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, y: 0.76, enter: "focus", shade: true },
+  pill: { hero: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, marker: "rgba(201,180,25,0.78)", pill: true, enter: "stretch", shade: true }, line: true, maxWords: 2, maxLetters: 13,
+           small: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, enter: "stretch", shade: true },
+           single: { fam: "Manrope", w: 700, size: 0.072, colors: ["#ffffff"], track: -0.025, y: 0.76, enter: "stretch", shade: true },
            grade: "contrast(1.05) saturate(1.02)", warm: "", trans: ["zoomblur", "leak", "zoomblur", "expo"] },
   // Copied from the $150-edit reel: small white captions word by word at the
   // chest; the word that matters in huge condensed gold capitals; the
   // background behind the speaker washed gold or red as it lands (the speaker
   // keeps their own colours); lists in a gold bar over a dark panel; the
   // speaker's name on a swinging ID badge; props in full colour.
-  goldpro: { hero: { fam: "Anton", w: 400, size: 0.29, colors: ["#f3c969"], upper: true, metal: true, enter: "rise", shade: true },
+  goldpro: { hero: { fam: "Anton", w: 400, size: 0.29, colors: ["#f3c969"], upper: true, metal: true, enter: "roll", shade: true },
            small: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], enter: "fade", shade: true },
-           single: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], y: 0.6, enter: "fade", shade: true },
+           single: { fam: "Manrope", w: 600, size: 0.05, colors: ["#ffffff"], y: 0.6, enter: "roll", shade: true },
            grade: "contrast(1.1) saturate(1.06) brightness(0.98)", warm: "", band: true, bgwash: ["#c99a1e", "#b3202a", "#c99a1e"], listPanel: true, badge: true, callColor: true,
            trans: ["invert", "zoomblur", "invert", "leak"] },
   // Copied from the walking-realtor reel (Listwell): lowercase Montserrat;
@@ -11741,76 +11741,99 @@ const VS_PRO_PACKS = {
   // negative, light blue or teal otherwise - the rest small and white around
   // it; every word slides in from the side smeared with motion, and slides
   // out the same way.
-  stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, glowSoft: true, enter: "swipe", shade: true }, semantic: true,
-           small: { fam: "Montserrat", w: 600, size: 0.075, colors: ["#ffffff"], enter: "swipe", shade: true },
-           single: { fam: "Montserrat", w: 700, size: 0.17, colors: ["#ffffff"], y: 0.62, enter: "swipe", shade: true },
-           grade: "contrast(1.08) saturate(1.05)", warm: "", burn: "#ffffff", trans: ["burn", "zoomblur", "burn", "leak"] },
+  stack: { hero: { fam: "Montserrat", w: 700, size: 0.2, colors: ["#5fd0ff", "#3fd6c4", "#5b9dff"], gloss: true, glowSoft: true, enter: "spin", shade: true }, semantic: true,
+           small: { fam: "Montserrat", w: 600, size: 0.075, colors: ["#ffffff"], enter: "spin", shade: true },
+           single: { fam: "Montserrat", w: 700, size: 0.17, colors: ["#ffffff"], y: 0.62, enter: "spin", shade: true },
+           grade: "contrast(1.08) saturate(1.05)", warm: "", burn: "#ffffff", trans: ["burn", "wipe", "burn", "leak"] },
   // The caption looks that lead the 2026 rankings of short-form captions
   // (OpusClip's 13.5M-clip study: 80% of viral clips carry burned-in,
   // word-by-word captions; the style rankings put the yellow-and-white
   // outlined capitals first and the outlined white capitals with a green /
   // yellow key word close behind). Two or three words at a time, a thick
   // black outline, no bounce - each word snaps on as it is said.
-  viral: { hero: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffe600", "#3dff6e"], upper: true, stroke: 0.2, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 16,
-           small: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, enter: "snap" },
-           single: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, y: 0.68, enter: "snap" },
-           grade: "contrast(1.12) saturate(1.2)", warm: "", trans: ["leak", "expo", "zoomblur", "leak"] },
-  punch: { hero: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#2bff6a", "#ffe11a"], upper: true, stroke: 0.17, shade: true, enter: "snap" }, line: true, maxWords: 3, maxLetters: 15,
-           small: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, enter: "snap" },
-           single: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, y: 0.7, enter: "snap" },
-           grade: "contrast(1.08) saturate(1.06)", warm: "", trans: ["leak", "zoomblur", "expo", "leak"] },
+  viral: { hero: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffe600", "#3dff6e"], upper: true, stroke: 0.2, shade: true, enter: "elastic" }, line: true, maxWords: 3, maxLetters: 16,
+           small: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, enter: "elastic" },
+           single: { fam: "Lilita One", w: 400, size: 0.118, colors: ["#ffffff"], upper: true, stroke: 0.2, shade: true, y: 0.68, enter: "elastic" },
+           grade: "contrast(1.12) saturate(1.2)", warm: "", trans: ["zoom", "zoomblur", "expo", "zoom"] },
+  punch: { hero: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#2bff6a", "#ffe11a"], upper: true, stroke: 0.17, shade: true, enter: "slam" }, line: true, maxWords: 3, maxLetters: 15,
+           small: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, enter: "slam" },
+           single: { fam: "Montserrat", w: 900, size: 0.1, colors: ["#ffffff"], upper: true, stroke: 0.17, shade: true, y: 0.7, enter: "slam" },
+           grade: "contrast(1.08) saturate(1.06)", warm: "", trans: ["burn", "zoom", "burn", "expo"] },
   // the whole line up at once, dimmed, a coloured box running under each
   // word as it is said
   karaoke: { hero: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" }, line: true, maxWords: 4, maxLetters: 20,
            small: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", enter: "karaoke" },
            single: { fam: "Poppins", w: 800, size: 0.088, colors: ["#ffffff"], upper: true, stroke: 0.12, karaoke: "#7b5cff", y: 0.7, enter: "karaoke" },
-           grade: "contrast(1.08) saturate(1.1)", warm: "", trans: ["leak", "expo", "zoomblur", "leak"] },
-  clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "rise" },
-           small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "rise", shade: true },
-           single: { fam: "Poppins", w: 700, size: 0.1, colors: ["#ffffff"], y: 0.6, enter: "rise", shade: true },
-           grade: "contrast(1.1) saturate(1.1) brightness(1.03)", warm: "rgba(255,176,96,0.07)", trans: ["zoomblur", "expo", "zoomblur", "leak"] },
+           grade: "contrast(1.08) saturate(1.1)", warm: "", trans: ["wipe", "leak", "wipe", "zoom"] },
+  clean: { hero: { fam: "Poppins", w: 800, size: 0.3, colors: ["#3dbcc6", "#ffffff"], enter: "glide" },
+           small: { fam: "Poppins", w: 700, size: 0.09, colors: ["#ffffff", "#8fe6df"], enter: "glide", shade: true },
+           single: { fam: "Poppins", w: 700, size: 0.1, colors: ["#ffffff"], y: 0.6, enter: "glide", shade: true },
+           grade: "contrast(1.1) saturate(1.1) brightness(1.03)", warm: "rgba(255,176,96,0.07)", trans: ["expo", "wipe", "expo", "leak"] },
   neon:  { hero: { fam: "Bebas Neue", w: 400, size: 0.21, colors: ["#38d8ff"], upper: true, glow: true, enter: "type" }, halves: true,
            small: { fam: "Sacramento", w: 400, size: 0.14, colors: ["#ffffff"], enter: "write", shade: true },
            single: { fam: "Bebas Neue", w: 400, size: 0.32, colors: ["#38d8ff"], upper: true, glow: true, y: 0.3, enter: "type" },
-           grade: "contrast(1.12) saturate(1.12)", warm: "", trans: ["leak", "zoomblur", "expo", "zoomblur"] },
-  luxe:  { hero: { fam: "Montserrat", w: 900, size: 0.25, colors: ["#c8b4e6"], texture: ["#b892f2", "#6a3fb8"], enter: "blur", shade: true },
-           small: { fam: "Montserrat", w: 800, size: 0.1, colors: ["#ffffff"], enter: "blur", shade: true },
-           single: { fam: "Montserrat", w: 300, size: 0.062, colors: ["#ffffff"], upper: true, track: 0.08, y: 0.62, enter: "fade", shade: true },
+           grade: "contrast(1.12) saturate(1.12)", warm: "", trans: ["burn", "zoomblur", "burn", "expo"] },
+  luxe:  { hero: { fam: "Montserrat", w: 900, size: 0.25, colors: ["#c8b4e6"], texture: ["#b892f2", "#6a3fb8"], enter: "unfold", shade: true },
+           small: { fam: "Montserrat", w: 800, size: 0.1, colors: ["#ffffff"], enter: "unfold", shade: true },
+           single: { fam: "Montserrat", w: 300, size: 0.062, colors: ["#ffffff"], upper: true, track: 0.08, y: 0.62, enter: "unfold", shade: true },
            stat: ["#3fb6ff", "#c2188f"],
-           grade: "contrast(1.08) saturate(1.18) brightness(1.03)", warm: "", trans: ["zoomblur", "zoomblur", "expo", "leak"] },
-  pop:   { hero: { fam: "Poppins", w: 800, size: 0.23, colors: ["#f6b400", "#1fd3ea"], enter: "pop" },
-           small: { fam: "DM Serif Display", w: 400, italic: true, size: 0.145, colors: ["#ffffff", "#1fd3ea", "#f6b400"], enter: "pop", shade: true },
-           single: { fam: "Poppins", w: 800, size: 0.16, colors: ["#f6b400", "#1fd3ea"], y: 0.3, enter: "pop" },
-           grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoomblur", "expo", "leak", "zoomblur"] },
+           grade: "contrast(1.08) saturate(1.18) brightness(1.03)", warm: "", trans: ["leak", "expo", "rack", "expo"] },
+  pop:   { hero: { fam: "Poppins", w: 800, size: 0.23, colors: ["#f6b400", "#1fd3ea"], enter: "ripple" },
+           small: { fam: "DM Serif Display", w: 400, italic: true, size: 0.145, colors: ["#ffffff", "#1fd3ea", "#f6b400"], enter: "ripple", shade: true },
+           single: { fam: "Poppins", w: 800, size: 0.16, colors: ["#f6b400", "#1fd3ea"], y: 0.3, enter: "ripple" },
+           grade: "contrast(1.14) saturate(1.22)", warm: "", trans: ["zoom", "wipe", "zoom", "zoomblur"] },
   // glowing condensed capitals in a colour taken from the video itself (an
   // orange shirt gives orange), a dark band at the foot, a neon line drawn
   // around the speaker at the start
-  glow:  { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["auto"], upper: true, glow: true, enter: "flicker" },
+  glow:  { hero: { fam: "Anton", w: 400, size: 0.27, colors: ["auto"], upper: true, glow: true, enter: "kick" },
            small: { fam: "Manrope", w: 800, size: 0.08, colors: ["#ffffff"], enter: "slide", shade: true },
-           single: { fam: "Anton", w: 400, size: 0.19, colors: ["auto"], upper: true, glow: true, y: 0.62, enter: "flicker" },
-           grade: "contrast(1.12) saturate(1.06) brightness(0.96)", warm: "", band: true, trail: true, trans: ["expo", "zoomblur", "leak", "zoomblur"] },
+           single: { fam: "Anton", w: 400, size: 0.19, colors: ["auto"], upper: true, glow: true, y: 0.62, enter: "kick" },
+           grade: "contrast(1.12) saturate(1.06) brightness(0.96)", warm: "", band: true, trail: true, trans: ["expo", "burn", "expo", "zoomblur"] },
   // metallic gold capitals with a shine across them, and a wash of colour over
   // the picture as each one lands
   gold:  { hero: { fam: "Oswald", w: 700, size: 0.25, colors: ["#f3c969"], upper: true, metal: true, enter: "shine", shade: true },
            small: { fam: "Manrope", w: 600, size: 0.072, colors: ["#ffffff"], enter: "slide", shade: true },
            single: { fam: "Oswald", w: 700, size: 0.17, colors: ["#f3c969"], upper: true, metal: true, y: 0.62, enter: "shine", shade: true },
-           grade: "contrast(1.1) saturate(1.04) sepia(0.1)", warm: "", tint: ["#b3202a", "#b8860b", "#1f4fa3"], trans: ["zoomblur", "expo", "zoomblur", "leak"] },
+           grade: "contrast(1.1) saturate(1.04) sepia(0.1)", warm: "", tint: ["#b3202a", "#b8860b", "#1f4fa3"], trans: ["leak", "zoom", "leak", "rack"] },
   // clean captions on one line, a marker sliding in behind the word that matters
-  highlight: { hero: { fam: "Manrope", w: 800, size: 0.085, colors: ["#141414"], marker: "#f7d038", enter: "slide" }, line: true,
-           small: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], enter: "slide", shade: true },
-           single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], y: 0.7, enter: "slide", shade: true },
-           grade: "contrast(1.06) saturate(1.04)", warm: "", paper: true, trans: ["whip", "expo", "whip", "zoomblur"] },
+  highlight: { hero: { fam: "Manrope", w: 800, size: 0.085, colors: ["#141414"], marker: "#f7d038", enter: "sweep" }, line: true,
+           small: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], sweep: "#f7d038", enter: "sweep", shade: true },
+           single: { fam: "Manrope", w: 800, size: 0.085, colors: ["#ffffff"], y: 0.7, sweep: "#f7d038", enter: "sweep", shade: true },
+           grade: "contrast(1.06) saturate(1.04)", warm: "", paper: true, trans: ["wipe", "expo", "wipe", "zoomblur"] },
   // words coloured by what they mean - money green, warnings red - in gradients,
   // landing with a bounce
   vivid: { hero: { fam: "Poppins", w: 800, size: 0.24, colors: ["#ffffff", "#4fa9ff"], gradFill: true, enter: "bounce" }, semantic: true,
            small: { fam: "Poppins", w: 700, size: 0.075, colors: ["#ffffff"], enter: "blur", shade: true },
            single: { fam: "Poppins", w: 800, size: 0.15, colors: ["#ffffff", "#4fa9ff"], gradFill: true, y: 0.6, enter: "bounce" },
-           grade: "contrast(1.1) saturate(1.15)", warm: "", trans: ["zoomblur", "whip", "expo", "zoomblur"] },
+           grade: "contrast(1.1) saturate(1.15)", warm: "", trans: ["zoomblur", "zoom", "expo", "wipe"] },
   // black and white, a serif, and one word in colour
   editorial: { hero: { fam: "DM Serif Display", w: 400, italic: true, size: 0.15, colors: ["#c43b4c", "#8e44ad"], enter: "glitch" },
            small: { fam: "DM Serif Display", w: 400, size: 0.075, colors: ["#ffffff"], enter: "fade", shade: true },
-           single: { fam: "DM Serif Display", w: 400, size: 0.085, colors: ["#ffffff"], y: 0.62, enter: "fade", shade: true },
-           grade: "grayscale(1) contrast(1.18) brightness(1.04)", warm: "", paper: true, trans: ["expo", "zoomblur", "expo", "zoomblur"] },
+           single: { fam: "DM Serif Display", w: 400, size: 0.085, colors: ["#ffffff"], y: 0.62, enter: "glitch", shade: true },
+           grade: "grayscale(1) contrast(1.18) brightness(1.04)", warm: "", paper: true, trans: ["rack", "wipe", "rack", "expo"] },
+  // Comic: the comic-book caption - Bangers, a thick black edge, yellow and
+  // pink key words; each word zooms in from far off
+  comic: { hero: { fam: "Bangers", w: 400, size: 0.13, colors: ["#ffe14d", "#ff5c8a"], upper: true, stroke: 0.22, shade: true, enter: "zoomin" }, line: true, maxWords: 3, maxLetters: 15,
+           small: { fam: "Bangers", w: 400, size: 0.13, colors: ["#ffffff"], upper: true, stroke: 0.22, shade: true, enter: "zoomin" },
+           single: { fam: "Bangers", w: 400, size: 0.13, colors: ["#ffffff"], upper: true, stroke: 0.22, shade: true, y: 0.68, enter: "zoomin" },
+           grade: "contrast(1.14) saturate(1.25)", warm: "", trans: ["zoom", "burn", "zoom", "expo"] },
+  // Outline: a tall condensed word drawn as an outline, then filled; the
+  // small words plain beside it
+  hollow: { hero: { fam: "Anton", w: 400, size: 0.15, colors: ["#ffffff", "#7fe3ff"], upper: true, shade: true, drawLine: "#ffffff", enter: "draw" },
+            small: { fam: "Anton", w: 400, size: 0.068, colors: ["#ffffff"], upper: true, shade: true, enter: "fade" },
+            single: { fam: "Anton", w: 400, size: 0.15, colors: ["#ffffff"], upper: true, shade: true, drawLine: "#ffffff", y: 0.62, enter: "draw" },
+            grade: "contrast(1.1) saturate(0.85) brightness(0.96)", warm: "", trans: ["wipe", "rack", "wipe", "leak"] },
+  // Minimal: small, plain, sentence case, four words at a time - the quiet
+  // caption of the calm talking-head reels
+  minimal: { hero: { fam: "Space Grotesk", w: 600, size: 0.074, colors: ["#ffffff"], shade: true, enter: "fade" }, line: true, maxWords: 4, maxLetters: 22,
+             small: { fam: "Space Grotesk", w: 500, size: 0.074, colors: ["#ffffff"], shade: true, enter: "fade" },
+             single: { fam: "Space Grotesk", w: 600, size: 0.074, colors: ["#ffffff"], shade: true, y: 0.7, enter: "fade" },
+             grade: "contrast(1.04) saturate(0.95)", warm: "", trans: ["leak", "leak", "expo", "leak"] },
+  // Marker: handwritten in a felt marker, written on from the left
+  marker: { hero: { fam: "Permanent Marker", w: 400, size: 0.11, colors: ["#ffffff", "#ffd23f"], shade: true, enter: "write" },
+            small: { fam: "Permanent Marker", w: 400, size: 0.066, colors: ["#ffffff"], shade: true, enter: "write" },
+            single: { fam: "Permanent Marker", w: 400, size: 0.11, colors: ["#ffffff"], shade: true, y: 0.66, enter: "write" },
+            grade: "contrast(1.08) saturate(1.1)", warm: "rgba(255,200,140,0.04)", trans: ["wipe", "leak", "expo", "wipe"] },
 };
 // The accent a look draws from the video itself ("auto"), set as an edit is made.
 function vsProAccent() { return vstudio._proAccent || "#ffb21a"; }
@@ -11860,7 +11883,7 @@ function vsProLoadFonts() {
       const l = document.createElement("link"); l.id = "vsProFontCss"; l.rel = "stylesheet"; l.href = VS_PRO_FONT_CSS; document.head.appendChild(l);
       await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 5000); });
     }
-    const faces = ['800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '700 40px "Montserrat"', '600 40px "Montserrat"', '300 40px "Montserrat"',
+    const faces = ['400 40px "Bangers"', '400 40px "Permanent Marker"', '600 40px "Space Grotesk"', '500 40px "Space Grotesk"', '800 40px "Poppins"', '700 40px "Poppins"', '900 40px "Montserrat"', '800 40px "Montserrat"', '700 40px "Montserrat"', '600 40px "Montserrat"', '300 40px "Montserrat"',
       '400 40px "Bebas Neue"', '400 40px "Sacramento"', 'italic 400 40px "DM Serif Display"', '400 40px "DM Serif Display"',
       '400 40px "Anton"', '700 40px "Oswald"', '800 40px "Manrope"', '700 40px "Manrope"', '600 40px "Manrope"', '400 40px "Lilita One"', '400 40px "Archivo Black"',
       '800 40px "Outfit"', '500 40px "Outfit"', '400 40px "Arimo"', 'italic 400 40px "Arimo"', 'italic 700 40px "Arimo"', 'italic 600 40px "Bodoni Moda"'];
@@ -11884,7 +11907,8 @@ function vsProFont(st, px) {
 const VS_PRO_PACE = {
   reveal: "calm", serif: "calm", listing: "calm", suite: "calm", trust: "calm", walk: "calm", focus: "calm", agent: "calm",
   editorial: "calm", luxe: "calm", goldpro: "calm", highlight: "calm", block3d: "calm", vlog: "calm",
-  street: "punchy", viral: "punchy", punch: "punchy", karaoke: "punchy", doodle: "punchy",
+  street: "punchy", viral: "punchy", punch: "punchy", karaoke: "punchy", doodle: "punchy", comic: "punchy",
+  minimal: "calm", hollow: "calm", marker: "medium",
 };
 const VS_PACE = {
   //        a group spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
@@ -12356,7 +12380,9 @@ function vsProLeak(ctx, W, H, a, seed) {
 }
 
 // One word, at its own moment, with its pack's entrance.
-const VS_PRO_EXIT = { rise: "up", slide: "up", bounce: "up", snap: "shrink", focus: "shrink", pop: "shrink", shine: "shrink", blur: "grow", glitch: "grow", fade: "spread", type: "soft", write: "soft", flicker: "soft", karaoke: "soft" };
+const VS_PRO_EXIT = { rise: "up", slide: "up", bounce: "up", snap: "shrink", focus: "shrink", pop: "shrink", shine: "shrink", blur: "grow", glitch: "grow", fade: "spread", type: "soft", write: "soft", flicker: "soft", karaoke: "soft",
+  drop: "down", cascade: "down", mask: "down", elastic: "shrink", zoomin: "shrink", ripple: "shrink", slam: "grow", bloom: "grow", track: "grow", flip: "flip", unfold: "flip",
+  wave: "up", roll: "up", spin: "spinout", stretch: "squash", sweep: "left", split: "left", skew: "left", glide: "left", kick: "right", draw: "soft" };
 function vsProWord(ctx, wd, local, out, F, W, H) {
   const st = wd.st;
   const since = (local - wd.t0) * (wd.spd || 1);
@@ -12478,6 +12504,12 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     else if (kind === "shrink") { const k = 1 - 0.08 * ge; ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); }
     else if (kind === "grow") { const k = 1 + 0.1 * ge; ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); }
     else if (kind === "spread") ctx.translate(0, ge * px * 0.06);
+    else if (kind === "down") ctx.translate(0, ge * px * 0.3);
+    else if (kind === "left") ctx.translate(-ge * px * 0.6, 0);
+    else if (kind === "right") ctx.translate(ge * px * 0.6, 0);
+    else if (kind === "flip") { ctx.translate(cx, cy); ctx.scale(1, Math.max(0.02, 1 - ge)); ctx.translate(-cx, -cy); }
+    else if (kind === "squash") { ctx.translate(cx, cy + px * 0.4); ctx.scale(1 + 0.3 * ge, 1 - 0.45 * ge); ctx.translate(-cx, -cy - px * 0.4); }
+    else if (kind === "spinout") { const k = 1 - 0.25 * ge; ctx.translate(cx, cy); ctx.rotate(ge * 0.3); ctx.scale(k, k); ctx.translate(-cx, -cy); }
     try { ctx.filter = "blur(" + (ge * px * 0.07).toFixed(1) + "px)"; } catch (er) {}
   }
   if (st.enter === "focus") {
@@ -12649,6 +12681,176 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
       try { ctx.filter = "blur(" + ((1 - e) * px * 0.05).toFixed(1) + "px)"; } catch (er) {}
       ctx.fillStyle = fill; paint(wd.text, wd.x, cy); ctx.filter = "none";
     } else { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
+  } else if (st.enter === "drop") {
+    // falls into place from above and stops - no bounce
+    const p = Math.max(0, Math.min(1, since / 0.34)), e = 1 - Math.pow(1 - p, 4);
+    ctx.globalAlpha = out * Math.min(1, p * 2.2);
+    try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.04).toFixed(1) + "px)"; } catch (er) {}
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy - (1 - e) * px * 0.8);
+    ctx.filter = "none";
+  } else if (st.enter === "elastic") {
+    // from small to a touch past full size and back - one soft overshoot
+    const p = Math.max(0, Math.min(1, since / 0.44)), c1 = 1.1, q = p - 1;
+    const k = 0.35 + 0.65 * (1 + (c1 + 1) * q * q * q + c1 * q * q);
+    ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2.5);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "flip") {
+    // turns over into view on its horizontal axis
+    const p = Math.max(0, Math.min(1, since / 0.38)), e = 1 - Math.pow(1 - p, 3);
+    ctx.translate(cx, cy); ctx.scale(1, Math.max(0.02, e)); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "wave") {
+    // the letters lift one after another, as if a wave ran through the word
+    wd.pieces.forEach((c, j) => {
+      const q = Math.max(0, Math.min(1, (since - j * 0.035) / 0.34));
+      if (q <= 0) return;
+      const e = 1 - Math.pow(1 - q, 3);
+      ctx.globalAlpha = out * Math.min(1, q * 2.5);
+      ctx.fillStyle = fill; paint(c, wd.x + wd.xs[j], cy + (1 - e) * px * 0.3 - Math.sin(Math.PI * q) * px * 0.14);
+    });
+  } else if (st.enter === "cascade") {
+    // the letters fall in one after another and settle
+    wd.pieces.forEach((c, j) => {
+      const q = Math.max(0, Math.min(1, (since - j * 0.028) / 0.3));
+      if (q <= 0) return;
+      const e = 1 - Math.pow(1 - q, 4);
+      ctx.globalAlpha = out * Math.min(1, q * 2.2);
+      ctx.fillStyle = fill; paint(c, wd.x + wd.xs[j], cy - (1 - e) * px * 0.6);
+    });
+  } else if (st.enter === "spin") {
+    // turns a little way into place as it grows
+    const p = Math.max(0, Math.min(1, since / 0.42)), e = 1 - Math.pow(1 - p, 3);
+    ctx.translate(cx, cy); ctx.rotate((1 - e) * -0.45); ctx.scale(0.6 + 0.4 * e, 0.6 + 0.4 * e); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "stretch") {
+    // arrives wide and flat on its baseline, then takes its shape
+    const p = Math.max(0, Math.min(1, since / 0.36)), e = 1 - Math.pow(1 - p, 3), by = cy + px * 0.4;
+    ctx.translate(cx, by); ctx.scale(1 + 0.55 * (1 - e), 1 - 0.5 * (1 - e)); ctx.translate(-cx, -by);
+    ctx.globalAlpha = out * Math.min(1, p * 2.5);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "slam") {
+    // comes down from big and lands, fast
+    const p = Math.max(0, Math.min(1, since / 0.24)), e = 1 - Math.pow(1 - p, 3), k = 2.1 - 1.1 * e;
+    ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 3);
+    try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.06).toFixed(1) + "px)"; } catch (er) {}
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+    ctx.filter = "none";
+  } else if (st.enter === "mask") {
+    // rises out from behind a line - the bottom edge of the word's own space
+    const p = Math.max(0, Math.min(1, since / 0.44)), e = 1 - Math.pow(1 - p, 4);
+    ctx.beginPath(); ctx.rect(wd.x - px * 0.4, cy - px * 0.8, wd.w + px * 0.8, px * 1.32); ctx.clip();
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy + (1 - e) * px * 1.15);
+  } else if (st.enter === "track") {
+    // the letters drift together from wide spacing as it fades in
+    const p = ease(Math.min(1, since / 0.55)), n = wd.pieces.length;
+    ctx.globalAlpha = out * p;
+    ctx.fillStyle = fill;
+    wd.pieces.forEach((c, j) => paint(c, wd.x + wd.xs[j] + (j - (n - 1) / 2) * px * 0.32 * (1 - p), cy));
+  } else if (st.enter === "sweep") {
+    // a bar of colour sweeps across and draws back, leaving the word behind it
+    const p = Math.max(0, Math.min(1, since / 0.46)), bx = wd.x - px * 0.2, bw = wd.w + px * 0.4, bh = px * 1.15;
+    const a1 = vsEase.inOut(Math.min(1, p / 0.5)), a2 = vsEase.inOut(Math.max(0, (p - 0.5) / 0.5));
+    if (p > 0.5) { ctx.save(); ctx.beginPath(); ctx.rect(bx, cy - bh, bw * a2, bh * 2); ctx.clip(); ctx.fillStyle = fill; paint(wd.text, wd.x, cy); ctx.restore(); }
+    if (p < 1) {
+      ctx.save(); ctx.fillStyle = st.sweep || st.marker || (typeof fill === "string" ? fill : "#ffffff");
+      const x0 = bx + bw * a2, x1 = bx + bw * a1;
+      ctx.fillRect(x0, cy - bh / 2, Math.max(0, x1 - x0), bh); ctx.restore();
+    }
+    if (p >= 1) { ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
+  } else if (st.enter === "split") {
+    // the two halves slide in from either side and meet
+    const p = Math.max(0, Math.min(1, since / 0.38)), e = 1 - Math.pow(1 - p, 3), off = (1 - e) * px * 0.9;
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.fillStyle = fill;
+    ctx.save(); ctx.beginPath(); ctx.rect(wd.x - px, cy - px * 1.2, wd.w / 2 + px, px * 2.4); ctx.clip(); paint(wd.text, wd.x - off, cy); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(cx, cy - px * 1.2, wd.w / 2 + px, px * 2.4); ctx.clip(); paint(wd.text, wd.x + off, cy); ctx.restore();
+  } else if (st.enter === "roll") {
+    // rolls up into place like a counter: a number's digits tick through to
+    // their value; a word rolls up from below, softened
+    const p = Math.max(0, Math.min(1, since / 0.5)), e = 1 - Math.pow(1 - p, 4), lh = px * 1.1;
+    ctx.save(); ctx.beginPath(); ctx.rect(wd.x - px * 0.3, cy - lh * 0.62, wd.w + px * 0.6, lh * 1.24); ctx.clip();
+    ctx.fillStyle = fill;
+    if (/\d/.test(wd.text)) {
+      wd.pieces.forEach((c, j) => {
+        if (!/\d/.test(c)) { ctx.globalAlpha = out * e; paint(c, wd.x + wd.xs[j], cy); return; }
+        const d = Number(c), turns = 3 + (j % 3), pos = (1 - e) * turns;
+        for (let k = 0; k <= 1; k++) {
+          const step = Math.floor(pos) + k, y = cy - (pos - Math.floor(pos)) * lh + k * lh;
+          ctx.globalAlpha = out; paint(String((d + step) % 10), wd.x + wd.xs[j], y);
+        }
+      });
+    } else {
+      ctx.globalAlpha = out * Math.min(1, p * 2);
+      try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.05).toFixed(1) + "px)"; } catch (er) {}
+      paint(wd.text, wd.x, cy + (1 - e) * lh);
+      ctx.filter = "none";
+    }
+    ctx.restore();
+  } else if (st.enter === "draw") {
+    // the outline draws across, then the colour fills in behind it
+    const p1 = ease(Math.min(1, since / 0.34)), p2 = Math.max(0, Math.min(1, (since - 0.2) / 0.28));
+    ctx.save(); ctx.beginPath(); ctx.rect(wd.x - px * 0.3, cy - px, (wd.w + px * 0.6) * p1, px * 2); ctx.clip();
+    ctx.lineJoin = "round"; ctx.lineWidth = Math.max(1.5, px * 0.045); ctx.strokeStyle = st.drawLine || (typeof fill === "string" ? fill : "#ffffff");
+    ctx.globalAlpha = out; ctx.strokeText(wd.text, wd.x, cy);
+    ctx.restore();
+    if (p2 > 0) { ctx.globalAlpha = out * p2; ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
+  } else if (st.enter === "skew") {
+    // slides in leaning forward and straightens as it stops
+    const p = Math.max(0, Math.min(1, since / 0.36)), e = 1 - Math.pow(1 - p, 3);
+    ctx.translate(-(1 - e) * px * 0.9, 0);
+    ctx.translate(cx, cy); ctx.transform(1, 0, -0.45 * (1 - e), 1, 0, 0); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2.2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "bloom") {
+    // comes up out of its own light
+    const p = Math.max(0, Math.min(1, since / 0.55)), e = ease(p);
+    ctx.translate(cx, cy); ctx.scale(0.96 + 0.04 * e, 0.96 + 0.04 * e); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * e;
+    ctx.shadowColor = "rgba(255,244,220,0.9)"; ctx.shadowBlur = px * (1.1 * (1 - e) + 0.05);
+    ctx.fillStyle = fill; ctx.fillText(wd.text, wd.x, cy);
+    ctx.shadowBlur = 0; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "zoomin") {
+    // from far off into the frame, out of focus to sharp
+    const p = Math.max(0, Math.min(1, since / 0.38)), e = 1 - Math.pow(1 - p, 3), k = 0.15 + 0.85 * e;
+    ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    try { if (p < 1) ctx.filter = "blur(" + ((1 - e) * px * 0.1).toFixed(1) + "px)"; } catch (er) {}
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+    ctx.filter = "none";
+  } else if (st.enter === "unfold") {
+    // unfolds downward from its top edge
+    const p = Math.max(0, Math.min(1, since / 0.42)), e = 1 - Math.pow(1 - p, 3), ty = cy - px * 0.5;
+    ctx.translate(cx, ty); ctx.scale(1, Math.max(0.02, e)); ctx.translate(-cx, -ty);
+    ctx.globalAlpha = out * Math.min(1, p * 2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "glide") {
+    // glides in from the right, slow and even to a stop
+    const p = Math.max(0, Math.min(1, since / 0.55)), e = 1 - Math.pow(1 - p, 5);
+    ctx.globalAlpha = out * e;
+    ctx.fillStyle = fill; paint(wd.text, wd.x + (1 - e) * px * 1.4, cy);
+  } else if (st.enter === "ripple") {
+    // the letters swell up from the middle of the word outwards
+    const n = wd.pieces.length;
+    wd.pieces.forEach((c, j) => {
+      const d = Math.abs(j - (n - 1) / 2), q = Math.max(0, Math.min(1, (since - d * 0.03) / 0.28));
+      if (q <= 0) return;
+      const qq = q - 1, k = 1 + 2.1 * qq * qq * qq + 1.1 * qq * qq;
+      const lw = (j + 1 < n ? wd.xs[j + 1] : wd.w) - wd.xs[j], lx = wd.x + wd.xs[j] + lw / 2;
+      ctx.save(); ctx.translate(lx, cy); ctx.scale(Math.max(0.01, k), Math.max(0.01, k)); ctx.translate(-lx, -cy);
+      ctx.globalAlpha = out * Math.min(1, q * 2.5);
+      ctx.fillStyle = fill; paint(c, wd.x + wd.xs[j], cy);
+      ctx.restore();
+    });
+  } else if (st.enter === "kick") {
+    // swings in on a hinge at its left foot and settles
+    const p = Math.max(0, Math.min(1, since / 0.4)), e = 1 - Math.pow(1 - p, 3), hx = wd.x, hy = cy + px * 0.4;
+    ctx.translate(hx, hy); ctx.rotate((1 - e) * 0.35); ctx.translate(-hx, -hy);
+    ctx.globalAlpha = out * Math.min(1, p * 2.2);
+    ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
   } else {   // fade: the letters close up as it fades in
     const p = ease(since / 0.25);
     ctx.globalAlpha = out * p;
@@ -17784,6 +17986,10 @@ function vsEditStudio(preset, filesIn) {
     ["pro-highlight", L("Highlight", "هایلایت"), L("Clean captions, a marker behind the word that matters, light cards", "زیرنویس تمیز، ماژیک پشت کلمهٔ مهم، کارت‌های روشن")],
     ["pro-vivid", L("Vivid", "پررنگ"), L("Words coloured by meaning - money green, warnings red", "رنگ کلمات بر اساس معنی - پول سبز، هشدار قرمز")],
     ["pro-editorial", L("Editorial", "ادیتوریال"), L("Black and white, a serif, one word in colour", "سیاه‌وسفید، سریف، یک کلمه رنگی")],
+    ["pro-comic", L("Comic", "کمیک"), L("Comic-book letters, a thick edge, each word zooming in", "حروف کمیک، لبهٔ ضخیم، هر کلمه با زوم می‌آید")],
+    ["pro-hollow", L("Outline", "خط دور"), L("A tall word drawn as an outline, then filled", "کلمهٔ بلند که اول خط دورش کشیده می‌شود، بعد پر می‌شود")],
+    ["pro-minimal", L("Minimal", "مینیمال"), L("Small, plain, four words at a time", "کوچک و ساده، چهار کلمه در هر بار")],
+    ["pro-marker", L("Marker", "ماژیکی"), L("Handwritten in marker, written on as it is said", "دست‌نویس با ماژیک، همزمان با حرف نوشته می‌شود")],
     ["classic", L("Classic", "کلاسیک"), L("Captions, hook card, stickers, graphic cards", "زیرنویس، کارت هوک، استیکر، کارت گرافیکی")],
   ];
   const SHAPES = [["9:16", "Reels · TikTok · Shorts", 9, 16], ["1:1", L("Square", "مربع"), 1, 1], ["4:5", L("Feed", "فید"), 4, 5], ["16:9", "YouTube", 16, 9]];
