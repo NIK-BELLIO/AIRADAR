@@ -15479,6 +15479,19 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
   // the film styles (after Lemo-Opuscar, MIT): their inks and papers
+  ["newsreel", 1, "#0f0e0c", "#1c1a16", "#f3eee4", "#8a8476", "#efebe2", "#d6cfc0", "#9e978a"],
+  ["puppet", 0, "#e8b765", "#f3d28a", "#2a140a", "#8a5a2a", "#b0301c", "#2e5a3a", "#d98a2a"],
+  ["inkwash", 0, "#f2ecde", "#f8f3e8", "#1a1714", "#8f877a", "#b02e22", "#5a544b", "#a39a8a"],
+  ["crayon", 0, "#f4efe3", "#fbf7ee", "#2b2b6b", "#9a93a8", "#e8553a", "#3f8ad8", "#f4c430"],
+  ["impasto", 0, "#d9c7a3", "#efe2c4", "#2a2018", "#8f7a5a", "#c8462a", "#9fb7c9", "#e8b53a"],
+  ["sketch", 0, "#f5efe2", "#fbf7ee", "#5a3a22", "#9a8a72", "#d9534f", "#4a90c2", "#8ab06a"],
+  ["oneline", 0, "#f4efe4", "#faf6ee", "#1d1a17", "#8a8478", "#1d1a17", "#5a544b", "#c0392b"],
+  ["popup", 0, "#c9a27a", "#f6eddc", "#3a2614", "#8a6a4a", "#e8553a", "#3f9a5a", "#f2c14e"],
+  ["lantern", 1, "#0a1330", "#16224a", "#ffe2b8", "#6a86c2", "#ffb862", "#3f5a92", "#6a86c2"],
+  ["rubber", 0, "#e9e4d8", "#f5f1e8", "#121212", "#7a7670", "#121212", "#5a5650", "#b8b2a6"],
+  ["midcentury", 0, "#f1e6cc", "#f8f0dc", "#2a2420", "#8a7f6a", "#e25b3c", "#3a8a8a", "#f2b234"],
+  ["scifi", 1, "#14102a", "#231a45", "#ffffff", "#7e74b8", "#7cf0ff", "#ff5ad1", "#b6ff4a"],
+  ["brick", 0, "#d8d0c0", "#f2f2ee", "#1b2a34", "#8a8478", "#c91a09", "#0055bf", "#f2cd37"],
   ["dossier", 0, "#efe6d2", "#f7f0de", "#1d2b4f", "#8a8270", "#e8336d", "#2f6fd6", "#d23a2a"],
   ["manila", 0, "#e9d9b0", "#f3e7c7", "#2a2118", "#8a7a58", "#2a8a86", "#d6a21e", "#d9471f"],
   ["ukiyoe", 0, "#efe5cf", "#f6eedb", "#1d1d22", "#8f8a7a", "#1f4e8c", "#c9363a", "#7d9a5b"],
@@ -15574,6 +15587,19 @@ const VS_GX_PALETTES = [
 // (one family per theme, labels and captions in the title's own face: a
 // serif under a grotesk title read as two designs - the owner, twice)
 const VS_GX_FONTS = [
+  ["reelfont", "Bebas Neue", 400, 1, "Libre Caslon Text", 400],
+  ["puppetfont", "Cormorant Garamond", 700, 0, "Cormorant Garamond", 600],
+  ["inkfont", "Cormorant Garamond", 600, 0, "Cormorant Garamond", 500, 1],
+  ["crayonfont", "Gaegu", 700, 0, "Patrick Hand", 400],
+  ["impastofont", "Cormorant", 700, 0, "Cormorant", 600],
+  ["sketchfont", "Kalam", 700, 0, "Kalam", 400],
+  ["linefont", "Sacramento", 400, 0, "Caveat", 600],
+  ["popfont", "Lilita One", 400, 0, "Fredoka", 600],
+  ["lanternfont", "Marcellus", 400, 0, "Marcellus", 400],
+  ["rubberfont", "Shrikhand", 400, 0, "IM Fell English SC", 400],
+  ["midfont", "Oleo Script", 700, 0, "Jost", 500],
+  ["scififont", "Bowlby One", 400, 0, "Baloo 2", 800],
+  ["brickfont", "Fredoka", 700, 0, "Fredoka", 500],
   ["dossierfont", "Alfa Slab One", 400, 0, "Courier Prime", 700],
   ["ukiyofont", "Shippori Mincho", 800, 0, "Shippori Mincho", 500],
   ["glassfont", "Cinzel", 700, 1, "EB Garamond", 500],
@@ -15621,10 +15647,10 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Courier+Prime:wght@700&family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@700&family=EB+Garamond:wght@500&family=Cormorant+Garamond:wght@600&family=Grenze+Gotisch:wght@800&family=Grenze:wght@500&family=Barlow+Semi+Condensed:wght@600;800&family=Overpass:wght@600;800&family=Bodoni+Moda:wght@700&family=Pinyon+Script&family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@600&family=Caveat:wght@600;700&family=Jost:wght@600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Patrick+Hand&family=Cormorant:wght@600;700&family=Kalam:wght@400;700&family=Sacramento&family=Fredoka:wght@500;600;700&family=Marcellus&family=Shrikhand&family=Oleo+Script:wght@700&family=Bowlby+One&family=Alfa+Slab+One&family=Courier+Prime:wght@700&family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@700&family=EB+Garamond:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Grenze+Gotisch:wght@800&family=Grenze:wght@500&family=Barlow+Semi+Condensed:wght@600;800&family=Overpass:wght@600;800&family=Bodoni+Moda:wght@700&family=Pinyon+Script&family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@600&family=Caveat:wght@600;700&family=Jost:wght@500;600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
-  "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700&family=Bangers" +
+  "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700;800&family=Bangers" +
   "&family=Bungee&family=Shrikhand&family=Righteous&family=Caveat:wght@600;700&family=Permanent+Marker&family=Cabin+Sketch:wght@700" +
   "&family=Gochi+Hand&family=Manrope:wght@500;600;700;800&family=Figtree:wght@500;600&family=Source+Sans+3:wght@600&family=Vazirmatn:wght@500;800&display=swap";
 // The styles. Each knob names a way of drawing that the renderer knows:
@@ -15636,6 +15662,59 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Alfa+Slab+One&f
 const VS_GX_CATS = { film: ["Film styles", "سبک‌های فیلم"], reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Thirteen more film styles after Lemo-Opuscar (MIT), drawn by our engine:
+  // Newsreel: a searchlight-and-globe ident, the headline spinning in like a
+  // newspaper in silver with a black edge, a flickering warm silver print.
+  { id: "newsreel", n: ["Newsreel", "خبر سینمایی"], cat: "film", pals: ["newsreel"], fonts: ["reelfont"], el: ["hc", "ph-thin"],
+    bg: "newsreel", al: "c", tt: "spinpaper", ef: "plain", ec: "ink", ls: "roman", de: "searchlights", fr: "reel", cp: "reelcard", kd: "lines", tr: ["flash", "zoom"] },
+  // Shadow puppets: a lamp-lit cotton screen; the words cut out of a dark
+  // hide plaque, pressed on to the screen on rods.
+  { id: "puppet", n: ["Shadow puppets", "خیمه‌شب‌بازی"], cat: "film", pals: ["puppet"], fonts: ["puppetfont"], el: ["hc", "flat"],
+    bg: "screen", al: "c", tt: "plaque", ef: "plain", ec: "ink", ls: "roman", de: "lamp", fr: "none", cp: "placard", kd: "lines", tr: ["zoom", "wipe"] },
+  // Ink wash: rice paper, mountains as washes of ink, birds; the words a
+  // blot of ink drawing in on itself; a vermilion seal.
+  { id: "inkwash", n: ["Ink wash", "نقاشی جوهری"], cat: "film", pals: ["inkwash"], fonts: ["inkfont"], el: ["hc", "ph-thin"],
+    bg: "rice", al: "l", tt: "inkblot", ef: "plain", ec: "ink", ls: "dash", de: "birds", fr: "none", cp: "inscription", kd: "under", tr: ["zoom", "wipe"] },
+  // Crayon book: toothy paper, a scribbled sun and hill; wax letters
+  // written one by one, boiling a little.
+  { id: "crayon", n: ["Crayon book", "کتاب مداد شمعی"], cat: "film", pals: ["crayon"], fonts: ["crayonfont"], el: ["color", "3d"],
+    bg: "crayon", al: "c", tt: "crayon", ef: "doodle", ec: "ink", ls: "check", de: "none", fr: "none", cp: "crayonwords", kd: "scribble", tr: ["wipe", "zoom"] },
+  // Impasto: big knife-laid planes of paint ridged by a raking light; the
+  // words laid in with one sweep of the knife.
+  { id: "impasto", n: ["Impasto oil", "رنگ روغن ضخیم"], cat: "film", pals: ["impasto"], fonts: ["impastofont"], el: ["color", "hc"],
+    bg: "impasto", al: "l", tt: "knife", ef: "plain", ec: "ink", ls: "roman", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"] },
+  // Urban sketch: sepia fineliner rooftops with washes dropped off the
+  // lines, one red balloon; words drawn, then washed.
+  { id: "urbansketch", n: ["Urban sketch", "اسکچ شهری"], cat: "film", pals: ["sketch"], fonts: ["sketchfont"], el: ["hc", "color"],
+    bg: "sketch", al: "l", tt: "fineliner", ef: "sketch", ec: "ink", ls: "check", de: "balloon", fr: "none", cp: "hand", kd: "scribble", tr: ["wipe", "zoom"] },
+  // One line: one ink line that never lifts; the title written on with a
+  // pen whose line leads it in.
+  { id: "oneline", n: ["One line", "تک‌خط"], cat: "film", pals: ["oneline"], fonts: ["linefont"], el: ["hc", "ph-thin"],
+    bg: "oneline", al: "c", tt: "script", ef: "plain", ec: "ink", ls: "dash", de: "lineflow", fr: "none", cp: "writeon", kd: "under", tr: ["zoom", "wipe"] },
+  // Pop-up book: an open book on a lamp-lit desk; each line a paper card
+  // with a white border springing up off the page.
+  { id: "popup", n: ["Pop-up book", "کتاب پاپ‌آپ"], cat: "film", pals: ["popup"], fonts: ["popfont"], el: ["3d", "color"],
+    bg: "popup", al: "c", tt: "springup", ef: "sticker", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "brownout", kd: "burst", tr: ["zoom", "wipe"] },
+  // Paper lantern: sheets of cut card in a lit box, a moon, windows coming
+  // on; the words holes in a dark strip that the light burns through.
+  { id: "lantern", n: ["Paper lantern", "فانوس کاغذی"], cat: "film", pals: ["lantern"], fonts: ["lanternfont"], el: ["color", "ph-light"],
+    bg: "lantern", al: "c", tt: "glowcut", ef: "glow", ec: "a1", ls: "glow", de: "windows", fr: "none", cp: "soft", kd: "glowbox", tr: ["zoom", "flash"] },
+  // 1930s cartoon: black and white, an iris opening; fat letters with an
+  // ink edge hopping in on the beat; a period title card.
+  { id: "rubberhose", n: ["1930s cartoon", "کارتون دههٔ ۳۰"], cat: "film", pals: ["rubber"], fonts: ["rubberfont"], el: ["hc", "flat"],
+    bg: "rubber", al: "c", tt: "hop", ef: "plain", ec: "ink", ls: "roman", de: "none", fr: "iris", cp: "titlecard", kd: "burst", tr: ["zoom", "flash"] },
+  // Mid-century: colour blocks printed off their broken ink lines, an atomic
+  // star; ink words over an offset plate, sliding in on twos.
+  { id: "midcentury", n: ["Mid-century", "میدسنچری"], cat: "film", pals: ["midcentury"], fonts: ["midfont"], el: ["flat", "color"],
+    bg: "midcentury", al: "l", tt: "offsetslab", ef: "plain", ec: "ink", ls: "number", de: "atomic", fr: "none", cp: "steplabel", kd: "block", tr: ["wipe", "zoom"] },
+  // Sci-fi cartoon: stars, a swirling portal, a flat planet; chunky letters
+  // popped in on twelves with a boiling outline.
+  { id: "scifitoon", n: ["Sci-fi cartoon", "کارتون علمی‌تخیلی"], cat: "film", pals: ["scifi"], fonts: ["scififont"], el: ["color", "3d"],
+    bg: "portal", al: "c", tt: "boil", ef: "glow", ec: "a1", ls: "pills", de: "portalspin", fr: "none", cp: "speaker", kd: "burst", tr: ["zoomblur", "flash"] },
+  // Toy bricks: a desk and a wall of bricks; each word a brick placed on
+  // twelves, studs on top.
+  { id: "brick", n: ["Toy bricks", "آجرهای اسباب‌بازی"], cat: "film", pals: ["brick"], fonts: ["brickfont"], el: ["3d", "color"],
+    bg: "bricks", al: "c", tt: "snapon", ef: "plain", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "brickpill", kd: "block", tr: ["zoom", "wipe"] },
   // Twelve more film styles after Lemo-Opuscar (MIT), drawn by our engine:
   // Case file: archive paper, halftone, a slab headline that slams in with
   // an overprint shadow, a rubber stamp.
@@ -16152,7 +16231,111 @@ function vsGxTexture(tk, W, H) {
     x.restore();
   };
   const vign = (a) => { const vg = x.createRadialGradient(W / 2, H / 2, U * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0," + a + ")"); x.fillStyle = vg; x.fillRect(0, 0, W, H); };
-  if (tex === "dossier") {
+  if (tex === "newsreel") {
+    // the ident: a sunburst and a wire globe on near black
+    const ox = W / 2, oy = H * 0.55, r = U * 0.3; x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.002);
+    for (let k = 0; k < 48; k++) { const an = (k / 48) * Math.PI * 2; x.globalAlpha = k % 2 ? 0.05 : 0.1; x.beginPath(); x.moveTo(ox, oy); x.lineTo(ox + Math.cos(an) * Math.max(W, H), oy + Math.sin(an) * Math.max(W, H)); x.stroke(); }
+    x.globalAlpha = 0.2; x.beginPath(); x.arc(ox, oy, r, 0, Math.PI * 2); x.stroke();
+    for (let k = 1; k < 6; k++) { x.beginPath(); x.ellipse(ox, oy, Math.abs(r * Math.cos((k * Math.PI) / 6)), r, 0, 0, Math.PI * 2); x.stroke(); }
+    for (let k = -2; k <= 2; k++) { const la = (k * Math.PI) / 6, yy = oy + r * Math.sin(la), hw = r * Math.cos(la); x.beginPath(); x.moveTo(ox - hw, yy); x.lineTo(ox + hw, yy); x.stroke(); }
+    x.globalAlpha = 1; vign(0.6);
+  } else if (tex === "screen") {
+    // a cotton screen lit from behind by a lamp; a carved lace border at the foot
+    const g = x.createRadialGradient(W / 2, H * 0.45, U * 0.05, W / 2, H / 2, Math.max(W, H) * 0.7); g.addColorStop(0, "#f8dc96"); g.addColorStop(0.6, tk.bg); g.addColorStop(1, "#7a4a1c");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.globalAlpha = 0.05; x.fillStyle = "#5a3412"; for (let yy = 0; yy < H; yy += 3) x.fillRect(0, yy, W, 1); for (let xx = 0; xx < W; xx += 3) x.fillRect(xx, 0, 1, H); x.globalAlpha = 1;
+    x.fillStyle = "rgba(42,20,10,0.85)"; x.fillRect(0, H * 0.93, W, H * 0.07);
+    for (let xx = 0; xx < W; xx += U * 0.08) { x.fillStyle = "rgba(42,20,10,0.85)"; x.beginPath(); x.arc(xx + U * 0.04, H * 0.93, U * 0.04, Math.PI, 0); x.fill(); x.fillStyle = "rgba(243,210,138,0.9)"; x.beginPath(); x.arc(xx + U * 0.04, H * 0.95, U * 0.01, 0, Math.PI * 2); x.fill(); }
+  } else if (tex === "rice") {
+    // rice paper; mountains as washes of ink fading upward, the far ones paler; a seal
+    [[0.62, 0.18, 0.12], [0.72, 0.28, 0.2], [0.82, 0.22, 0.32]].forEach(([fy, amp, a], k) => {
+      x.beginPath(); x.moveTo(0, H);
+      for (let xx = 0; xx <= W; xx += W / 40) x.lineTo(xx, H * fy - Math.abs(Math.sin((xx / W) * Math.PI * (1.2 + k * 0.6) + k)) * H * amp * 0.6 - rnd() * H * 0.01);
+      x.lineTo(W, H); x.closePath();
+      const g = x.createLinearGradient(0, H * (fy - amp), 0, H); g.addColorStop(0, "rgba(26,23,20," + a + ")"); g.addColorStop(0.5, "rgba(26,23,20," + (a * 0.4) + ")"); g.addColorStop(1, "rgba(26,23,20,0)");
+      x.fillStyle = g; x.fill();
+    });
+    const sx2 = W * 0.86, sy2 = H * 0.08, sz = U * 0.05; x.fillStyle = tk.a1; x.fillRect(sx2, sy2, sz, sz); x.fillStyle = tk.paper; x.fillRect(sx2 + sz * 0.22, sy2 + sz * 0.3, sz * 0.56, sz * 0.12); x.fillRect(sx2 + sz * 0.44, sy2 + sz * 0.2, sz * 0.12, sz * 0.6);
+    fibres(Math.round(W * H / 1800), 0.05);
+  } else if (tex === "crayon") {
+    // toothy paper; a crayon sun and a hill, scribbled in short strokes
+    const strokes = (n, at, c) => { x.strokeStyle = c; x.lineWidth = U * 0.006; x.globalAlpha = 0.5; for (let k = 0; k < n; k++) { const [px2, py2] = at(); x.beginPath(); x.moveTo(px2 - U * 0.02, py2 + U * 0.008); x.lineTo(px2 + U * 0.02, py2 - U * 0.008); x.stroke(); } x.globalAlpha = 1; };
+    strokes(260, () => { const a = rnd() * Math.PI * 2, rr = U * 0.1 * Math.sqrt(rnd()); return [W * 0.84 + Math.cos(a) * rr, H * 0.12 + Math.sin(a) * rr]; }, tk.a3);
+    strokes(520, () => { const xx = rnd() * W, top = H * 0.84 - Math.sin((xx / W) * Math.PI) * H * 0.05; return [xx, top + rnd() * (H - top)]; }, "#5aa64a");
+    for (let k = 0; k < (W * H) / 300; k++) { x.fillStyle = "rgba(255,255,255,0.5)"; x.fillRect(rnd() * W, rnd() * H, 1, 1); }
+  } else if (tex === "impasto") {
+    // big flat planes laid with a knife, each ridged by a raking light
+    const planes = [[tk.a2, [[0, 0], [W, 0], [W, H * 0.35], [0, H * 0.5]]], [tk.paper, [[0, H * 0.5], [W, H * 0.35], [W, H * 0.6], [0, H * 0.7]]], [tk.a3, [[W * 0.55, H * 0.6], [W, H * 0.55], [W, H * 0.8], [W * 0.4, H * 0.85]]], [tk.a1, [[0, H * 0.7], [W * 0.5, H * 0.65], [W * 0.4, H], [0, H]]], ["#6b4a2e", [[W * 0.4, H * 0.85], [W, H * 0.8], [W, H], [W * 0.4, H]]]];
+    planes.forEach(([c, pts]) => {
+      x.fillStyle = c; x.beginPath(); pts.forEach(([a, b2], k) => (k ? x.lineTo(a, b2) : x.moveTo(a, b2))); x.closePath(); x.fill();
+      x.save(); x.clip(); x.globalAlpha = 0.12;
+      for (let k = 0; k < 40; k++) { const yy = rnd() * H, xx = rnd() * W, l = U * (0.1 + rnd() * 0.3); x.strokeStyle = rnd() < 0.5 ? "#ffffff" : "#000000"; x.lineWidth = U * (0.002 + rnd() * 0.004); x.beginPath(); x.moveTo(xx, yy); x.lineTo(xx + l, yy - l * 0.15); x.stroke(); }
+      x.restore(); x.globalAlpha = 1; x.strokeStyle = "rgba(255,246,220,0.5)"; x.lineWidth = U * 0.004; x.stroke();
+    });
+  } else if (tex === "sketch") {
+    // a sketchbook page: sepia rooftops in a wobbling fineliner, washes dropped off the lines
+    const base = H * 0.86; let xx = -U * 0.02;
+    x.globalAlpha = 0.3; [[tk.a2, 0.12], [tk.a3, 0.3], [tk.a1, 0.6]].forEach(([c, f]) => { x.fillStyle = c; x.beginPath(); x.ellipse(W * f + U * 0.02, base - H * 0.06, U * 0.12, H * 0.05, 0.1, 0, Math.PI * 2); x.fill(); });
+    x.globalAlpha = 1; x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.0025);
+    const wob = (x0, y0, x1, y1) => { x.beginPath(); x.moveTo(x0 + (rnd() - 0.5) * U * 0.006, y0); for (let k = 1; k <= 4; k++) x.lineTo(x0 + ((x1 - x0) * k) / 4 + (rnd() - 0.5) * U * 0.004, y0 + ((y1 - y0) * k) / 4 + (rnd() - 0.5) * U * 0.004); x.stroke(); };
+    while (xx < W) {
+      const bw2 = U * (0.08 + rnd() * 0.1), bh2 = H * (0.08 + rnd() * 0.12), top = base - bh2;
+      wob(xx, base, xx, top); wob(xx - U * 0.008, top, xx + bw2 / 2, top - U * 0.05); wob(xx + bw2 / 2, top - U * 0.05, xx + bw2 + U * 0.008, top); wob(xx + bw2, top, xx + bw2, base);
+      for (let k = 0; k < 3; k++) x.strokeRect(xx + bw2 * (0.2 + rnd() * 0.5), top + bh2 * (0.2 + rnd() * 0.5), U * 0.015, U * 0.02);
+      xx += bw2 + U * 0.01;
+    }
+    wob(0, base, W, base); fibres(Math.round(W * H / 2500), 0.04);
+  } else if (tex === "oneline") {
+    // warm paper and one unbroken ink line looping along the foot of the page
+    x.strokeStyle = tk.ink; x.lineWidth = Math.max(1.2, U * 0.003); x.lineCap = "round"; x.beginPath();
+    for (let k = 0; k <= 400; k++) { const f = k / 400, yy = H * 0.86 + Math.sin(f * Math.PI * 6) * H * 0.03 + Math.sin(f * Math.PI * 23) * H * 0.012, lx = W * f + Math.cos(f * Math.PI * 46) * U * 0.02, ly = yy + Math.sin(f * Math.PI * 46) * U * 0.02; k ? x.lineTo(lx, ly) : x.moveTo(lx, ly); }
+    x.stroke(); fibres(Math.round(W * H / 2600), 0.04);
+  } else if (tex === "popup") {
+    // a desk under a lamp; an open book with a shadow down its spine
+    const g = x.createRadialGradient(W * 0.3, H * 0.15, 0, W * 0.3, H * 0.15, Math.max(W, H) * 0.9); g.addColorStop(0, "#e2be8e"); g.addColorStop(1, "#7a5432"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.globalAlpha = 0.08; x.strokeStyle = "#3a2614"; x.lineWidth = U * 0.002;
+    for (let yy = 0; yy < H; yy += U * 0.03) { x.beginPath(); x.moveTo(0, yy); x.bezierCurveTo(W * 0.3, yy + U * 0.01, W * 0.6, yy - U * 0.01, W, yy + U * 0.005); x.stroke(); }
+    x.globalAlpha = 1; const m = U * 0.06, bt = H * 0.08, bb = H * 0.94;
+    x.fillStyle = "rgba(0,0,0,0.3)"; x.fillRect(m + U * 0.02, bt + U * 0.02, W - 2 * m, bb - bt); x.fillStyle = tk.paper; x.fillRect(m, bt, W - 2 * m, bb - bt);
+    const sp = x.createLinearGradient(W / 2 - U * 0.06, 0, W / 2 + U * 0.06, 0); sp.addColorStop(0, "rgba(0,0,0,0)"); sp.addColorStop(0.5, "rgba(0,0,0,0.22)"); sp.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = sp; x.fillRect(W / 2 - U * 0.06, bt, U * 0.12, bb - bt);
+  } else if (tex === "lantern") {
+    // a shadow box of cut card: a glowing moon, then darker sheets toward the front
+    const moon = x.createRadialGradient(W * 0.7, H * 0.22, 0, W * 0.7, H * 0.22, U * 0.3); moon.addColorStop(0, "#fff1c8"); moon.addColorStop(0.4, "#ffd27a"); moon.addColorStop(1, "rgba(255,180,90,0)");
+    x.fillStyle = moon; x.fillRect(0, 0, W, H); x.fillStyle = "#fff6dc"; x.beginPath(); x.arc(W * 0.7, H * 0.22, U * 0.09, 0, Math.PI * 2); x.fill();
+    [["#6a86c2", 0.62, 0.08], ["#3f5a92", 0.72, 0.1], ["#0e1532", 0.84, 0.08]].forEach(([c, fy, amp], k) => {
+      const ridge = () => { x.beginPath(); x.moveTo(0, H); for (let xx = 0; xx <= W; xx += W / 30) x.lineTo(xx, H * fy - Math.abs(Math.sin((xx / W) * Math.PI * (2 + k))) * H * amp); x.lineTo(W, H); x.closePath(); };
+      x.save(); x.translate(0, U * 0.01); x.fillStyle = "rgba(0,0,0,0.35)"; ridge(); x.fill(); x.restore(); x.fillStyle = c; ridge(); x.fill();
+    });
+  } else if (tex === "rubber") {
+    // cream paper, an ink horizon and cartoon clouds, grain
+    x.strokeStyle = tk.ink; x.lineWidth = U * 0.006; x.beginPath(); x.moveTo(0, H * 0.82); x.bezierCurveTo(W * 0.3, H * 0.78, W * 0.7, H * 0.86, W, H * 0.8); x.stroke();
+    const cloud = (cx, cy, s2) => { x.fillStyle = tk.paper; x.lineWidth = U * 0.005; [[-1, 0, 0.6], [-0.4, -0.35, 0.7], [0.3, -0.3, 0.6], [0.9, 0, 0.55]].forEach(([dx, dy, r]) => { x.beginPath(); x.arc(cx + dx * s2, cy + dy * s2, r * s2, 0, Math.PI * 2); x.fill(); x.stroke(); }); x.beginPath(); x.ellipse(cx, cy + s2 * 0.1, s2 * 1.3, s2 * 0.4, 0, 0, Math.PI * 2); x.fill(); };
+    cloud(W * 0.18, H * 0.12, U * 0.06); cloud(W * 0.82, H * 0.2, U * 0.05);
+    for (let k = 0; k < (W * H) / 400; k++) { x.fillStyle = rnd() < 0.5 ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.3)"; x.fillRect(rnd() * W, rnd() * H, 1, 1); }
+  } else if (tex === "midcentury") {
+    // an abstract room of colour blocks, each printed a few pixels off its broken ink line
+    [[tk.a2, 0, H * 0.62, W * 0.55, H * 0.38], [tk.a3, W * 0.62, H * 0.08, W * 0.3, H * 0.22], [tk.a1, W * 0.7, H * 0.66, W * 0.3, H * 0.34]].forEach(([c, x0, y0, w, h]) => {
+      x.globalAlpha = 0.9; x.fillStyle = c; x.fillRect(x0 + U * 0.008, y0 + U * 0.006, w, h); x.globalAlpha = 1;
+      x.strokeStyle = tk.ink; x.lineWidth = U * 0.004; x.setLineDash([U * 0.06, U * 0.015]); x.strokeRect(x0, y0, w, h); x.setLineDash([]);
+    });
+    x.strokeStyle = tk.ink; x.lineWidth = U * 0.004; x.beginPath(); x.moveTo(0, H * 0.62); x.lineTo(W, H * 0.62); x.stroke();
+  } else if (tex === "portal") {
+    // stars, a swirling portal low at the side, a flat planet with a thick outline
+    for (let k = 0; k < 160; k++) { x.fillStyle = "#ffffff"; x.globalAlpha = 0.3 + rnd() * 0.6; x.fillRect(rnd() * W, rnd() * H, U * 0.003, U * 0.003); }
+    x.globalAlpha = 1; const px2 = W * 0.82, py2 = H * 0.78, g = x.createRadialGradient(px2, py2, 0, px2, py2, U * 0.32);
+    g.addColorStop(0, "#eaffff"); g.addColorStop(0.3, tk.a1); g.addColorStop(0.7, tk.a3 + "88"); g.addColorStop(1, tk.a3 + "00");
+    x.fillStyle = g; x.beginPath(); x.ellipse(px2, py2, U * 0.32, U * 0.36, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = tk.a2; x.beginPath(); x.arc(W * 0.18, H * 0.14, U * 0.08, 0, Math.PI * 2); x.fill(); x.lineWidth = U * 0.008; x.strokeStyle = "#000000"; x.stroke();
+  } else if (tex === "bricks") {
+    // a desk under a macro lens and a wall of toy bricks at the foot
+    const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#efe9dc"); g.addColorStop(1, "#cfc6b4"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    const st2 = U * 0.05, cols = [tk.a1, tk.a2, tk.a3, "#237841", "#f2f2ee"];
+    for (let row = 0, yy = H * 0.8; yy < H; yy += st2 * 1.2, row++) for (let xx = -(row % 2) * st2; xx < W; xx += st2 * 2) {
+      x.fillStyle = cols[Math.floor(rnd() * cols.length)]; x.fillRect(xx + 1, yy + 1, st2 * 2 - 2, st2 * 1.2 - 2);
+      x.fillStyle = "rgba(0,0,0,0.18)"; x.fillRect(xx + 1, yy + st2, st2 * 2 - 2, st2 * 0.18); x.fillStyle = "rgba(255,255,255,0.25)"; x.fillRect(xx + 1, yy + 1, st2 * 2 - 2, st2 * 0.12);
+    }
+    vign(0.25);
+  } else if (tex === "dossier") {
     // archive paper: mottling, a halftone corner, a centre fold, a vignette
     for (let i = 0; i < 60; i++) { x.globalAlpha = 0.035; x.fillStyle = rnd() < 0.5 ? "#000000" : "#ffffff"; x.beginPath(); x.arc(rnd() * W, rnd() * H, U * (0.05 + rnd() * 0.15), 0, Math.PI * 2); x.fill(); }
     x.globalAlpha = 1; x.globalCompositeOperation = "multiply";
@@ -16968,6 +17151,126 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         const last = i === boxes.length - 1 || n < chars;
         if (last && (n < chars || Math.floor(t * 2) % 2 === 0)) { ctx.fillStyle = acc; ctx.fillRect(b.x + ctx.measureText(b.ln.slice(0, n)).width + px * 0.08, b.y - px * 0.38, px * 0.45, px * 0.78); }
         ctx.restore(); return;
+      } else if (tt === "spinpaper") {
+        // the headline spins in to the lens like a newspaper, silver with a black edge
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.7))), cx2 = b.x + b.w / 2, z = 0.08 + 0.92 * q;
+        ctx.globalAlpha = Math.min(1, q * 3); ctx.translate(cx2, b.y); ctx.rotate((1 - q) * Math.PI * 4); ctx.scale(z, z); ctx.translate(-cx2, -b.y);
+        ctx.lineWidth = px * 0.12; ctx.strokeStyle = "#000000"; ctx.strokeText(b.ln, b.x, b.y);
+        const g = ctx.createLinearGradient(0, b.y - px * 0.5, 0, b.y + px * 0.5); g.addColorStop(0, "#ffffff"); g.addColorStop(0.49, "#d9d4ca"); g.addColorStop(0.5, "#9e978a"); g.addColorStop(1, "#efebe2");
+        ctx.fillStyle = g; put(b); ctx.restore(); return;
+      } else if (tt === "plaque") {
+        ctx.globalCompositeOperation = "source-over";
+        // a dark hide plaque with the words cut out so the lamp shines through,
+        // pressed on to the screen on rods from below, swaying a little
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.6))), sway = Math.sin(t * 1.3 + i) * 0.01, card = (o) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx + o, by + o, bw - o * 2, bh - o * 2, px * 0.2); else ctx.rect(bx + o, by + o, bw - o * 2, bh - o * 2); };
+        ctx.globalAlpha = a2; ctx.translate(b.x + b.w / 2, by + bh); ctx.rotate(sway); ctx.translate(-(b.x + b.w / 2), -(by + bh)); ctx.translate(0, (1 - q) * px * 1.5);
+        ctx.strokeStyle = "rgba(42,20,10,0.8)"; ctx.lineWidth = Math.max(1, px * 0.03); ctx.beginPath(); ctx.moveTo(b.x + b.w * 0.3, by + bh); ctx.lineTo(b.x + b.w * 0.3 - px * 0.2, by + bh + px * 2); ctx.moveTo(b.x + b.w * 0.7, by + bh); ctx.lineTo(b.x + b.w * 0.7 + px * 0.2, by + bh + px * 2); ctx.stroke();
+        ctx.fillStyle = "rgba(42,20,10,0.92)"; card(0); ctx.fill();
+        ctx.strokeStyle = "rgba(240,200,120,0.6)"; ctx.setLineDash([px * 0.08, px * 0.06]); card(px * 0.1); ctx.stroke(); ctx.setLineDash([]);
+        ctx.shadowColor = "#ffcf70"; ctx.shadowBlur = px * 0.3; ctx.fillStyle = "#ffe2a0"; put(b); ctx.restore(); return;
+      } else if (tt === "inkblot") {
+        // a heavy blot of ink that draws in on itself and sharpens into the words
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.7))), cx2 = b.x + b.w / 2, z = 1 + 0.15 * (1 - q);
+        ctx.globalAlpha = Math.min(1, q * 1.6); ctx.translate(cx2, b.y); ctx.scale(z, z); ctx.translate(-cx2, -b.y);
+        try { if (q < 1) ctx.filter = "blur(" + ((1 - q) * px * 0.25).toFixed(1) + "px)"; } catch (er) {}
+        ctx.fillStyle = color; put(b); ctx.filter = "none"; ctx.restore(); return;
+      } else if (tt === "crayon" && !/[\u0590-\u08ff]/.test(b.ln)) {
+        // wax letters written one by one, each boiling a little on twos
+        let xx = b.x; const fr2 = Math.floor(t * 12);
+        Array.from(b.ln).forEach((ch, k) => {
+          const cw = ctx.measureText(ch).width, on = t - tl - k * 0.045;
+          if (on > 0 && ch !== " ") {
+            const h1 = Math.sin((k + 1) * 12.9898 + fr2 * 4.1) * 43758.5453, r = h1 - Math.floor(h1);
+            ctx.save(); ctx.translate(xx + cw / 2, b.y + (r - 0.5) * px * 0.04); ctx.rotate((r - 0.5) * 0.07);
+            [[0, 0, 1], [px * 0.015, px * 0.01, 0.5], [-px * 0.012, px * 0.012, 0.4]].forEach(([dx, dy, a]) => { ctx.globalAlpha = Math.min(1, on / 0.1) * a; ctx.fillStyle = k % 5 === 0 ? acc : color; ctx.fillText(ch, -cw / 2 + dx, dy); });
+            ctx.restore();
+          }
+          xx += cw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "knife") {
+        // laid in with a palette knife: a slanted edge sweeps across, the paint ridged by a raking light
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.8)), ex = b.x - px + (b.w + px * 3) * vsEase.inOut(q);
+        ctx.beginPath(); ctx.moveTo(b.x - px * 2, b.y - px); ctx.lineTo(ex + px * 0.5, b.y - px); ctx.lineTo(ex - px * 0.5, b.y + px); ctx.lineTo(b.x - px * 2, b.y + px); ctx.closePath(); ctx.clip();
+        ctx.fillStyle = "rgba(0,0,0,0.35)"; put(b, 0, px * 0.035, px * 0.04); ctx.fillStyle = color; put(b);
+        ctx.save(); ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.rect(b.x - px, b.y - px, b.w + px * 2, px * 0.62); ctx.clip(); ctx.fillStyle = "#fff6dc"; put(b, 0, -px * 0.02, -px * 0.025); ctx.restore();
+        ctx.restore(); return;
+      } else if (tt === "fineliner") {
+        // drawn in a wobbling sepia line, then a wash dropped behind it, off the line
+        const q1 = Math.max(0, Math.min(1, (t - tl) / 0.6)), q2 = Math.max(0, Math.min(1, (t - tl - 0.45) / 0.4)), w2 = Math.floor(t * 8);
+        if (q2 > 0) { ctx.save(); ctx.globalAlpha = 0.35 * q2; ctx.fillStyle = i % 2 ? tk.a2 : tk.a3; ctx.beginPath(); ctx.ellipse(b.x + b.w / 2 + px * 0.15, b.y + px * 0.1, b.w / 2 + px * 0.3, px * 0.55, -0.03, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q1, px * 2); ctx.clip();
+        ctx.lineWidth = Math.max(1, px * 0.035); ctx.strokeStyle = color; ctx.strokeText(b.ln, b.x + Math.sin(w2) * px * 0.01, b.y + Math.cos(w2 * 1.3) * px * 0.01);
+        ctx.globalAlpha = 0.85; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "script") {
+        // written on with one pen: a line leads in and the nib travels along the words
+        const q = Math.max(0, Math.min(1, (t - tl) / (0.3 + b.ln.length * 0.035))), nx = b.x + b.w * q;
+        ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, px * 0.03); ctx.beginPath(); ctx.moveTo(b.x - px * 1.2, b.y + px * 0.35); ctx.quadraticCurveTo(b.x - px * 0.5, b.y + px * 0.5, b.x, b.y + px * 0.3); ctx.stroke();
+        ctx.save(); ctx.beginPath(); ctx.rect(b.x - px * 0.2, b.y - px, nx - b.x + px * 0.2, px * 2); ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore();
+        if (q < 1) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(nx, b.y + px * 0.15, px * 0.06, 0, Math.PI * 2); ctx.fill(); }
+        ctx.restore(); return;
+      } else if (tt === "springup") {
+        ctx.globalCompositeOperation = "source-over";
+        // a paper card with a white border springs up off the page and settles
+        const r = Math.max(0, (t - tl) / 0.5), q = r >= 1 ? 1 : 1 - Math.pow(2, -10 * r) * Math.cos(r * 9);
+        ctx.globalAlpha = Math.min(1, r * 4); ctx.translate(0, by + bh); ctx.scale(1, Math.max(0.02, q)); ctx.translate(0, -(by + bh));
+        ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(bx + px * 0.1, by + px * 0.1, bw, bh);
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(bx - px * 0.1, by - px * 0.1, bw + px * 0.2, bh + px * 0.2);
+        ctx.fillStyle = i % 2 ? tk.a3 : acc; ctx.fillRect(bx, by, bw, bh);
+        ctx.lineWidth = px * 0.08; ctx.strokeStyle = "#3a2614"; ctx.strokeText(b.ln, b.x, b.y); ctx.fillStyle = "#ffffff"; put(b); ctx.restore(); return;
+      } else if (tt === "glowcut") {
+        ctx.globalCompositeOperation = "source-over";
+        // a strip of dark card grows from its left edge; the letters are holes the light burns through
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.6)));
+        ctx.beginPath(); ctx.rect(bx, by - px * 0.2, bw * q, bh + px * 0.4); ctx.clip();
+        ctx.fillStyle = "#0e1532"; ctx.fillRect(bx, by, bw, bh); ctx.strokeStyle = "rgba(255,200,120,0.35)"; ctx.lineWidth = Math.max(1, px * 0.02); ctx.strokeRect(bx + px * 0.06, by + px * 0.06, bw - px * 0.12, bh - px * 0.12);
+        ctx.shadowColor = acc; ctx.shadowBlur = px * 0.6; ctx.fillStyle = "#fff1d6"; put(b); ctx.shadowBlur = px * 0.2; put(b);
+        ctx.restore(); return;
+      } else if (tt === "hop" && !/[\u0590-\u08ff]/.test(b.ln)) {
+        // fat letters with an ink edge and drop shadow hopping in one after
+        // another, then bobbing gently on the beat
+        let xx = b.x;
+        Array.from(b.ln).forEach((ch, k) => {
+          const cw = ctx.measureText(ch).width, on = t - tl - k * 0.04;
+          if (on > 0 && ch !== " ") {
+            const land = Math.min(1, on / 0.25), hop = (1 - vsEase.out(land)) * px * 0.8 + Math.max(0, Math.sin((t * 2.2 - k * 0.35) * Math.PI)) * px * 0.04;
+            ctx.save(); ctx.translate(xx, b.y - hop); ctx.fillStyle = "#121212"; ctx.fillText(ch, px * 0.06, px * 0.07);
+            ctx.lineWidth = px * 0.14; ctx.strokeStyle = "#121212"; ctx.strokeText(ch, 0, 0); ctx.fillStyle = "#ffffff"; ctx.fillText(ch, 0, 0); ctx.restore();
+          }
+          xx += cw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "offsetslab") {
+        ctx.globalCompositeOperation = "source-over";
+        // ink letters over a colour plate printed a few pixels off, sliding in on twos
+        const q = Math.floor(Math.max(0, Math.min(1, (t - tl) / 0.4)) * 6) / 6;
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(-(1 - q) * px * 1.5, 0);
+        ctx.fillStyle = i % 2 ? tk.a2 : acc; ctx.fillRect(bx + px * 0.12, by + px * 0.15, bw, bh * 0.92);
+        ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "boil") {
+        // chunky letters popped in on twelves, their thick outline boiling
+        const q = Math.floor(Math.max(0, Math.min(1, (t - tl) / 0.25)) * 3) / 3, cx2 = b.x + b.w / 2, z = q < 1 ? 0.6 + 0.5 * q : 1, fr2 = Math.floor(t * 12);
+        if (q <= 0) { ctx.restore(); return; }
+        ctx.translate(cx2, b.y); ctx.scale(z, z); ctx.translate(-cx2, -b.y);
+        ctx.lineWidth = px * 0.2; ctx.strokeStyle = "#000000"; ctx.strokeText(b.ln, b.x + Math.sin(fr2 * 7.3) * px * 0.012, b.y + Math.cos(fr2 * 5.1) * px * 0.012);
+        ctx.fillStyle = i % 2 ? acc : tk.a3; put(b); ctx.restore(); return;
+      } else if (tt === "snapon") {
+        ctx.globalCompositeOperation = "source-over";
+        // each word a toy brick, placed one after another with a drop on twelves
+        const ws = b.ln.split(" "), spw = ctx.measureText(" ").width, cols = [acc, tk.a2, tk.a3]; let xx = b.x;
+        if (/[\u0590-\u08ff]/.test(b.ln)) ws.reverse();
+        ws.forEach((wd, k) => {
+          const ww = ctx.measureText(wd).width, q = Math.floor(Math.max(0, Math.min(1, (t - tl - k * 0.12) / 0.2)) * 4) / 4;
+          if (q > 0) {
+            const dy = (1 - q) * -px * 0.8, x0 = xx - px * 0.15, wb = ww + px * 0.3, y0 = b.y - px * 0.58 + dy, h0 = px * 1.12, c = cols[(k + i) % 3];
+            ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(x0 + px * 0.06, y0 + px * 0.08, wb, h0); ctx.fillStyle = c; ctx.fillRect(x0, y0, wb, h0);
+            const n = Math.max(2, Math.round(wb / (px * 0.45)));
+            for (let s2 = 0; s2 < n; s2++) { const sx = x0 + (wb / n) * (s2 + 0.5); ctx.fillStyle = c; ctx.fillRect(sx - px * 0.13, y0 - px * 0.1, px * 0.26, px * 0.12); ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(sx - px * 0.13, y0 - px * 0.1, px * 0.26, px * 0.04); }
+            ctx.fillStyle = c === tk.a3 ? "#1b2a34" : "#ffffff"; ctx.fillText(wd, xx, b.y + dy);
+          }
+          xx += ww + spw;
+        });
+        ctx.restore(); return;
       } else if (tt === "slab") {
         // slammed in like a stamp, with an overprint shadow off register
         const q = Math.max(0, Math.min(1, (t - tl) / 0.22)), z = 1 + 0.35 * (1 - q) * (1 - q), cx2 = b.x + b.w / 2;
@@ -17034,6 +17337,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         if (fl > 0) { ctx.globalCompositeOperation = "lighter"; const fx = b.x + b.w * Math.min(1, (t - tl) / 0.6), hg = ctx.createLinearGradient(fx - U * 0.4, 0, fx + U * 0.4, 0); hg.addColorStop(0, "rgba(255,255,255,0)"); hg.addColorStop(0.5, "rgba(200,240,255," + (0.8 * fl).toFixed(2) + ")"); hg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = hg; ctx.fillRect(fx - U * 0.4, b.y - px * 0.03, U * 0.8, px * 0.06); }
         ctx.restore(); return;
       } else if (tt === "telop") {
+        ctx.globalCompositeOperation = "source-over";
         // a card with a hard shadow drops in and squashes as it lands
         const r = Math.max(0, (t - tl) / 0.35), q = Math.min(1, r), land = r > 1 ? Math.max(0, 1 - (r - 1) / 0.4) : 0;
         const dy = -(1 - vsEase.out(q)) * px * 2, sq = 1 + 0.12 * Math.sin(land * Math.PI), cx2 = b.x + b.w / 2;
@@ -17043,6 +17347,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         ctx.fillStyle = i % 2 ? acc : tk.paper; card(bx, by); ctx.fill(); ctx.lineWidth = px * 0.07; ctx.strokeStyle = "#151515"; ctx.stroke();
         ctx.fillStyle = "#151515"; put(b); ctx.restore(); return;
       } else if (tt === "roadsign") {
+        ctx.globalCompositeOperation = "source-over";
         // a road sign swinging down from its top edge
         const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.45)));
         ctx.translate(0, by); ctx.scale(1, Math.max(0.02, q)); ctx.translate(0, -by);
@@ -17934,7 +18239,55 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
   const cols = [tk.a1, tk.a2, tk.a3];
   const spots = [[0.04, 0.05], [0.96, 0.06], [0.05, 0.955], [0.95, 0.945]];
   ctx.save();
-  if (de === "stamp") {
+  if (de === "searchlights") {
+    // two searchlights sweeping slowly from the foot
+    ctx.globalCompositeOperation = "lighter";
+    [[0.15, 1], [0.85, -1]].forEach(([fx, d], k) => {
+      const an = -Math.PI / 2 + d * (0.35 + 0.25 * Math.sin(t * 0.6 + k)), x0 = W * fx, y0 = H, g = ctx.createLinearGradient(x0, y0, x0 + Math.cos(an) * H, y0 + Math.sin(an) * H);
+      g.addColorStop(0, "rgba(255,250,235," + (0.16 * ap).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,250,235,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + Math.cos(an - 0.06) * H * 1.3, y0 + Math.sin(an - 0.06) * H * 1.3); ctx.lineTo(x0 + Math.cos(an + 0.06) * H * 1.3, y0 + Math.sin(an + 0.06) * H * 1.3); ctx.closePath(); ctx.fill();
+    });
+  } else if (de === "lamp") {
+    // the oil lamp behind the screen breathing
+    const f = 0.5 + 0.5 * Math.sin(t * 7.3) * Math.sin(t * 3.1 + 1);
+    ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.06 + 0.05 * f; ctx.fillStyle = "#7a4a1c"; ctx.fillRect(0, 0, W, H);
+  } else if (de === "birds") {
+    // a few birds of two brush strokes crossing the sky
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = Math.max(1, U * 0.003); ctx.lineCap = "round";
+    for (let k = 0; k < 4; k++) {
+      const fx = ((0.2 + k * 0.13 + t * 0.012 * (1 + k * 0.2)) % 1.2) - 0.1, fy = 0.18 + k * 0.05 + Math.sin(t * 0.8 + k) * 0.01, s2 = U * (0.018 + k * 0.004), fl = Math.sin(t * 5 + k * 2) * 0.4;
+      ctx.globalAlpha = 0.7 * ap; ctx.beginPath(); ctx.moveTo(W * fx - s2, H * fy - s2 * (0.3 + fl)); ctx.quadraticCurveTo(W * fx - s2 * 0.4, H * fy - s2 * 0.2, W * fx, H * fy); ctx.quadraticCurveTo(W * fx + s2 * 0.4, H * fy - s2 * 0.2, W * fx + s2, H * fy - s2 * (0.3 + fl)); ctx.stroke();
+    }
+  } else if (de === "balloon") {
+    // one red balloon drifting up through the sepia page
+    const fy = 0.75 - ((t * 0.02) % 0.8), fx = 0.82 + Math.sin(t * 0.7) * 0.02, r = U * 0.045;
+    ctx.globalAlpha = ap; ctx.strokeStyle = tk.ink; ctx.lineWidth = Math.max(1, U * 0.002);
+    ctx.beginPath(); ctx.moveTo(W * fx, H * fy + r); ctx.quadraticCurveTo(W * fx + U * 0.02, H * fy + r + U * 0.06, W * fx - U * 0.01, H * fy + r + U * 0.12); ctx.stroke();
+    ctx.fillStyle = tk.a1; ctx.beginPath(); ctx.ellipse(W * fx, H * fy, r * 0.85, r, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.beginPath(); ctx.ellipse(W * fx - r * 0.3, H * fy - r * 0.35, r * 0.18, r * 0.28, -0.5, 0, Math.PI * 2); ctx.fill();
+  } else if (de === "lineflow") {
+    // the one line drawing a looping flower in the corner, again and again
+    const lt2 = t % 8, ph = Math.min(1, lt2 / 5), cx = W * 0.8, cy = H * 0.2, r = U * 0.09, n = Math.floor(200 * ph);
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = Math.max(1.2, U * 0.003); ctx.lineCap = "round"; ctx.globalAlpha = ap * (lt2 > 7 ? 8 - lt2 : 1);
+    ctx.beginPath(); for (let k = 0; k <= n; k++) { const f = k / 200, an = f * Math.PI * 6, rr = r * (0.5 + 0.5 * Math.sin(f * Math.PI * 5)); k ? ctx.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr) : ctx.moveTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); }
+    ctx.stroke();
+  } else if (de === "windows") {
+    // windows in the front sheets switching on one by one
+    for (let k = 0; k < 12; k++) {
+      const on = Math.max(0, Math.min(1, (t - 0.4 - k * 0.25) / 0.3)); if (on <= 0) continue;
+      const fx = (Math.sin(k * 37.1) * 0.5 + 0.5) * 0.9 + 0.05, fy = 0.8 + (Math.sin(k * 13.7) * 0.5 + 0.5) * 0.12;
+      ctx.globalAlpha = on * ap; ctx.fillStyle = tk.a1; ctx.shadowColor = tk.a1; ctx.shadowBlur = U * 0.03; ctx.fillRect(W * fx, H * fy, U * 0.014, U * 0.018);
+    }
+    ctx.shadowBlur = 0;
+  } else if (de === "atomic") {
+    // a 1950s atomic star turning slowly
+    ctx.translate(W * 0.8, H * 0.2); ctx.rotate(t * 0.2); ctx.globalAlpha = ap; ctx.strokeStyle = tk.ink; ctx.fillStyle = tk.ink; ctx.lineWidth = Math.max(1, U * 0.004);
+    for (let k = 0; k < 8; k++) { const an = (k * Math.PI) / 4, l = U * (k % 2 ? 0.05 : 0.08); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(an) * l, Math.sin(an) * l); ctx.stroke(); ctx.beginPath(); ctx.arc(Math.cos(an) * l, Math.sin(an) * l, U * 0.008, 0, Math.PI * 2); ctx.fill(); }
+  } else if (de === "portalspin") {
+    // the portal's arms turning
+    const cx = W * 0.82, cy = H * 0.78; ctx.globalAlpha = 0.5 * ap; ctx.strokeStyle = "#eaffff"; ctx.lineWidth = U * 0.006;
+    for (let a = 0; a < 3; a++) { ctx.beginPath(); for (let k = 0; k <= 40; k++) { const f = k / 40, an = t * 2 + (a * Math.PI * 2) / 3 + f * 4, r = U * 0.3 * f; k ? ctx.lineTo(cx + Math.cos(an) * r, cy + Math.sin(an) * r * 1.1) : ctx.moveTo(cx, cy); } ctx.stroke(); }
+  } else if (de === "stamp") {
     // a rubber stamp slams down at the top right
     const q = Math.max(0, Math.min(1, (t - 0.6) / 0.16));
     if (q > 0) {
@@ -18191,7 +18544,20 @@ function vsGxOverlay(ctx, W, H, t, tk, st, U, sc) {
   const fr = st.fr;
   if (!fr || fr === "none") return;
   ctx.save();
-  if (fr === "ukiyo") {
+  if (fr === "reel") {
+    // the newsreel print: warm silver, a gentle flicker, sprocket holes down one edge
+    ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = "#808080"; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "#efe7d6"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#000000"; ctx.globalAlpha = 0.04 + 0.03 * (Math.sin(t * 18.85) * 0.5 + Math.sin(t * 7.1) * 0.5); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+    const vg = ctx.createRadialGradient(W / 2, H / 2, U * 0.4, W / 2, H / 2, Math.max(W, H) * 0.7); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.6)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, U * 0.035, H); ctx.fillStyle = "#3a3630";
+    for (let y = U * 0.02; y < H; y += U * 0.06) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(U * 0.008, y, U * 0.02, U * 0.03, U * 0.005); else ctx.rect(U * 0.008, y, U * 0.02, U * 0.03); ctx.fill(); }
+  } else if (fr === "iris") {
+    // an iris opening at the start of each scene, round dark corners after
+    const q = Math.min(1, t / 0.7), r = Math.hypot(W, H) * 0.5 * (0.15 + 0.85 * vsEase.out(q)), rf = Math.max(r, Math.min(W, H) * 0.62);
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H / 2, q < 1 ? r : Math.hypot(W, H) * 0.52, 0, Math.PI * 2); ctx.fillStyle = "#0b0b0b"; ctx.fill("evenodd");
+    const vg = ctx.createRadialGradient(W / 2, H / 2, rf * 0.6, W / 2, H / 2, Math.hypot(W, H) * 0.55); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.45)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  } else if (fr === "ukiyo") {
     // the print's double ink border, a vertical title slip and a red seal
     const m = U * 0.03; ctx.strokeStyle = tk.ink; ctx.lineWidth = U * 0.008; ctx.strokeRect(m, m, W - 2 * m, H - 2 * m);
     ctx.lineWidth = U * 0.0025; ctx.strokeRect(m + U * 0.014, m + U * 0.014, W - 2 * m - U * 0.028, H - 2 * m - U * 0.028);
@@ -18329,7 +18695,7 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   for (let k = 0; k < ws.length; k++) if (ws[k].t0 <= lt + 0.02) cur = k;
   if (cur < 0 || lt > ws[ws.length - 1].t1 + 0.4) return;
   const start = Math.floor(cur / 4) * 4, chunk = ws.slice(start, start + 4);
-  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" || cp === "dialog" || cp === "hud" || cp === "card" || cp === "dossier" || cp === "cartouche" || cp === "slip" || cp === "toast" || cp === "band" || cp === "margin" || cp === "signcap" || cp === "plaque" ? tk.body : { fam: tk.body.fam, w: 800 };
+  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" || cp === "dialog" || cp === "hud" || cp === "card" || cp === "dossier" || cp === "cartouche" || cp === "slip" || cp === "toast" || cp === "band" || cp === "margin" || cp === "signcap" || cp === "plaque" || cp === "reelcard" || cp === "placard" || cp === "inscription" || cp === "crayonwords" || cp === "writeon" || cp === "brownout" || cp === "soft" || cp === "titlecard" || cp === "steplabel" || cp === "speaker" || cp === "brickpill" ? tk.body : { fam: tk.body.fam, w: 800 };
   const px = U * (cp === "hand" ? 0.062 : cp === "sub" ? 0.048 : 0.05);
   const sheet = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
   const y = sheet ? H * 0.845 : st.fr === "ticker" ? H * 0.84 : st.fr === "letterbox" ? H * 0.958 : st.fr === "wood" || st.fr === "thick" ? H * 0.88 : H * 0.9;
@@ -18341,7 +18707,43 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   const x0 = W / 2 - tw / 2, bx = x0 - px * 0.6, bw = tw + px * 1.2, by = y - px * 0.9, bh = px * 1.8;
   const rr = (r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh); };
   let col = tk.ink, hi = tk.dark ? tk.a1 : tk.a2;
-  if (cp === "dossier") {
+  if (cp === "reelcard") {
+    // cream type on a near-black plate inside a fine cream rule
+    ctx.fillStyle = "rgba(12,11,10,0.8)"; ctx.fillRect(bx, by, bw, bh); ctx.strokeStyle = "#f3eee4"; ctx.lineWidth = Math.max(1, px * 0.04); ctx.strokeRect(bx + px * 0.08, by + px * 0.08, bw - px * 0.16, bh - px * 0.16);
+    col = "#f3eee4"; hi = "#ffffff";
+  } else if (cp === "placard") {
+    // the storyteller's placard: dark lacquer, a thin gold line, a small seal
+    ctx.fillStyle = "#24120a"; ctx.fillRect(bx, by, bw, bh); ctx.strokeStyle = "#d9a441"; ctx.lineWidth = Math.max(1, px * 0.03); ctx.strokeRect(bx + px * 0.1, by + px * 0.1, bw - px * 0.2, bh - px * 0.2);
+    ctx.fillStyle = "#b0301c"; ctx.fillRect(bx + bw - px * 0.45, by + px * 0.2, px * 0.26, px * 0.26); col = "#f3d28a"; hi = "#ffffff";
+  } else if (cp === "inscription") {
+    // an inscription in the empty paper, a small vermilion square before it
+    ctx.fillStyle = tk.a1; ctx.fillRect(x0 - px * 0.55, y - px * 0.16, px * 0.28, px * 0.28); col = tk.ink; hi = tk.a1;
+  } else if (cp === "crayonwords" || cp === "writeon") {
+    col = tk.ink; hi = tk.a1;
+  } else if (cp === "brownout") {
+    col = "#fff3dc"; hi = tk.a3;
+  } else if (cp === "soft") {
+    col = "#ffe2b8"; hi = tk.a1;
+  } else if (cp === "titlecard") {
+    // a period title card: a near-black plate, a white double rule, dot-and-ring corners
+    ctx.fillStyle = "#0b0b0b"; ctx.fillRect(bx, by, bw, bh); ctx.strokeStyle = "#f5f1e8"; ctx.lineWidth = Math.max(1, px * 0.03);
+    ctx.strokeRect(bx + px * 0.1, by + px * 0.1, bw - px * 0.2, bh - px * 0.2); ctx.strokeRect(bx + px * 0.18, by + px * 0.18, bw - px * 0.36, bh - px * 0.36);
+    [[bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh]].forEach(([cx, cy]) => { ctx.fillStyle = "#f5f1e8"; ctx.beginPath(); ctx.arc(cx, cy, px * 0.11, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#0b0b0b"; ctx.beginPath(); ctx.arc(cx, cy, px * 0.05, 0, Math.PI * 2); ctx.fill(); });
+    col = "#f5f1e8"; hi = "#ffffff";
+  } else if (cp === "steplabel") {
+    // a cream plate led by an ink disc
+    ctx.fillStyle = tk.paper; ctx.fillRect(bx - px * 0.9, by, bw + px * 0.9, bh); ctx.fillStyle = tk.ink; ctx.beginPath(); ctx.arc(bx - px * 0.45, y, px * 0.32, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = tk.paper; ctx.beginPath(); ctx.arc(bx - px * 0.45, y, px * 0.1, 0, Math.PI * 2); ctx.fill(); col = tk.ink; hi = tk.a1;
+  } else if (cp === "speaker") {
+    // the cartoon's own captions, a little speaker pill before them
+    ctx.fillStyle = tk.a1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx - px * 0.9, y - px * 0.22, px * 0.7, px * 0.44, px * 0.22); else ctx.rect(bx - px * 0.9, y - px * 0.22, px * 0.7, px * 0.44); ctx.fill();
+    col = "#ffffff"; hi = tk.a3;
+  } else if (cp === "brickpill") {
+    // a dark rounded pill with a small brick before the words
+    ctx.fillStyle = "rgba(27,42,52,0.92)"; rr(bh / 2); ctx.fill(); ctx.fillStyle = tk.a1;
+    ctx.fillRect(bx + px * 0.15, y - px * 0.16, px * 0.4, px * 0.3); ctx.fillRect(bx + px * 0.2, y - px * 0.25, px * 0.1, px * 0.09); ctx.fillRect(bx + px * 0.4, y - px * 0.25, px * 0.1, px * 0.09);
+    col = "#ffffff"; hi = tk.a3;
+  } else if (cp === "dossier") {
     // the dark ink bar with an overprint shadow off register
     ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = tk.a2; ctx.fillRect(bx + px * 0.12, by + px * 0.12, bw, bh);
     ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = tk.ink; ctx.fillRect(bx, by, bw, bh); col = tk.paper; hi = tk.a1;
@@ -18424,8 +18826,9 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   let x = x0;
   txt.forEach((s, i) => {
     const k = cp === "mono" ? i - 1 : i, now = start + k === cur;
-    if (cp === "plain" || cp === "sub" || cp === "glow" || cp === "hand") {
-      ctx.lineJoin = "round"; ctx.lineWidth = px * (cp === "sub" ? 0.22 : 0.16); ctx.strokeStyle = cp === "sub" ? "#000" : tk.dark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.85)";
+    const halo = { brownout: ["#3a2614", 0.26], speaker: ["#000000", 0.3], soft: ["rgba(0,0,0,0.45)", 0.16], crayonwords: ["rgba(255,255,255,0.85)", 0.16], inscription: ["rgba(255,255,255,0.7)", 0.12], writeon: ["rgba(255,255,255,0.7)", 0.12] }[cp];
+    if (cp === "plain" || cp === "sub" || cp === "glow" || cp === "hand" || halo) {
+      ctx.lineJoin = "round"; ctx.lineWidth = px * (halo ? halo[1] : cp === "sub" ? 0.22 : 0.16); ctx.strokeStyle = halo ? halo[0] : cp === "sub" ? "#000" : tk.dark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.85)";
       if (cp !== "glow") ctx.strokeText(s, x, y);
     }
     if (cp === "glow") { ctx.shadowColor = now ? tk.a1 : "transparent"; ctx.shadowBlur = px * 0.6; }
