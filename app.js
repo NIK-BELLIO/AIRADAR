@@ -18312,6 +18312,15 @@ function vsEditStudio(preset, filesIn) {
           redraw();
         };
       }
+      // what the edit was asked for up front (an API or AI edit): the frame
+      // filled, the captions in another language - applied once, now that the
+      // edit exists
+      {
+        const want = vstudio._editWant;
+        vstudio._editWant = null;
+        if (want && want.fill && $$("emFit") && !$$("emFitRow").hidden) { $$("emFit").checked = true; $$("emFit").onchange({ target: $$("emFit") }); }
+        if (want && want.capLang && $$("emCapLang") && !$$("emLangRow").hidden) { $$("emCapLang").value = want.capLang; $$("emCapLang").onchange(); }
+      }
       $$("emPolish").onchange = (e) => {
         vstudio._voicePolish = e.target.checked;
         if (vstudio.looping) pause();
@@ -18651,7 +18660,7 @@ function vsEditStudio(preset, filesIn) {
     if (o.mix && mode === "edit") o.gxTheme = gxTheme;
     if (shotFiles.length && o.style !== "classic" && !o.graphic) o.shots = shotFiles.slice();
     if (showFiles.length && o.style !== "classic" && !o.graphic) o.showcase = { files: showFiles.slice(), name: $$("emShowName").value.trim(), detail: $$("emShowDetail").value.trim() };
-    ["hookText", "font", "accent", "range"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
+    ["hookText", "font", "accent", "range", "capLang", "fill"].forEach((k) => { if (preset[k]) o[k] = preset[k]; });
     const before = vstudio._buildSeq;
     if (mode === "photos") {
       if (!phFiles.length || !$$("emPhText").value.trim()) return;
@@ -20435,6 +20444,7 @@ async function vsEditMyVideo(fileIn, o) {
       music: { mood: String(mu.mood || "upbeat"), energy: String((pro && vsProPace(pro).energy) || mu.energy || "medium"), bpm: Math.max(84, Math.min(128, Number(mu.bpm) || 104)) } };
     // a new edit: its captions start in their own language
     vstudio._capSrc = null; vstudio._capLang = "";
+    vstudio._editWant = { capLang: o.capLang || "", fill: !!o.fill };
     vstudio._editStats = { dropped: droppedN, broll: vstudio.slides.filter((x) => x._broll).length, analysed: !!ai };
 
     const lay = o.layout && o.layout !== "auto" ? o.layout : ((vstudio._editSrcAspect || 1) < 0.8 ? "full" : "card");
@@ -40491,6 +40501,12 @@ async function vsHeadlessRenderDeckId(id, opts) {
     throw new Error("the video was not built" + (lastStatus ? ": " + lastStatus.slice(0, 160) : ""));
   }
   say("built " + vstudio.slides.length + " scenes");
+  {
+    const want = vstudio._editWant;
+    vstudio._editWant = null;
+    if (want && want.fill) vstudio.slides.forEach((x) => { if (!x._broll && !x._gx) x._fit = "fill"; });
+    if (want && want.capLang) { try { await vsTranslateCaptions(want.capLang); say("captions in " + want.capLang); } catch (e) { say("captions not translated"); } }
+  }
   try { stopStudioPreview(); } catch (e) {}
   vstudio.looping = false;
   if (opts.size) { const el = document.querySelector("#vsExportSize"); if (el) { el.value = String(opts.size); try { el.dispatchEvent(new Event("change")); } catch (e) {} } }
@@ -41122,6 +41138,10 @@ async function vsOpenEditDeck(e, how) {
   // change while the rest stays (Edit my video, the second way)
   const swap = e.kind === "swap" ? { texts: Array.isArray(e.texts) ? e.texts : [], footage: Array.isArray(e.footage) ? e.footage : [] } : null;
   if (swap) { preset.mode = "swap"; preset.swap = swap; }
+  // the finishing switches it asked for (each on unless said otherwise)
+  if (typeof preset.cleanVoice === "boolean") vstudio._voicePolish = preset.cleanVoice;
+  if (typeof preset.progress === "boolean") vstudio._editProgress = preset.progress;
+  if (typeof preset.chapters === "boolean") vstudio._editChapters = preset.chapters;
   // the API names a graphic style family; the studio wants one of its themes
   if (preset.gxStyle && !preset.gxTheme) { const t = vsGxThemes().find((x) => x.family === preset.gxStyle); if (t) preset.gxTheme = t.id; }
   if (preset.graphic && e.kind !== "photos") { preset.style = "graphic"; preset.gxTheme = preset.gxTheme || VS_GX_DEFAULT; }
