@@ -20365,6 +20365,19 @@ function vsSwapMeasureTextAt(g, b) {
     const t = Math.max(0, Math.min(1, (q[0] * seg[0] + q[1] * seg[1] + q[2] * seg[2]) / segL));
     return Math.hypot(q[0] - seg[0] * t, q[1] - seg[1] * t, q[2] - seg[2] * t) < 60;
   };
+  // The plan's box can stop short of the words: the "?" of "Money?" sat
+  // outside it, was never erased and showed after the new title. The words
+  // are followed sideways, column by column in their own colour, until a gap
+  // wider than a word space (or a fifth of the frame).
+  {
+    // over a photo its darks can pass for the words' colour: a tighter gap and more ink per column
+    const lineH = (iy1 - iy0 + 1) / Math.max(1, (b.lines || []).length || 1);
+    const gapMax = Math.max(6, Math.min(Math.round(H * (photo ? 0.015 : 0.03)), Math.round(lineH * 0.45))), lim = Math.round(Math.min(W * (photo ? 0.1 : 0.2), lineH * 1.2)), need = photo ? 3 : 2;
+    const sx0 = ix0, sx1 = ix1;
+    const colText = (x) => { let c = 0; for (let y = iy0; y <= iy1; y++) if (isText((y * W + x) * 4) && ++c >= need) return true; return false; };
+    for (let x = ix1 + 1, gap = 0; x < Math.min(W, sx1 + lim) && gap <= gapMax; x++) { if (colText(x)) { ix1 = x; gap = 0; } else gap++; }
+    for (let x = ix0 - 1, gap = 0; x >= Math.max(0, sx0 - lim) && gap <= gapMax; x--) { if (colText(x)) { ix0 = x; gap = 0; } else gap++; }
+  }
   if (nL >= 2) {
     const gy0 = Math.max(y0, Math.floor((b.box.y - 0.004) * H)), gy1 = Math.min(y1, Math.ceil((b.box.y + b.box.h + 0.004) * H));
     const prof = [];
