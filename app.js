@@ -12220,8 +12220,7 @@ function vsWeakDevice() {
 let vsProSegP = null;
 function vsProSegmenter() {
   if (!vsProSegP) vsProSegP = (async () => {
-    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
-    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    const { V, files } = await vsMpVision();
     const model = await vsMpModel("seg");
     const opts = (delegate) => ({ baseOptions: { delegate, modelAssetBuffer: model },
       runningMode: "IMAGE", outputCategoryMask: false, outputConfidenceMasks: true });
@@ -12298,8 +12297,7 @@ function vsProMask(F, W, H, s, local) {
 let vsProFaceP = null;
 function vsProFaceDetector() {
   if (!vsProFaceP) vsProFaceP = (async () => {
-    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
-    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    const { V, files } = await vsMpVision();
     const model = await vsMpModel("face");
     const opts = (delegate) => ({ baseOptions: { delegate, modelAssetBuffer: model },
       runningMode: "IMAGE", minDetectionConfidence: 0.45 });
@@ -18361,6 +18359,8 @@ function vsEditStudio(preset, filesIn) {
         '<label class="em-lang" id="emLangRow" style="grid-column:1/-1" hidden><span>' + L("Captions in", "زبان زیرنویس") + '</span><select id="emCapLang">' +
           [["", L("Original", "زبان اصلی")], ["English", "English"], ["Persian", "فارسی"], ["Arabic", "العربية"], ["Spanish", "Español"], ["French", "Français"], ["German", "Deutsch"], ["Turkish", "Türkçe"]]
             .map(([v, t]) => '<option value="' + v + '"' + ((vstudio._capLang || "") === v ? " selected" : "") + ">" + t + "</option>").join("") + "</select></label>" +
+        '<label class="ts-switch"><input type="checkbox" id="emGlow"' + (vstudio._editGlow ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Deep glow", "درخشش عمیق") + "</span></label>" +
+        '<input id="emGlowAmt" type="range" min="20" max="200" step="10" value="' + Math.round((vstudio._glowAmt == null ? 1 : vstudio._glowAmt) * 100) + '"' + (vstudio._editGlow ? "" : " disabled") + ' aria-label="' + L("Glow strength", "شدت درخشش") + '"/>' +
         '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emProg"' + (vstudio._editProgress === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Progress bar", "نوار پیشرفت") + "</span></label>" +
         '<label class="ts-switch" style="grid-column:1/-1"><input type="checkbox" id="emChap"' + (vstudio._editChapters === false ? "" : " checked") + '/><span class="ts-sw"></span><span>' + L("Chapter tags", "برچسب فصل‌ها") + "</span></label>" +
         '<label class="ts-switch" id="emFitRow" style="grid-column:1/-1" hidden><input type="checkbox" id="emFit"' + (vstudio.slides.some((x) => x._fit === "fill" && !x._broll) ? " checked" : "") + '/><span class="ts-sw"></span><span>' + L("Fill the frame", "پر کردن کادر") + "</span></label>" +
@@ -18535,6 +18535,8 @@ function vsEditStudio(preset, filesIn) {
         sync();
       };
       $$("emProg").onchange = (e) => { vstudio._editProgress = e.target.checked; redraw(); };
+      $$("emGlow").onchange = (e) => { vstudio._editGlow = e.target.checked; $$("emGlowAmt").disabled = !e.target.checked; redraw(); };
+      $$("emGlowAmt").oninput = (e) => { vstudio._glowAmt = Number(e.target.value) / 100; redraw(); };
       $$("emChap").onchange = (e) => { vstudio._editChapters = e.target.checked; redraw(); };
       // Captions in another language: every caption group translated at once
       // and set as the customer's own wording for it (the same path as typing
@@ -29719,9 +29721,36 @@ function vsWmEnsureStudioToggle() {
 // Every frame, then the watermark over all of it.
 function drawStudioFrame(elapsed) {
   const r = drawStudioFrameCore(elapsed);
+  try { if (vstudio._editGlow) vsDeepGlow(); } catch (e) {}
   try { vsDrawEditExtras(elapsed); } catch (e) {}
   try { vsDrawWatermark(); } catch (e) {}
   return r;
+}
+
+// ── Deep glow ──────────────────────────────────────────────────────────────
+// The After Effects "Deep Glow" look: only the bright parts of the frame -
+// the words, lights, highlights - bleed their own colour into what is round
+// them, a tight glow, a middle one and a wide soft one layered so it falls
+// off like real light rather than sitting round the text as a halo. Worked
+// on a quarter-size copy, so it costs little per frame.
+let vsGlowMask = null, vsGlowBlur = null;
+function vsDeepGlow() {
+  const canvas = document.getElementById("vsCanvas");
+  if (!canvas || !vstudio.slides || !vstudio.slides.some((x) => x._ownSpeech) || !vstudio._editLayout) return;
+  const W = canvas.width, H = canvas.height, w = Math.max(64, Math.round(W / 4)), h = Math.max(64, Math.round(H / 4));
+  const k = vstudio._glowAmt == null ? 1 : Math.max(0, Math.min(2, vstudio._glowAmt));
+  if (!vsGlowMask) { vsGlowMask = document.createElement("canvas"); vsGlowBlur = document.createElement("canvas"); }
+  [vsGlowMask, vsGlowBlur].forEach((c) => { if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } });
+  // the light: what is brighter than about 60%, its colour kept and deepened
+  const m = vsGlowMask.getContext("2d"), g = vsGlowBlur.getContext("2d");
+  m.clearRect(0, 0, w, h); m.filter = "brightness(0.65) contrast(5) saturate(1.6)"; m.drawImage(canvas, 0, 0, w, h); m.filter = "none";
+  const ctx = canvas.getContext("2d");
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.filter = "none"; ctx.globalCompositeOperation = "screen";
+  [[0.01, 0.7], [0.03, 0.55], [0.085, 0.45]].forEach(([r, a]) => {
+    g.clearRect(0, 0, w, h); g.filter = "blur(" + Math.max(1, w * r).toFixed(1) + "px)"; g.drawImage(vsGlowMask, 0, 0); g.filter = "none";
+    ctx.globalAlpha = Math.min(1, a * k); ctx.drawImage(vsGlowBlur, 0, 0, W, H);
+  });
+  ctx.restore();
 }
 
 // ── An edit's progress bar and chapter tags ────────────────────────────────
@@ -33677,7 +33706,7 @@ async function vsThumbShorten(title) {
 // — used so a 486×279 thumbnail stays under 50KB).
 async function vsCoverRenderAt(assets, W, H, opts) {
   opts = opts || {};
-  let coverTitle = (assets && assets.coverTitle) || "AI Radar";
+  let coverTitle = (assets && assets.coverTitle) || "";
   const img = assets && assets.img;
   let source = (assets && assets.source) || "";
   // too long to read at this size: the short version of the user's own words
@@ -33690,9 +33719,10 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const ctx = c.getContext("2d");
   if (img && (img.naturalWidth || img.width)) {
-    const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height;
-    const cov = Math.max(W / mw, H / mh);
-    ctx.drawImage(img, (W - mw * cov) / 2, (H - mh * cov) / 2, mw * cov, mh * cov);
+    // fitted round the face (or the top of a tall photo): a centred crop of a
+    // portrait photo in a wide frame cut the head off
+    const f = vsThumbPhotoFit({ W, H, img, cut: assets && assets.cut });
+    ctx.drawImage(img, f.ox, f.oy, f.mw * f.cov, f.mh * f.cov);
   } else {
     const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#14171d"); bg.addColorStop(1, "#08090c");
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
@@ -33709,10 +33739,13 @@ async function vsCoverRenderAt(assets, W, H, opts) {
   const R = { ctx, W, H, M, accent, landscape, title: coverTitle, source, words: meta.words, emph: meta.emph, hasImg: !!(img && (img.naturalWidth || img.width)),
     img, cut: assets && assets.cut, kicker: assets && assets.kicker, side: assets && assets.side, bg: assets && assets.bg };
   const draw = { bold: vsTplBold, band: vsTplBand, center: vsTplCenter, sidebar: vsTplSidebar, minimal: vsTplMinimal, stamp: vsTplStamp, cutout: vsTplCutout,
-    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrowPro, number: vsTplNumber, pop: vsTplPop, arrowpro: vsTplArrowPro, behind: vsTplBehind }[template] || vsTplBold;
+    versus: vsTplVersus, beforeafter: vsTplBeforeAfter, arrow: vsTplArrowPro, number: vsTplNumber, pop: vsTplPop, arrowpro: vsTplArrowPro, behind: vsTplBehind,
+    docu: vsTplDocu, tech: vsTplTech, podcast: vsTplPodcast, breaking: vsTplBreaking, money: vsTplMoney, extrude: vsTplExtrude, glass: vsTplGlass,
+    burst: vsTplBurst, magazine: vsTplMagazine, neon: vsTplNeon, echo: vsTplEcho }[template] || vsTplBold;
   // the professional looks stand the person out of the picture: cut them out
   if (tplDef.pro) {
     try { await vsProLoadFonts(); } catch (e) {}
+    if (R.cut && typeof R.cut.getContext !== "function") R.cut = null;
     if (!R.cut && R.hasImg) {
       try {
         const fc = document.createElement("canvas"); fc.width = img.naturalWidth || img.width; fc.height = img.naturalHeight || img.height;
@@ -33749,6 +33782,17 @@ const VS_THUMB_TEMPLATES = [
   { id: "pop",      name: "Creator pop", fa: "کریتور پاپ", accent: "#ffd400", pro: true },
   { id: "arrowpro", name: "Arrow pro",   fa: "فلش حرفه‌ای", accent: "#ff2d2d", pro: true },
   { id: "behind",   name: "Behind",      fa: "پشت سوژه",   accent: "#ffd400", pro: true },
+  { id: "docu",     name: "Documentary", fa: "مستند",      accent: "#e63b2e", pro: true },
+  { id: "tech",     name: "Tech review", fa: "بررسی فنی",  accent: "#22d3ee", pro: true },
+  { id: "podcast",  name: "Podcast",     fa: "پادکست",     accent: "#ff5a36", pro: true },
+  { id: "breaking", name: "Breaking news", fa: "خبر فوری", accent: "#e11d2e", pro: true },
+  { id: "money",    name: "Money chart", fa: "نمودار رشد", accent: "#22c55e", pro: true },
+  { id: "extrude",  name: "3D type",     fa: "حروف سه‌بعدی", accent: "#ff8a00", pro: true },
+  { id: "glass",    name: "Glass card",  fa: "کارت شیشه‌ای", accent: "#a78bfa", pro: true },
+  { id: "burst",    name: "Shock burst", fa: "انفجار",     accent: "#ff3d00", pro: true },
+  { id: "magazine", name: "Magazine",    fa: "مجله",       accent: "#f43f5e", pro: true },
+  { id: "neon",     name: "Neon",        fa: "نئون",       accent: "#ff2bd6", pro: true },
+  { id: "echo",     name: "Echo",        fa: "پژواک",      accent: "#c8ff00", pro: true },
   { id: "bold",    name: "Bold",    fa: "درشت",    accent: "#2563ff" },
   { id: "band",    name: "Band",    fa: "نواری",   accent: "#f5c451" },
   { id: "center",  name: "Center",  fa: "وسط‌چین",  accent: "#f87171" },
@@ -35603,6 +35647,28 @@ function vsThumbNoImageReason(err) {
 // a glow, the frame blurred behind, big words on the other side.
 const VS_THUMB_PLAN_URL = "https://airadar-ai.aliniashyn-9b4.workers.dev/thumb-plan";
 const VS_MP_VER = "0.10.14";
+// The MediaPipe engine itself (a 9 MB wasm): from our own site first, then
+// from jsdelivr - jsdelivr took 38 s for it from a slow line, and the person
+// cut-out waited on it.
+let vsMpVisionP = null;
+function vsMpVision() {
+  if (!vsMpVisionP) vsMpVisionP = (async () => {
+    for (const base of [location.origin + "/mediapipe", "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER]) {
+      try {
+        const V = await import(base + "/vision_bundle.mjs"), files = await V.FilesetResolver.forVisionTasks(base + "/wasm");
+        // the wasm it chose (with or without SIMD) has to be there too
+        if (base.indexOf(location.origin) === 0) {
+          const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), 8000);
+          const r = await fetch(files.wasmBinaryPath, { method: "HEAD", signal: ctrl.signal }); clearTimeout(tm);
+          if (!r.ok) continue;
+        }
+        return { V, files };
+      } catch (e) {}
+    }
+    throw new Error("the vision engine did not load");
+  })().catch((e) => { vsMpVisionP = null; throw e; });
+  return vsMpVisionP;
+}
 // MediaPipe's model files, from our own site first (repo/mediapipe - /models/* is the Next.js app's route), then through
 // our worker, then from Google: storage.googleapis.com hangs from some
 // networks (Iran among them), and a model that never arrives left the person
@@ -35633,8 +35699,7 @@ function vsMpModel(k) {
 let vsThumbSegP = null;
 function vsThumbSegmenter() {
   if (!vsThumbSegP) vsThumbSegP = (async () => {
-    const V = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/vision_bundle.mjs");
-    const files = await V.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@" + VS_MP_VER + "/wasm");
+    const { V, files } = await vsMpVision();
     return await V.ImageSegmenter.createFromOptions(files, {
       baseOptions: { modelAssetBuffer: await vsMpModel("seg") },
       runningMode: "IMAGE", outputCategoryMask: false, outputConfidenceMasks: true,
@@ -35644,9 +35709,15 @@ function vsThumbSegmenter() {
 }
 // The person in a frame, on a transparent canvas the frame's size, with the
 // box they fill; null when there is no one (or the segmenter would not load).
+let vsThumbSegT0 = 0;
 async function vsThumbCutout(frame) {
   let seg = null;
-  try { seg = await vsThumbSegmenter(); } catch (e) { return null; }
+  // a deadline: on a slow line the 9 MB engine can take minutes, and the
+  // thumbnail is better made without the cut-out than never made
+  // one deadline for the whole batch, not two minutes more for every size
+  if (!vsThumbSegT0) vsThumbSegT0 = Date.now();
+  const left = Math.max(0, 120000 - (Date.now() - vsThumbSegT0));
+  try { seg = await Promise.race([vsThumbSegmenter(), new Promise((_, rej) => setTimeout(() => rej(new Error("slow")), left))]); } catch (e) { return null; }
   const sc = Math.min(1, 1024 / Math.max(frame.width, frame.height));
   const work = document.createElement("canvas");
   work.width = Math.max(1, Math.round(frame.width * sc)); work.height = Math.max(1, Math.round(frame.height * sc));
@@ -35850,10 +35921,29 @@ function vsThumbBack(R, dark) {
   ctx.restore();
 }
 // the person, outlined in white with a colour glow, standing on the bottom edge
+// No person to cut out (a generated picture, an object, a place): the picture
+// itself on a card where the person would stand - a light edge, a glow of
+// the accent, a shadow, turned a touch - so the design never stands empty.
+function vsThumbHeroCard(R, side) {
+  const { ctx, W, H, accent, img } = R, U = Math.min(W, H);
+  if (!img || !(img.naturalWidth || img.width)) return null;
+  const port = H > W;
+  const w = port ? W * 0.8 : W * 0.4, h = port ? H * 0.42 : H * 0.72;
+  const x = port || side === "center" ? (W - w) / 2 : side === "left" ? W * 0.05 : W - w - W * 0.05, y = port ? H * 0.5 : (H - h) / 2 + H * 0.03;
+  const r = U * 0.03, rot = side === "left" ? 0.025 : -0.025;
+  ctx.save(); ctx.translate(x + w / 2, y + h / 2); ctx.rotate(rot); ctx.translate(-(x + w / 2), -(y + h / 2));
+  const card = () => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  ctx.save(); ctx.shadowColor = accent; ctx.shadowBlur = U * 0.08; ctx.fillStyle = accent; card(); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.015; ctx.fillStyle = "#000"; card(); ctx.fill(); ctx.restore();
+  ctx.save(); card(); ctx.clip(); vsThumbPaint(ctx, img, x, y, w, h, "contrast(1.08) saturate(1.12)"); ctx.restore();
+  ctx.lineWidth = Math.max(2, U * 0.007); ctx.strokeStyle = "rgba(255,255,255,0.9)"; card(); ctx.stroke();
+  ctx.restore();
+  return { x, y, w, h, cx: x + w / 2, face: { x: x + w * 0.3, y: y + h * 0.1, w: w * 0.4, h: h * 0.3 } };
+}
 function vsThumbPerson(R, side, hk) {
   const { ctx, W, H, accent } = R, cut = R.cut;
-  if (!cut || !cut._box) return null;
-  const b = cut._box, k = Math.min((H * (hk || 1.02)) / b.h, (W * (side === "center" ? 0.9 : 0.58)) / b.w), pw = b.w * k, ph = b.h * k;
+  if (!cut || !cut._box) return R._noCard ? null : vsThumbHeroCard(R, side);
+  const b = cut._box, k = Math.min((H * Math.min(0.95, hk || 0.95)) / b.h, (W * (side === "center" ? 0.9 : 0.58)) / b.w), pw = b.w * k, ph = b.h * k;
   const x = side === "left" ? W * 0.02 : side === "center" ? (W - pw) / 2 : W - pw - W * 0.02, y = H - ph + (cut._touchBottom ? 0 : H * 0.02);
   const sil = document.createElement("canvas"); sil.width = Math.ceil(pw); sil.height = Math.ceil(ph);
   const sx = sil.getContext("2d"); sx.drawImage(cut, b.x, b.y, b.w, b.h, 0, 0, pw, ph);
@@ -35950,6 +36040,7 @@ function vsTplArrowPro(R) {
 }
 function vsTplBehind(R) {
   const { W, H, M } = R;
+  if (!R.cut || !R.cut._box) { vsTplPop(R); return; }
   vsThumbBack(R, 0.55);
   // the words huge first, the person standing in front of their end only -
   // the depth of the look, every word still read
@@ -36045,6 +36136,452 @@ function vsTplCutout(R) {
     ln.forEach(({ w, i }) => { ctx.fillStyle = i === emph ? accent : "#ffffff"; ctx.fillText(w, x, y); x += ctx.measureText(w + " ").width; });
   });
   ctx.restore();
+}
+
+// ── The designer looks ─────────────────────────────────────────────────────
+// Eleven covers in the manner of the channels that set the trends: each its
+// own type, its own light and its own way of standing the person in it.
+//
+// Words set in a face and fitted into a box; the key word in its own colour,
+// with an optional black edge, hard shadow, glow, gradient or 3D depth.
+function vsThumbType(R, box, o) {
+  const { ctx, W, H } = R;
+  o = o || {};
+  const fam = o.fam || VS_PRO_THUMB_FAM, wt = o.weight || 900, rtl = vsThumbRtlText(R.title);
+  const words = (o.words || (o.caseOrig ? String(R.title || "").split(/\s+/).filter(Boolean) : R.words)).slice(0, o.max || 8);
+  const emph = o.emph != null ? o.emph : R.emph;
+  if (!words.length) return { px: 0, lh: 0, top: box.y, n: 0, words: [], bottom: box.y };
+  const fit = vsThumbFitBox(ctx, words, box.w, box.h, o.start || Math.min(W, H) * 0.26, o.min || Math.min(W, H) * 0.045, (o.italic ? "italic " : "") + wt, fam);
+  const px = fit.px, lh = px * (o.lh || 1.04), n = fit.lines.length;
+  const top = box.y + (o.valign === "top" ? lh / 2 : o.valign === "bottom" ? box.h - n * lh + lh / 2 : (box.h - n * lh) / 2 + lh / 2);
+  ctx.save();
+  ctx.font = (o.italic ? "italic " : "") + wt + " " + px + "px " + fam; ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.lineJoin = "round";
+  const out = [];
+  fit.lines.forEach((ln, li) => {
+    const lw = ctx.measureText(ln.map((q) => q.w).join(" ")).width;
+    let x = o.align === "center" ? box.x + (box.w - lw) / 2 : (o.align === "right" || rtl) ? box.x + box.w - lw : box.x;
+    const y = top + li * lh;
+    ln.forEach((q) => {
+      const ww = ctx.measureText(q.w).width, isE = q.i === emph;
+      out.push({ x, y, w: ww, px, word: q.w, em: isE });
+      ctx.save();
+      if (o.paint) o.paint(ctx, q.w, x, y, ww, px, isE); else vsThumbWord(ctx, q.w, x, y, px, isE, o);
+      ctx.restore();
+      x += ww + ctx.measureText(" ").width;
+    });
+  });
+  ctx.restore();
+  return { px, lh, top, n, words: out, bottom: top + (n - 0.5) * lh, x: box.x };
+}
+function vsThumbWord(ctx, w, x, y, px, isE, o) {
+  const col = isE ? (o.emColor || "#ffd400") : (o.color || "#ffffff");
+  if (o.extrude) {
+    const d = Math.max(2, Math.round(px * (o.depth || 0.09)));
+    ctx.fillStyle = isE && o.emExtrude ? o.emExtrude : o.extrude;
+    for (let k = d; k >= 1; k--) ctx.fillText(w, x + k * 0.6, y + k);
+    if (o.stroke) { ctx.lineWidth = px * o.stroke; ctx.strokeStyle = o.strokeColor || "#000"; ctx.strokeText(w, x + d * 0.6, y + d); }
+  }
+  if (o.shadow) { ctx.fillStyle = o.shadow; ctx.fillText(w, x + px * 0.045, y + px * 0.065); }
+  if (o.stroke) { ctx.lineWidth = px * o.stroke; ctx.strokeStyle = o.strokeColor || "#000"; ctx.strokeText(w, x, y); }
+  if (o.glow) { ctx.save(); ctx.shadowColor = o.glow === true ? col : o.glow; ctx.shadowBlur = px * 0.32; ctx.fillStyle = col; ctx.fillText(w, x, y); ctx.restore(); }
+  if (o.grad && !isE) { const g = ctx.createLinearGradient(0, y - px * 0.5, 0, y + px * 0.5); g.addColorStop(0, o.grad[0]); g.addColorStop(1, o.grad[1]); ctx.fillStyle = g; }
+  else ctx.fillStyle = col;
+  ctx.fillText(w, x, y);
+}
+// Where the cut-out person stands, at a height and side, without drawing them.
+function vsThumbPlace(R, side, hk, wk) {
+  const cut = R.cut;
+  if (!cut || !cut._box) return null;
+  const { W, H } = R, b = cut._box;
+  const k = Math.min((H * Math.min(0.95, hk || 0.95)) / b.h, (W * (wk || (side === "center" ? 0.9 : 0.58))) / b.w), pw = b.w * k, ph = b.h * k;
+  const x = side === "left" ? W * 0.02 : side === "center" ? (W - pw) / 2 : W - pw - W * 0.02, y = H - ph + (cut._touchBottom ? 0 : H * 0.02);
+  return { x, y, w: pw, h: ph, b, cx: x + pw / 2, face: { x: x + pw * 0.3, y: y + ph * 0.04, w: pw * 0.4, h: ph * 0.26 } };
+}
+// Where the person already stands in the photo as it fills the frame - for
+// the looks that keep the photo behind them, so they are not there twice.
+// The photo filling the frame, moved so the face sits in the upper third
+// rather than wherever centring left it (a portrait photo in a wide frame
+// lost the head).
+function vsThumbPhotoFit(R) {
+  const { W, H, img, cut } = R;
+  const mw = img.naturalWidth || img.width, mh = img.naturalHeight || img.height, cov = Math.max(W / mw, H / mh);
+  let ox = (W - mw * cov) / 2, oy = (H - mh * cov) / 2;
+  if (cut && cut._box && cut.width) {
+    const k = mw / cut.width, b = cut._box, fx = (b.x + b.w / 2) * k, fy = (b.y + b.h * 0.14) * k;
+    ox = Math.max(W - mw * cov, Math.min(0, W * 0.5 - fx * cov));
+    oy = Math.max(H - mh * cov, Math.min(0, H * 0.3 - fy * cov));
+  } else oy = Math.max(H - mh * cov, Math.min(0, H * 0.32 - mh * 0.24 * cov));
+  return { cov, ox, oy, mw, mh };
+}
+function vsThumbPlaceInPhoto(R) {
+  const { W, H, img, cut } = R;
+  if (!cut || !cut._box || !img || !(img.naturalWidth || img.width)) return null;
+  const { cov, ox, oy, mw } = vsThumbPhotoFit(R), k = mw / cut.width, b = cut._box;
+  const x = ox + b.x * k * cov, y = oy + b.y * k * cov, w = b.w * k * cov, h = b.h * k * cov;
+  return { x, y, w, h, b, cx: x + w / 2, face: { x: x + w * 0.3, y: y + h * 0.04, w: w * 0.4, h: h * 0.26 } };
+}
+function vsThumbSilhouette(R, p, color) {
+  const c = document.createElement("canvas"); c.width = Math.max(1, Math.ceil(p.w)); c.height = Math.max(1, Math.ceil(p.h));
+  const x = c.getContext("2d"); x.drawImage(R.cut, p.b.x, p.b.y, p.b.w, p.b.h, 0, 0, p.w, p.h);
+  x.globalCompositeOperation = "source-in"; x.fillStyle = color; x.fillRect(0, 0, p.w, p.h);
+  return c;
+}
+// The person, with a soft contact shadow and an optional grade.
+function vsThumbDrawCut(R, p, filter, shadow) {
+  const { ctx, W, H } = R, U = Math.min(W, H);
+  ctx.save();
+  if (shadow !== false) { ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = U * 0.05; ctx.shadowOffsetY = U * 0.012; }
+  if (filter) ctx.filter = filter;
+  ctx.drawImage(R.cut, p.b.x, p.b.y, p.b.w, p.b.h, p.x, p.y, p.w, p.h);
+  ctx.restore();
+}
+// Fine film grain over the whole frame.
+let vsThumbGrainC = null;
+function vsThumbGrain(R, amt) {
+  const { ctx, W, H } = R;
+  if (!vsThumbGrainC) {
+    vsThumbGrainC = document.createElement("canvas"); vsThumbGrainC.width = vsThumbGrainC.height = 160;
+    const g = vsThumbGrainC.getContext("2d"), d = g.createImageData(160, 160);
+    for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    g.putImageData(d, 0, 0);
+  }
+  ctx.save(); ctx.globalAlpha = amt || 0.06; ctx.globalCompositeOperation = "overlay";
+  ctx.fillStyle = ctx.createPattern(vsThumbGrainC, "repeat"); ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+// The picture (or the AI scene) over the whole frame, graded.
+function vsThumbPhoto(R, filter) {
+  const { ctx, W, H } = R;
+  const back = R.bg && (R.bg.naturalWidth || R.bg.width) ? R.bg : R.img;
+  if (back && back === R.img && (back.naturalWidth || back.width)) {
+    const f = vsThumbPhotoFit(R);
+    ctx.save(); ctx.fillStyle = "#121318"; ctx.fillRect(0, 0, W, H); if (filter) ctx.filter = filter;
+    ctx.drawImage(back, f.ox, f.oy, f.mw * f.cov, f.mh * f.cov); ctx.restore();
+  } else if (back && (back.naturalWidth || back.width)) vsThumbPaint(ctx, back, 0, 0, W, H, filter);
+  else { ctx.fillStyle = "#121318"; ctx.fillRect(0, 0, W, H); }
+}
+// A small label in spaced capitals.
+function vsThumbLabel(R, text, x, y, px, color, align, measure) {
+  if (!text) return 0;
+  const { ctx } = R;
+  ctx.save();
+  ctx.font = "800 " + px + 'px "Manrope", "Vazirmatn", system-ui, sans-serif'; ctx.textBaseline = "middle"; ctx.textAlign = align || "left";
+  try { ctx.letterSpacing = px * 0.18 + "px"; } catch (e) {}
+  const t = vsThumbRtlText(text) ? String(text) : String(text).toUpperCase();
+  if (!measure) { ctx.fillStyle = color; ctx.fillText(t.slice(0, 40), x, y); }
+  const w = ctx.measureText(t.slice(0, 40)).width;
+  try { ctx.letterSpacing = "0px"; } catch (e) {}
+  ctx.restore();
+  return w;
+}
+
+// DOCUMENTARY — the picture in near black and white, letterboxed, film grain;
+// a serif title low on the left over a dark wash, the key word in red, a red
+// rule and the source above it in spaced capitals.
+function vsTplDocu(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  vsThumbPhoto(R, "grayscale(0.9) contrast(1.2) brightness(0.62)");
+  const own = !R.bg, p = own ? vsThumbPlaceInPhoto(R) : vsThumbPlace(R, port ? "center" : "right", port ? 0.6 : 1.0);
+  if (!own && p) {
+    const wash = port ? ctx.createLinearGradient(0, 0, 0, H * 0.6) : ctx.createLinearGradient(0, 0, W * 0.72, 0);
+    wash.addColorStop(0, "rgba(0,0,0,0.88)"); wash.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = wash; ctx.fillRect(0, 0, W, H);
+  }
+  if (p) vsThumbDrawCut(R, p, "grayscale(0.4) contrast(1.15) brightness(1.04)", !own);
+  const bar = port ? 0 : H * 0.075;
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
+  const right = p && !port ? (own ? W * 0.56 : Math.max(W * 0.46, p.x + p.w * 0.12)) : W - M;
+  // the words where the face is not: low when the photo fills the frame
+  const low = own || !p;
+  if (low) { const lw = ctx.createLinearGradient(0, H * 0.4, 0, H); lw.addColorStop(0, "rgba(0,0,0,0)"); lw.addColorStop(1, "rgba(0,0,0,0.9)"); ctx.fillStyle = lw; ctx.fillRect(0, 0, W, H); }
+  const box = port ? (low ? { x: M, y: H * 0.66, w: W - M * 2, h: H * 0.24 } : { x: M, y: H * 0.12, w: W - M * 2, h: H * 0.26 })
+    : low ? { x: M * 1.2, y: H * 0.54, w: W * 0.62, h: H * 0.32 } : { x: M * 1.2, y: H * 0.36, w: right - M * 1.4, h: H * 0.42 };
+  const t = vsThumbType(R, box, { fam: '"DM Serif Display", "Vazirmatn", serif', weight: 400, caseOrig: true, color: "#f4f1ea", emColor: accent, shadow: "rgba(0,0,0,0.55)", lh: 1.02, valign: port && !low ? "top" : "bottom", start: U * 0.2 });
+  const ry = t.top - t.lh * 0.5 - U * 0.035;
+  ctx.fillStyle = accent; ctx.fillRect(box.x, ry, U * 0.09, Math.max(2, U * 0.007));
+  vsThumbLabel(R, R.kicker || R.source, box.x, ry - U * 0.035, Math.round(U * 0.032), "rgba(244,241,234,0.85)");
+  vsThumbGrain(R, 0.09);
+}
+
+// TECH REVIEW — a dark studio with a glowing floor grid, the person rim-lit
+// in the accent; condensed capitals in a cool gradient, the key word boxed.
+function vsTplTech(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  vsThumbBack(R, 0.3);
+  ctx.fillStyle = "rgba(4,7,16,0.55)"; ctx.fillRect(0, 0, W, H);
+  // the floor: lines to a vanishing point, rows closing up toward the horizon
+  const hy = H * (port ? 0.72 : 0.68), vx = W * 0.5;
+  ctx.save(); ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1, U * 0.0028);
+  for (let i = -12; i <= 12; i++) { ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.moveTo(vx, hy); ctx.lineTo(vx + i * W * 0.12, H); ctx.stroke(); }
+  for (let k = 1; k < 9; k++) { const y = hy + (H - hy) * Math.pow(k / 8, 1.8); ctx.globalAlpha = 0.12 + 0.22 * (k / 8); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.shadowColor = accent; ctx.shadowBlur = U * 0.04; ctx.lineWidth = U * 0.004; ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(W, hy); ctx.stroke();
+  ctx.restore();
+  const p = vsThumbPlace(R, port ? "center" : "right", port ? 0.6 : 1.0);
+  if (p) {
+    const sil = vsThumbSilhouette(R, p, accent);
+    ctx.save(); ctx.shadowColor = accent; ctx.shadowBlur = U * 0.07; ctx.drawImage(sil, p.x, p.y); ctx.restore();
+    vsThumbDrawCut(R, p, "contrast(1.1) saturate(1.1)", false);
+  } else vsThumbHeroCard(R, port ? "center" : "right");
+  const box = port ? { x: M, y: H * 0.1, w: W - M * 2, h: H * 0.28 } : { x: M * 1.2, y: H * 0.22, w: (p ? Math.max(W * 0.44, p.x - M) : W * 0.6) - M * 1.2, h: H * 0.46 };
+  const kick = R.kicker || R.source;
+  const t = vsThumbType(R, box, { fam: '"Oswald", "Vazirmatn", system-ui, sans-serif', weight: 700, grad: ["#ffffff", "#a9bccf"], emColor: "#ffffff", shadow: "rgba(0,0,0,0.6)", lh: 1.0, start: U * 0.24, align: port ? "center" : "left" });
+  t.words.filter((w) => w.em).forEach((w) => {
+    const pad = w.px * 0.12;
+    ctx.save(); ctx.strokeStyle = accent; ctx.lineWidth = Math.max(2, w.px * 0.045); ctx.shadowColor = accent; ctx.shadowBlur = w.px * 0.25;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(w.x - pad, w.y - w.px * 0.56, w.w + pad * 2, w.px * 1.1, w.px * 0.12); else ctx.rect(w.x - pad, w.y - w.px * 0.56, w.w + pad * 2, w.px * 1.1);
+    ctx.stroke(); ctx.restore();
+  });
+  if (kick) {
+    const px = Math.round(U * 0.034), y = t.top - t.lh * 0.5 - px * 1.4;
+    ctx.save();
+    const tw = vsThumbLabel(R, String(kick).slice(0, 28), 0, 0, px, null, "left", true), bx = port ? (W - tw) / 2 - px * 0.7 : box.x;
+    ctx.fillStyle = accent; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, y - px * 0.8, tw + px * 1.4, px * 1.6, px * 0.8); else ctx.rect(bx, y - px * 0.8, tw + px * 1.4, px * 1.6); ctx.fill();
+    ctx.restore();
+    vsThumbLabel(R, String(kick).slice(0, 28), bx + px * 0.7, y, px, "#04121a");
+  }
+}
+
+// PODCAST — a warm paper ground and a big circle of the accent behind the
+// guest; an oversized quotation mark and the words in a serif, like a quote card.
+function vsTplPodcast(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  ctx.fillStyle = "#efe6d6"; ctx.fillRect(0, 0, W, H);
+  const p = vsThumbPlace(R, port ? "center" : "right", port ? 0.58 : 0.98, port ? 0.85 : 0.5);
+  const cx = p ? p.cx : (port ? W / 2 : W * 0.74), cy = p ? p.y + p.h * 0.42 : (port ? H * 0.68 : H * 0.5);
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx, cy, (port ? W * 0.42 : H * 0.42), 0, Math.PI * 2); ctx.fill();
+  if (p) vsThumbDrawCut(R, p, "contrast(1.06) saturate(1.05)");
+  else if (R.hasImg) {
+    const fw = port ? W * 0.7 : W * 0.36, fh = port ? H * 0.4 : H * 0.62, fx = port ? (W - fw) / 2 : W * 0.56, fy = port ? H * 0.5 : (H - fh) / 2;
+    ctx.save(); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(fx, fy, fw, fh, U * 0.03); else ctx.rect(fx, fy, fw, fh); ctx.clip();
+    vsThumbPaint(ctx, R.img, fx, fy, fw, fh, "contrast(1.05)"); ctx.restore();
+  }
+  const box = port ? { x: M * 1.3, y: H * 0.12, w: W - M * 2.6, h: H * 0.26 } : { x: M * 1.4, y: H * 0.26, w: (p ? Math.max(W * 0.42, p.x - M * 0.5) : W * 0.5) - M * 1.6, h: H * 0.5 };
+  const t = vsThumbType(R, box, { fam: '"DM Serif Display", "Vazirmatn", serif', weight: 400, caseOrig: true, color: "#17130e", emColor: accent, lh: 1.04, start: U * 0.17, align: port ? "center" : "left" });
+  ctx.save(); ctx.font = "400 " + Math.round(U * 0.34) + 'px "DM Serif Display", serif'; ctx.textBaseline = "alphabetic"; ctx.fillStyle = accent; ctx.globalAlpha = 0.9;
+  ctx.fillText("“", port ? W / 2 - U * 0.08 : box.x - U * 0.02, t.top - t.lh * 0.5 + U * 0.17); ctx.restore();
+  const ly = t.bottom + t.lh * 0.5 + U * 0.05;
+  if (R.source) { ctx.fillStyle = "#17130e"; ctx.fillRect(port ? W / 2 - U * 0.04 : box.x, ly - U * 0.004, U * 0.08, Math.max(2, U * 0.006)); vsThumbLabel(R, R.source, port ? W / 2 : box.x, ly + U * 0.045, Math.round(U * 0.03), "rgba(23,19,14,0.75)", port ? "center" : "left"); }
+  vsThumbGrain(R, 0.05);
+}
+
+// BREAKING NEWS — the picture under a broadcast lower third: a red bar with
+// the headline in heavy capitals, a white tag at its head, a dark strip under.
+function vsTplBreaking(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W, rtl = vsThumbRtlText(R.title);
+  vsThumbPhoto(R, "contrast(1.08) brightness(0.86) saturate(1.05)");
+  const fade = ctx.createLinearGradient(0, H * 0.4, 0, H); fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,0.65)");
+  ctx.fillStyle = fade; ctx.fillRect(0, 0, W, H);
+  const own = !R.bg, p = own ? vsThumbPlaceInPhoto(R) : vsThumbPlace(R, port ? "center" : "right", port ? 0.62 : 0.98);
+  if (p) vsThumbDrawCut(R, p, "contrast(1.1) saturate(1.08)", !own);
+  const by = H * (port ? 0.62 : 0.63), bh = H * (port ? 0.16 : 0.22);
+  const tag = R.kicker || (rtl ? "فوری" : "BREAKING");
+  const tpx = Math.round(U * 0.045);
+  ctx.save(); ctx.font = "400 " + tpx + 'px "Archivo Black", "Vazirmatn", sans-serif';
+  const tw = ctx.measureText(String(tag).toUpperCase().slice(0, 18)).width + tpx * 1.2;
+  ctx.restore();
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = U * 0.03;
+  ctx.fillStyle = accent; ctx.fillRect(0, by, W, bh);
+  ctx.restore();
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(rtl ? W - M - tw : M, by - tpx * 1.5, tw, tpx * 1.5);
+  ctx.save(); ctx.font = "400 " + tpx + 'px "Archivo Black", "Vazirmatn", sans-serif'; ctx.textBaseline = "middle"; ctx.textAlign = "center"; ctx.fillStyle = accent;
+  ctx.fillText(String(tag).toUpperCase().slice(0, 18), (rtl ? W - M - tw : M) + tw / 2, by - tpx * 0.72); ctx.restore();
+  vsThumbType(R, { x: M, y: by + bh * 0.08, w: W - M * 2, h: bh * 0.84 }, { fam: '"Archivo Black", "Vazirmatn", sans-serif', weight: 400, color: "#ffffff", emColor: "#ffe14d", lh: 1.0, start: U * 0.14 });
+  const sh = H * 0.07;
+  ctx.fillStyle = "#0d0f14"; ctx.fillRect(0, by + bh, W, sh);
+  if (R.source) vsThumbLabel(R, R.source, rtl ? W - M : M, by + bh + sh / 2, Math.round(U * 0.03), "rgba(255,255,255,0.85)", rtl ? "right" : "left");
+}
+
+// MONEY CHART — a deep green ground with a rising line chart glowing behind
+// the words, an arrow at its peak; the figure in green, the person on the left.
+function vsTplMoney(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  vsThumbBack(R, 0.28);
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, "rgba(3,22,13,0.82)"); g.addColorStop(1, "rgba(6,40,24,0.7)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+  for (let k = 1; k < 6; k++) { const y = (H * k) / 6; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.restore();
+  // the line: a steady climb with a few honest dips
+  const x0 = port ? W * 0.06 : W * 0.36, x1 = port ? W * 0.94 : W * 0.95, y0 = port ? H * 0.6 : H * 0.86, y1 = port ? H * 0.36 : H * 0.16;
+  const steps = [0, 0.12, 0.08, 0.3, 0.24, 0.5, 0.44, 0.72, 0.66, 1];
+  const pts = steps.map((v, i) => [x0 + ((x1 - x0) * i) / (steps.length - 1), y0 + (y1 - y0) * v]);
+  ctx.save();
+  const area = ctx.createLinearGradient(0, y1, 0, y0 + H * 0.1); area.addColorStop(0, accent + "66"); area.addColorStop(1, accent + "00");
+  ctx.beginPath(); ctx.moveTo(pts[0][0], H); pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(pts[pts.length - 1][0], H); ctx.closePath(); ctx.fillStyle = area; ctx.fill();
+  ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.strokeStyle = accent; ctx.lineWidth = U * 0.012; ctx.shadowColor = accent; ctx.shadowBlur = U * 0.04;
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+  const [ax, ay] = pts[pts.length - 1], [bx, byy] = pts[pts.length - 2], ang = Math.atan2(ay - byy, ax - bx), hw = U * 0.045;
+  ctx.beginPath(); ctx.moveTo(ax + Math.cos(ang) * hw, ay + Math.sin(ang) * hw);
+  ctx.lineTo(ax + Math.cos(ang + 2.4) * hw, ay + Math.sin(ang + 2.4) * hw); ctx.lineTo(ax + Math.cos(ang - 2.4) * hw, ay + Math.sin(ang - 2.4) * hw); ctx.closePath();
+  ctx.fillStyle = accent; ctx.fill();
+  ctx.restore();
+  const p = vsThumbPlace(R, port ? "center" : "left", port ? 0.5 : 1.0) || vsThumbHeroCard(R, port ? "center" : "left");
+  if (p && R.cut) vsThumbPerson(R, port ? "center" : "left", port ? 0.5 : 1.0);
+  const box = port ? { x: M, y: H * 0.06, w: W - M * 2, h: H * 0.26 } : { x: p ? Math.min(W * 0.5, p.x + p.w + M * 0.3) : W * 0.4, y: H * 0.1, w: 0, h: H * 0.48 };
+  if (!port) box.w = W - M - box.x;
+  vsThumbType(R, box, { fam: '"Anton", "Vazirmatn", sans-serif', weight: 400, color: "#ffffff", emColor: accent, stroke: 0.09, strokeColor: "#02140b", shadow: "rgba(0,0,0,0.55)", lh: 1.02, start: U * 0.26, align: port ? "center" : "right" });
+}
+
+// 3D TYPE — a hot orange ground with a corner of halftone dots; the words
+// in a round heavy face, white, standing out in deep 3D, tilted a touch.
+function vsTplExtrude(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  const g = ctx.createRadialGradient(W * 0.35, H * 0.4, U * 0.05, W * 0.5, H * 0.5, Math.max(W, H) * 0.8);
+  g.addColorStop(0, "#ffd24d"); g.addColorStop(0.55, accent); g.addColorStop(1, "#b8320a");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.fillStyle = "rgba(120,30,0,0.22)";
+  const st = U * 0.03;
+  for (let y = 0; y < H * 0.5; y += st) for (let x = W * 0.55; x < W; x += st) { const r = st * 0.42 * Math.min(1, ((x - W * 0.55) / (W * 0.45)) * (1 - y / (H * 0.5)) * 1.6); if (r > 0.4) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); } }
+  ctx.restore();
+  const per = vsThumbPerson(R, port ? "center" : "right", port ? 0.58 : 1.0);
+  const box = port ? { x: M, y: H * 0.06, w: W - M * 2, h: H * 0.32 } : { x: M, y: H * 0.14, w: (per ? Math.max(W * 0.46, per.x - M * 0.2) : W * 0.7) - M, h: H * 0.64 };
+  ctx.save(); ctx.translate(box.x + box.w / 2, box.y + box.h / 2); ctx.rotate(-0.05); ctx.translate(-(box.x + box.w / 2), -(box.y + box.h / 2));
+  vsThumbType(R, box, { fam: '"Lilita One", "Vazirmatn", sans-serif', weight: 400, color: "#ffffff", emColor: "#fff06a", extrude: "#6e1d00", emExtrude: "#4a1300", depth: 0.11, stroke: 0.05, strokeColor: "#3b0f00", lh: 1.06, start: U * 0.28, align: port ? "center" : "left" });
+  ctx.restore();
+}
+
+// GLASS CARD — the picture melted into soft colour, a frosted glass card
+// holding the words, the person standing over the card's edge.
+function vsTplGlass(R) {
+  const { ctx, W, H, M, accent, img } = R, U = Math.min(W, H), port = H > W;
+  vsThumbBack(R, 0.5);
+  [[0.15, 0.2, accent], [0.85, 0.85, "#22d3ee"], [0.6, 0.1, "#f472b6"]].forEach(([fx, fy, c]) => {
+    const rg = ctx.createRadialGradient(W * fx, H * fy, 0, W * fx, H * fy, Math.max(W, H) * 0.5);
+    rg.addColorStop(0, c + "88"); rg.addColorStop(1, c + "00");
+    ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H); ctx.restore();
+  });
+  const cw = port ? W - M * 2 : (R.cut ? W * 0.56 : W * 0.47), ch = port ? H * 0.34 : H * 0.66, cx = M, cy = port ? H * 0.06 : (H - ch) / 2, r = U * 0.045;
+  const card = () => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(cx, cy, cw, ch, r); else ctx.rect(cx, cy, cw, ch); };
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = U * 0.06; ctx.shadowOffsetY = U * 0.02; ctx.fillStyle = "rgba(255,255,255,0.08)"; card(); ctx.fill(); ctx.restore();
+  ctx.save(); card(); ctx.clip();
+  if (img && (img.naturalWidth || img.width)) { ctx.globalAlpha = 0.5; vsThumbPaint(ctx, img, 0, 0, W, H, "blur(" + Math.round(U * 0.04) + "px) brightness(1.15) saturate(1.4)"); ctx.globalAlpha = 1; }
+  ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(cx, cy, cw, ch);
+  const hl = ctx.createLinearGradient(0, cy, 0, cy + ch * 0.4); hl.addColorStop(0, "rgba(255,255,255,0.22)"); hl.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = hl; ctx.fillRect(cx, cy, cw, ch * 0.4);
+  ctx.restore();
+  ctx.save(); ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = Math.max(1, U * 0.003); card(); ctx.stroke(); ctx.restore();
+  const pad = U * 0.06, kick = R.kicker || R.source;
+  if (kick) vsThumbLabel(R, kick, cx + pad, cy + pad * 0.9, Math.round(U * 0.03), "rgba(255,255,255,0.8)");
+  vsThumbType(R, { x: cx + pad, y: cy + pad * (kick ? 1.5 : 1), w: cw - pad * 2, h: ch - pad * (kick ? 2.5 : 2) }, {
+    fam: '"Outfit", "Vazirmatn", sans-serif', weight: 800, color: "#ffffff", lh: 1.05, start: U * 0.2,
+    paint: (c, w, x, y, ww, px, isE) => {
+      if (isE) { const pp = px * 0.14; c.fillStyle = accent; c.beginPath(); if (c.roundRect) c.roundRect(x - pp, y - px * 0.54, ww + pp * 2, px * 1.08, px * 0.22); else c.rect(x - pp, y - px * 0.54, ww + pp * 2, px * 1.08); c.fill(); }
+      c.fillStyle = "#ffffff"; c.shadowColor = "rgba(0,0,0,0.25)"; c.shadowBlur = px * 0.12; c.fillText(w, x, y);
+    } });
+  const p = vsThumbPlace(R, port ? "center" : "right", port ? 0.62 : 1.0, port ? 0.85 : 0.5);
+  if (p) vsThumbDrawCut(R, p, "contrast(1.05) saturate(1.08)"); else vsThumbHeroCard(R, port ? "center" : "right");
+}
+
+// SHOCK BURST — rays bursting from behind the head, the person large in the
+// middle with a white edge, the words split to either side of them.
+function vsTplBurst(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  const p0 = vsThumbPlace(R, "center", port ? 0.6 : 1.0, port ? 0.9 : 0.46);
+  const ox = p0 ? p0.face.x + p0.face.w / 2 : W / 2, oy = p0 ? p0.face.y + p0.face.h * 0.6 : H * 0.45;
+  ctx.fillStyle = "#2a0700"; ctx.fillRect(0, 0, W, H);
+  const n = 22, R2 = Math.hypot(W, H);
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2, a1 = ((i + 0.5) / n) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.cos(a0) * R2, oy + Math.sin(a0) * R2); ctx.lineTo(ox + Math.cos(a1) * R2, oy + Math.sin(a1) * R2); ctx.closePath();
+    ctx.fillStyle = i % 2 ? "#ff8a00" : accent; ctx.fill();
+  }
+  const vg = ctx.createRadialGradient(ox, oy, U * 0.1, ox, oy, Math.max(W, H) * 0.75); vg.addColorStop(0, "rgba(255,230,120,0.35)"); vg.addColorStop(0.5, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const per = p0 ? vsThumbPerson(R, "center", port ? 0.6 : 1.0) : null;
+  const o = { fam: '"Archivo Black", "Vazirmatn", sans-serif', weight: 400, color: "#ffffff", emColor: "#ffe600", stroke: 0.16, strokeColor: "#000", shadow: "rgba(0,0,0,0.6)", lh: 1.0, start: U * 0.2 };
+  const ws = R.words.slice(0, 6), half = Math.ceil(ws.length / 2);
+  if (port || !per) { vsThumbType(R, { x: M, y: H * 0.05, w: W - M * 2, h: H * (per ? 0.28 : 0.5) }, Object.assign({}, o, { align: "center" })); return; }
+  const rtl = vsThumbRtlText(R.title), a = ws.slice(0, half), b = ws.slice(half);
+  const lw = Math.max(W * 0.26, per.x + per.w * 0.12 - M), rx = Math.min(W * 0.72, per.x + per.w * 0.88);
+  const first = rtl ? b : a, second = rtl ? a : b, eFirst = rtl ? R.emph - half : R.emph, eSecond = rtl ? R.emph : R.emph - half;
+  vsThumbType(R, { x: M, y: H * 0.12, w: lw, h: H * 0.62 }, Object.assign({}, o, { words: first, emph: eFirst, align: "right" }));
+  if (second.length) vsThumbType(R, { x: rx, y: H * 0.12, w: W - M - rx, h: H * 0.62 }, Object.assign({}, o, { words: second, emph: eSecond, align: "left" }));
+}
+
+// MAGAZINE — a cover: the key word as a huge serif masthead across the top
+// with the person standing in front of it, a thin inset frame, the rest of
+// the title as a cover line low on the left.
+function vsTplMagazine(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  const band = R.cut && R.cut._box && typeof R.cut.getContext === "function" ? 0 : H * (port ? 0.17 : 0.26);
+  if (band) {
+    ctx.fillStyle = "#0e0e10"; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, band, W, H - band); ctx.clip(); ctx.translate(0, band);
+    vsThumbPhoto(Object.assign({}, R, { H: H - band }), "contrast(1.08) saturate(1.06)"); ctx.restore();
+  } else vsThumbPhoto(R, "contrast(1.08) saturate(1.06)");
+  const top = ctx.createLinearGradient(0, 0, 0, H * 0.45); top.addColorStop(0, "rgba(0,0,0,0.55)"); top.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = top; ctx.fillRect(0, 0, W, H);
+  const low = ctx.createLinearGradient(0, H * 0.55, 0, H); low.addColorStop(0, "rgba(0,0,0,0)"); low.addColorStop(1, "rgba(0,0,0,0.7)");
+  ctx.fillStyle = low; ctx.fillRect(0, 0, W, H);
+  const key = R.words[R.emph] || R.words[0] || "";
+  const rest = R.words;
+  const caseKey = (String(R.title || "").split(/\s+/).filter(Boolean)[R.emph] || key);
+  vsThumbType(R, { x: M, y: H * 0.03, w: W - M * 2, h: band ? band - H * 0.04 : H * (port ? 0.2 : 0.34) }, { words: [caseKey], emph: -1, fam: '"Bodoni Moda", "DM Serif Display", "Vazirmatn", serif', weight: 600, italic: true, color: "#ffffff", shadow: "rgba(0,0,0,0.35)", lh: 1, start: U * 0.5, align: "center" });
+  const own = !R.bg, p = band ? null : own ? vsThumbPlaceInPhoto(R) : vsThumbPlace(R, port ? "center" : "right", port ? 0.78 : 0.94, port ? 0.95 : 0.52);
+  if (p) vsThumbDrawCut(R, p, "contrast(1.08) saturate(1.06)", !own);
+  ctx.save(); ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1.5, U * 0.004); const fi = U * 0.03; ctx.strokeRect(fi, fi, W - fi * 2, H - fi * 2); ctx.restore();
+  if (rest.length) {
+    const bw = port ? W - M * 2 : (p && !own ? Math.max(W * 0.38, p.x - M * 0.5) : W * 0.5) - M;
+    const t = vsThumbType(R, { x: M * 1.3, y: H * (port ? 0.8 : 0.6), w: bw, h: H * (port ? 0.12 : 0.26) }, { words: rest, emColor: accent, fam: '"Manrope", "Vazirmatn", sans-serif', weight: 800, color: "#ffffff", shadow: "rgba(0,0,0,0.5)", lh: 1.06, start: U * 0.1, valign: "bottom" });
+    ctx.fillStyle = accent; ctx.fillRect(M * 1.3, t.top - t.lh * 0.5 - U * 0.03, U * 0.07, Math.max(2, U * 0.008));
+  }
+  if (R.source) vsThumbLabel(R, R.source, W - U * 0.06, U * 0.075, Math.round(U * 0.026), "rgba(255,255,255,0.9)", "right");
+}
+
+// NEON — a dark room, the person lit by two coloured rims, magenta on one
+// side and cyan on the other; the words as glowing tubes.
+function vsTplNeon(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  vsThumbBack(R, 0.2);
+  ctx.fillStyle = "rgba(8,3,18,0.6)"; ctx.fillRect(0, 0, W, H);
+  const p = vsThumbPlace(R, port ? "center" : "right", port ? 0.6 : 1.0);
+  if (p) {
+    const a = vsThumbSilhouette(R, p, accent), b = vsThumbSilhouette(R, p, "#22e1ff"), d = U * 0.012;
+    ctx.save(); ctx.shadowBlur = U * 0.06;
+    ctx.shadowColor = accent; ctx.drawImage(a, p.x - d, p.y);
+    ctx.shadowColor = "#22e1ff"; ctx.drawImage(b, p.x + d, p.y);
+    ctx.restore();
+    vsThumbDrawCut(R, p, "contrast(1.12) saturate(0.85) brightness(0.88)", false);
+  } else vsThumbHeroCard(R, port ? "center" : "right");
+  const box = port ? { x: M, y: H * 0.07, w: W - M * 2, h: H * 0.28 } : { x: M * 1.2, y: H * 0.16, w: (p ? Math.max(W * 0.44, p.x - M * 0.4) : W * 0.62) - M * 1.2, h: H * 0.62 };
+  vsThumbType(R, box, { fam: '"Bebas Neue", "Vazirmatn", sans-serif', weight: 400, lh: 0.98, start: U * 0.3, align: port ? "center" : "left",
+    paint: (c, w, x, y, ww, px, isE) => {
+      const col = isE ? "#22e1ff" : accent;
+      c.lineJoin = "round"; c.shadowColor = col; c.shadowBlur = px * 0.45; c.strokeStyle = col; c.lineWidth = px * 0.07; c.strokeText(w, x, y);
+      c.shadowBlur = px * 0.2; c.strokeText(w, x, y);
+      c.shadowBlur = px * 0.12; c.fillStyle = isE ? "#d9fbff" : "#ffe3fa"; c.fillText(w, x, y);
+    } });
+}
+
+// ECHO — the key word stacked in fading outlines above and below, one copy
+// filled in the accent; the rest of the title on a pill; the person in front.
+function vsTplEcho(R) {
+  const { ctx, W, H, M, accent } = R, U = Math.min(W, H), port = H > W;
+  vsThumbBack(R, 0.28);
+  ctx.fillStyle = "rgba(10,10,12,0.55)"; ctx.fillRect(0, 0, W, H);
+  const p = vsThumbPlace(R, port ? "center" : "right", port ? 0.6 : 1.0);
+  const key = R.words[R.emph] || R.words[0] || "";
+  const box = port ? { x: M, y: H * 0.06, w: W - M * 2, h: H * 0.13 } : { x: M, y: H * 0.38, w: (p ? Math.max(W * 0.52, p.x + p.w * 0.25) : W * 0.7) - M, h: H * 0.2 };
+  const fam = '"Anton", "Vazirmatn", sans-serif';
+  const fit = vsThumbFitBox(ctx, [key], box.w, box.h, U * 0.32, U * 0.05, 400, fam), px = fit.px;
+  ctx.save(); ctx.font = "400 " + px + "px " + fam; ctx.textBaseline = "middle"; ctx.textAlign = port ? "center" : "left"; ctx.lineJoin = "round";
+  const x = port ? W / 2 : box.x, cy = box.y + box.h / 2, step = px * 0.86, copies = port ? 2 : 3;
+  for (let k = copies; k >= 1; k--) {
+    [-1, 1].forEach((s) => { ctx.globalAlpha = Math.max(0.12, 0.75 - k * 0.2); ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1.5, px * 0.025); ctx.strokeText(key, x, cy + s * k * step); });
+  }
+  ctx.globalAlpha = 1; ctx.shadowColor = accent; ctx.shadowBlur = px * 0.25; ctx.fillStyle = accent; ctx.fillText(key, x, cy);
+  ctx.restore();
+  if (p) vsThumbDrawCut(R, p, "contrast(1.08) saturate(1.05)"); else vsThumbHeroCard(R, port ? "center" : "right");
+  const rest = R.words.join(" ");
+  if (rest) {
+    const rpx = Math.round(U * 0.05);
+    ctx.save(); ctx.font = "800 " + rpx + 'px "Manrope", "Vazirmatn", sans-serif'; ctx.textBaseline = "middle";
+    let rp = rpx; while (ctx.measureText(rest).width > W * (port ? 0.84 : 0.6) && rp > U * 0.028) { rp *= 0.92; ctx.font = "800 " + Math.round(rp) + 'px "Manrope", "Vazirmatn", sans-serif'; }
+    let txt = rest; while (ctx.measureText(txt).width > W * (port ? 0.84 : 0.6) && txt.includes(" ")) txt = txt.slice(0, txt.lastIndexOf(" "));
+    const tw = ctx.measureText(txt).width, bx = port ? (W - tw) / 2 - rpx * 0.8 : M, byy = port ? H * 0.06 + box.h + step * copies + rpx : H * 0.84;
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, byy - rpx * 0.85, tw + rpx * 1.6, rpx * 1.7, rpx * 0.85); else ctx.rect(bx, byy - rpx * 0.85, tw + rpx * 1.6, rpx * 1.7); ctx.fill();
+    ctx.fillStyle = "#0b0b0d"; ctx.textAlign = "left"; ctx.fillText(txt, bx + rpx * 0.8, byy + rpx * 0.04);
+    ctx.restore();
+  }
 }
 
 // The studio-window look shared by Thumbnail Studio and Edit my video.
@@ -36393,7 +36930,7 @@ function vsThumbStudio(prefillTopic, preset) {
   };
   $$("tsGen").onclick = async () => {
     if (!($$("tsTopic").value || "").trim() && vid.data && vid.data.plan && vid.data.plan.title) $$("tsTopic").value = String(vid.data.plan.title).slice(0, 90);
-    const topic = ($$("tsTopic").value || "").trim() || topic0 || "AI Radar";
+    const topic = ($$("tsTopic").value || "").trim() || topic0 || "";
     // collect the checked sizes (same banner is rendered at each)
     let sizes = Array.from(ov.querySelectorAll(".tssz:checked")).map(cb => {
       const p = cb.value.split("x"); return { w: Number(p[0]), h: Number(p[1]) };
@@ -41396,6 +41933,7 @@ async function vsOpenEditDeck(e, how) {
   // the finishing switches it asked for (each on unless said otherwise)
   if (typeof preset.cleanVoice === "boolean") vstudio._voicePolish = preset.cleanVoice;
   if (typeof preset.progress === "boolean") vstudio._editProgress = preset.progress;
+  if (typeof preset.glow === "boolean") vstudio._editGlow = preset.glow;
   if (typeof preset.chapters === "boolean") vstudio._editChapters = preset.chapters;
   // the API names a graphic style family; the studio wants one of its themes
   if (preset.gxStyle && !preset.gxTheme) { const t = vsGxThemes().find((x) => x.family === preset.gxStyle); if (t) preset.gxTheme = t.id; }
