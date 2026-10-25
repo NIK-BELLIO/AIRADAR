@@ -15469,6 +15469,18 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // what make two themes look like two different designers.
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
+  // the film styles (after Lemo-Opuscar, MIT): their inks and papers
+  ["riso", 0, "#f4eee2", "#fbf7ee", "#2b3f86", "#9a95a8", "#ff48b0", "#0078bf", "#ffe800"],
+  ["risoteal", 0, "#f4eee2", "#fbf7ee", "#00646a", "#9aa39f", "#ff7477", "#00838a", "#ffb511"],
+  ["deco", 1, "#120e0a", "#1c1610", "#f2e8d0", "#a89a7c", "#d8b25a", "#8e1f3a", "#1f6b52"],
+  ["decojade", 1, "#0d1210", "#151c18", "#f0e6cf", "#9aa592", "#e0c07a", "#2a9d76", "#6b2a5a"],
+  ["spy", 0, "#e2a52a", "#efe4c9", "#1b1714", "#7a5a20", "#d23a22", "#1b1714", "#efe4c9"],
+  ["spyteal", 0, "#1f8a8a", "#ece6d6", "#161a22", "#0f5c5c", "#f07a28", "#161a22", "#ece6d6"],
+  ["pixel", 1, "#1a1c2c", "#29366f", "#f4f4f4", "#94b0c2", "#ffcd75", "#41a6f6", "#b13e53"],
+  ["pixelwood", 1, "#1c1410", "#3b2a20", "#fff1d6", "#a08a70", "#f2a65a", "#73bed3", "#a53030"],
+  ["hud", 1, "#05090c", "#0b141a", "#d8fff4", "#3f7f72", "#5effc8", "#ff8a3d", "#2ad1ff"],
+  ["hudviolet", 1, "#07060d", "#110f1c", "#efe8ff", "#6a5f8f", "#b18cff", "#c6ff3d", "#5ad1ff"],
+  ["silent", 1, "#141210", "#1d1a17", "#ece4d4", "#8a8274", "#d8cfbf", "#b9ac93", "#6f6657"],
   ["silver", 0, "#d6d6d4", "#f5f5f3", "#141414", "#8a8a87", "#7a2a9a", "#4a4a4a", "#111111"],
   ["stoic", 0, "#d4d4d2", "#f1f1ef", "#151515", "#8a8a87", "#7b2fbf", "#111111", "#5a5a5a"],
   ["pastel", 0, "#f3f4f6", "#ffffff", "#1c1d22", "#9aa0a8", "#111214", "#33dcf0", "#9b5cf0"],
@@ -15537,6 +15549,12 @@ const VS_GX_PALETTES = [
 // (one family per theme, labels and captions in the title's own face: a
 // serif under a grotesk title read as two designs - the owner, twice)
 const VS_GX_FONTS = [
+  ["risofont", "Bricolage Grotesque", 800, 0, "Jost", 600],
+  ["decofont", "Limelight", 400, 1, "Josefin Sans", 600],
+  ["spyfont", "League Gothic", 400, 1, "League Spartan", 600],
+  ["pixelfont", "Press Start 2P", 400, 1, "VT323", 400],
+  ["hudfont", "Rajdhani", 600, 1, "Share Tech Mono", 400],
+  ["silentfont", "IM Fell English SC", 400, 0, "Old Standard TT", 400],
   ["editorial", "Archivo", 800, 0, "Archivo", 500],
   ["stoicmix", "Arimo", 700, 0, "Arimo", 400],
   ["steelmix", "Heebo", 700, 0, "Heebo", 300],
@@ -15568,7 +15586,7 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
   "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700&family=Bangers" +
@@ -15580,9 +15598,35 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Archivo+Black&f
 //  ec  picture colour role ls  how a list is set        de  ambient decoration
 //  fr  the frame on top    cp  captions                 kd  a key word's device
 //  tr  cuts between scenes
-const VS_GX_CATS = { reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
+const VS_GX_CATS = { film: ["Film styles", "سبک‌های فیلم"], reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Six film styles after Lemo-Opuscar (lemomo-ai/lemo-opuscar, MIT), each
+  // drawn here by our own engine from its style notes:
+  // Risograph: two or three translucent inks on warm paper, halftone dots,
+  // plates that never quite line up; the title printed twice, a roller wipe.
+  { id: "riso", n: ["Risograph", "چاپ ریسو"], cat: "film", pals: ["riso", "risoteal"], fonts: ["risofont", "bricolage"], el: ["flat", "color"],
+    bg: "riso", al: "l", tt: "riso", ef: "plain", ec: "ink", ls: "number", de: "halftone", fr: "none", cp: "riso", kd: "under", tr: ["wipe", "zoom"] },
+  // Art Deco: gold keylines on warm lacquer black, a sunburst, a stepped
+  // frame; the title unfolds from the centre and a light sweeps its gold.
+  { id: "deco", n: ["Art Deco", "آرت دکو"], cat: "film", pals: ["deco", "decojade"], fonts: ["decofont"], el: ["ph-thin", "flat"],
+    bg: "deco", al: "c", tt: "deco", ef: "plain", ec: "a1", ls: "roman", de: "deco", fr: "deco", cp: "deco", kd: "lines", tr: ["zoom", "flash"] },
+  // 60s spy titles: flat opaque inks, scissor-cut paper, condensed letters
+  // that arrive one by one, each a little off its line.
+  { id: "spy", n: ["Spy titles", "تیتراژ جاسوسی"], cat: "film", pals: ["spy", "spyteal"], fonts: ["spyfont"], el: ["flat", "ph-fill"],
+    bg: "spy", al: "l", tt: "cut", ef: "plain", ec: "ink", ls: "number", de: "cutbars", fr: "none", cp: "strip", kd: "block", tr: ["wipe", "whip"] },
+  // 16-bit pixel game: a dithered sky, pixel letters that dissolve in on a
+  // Bayer grid, the words below in a game's dialog box.
+  { id: "pixel", n: ["Pixel game", "بازی پیکسلی"], cat: "film", pals: ["pixel", "pixelwood"], fonts: ["pixelfont"], el: ["flat", "ph-fill"],
+    bg: "pixel", al: "c", tt: "pixel", ef: "plain", ec: "a1", ls: "bullet", de: "pixstars", fr: "none", cp: "dialog", kd: "block", tr: ["flash", "wipe"] },
+  // Hologram HUD: one cold hue on near black, corner brackets and rulers, a
+  // projector pad turning below; letters scramble before they lock.
+  { id: "hud", n: ["Hologram HUD", "هولوگرام"], cat: "film", pals: ["hud", "hudviolet"], fonts: ["hudfont"], el: ["ph-thin", "tb"],
+    bg: "hud", al: "c", tt: "hud", ef: "frame", ec: "a1", ls: "bullet", de: "rings", fr: "hud", cp: "hud", kd: "dim", tr: ["glitch", "zoom"] },
+  // Silent film: a flickering, scratched silver print; intertitle rules
+  // above and below the words, which flicker on.
+  { id: "silent", n: ["Silent film", "فیلم صامت"], cat: "film", pals: ["silent"], fonts: ["silentfont"], el: ["hc", "tb"],
+    bg: "silent", al: "c", tt: "intertitle", ef: "plain", ec: "ink", ls: "roman", de: "none", fr: "silent", cp: "card", kd: "lines", tr: ["flash", "zoom"] },
   // Copied from the Semmelweis documentary reel: every scene a full-bleed
   // photograph (an AI picture of what is said, or the user's own), slowly
   // pushed in, the words swiping in heavy and blurred; a name on a torn paper
@@ -16023,7 +16067,61 @@ function vsGxTexture(tk, W, H) {
     for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = a0 + Math.PI / n; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); x.lineTo(cx + Math.cos(a1) * R, cy + Math.sin(a1) * R); x.closePath(); x.fill(); }
     x.restore();
   };
-  if (tex === "paper" || tex === "newsprint") {
+  if (tex === "riso") {
+    // warm paper, a disc and a ground of halftone ink, each plate a hair off
+    const s2 = Math.max(6, Math.round(U / 95));
+    x.globalCompositeOperation = "multiply";
+    x.globalAlpha = 0.92; x.fillStyle = tk.a1; x.beginPath(); x.arc(W * 0.8 + U * 0.008, H * 0.2, U * 0.2, 0, Math.PI * 2); x.fill();
+    dotsAt(s2, s2 * 0.5, tk.a3, 0.9, (xx, yy) => (Math.hypot(xx - W * 0.8, yy - H * 0.2) < U * 0.3 ? 1 - Math.hypot(xx - W * 0.8, yy - H * 0.2) / (U * 0.3) * 0.6 : 0));
+    dotsAt(s2, s2 * 0.5, tk.a2, 0.85, (xx, yy) => (yy > H * 0.8 ? Math.min(1, (yy - H * 0.8) / (H * 0.12)) : 0));
+    x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+    fibres(Math.round(W * H / 2600), 0.05);
+  } else if (tex === "deco") {
+    // lacquer black, a sunburst of fine gold rays from the foot, a dark rim
+    const ox = W / 2, oy = H * 1.02;
+    x.strokeStyle = tk.a1; x.lineWidth = Math.max(1, U * 0.0025);
+    for (let k = 0; k < 36; k++) { const an = Math.PI + (k / 35) * Math.PI; x.globalAlpha = k % 2 ? 0.1 : 0.2; x.beginPath(); x.moveTo(ox, oy); x.lineTo(ox + Math.cos(an) * H * 1.4, oy + Math.sin(an) * H * 1.4); x.stroke(); }
+    x.globalAlpha = 0.22; [0.3, 0.42, 0.54].forEach((r) => { x.beginPath(); x.arc(ox, oy, U * r, Math.PI, Math.PI * 2); x.stroke(); });
+    x.globalAlpha = 1;
+    const vg = x.createRadialGradient(W / 2, H / 2, U * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.6)");
+    x.fillStyle = vg; x.fillRect(0, 0, W, H);
+  } else if (tex === "spy") {
+    // one flat ground; big scissor-cut shapes in a darker ink of it; mottled paper
+    const cut = (pts) => { x.beginPath(); pts.forEach(([px2, py2], i) => { const jx = px2 + (rnd() - 0.5) * U * 0.004, jy = py2 + (rnd() - 0.5) * U * 0.004; i ? x.lineTo(jx, jy) : x.moveTo(jx, jy); }); x.closePath(); x.fill(); };
+    x.fillStyle = "rgba(0,0,0,0.16)";
+    cut([[W * 0.62, 0], [W, 0], [W, H * 0.55], [W * 0.38, H]].concat([[W * 0.3, H]]));
+    x.fillStyle = "rgba(0,0,0,0.1)"; cut([[0, H * 0.7], [W * 0.5, H * 0.45], [W * 0.56, H * 0.5], [0, H * 0.82]]);
+    fibres(Math.round(W * H / 1800), 0.06);
+  } else if (tex === "pixel") {
+    // a low framebuffer: the sky dithered on a 4x4 Bayer grid, a hill line
+    const pw = Math.max(80, Math.round(W / 6)), ph = Math.max(80, Math.round(H / 6)), pc = document.createElement("canvas"); pc.width = pw; pc.height = ph;
+    const px2 = pc.getContext("2d"), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const c0 = hex(tk.bg), c1 = hex(tk.paper), id = px2.createImageData(pw, ph);
+    for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) {
+      const v = yy / ph, steps = 4, lv = Math.floor(v * steps + B[(yy & 3) * 4 + (xx & 3)] / 16) / steps, k2 = Math.min(1, lv), o = (yy * pw + xx) * 4;
+      for (let ch = 0; ch < 3; ch++) id.data[o + ch] = Math.round(c0[ch] + (c1[ch] - c0[ch]) * k2);
+      id.data[o + 3] = 255;
+    }
+    px2.putImageData(id, 0, 0);
+    px2.fillStyle = tk.dark ? "#0b0d1a" : "#333c57";
+    for (let xx = 0; xx < pw; xx++) { const hh = Math.round(ph * (0.12 + 0.05 * Math.sin(xx * 0.09) + 0.03 * Math.sin(xx * 0.23))); px2.fillRect(xx, ph - hh, 1, hh); }
+    px2.fillStyle = tk.a3; for (let xx = 0; xx < pw; xx += 2) { const hh = Math.round(ph * (0.06 + 0.02 * Math.sin(xx * 0.15))); px2.fillRect(xx, ph - hh, 2, 1); }
+    x.imageSmoothingEnabled = false; x.drawImage(pc, 0, 0, W, H); x.imageSmoothingEnabled = true;
+  } else if (tex === "hud") {
+    // near black lifted behind the subject, a fading dot grid, a strong vignette
+    const lift = x.createRadialGradient(W / 2, H * 0.52, 0, W / 2, H * 0.52, U * 0.75); lift.addColorStop(0, tk.a1 + "22"); lift.addColorStop(1, tk.a1 + "00");
+    x.fillStyle = lift; x.fillRect(0, 0, W, H);
+    const g2 = Math.max(10, Math.round(U / 34));
+    dotsAt(g2, Math.max(0.8, U * 0.0016), tk.a1, 0.35, (xx, yy) => Math.max(0, 1 - Math.hypot(xx - W / 2, yy - H / 2) / (Math.max(W, H) * 0.6)));
+    const vg = x.createRadialGradient(W / 2, H / 2, U * 0.3, W / 2, H / 2, Math.max(W, H) * 0.72); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.7)");
+    x.fillStyle = vg; x.fillRect(0, 0, W, H);
+  } else if (tex === "silent") {
+    // the projected print: silver lifted in the middle, darker to the edges
+    const g2 = x.createRadialGradient(W / 2, H * 0.48, U * 0.1, W / 2, H / 2, Math.max(W, H) * 0.7); g2.addColorStop(0, "#4a453d"); g2.addColorStop(1, "#141210");
+    x.fillStyle = g2; x.fillRect(0, 0, W, H);
+    fibres(Math.round(W * H / 2200), 0.08);
+  } else if (tex === "paper" || tex === "newsprint") {
     sheet(); fibres(900, tk.dark ? 0.05 : 0.06);
     if (tex === "newsprint") dotsAt(Math.max(5, Math.round(W / 140)), Math.max(5, Math.round(W / 140)) * 0.22, tk.ink, 0.07);
   } else if (tex === "grain") {
@@ -16652,6 +16750,72 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         const last = i === boxes.length - 1 || n < chars;
         if (last && (n < chars || Math.floor(t * 2) % 2 === 0)) { ctx.fillStyle = acc; ctx.fillRect(b.x + ctx.measureText(b.ln.slice(0, n)).width + px * 0.08, b.y - px * 0.38, px * 0.45, px * 0.78); }
         ctx.restore(); return;
+      } else if (tt === "riso") {
+        // printed twice: the ink plate rolls on from the left, the second
+        // plate follows a beat later, kicked off register, and settles a hair off
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.45)), q2 = Math.max(0, Math.min(1, (t - tl - 0.15) / 0.45));
+        const kick = Math.max(0, 1 - (t - tl - 0.15) / 0.3), off = px * 0.045 + px * 0.1 * kick;
+        ctx.globalCompositeOperation = "multiply";
+        if (q2 > 0) { ctx.save(); ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q2, px * 2); ctx.clip(); ctx.fillStyle = acc; put(b, 0, off, off * 0.6); ctx.restore(); }
+        ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q, px * 2); ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "deco") {
+        // gold that unfolds from the centre, then a light sweeps across it once
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.6))), cx2 = b.x + b.w / 2;
+        ctx.beginPath(); ctx.rect(cx2 - (b.w / 2 + px) * q, b.y - px, (b.w + px * 2) * q, px * 2); ctx.clip();
+        const g = ctx.createLinearGradient(0, b.y - px * 0.5, 0, b.y + px * 0.5);
+        g.addColorStop(0, "#7a5a22"); g.addColorStop(0.35, "#f6dc93"); g.addColorStop(0.5, "#fff3c8"); g.addColorStop(0.65, "#d9b25a"); g.addColorStop(1, "#6e4f1c");
+        ctx.fillStyle = "rgba(0,0,0,0.65)"; put(b, 0, px * 0.03, px * 0.05);
+        ctx.fillStyle = g; put(b);
+        const sh = (t - tl - 0.5) / 1.1;
+        if (sh > 0 && sh < 1) { const sx = b.x - px + (b.w + px * 2) * sh, sg = ctx.createLinearGradient(sx - px * 0.8, 0, sx + px * 0.8, 0); sg.addColorStop(0, "rgba(255,255,255,0)"); sg.addColorStop(0.5, "rgba(255,250,230,0.85)"); sg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = sg; put(b); }
+        ctx.restore(); return;
+      } else if (tt === "cut" && !/[\u0590-\u08ff]/.test(b.ln)) {
+        // cut-paper letters, each a little turned and off the line, arriving
+        // one after another on twos with a small paper shadow
+        let xx = b.x;
+        Array.from(b.ln).forEach((ch, k) => {
+          const cw = ctx.measureText(ch).width, hs = Math.sin((k + 1) * 12.9898 + i * 78.233) * 43758.5453, r = hs - Math.floor(hs);
+          const q = Math.max(0, Math.min(1, (t - tl - k * 0.03) / 0.22)), qs = Math.floor(q * 6) / 6;
+          if (q > 0 && ch !== " ") {
+            ctx.save(); ctx.translate(xx + cw / 2 - (1 - qs) * px * 0.8, b.y + (r - 0.5) * px * 0.06); ctx.rotate((r - 0.5) * 0.06); ctx.globalAlpha = Math.min(1, q * 3);
+            ctx.fillStyle = "rgba(0,0,0,0.28)"; ctx.fillText(ch, -cw / 2 + px * 0.03, px * 0.04);
+            ctx.fillStyle = k === 0 && i === 0 ? acc : color; ctx.fillText(ch, -cw / 2, 0); ctx.restore();
+          }
+          xx += cw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "pixel") {
+        // dissolved in on a 4x4 Bayer grid; an 8-way ink edge; two-tone fill
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.5)), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+        if (q < 1) { const c = Math.max(2, Math.round(px * 0.18)); ctx.beginPath(); for (let yy = b.y - px * 0.7; yy < b.y + px * 0.7; yy += c) for (let xx = b.x - px * 0.3; xx < b.x + b.w + px * 0.3; xx += c) { if (B[(Math.round(yy / c) & 3) * 4 + (Math.round(xx / c) & 3)] < q * 16) ctx.rect(xx, yy, c, c); } ctx.clip(); }
+        const o = Math.max(1, px * 0.09); ctx.fillStyle = "#0b0d1a";
+        [[-o, 0], [o, 0], [0, -o], [0, o], [-o, -o], [o, o], [-o, o], [o, -o]].forEach(([dx, dy]) => put(b, 0, dx, dy));
+        const g = ctx.createLinearGradient(0, b.y - px * 0.5, 0, b.y + px * 0.5); g.addColorStop(0, "#ffffff"); g.addColorStop(0.52, "#ffffff"); g.addColorStop(0.52, acc); g.addColorStop(1, acc);
+        ctx.fillStyle = g; put(b); ctx.restore(); return;
+      } else if (tt === "hud") {
+        // on its own dark plate with corner ticks; the letters scramble
+        // through data glyphs before each one locks
+        const el = t - tl, rtl2 = /[\u0590-\u08ff]/.test(b.ln);
+        ctx.globalAlpha = a2; ctx.fillStyle = "rgba(0,0,0,0.42)"; ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = acc; ctx.lineWidth = Math.max(1, px * 0.03); const tkl = px * 0.22;
+        [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]].forEach(([x1, y1, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x1 + dx * tkl, y1); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 + dy * tkl); ctx.stroke(); });
+        let s2 = b.ln;
+        if (!rtl2) { const G = "#%&@$0123456789ABCDEFXZ/<>"; s2 = Array.from(b.ln).map((ch, k) => (ch === " " || el > 0.3 + k * 0.035 ? ch : G[(Math.floor(t * 24) * 7 + k * 13) % G.length])).join(""); }
+        else ctx.globalAlpha = Math.min(1, el / 0.4);
+        ctx.shadowColor = acc; ctx.shadowBlur = px * 0.35; ctx.fillStyle = color; ctx.fillText(s2, b.x, b.y); ctx.restore(); return;
+      } else if (tt === "intertitle") {
+        // an intertitle: ornamental rules above and below, the words
+        // flickering on as the projector catches them
+        const el = t - tl, fl = el < 0.5 ? (Math.floor(el * 24) % 3 === 1 ? 0.45 : 1) : 1;
+        ctx.globalAlpha = Math.min(1, el / 0.4) * fl;
+        const rule = (yy) => {
+          const w = Math.min(bw * 1.1, U * 0.55), x0 = b.x + b.w / 2 - w / 2; ctx.fillStyle = color;
+          ctx.fillRect(x0, yy, w, Math.max(1, px * 0.03)); ctx.fillRect(x0 + w * 0.08, yy + px * 0.09, w * 0.84, Math.max(1, px * 0.015));
+          ctx.save(); ctx.translate(b.x + b.w / 2, yy + px * 0.05); ctx.rotate(Math.PI / 4); ctx.fillRect(-px * 0.07, -px * 0.07, px * 0.14, px * 0.14); ctx.restore();
+        };
+        if (i === 0) rule(b.y - px * 0.95);
+        if (i === w0.lines.length - 1) rule(b.y + px * 0.8);
+        ctx.fillStyle = color; put(b); ctx.restore(); return;
       } else if (tt === "hand" && st.te === "bleed") {
         // ink soaking into the paper: word by word, a soft blot sharpening
         let xx = b.x; const spw = ctx.measureText(" ").width;
@@ -17452,7 +17616,44 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
   const cols = [tk.a1, tk.a2, tk.a3];
   const spots = [[0.04, 0.05], [0.96, 0.06], [0.05, 0.955], [0.95, 0.945]];
   ctx.save();
-  if (de === "wave") {
+  if (de === "halftone") {
+    // a second ink disc overprinting the first, drifting a little
+    ctx.globalCompositeOperation = "multiply";
+    const r = U * 0.15, cx = W * (0.16 + 0.025 * Math.sin(t * 0.3)), cy = H * 0.72;
+    ctx.globalAlpha = 0.9 * ap; ctx.fillStyle = tk.a3; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.55 * ap; ctx.fillStyle = tk.a1; ctx.beginPath(); ctx.arc(cx + U * 0.05, cy - U * 0.03, r * 0.6, 0, Math.PI * 2); ctx.fill();
+  } else if (de === "deco") {
+    // four-point gold sparkles switching on one by one, twinkling
+    spots.forEach(([fx, fy], i) => {
+      const on = Math.max(0, Math.min(1, (t - 0.3 - i * 0.18) / 0.2)), tw = 0.6 + 0.4 * Math.sin(t * 2.4 + i * 1.9), s2 = U * 0.03 * on * tw;
+      if (s2 <= 0) return;
+      ctx.save(); ctx.translate(W * fx + (fx < 0.5 ? U * 0.05 : -U * 0.05), H * fy + (fy < 0.5 ? U * 0.06 : -U * 0.06)); ctx.fillStyle = tk.a1; ctx.shadowColor = tk.a1; ctx.shadowBlur = U * 0.02;
+      ctx.beginPath(); for (let j = 0; j < 8; j++) { const an = (j / 8) * Math.PI * 2, rr2 = j % 2 ? s2 * 0.22 : s2; ctx.lineTo(Math.cos(an) * rr2, Math.sin(an) * rr2); } ctx.closePath(); ctx.fill(); ctx.restore();
+    });
+  } else if (de === "cutbars") {
+    // two long cut-paper bars sliding across on the diagonal
+    [[tk.a1, 0.16, 1], [tk.ink, 0.86, -1]].forEach(([c, fy, dir], i) => {
+      const k = mv.e(Math.min(1, Math.max(0, (t - 0.1 - i * 0.15) / 0.7))), off = (1 - k) * W * 1.2 * dir + Math.sin(t * 0.4 + i) * U * 0.01;
+      ctx.save(); ctx.translate(W / 2 + off, H * fy); ctx.rotate(-0.18); ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.fillRect(-W * 0.7 + U * 0.008, -U * 0.02 + U * 0.008, W * 1.4, U * 0.04);
+      ctx.fillStyle = c; ctx.fillRect(-W * 0.7, -U * 0.02, W * 1.4, U * 0.04); ctx.restore();
+    });
+  } else if (de === "pixstars") {
+    // pixel stars twinkling on twos
+    const n = 14, cell = Math.max(3, Math.round(U / 130));
+    for (let i = 0; i < n; i++) {
+      const fx = (Math.sin(i * 91.7) * 0.5 + 0.5), fy = (Math.sin(i * 47.3) * 0.5 + 0.5) * 0.45, on = Math.floor(t * 12 + i * 3) % 7 < 5;
+      ctx.globalAlpha = on ? 0.9 * ap : 0.3 * ap; ctx.fillStyle = i % 4 ? "#ffffff" : tk.a1;
+      const x0 = Math.round(W * fx / cell) * cell, y0 = Math.round(H * fy / cell) * cell;
+      ctx.fillRect(x0, y0, cell, cell); if (on && i % 3 === 0) { ctx.fillRect(x0 - cell, y0, cell * 3, cell * 0.999); ctx.fillRect(x0, y0 - cell, cell, cell * 3); }
+    }
+  } else if (de === "rings") {
+    // the projector pad, in perspective at the foot, turning slowly
+    const cx = W / 2, cy = H * 0.86, rx = U * 0.42, ry = U * 0.09;
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, U * 0.003);
+    [[1, 0.7], [0.78, 0.35], [0.56, 0.5]].forEach(([k, a], i) => { ctx.globalAlpha = a * ap; if (i === 1) ctx.setLineDash([U * 0.02, U * 0.012]); else ctx.setLineDash([]); ctx.lineDashOffset = -t * U * 0.05; ctx.beginPath(); ctx.ellipse(cx, cy, rx * k, ry * k, 0, 0, Math.PI * 2); ctx.stroke(); });
+    ctx.setLineDash([]); ctx.globalAlpha = 0.6 * ap;
+    for (let j = 0; j < 36; j++) { const an = (j / 36) * Math.PI * 2 + t * 0.15, x0 = cx + Math.cos(an) * rx, y0 = cy + Math.sin(an) * ry; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(cx + Math.cos(an) * rx * 1.06, cy + Math.sin(an) * ry * 1.06); ctx.stroke(); }
+  } else if (de === "wave") {
     // one fine wavy line across the page, drawn on from the left (the clinic reel)
     const p = mv.e(Math.min(1, t / 1.2)), y0 = H * 0.27;
     ctx.strokeStyle = tk.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1.5, U * 0.004); ctx.lineCap = "round";
@@ -17605,7 +17806,42 @@ function vsGxOverlay(ctx, W, H, t, tk, st, U, sc) {
   const fr = st.fr;
   if (!fr || fr === "none") return;
   ctx.save();
-  if (fr === "ticker") {
+  if (fr === "deco") {
+    // a stepped gold frame: a double keyline with ziggurat corners
+    const m = U * 0.035, st2 = U * 0.03;
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, U * 0.0028); ctx.globalAlpha = 0.85;
+    const path = (d) => { ctx.beginPath(); ctx.moveTo(m + d + st2 * 2, m + d); ctx.lineTo(W - m - d - st2 * 2, m + d); ctx.lineTo(W - m - d - st2 * 2, m + d + st2); ctx.lineTo(W - m - d - st2, m + d + st2); ctx.lineTo(W - m - d - st2, m + d + st2 * 2); ctx.lineTo(W - m - d, m + d + st2 * 2);
+      ctx.lineTo(W - m - d, H - m - d - st2 * 2); ctx.lineTo(W - m - d - st2, H - m - d - st2 * 2); ctx.lineTo(W - m - d - st2, H - m - d - st2); ctx.lineTo(W - m - d - st2 * 2, H - m - d - st2); ctx.lineTo(W - m - d - st2 * 2, H - m - d);
+      ctx.lineTo(m + d + st2 * 2, H - m - d); ctx.lineTo(m + d + st2 * 2, H - m - d - st2); ctx.lineTo(m + d + st2, H - m - d - st2); ctx.lineTo(m + d + st2, H - m - d - st2 * 2); ctx.lineTo(m + d, H - m - d - st2 * 2);
+      ctx.lineTo(m + d, m + d + st2 * 2); ctx.lineTo(m + d + st2, m + d + st2 * 2); ctx.lineTo(m + d + st2, m + d + st2); ctx.lineTo(m + d + st2 * 2, m + d + st2); ctx.closePath(); ctx.stroke(); };
+    path(0); ctx.globalAlpha = 0.4; path(U * 0.012);
+  } else if (fr === "hud") {
+    // corner brackets, rulers down the sides, a status line and a counter
+    const m = U * 0.045, L = U * 0.07;
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1.2, U * 0.003); ctx.globalAlpha = 0.8;
+    [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([x, y, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x + dx * L, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy * L); ctx.stroke(); });
+    ctx.globalAlpha = 0.45;
+    const step = U * 0.025, sh = (t * U * 0.03) % step;
+    for (let y = H * 0.2 + sh; y < H * 0.8; y += step) { const big = Math.round((y - sh) / step) % 4 === 0; ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(m + (big ? U * 0.025 : U * 0.012), y); ctx.moveTo(W - m, y); ctx.lineTo(W - m - (big ? U * 0.025 : U * 0.012), y); ctx.stroke(); }
+    ctx.globalAlpha = 0.85; ctx.fillStyle = tk.a1; ctx.font = vsGxFont(tk.body, U * 0.026); ctx.textBaseline = "top";
+    ctx.textAlign = "left"; ctx.fillText(("SCAN // " + String((sc._idx || 0) + 1).padStart(2, "0")), m + U * 0.02, m + U * 0.015);
+    ctx.textAlign = "right"; ctx.fillText(String(Math.floor(t * 100)).padStart(5, "0"), W - m - U * 0.02, m + U * 0.015);
+  } else if (fr === "silent") {
+    // the print in the projector: silver only, a flicker, scratches and
+    // dust that change every other frame, the gate's dark rounded rim
+    ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = "#808080"; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "rgba(226,212,186,0.55)"; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "source-over";
+    const fr2 = Math.floor(t * 12), hh = (k) => { const v = Math.sin((fr2 + 1) * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
+    ctx.fillStyle = "#000"; ctx.globalAlpha = 0.04 + 0.07 * hh(1); ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = Math.max(1, U * 0.0018);
+    for (let k = 0; k < 2; k++) if (hh(10 + k) > 0.45) { const x = W * hh(20 + k), y0 = H * hh(30 + k) * 0.5; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x + U * 0.004, y0 + H * (0.3 + 0.5 * hh(40 + k))); ctx.stroke(); }
+    ctx.fillStyle = "#000"; ctx.globalAlpha = 0.6;
+    for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc(W * hh(50 + k), H * hh(60 + k), U * 0.002 * (1 + 2 * hh(70 + k)), 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    const vg = ctx.createRadialGradient(W / 2, H / 2, U * 0.36, W / 2, H / 2, Math.max(W, H) * 0.68); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.75)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  } else if (fr === "ticker") {
     const h = H * 0.06, y = H - h - H * 0.03;
     ctx.fillStyle = tk.ink; ctx.fillRect(0, y, W, h);
     const lw = W * 0.24; ctx.fillStyle = tk.a1; ctx.fillRect(0, y, lw, h);
@@ -17677,7 +17913,7 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   for (let k = 0; k < ws.length; k++) if (ws[k].t0 <= lt + 0.02) cur = k;
   if (cur < 0 || lt > ws[ws.length - 1].t1 + 0.4) return;
   const start = Math.floor(cur / 4) * 4, chunk = ws.slice(start, start + 4);
-  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" ? tk.body : { fam: tk.body.fam, w: 800 };
+  const f = cp === "comic" ? tk.disp : cp === "hand" || cp === "mono" || cp === "dialog" || cp === "hud" || cp === "card" ? tk.body : { fam: tk.body.fam, w: 800 };
   const px = U * (cp === "hand" ? 0.062 : cp === "sub" ? 0.048 : 0.05);
   const sheet = st.bg === "window" || st.bg === "poster" || st.bg === "sheet";
   const y = sheet ? H * 0.845 : st.fr === "ticker" ? H * 0.84 : st.fr === "letterbox" ? H * 0.958 : st.fr === "wood" || st.fr === "thick" ? H * 0.88 : H * 0.9;
@@ -17689,7 +17925,40 @@ function vsGxCaptions(ctx, W, H, cap, tk, U) {
   const x0 = W / 2 - tw / 2, bx = x0 - px * 0.6, bw = tw + px * 1.2, by = y - px * 0.9, bh = px * 1.8;
   const rr = (r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, r); else ctx.rect(bx, by, bw, bh); };
   let col = tk.ink, hi = tk.dark ? tk.a1 : tk.a2;
-  if (cp === "pill") { ctx.fillStyle = tk.dark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)"; rr(px * 0.5); ctx.fill(); }
+  if (cp === "riso") {
+    // a paper-white knockout strip; the pink plate catches its lower edge
+    ctx.fillStyle = tk.paper; ctx.fillRect(bx, by, bw, bh);
+    ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.45; ctx.fillStyle = tk.a1; ctx.fillRect(bx + px * 0.08, by + bh - px * 0.1, bw, px * 0.12);
+    ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1; col = tk.ink; hi = tk.a1;
+  } else if (cp === "deco") {
+    // a lacquer bar with a double gold keyline
+    ctx.fillStyle = "rgba(10,8,6,0.88)"; ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, px * 0.04); ctx.strokeRect(bx, by, bw, bh); ctx.globalAlpha = 0.5; ctx.strokeRect(bx + px * 0.12, by + px * 0.12, bw - px * 0.24, bh - px * 0.24); ctx.globalAlpha = 1;
+    col = tk.ink; hi = tk.a1;
+  } else if (cp === "dialog") {
+    // a game's dialog box: ink, white and silver borders round a deep blue fill
+    const o = Math.max(2, px * 0.08);
+    ctx.fillStyle = "#0b0d1a"; ctx.fillRect(bx - o * 2, by - o * 2, bw + o * 4, bh + o * 4);
+    ctx.fillStyle = "#f4f4f4"; ctx.fillRect(bx - o, by - o, bw + o * 2, bh + o * 2);
+    ctx.fillStyle = "#94b0c2"; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = "#29366f"; ctx.fillRect(bx + o, by + o, bw - o * 2, bh - o * 2);
+    if (Math.floor(lt * 3) % 2) { ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(bx + bw - px * 0.6, by + bh - px * 0.5); ctx.lineTo(bx + bw - px * 0.3, by + bh - px * 0.5); ctx.lineTo(bx + bw - px * 0.45, by + bh - px * 0.3); ctx.closePath(); ctx.fill(); }
+    col = "#ffffff"; hi = tk.a1;
+  } else if (cp === "hud") {
+    // a dark plate with corner ticks and voiceprint bars moving with the speech
+    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(bx - px * 1.4, by, bw + px * 1.4, bh);
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, px * 0.04); const tkl = px * 0.3;
+    [[bx - px * 1.4, by, 1, 1], [bx + bw, by, -1, 1], [bx - px * 1.4, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]].forEach(([x1, y1, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x1 + dx * tkl, y1); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 + dy * tkl); ctx.stroke(); });
+    ctx.fillStyle = tk.a1;
+    for (let k = 0; k < 5; k++) { const hgt = px * (0.2 + 0.6 * Math.abs(Math.sin(lt * 9 + k * 1.7))); ctx.fillRect(bx - px * 1.1 + k * px * 0.18, y - hgt / 2, px * 0.1, hgt); }
+    col = tk.ink; hi = tk.a1;
+  } else if (cp === "card") {
+    // a small black card with a fine double rule, as an intertitle
+    ctx.fillStyle = "#0b0a09"; ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = Math.max(1, px * 0.03); ctx.strokeRect(bx + px * 0.1, by + px * 0.1, bw - px * 0.2, bh - px * 0.2);
+    ctx.globalAlpha = 0.5; ctx.strokeRect(bx + px * 0.2, by + px * 0.2, bw - px * 0.4, bh - px * 0.4); ctx.globalAlpha = 1;
+    col = tk.ink; hi = tk.a2;
+  } else if (cp === "pill") { ctx.fillStyle = tk.dark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)"; rr(px * 0.5); ctx.fill(); }
   else if (cp === "box") { ctx.fillStyle = tk.dark ? tk.paper : tk.ink; ctx.fillRect(bx, by, bw, bh); col = tk.dark ? tk.ink : tk.paper; hi = tk.a1; }
   else if (cp === "glass") { ctx.fillStyle = tk.dark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.7)"; rr(px * 0.9); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.stroke(); hi = tk.a1; }
   else if (cp === "strip") { ctx.translate(W / 2, y); ctx.rotate(-0.02); ctx.translate(-W / 2, -y); ctx.fillStyle = "#fffdf6"; ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = px * 0.3; ctx.fillRect(bx, by, bw, bh); ctx.shadowColor = "transparent"; col = "#1b1b1b"; }
