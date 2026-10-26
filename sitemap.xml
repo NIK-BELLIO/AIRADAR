@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url><loc>https://airadar.me/</loc><lastmod>2026-10-22</lastmod><priority>1.0</priority></url>
   <url><loc>https://airadar.me/studio/</loc><lastmod>2026-10-22</lastmod><priority>0.9</priority></url>
   <url><loc>https://airadar.me/spark/</loc><lastmod>2026-10-22</lastmod><priority>0.8</priority></url>
@@ -11,4 +11,16 @@
   <url><loc>https://airadar.me/fa/spark/</loc><lastmod>2026-10-22</lastmod><priority>0.7</priority></url>
   <url><loc>https://airadar.me/developers/</loc><lastmod>2026-10-22</lastmod><priority>0.6</priority></url>
   <url><loc>https://airadar.me/privacy/</loc><lastmod>2026-10-26</lastmod><priority>0.3</priority></url>
+  <url><loc>https://airadar.me/free-ai-video-editor/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/free-ai-video-editor/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/ai-video-editor/"/></url>
+  <url><loc>https://airadar.me/auto-captions/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/auto-captions/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/auto-subtitle/"/></url>
+  <url><loc>https://airadar.me/youtube-thumbnail-maker/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/youtube-thumbnail-maker/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/thumbnail-maker/"/></url>
+  <url><loc>https://airadar.me/motion-graphics-video/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/motion-graphics-video/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/motion-graphics/"/></url>
+  <url><loc>https://airadar.me/remove-silence-from-video/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/remove-silence-from-video/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/remove-silence/"/></url>
+  <url><loc>https://airadar.me/instagram-reels-maker/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/instagram-reels-maker/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/reels-maker/"/></url>
+  <url><loc>https://airadar.me/fa/ai-video-editor/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/free-ai-video-editor/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/ai-video-editor/"/></url>
+  <url><loc>https://airadar.me/fa/auto-subtitle/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/auto-captions/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/auto-subtitle/"/></url>
+  <url><loc>https://airadar.me/fa/thumbnail-maker/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/youtube-thumbnail-maker/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/thumbnail-maker/"/></url>
+  <url><loc>https://airadar.me/fa/motion-graphics/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/motion-graphics-video/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/motion-graphics/"/></url>
+  <url><loc>https://airadar.me/fa/remove-silence/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/remove-silence-from-video/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/remove-silence/"/></url>
+  <url><loc>https://airadar.me/fa/reels-maker/</loc><lastmod>2026-10-26</lastmod><priority>0.8</priority><xhtml:link rel="alternate" hreflang="en" href="https://airadar.me/instagram-reels-maker/"/><xhtml:link rel="alternate" hreflang="fa" href="https://airadar.me/fa/reels-maker/"/></url>
 </urlset>

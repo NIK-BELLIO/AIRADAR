@@ -33,6 +33,8 @@ const PAGES = [
     app: { name: "AI Radar Spark", features: ["ساخت هوک", "نوشتن پست", "ساخت کاروسل", "ساخت تامبنیل", "ساخت لوگو", "طرح نقل‌قول"] } },
 ];
 const faUrl = (u) => "/fa" + u;
+const LANDING = [["/free-ai-video-editor/", "/fa/ai-video-editor/"], ["/auto-captions/", "/fa/auto-subtitle/"], ["/youtube-thumbnail-maker/", "/fa/thumbnail-maker/"],
+  ["/motion-graphics-video/", "/fa/motion-graphics/"], ["/remove-silence-from-video/", "/fa/remove-silence/"], ["/instagram-reels-maker/", "/fa/reels-maker/"]];
 
 // the dictionary, read out of app.js rather than copied
 const appJs = fs.readFileSync(path.join(ROOT, "app.js"), "utf8");
@@ -103,6 +105,8 @@ function buildFa(p, en) {
   s = s.replace(/(\s(?:href|src)=")(?![a-z]+:|\/|#|')([^"]+")/g, "$1/$2");
   // links that have a Persian page stay in Persian
   for (const q of PAGES) s = s.split(`href="${q.url}"`).join(`href="${faUrl(q.url)}"`);
+  // the search landing pages have Persian twins of their own (tools/build-landing.py)
+  for (const [en, fa] of LANDING) s = s.split(`href="${en}"`).join(`href="${fa}"`);
   s = withLangLink(s, p.url, "English", "en");
   const banner = "<!-- Built by tools/build-fa.cjs from " + p.en + " - do not edit by hand. -->\n";
   s = s.replace(/^(<!doctype html>\r?\n)/i, "$1" + banner);

@@ -1,0 +1,140 @@
+# Builds the search landing pages (one per search intent, English and
+# Persian) from landing_en.py / landing_fa.py, and lists them in the sitemap.
+#   python repo/tools/build-landing.py
+import html, io, json, os, re, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+from landing_en import PAGES as EN
+from landing_fa import PAGES as FA
+SITE = "https://airadar.me/"
+TODAY = "2026-10-26"
+e = html.escape
+
+CSS = """:root{--bg:#08090c;--card:#111318;--line:rgba(255,255,255,.09);--text:#eef0f3;--muted:#9aa1ad;--soft:#c9cdd5;--blue:#2563ff;--link:#9ec1ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:500 17px/1.7 Manrope,Vazirmatn,system-ui,sans-serif}
+a{color:var(--link)}main{max-width:860px;margin:0 auto;padding:0 20px 80px}
+.top{max-width:1100px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-weight:800}.brand img{width:28px;height:28px}
+.top nav{display:flex;gap:16px;align-items:center;font-size:14px}.top nav a{color:var(--muted);text-decoration:none}.top nav a:hover{color:var(--text)}
+.cta{display:inline-block;background:var(--blue);color:#fff!important;text-decoration:none;font-weight:800;border-radius:10px;padding:13px 22px}
+.cta.sm{padding:8px 14px;font-size:14px}
+.hero{padding:56px 0 24px}h1{font:800 clamp(32px,5vw,52px)/1.1 "Space Grotesk",Manrope,Vazirmatn,sans-serif;margin:0 0 18px;letter-spacing:-.01em}
+[dir=rtl] h1{font-family:Vazirmatn,sans-serif;letter-spacing:0;line-height:1.3}
+.lead{font-size:19px;color:var(--soft);margin:0 0 26px;max-width:720px}.note{color:var(--muted);font-size:14px;margin-top:10px}
+h2{font:800 24px/1.3 "Space Grotesk",Manrope,Vazirmatn,sans-serif;margin:48px 0 14px}[dir=rtl] h2{font-family:Vazirmatn,sans-serif}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;counter-reset:s;padding:0;margin:0}.steps li{list-style:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;counter-increment:s}
+.steps li:before{content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;font-size:14px;margin-bottom:10px}
+.steps b{display:block;margin-bottom:4px}.steps span{color:var(--soft);font-size:15px}
+.points{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}.points li{list-style:none;color:var(--soft);padding-inline-start:22px;position:relative}
+.points li:before{content:"";position:absolute;inset-inline-start:0;top:.7em;width:8px;height:8px;border-radius:2px;background:var(--blue)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0}summary{cursor:pointer;font-weight:700}details p{color:var(--soft);margin:10px 0 0}
+.more{display:flex;flex-wrap:wrap;gap:10px;padding:0}.more li{list-style:none}.more a{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:7px 14px;text-decoration:none;color:var(--text);font-size:14px}
+.end{margin-top:48px;padding:28px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,rgba(37,99,255,.18),rgba(37,99,255,0) 60%)}
+footer{max-width:860px;margin:0 auto;padding:24px 20px 48px;color:var(--muted);font-size:14px;display:flex;gap:16px;flex-wrap:wrap}footer a{color:var(--muted)}
+@media(max-width:720px){.steps{grid-template-columns:1fr}.points{grid-template-columns:1fr}.top nav a.hide{display:none}}"""
+
+# the site's cookie notice, without the whole app (same key as app.js)
+COOKIE_JS = """(function(){try{if(localStorage.getItem("arCookieOk"))return}catch(e){return}
+var fa=document.documentElement.lang==="fa",b=document.createElement("div");b.id="arCookie";b.dir=fa?"rtl":"ltr";b.setAttribute("role","region");
+b.innerHTML="<span>"+(fa?"برای بهتر شدن تجربهٔ شما از کوکی استفاده می‌کنیم.":"We use cookies to enhance your experience.")+' <a href="/privacy/'+(fa?"?lang=fa":"")+'">'+(fa?"بیشتر بدانید":"Learn more")+'</a></span><button type="button">'+(fa?"باشه":"OK")+"</button>";
+var s=document.createElement("style");s.textContent="#arCookie{position:fixed;left:16px;right:16px;bottom:16px;margin:0 auto;max-width:520px;z-index:9000;display:flex;align-items:center;gap:14px;padding:10px 10px 10px 16px;border-radius:12px;background:rgba(17,19,24,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.45);font:500 13.5px/1.5 Manrope,Vazirmatn,system-ui,sans-serif;color:#d5d8de}#arCookie span{flex:1}#arCookie button{border:0;border-radius:8px;padding:7px 16px;background:#f2f3f5;color:#0b0c10;font:700 13px Manrope,Vazirmatn,sans-serif;cursor:pointer}";
+b.querySelector("button").onclick=function(){try{localStorage.setItem("arCookieOk","1")}catch(e){}b.remove()};document.head.appendChild(s);document.body.appendChild(b)})();"""
+
+def page(p, fa, siblings):
+    url = SITE + p["slug"] + "/"
+    other = SITE + (p["en"] if fa else p["fa"]) + "/"
+    en_url, fa_url = (other, url) if fa else (url, other)
+    studio = "/fa/studio/" if fa else "/studio/"
+    L = (lambda a, b: b) if fa else (lambda a, b: a)
+    ld = {"@context": "https://schema.org", "@graph": [
+        {"@type": "SoftwareApplication", "name": "AI Radar Video Studio", "url": url, "applicationCategory": "MultimediaApplication", "operatingSystem": "Web browser",
+         "description": p["desc"], "inLanguage": "fa" if fa else "en", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+         "publisher": {"@id": SITE + "#org"}},
+        {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in p["faq"]]},
+        {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "AI Radar", "item": SITE + ("fa/" if fa else "")},
+                                                        {"@type": "ListItem", "position": 2, "name": p["h1"], "item": url}]}]}
+    steps = "".join("<li><b>%s</b><span>%s</span></li>" % (e(a), e(b)) for a, b in p["steps"])
+    points = "".join("<li>%s</li>" % e(x) for x in p["points"])
+    faq = "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in p["faq"])
+    more = "".join('<li><a href="/%s/">%s</a></li>' % (s["slug"], e(s["h1"])) for s in siblings if s is not p)
+    return f"""<!doctype html>
+<html lang="{'fa' if fa else 'en'}" dir="{'rtl' if fa else 'ltr'}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#08090c" />
+<title>{e(p['title'])}</title>
+<meta name="description" content="{e(p['desc'])}" />
+<link rel="canonical" href="{url}" />
+<link rel="alternate" hreflang="en" href="{en_url}" />
+<link rel="alternate" hreflang="fa" href="{fa_url}" />
+<link rel="alternate" hreflang="x-default" href="{en_url}" />
+<meta property="og:site_name" content="AI Radar" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="{e(p['title'])}" />
+<meta property="og:description" content="{e(p['desc'])}" />
+<meta property="og:url" content="{url}" />
+<meta property="og:image" content="{SITE}og.png" />
+<meta property="og:locale" content="{'fa_IR' if fa else 'en_US'}" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Space+Grotesk:wght@700;800&family=Vazirmatn:wght@400;600;800&display=swap" />
+<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
+<style>{CSS}</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/{'fa/' if fa else ''}"><img src="/logo-mark.svg" alt="" width="28" height="28" />AI Radar</a>
+  <nav aria-label="{L('Main', 'اصلی')}"><a class="hide" href="{'/fa/spark/' if fa else '/spark/'}">Spark</a><a href="{other.replace(SITE, '/')}" hreflang="{'en' if fa else 'fa'}">{L('فارسی', 'English')}</a><a class="cta sm" href="{studio}">{L('Open Video Studio', 'باز کردن استودیو')}</a></nav>
+</header>
+<main>
+  <section class="hero">
+    <h1>{e(p['h1'])}</h1>
+    <p class="lead">{e(p['lead'])}</p>
+    <a class="cta" href="{studio}">{L('Start free - no install', 'شروع رایگان - بدون نصب')}</a>
+    <p class="note">{L('Free. Runs in your browser on desktop and phone.', 'رایگان. در مرورگر کامپیوتر و گوشی کار می‌کند.')}</p>
+  </section>
+  <h2>{L('How it works', 'چطور کار می‌کند')}</h2>
+  <ol class="steps">{steps}</ol>
+  <h2>{L('What you get', 'چه چیزی می‌گیری')}</h2>
+  <ul class="points">{points}</ul>
+  <h2>{L('Questions', 'سؤال‌های رایج')}</h2>
+  {faq}
+  <h2>{L('More free tools', 'ابزارهای رایگان دیگر')}</h2>
+  <ul class="more">{more}</ul>
+  <div class="end"><h2 style="margin-top:0">{L('Try it on your own video', 'روی ویدیوی خودت امتحانش کن')}</h2><a class="cta" href="{studio}">{L('Open Video Studio', 'باز کردن استودیوی ویدیو')}</a></div>
+</main>
+<footer><a href="/{'fa/' if fa else ''}">AI Radar</a><a href="{studio}">{L('Video Studio', 'استودیوی ویدیو')}</a><a href="/privacy/{'?lang=fa' if fa else ''}">{L('Privacy', 'حریم خصوصی')}</a></footer>
+<script>{COOKIE_JS}</script>
+</body>
+</html>
+"""
+
+written = []
+for group, fa in ((EN, False), (FA, True)):
+    for p in group:
+        out = os.path.join(ROOT, *p["slug"].split("/"), "index.html")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        io.open(out, "w", encoding="utf-8", newline="\n").write(page(p, fa, group))
+        written.append((p["slug"], p["fa"] if not fa else p["en"], fa))
+print("pages", len(written))
+
+# the sitemap: each page once, with its language pair
+sm_path = os.path.join(ROOT, "sitemap.xml")
+sm = io.open(sm_path, encoding="utf-8").read()
+if "xmlns:xhtml" not in sm:
+    sm = sm.replace('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"', 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"', 1)
+add = ""
+for slug, pair, fa in written:
+    loc = SITE + slug + "/"
+    if loc in sm:
+        continue
+    en_u, fa_u = (SITE + pair + "/", loc) if fa else (loc, SITE + pair + "/")
+    add += ('  <url><loc>%s</loc><lastmod>%s</lastmod><priority>0.8</priority>'
+            '<xhtml:link rel="alternate" hreflang="en" href="%s"/><xhtml:link rel="alternate" hreflang="fa" href="%s"/></url>\n') % (loc, TODAY, en_u, fa_u)
+sm = sm.replace("</urlset>", add + "</urlset>")
+io.open(sm_path, "w", encoding="utf-8", newline="\n").write(sm)
+print("sitemap", sm.count("<url>"), "urls")
