@@ -11911,6 +11911,11 @@ function vsProMix(c, k) {
 const VS_PRO_STOP = new Set(("a an the to of and or but so is are was were be been am i im you your yours we our it its in on at for with as by from " +
   "that this these those there here not no do does did have has had will would can could should just very really about into than then them " +
   "they he she his her my me us if what when how why who which all any some more most get got").split(" "));
+// words that carry no picture of their own - an adverb, a linking word: never
+// the hero ("potentially", "meaning", "particularly" were, being the longest)
+const VS_PRO_WEAK = new Set(("meaning actually basically especially particularly potentially really literally currently however because without " +
+  "through something anything everything everyone someone whether another before after still while where being going doing getting making " +
+  "though although maybe perhaps already also even only probably simply usually instead rather quite pretty kind sort thing things way").split(" "));
 let vsProFontsP = null;
 function vsProLoadFonts() {
   if (!vsProFontsP) vsProFontsP = (async () => {
@@ -11985,7 +11990,11 @@ function vsProGroups(s) {
     if (shown < P.hold && !endsSentence && a.length + b.length <= maxW + 1 && letters <= maxL + 6) { idx.splice(i, 2, a.concat(b)); i--; }
   }
   const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
-  const wordScore = (w) => { const c = key(w); return (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) ? 0 : 10) + c.length; };
+  const wordScore = (w) => {
+    const c = key(w);
+    const weak = VS_PRO_WEAK.has(c) || (c.length > 5 && /ly$/.test(c));
+    return (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) || weak ? 0 : 10) + Math.min(c.length, 9) - (weak ? 6 : 0);
+  };
   // A caption look (one line of words) captions every phrase. Every other
   // look is designed type, as in the reference reels - not subtitles: for
   // each stretch of a sentence it sets the few words that carry it (the hero
@@ -12006,6 +12015,7 @@ function vsProGroups(s) {
   if (!pk.line) blocks.forEach((b) => {
     // the words the edit plan chose for this sentence, when it chose some
     const all = [].concat(...b.ph), ki = all.findIndex((k) => ws[k].key);
+    b.bt0 = ws[all[0]].t0;
     if (ki >= 0) {
       let e = ki;
       while (e + 1 < all.length && ws[all[e + 1]].key && e - ki < maxW) e++;
@@ -12025,7 +12035,7 @@ function vsProGroups(s) {
       if (sc > best) { best = sc; pick = ph; }
     });
     let a = 0;
-    while (a < pick.length - 1 && VS_PRO_STOP.has(key(ws[pick[a]].w)) && /^(and|or|but|so|the|a|an|then)$/.test(key(ws[pick[a]].w))) a++;
+    while (a < pick.length - 1 && (/^(and|or|but|so|the|a|an|then|as|who|which|that|if|when)$/.test(key(ws[pick[a]].w)) || VS_PRO_WEAK.has(key(ws[pick[a]].w)))) a++;
     // nor does it end on one ("expensive market like")
     let e = pick.length;
     while (e - 1 > a && !/[.!?؟]["')”]*$/.test(ws[pick[e - 1]].w) && (VS_PRO_STOP.has(key(ws[pick[e - 1]].w)) || /^(like|than|as|of|to)$/.test(key(ws[pick[e - 1]].w)))) e--;
@@ -12062,7 +12072,7 @@ function vsProGroups(s) {
       const its = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
       if (its.length) { its[its.length - 1].br = true; items.push(...its); }
     });
-    return shape({ items, t0: items.length ? items[0].t0 : 0 });
+    return shape({ items, t0: items.length ? items[0].t0 : 0, bt0: b.bt0 });
   }).filter((g) => g.items.length);
   // the customer's own wording for a group (the editor in the Edit studio):
   // the new words share the group's time, each landing a little after the last
@@ -12076,6 +12086,14 @@ function vsProGroups(s) {
     const lag = Math.min(step * 0.7, 0.12);
     g.items = nw.map((w, k) => ({ w, t0: a + k * lag, t1: a + (k + 1) * step }));
     shape(g);
+  });
+  if (!pk.line) groups.forEach((g, i) => {
+    const next = groups[i + 1], prev = groups[i - 1];
+    if (!next || next.t0 - g.t0 >= P.hold || g.bt0 == null) return;
+    const nt = Math.max(g.bt0, next.t0 - P.hold, prev ? prev.t0 + P.hold : 0);
+    if (nt >= g.t0) return;
+    g.t0 = nt;
+    g.items.forEach((it, k) => { it.t0 = Math.min(it.t0, nt + k * 0.12); });
   });
   groups.forEach((g, i) => {
     const last = g.items[g.items.length - 1];
@@ -12095,7 +12113,10 @@ function vsProGroups(s) {
 function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   if (g._lay && g._lay.W === W && g._lay.H === H) return g._lay;
   if (g.stat && pack.statHero) pack = Object.assign({}, pack, { hero: pack.statHero });
-  const U = Math.min(W, H * 0.62);
+  // the type's unit: a tall frame's width; in a wide or square frame the
+  // person fills more of the height, so the words grow with it - at the tall
+  // frame's scale a word was half a head high and never went behind one
+  const U = H > W ? Math.min(W, H * 0.62) : Math.min(W, H * 0.9);
   const n = g.items.length, h = g.hero;
   const rtl = g.items.some((it) => /[؀-ۿ]/.test(it.w));
   const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
@@ -12211,21 +12232,44 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   };
   const def = single ? H * (H > W ? pack.single.y : 0.62) : H * (H > W ? (gi % 2 ? 0.25 : 0.3) : 0.32);
   const fracs = H > W ? [0.22, 0.3, 0.36, 0.42, 0.5, 0.58, 0.64, 0.7, 0.76, 0.16] : [0.22, 0.32, 0.42, 0.55, 0.68, 0.78];
+  // (finely around the crown: in a tall frame the head is a third of the
+  // width, and a word across the face of it lost half its letters - resting
+  // on the crown, only the foot of its middle letters goes behind the hair)
+  const headYs = face ? [-0.1, -0.06, -0.03, 0, 0.03, 0.06, 0.1, 0.15, 0.3, 0.5, 0.7, 0.9, 1.1, 1.35, 1.6].map((k) => face.y + face.h * k) : [];
+  // The hero across the head with its small words split off it: the words
+  // before it above the head, the rest under the chin (or all under, or all
+  // above). Stacked tight on the hero, a small line always landed on the
+  // face - so with small words the hero never went behind anyone.
+  const splitYs = (yy, mode) => {
+    const ys = new Map([[hero, 0]]), hi = lines.indexOf(hero);
+    const up = mode === "above" ? others : mode === "below" ? [] : lines.slice(0, hi);
+    const dn = mode === "above" ? [] : mode === "below" ? others : lines.slice(hi + 1);
+    let y = face.y - H * 0.012 - yy;
+    up.slice().reverse().forEach((L, k) => { y -= k ? L.px * 0.95 : L.px * 0.55; ys.set(L, y); });
+    y = face.y + face.h + H * 0.012 - yy;
+    dn.forEach((L, k) => { y += k ? L.px * 0.95 : L.px * 0.55; ys.set(L, y); });
+    return ys;
+  };
   const candsFor = (heroBehind) => {
     const out = [];
+    const tryAt = (y, ys, mode, fixed) => {
+      const yy = fixed ? y : inside(y, ys);
+      if (fixed && lines.some((L) => yy + ys.get(L) - L.px * 0.6 < H * 0.1 || yy + ys.get(L) + L.px * 0.6 > vsSafe(W, H).bottom)) return;
+      if (heroBehind && face && (yy < face.y - face.h * 0.35 || yy > face.y + face.h * 1.45)) return;
+      // never across an icon or card on screen at the same time
+      if (avoid && avoid.length && lines.some((L) => { const by = yy + ys.get(L) - L.px * 0.55, bh = L.px * 1.1;
+        return avoid.some((a) => !(L.x0 + L.m.tw < a.x || L.x0 > a.x + a.w || by + bh < a.y || by > a.y + a.h)); })) return;
+      if (!face || lines.every((L) => (heroBehind && L === hero) || clear(L, yy + ys.get(L)))) out.push({ y: yy, ys, mode });
+    };
     modes.forEach((mode) => {
       const ys = stack(mode);
       const top = Math.min(...lines.map((L) => ys.get(L) - L.px * 0.6)), bot = Math.max(...lines.map((L) => ys.get(L) + L.px * 0.6));
-      const headYs = face ? [0, 0.15, 0.3, 0.5, 0.7, 0.9, 1.1, 1.35, 1.6].map((k) => face.y + face.h * k) : [];
-      [def].concat(headYs, face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).forEach((y) => {
-        const yy = inside(y, ys);
-        if (heroBehind && face && (yy < face.y - face.h * 0.35 || yy > face.y + face.h * 1.45)) return;
-        // never across an icon or card on screen at the same time
-        if (avoid && avoid.length && lines.some((L) => { const by = yy + ys.get(L) - L.px * 0.55, bh = L.px * 1.1;
-          return avoid.some((a) => !(L.x0 + L.m.tw < a.x || L.x0 > a.x + a.w || by + bh < a.y || by > a.y + a.h)); })) return;
-        if (!face || lines.every((L) => (heroBehind && L === hero) || clear(L, yy + ys.get(L)))) out.push({ y: yy, ys, mode });
-      });
+      [def].concat(headYs, face ? [face.y - bot - H * 0.015, face.y + face.h - top + H * 0.015] : [], fracs.map((v) => H * v)).forEach((y) => tryAt(y, ys, mode));
     });
+    // (all under the chin only when the hero comes first, all above only
+    // when it comes last - "WAITING / meaning for a cheaper" read backwards)
+    const hi0 = lines.indexOf(hero), splits = ["split"].concat(hi0 === 0 ? ["below"] : [], hi0 === lines.length - 1 ? ["above"] : []);
+    if (heroBehind && face && others.length) splits.forEach((mode) => headYs.forEach((y) => tryAt(y, splitYs(y, mode), mode, true)));
     return out;
   };
   let pick = null, front = !behind;
@@ -12236,7 +12280,10 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
       setHero(k, align);
       const nL = hero.m.ws2.reduce((n, w) => n + w.pieces.length, 0) || 1;
       const lw = hero.m.tw / nL;
-      const allow = nL >= 7 ? 1 : 0;   // a letter at most ("KN W"); "WHETHER" cut to "HET" did not read
+      // up to a third of a long word behind the head, as the reference reels
+      // have it ("BOR  WING" reads; "WHETHER" cut to "HET" - four of seven -
+      // did not); a short word keeps all but one, a tiny one all
+      const allow = nL >= 6 ? Math.floor(nL * 0.34) : nL >= 4 ? 1 : 0;
       candsFor(true).forEach((c0) => {
         let hidden = 0, touched = 0, ends = 0;
         for (let j = 0; j < nL; j++) {
@@ -12249,7 +12296,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
         if (hidden > allow || !touched || ends) return;
         // a letter or two behind them is the look, but a big word that reads
         // beats a small one tucked deeper; then reading order and the centre
-        const score = Math.min(touched, 2) * 6 + k * 20 - (align === "c" ? 0 : 1) - (c0.mode === "order" ? 0 : 0.5);
+        const score = Math.min(touched, 2) * 6 + k * 20 - (align === "c" ? 0 : 1) - (c0.mode === "order" ? 0 : c0.mode === "split" ? 0.6 : 0.5);
         if (score > bestScore) { bestScore = score; pick = Object.assign({ k, align }, c0); }
       });
     });
@@ -14025,7 +14072,8 @@ async function vsProPlaceCallouts(slides, ai, words, sentences, shots) {
     if (m.kind === "photo" && !m.photo) return;
     if (m.kind === "stat" && !vsGxNum(m.value)) return;
     if ((m.kind === "search" || m.kind === "notify") && !m.text) return;
-    if (m.kind === "orbit" && marks.some((x) => x.kind === "orbit")) return;
+    // (no ring of chrome spheres round the speaker: it read as a gimmick)
+    if (m.kind === "orbit") return;
     if (m.kind === "shot") { if (marks.some((x) => x.kind === "shot" && x.shot === Number(c.shot))) return; m.shot = Number(c.shot); m.img = shots[m.shot].img; }
     marks.push(m);
   });
@@ -14041,12 +14089,6 @@ async function vsProPlaceCallouts(slides, ai, words, sentences, shots) {
       const hit = ws.find((w) => VS_CALL_WORDS[key(w.w)]);
       if (hit) marks.push({ kind: "icon", T: hit.s, object: VS_CALL_WORDS[key(hit.w)], label: "", si });
     });
-  }
-  // the one striking moment, if the analysis did not mark it: chrome spheres
-  // round the speaker on a superlative
-  if (!marks.some((m) => m.kind === "orbit")) {
-    const wow = words.find((w, i) => i > 3 && /^(amazing|incredible|best|biggest|huge|insane|crazy|perfect|dream|unbelievable|massive|record|love)$/i.test(key(w.w)));
-    if (wow) marks.push({ kind: "orbit", T: wow.s, label: "", si: -1 });
   }
   // a screenshot the analysis did not place goes where the talk is free,
   // spread over the video
@@ -14753,8 +14795,11 @@ function vsProTrail(ctx, W, H, t, face, mask, behindPass) {
 // softly, a slow push, a slight drift across.
 function vsProFaceN(s, media) {
   if (s._faceN || s._faceN === false) return s._faceN || null;
-  // one continuous take keeps the framing of the clip it carries on from
+  // one continuous take keeps the framing of the clip it carries on from -
+  // and every cut of one piece of footage the framing of its first cut (each
+  // re-centred on the face of its own moment jumped at the cut)
   if (s._camPrev && s._camPrev._faceN) return (s._faceN = s._camPrev._faceN);
+  if (s._camLead && s._camLead !== s && s._camLead._faceN) return (s._faceN = s._camLead._faceN);
   const det = vstudio._proFaceDet;
   if (!det) {
     if (!vstudio._proFaceLoading) { vstudio._proFaceLoading = true; vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => { vstudio._proFaceLoading = false; }); }
@@ -14945,7 +14990,10 @@ function vsProCam(s, media, W, H, local, dur) {
   const zOf = (shot0) => {
     const shot = small && shot0 === "close" ? "medium" : shot0;
     let z = 1;
-    if (f) { const zm = Math.max(1.12, 0.16 / fh); z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? zm : 1; }
+    // (the steady medium frame only closes in on a face that is small in the
+    // picture - pushed in on one already big, the top of the head was cut
+    // off and nothing had room to go behind it)
+    if (f) { const zm = Math.max(1.12, 0.16 / fh); z = shot === "close" ? Math.max(zm * 1.2, 0.24 / fh) : shot === "medium" ? Math.max(1, Math.min(1.3, 0.15 / fh)) : 1; }
     else z = shot === "close" ? 1.32 : shot === "medium" ? 1.14 : 1;
     return Math.min(zCap, z);
   };
@@ -14961,25 +15009,34 @@ function vsProCam(s, media, W, H, local, dur) {
     z = z + (z1 - z) * k; place = p0 + (p1 - p0) * k;
     if (k >= 1) { shot = r.shot; z = z1; place = placeOf(shot); } else break;
   }
+  // one slow push through the whole take (every cut of this footage), eased
+  // at both ends - never a zoom starting over on each cut
+  if (s._camRun > 0) {
+    const u = Math.max(0, Math.min(1, ((s._camAt || 0) + local) / s._camRun));
+    const e = u * u * (3 - 2 * u), amt = Math.min(0.09, 0.012 * s._camRun);
+    return Object.assign(vsProCamFrame(f, z, place, mw, mh, c, H, 1 + amt * e, s), { dx: 0.01 * (e - 0.5) });
+  }
   const q = dur > 0 ? Math.max(0, Math.min(1, local / dur)) : 0;
   const land = s._camCont ? 1 : 1 - Math.pow(1 - Math.min(1, local / 0.55), 3);
   const pk2 = shot === "close" ? 0.03 : 0.05;
   // (carrying on from where the clip before it ended, in one take)
   const push = (s._camCont ? 1 + pk2 + pk2 * q : 1 + pk2 * q) * (1 + 0.025 * (1 - land));
   const dx = (s._camDir || 1) * 0.014 * (s._camCont ? 0.5 : q - 0.5);
+  return Object.assign(vsProCamFrame(f, z, place, mw, mh, c, H, push, s), { dx });
+}
+function vsProCamFrame(f, z, place, mw, mh, c, H, push, s) {
   let fx = s._focusX != null ? s._focusX : 0.5, fy = null;
   if (f) {
     fx = f.x;
     if (place != null) fy = f.y + ((0.5 - place) * H) / (mh * c * z * push);
   }
-  return { z, push, fx, fy, dx, f, mw, mh, c };
+  return { z, push, fx, fy, f, mw, mh, c };
 }
-// The camera moves of a long take, on the music: every bar a smooth reframe
-// to another angle (wide, close, medium), landing on the downbeat - a
-// one-shot video still feels cut. A moment opens with a push in on its hit.
+// The camera across the cuts: the cuts of one piece of footage are one take
+// to the eye - the same framing, and one slow push running through them all
+// (s._camAt: where this cut starts in the run, s._camRun: the run's length),
+// instead of each cut starting its own zoom. No reframes on the music.
 function vsProBeatReframes(slides) {
-  const mb = vstudio._musicBeat;
-  const bar = mb && mb.period ? mb.period * 4 : 2.2, t0 = mb && isFinite(mb.t0) ? mb.t0 : 0;
   // a moment and the clips joined to it in one take: wide, held - the scene
   // is the subject, a push onto the face only cut it off
   (slides || []).forEach((s, i) => {
@@ -14987,23 +15044,20 @@ function vsProBeatReframes(slides) {
     for (let j = i; j >= 0 && slides[j] && !slides[j]._broll; j--) { slides[j]._shot = "wide"; if (!slides[j]._camCont) break; }
     for (let j = i + 1; j < slides.length && slides[j] && slides[j]._camCont; j++) slides[j]._shot = "wide";
   });
-  let at = 0;
+  let run = [];
+  const flush = () => {
+    const len = run.reduce((n, x) => n + (Number(x.duration) || 0), 0);
+    let at = 0;
+    run.forEach((x) => { x._camRun = len; x._camAt = at; x._camLead = run[0]; if (x !== run[0] && run[0]._faceN) x._faceN = run[0]._faceN; at += Number(x.duration) || 0; });
+    run = [];
+  };
   (slides || []).forEach((s) => {
-    const d = Number(s.duration) || 0;
-    delete s._reframes;
-    const P = vsProPace(s._pro);
-    if (s._broll || !s._shot || s._moment || s._camCont || d < 4 || !P.bars) { at += d; return; }
-    // a long take: every two bars a calm move between wide and medium,
-    // landing on the downbeat - never into a close-up
-    const rf = [];
-    let cur = s._shot === "close" ? "medium" : s._shot;
-    const step = bar * P.bars, k = Math.ceil((at + 1.6 - t0) / step);
-    for (let tb = t0 + k * step; tb < at + d - 1.4; tb += step) {
-      cur = cur === "wide" ? "medium" : "wide"; rf.push({ t: tb - at, shot: cur });
-    }
-    if (rf.length) s._reframes = rf;
-    at += d;
+    delete s._reframes; delete s._camRun; delete s._camAt; delete s._camLead;
+    if (!s || s._broll || !s._shot || s._gx || s._ins) { flush(); return; }
+    if (run.length && (run[0].url !== s.url || run[0]._shot !== s._shot)) flush();
+    run.push(s);
   });
+  flush();
 }
 
 // The whole pro frame: graded picture, camera, words in front of and behind
@@ -15155,7 +15209,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
     if (!g._lay) (s._calls || []).forEach((c) => {
       if (c.kind === "orbit" || c.at >= g.t1 || c.at + c.len <= g.t0) return;
       if (c.kind === "shot") { if (c._pos && c._pos.w) avoid.push({ x: c._pos.x - c._pos.w / 2 - W * 0.02, y: c._pos.y - c._pos.h / 2 - H * 0.01, w: c._pos.w + W * 0.04, h: c._pos.h + H * 0.02 }); else { const sd = c._side || (face && face.x + face.w / 2 > W / 2 ? -1 : 1); avoid.push({ x: sd > 0 ? W * 0.45 : 0, y: H * 0.07, w: W * 0.55, h: H * 0.55 }); } return; }
-      if (c.kind === "notify" || c.kind === "search") { avoid.push({ x: W * 0.06, y: H * 0.36, w: W * 0.88, h: H * 0.24 }); return; }
+      // (the bar sits between 0.42 and 0.56 of the height, and is up to a
+      // seventh of it tall - the words stood on its lower edge)
+      if (c.kind === "notify" || c.kind === "search") { avoid.push({ x: W * 0.06, y: H * 0.34, w: W * 0.88, h: H * 0.32 }); return; }
       if (c._pos && c._pos.S) { const S2 = c._pos.S; avoid.push({ x: c._pos.x - S2 * 0.6, y: c._pos.y - S2 * 0.7, w: S2 * 1.2, h: S2 * 1.5 }); return; }
       // not placed yet: the side away from the face, upper half, where it will go
       const sd = c._side || (face && face.x + face.w / 2 > W / 2 ? -1 : 1);
@@ -22437,7 +22493,9 @@ async function vsEditMyVideo(fileIn, o) {
       // key moment, when the smooth zoom starts
       slide._focusX = fr.length ? focusAt((p.start + p.end) / 2) : 0.5;
       if (zoomed) slide._emph = Math.min(Math.max(0.2, dur * 0.25), 1.2);
-      if (o.stickers && ai && sp.text && firstOfSentence) {
+      // (a sticker where the plan gave an icon too - about two thirds of the
+      // sentences; it names the words to show on every one, for the Pro looks)
+      if (o.stickers && ai && sp.text && sp.icon && firstOfSentence) {
         const txt = String(sp.text).replace(/\s+([%,.!?])/g, "$1").replace(/(\d)\s*,\s*(\d)/g, "$1,$2").trim().slice(0, 40);
         const first = txt.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}]/gu, "");
         const w = local.find((ww) => ww.w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === first);
@@ -22580,21 +22638,23 @@ async function vsEditMyVideo(fileIn, o) {
       vstudio._proCard = o.name ? { name: String(o.name).trim().slice(0, 40), role: String(o.role || "").trim().slice(0, 60) } : null;
       vstudio._proCta = String(o.cta || "").trim().slice(0, 50);
       vstudio._proHook = String(vstudio._editTitle || "").trim();
-      // a new camera angle on every cut, never the same one twice running
-      const SHOTS = ["close", "wide", "medium", "close", "medium", "wide"];
-      let sk = 0;
+      // One steady framing, not a new angle on every cut: the jumps between
+      // close, wide and medium tired the eye (the owner: "the zoom system is
+      // not attractive"). vsProBeatReframes carries one slow push across all
+      // the cuts of a piece of footage.
       try { vsProFaceDetector().then((d) => { vstudio._proFaceDet = d; }).catch(() => {}); } catch (e) {}
       vstudio._camFace = null;
       vstudio.slides.forEach((sl, i) => {
         sl._pro = pro; sl._noCaps = true; sl._proZ = 1; delete sl._faceN;
-        // a square or wide clip in a tall frame: the whole picture in the
-        // middle at its own sharpness, a soft copy of it above and below -
-        // cropping a 640px square to the full height blew it up three times,
-        // cut the building off at the sides and left her off centre
+        // a square or wide clip in a tall frame: cropped to fill it, on the
+        // speaker (the camera keeps her face centred) - shrunk to a band
+        // between two blurred copies she was tiny and it did not look like a
+        // reel. Only a small clip keeps the whole picture: cropping a 640px
+        // square to the full height blew it up three times.
         { const me = sl.mediaEl, ar = me && me.videoWidth ? me.videoWidth / me.videoHeight : 0;
-          if (!sl._broll && ar >= 0.85 && (o.aspect || "9:16") === "9:16") sl._fit = "whole"; }
-        sl._shot = sl._broll ? "" : i === 0 ? "medium" : SHOTS[sk++ % SHOTS.length];
-        sl._camDir = i % 2 ? -1 : 1;
+          if (!sl._broll && ar >= 0.85 && (o.aspect || "9:16") === "9:16" && me.videoHeight < 900) sl._fit = "whole"; }
+        sl._shot = sl._broll ? "" : "medium";
+        sl._camDir = 1;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
         // a moment and the clip either side of it are one continuous take:
         // the same framing and the camera carrying on, no cut to see
