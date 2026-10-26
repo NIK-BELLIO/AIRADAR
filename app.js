@@ -11645,7 +11645,7 @@ const VS_PRO_PACKS = {
            grade: "contrast(1.08) saturate(1.06) brightness(1.02)", warm: "rgba(255,190,130,0.05)", noBw: true, trans: ["wipe", "zoomblur", "wipe", "expo"] },
   // Copied from the handheld walk-and-talk reel: one word at a time in a
   // heavy white serif, at the chest.
-  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true }, line: true, maxWords: 1, maxLetters: 14,
+  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true }, line: true, maxWords: 1, maxLetters: 14, blockLines: 3,
            small: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true },
            single: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], y: 0.5, enter: "flip", shade: true },
            grade: "contrast(1.06) saturate(1.08)", warm: "", noBw: true, trans: ["rack", "leak", "rack", "zoomblur"] },
@@ -11946,10 +11946,12 @@ const VS_PRO_PACE = {
   minimal: "calm", hollow: "calm", marker: "medium",
 };
 const VS_PACE = {
-  //        a group spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
-  calm:   { span: 2.8, gap: 0.5, comma: false, hold: 1.4, linger: 1.0, spd: 0.62, outT: 0.38, cutEvery: 4, bars: 0, energy: "medium" },
-  medium: { span: 2.1, gap: 0.4, comma: true, hold: 1.0, linger: 0.85, spd: 0.8, outT: 0.28, cutEvery: 3, bars: 2, energy: null },
-  punchy: { span: 1.6, gap: 0.32, comma: true, hold: 0.75, linger: 0.7, spd: 1, outT: 0.2, cutEvery: 2, bars: 1, energy: "high" },
+  //        a phrase spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
+  // (lines: phrases a block builds up to; block: the longest it spans; read:
+  // the least time its last phrase stays once said)
+  calm:   { span: 2.8, gap: 0.5, comma: false, hold: 2.4, linger: 1.2, spd: 0.62, outT: 0.38, cutEvery: 4, bars: 0, energy: "medium", lines: 3, block: 5.2, read: 0.6 },
+  medium: { span: 2.1, gap: 0.4, comma: true, hold: 1.9, linger: 1.0, spd: 0.8, outT: 0.28, cutEvery: 3, bars: 2, energy: null, lines: 2, block: 4.2, read: 0.5 },
+  punchy: { span: 1.6, gap: 0.32, comma: true, hold: 1.5, linger: 0.85, spd: 1, outT: 0.2, cutEvery: 2, bars: 1, energy: "high", lines: 2, block: 3.2, read: 0.4 },
 };
 function vsProPace(id) { return VS_PACE[VS_PRO_PACE[id] || "medium"]; }
 function vsProGroups(s) {
@@ -11983,8 +11985,44 @@ function vsProGroups(s) {
     const endsSentence = /[.!?؟]["')”]*$/.test(ws[a[a.length - 1]].w);
     if (shown < P.hold && !endsSentence && a.length + b.length <= maxW + 1 && letters <= maxL + 6) { idx.splice(i, 2, a.concat(b)); i--; }
   }
+  // Blocks, the way the reference reels set their words: a phrase lands, the
+  // next is added under it while the first stays, and the block leaves
+  // together at the end of the sentence - not one phrase swapped for the next
+  // every second, which could not be read.
+  const endsS = (ph) => /[.!?؟]["')”]*$/.test(ws[ph[ph.length - 1]].w);
+  const nLines = pk.blockLines || P.lines || 1;
+  const blocks = [];
+  idx.forEach((ph) => {
+    const b = blocks[blocks.length - 1];
+    if (b) {
+      const lastPh = b.ph[b.ph.length - 1];
+      const gap = ws[ph[0]].t0 - ws[lastPh[lastPh.length - 1]].t1;
+      const span = ws[ph[ph.length - 1]].t1 - ws[b.ph[0][0]].t0;
+      const words = b.ph.reduce((n, x) => n + x.length, 0) + ph.length;
+      const fits = b.ph.length < nLines && span <= P.block && words <= (pk.line ? maxW * nLines + 1 : maxW * 2 + 1);
+      // the short end of the sentence goes with it, one line more if need be
+      // ("next year." left alone was gone before it could be read)
+      const tail = ph.length <= 2 && endsS(ph) && span <= P.block + 0.9 && b.ph.length <= nLines;
+      if (!endsS(lastPh) && gap <= P.gap * 1.6 && (fits || tail)) { b.ph.push(ph); return; }
+    }
+    blocks.push({ ph: [ph] });
+  });
   const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
   const shape = (g) => {
+    // its lines: a phrase each (typed-in words: as many as fit a line)
+    g.lines = [];
+    let ln = [], lt = 0;
+    g.items.forEach((it, j) => {
+      if (ln.length && (ln.length >= maxW || lt + it.w.length > maxL)) { g.lines.push(ln); ln = []; lt = 0; }
+      ln.push(j); lt += it.w.length;
+      if (it.br) { g.lines.push(ln); ln = []; lt = 0; }
+    });
+    if (ln.length) g.lines.push(ln);
+    // a word left alone on a line goes up to the line before, when it fits
+    for (let k = g.lines.length - 1; k > 0; k--) {
+      const a = g.lines[k - 1], b = g.lines[k];
+      if (b.length === 1 && a.length + 1 <= maxW + 1 && a.concat(b).reduce((n, j) => n + g.items[j].w.length, 0) <= maxL + 5) g.lines.splice(k - 1, 2, a.concat(b));
+    }
     let hero = 0, best = -1;
     g.items.forEach((it, j) => {
       const c = key(it.w);
@@ -11996,8 +12034,12 @@ function vsProGroups(s) {
     g.single = g.items.length === 1 && !g.stat;
     return g;
   };
-  const groups = idx.map((ks) => {
-    const items = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
+  const groups = blocks.map((b) => {
+    const items = [];
+    b.ph.forEach((ks) => {
+      const its = ks.map((k) => ({ w: ws[k].w.replace(/^["'(“]+|["')”,;:]+$/g, ""), t0: ws[k].t0, t1: ws[k].t1 })).filter((x) => x.w);
+      if (its.length) { its[its.length - 1].br = true; items.push(...its); }
+    });
     return shape({ items, t0: items.length ? items[0].t0 : 0 });
   }).filter((g) => g.items.length);
   // the customer's own wording for a group (the editor in the Edit studio):
@@ -12013,6 +12055,15 @@ function vsProGroups(s) {
     g.items = nw.map((w, k) => ({ w, t0: a + k * lag, t1: a + (k + 1) * step }));
     shape(g);
   });
+  for (let i = 1; i < groups.length; i++) {
+    const pl = groups[i - 1].items[groups[i - 1].items.length - 1], g = groups[i];
+    const want = pl.t1 + (P.read || 0), lag = want - g.t0;
+    // (and only where it still has its own time before the block after it)
+    const nx = groups[i + 1];
+    if (lag <= 0 || lag > 0.6 || (nx && nx.t0 - want < P.hold * 0.8)) continue;
+    g.t0 = want;
+    g.items.forEach((it, k) => { if (it.t0 < want + k * 0.07) { it.t0 = want + k * 0.07; it.t1 = Math.max(it.t1, it.t0 + 0.1); } });
+  }
   groups.forEach((g, i) => {
     const last = g.items[g.items.length - 1];
     const next = groups[i + 1];
@@ -12034,7 +12085,7 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   const rtl = g.items.some((it) => /[؀-ۿ]/.test(it.w));
   const range = (a, b) => { const r = []; for (let k = a; k < b; k++) r.push(k); return r; };
   const lines = [];
-  if (pack.line) lines.push({ js: range(0, n), st: pack.single, role: "single" });
+  if (pack.line) (g.lines && g.lines.length ? g.lines : [range(0, n)]).forEach((js) => lines.push({ js, st: pack.single, role: "single" }));
   else if (g.single || (g.stat && n === 1)) lines.push({ js: [0], st: g.single ? pack.single : pack.hero, role: g.single ? "single" : "hero" });
   else if (pack.halves) {
     const m = Math.ceil(n / 2);
@@ -12075,17 +12126,27 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
     const maxTw = vsSafe(W, H).tall ? W * 0.8 : W * 0.9;
     if (m.tw > maxTw) { px *= maxTw / m.tw; m = measure(); }
     L.px = px; L.m = m;
+    L.re = (np) => { px = np; L.px = px; L.m = measure(); };
   });
+  // the lines of one caption at one size - the longest sets it
+  if (lines.length > 1 && lines.every((L) => L.role === "single")) {
+    const least = Math.min(...lines.map((L) => L.px));
+    lines.forEach((L) => { if (L.px > least) L.re(least); });
+  }
   // vertical: the hero line at 0, the others overlapping its top and bottom.
   // Three ways to stack them: in reading order (the words before the hero
   // above it, the rest below), all above, all below - so the small words can
   // get out of the face's way while the hero sits across the head.
   const hero = lines.find((L) => L.role === "hero") || lines[0];
+  const single = lines.every((L) => L.role === "single");
   const capH = hero.st.upper || hero.st.fam === "Bebas Neue" ? 0.72 : 0.62;
   // (a look with pack.clear keeps them just clear of it instead, as the
   // Alight Motion reel does)
-  const upOf = (L) => hero.px * capH * 0.5 + L.px * (pack.clear ? 0.66 : L.st.fam === "Sacramento" ? 0.12 : 0.22);
-  const downOf = (L) => hero.px * capH * 0.5 + L.px * (pack.clear ? 0.74 : L.st.fam === "Sacramento" ? 0.32 : 0.5);
+  // (a long small line - a block of a phrase or two - keeps clear of the
+  // hero too: tucked into its edge it ran across the big letters)
+  const long = (L) => (L.js.length >= 3 || L.m.tw > hero.m.tw * 0.7);
+  const upOf = (L) => long(L) ? hero.px * 0.47 + L.px * 0.7 : hero.px * capH * 0.5 + L.px * (pack.clear ? 0.66 : L.st.fam === "Sacramento" ? 0.12 : 0.22);
+  const downOf = (L) => single ? L.px * 1.14 : long(L) ? hero.px * (hero.st.upper ? 0.42 : 0.66) + L.px * 0.56 : hero.px * capH * 0.5 + L.px * (pack.clear ? 0.74 : L.st.fam === "Sacramento" ? 0.32 : 0.5);
   const others = lines.filter((L) => L !== hero);
   const stack = (mode) => {
     const ys = new Map([[hero, 0]]);
@@ -12094,14 +12155,13 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
       let y = 0;
       lines.slice(0, hi).reverse().forEach((L, k) => { y = k ? y - L.px * 0.95 : -upOf(L); ys.set(L, y); });
       y = 0;
-      lines.slice(hi + 1).forEach((L, k) => { y = k ? y + L.px * 0.95 : downOf(L); ys.set(L, y); });
+      lines.slice(hi + 1).forEach((L, k) => { y = k ? y + L.px * (single ? 1.14 : 0.95) : downOf(L); ys.set(L, y); });
     }
     else if (mode === "up") { let y = 0; others.slice().reverse().forEach((L, k) => { y = k ? y - L.px * 0.95 : -upOf(L); ys.set(L, y); }); }
     else { let y = 0; others.forEach((L, k) => { y = k ? y + L.px * 0.95 : downOf(L); ys.set(L, y); }); }
     return ys;
   };
   const modes = others.length ? ["order", "up", "down"] : ["order"];
-  const single = lines.length === 1 && lines[0].role === "single";
   // The hero at full size centred, or smaller and set against one side - so
   // in a close shot it can still tuck behind a shoulder and stay readable.
   const base = { px: hero.px, m: hero.m };
@@ -12111,7 +12171,8 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
     const hx0 = align === "l" ? W * 0.05 : align === "r" ? W * 0.95 - hero.m.tw : W / 2 + ((gi % 3) - 1) * W * 0.025 - hero.m.tw / 2;
     lines.forEach((L) => {
       let x0;
-      if (L === hero) x0 = hx0;
+      if (single && lines.length > 1) x0 = W / 2 - L.m.tw / 2;
+      else if (L === hero) x0 = hx0;
       else if (L.m.tw >= hero.m.tw * 0.92) x0 = align === "c" ? W / 2 - L.m.tw / 2 : align === "l" ? W * 0.05 : W * 0.95 - L.m.tw;
       else x0 = (align === "r" || (align === "c" && (rtl || gi % 2))) ? hx0 + hero.m.tw - L.m.tw - hero.px * 0.04 : hx0 + hero.px * 0.04;   // against the hero's right or left edge (a right-to-left script: always its right)
       L.x0 = Math.max(W * 0.05, Math.min(W * 0.95 - L.m.tw, x0));
