@@ -15997,30 +15997,84 @@ const VS_GX_ELEM_NAME = { real: ["Real objects", "اشیای واقعی"], "3d":
 // every style once, then each style's other palettes, and only then the
 // variants that differ in motion or picture kind.
 let vsGxThemeList = null;
+// One template per style. Every palette x face x motion x picture mix made
+// thousands of themes that read as the same few looks over and over; now a
+// style is one template, in its own first palette, face and pictures and the
+// motion that suits it. The palette can still change - for the topic.
+const VS_GX_CAT_MOTION = { fun: "bouncy", elegant: "calm", hand: "calm", news: "snappy", bold: "snappy" };
 function vsGxThemes() {
   if (vsGxThemeList) return vsGxThemeList;
-  const rounds = [];
-  VS_GX_STYLES.forEach((st, si) => {
-    const looks = [];
-    st.pals.forEach((p, pi) => st.fonts.forEach((f, fi) => looks.push({ p, f, r: Math.max(pi, fi) * 3 + (pi + fi) % 3 })));
-    looks.sort((a, b) => a.r - b.r);
-    looks.forEach((lk, li) => st.el.forEach((el, ei) => VS_GX_MOTIONS.forEach((m, mi) => {
-      const pal = VS_GX_PALETTES.find((x) => x[0] === lk.p), font = VS_GX_FONTS.find((x) => x[0] === lk.f);
-      if (!pal || !font) return;
-      const th = { id: [st.id, lk.p, lk.f, m, el].join("."), style: st, family: st.id, pal, font, motion: m, elem: el };
-      const round = li + (ei + mi) * 100;
-      (rounds[round] || (rounds[round] = [])).push([si, th]);
-    })));
-  });
-  const out = [];
-  rounds.forEach((r) => { if (r) r.sort((a, b) => a[0] - b[0]).forEach((x) => out.push(x[1])); });
-  vsGxThemeList = out;
-  return out;
+  vsGxThemeList = VS_GX_STYLES.map((st) => {
+    const pal = VS_GX_PALETTES.find((x) => x[0] === st.pals[0]), font = VS_GX_FONTS.find((x) => x[0] === st.fonts[0]);
+    const motion = st.mo || VS_GX_CAT_MOTION[st.cat] || "smooth", elem = st.el[0];
+    return pal && font ? { id: [st.id, pal[0], font[0], motion, elem].join("."), style: st, family: st.id, pal, font, motion, elem } : null;
+  }).filter(Boolean);
+  return vsGxThemeList;
 }
 const VS_GX_DEFAULT = "explainer.cream.archivoblack.snappy.3d";
+// Any theme id: a style's template, or the same style in another of its
+// palettes (picked for a topic), or an id saved before there was one template
+// per style. "auto" stands for the explainer until the topic picks.
 function vsGxTheme(id) {
-  const all = vsGxThemes();
-  return all.find((t) => t.id === id) || all.find((t) => t.id === VS_GX_DEFAULT) || all[0];
+  const all = vsGxThemes(), hit = all.find((t) => t.id === id);
+  if (hit) return hit;
+  const [fam, pk, fk, mk, ek] = String(id || "").split(".");
+  const base = all.find((t) => t.family === fam) || all.find((t) => t.family === VS_GX_DEFAULT.split(".")[0]) || all[0];
+  if (base.family !== fam) return base;
+  const pal = VS_GX_PALETTES.find((x) => x[0] === pk) || base.pal, font = VS_GX_FONTS.find((x) => x[0] === fk) || base.font;
+  const motion = VS_GX_MOTIONS.includes(mk) ? mk : base.motion, elem = ek && VS_GX_ELEM_NAME[ek] ? ek : base.elem;
+  return { id: [fam, pal[0], font[0], motion, elem].join("."), style: base.style, family: fam, pal, font, motion, elem };
+}
+// The style that fits what the video is about: the AI reads the speech and
+// picks one of the styles and one of its palettes; words of the topic decide
+// when it cannot be asked.
+const VS_GX_TOPIC_WORDS = [
+  [/money|financ|price|invest|stock|market|bank|tax|budget|econom|inflation|salary|crypto|bitcoin|dollar|پول|قیمت|سرمایه|بورس|دلار|اقتصاد|تورم|حقوق|مالیات|ارز/i, "dataviz"],
+  [/real estate|house|home|property|rent|mortgage|apartment|ملک|مسکن|خانه|اجاره|آپارتمان|وام/i, "iso"],
+  [/\bai\b|artificial intelligence|tech|software|app\b|startup|launch|phone|gadget|هوش مصنوعی|فناوری|تکنولوژی|اپلیکیشن|گوشی|استارتاپ/i, "keynote"],
+  [/code|coding|programm|developer|website|کدنویسی|برنامه‌نویسی|سایت/i, "screencast"],
+  [/history|histor|century|ancient|empire|war\b|تاریخ|قرن|باستان|جنگ|امپراتوری/i, "newsreel"],
+  [/news|report|election|government|politic|خبر|گزارش|انتخابات|دولت|سیاست/i, "newspackage"],
+  [/health|medic|doctor|body|cell|virus|science|brain|سلامت|پزشک|بدن|سلول|ویروس|علم|مغز/i, "microscope"],
+  [/space|planet|satellite|climate|earth|country|countries|map|فضا|سیاره|ماهواره|اقلیم|زمین|کشور|نقشه/i, "satellite"],
+  [/football|soccer|sport|match|team|league|فوتبال|ورزش|بازیکن|تیم|لیگ/i, "telestrator"],
+  [/game|gaming|gamer|بازی|گیم/i, "pixel"],
+  [/kid|child|children|story|fairy|bedtime|کودک|بچه|قصه|داستان/i, "crayon"],
+  [/food|recipe|cook|kitchen|غذا|آشپزی|دستور پخت/i, "watercolor"],
+  [/travel|city|cities|trip|tour|سفر|شهر|گردش/i, "urbansketch"],
+  [/crime|mystery|investigat|case|evidence|جنایت|معما|پرونده|تحقیق/i, "investigation"],
+  [/luxury|fashion|beauty|hotel|لوکس|مد|زیبایی|هتل/i, "deco"],
+  [/mindset|motivat|success|discipline|philosoph|habit|انگیزه|موفقیت|نظم|فلسفه|عادت/i, "stoic"],
+  [/music|song|band|موسیقی|آهنگ/i, "anime80"],
+  [/japan|china|asia|ژاپن|چین|آسیا/i, "ukiyoe"],
+];
+// what a style suits best, so the pick is made on meaning and not on name alone
+const VS_GX_FITS = {
+  dataviz: "money, prices, rates, statistics, the economy", dataphysical: "numbers and growth told calmly", iso: "real estate, homes, cities, how systems fit together",
+  keynote: "a product, app or tech launch", screencast: "software, coding, websites", glassproduct: "a physical product or gadget",
+  newsreel: "history, the past, how things used to be", silent: "old stories, comedy", newspackage: "current news and politics", captionnews: "short news with the sound off",
+  investigation: "an investigation, a mystery, what really happened", microscope: "health, biology, the body, science", satellite: "geography, climate, countries, maps",
+  telestrator: "sport", pixel: "video games", hd2d: "games, fantasy, adventure", crayon: "children, simple stories", popup: "children's stories, playful learning",
+  watercolor: "food, travel, nature, calm topics", urbansketch: "travel and cities", deco: "luxury, fashion, hotels, glamour", stoic: "mindset, motivation, philosophy",
+  anime80: "music, nightlife, retro culture", ukiyoe: "Japan, East Asia, nature", inkwash: "philosophy, calm reflection, East Asia", kino: "revolution, bold opinions",
+  dossier: "a case file, a scandal, a report", lighttable: "archives, photography", teardown: "how a device works inside", lidar: "mapping, surveying, landscapes",
+  explainer: "a general explanation", whiteboard: "teaching a concept step by step",
+};
+async function vsGxPickForTopic(text) {
+  text = String(text || "").replace(/\s+/g, " ").trim().slice(0, 1800);
+  const ids = VS_GX_STYLES.map((st) => st.id);
+  try {
+    const cat = VS_GX_STYLES.map((st) => st.id + " = " + st.n[0] + (VS_GX_FITS[st.id] ? " - best for " + VS_GX_FITS[st.id] : "") + " (palettes " + st.pals.join("/") + ")").join("\n");
+    const raw = await vsAutoAiChat("A short video is turned into a designed graphic video. Its speech:\n\"" + text + "\"\n\nPick the ONE visual style whose look best fits this topic and its tone (a finance talk is not a crayon book, a children's story is not a news package), and one of that style's palettes. Styles:\n" + cat +
+      "\n\nReturn ONLY JSON: {\"style\": \"<id>\", \"palette\": \"<one of its palettes>\"}", { temperature: 0.3 });
+    const j = vsParseAiJson(raw);
+    if (j && ids.includes(String(j.style))) {
+      const st = VS_GX_STYLES.find((x) => x.id === String(j.style));
+      return vsGxTheme(st.id + "." + (st.pals.includes(String(j.palette)) ? String(j.palette) : st.pals[0])).id;
+    }
+  } catch (e) {}
+  const hit = VS_GX_TOPIC_WORDS.find(([re]) => re.test(text));
+  return vsGxTheme(hit ? hit[1] : VS_GX_DEFAULT).id;
 }
 function vsGxThemeName(t, fa) {
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -19519,17 +19573,17 @@ function vsGxThemePicker(cur, onPick, sampleTitle) {
       '<button class="gp-b" id="gpShuffle" type="button">' + L("Shuffle", "درهم") + '</button>' +
       '<button class="gp-b" id="gpX" type="button" aria-label="' + L("Close", "بستن") + '">✕</button></div>' +
     '<div class="gp-f" role="group" aria-label="' + L("Kind of style", "نوع سبک") + '">' +
-      '<button class="gp-chip" type="button" data-f="" aria-pressed="false">' + L("All", "همه") + "</button>" +
-      cats.map((c) => '<button class="gp-chip" type="button" data-f="' + c + '" aria-pressed="' + (c === "reels") + '">' + (fa ? VS_GX_CATS[c][1] : VS_GX_CATS[c][0]) + "</button>").join("") +
+      '<button class="gp-chip" type="button" data-f="" aria-pressed="true">' + L("All", "همه") + "</button>" +
+      cats.map((c) => '<button class="gp-chip" type="button" data-f="' + c + '" aria-pressed="false">' + (fa ? VS_GX_CATS[c][1] : VS_GX_CATS[c][0]) + "</button>").join("") +
       '<select id="gpStyle" aria-label="' + L("Style", "سبک") + '"><option value="">' + L("Every style", "همهٔ سبک‌ها") + "</option>" + VS_GX_STYLES.map((s) => '<option value="' + s.id + '">' + (fa ? s.n[1] : s.n[0]) + "</option>").join("") + "</select>" +
-      '<select id="gpMotion" aria-label="' + L("Motion", "حرکت") + '"><option value="">' + L("Any motion", "هر حرکتی") + "</option>" + VS_GX_MOTIONS.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_MOTION_NAME[m][1] : VS_GX_MOTION_NAME[m][0]) + "</option>").join("") + "</select>" +
-      '<select id="gpElem" aria-label="' + L("Pictures", "تصاویر") + '"><option value="">' + L("Any pictures", "هر تصویری") + "</option>" + kinds.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_ELEM_NAME[m][1] : VS_GX_ELEM_NAME[m][0]) + "</option>").join("") + "</select>" +
+      '<select id="gpMotion" hidden aria-label="' + L("Motion", "حرکت") + '"><option value="">' + L("Any motion", "هر حرکتی") + "</option>" + VS_GX_MOTIONS.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_MOTION_NAME[m][1] : VS_GX_MOTION_NAME[m][0]) + "</option>").join("") + "</select>" +
+      '<select id="gpElem" hidden aria-label="' + L("Pictures", "تصاویر") + '"><option value="">' + L("Any pictures", "هر تصویری") + "</option>" + kinds.map((m) => '<option value="' + m + '">' + (fa ? VS_GX_ELEM_NAME[m][1] : VS_GX_ELEM_NAME[m][0]) + "</option>").join("") + "</select>" +
     "</div>" +
     '<div class="gp-grid" id="gpGrid" role="listbox" aria-label="' + L("Themes", "تم‌ها") + '"></div></div>';
   document.body.appendChild(ov);
   const $$ = (id) => ov.querySelector("#" + id);
   const grid = $$("gpGrid");
-  let cat = "reels", list = all.slice(), shown = 0, anim = 0, seed = 0, ready = false;
+  let cat = "", list = all.slice(), shown = 0, anim = 0, seed = 0, ready = false;
   const close = () => { cancelAnimationFrame(anim); io.disconnect(); moreIo.disconnect(); ov.remove(); };
   $$("gpX").onclick = close;
   ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
@@ -19583,7 +19637,7 @@ function vsGxThemePicker(cur, onPick, sampleTitle) {
     if (seed) { let s2 = seed; list = list.map((x) => [x, (s2 = (s2 * 16807) % 2147483647)]).sort((a, b) => a[1] - b[1]).map((x) => x[0]); }
     const ci = list.findIndex((x) => x.id === cur); if (ci > 0) list.unshift(list.splice(ci, 1)[0]);
     grid.innerHTML = ""; shown = 0; grid.scrollTop = 0;
-    $$("gpN").textContent = list.length.toLocaleString(fa ? "fa-IR" : "en-US") + " " + L("themes", "تم");
+    $$("gpN").textContent = list.length.toLocaleString(fa ? "fa-IR" : "en-US") + " " + L("styles", "سبک");
     more();
   };
   ov.querySelectorAll(".gp-chip").forEach((b) => { b.onclick = () => { cat = b.dataset.f; ov.querySelectorAll(".gp-chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); apply(); }; });
@@ -19830,7 +19884,8 @@ function vsEditStudio(preset, filesIn) {
         '<p id="emSwapNote" class="ts-note" hidden>' + L("For a finished video: every text and footage in it is found; you change the ones you want and the design, motion and sound stay exactly as they are.", "برای ویدیوی آماده: همهٔ متن‌ها و فوتیج‌هایش پیدا می‌شود؛ هر کدام را خواستی عوض کن و طراحی، حرکت و صدا همان می‌ماند.") + "</p></div>" +
       '<div id="emGx" class="ts-field em-gxf" hidden><div class="ts-lbl">' + L("Theme", "تم") + "</div>" +
         '<div class="em-gxrow"><canvas id="emGxCv" width="216" height="384" aria-hidden="true"></canvas><div class="em-gxinfo"><div id="emGxName" class="em-gxname"></div><div id="emGxMeta" class="ts-note"></div>' +
-        '<button id="emGxPick" type="button" class="ts-ghost">' + L("Choose from " + vsGxThemes().length.toLocaleString("en-US") + " themes", "انتخاب از " + vsGxThemes().length.toLocaleString("fa-IR") + " تم") + "</button></div></div>" +
+        '<button id="emGxPick" type="button" class="ts-ghost">' + L("Choose from " + vsGxThemes().length.toLocaleString("en-US") + " styles", "انتخاب از " + vsGxThemes().length.toLocaleString("fa-IR") + " سبک") + "</button>" +
+        '<button id="emGxAuto" type="button" class="ts-ghost" hidden>' + L("Auto for my topic", "خودکار برای موضوعم") + "</button></div></div>" +
         '<label class="ts-switch" style="margin-top:12px"><input type="checkbox" id="emGxCap"/><span class="ts-sw"></span><span>' + L("Captions", "زیرنویس") + "</span></label>" +
         '<div class="ts-lbl" style="margin-top:12px">' + L("Your photos & clips", "عکس‌ها و کلیپ‌هایت") + "</div>" +
         '<div id="emGxMedList" class="em-showl"></div>' +
@@ -20287,11 +20342,12 @@ function vsEditStudio(preset, filesIn) {
   // ── the left side ──
   // the graphic video's theme, drawn on its card
   // a theme id from before the styles (palette.font.texture...) is no theme now
-  let gxTheme = vsGxTheme(preset.gxTheme || last.gxTheme || vstudio._gxTheme || VS_GX_DEFAULT).id;
+  let gxTheme = String(preset.gxTheme || last.gxTheme || "auto") === "auto" ? "auto" : vsGxTheme(preset.gxTheme || last.gxTheme).id;
   const drawGx = async () => {
-    const th = vsGxTheme(gxTheme);
-    $$("emGxName").textContent = vsGxThemeName(th, fa);
-    $$("emGxMeta").textContent = vsGxThemeMeta(th, fa);
+    const auto = gxTheme === "auto", th = vsGxTheme(auto ? vstudio._gxAutoPicked || VS_GX_DEFAULT : gxTheme);
+    $$("emGxName").textContent = auto ? L("Auto - fits your topic", "خودکار - متناسب با موضوع") + (vstudio._gxAutoPicked ? " · " + vsGxThemeName(th, fa) : "") : vsGxThemeName(th, fa);
+    $$("emGxMeta").textContent = auto ? L("Picked from " + VS_GX_STYLES.length + " styles for what you say", "از بین " + VS_GX_STYLES.length.toLocaleString("fa-IR") + " سبک، برای حرفی که می‌زنی") : vsGxThemeMeta(th, fa);
+    if ($$("emGxAuto")) $$("emGxAuto").hidden = auto;
     try {
       await vsGxLoadFonts();
       const sc = await vsGxSample();
@@ -20337,6 +20393,7 @@ function vsEditStudio(preset, filesIn) {
     }
   });
   $$("emGxPick").onclick = pickTheme;
+  $$("emGxAuto").onclick = () => { gxTheme = "auto"; remember(); drawGx(); };
   {
     const mixSw = ov.querySelector('input[data-opt="mix"]');
     if (mixSw) {
@@ -22123,6 +22180,14 @@ async function vsEditMyVideo(fileIn, o) {
         if (j && j.ok && j.plan) gxPlan = j.plan;
       } catch (e) {}
       clearTimeout(gt);
+    }
+    // "auto": the style is chosen for what is said, once per video
+    if ((gx || mix) && String(o.gxTheme || "") === "auto") {
+      const words = sentences.map((x) => x.text || x.t || "").join(" ");
+      if (!(cache && cache.gxAuto)) { vsAutoStatus(L("Choosing the style for your topic…", "در حال انتخاب سبک مناسب موضوع…")); }
+      const picked = (cache && cache.gxAuto) || await vsGxPickForTopic(words);
+      if (cache) cache.gxAuto = picked;
+      vstudio._gxTheme = picked; vstudio._gxAutoPicked = picked;
     }
     // their screenshots: a sharp copy to show, a small one for the planner to read
     const shots = [];
@@ -43615,7 +43680,7 @@ async function vsOpenEditDeck(e, how) {
   if (typeof preset.chapters === "boolean") vstudio._editChapters = preset.chapters;
   // the API names a graphic style family; the studio wants one of its themes
   if (preset.gxStyle && !preset.gxTheme) { const t = vsGxThemes().find((x) => x.family === preset.gxStyle); if (t) preset.gxTheme = t.id; }
-  if (preset.graphic && e.kind !== "photos") { preset.style = "graphic"; preset.gxTheme = preset.gxTheme || VS_GX_DEFAULT; }
+  if (preset.graphic && e.kind !== "photos") { preset.style = "graphic"; preset.gxTheme = preset.gxTheme || "auto"; }
   vstudio._mcpEditPreset = preset;
   let file = null;
   const fetchOne = async (path, name) => {
