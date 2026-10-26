@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#08090c" />
+<title>Privacy and cookies - AI Radar</title>
+<meta name="description" content="What AI Radar keeps in your browser, which cookies it sets and why." />
+<link rel="canonical" href="https://airadar.me/privacy/" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Vazirmatn:wght@400;600;800&display=swap" />
+<style>
+  :root { --bg: #08090c; --card: #111318; --line: rgba(255,255,255,0.09); --text: #e6e8ec; --muted: #9aa1ad; --link: #9ec1ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 500 16px/1.7 Manrope, Vazirmatn, system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 36px; }
+  .top a.home { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 800; }
+  .top a.home img { width: 28px; height: 28px; }
+  .lang { display: flex; gap: 6px; }
+  .lang button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: 600 13px Manrope, Vazirmatn, sans-serif; cursor: pointer; }
+  .lang button[aria-pressed="true"] { color: var(--text); border-color: rgba(255,255,255,0.3); }
+  h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  p, li { color: #c9cdd5; }
+  ul { padding-inline-start: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px; margin-top: 12px; }
+  .card li { margin: 10px 0; }
+  code { font: 500 13px ui-monospace, monospace; color: var(--text); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 5px; }
+  a { color: var(--link); }
+  .muted { color: var(--muted); font-size: 14px; }
+  section[lang="fa"] { font-family: Vazirmatn, system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <a class="home" href="/"><img src="/logo-mark.svg" alt="" />AI Radar</a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-l="en" aria-pressed="true">English</button>
+      <button type="button" data-l="fa" aria-pressed="false">فارسی</button>
+    </div>
+  </div>
+
+  <section lang="en" dir="ltr" id="en">
+    <h1>Privacy and cookies</h1>
+    <p class="muted">Last updated 26 October 2026</p>
+
+    <h2>Cookies we set</h2>
+    <p>Only the cookies the site needs to work. None of them are for advertising.</p>
+    <div class="card"><ul>
+      <li><strong>Sign-in.</strong> Keeps you signed in to your account. It is set when you sign in and removed when you sign out.</li>
+      <li><strong>Google sign-in.</strong> Two short-lived cookies (<code>g_state</code>, <code>g_next</code>) used only while you sign in with Google, to bring you back to the right page safely.</li>
+      <li><strong>Preview.</strong> <code>ar_paid_preview</code>, set only if you open a preview link we gave you.</li>
+    </ul></div>
+
+    <h2>What stays in your browser</h2>
+    <p>Your language, your studio settings and unfinished work are kept in your browser's own storage, so they are there when you come back. They are not sent to us. You can clear them at any time from your browser's settings.</p>
+
+    <h2>Visits</h2>
+    <p>We keep a simple log of page visits of our own: the page, the page you came from, and your IP address and country. It helps us see how the site is used and keep it safe from abuse. It uses no cookies and no third-party tracker.</p>
+
+    <h2>What we do not do</h2>
+    <p>We do not use advertising or third-party tracking cookies, and we do not sell or share your data with advertisers.</p>
+
+    <h2>Your files</h2>
+    <p>Most editing - cuts, captions, motion graphics, export - happens in your browser. When a tool needs AI (reading speech, writing a script, making an image), the part it needs is sent to the AI service that does that job, and only for that job.</p>
+
+    <h2>Services the site uses</h2>
+    <p>The site is hosted on Cloudflare and GitHub Pages, loads fonts from Google Fonts and some libraries from jsDelivr. Sign-in with Google goes through Google. Payments, if you buy credits, go through the payment gateway, which handles your card details; we never see them.</p>
+  </section>
+
+  <section lang="fa" dir="rtl" id="fa" hidden>
+    <h1>حریم خصوصی و کوکی‌ها</h1>
+    <p class="muted">آخرین به‌روزرسانی: ۴ آبان ۱۴۰۵</p>
+
+    <h2>کوکی‌هایی که می‌گذاریم</h2>
+    <p>فقط کوکی‌هایی که سایت برای کار کردن لازم دارد. هیچ‌کدام برای تبلیغات نیست.</p>
+    <div class="card"><ul>
+      <li><strong>ورود به حساب.</strong> شما را در حسابتان وارد نگه می‌دارد. با ورود ساخته و با خروج پاک می‌شود.</li>
+      <li><strong>ورود با گوگل.</strong> دو کوکی کوتاه‌مدت (<code>g_state</code> و <code>g_next</code>) که فقط هنگام ورود با گوگل استفاده می‌شوند تا شما را با امنیت به صفحهٔ درست برگردانند.</li>
+      <li><strong>پیش‌نمایش.</strong> <code>ar_paid_preview</code>، فقط وقتی لینک پیش‌نمایشی را که ما داده‌ایم باز کنید.</li>
+    </ul></div>
+
+    <h2>آنچه در مرورگر شما می‌ماند</h2>
+    <p>زبان، تنظیمات استودیو و کارهای نیمه‌تمام شما در حافظهٔ خود مرورگرتان نگه داشته می‌شود تا وقتی برمی‌گردید سر جایش باشد. این‌ها برای ما فرستاده نمی‌شوند و هر وقت بخواهید از تنظیمات مرورگر پاکشان کنید.</p>
+
+    <h2>بازدیدها</h2>
+    <p>یک گزارش سادهٔ بازدید از صفحه‌ها را خودمان نگه می‌داریم: صفحه، صفحه‌ای که از آن آمده‌اید، و آدرس IP و کشور شما. این به ما کمک می‌کند ببینیم سایت چطور استفاده می‌شود و آن را از سوءاستفاده در امان نگه داریم. هیچ کوکی و ردیاب شخص ثالثی در آن نیست.</p>
+
+    <h2>کارهایی که نمی‌کنیم</h2>
+    <p>از کوکی تبلیغاتی یا ردیاب شخص ثالث استفاده نمی‌کنیم و اطلاعات شما را به تبلیغ‌کننده‌ها نمی‌فروشیم و نمی‌دهیم.</p>
+
+    <h2>فایل‌های شما</h2>
+    <p>بیشتر ویرایش‌ها - برش، زیرنویس، موشن‌گرافیک، خروجی - در خود مرورگر شما انجام می‌شود. وقتی ابزاری به هوش مصنوعی نیاز دارد (خواندن گفتار، نوشتن متن، ساختن تصویر)، فقط همان بخشی که لازم است برای سرویسی فرستاده می‌شود که آن کار را انجام می‌دهد، و فقط برای همان کار.</p>
+
+    <h2>سرویس‌هایی که سایت استفاده می‌کند</h2>
+    <p>سایت روی Cloudflare و GitHub Pages میزبانی می‌شود، فونت‌ها را از Google Fonts و بعضی کتابخانه‌ها را از jsDelivr بارگذاری می‌کند. ورود با گوگل از طریق گوگل انجام می‌شود. پرداخت، اگر اعتبار بخرید، از طریق درگاه پرداخت انجام می‌شود که اطلاعات کارت شما را خودش نگه می‌دارد؛ ما هرگز آن را نمی‌بینیم.</p>
+  </section>
+</main>
+<script>
+  (function () {
+    var pick = function (l) {
+      document.getElementById("en").hidden = l === "fa";
+      document.getElementById("fa").hidden = l !== "fa";
+      document.documentElement.lang = l; document.documentElement.dir = l === "fa" ? "rtl" : "ltr";
+      document.querySelectorAll(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.l === l)); });
+    };
+    var l = "en";
+    try { l = /lang=fa/.test(location.search) || localStorage.getItem("lang") === "fa" ? "fa" : "en"; } catch (e) {}
+    pick(l);
+    document.querySelectorAll(".lang button").forEach(function (b) { b.onclick = function () { pick(b.dataset.l); }; });
+  })();
+</script>
+</body>
+</html>

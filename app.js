@@ -241,6 +241,7 @@ const i18n = {
     home45: "Credits",
     home46: "Free AI video editing and creator tools. No install, no ads.",
     home47: "Built by Shayan Alinia",
+    ftPrivacy: "Privacy",
     vsModeSmart: "Smart",
     vsModeLink: "From link",
     vsModeText: "From text",
@@ -771,6 +772,7 @@ const i18n = {
     home45: "کردیت‌ها",
     home46: "ادیت ویدیو و ابزارهای تولید محتوا با هوش مصنوعی، رایگان. بدون نصب، بدون تبلیغ.",
     home47: "ساختهٔ شایان علینیا",
+    ftPrivacy: "حریم خصوصی",
     vsModeSmart: "هوشمند",
     vsModeLink: "از لینک",
     vsModeText: "از متن",
@@ -2048,6 +2050,28 @@ function applyTheme(theme) {
       try { localStorage.setItem(key, "1"); } catch (e) {}
     });
   } catch (e) {}
+})();
+
+// The cookie notice: once, small, at the foot of the page, in the visitor's language
+(() => {
+  try { if (localStorage.getItem("arCookieOk")) return; } catch (e) { return; }
+  let fa = /^fa/.test(document.documentElement.lang || "");
+  try { fa = fa || localStorage.getItem("lang") === "fa"; } catch (e) {}
+  const bar = document.createElement("div");
+  bar.id = "arCookie"; bar.dir = fa ? "rtl" : "ltr"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", fa ? "کوکی‌ها" : "Cookies");
+  bar.innerHTML = "<span>" + (fa ? "برای بهتر شدن تجربهٔ شما از کوکی استفاده می‌کنیم." : "We use cookies to enhance your experience.") +
+    ' <a href="/privacy/' + (fa ? "?lang=fa" : "") + '">' + (fa ? "بیشتر بدانید" : "Learn more") + "</a></span>" +
+    '<button type="button">' + (fa ? "باشه" : "OK") + "</button>";
+  const css = document.createElement("style");
+  css.textContent = "#arCookie{position:fixed;left:16px;right:16px;bottom:16px;margin:0 auto;max-width:520px;z-index:9000;display:flex;align-items:center;gap:14px;" +
+    "padding:10px 10px 10px 16px;border-radius:12px;background:rgba(17,19,24,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.45);" +
+    "font:500 13.5px/1.5 Manrope,Vazirmatn,system-ui,sans-serif;color:#d5d8de;backdrop-filter:blur(8px)}" +
+    "#arCookie[dir=rtl]{padding:10px 16px 10px 10px}#arCookie span{flex:1}#arCookie a{color:#9ec1ff;text-decoration:underline;text-underline-offset:2px}" +
+    "#arCookie button{flex:none;border:0;border-radius:8px;padding:7px 16px;background:#f2f3f5;color:#0b0c10;font:700 13px Manrope,Vazirmatn,system-ui,sans-serif;cursor:pointer}" +
+    "#arCookie button:focus-visible{outline:2px solid #9ec1ff;outline-offset:2px}";
+  bar.querySelector("button").addEventListener("click", () => { try { localStorage.setItem("arCookieOk", "1"); } catch (e) {} bar.remove(); });
+  const add = () => { document.head.appendChild(css); document.body.appendChild(bar); };
+  if (document.body) add(); else document.addEventListener("DOMContentLoaded", add);
 })();
 
 function setLanguage(lang) {
