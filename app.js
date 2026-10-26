@@ -15503,6 +15503,30 @@ const VS_GX_WORLD = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-11
 // [id, dark, bg, paper, ink, muted, accent 1, accent 2, accent 3]
 const VS_GX_PALETTES = [
   // the film styles (after Lemo-Opuscar, MIT): their inks and papers
+  ["iso", 0, "#eef3f7", "#ffffff", "#1e2a3a", "#8a98a8", "#ff7a59", "#3fa7d6", "#7bc96f"],
+  ["lowpoly", 0, "#bfe6f2", "#e8f7fb", "#173042", "#6a8fa0", "#f2a65a", "#2f9e8f", "#f7d35c"],
+  ["glassprod", 1, "#06070a", "#101318", "#f4f6f8", "#7a828c", "#9ad7ff", "#ffffff", "#c6a6ff"],
+  ["whitemodel", 1, "#1a1a1c", "#2a2a2e", "#ffffff", "#8a8a8a", "#ff8a3d", "#3fd0ff", "#ffd84a"],
+  ["teardown", 0, "#e9edf0", "#f7f9fa", "#14181c", "#7d8790", "#ff5a36", "#2b6cb0", "#f2c94c"],
+  ["micro", 1, "#0b0f14", "#10202a", "#e9fbff", "#5c7a86", "#7cf2c8", "#ff6fb0", "#7aa8ff"],
+  ["lidar", 1, "#05080a", "#0b1418", "#e8fff5", "#4f7a6e", "#38ffb0", "#ffb340", "#3fa9ff"],
+  ["satellite", 1, "#0a0f14", "#122230", "#eaf4ff", "#5f7a92", "#ffcc33", "#3dd6ff", "#ff5a5a"],
+  ["dataphys", 0, "#efe9df", "#f8f4ec", "#2b2622", "#8a8174", "#2f8f6a", "#e9a23b", "#3a6fb0"],
+  ["dataviz", 0, "#fbfaf7", "#ffffff", "#1f1f1f", "#9a9a9a", "#d1495b", "#2e86ab", "#edae49"],
+  ["picto", 1, "#1d3557", "#24406a", "#f1faee", "#a8dadc", "#e63946", "#a8dadc", "#ffb703"],
+  ["city", 1, "#0b0d14", "#1b2030", "#f4efe6", "#7d8496", "#ffb84a", "#4ac6ff", "#ff5e7a"],
+  ["capnews", 0, "#ffffff", "#ffffff", "#111111", "#9a9a9a", "#ffd400", "#111111", "#e10600"],
+  ["newspkg", 1, "#0a1a33", "#13366b", "#ffffff", "#7d93b5", "#e10600", "#ffd400", "#1e88e5"],
+  ["tele", 0, "#2e7d32", "#3e8e41", "#ffffff", "#a5d6a7", "#ffeb3b", "#ff1744", "#ffffff"],
+  ["invest", 1, "#0d0f12", "#161a1f", "#e8e8e8", "#6b7280", "#ff3b30", "#ffd60a", "#0a84ff"],
+  ["lighttable", 0, "#f4f1ea", "#ffffff", "#1d1d1d", "#8a8a8a", "#ff3b30", "#2b2b2b", "#c9a227"],
+  ["briefing", 0, "#dfe3e6", "#f7f8f9", "#1f2933", "#8795a1", "#e4572e", "#17bebb", "#ffc914"],
+  ["countdown", 1, "#050608", "#0d1117", "#f5f5f5", "#6e7681", "#ff6b35", "#58a6ff", "#ffd60a"],
+  ["kino", 0, "#e8dcc2", "#f2e8d0", "#111111", "#7a6f5a", "#d7261e", "#111111", "#e8dcc2"],
+  ["backrooms", 0, "#c9b458", "#d9c97a", "#2b2a1a", "#8a7f45", "#e8e0a0", "#6b6235", "#ffffff"],
+  ["screencast", 1, "#11111b", "#1e1e2e", "#f5f5f5", "#8a8aa0", "#cba6f7", "#a6e3a1", "#f9e2af"],
+  ["microgame", 0, "#ff4fa1", "#ffe14d", "#1a1a1a", "#a03070", "#ffe14d", "#4dd2ff", "#7dff6b"],
+  ["hd2d", 1, "#151a2e", "#2a3150", "#fff4d6", "#8a8fb5", "#ffb347", "#7fd8ff", "#ff7a7a"],
   ["newsreel", 1, "#0f0e0c", "#1c1a16", "#f3eee4", "#8a8476", "#efebe2", "#d6cfc0", "#9e978a"],
   ["puppet", 0, "#e8b765", "#f3d28a", "#2a140a", "#8a5a2a", "#b0301c", "#2e5a3a", "#d98a2a"],
   ["inkwash", 0, "#f2ecde", "#f8f3e8", "#1a1714", "#8f877a", "#b02e22", "#5a544b", "#a39a8a"],
@@ -15686,6 +15710,55 @@ const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Gaegu:wght@700&
 const VS_GX_CATS = { film: ["Film styles", "سبک‌های فیلم"], reels: ["From reels", "از ریلزها"], explain: ["Explainer", "توضیحی"], news: ["News", "خبری"], bold: ["Bold", "پررنگ"], hand: ["Handmade", "دست‌ساز"],
   dark: ["Dark", "تیره"], clean: ["Clean", "تمیز"], fun: ["Fun", "شاد"], elegant: ["Elegant", "شیک"] };
 const VS_GX_STYLES = [
+  // Twenty-four more film styles after Lemo-Opuscar (MIT), drawn by our engine
+  { id: "iso", n: ["Isometric", "ایزومتریک"], cat: "film", pals: ["iso"], fonts: ["sora"], el: ["3d", "flat"],
+    bg: "iso", al: "l", tt: "isoslide", ef: "plain", ec: "ink", ls: "cards", de: "isocubes", fr: "none", cp: "pill", kd: "block", tr: ["wipe", "zoom"] },
+  { id: "lowpoly", n: ["Low-poly island", "جزیرهٔ لوپلی"], cat: "film", pals: ["lowpoly"], fonts: ["unbounded"], el: ["3d", "color"],
+    bg: "lowpoly", al: "c", tt: "facet", ef: "plain", ec: "ink", ls: "pills", de: "none", fr: "none", cp: "pill", kd: "ring", tr: ["zoom", "wipe"] },
+  { id: "glassproduct", n: ["Product render", "رندر محصول"], cat: "film", pals: ["glassprod"], fonts: ["clean"], el: ["3d", "ph-thin"],
+    bg: "studiodark", al: "c", tt: "sheen", ef: "glass", ec: "a1", ls: "cards", de: "strips", fr: "none", cp: "glass", kd: "glass", tr: ["zoom", "flash"] },
+  { id: "whitemodel", n: ["Projection model", "ماکت با پروژکتور"], cat: "film", pals: ["whitemodel"], fonts: ["grotesk"], el: ["ph-thin", "3d"],
+    bg: "whitemodel", al: "c", tt: "project", ef: "plain", ec: "a1", ls: "bullet", de: "scanbeam", fr: "none", cp: "glass", kd: "dim", tr: ["zoom", "flash"] },
+  { id: "teardown", n: ["Exploded teardown", "نمای انفجاری"], cat: "film", pals: ["teardown"], fonts: ["oswald"], el: ["ph-thin", "tb"],
+    bg: "teardown", al: "l", tt: "explode", ef: "frame", ec: "ink", ls: "number", de: "none", fr: "none", cp: "mono", kd: "bracket", tr: ["zoom", "wipe"] },
+  { id: "microscope", n: ["Microscope", "زیر میکروسکوپ"], cat: "film", pals: ["micro"], fonts: ["archivo"], el: ["ph-thin", "color"],
+    bg: "microscope", al: "c", tt: "focuspull", ef: "glow", ec: "a1", ls: "bullet", de: "cells", fr: "eyepiece", cp: "mono", kd: "ring", tr: ["zoom", "zoomblur"] },
+  { id: "lidar", n: ["LiDAR survey", "اسکن لیدار"], cat: "film", pals: ["lidar"], fonts: ["mono"], el: ["ph-thin", "tb"],
+    bg: "lidar", al: "c", tt: "scanline", ef: "frame", ec: "a1", ls: "bullet", de: "scan", fr: "none", cp: "mono", kd: "dim", tr: ["glitch", "zoom"] },
+  { id: "satellite", n: ["Satellite briefing", "گزارش ماهواره‌ای"], cat: "film", pals: ["satellite"], fonts: ["bebas"], el: ["ph-thin", "tb"],
+    bg: "satellite", al: "l", tt: "locate", ef: "frame", ec: "a1", ls: "bullet", de: "orbit", fr: "corners", cp: "hud", kd: "bracket", tr: ["zoom", "wipe"] },
+  { id: "dataphysical", n: ["Data objects", "داده‌های فیزیکی"], cat: "film", pals: ["dataphys"], fonts: ["fraunces"], el: ["3d", "color"],
+    bg: "plates", al: "l", tt: "platestack", ef: "plain", ec: "a1", ls: "bars", de: "none", fr: "none", cp: "plain", kd: "under", tr: ["zoom", "wipe"] },
+  { id: "dataviz", n: ["Data story", "داستان داده"], cat: "film", pals: ["dataviz"], fonts: ["caslon"], el: ["ph-thin", "flat"],
+    bg: "chart", al: "l", tt: "annotate", ef: "plain", ec: "a1", ls: "bars", de: "ticks", fr: "none", cp: "plain", kd: "under", tr: ["wipe", "zoom"] },
+  { id: "pictogram", n: ["Pictograms", "پیکتوگرام"], cat: "film", pals: ["picto"], fonts: ["archivoblack"], el: ["flat", "ph-fill"],
+    bg: "picto", al: "l", tt: "beatpop", ef: "plain", ec: "a1", ls: "pills", de: "pictorun", fr: "none", cp: "box", kd: "block", tr: ["whip", "flash"] },
+  { id: "citysymphony", n: ["City time-lapse", "تایم‌لپس شهر"], cat: "film", pals: ["city"], fonts: ["anton"], el: ["color", "ph-light"],
+    bg: "timelapse", al: "c", tt: "streak", ef: "glow", ec: "a1", ls: "glow", de: "trails", fr: "none", cp: "pill", kd: "glowbox", tr: ["zoomblur", "flash"] },
+  { id: "captionnews", n: ["Caption news", "خبر زیرنویسی"], cat: "film", pals: ["capnews"], fonts: ["docheavy"], el: ["flat", "ph-fill"],
+    bg: "capnews", al: "l", tt: "kinetic", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "none", cp: "box", kd: "block", tr: ["wipe", "flash"] },
+  { id: "newspackage", n: ["News package", "بستهٔ خبری"], cat: "film", pals: ["newspkg"], fonts: ["oswald"], el: ["flat", "ph-fill"],
+    bg: "newsblue", al: "l", tt: "strap", ef: "tile", ec: "paper", ls: "number", de: "none", fr: "ticker", cp: "box", kd: "block", tr: ["wipe", "flash"] },
+  { id: "telestrator", n: ["Sports telestrator", "تحلیل ورزشی"], cat: "film", pals: ["tele"], fonts: ["bebas"], el: ["flat", "ph-bold"],
+    bg: "pitch", al: "c", tt: "circled", ef: "plain", ec: "ink", ls: "number", de: "players", fr: "none", cp: "box", kd: "ring", tr: ["wipe", "zoom"] },
+  { id: "investigation", n: ["Visual investigation", "تحقیق تصویری"], cat: "film", pals: ["invest"], fonts: ["mono"], el: ["ph-thin", "tb"],
+    bg: "evidence", al: "l", tt: "timestamp", ef: "frame", ec: "a1", ls: "dash", de: "redcircle", fr: "none", cp: "mono", kd: "bracket", tr: ["zoom", "wipe"] },
+  { id: "lighttable", n: ["Archive light table", "میز نور آرشیو"], cat: "film", pals: ["lighttable"], fonts: ["dossierfont"], el: ["hc", "ph-thin"],
+    bg: "lighttable", al: "c", tt: "loupe", ef: "plain", ec: "ink", ls: "paper", de: "none", fr: "none", cp: "slip", kd: "ring", tr: ["zoom", "wipe"] },
+  { id: "briefing", n: ["Briefing board", "تختهٔ جلسه"], cat: "film", pals: ["briefing"], fonts: ["grotesk"], el: ["flat", "color"],
+    bg: "board", al: "c", tt: "pinned", ef: "plain", ec: "ink", ls: "paper", de: "none", fr: "none", cp: "slip", kd: "scribble", tr: ["wipe", "zoom"] },
+  { id: "countdown", n: ["Live countdown", "شمارش معکوس"], cat: "film", pals: ["countdown"], fonts: ["hudfont"], el: ["ph-thin", "tb"],
+    bg: "splitgrid", al: "c", tt: "flap", ef: "frame", ec: "a1", ls: "number", de: "clock", fr: "none", cp: "hud", kd: "bracket", tr: ["zoom", "flash"] },
+  { id: "kino", n: ["Constructivist", "کانستراکتیویسم"], cat: "film", pals: ["kino"], fonts: ["anton"], el: ["flat", "hc"],
+    bg: "kino", al: "c", tt: "diagonal", ef: "plain", ec: "ink", ls: "number", de: "wedge", fr: "none", cp: "box", kd: "block", tr: ["wipe", "flash"] },
+  { id: "backrooms", n: ["Found footage", "فیلم پیداشده"], cat: "film", pals: ["backrooms"], fonts: ["vt"], el: ["hc", "flat"],
+    bg: "backrooms", al: "c", tt: "camcorder", ef: "plain", ec: "ink", ls: "dash", de: "fluoro", fr: "camcorder", cp: "sub", kd: "dim", tr: ["glitch", "flash"] },
+  { id: "screencast", n: ["Screencast", "اسکرین‌کست"], cat: "film", pals: ["screencast"], fonts: ["mono"], el: ["ph-duo", "ph-thin"],
+    bg: "desktop", al: "l", tt: "cursor", ef: "card", ec: "a1", ls: "cards", de: "none", fr: "none", cp: "toast", kd: "card", tr: ["zoom", "wipe"] },
+  { id: "microgame", n: ["Microgame", "مینی‌گیم"], cat: "film", pals: ["microgame"], fonts: ["bangers"], el: ["3d", "color"],
+    bg: "microgame", al: "c", tt: "zoompunch", ef: "sticker", ec: "ink", ls: "pills", de: "timerbar", fr: "none", cp: "comic", kd: "burst", tr: ["whip", "flash"] },
+  { id: "hd2d", n: ["HD-2D", "پیکسل HD-2D"], cat: "film", pals: ["hd2d"], fonts: ["pixelfont"], el: ["color", "ph-fill"],
+    bg: "hd2d", al: "c", tt: "bloomin", ef: "glow", ec: "a1", ls: "glow", de: "fireflies", fr: "none", cp: "dialog", kd: "glowbox", tr: ["flash", "zoom"] },
   // Thirteen more film styles after Lemo-Opuscar (MIT), drawn by our engine:
   // Newsreel: a searchlight-and-globe ident, the headline spinning in like a
   // newspaper in silver with a black edge, a flickering warm silver print.
@@ -16255,7 +16328,164 @@ function vsGxTexture(tk, W, H) {
     x.restore();
   };
   const vign = (a) => { const vg = x.createRadialGradient(W / 2, H / 2, U * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0," + a + ")"); x.fillStyle = vg; x.fillRect(0, 0, W, H); };
-  if (tex === "newsreel") {
+  const cube = (cx, cy, s2, h, c) => {
+    const dx = s2 * 0.866, dy = s2 * 0.5, face = (pts, f) => { x.fillStyle = f; x.beginPath(); pts.forEach(([a, b2], j) => (j ? x.lineTo(a, b2) : x.moveTo(a, b2))); x.closePath(); x.fill(); };
+    const L = [[cx - dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx, cy + 2 * dy], [cx - dx, cy + dy]], R = [[cx + dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx, cy + 2 * dy], [cx + dx, cy + dy]], T = [[cx, cy - h], [cx + dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx - dx, cy - h + dy]];
+    face(L, c); face(L, "rgba(0,0,0,0.16)"); face(R, c); face(R, "rgba(0,0,0,0.32)"); face(T, c);
+  };
+  const shade = (hex, k) => { const n = parseInt(String(hex).slice(1, 7), 16); return "rgb(" + Math.min(255, Math.round(((n >> 16) & 255) * k)) + "," + Math.min(255, Math.round(((n >> 8) & 255) * k)) + "," + Math.min(255, Math.round((n & 255) * k)) + ")"; };
+  const island = (n, cx0, cy0, s2, cols, hmin, hvar) => { const cells = []; for (let a = 0; a < n; a++) for (let b2 = 0; b2 < n; b2++) cells.push([a, b2]); cells.sort((p1, p2) => p1[0] + p1[1] - (p2[0] + p2[1])).forEach(([a, b2]) => cube(cx0 + (a - b2) * s2 * 0.866, cy0 + (a + b2) * s2 * 0.5, s2, s2 * (hmin + rnd() * hvar), cols[(a + b2) % cols.length])); };
+  if (tex === "iso") {
+    // a faint isometric grid and an island of blocks
+    x.strokeStyle = tk.muted; x.globalAlpha = 0.18; x.lineWidth = 1; const g2 = U * 0.06;
+    for (let k = -H * 2; k < W + H * 2; k += g2) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + H * 1.732, H); x.stroke(); x.beginPath(); x.moveTo(k, 0); x.lineTo(k - H * 1.732, H); x.stroke(); }
+    x.globalAlpha = 1; island(3, W * 0.72, H * 0.74, U * 0.07, [tk.a1, tk.a2, tk.a3], 0.4, 1.4);
+  } else if (tex === "lowpoly") {
+    // a sky and a sea of flat triangles, each a shade off its neighbour; an island of facets
+    const c = U * 0.09;
+    for (let yy = 0; yy < H + c; yy += c) for (let xx = 0; xx < W + c; xx += c) [[0, 0, c, 0, 0, c], [c, 0, c, c, 0, c]].forEach(([a1, b1, a2, b2, a3, b3]) => {
+      const cy = yy + c / 2, isl = Math.hypot((xx + c / 2 - W * 0.5) / (W * 0.3), (cy - H * 0.74) / (H * 0.08)) < 1, base = isl ? (cy < H * 0.72 ? "#4caf6e" : tk.a3) : cy < H * 0.6 ? tk.bg : tk.a2;
+      x.fillStyle = shade(base, 0.88 + rnd() * 0.24); x.strokeStyle = x.fillStyle; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(xx + a1, yy + b1); x.lineTo(xx + a2, yy + b2); x.lineTo(xx + a3, yy + b3); x.closePath(); x.fill(); x.stroke();
+    });
+  } else if (tex === "studiodark") {
+    // a black studio: two tall strip lights reflected, a glossy floor
+    [[0.16, 0.06], [0.84, 0.05]].forEach(([fx, fw]) => { const g = x.createLinearGradient(W * (fx - fw), 0, W * (fx + fw), 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, "rgba(220,235,255,0.16)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(W * (fx - fw), 0, W * fw * 2, H * 0.7); });
+    const fl = x.createLinearGradient(0, H * 0.7, 0, H); fl.addColorStop(0, "#1a1f26"); fl.addColorStop(1, "#050608"); x.fillStyle = fl; x.fillRect(0, H * 0.7, W, H * 0.3);
+    x.fillStyle = "rgba(255,255,255,0.12)"; x.fillRect(0, H * 0.7, W, 1);
+  } else if (tex === "whitemodel") {
+    // a dark room; a white model of blocks under the projector, colour falling on it
+    vign(0.5); island(4, W * 0.5, H * 0.64, U * 0.065, ["#f2f2f0"], 0.4, 1.6);
+    x.globalCompositeOperation = "multiply"; x.globalAlpha = 0.55;
+    x.fillStyle = tk.a1; x.beginPath(); x.ellipse(W * 0.42, H * 0.78, U * 0.16, U * 0.08, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = tk.a2; x.beginPath(); x.ellipse(W * 0.6, H * 0.84, U * 0.14, U * 0.07, 0, 0, Math.PI * 2); x.fill();
+    x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+  } else if (tex === "teardown") {
+    // orbit rings, an exploded stack of layers and a dimension line
+    x.strokeStyle = tk.muted; x.lineWidth = 1; x.setLineDash([U * 0.01, U * 0.01]); x.globalAlpha = 0.5;
+    [0.3, 0.42].forEach((r) => { x.beginPath(); x.ellipse(W * 0.7, H * 0.7, U * r, U * r * 0.35, 0, 0, Math.PI * 2); x.stroke(); });
+    x.setLineDash([]); x.globalAlpha = 1;
+    for (let k = 4; k >= 0; k--) { const yy = H * (0.58 + k * 0.05), w = U * 0.36; x.fillStyle = "rgba(0,0,0,0.12)"; x.beginPath(); x.ellipse(W * 0.7, yy + U * 0.012, w / 2, w * 0.17, 0, 0, Math.PI * 2); x.fill(); x.fillStyle = [tk.paper, tk.a2, tk.muted, tk.a3, tk.ink][k]; x.beginPath(); x.ellipse(W * 0.7, yy, w / 2, w * 0.17, 0, 0, Math.PI * 2); x.fill(); x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.002); x.stroke(); }
+    x.strokeStyle = tk.ink; x.lineWidth = 1; x.beginPath(); x.moveTo(W * 0.7 - U * 0.18, H * 0.93); x.lineTo(W * 0.7 + U * 0.18, H * 0.93); x.stroke();
+    [-1, 1].forEach((d) => { x.beginPath(); x.moveTo(W * 0.7 + d * U * 0.18, H * 0.91); x.lineTo(W * 0.7 + d * U * 0.18, H * 0.95); x.stroke(); });
+  } else if (tex === "microscope") {
+    // the view down an eyepiece: cells with membranes and nuclei
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.46;
+    for (let k = 0; k < 18; k++) {
+      const a = rnd() * Math.PI * 2, d = R * Math.sqrt(rnd()) * 0.9, r = U * (0.04 + rnd() * 0.05), px2 = cx + Math.cos(a) * d, py2 = cy + Math.sin(a) * d, c = [tk.a1, tk.a2, tk.a3][k % 3];
+      x.globalAlpha = 0.22; x.fillStyle = c; x.beginPath(); x.ellipse(px2, py2, r, r * (0.8 + rnd() * 0.3), rnd() * 3, 0, Math.PI * 2); x.fill();
+      x.globalAlpha = 0.6; x.strokeStyle = c; x.lineWidth = U * 0.003; x.stroke(); x.globalAlpha = 0.6; x.fillStyle = tk.a2; x.beginPath(); x.arc(px2 + r * 0.15, py2, r * 0.28, 0, Math.PI * 2); x.fill();
+    }
+    x.globalAlpha = 1;
+  } else if (tex === "lidar") {
+    // a point cloud of the ground, rows of points rising and falling, coloured by height
+    for (let r = 0; r < 60; r++) { const f = r / 60, yb = H * (0.45 + f * 0.55), sp2 = U * (0.004 + f * 0.012); for (let xx = 0; xx < W; xx += sp2) { const h = Math.sin(xx * 0.01 + r * 0.3) * 0.5 + Math.sin(xx * 0.023 - r * 0.17) * 0.5, y = yb - h * H * 0.05 * (0.3 + f); x.globalAlpha = 0.25 + f * 0.6; x.fillStyle = h > 0.3 ? tk.a2 : h > -0.2 ? tk.a1 : tk.a3; x.fillRect(xx, y, Math.max(1, sp2 * 0.25), Math.max(1, sp2 * 0.25)); } }
+    x.globalAlpha = 1;
+  } else if (tex === "satellite") {
+    // a dark map: coastlines, a lat-long grid
+    x.strokeStyle = tk.a2; x.globalAlpha = 0.12; x.lineWidth = 1;
+    for (let k = 0; k <= 12; k++) { x.beginPath(); x.moveTo((W * k) / 12, 0); x.lineTo((W * k) / 12, H); x.stroke(); x.beginPath(); x.moveTo(0, (H * k) / 12); x.lineTo(W, (H * k) / 12); x.stroke(); }
+    x.globalAlpha = 1; x.fillStyle = "#1c3346"; x.strokeStyle = tk.a2; x.lineWidth = Math.max(1, U * 0.002);
+    [[0.25, 0.72, 0.32], [0.82, 0.28, 0.22]].forEach(([fx, fy, r]) => { x.beginPath(); for (let a = 0; a <= 36; a++) { const an = (a / 36) * Math.PI * 2, rr = U * r * (0.7 + 0.3 * Math.sin(an * 3 + fx * 9) + 0.1 * rnd()); x.lineTo(W * fx + Math.cos(an) * rr, H * fy + Math.sin(an) * rr * 0.8); } x.closePath(); x.fill(); x.stroke(); });
+  } else if (tex === "plates") {
+    // a walnut table and stacks of translucent plates rising like a chart
+    const g = x.createLinearGradient(0, H * 0.6, 0, H); g.addColorStop(0, "#6b4a32"); g.addColorStop(1, "#3e2a1c"); x.fillStyle = g; x.fillRect(0, H * 0.62, W, H * 0.38);
+    for (let k = 0; k < 7; k++) { const cx = W * (0.14 + k * 0.12), n = 2 + k + Math.round(rnd() * 2); for (let j = 0; j < n; j++) { const yy = H * 0.68 - j * U * 0.018; x.fillStyle = [tk.a1, tk.a2, tk.a3][k % 3]; x.globalAlpha = 0.78; x.beginPath(); x.ellipse(cx, yy, U * 0.045, U * 0.014, 0, 0, Math.PI * 2); x.fill(); x.globalAlpha = 0.9; x.strokeStyle = "rgba(255,255,255,0.4)"; x.lineWidth = 1; x.stroke(); } }
+    x.globalAlpha = 1;
+  } else if (tex === "chart") {
+    // warming stripes along the foot and a light chart grid
+    for (let k = 0, n = 40; k < n; k++) { const v = Math.sin(k * 0.21) * 0.3 + (k / n) * 1.4 - 0.5 + (rnd() - 0.5) * 0.3; x.fillStyle = v > 0 ? "rgba(209,73,91," + Math.min(1, v).toFixed(2) + ")" : "rgba(46,134,171," + Math.min(1, -v).toFixed(2) + ")"; x.fillRect((W * k) / n, H * 0.86, W / n + 1, H * 0.14); }
+    x.strokeStyle = tk.muted; x.globalAlpha = 0.25; x.lineWidth = 1; for (let k = 1; k < 6; k++) { x.beginPath(); x.moveTo(W * 0.06, H * (0.15 + k * 0.12)); x.lineTo(W * 0.94, H * (0.15 + k * 0.12)); x.stroke(); }
+    x.globalAlpha = 1; x.strokeStyle = tk.ink; x.beginPath(); x.moveTo(W * 0.06, H * 0.82); x.lineTo(W * 0.94, H * 0.82); x.stroke();
+  } else if (tex === "picto") {
+    // a flat field with one large disc of the second colour in the corner
+    x.fillStyle = tk.a2; x.globalAlpha = 0.18; x.beginPath(); x.arc(W * 0.85, H * 0.82, U * 0.4, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
+  } else if (tex === "timelapse") {
+    // a night city and long-exposure light trails along its roads
+    const hz = H * 0.62; let xx = 0;
+    while (xx < W) { const bw2 = U * (0.04 + rnd() * 0.07), bh2 = H * (0.1 + rnd() * 0.25); x.fillStyle = "#06080e"; x.fillRect(xx, hz - bh2, bw2, bh2); for (let k = 0; k < 6; k++) { x.fillStyle = "rgba(255,210,140," + (0.3 + rnd() * 0.5).toFixed(2) + ")"; x.fillRect(xx + rnd() * bw2, hz - rnd() * bh2, U * 0.004, U * 0.006); } xx += bw2 + U * 0.006; }
+    x.fillStyle = "#0b0d14"; x.fillRect(0, hz, W, H - hz);
+    x.globalCompositeOperation = "lighter";
+    [[tk.a1, 0.72, 1], [tk.a3, 0.78, -1], ["#ffffff", 0.84, 1]].forEach(([c, fy, d]) => { for (let j = 0; j < 3; j++) { x.strokeStyle = c; x.globalAlpha = 0.35; x.lineWidth = U * 0.004; x.beginPath(); x.moveTo(0, H * (fy + j * 0.01)); x.bezierCurveTo(W * 0.3, H * (fy + 0.03 * d + j * 0.01), W * 0.7, H * (fy - 0.03 * d + j * 0.01), W, H * (fy + j * 0.01)); x.stroke(); } });
+    x.globalCompositeOperation = "source-over"; x.globalAlpha = 1;
+  } else if (tex === "capnews") {
+    // white, a thin black frame, a band of the highlight along the top
+    x.strokeStyle = tk.ink; x.lineWidth = U * 0.006; x.strokeRect(U * 0.03, U * 0.03, W - U * 0.06, H - U * 0.06);
+    x.fillStyle = tk.a1; x.fillRect(U * 0.03, U * 0.03, W - U * 0.06, U * 0.012);
+  } else if (tex === "newsblue") {
+    // a broadcast set: deep blue, bars of light, a wire globe behind
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, tk.paper); g.addColorStop(1, tk.bg); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.globalAlpha = 0.08; x.fillStyle = "#ffffff"; for (let k = 0; k < 6; k++) x.fillRect(0, H * (0.1 + k * 0.15), W, U * 0.01);
+    x.globalAlpha = 0.12; x.strokeStyle = "#ffffff"; x.lineWidth = 1; const r = U * 0.45; x.beginPath(); x.arc(W * 0.8, H * 0.35, r, 0, Math.PI * 2); x.stroke();
+    for (let k = 1; k < 5; k++) { x.beginPath(); x.ellipse(W * 0.8, H * 0.35, r * Math.cos((k * Math.PI) / 10), r, 0, 0, Math.PI * 2); x.stroke(); }
+    x.globalAlpha = 1;
+  } else if (tex === "pitch") {
+    // a football pitch from the broadcast camera: mown stripes and white lines
+    for (let k = 0; k < 10; k++) { x.fillStyle = k % 2 ? tk.bg : tk.paper; x.fillRect(0, (H * k) / 10, W, H / 10 + 1); }
+    x.strokeStyle = "rgba(255,255,255,0.8)"; x.lineWidth = U * 0.006; x.strokeRect(W * 0.06, H * 0.06, W * 0.88, H * 0.88);
+    x.beginPath(); x.moveTo(W * 0.06, H / 2); x.lineTo(W * 0.94, H / 2); x.stroke(); x.beginPath(); x.arc(W / 2, H / 2, U * 0.14, 0, Math.PI * 2); x.stroke();
+    x.strokeRect(W * 0.3, H * 0.06, W * 0.4, H * 0.12); x.strokeRect(W * 0.3, H * 0.82, W * 0.4, H * 0.12);
+  } else if (tex === "evidence") {
+    // a dark analysis desk: a fine grid and a timeline with marks along the foot
+    x.strokeStyle = "#ffffff"; x.globalAlpha = 0.04; x.lineWidth = 1; const g2 = U / 16;
+    for (let xx = 0; xx < W; xx += g2) { x.beginPath(); x.moveTo(xx, 0); x.lineTo(xx, H); x.stroke(); }
+    for (let yy = 0; yy < H; yy += g2) { x.beginPath(); x.moveTo(0, yy); x.lineTo(W, yy); x.stroke(); }
+    x.globalAlpha = 0.6; x.strokeStyle = tk.muted; x.beginPath(); x.moveTo(W * 0.06, H * 0.8); x.lineTo(W * 0.94, H * 0.8); x.stroke();
+    for (let k = 0; k <= 20; k++) { x.beginPath(); x.moveTo(W * (0.06 + 0.044 * k), H * 0.8); x.lineTo(W * (0.06 + 0.044 * k), H * (k % 5 ? 0.81 : 0.82)); x.stroke(); }
+    x.globalAlpha = 1;
+  } else if (tex === "lighttable") {
+    // a glowing light table with strips of negatives
+    const g = x.createRadialGradient(W / 2, H / 2, U * 0.1, W / 2, H / 2, Math.max(W, H) * 0.7); g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#e3dfd4"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    [[0.08, -0.05], [0.84, 0.04]].forEach(([fy, rot]) => {
+      x.save(); x.translate(W / 2, H * fy); x.rotate(rot); x.fillStyle = "rgba(40,30,20,0.85)"; x.fillRect(-W * 0.7, -U * 0.08, W * 1.4, U * 0.16);
+      for (let k = -12; k < 12; k++) { x.fillStyle = "rgba(255,240,210,0.6)"; x.fillRect(k * U * 0.16 + U * 0.02, -U * 0.055, U * 0.12, U * 0.11); x.fillStyle = "rgba(255,255,255,0.8)"; x.fillRect(k * U * 0.16 + U * 0.01, -U * 0.075, U * 0.02, U * 0.012); x.fillRect(k * U * 0.16 + U * 0.01, U * 0.065, U * 0.02, U * 0.012); }
+      x.restore();
+    });
+  } else if (tex === "board") {
+    // a briefing wall with sheets pinned about it
+    [[0.15, 0.12, -0.05, 0.22], [0.82, 0.15, 0.04, 0.2], [0.18, 0.84, 0.03, 0.24], [0.85, 0.82, -0.04, 0.2]].forEach(([fx, fy, rot, w]) => {
+      x.save(); x.translate(W * fx, H * fy); x.rotate(rot);
+      x.fillStyle = "rgba(0,0,0,0.12)"; x.fillRect(-U * w / 2 + U * 0.008, -U * w * 0.65 + U * 0.01, U * w, U * w * 1.3); x.fillStyle = "#ffffff"; x.fillRect(-U * w / 2, -U * w * 0.65, U * w, U * w * 1.3);
+      x.strokeStyle = tk.muted; x.globalAlpha = 0.5; x.lineWidth = 1; for (let k = 0; k < 6; k++) { x.beginPath(); x.moveTo(-U * w * 0.4, -U * w * 0.4 + k * U * w * 0.16); x.lineTo(U * w * (0.1 + 0.3 * rnd()), -U * w * 0.4 + k * U * w * 0.16); x.stroke(); }
+      x.globalAlpha = 1; x.fillStyle = tk.a1; x.beginPath(); x.arc(0, -U * w * 0.58, U * 0.012, 0, Math.PI * 2); x.fill(); x.restore();
+    });
+  } else if (tex === "splitgrid") {
+    // a split screen of nine cells, each with its own faint light
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const g = x.createLinearGradient(0, (H * r) / 3, 0, (H * (r + 1)) / 3); g.addColorStop(0, "rgba(88,166,255," + (0.04 + rnd() * 0.08).toFixed(2) + ")"); g.addColorStop(1, "rgba(255,107,53," + (0.03 + rnd() * 0.05).toFixed(2) + ")"); x.fillStyle = g; x.fillRect((W * c) / 3, (H * r) / 3, W / 3, H / 3); }
+    x.strokeStyle = "#000000"; x.lineWidth = U * 0.008; for (let k = 1; k < 3; k++) { x.beginPath(); x.moveTo((W * k) / 3, 0); x.lineTo((W * k) / 3, H); x.stroke(); x.beginPath(); x.moveTo(0, (H * k) / 3); x.lineTo(W, (H * k) / 3); x.stroke(); }
+  } else if (tex === "kino") {
+    // constructivist: a red wedge driving across, black discs, a strip of halftone
+    x.fillStyle = tk.a1; x.beginPath(); x.moveTo(0, H * 0.95); x.lineTo(W, H * 0.45); x.lineTo(W, H * 0.62); x.closePath(); x.fill();
+    x.fillStyle = tk.ink; x.beginPath(); x.arc(W * 0.82, H * 0.2, U * 0.16, 0, Math.PI * 2); x.fill(); x.strokeStyle = tk.ink; x.lineWidth = U * 0.01; x.beginPath(); x.arc(W * 0.82, H * 0.2, U * 0.22, 0, Math.PI * 2); x.stroke();
+    x.save(); x.translate(W * 0.08, H * 0.82); x.rotate(-0.4); const s2 = Math.max(6, U / 60); x.fillStyle = tk.ink; for (let k = 0; k < 30; k++) for (let j = 0; j < 6; j++) { x.beginPath(); x.arc(k * s2, j * s2, s2 * 0.35 * (0.3 + j / 6), 0, Math.PI * 2); x.fill(); } x.restore();
+    fibres(Math.round(W * H / 2600), 0.05);
+  } else if (tex === "backrooms") {
+    // yellow wallpaper with a faint pattern, fluorescent panels, damp carpet
+    x.globalAlpha = 0.12; x.strokeStyle = "#6b6235"; x.lineWidth = 1; const s2 = U * 0.05;
+    for (let yy = 0, r0 = 0; yy < H; yy += s2, r0++) for (let xx = (r0 % 2) * s2 / 2; xx < W; xx += s2) { x.beginPath(); x.moveTo(xx, yy); x.lineTo(xx + s2 * 0.25, yy + s2 * 0.25); x.lineTo(xx, yy + s2 * 0.5); x.lineTo(xx - s2 * 0.25, yy + s2 * 0.25); x.closePath(); x.stroke(); }
+    x.globalAlpha = 1; x.fillStyle = "#e9e3c0"; for (let k = 0; k < 3; k++) x.fillRect(W * (0.1 + k * 0.32), H * 0.02, W * 0.18, H * 0.03);
+    x.fillStyle = "#8a7f45"; x.fillRect(0, H * 0.86, W, H * 0.14); vign(0.35);
+  } else if (tex === "desktop") {
+    // an app window: a title bar with a tab, a side bar, faint lines of code
+    const m = U * 0.05; x.fillStyle = tk.paper; x.beginPath(); if (x.roundRect) x.roundRect(m, m, W - 2 * m, H - 2 * m, U * 0.025); else x.rect(m, m, W - 2 * m, H - 2 * m); x.fill();
+    x.fillStyle = "rgba(255,255,255,0.05)"; x.fillRect(m, m, W - 2 * m, U * 0.06); x.fillStyle = "rgba(255,255,255,0.08)"; x.fillRect(m + U * 0.02, m + U * 0.015, U * 0.16, U * 0.035);
+    x.fillStyle = "rgba(255,255,255,0.03)"; x.fillRect(m, m + U * 0.06, W * 0.18, H - 2 * m - U * 0.06);
+    for (let k = 0; k < 24; k++) { x.fillStyle = [tk.a1, tk.a2, tk.a3, tk.muted][k % 4]; x.globalAlpha = 0.16; x.fillRect(m + W * 0.2, m + U * 0.1 + k * U * 0.04, U * (0.1 + rnd() * 0.4), U * 0.012); }
+    x.globalAlpha = 1;
+  } else if (tex === "microgame") {
+    // two loud colours split on the diagonal, the track of a timer bar at the top
+    x.fillStyle = tk.paper; x.beginPath(); x.moveTo(0, H * 0.7); x.lineTo(W, H * 0.3); x.lineTo(W, H); x.lineTo(0, H); x.closePath(); x.fill();
+    x.fillStyle = "rgba(0,0,0,0.25)"; x.fillRect(W * 0.08, H * 0.04, W * 0.84, U * 0.03);
+  } else if (tex === "hd2d") {
+    // pixel layers with depth: a soft far layer, sharper near ones, lanterns blooming
+    const pw = Math.max(80, Math.round(W / 5)), ph = Math.max(80, Math.round(H / 5)), pc = document.createElement("canvas"); pc.width = pw; pc.height = ph; const p2 = pc.getContext("2d");
+    const sky = p2.createLinearGradient(0, 0, 0, ph); sky.addColorStop(0, tk.bg); sky.addColorStop(1, tk.paper); p2.fillStyle = sky; p2.fillRect(0, 0, pw, ph);
+    [["#1e2440", 0.62, 0.12], ["#141a30", 0.78, 0.1], ["#0b0f1e", 0.9, 0.06]].forEach(([c, fy, amp], k) => { p2.fillStyle = c; for (let xx = 0; xx < pw; xx++) { const hh = Math.round(ph * (1 - fy) + Math.abs(Math.sin(xx * (0.08 + k * 0.05) + k)) * ph * amp); p2.fillRect(xx, ph - hh, 1, hh); } });
+    x.imageSmoothingEnabled = false; try { x.filter = "blur(" + Math.max(1, Math.round(U * 0.003)) + "px)"; } catch (e) {} x.drawImage(pc, 0, 0, W, H); x.filter = "none"; x.imageSmoothingEnabled = true;
+    x.globalCompositeOperation = "lighter";
+    [[0.2, 0.8], [0.55, 0.85], [0.85, 0.78]].forEach(([fx, fy]) => { const g = x.createRadialGradient(W * fx, H * fy, 0, W * fx, H * fy, U * 0.12); g.addColorStop(0, "rgba(255,179,71,0.7)"); g.addColorStop(1, "rgba(255,179,71,0)"); x.fillStyle = g; x.fillRect(W * fx - U * 0.12, H * fy - U * 0.12, U * 0.24, U * 0.24); x.fillStyle = "#ffe6a8"; x.fillRect(W * fx - U * 0.006, H * fy - U * 0.008, U * 0.012, U * 0.016); });
+    x.globalCompositeOperation = "source-over";
+  } else if (tex === "newsreel") {
     // the ident: a sunburst and a wire globe on near black
     const ox = W / 2, oy = H * 0.55, r = U * 0.3; x.strokeStyle = tk.ink; x.lineWidth = Math.max(1, U * 0.002);
     for (let k = 0; k < 48; k++) { const an = (k / 48) * Math.PI * 2; x.globalAlpha = k % 2 ? 0.05 : 0.1; x.beginPath(); x.moveTo(ox, oy); x.lineTo(ox + Math.cos(an) * Math.max(W, H), oy + Math.sin(an) * Math.max(W, H)); x.stroke(); }
@@ -17175,6 +17405,171 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
         const last = i === boxes.length - 1 || n < chars;
         if (last && (n < chars || Math.floor(t * 2) % 2 === 0)) { ctx.fillStyle = acc; ctx.fillRect(b.x + ctx.measureText(b.ln.slice(0, n)).width + px * 0.08, b.y - px * 0.38, px * 0.45, px * 0.78); }
         ctx.restore(); return;
+      } else if (tt === "isoslide") {
+        // slides in along the isometric axis, sheared, and squares up as it lands
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.55))), k2 = 1 - q;
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(-k2 * px * 2, k2 * px * 1.15); ctx.translate(b.x, b.y); ctx.transform(1, -0.5 * k2, 0, 1, 0, 0); ctx.translate(-b.x, -b.y);
+        ctx.fillStyle = "rgba(0,0,0,0.12)"; put(b, 0, px * 0.06, px * 0.06); ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "facet") {
+        // revealed facet by facet, triangles turning over in a sweep
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.6)), c = px * 0.45; ctx.beginPath();
+        for (let yy = b.y - px * 0.7, r0 = 0; yy < b.y + px * 0.7; yy += c, r0++) for (let xx = b.x - px * 0.3, k = 0; xx < b.x + b.w + px * 0.3; xx += c, k++) {
+          const o = ((xx - b.x) / (b.w + px)) * 0.7 + ((Math.sin(k * 3.7 + r0 * 1.9) + 1) / 2) * 0.25;
+          if (o <= q) { ctx.moveTo(xx, yy); ctx.lineTo(xx + c, yy); ctx.lineTo(xx, yy + c); ctx.closePath(); }
+          if (o + 0.08 <= q) { ctx.moveTo(xx + c, yy); ctx.lineTo(xx + c, yy + c); ctx.lineTo(xx, yy + c); ctx.closePath(); }
+        }
+        ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "sheen") {
+        // rises out of its own reflection on a black floor; a specular streak crosses once
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.7))), dy = (1 - q) * px * 0.8, base = b.y + px * 0.5;
+        const g = ctx.createLinearGradient(0, b.y - px * 0.5, 0, b.y + px * 0.5); g.addColorStop(0, "#ffffff"); g.addColorStop(0.55, "#c9d2dc"); g.addColorStop(1, "#7d8794");
+        if (i === w0.lines.length - 1) { ctx.globalAlpha = Math.min(1, q * 1.5) * 0.16; ctx.save(); ctx.translate(0, 2 * base + dy); ctx.scale(1, -1); ctx.fillStyle = g; put(b); ctx.restore(); }
+        ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, dy); ctx.fillStyle = g; put(b);
+        const sw = (t - tl - 0.4) / 0.8; if (sw > 0 && sw < 1) { const sx = b.x - px + (b.w + px * 2) * sw, sg = ctx.createLinearGradient(sx - px * 0.4, 0, sx + px * 0.4, 0); sg.addColorStop(0, "rgba(255,255,255,0)"); sg.addColorStop(0.5, "rgba(255,255,255,0.95)"); sg.addColorStop(1, "rgba(255,255,255,0)"); ctx.fillStyle = sg; put(b); }
+        ctx.restore(); return;
+      } else if (tt === "project") {
+        // projected on to the model: three colour passes off register that close into one white
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.7))), o = (1 - q) * px * 0.25;
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.globalCompositeOperation = "lighter";
+        [[tk.a1, -o, 0], [tk.a2, o, 0], [tk.a3, 0, o * 0.6]].forEach(([c, dx, dy]) => { ctx.fillStyle = c; put(b, 0, dx, dy); });
+        ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = q; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "explode") {
+        // the words fly apart from the centre and assemble, as an exploded view closes
+        const ws = b.ln.split(" "), spw = ctx.measureText(" ").width, cx2 = b.x + b.w / 2, q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.7))); let xx = b.x;
+        if (/[\u0590-\u08ff]/.test(b.ln)) ws.reverse();
+        ctx.globalAlpha = Math.min(1, q * 2);
+        ws.forEach((wd, k) => {
+          const ww = ctx.measureText(wd).width, mid = xx + ww / 2, off = (mid - cx2) * 0.9 * (1 - q), lift = (k % 2 ? 1 : -1) * px * 0.5 * (1 - q);
+          if (q < 1) { ctx.strokeStyle = tk.muted; ctx.lineWidth = 1; ctx.setLineDash([px * 0.06, px * 0.05]); ctx.beginPath(); ctx.moveTo(mid, b.y); ctx.lineTo(mid + off, b.y + lift); ctx.stroke(); ctx.setLineDash([]); }
+          ctx.fillStyle = color; ctx.fillText(wd, xx + off, b.y + lift); xx += ww + spw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "focuspull") {
+        // out of focus with colour fringes, then pulled sharp
+        const q = vsEase.inOut(Math.max(0, Math.min(1, (t - tl) / 0.8))), cx2 = b.x + b.w / 2, z = 1.08 - 0.08 * q;
+        ctx.translate(cx2, b.y); ctx.scale(z, z); ctx.translate(-cx2, -b.y);
+        try { if (q < 1) ctx.filter = "blur(" + ((1 - q) * px * 0.3).toFixed(1) + "px)"; } catch (er) {}
+        if (q < 1) { ctx.globalAlpha = (1 - q) * 0.6; ctx.fillStyle = tk.a2; put(b, 0, -px * 0.05 * (1 - q), 0); ctx.fillStyle = tk.a1; put(b, 0, px * 0.05 * (1 - q), 0); }
+        ctx.globalAlpha = Math.min(1, 0.3 + q); ctx.fillStyle = color; put(b); ctx.filter = "none"; ctx.restore(); return;
+      } else if (tt === "scanline") {
+        // a scan plane passes down the line; what it has touched stays lit
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.6)), top = b.y - px * 0.7, sy = top + px * 1.4 * q;
+        ctx.save(); ctx.beginPath(); ctx.rect(b.x - px, top, b.w + px * 2, sy - top); ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore();
+        if (q < 1) { ctx.fillStyle = acc; ctx.shadowColor = acc; ctx.shadowBlur = px * 0.4; ctx.fillRect(b.x - px * 0.3, sy - 1, b.w + px * 0.6, 2); }
+        ctx.restore(); return;
+      } else if (tt === "locate") {
+        // a reticle closes in on the line, then the words appear inside its brackets
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.45))), g = (1 - q) * px * 1.2, a3 = Math.max(0, Math.min(1, (t - tl - 0.35) / 0.25)), L2 = px * 0.3;
+        ctx.strokeStyle = acc; ctx.lineWidth = Math.max(1, px * 0.04);
+        [[bx - g, by - g, 1, 1], [bx + bw + g, by - g, -1, 1], [bx - g, by + bh + g, 1, -1], [bx + bw + g, by + bh + g, -1, -1]].forEach(([x1, y1, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x1 + dx * L2, y1); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 + dy * L2); ctx.stroke(); });
+        ctx.globalAlpha = a3; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "platestack") {
+        // a plate is set down under the line, then the words are laid on it
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.45))), q2 = Math.max(0, Math.min(1, (t - tl - 0.25) / 0.35)), pw2 = bw * q;
+        ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.fillRect(bx + px * 0.06, by + bh - px * 0.12, pw2, px * 0.2);
+        ctx.globalAlpha = 0.85; ctx.fillStyle = i % 2 ? tk.a3 : acc; ctx.fillRect(bx, by + bh - px * 0.22, pw2, px * 0.2);
+        ctx.globalAlpha = q2; ctx.fillStyle = color; put(b, 0, 0, -(1 - q2) * px * 0.4); ctx.restore(); return;
+      } else if (tt === "annotate") {
+        // a leader is drawn up from a point on the chart to the words
+        const q1 = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.4))), q2 = Math.max(0, Math.min(1, (t - tl - 0.3) / 0.35)), px0 = b.x - px * 0.4, py0 = b.y + px * 1.6;
+        if (i === 0) { ctx.strokeStyle = tk.muted; ctx.lineWidth = Math.max(1, px * 0.025); ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(px0, py0 - (py0 - b.y) * q1); ctx.lineTo(px0 + px * 0.25 * q1, b.y); ctx.stroke(); ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(px0, py0, px * 0.08, 0, Math.PI * 2); ctx.fill(); }
+        ctx.globalAlpha = q2; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "beatpop") {
+        // each word lands on a beat on a flat shape that flashes behind it
+        const ws = b.ln.split(" "), spw = ctx.measureText(" ").width; let xx = b.x; if (/[\u0590-\u08ff]/.test(b.ln)) ws.reverse();
+        ws.forEach((wd, k) => {
+          const ww = ctx.measureText(wd).width, on = t - tl - k * 0.18;
+          if (on > 0) {
+            const z = on < 0.12 ? 1.25 - on * 2 : 1, fl = Math.max(0, 1 - on / 0.3);
+            ctx.save(); ctx.translate(xx + ww / 2, b.y); ctx.scale(z, z);
+            if (fl > 0) { ctx.globalAlpha = fl; ctx.fillStyle = [acc, tk.a2, tk.a3][k % 3]; if (k % 2) { ctx.beginPath(); ctx.arc(0, 0, ww * 0.6, 0, Math.PI * 2); ctx.fill(); } else ctx.fillRect(-ww * 0.6, -px * 0.6, ww * 1.2, px * 1.2); }
+            ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.fillText(wd, -ww / 2, 0); ctx.restore();
+          }
+          xx += ww + spw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "streak") {
+        // arrives as a long-exposure streak of light that gathers into the words
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.6)));
+        ctx.globalCompositeOperation = "lighter";
+        for (let k = 5; k >= 1; k--) { ctx.globalAlpha = (1 - q) * 0.18; ctx.fillStyle = k % 2 ? acc : tk.a2; put(b, 0, -(1 - q) * k * px * 0.6, 0); }
+        ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = q; ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "kinetic") {
+        // sound-off captions: each word cut in on its own, the longest on a highlight bar
+        const ws = b.ln.split(" "), spw = ctx.measureText(" ").width, longest = Math.max(...ws.map((w2) => w2.length)); let xx = b.x; if (/[\u0590-\u08ff]/.test(b.ln)) ws.reverse();
+        ws.forEach((wd, k) => { const ww = ctx.measureText(wd).width; if (t - tl - k * 0.1 > 0) { if (wd.length === longest) { ctx.fillStyle = acc; ctx.fillRect(xx - px * 0.08, b.y - px * 0.55, ww + px * 0.16, px * 1.08); } ctx.fillStyle = color; ctx.fillText(wd, xx, b.y); } xx += ww + spw; });
+        ctx.restore(); return;
+      } else if (tt === "strap") {
+        // a red tab snaps in, a white bar runs out from it, the words wipe on
+        const q1 = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.25))), q2 = vsEase.out(Math.max(0, Math.min(1, (t - tl - 0.15) / 0.4))), tab = px * 0.35;
+        ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = acc; ctx.fillRect(bx - tab, by, tab * q1, bh); ctx.fillStyle = "#ffffff"; ctx.fillRect(bx, by, bw * q2, bh);
+        ctx.beginPath(); ctx.rect(bx, by, bw * q2, bh); ctx.clip(); ctx.fillStyle = tk.bg; put(b); ctx.restore(); return;
+      } else if (tt === "circled") {
+        // the words come up, then a hand-drawn ring is drawn round them
+        const a3 = Math.min(1, (t - tl) / 0.2), q = Math.max(0, Math.min(1, (t - tl - 0.25) / 0.5));
+        ctx.globalAlpha = a3; ctx.fillStyle = color; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = px * 0.15; put(b); ctx.shadowBlur = 0;
+        if (q > 0 && i === 0) { ctx.globalAlpha = 1; ctx.strokeStyle = acc; ctx.lineWidth = px * 0.07; ctx.lineCap = "round"; ctx.beginPath(); ctx.ellipse(b.x + b.w / 2, b.y, b.w / 2 + px * 0.5, px * 0.85, -0.04, -0.3, -0.3 + Math.PI * 2.1 * q); ctx.stroke(); }
+        ctx.restore(); return;
+      } else if (tt === "timestamp") {
+        // a red marker and a running timecode lead the line in
+        const el = t - tl, q = Math.max(0, Math.min(1, el / 0.4));
+        ctx.fillStyle = acc; ctx.fillRect(bx - px * 0.25, by + px * 0.1, px * 0.08, bh - px * 0.2);
+        if (q < 1) { ctx.save(); ctx.globalAlpha = 1 - q; ctx.font = vsGxFont(tk.body, px * 0.32); ctx.fillStyle = acc; ctx.fillText("00:" + String((Math.floor(el * 10) + i * 7) % 60).padStart(2, "0") + ":" + String(Math.floor(el * 100) % 100).padStart(2, "0"), b.x, b.y - px * 0.78); ctx.restore(); }
+        ctx.globalAlpha = q; ctx.beginPath(); ctx.rect(b.x - px, b.y - px, (b.w + px * 2) * q, px * 2); ctx.clip(); ctx.fillStyle = color; put(b); ctx.restore(); return;
+      } else if (tt === "loupe") {
+        // a loupe slides along the line, the words large and sharp under it
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.8)), lx = b.x + b.w * vsEase.inOut(q), r = px * 0.9;
+        ctx.globalAlpha = Math.min(1, q * 3); ctx.fillStyle = color; put(b);
+        if (q < 1) { ctx.save(); ctx.beginPath(); ctx.arc(lx, b.y, r, 0, Math.PI * 2); ctx.clip(); ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fillRect(lx - r, b.y - r, r * 2, r * 2); ctx.translate(lx, b.y); ctx.scale(1.6, 1.6); ctx.translate(-lx, -b.y); ctx.fillStyle = color; put(b); ctx.restore(); ctx.strokeStyle = "#2b2b2b"; ctx.lineWidth = px * 0.08; ctx.beginPath(); ctx.arc(lx, b.y, r, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.restore(); return;
+      } else if (tt === "pinned") {
+        // a note is put up a little crooked and a pin goes in
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.35))), rot = i % 2 ? 0.02 : -0.02, cx2 = b.x + b.w / 2;
+        ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(cx2, by); ctx.rotate(rot * (2 - q)); ctx.scale(1 + 0.1 * (1 - q), 1 + 0.1 * (1 - q)); ctx.translate(-cx2, -by);
+        ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.fillRect(bx + px * 0.08, by + px * 0.1, bw, bh); ctx.fillStyle = i % 2 ? "#fff8c4" : "#ffffff"; ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = color; put(b);
+        if (q >= 1) { ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(cx2, by + px * 0.1, px * 0.12, 0, Math.PI * 2); ctx.fill(); }
+        ctx.restore(); return;
+      } else if (tt === "flap" && !/[\u0590-\u08ff]/.test(b.ln)) {
+        // a split-flap board: each letter clatters through others before it settles
+        let xx = b.x; const G = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Array.from(b.ln).forEach((ch, k) => {
+          const cw = ctx.measureText(ch).width, done = t - tl > 0.25 + k * 0.05;
+          if (ch !== " ") {
+            ctx.fillStyle = "#161b22"; ctx.fillRect(xx - px * 0.02, b.y - px * 0.55, cw + px * 0.04, px * 1.1); ctx.fillStyle = "#050608"; ctx.fillRect(xx - px * 0.02, b.y - 1, cw + px * 0.04, 2);
+            const c2 = done ? ch : G[(Math.floor(t * 20) + k * 7) % G.length]; ctx.fillStyle = done ? color : tk.muted; ctx.fillText(c2, xx + (cw - ctx.measureText(c2).width) / 2, b.y);
+          }
+          xx += cw;
+        });
+        ctx.restore(); return;
+      } else if (tt === "diagonal") {
+        // set on the diagonal, it drives in along it
+        const q = mv.e(Math.max(0, Math.min(1, (t - tl) / 0.45))), cx2 = b.x + b.w / 2, d = (1 - q) * W * 0.6;
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(cx2, b.y); ctx.rotate(-0.21); ctx.translate(-cx2 - d * (i % 2 ? -1 : 1), -b.y);
+        ctx.fillStyle = i % 2 ? acc : color; put(b); ctx.restore(); return;
+      } else if (tt === "camcorder") {
+        // found footage: the words come up as the tape tracks in, torn sideways a moment
+        const el = t - tl, k3 = Math.max(0, 1 - el / 0.35);
+        ctx.fillStyle = "#000000"; put(b, 0, px * 0.05, px * 0.05);
+        if (k3 > 0) { for (let s2 = 0; s2 < 4; s2++) { const y0 = b.y - px * 0.6 + s2 * px * 0.3; ctx.save(); ctx.beginPath(); ctx.rect(b.x - px, y0, b.w + px * 2, px * 0.3); ctx.clip(); ctx.fillStyle = color; put(b, 0, Math.sin(s2 * 2.7 + Math.floor(el * 24)) * px * 0.4 * k3, 0); ctx.restore(); } }
+        else { ctx.fillStyle = color; put(b); }
+        ctx.restore(); return;
+      } else if (tt === "cursor") {
+        // a pointer glides to the line and clicks; the words appear with the click
+        const el = t - tl, q = vsEase.inOut(Math.max(0, Math.min(1, el / 0.5))), cx0 = b.x + b.w * 0.5, cy0 = b.y + px * 0.4, cxp = cx0 + (1 - q) * px * 3, cyp = cy0 + (1 - q) * px * 2;
+        if (el > 0.5) { const r = Math.min(1, (el - 0.5) / 0.3); ctx.globalAlpha = 1 - r; ctx.strokeStyle = acc; ctx.lineWidth = px * 0.05; ctx.beginPath(); ctx.arc(cx0, cy0, px * 0.6 * r, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = Math.min(1, (el - 0.5) / 0.15); ctx.fillStyle = color; put(b); }
+        const pa = i === 0 ? Math.max(0, Math.min(1, (1.4 - el) / 0.3)) : 0;
+        if (pa > 0) { ctx.globalAlpha = pa; ctx.save(); ctx.translate(cxp, cyp); ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#000000"; ctx.lineWidth = px * 0.03; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, px * 0.7); ctx.lineTo(px * 0.18, px * 0.52); ctx.lineTo(px * 0.32, px * 0.82); ctx.lineTo(px * 0.42, px * 0.76); ctx.lineTo(px * 0.28, px * 0.48); ctx.lineTo(px * 0.5, px * 0.46); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+        ctx.restore(); return;
+      } else if (tt === "zoompunch") {
+        // flies in from in front of the lens and punches into place
+        const q = Math.max(0, Math.min(1, (t - tl) / 0.22)), z = 3 - 2 * vsEase.out(q), cx2 = b.x + b.w / 2;
+        ctx.globalAlpha = Math.min(1, q * 2); ctx.translate(cx2, b.y); ctx.scale(z, z); ctx.rotate((1 - q) * -0.2); ctx.translate(-cx2, -b.y);
+        ctx.lineWidth = px * 0.16; ctx.strokeStyle = "#1a1a1a"; ctx.strokeText(b.ln, b.x, b.y); ctx.fillStyle = i % 2 ? tk.a3 : tk.paper; put(b); ctx.restore(); return;
+      } else if (tt === "bloomin") {
+        // fades in inside a wide bloom that shrinks to a soft glow
+        const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.7)));
+        ctx.globalAlpha = q; ctx.shadowColor = acc; ctx.shadowBlur = px * (0.2 + 1.2 * (1 - q)); ctx.fillStyle = color; put(b); ctx.shadowBlur = px * 0.15; put(b); ctx.restore(); return;
       } else if (tt === "spinpaper") {
         // the headline spins in to the lens like a newspaper, silver with a black edge
         const q = vsEase.out(Math.max(0, Math.min(1, (t - tl) / 0.7))), cx2 = b.x + b.w / 2, z = 0.08 + 0.92 * q;
@@ -18263,7 +18658,77 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
   const cols = [tk.a1, tk.a2, tk.a3];
   const spots = [[0.04, 0.05], [0.96, 0.06], [0.05, 0.955], [0.95, 0.945]];
   ctx.save();
-  if (de === "searchlights") {
+  if (de === "isocubes") {
+    // little isometric blocks rising one after another at the foot
+    const s2 = U * 0.05, dx = s2 * 0.866, dy = s2 * 0.5;
+    const face = (pts, c) => { ctx.fillStyle = c; ctx.beginPath(); pts.forEach(([a, b2], j) => (j ? ctx.lineTo(a, b2) : ctx.moveTo(a, b2))); ctx.closePath(); ctx.fill(); };
+    for (let k = 0; k < 4; k++) {
+      const g = mv.e(Math.min(1, Math.max(0, (t - 0.4 - k * 0.2) / 0.4))); if (g <= 0) continue;
+      const cx = W * 0.14 + k * dx, cy = H * 0.8 + k * dy, h = s2 * (0.6 + (k % 3) * 0.5) * g, c = [tk.a1, tk.a2, tk.a3][k % 3];
+      const L = [[cx - dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx, cy + 2 * dy], [cx - dx, cy + dy]], R = [[cx + dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx, cy + 2 * dy], [cx + dx, cy + dy]], T = [[cx, cy - h], [cx + dx, cy - h + dy], [cx, cy - h + 2 * dy], [cx - dx, cy - h + dy]];
+      ctx.globalAlpha = ap; face(L, c); face(L, "rgba(0,0,0,0.16)"); face(R, c); face(R, "rgba(0,0,0,0.32)"); face(T, c);
+    }
+  } else if (de === "strips") {
+    // a strip light drifting slowly across the studio
+    ctx.globalCompositeOperation = "lighter"; const x0 = W * (0.5 + 0.45 * Math.sin(t * 0.35)), g = ctx.createLinearGradient(x0 - W * 0.08, 0, x0 + W * 0.08, 0);
+    g.addColorStop(0, "rgba(200,230,255,0)"); g.addColorStop(0.5, "rgba(200,230,255," + (0.08 * ap).toFixed(3) + ")"); g.addColorStop(1, "rgba(200,230,255,0)"); ctx.fillStyle = g; ctx.fillRect(x0 - W * 0.08, 0, W * 0.16, H * 0.7);
+  } else if (de === "scanbeam") {
+    // the projector's band of light passing over the model
+    ctx.globalCompositeOperation = "lighter"; const ph = (t % 5) / 5; ctx.globalAlpha = 0.25 * ap; ctx.fillStyle = tk.a2; ctx.fillRect(W * (0.1 + 0.8 * ph), H * 0.55, U * 0.02, H * 0.4);
+  } else if (de === "cells") {
+    // small particles drifting in the field
+    for (let k = 0; k < 16; k++) { const a = k * 2.4 + t * 0.05 * (k % 2 ? 1 : -1), d = Math.min(W, H) * (0.1 + (k % 5) * 0.07); ctx.globalAlpha = 0.5 * ap; ctx.fillStyle = [tk.a1, tk.a2, tk.a3][k % 3]; ctx.beginPath(); ctx.arc(W / 2 + Math.cos(a) * d, H / 2 + Math.sin(a) * d, U * 0.006, 0, Math.PI * 2); ctx.fill(); }
+  } else if (de === "scan") {
+    // a scan line sweeping down over the point cloud again and again
+    const y = H * (0.45 + ((t % 4) / 4) * 0.55), g = ctx.createLinearGradient(0, y - U * 0.04, 0, y);
+    g.addColorStop(0, "rgba(56,255,176,0)"); g.addColorStop(1, "rgba(56,255,176," + (0.35 * ap).toFixed(2) + ")");
+    ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = g; ctx.fillRect(0, y - U * 0.04, W, U * 0.04); ctx.globalAlpha = 0.8 * ap; ctx.fillStyle = tk.a1; ctx.fillRect(0, y, W, Math.max(1, U * 0.002));
+  } else if (de === "orbit") {
+    // a satellite moving along its ground track
+    const cx = W / 2, cy = H * 1.3, R = Math.hypot(W, H) * 0.8, a0 = -Math.PI / 2 - 0.6 + ((t * 0.04) % 1.2);
+    ctx.strokeStyle = tk.a1; ctx.globalAlpha = 0.25 * ap; ctx.setLineDash([U * 0.01, U * 0.01]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2 - 0.7, -Math.PI / 2 + 0.7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = ap; ctx.fillStyle = tk.a1; ctx.beginPath(); ctx.arc(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R, U * 0.008, 0, Math.PI * 2); ctx.fill();
+  } else if (de === "ticks") {
+    // a line chart drawn on over the stripes
+    const q = Math.min(1, t / 2.5), n = 30; ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1.5, U * 0.004); ctx.globalAlpha = ap; ctx.beginPath();
+    for (let k = 0; k <= n * q; k++) { const f = k / n, y = H * (0.78 - 0.18 * f - 0.03 * Math.sin(k * 0.9)); k ? ctx.lineTo(W * (0.06 + 0.88 * f), y) : ctx.moveTo(W * 0.06, y); }
+    ctx.stroke();
+  } else if (de === "pictorun") {
+    // a pictogram runner, legs and arms swinging
+    const cx = W * 0.8, cy = H * 0.8, s2 = U * 0.12, ph = t * 6, hip = [cx, cy - s2 * 0.2], sh = [cx + s2 * 0.1, cy - s2 * 0.85];
+    ctx.globalAlpha = ap; ctx.strokeStyle = tk.ink; ctx.fillStyle = tk.ink; ctx.lineWidth = s2 * 0.22; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(cx + s2 * 0.15, cy - s2 * 1.25, s2 * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(sh[0], sh[1]); ctx.lineTo(hip[0], hip[1]); ctx.stroke();
+    [0, Math.PI].forEach((o) => { const a = Math.sin(ph + o) * 0.8; ctx.beginPath(); ctx.moveTo(hip[0], hip[1]); ctx.lineTo(hip[0] + Math.sin(a) * s2 * 0.6, hip[1] + Math.cos(a) * s2 * 0.6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sh[0], sh[1]); ctx.lineTo(sh[0] - Math.sin(a) * s2 * 0.5, sh[1] + Math.cos(a) * s2 * 0.5); ctx.stroke(); });
+  } else if (de === "trails") {
+    // the bright heads of cars moving along the light trails
+    ctx.globalCompositeOperation = "lighter";
+    [[tk.a1, 0.72, 1, 0], [tk.a3, 0.78, -1, 0.5], ["#ffffff", 0.84, 1, 0.25]].forEach(([c, fy, d, off]) => { const f = (t * 0.18 + off) % 1, xx = d > 0 ? W * f : W * (1 - f), g = ctx.createRadialGradient(xx, H * fy, 0, xx, H * fy, U * 0.05); g.addColorStop(0, c); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.globalAlpha = 0.6 * ap; ctx.fillStyle = g; ctx.fillRect(xx - U * 0.05, H * fy - U * 0.05, U * 0.1, U * 0.1); });
+  } else if (de === "players") {
+    // players as dots, and a pass drawn between two of them
+    [[0.3, 0.62, tk.a2], [0.55, 0.7, tk.a2], [0.7, 0.58, "#1565c0"], [0.42, 0.75, "#1565c0"]].forEach(([fx, fy, c], k) => { ctx.globalAlpha = ap; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(W * fx + Math.sin(t * 0.8 + k) * U * 0.01, H * fy, U * 0.016, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = U * 0.003; ctx.stroke(); });
+    const q = Math.min(1, Math.max(0, (t - 0.8) / 0.8)); if (q > 0) { ctx.strokeStyle = tk.a1; ctx.lineWidth = U * 0.006; ctx.setLineDash([U * 0.015, U * 0.01]); ctx.beginPath(); ctx.moveTo(W * 0.3, H * 0.62); ctx.lineTo(W * (0.3 + 0.25 * q), H * (0.62 + 0.08 * q)); ctx.stroke(); ctx.setLineDash([]); }
+  } else if (de === "redcircle") {
+    // a red mark moving along the timeline, pulsing
+    const x0 = W * (0.06 + 0.88 * ((t * 0.05) % 1)), r = U * (0.02 + 0.006 * Math.sin(t * 4));
+    ctx.globalAlpha = ap; ctx.strokeStyle = tk.a1; ctx.lineWidth = U * 0.004; ctx.beginPath(); ctx.arc(x0, H * 0.8, r, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = tk.a1; ctx.fillRect(x0 - 1, H * 0.8 - U * 0.05, 2, U * 0.05);
+  } else if (de === "clock") {
+    // a huge faint number counting down behind everything
+    ctx.globalAlpha = 0.08 * ap; ctx.fillStyle = tk.ink; ctx.font = vsGxFont(tk.disp, U * 0.8); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(Math.max(0, 10 - Math.floor(t))), W / 2, H * 0.55);
+  } else if (de === "wedge") {
+    // a black bar swinging into place
+    const q = mv.e(Math.min(1, t / 0.8)); ctx.translate(W * 0.15, H * 0.15); ctx.rotate(-0.5 + 0.3 * q); ctx.globalAlpha = ap; ctx.fillStyle = tk.ink; ctx.fillRect(0, 0, U * 0.5 * q, U * 0.04);
+  } else if (de === "fluoro") {
+    // now and then the fluorescent tubes dip
+    const f = Math.sin(t * 50) > 0.97 ? 0.15 : 0; if (f) { ctx.globalAlpha = f; ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, W, H); }
+  } else if (de === "timerbar") {
+    // the timer bar draining, red at the end
+    const f = Math.max(0, 1 - (t % 5) / 5); ctx.globalAlpha = ap; ctx.fillStyle = f > 0.3 ? tk.a3 : "#ff3b30"; ctx.fillRect(W * 0.08, H * 0.04, W * 0.84 * f, U * 0.03);
+  } else if (de === "fireflies") {
+    // glowing motes drifting over the lower layers
+    ctx.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 14; k++) { const fx = Math.sin(k * 12.3) * 0.5 + 0.5, fy = 0.5 + (Math.sin(k * 7.7) * 0.5 + 0.5) * 0.4; ctx.globalAlpha = ap * (0.4 + 0.4 * Math.sin(t * 2 + k)); ctx.fillStyle = "#fff2a8"; ctx.fillRect(W * fx + Math.sin(t * 0.7 + k) * U * 0.03, H * fy + Math.cos(t * 0.5 + k * 2) * U * 0.03, U * 0.006, U * 0.006); }
+  } else if (de === "searchlights") {
     // two searchlights sweeping slowly from the foot
     ctx.globalCompositeOperation = "lighter";
     [[0.15, 1], [0.85, -1]].forEach(([fx, d], k) => {
@@ -18568,7 +19033,23 @@ function vsGxOverlay(ctx, W, H, t, tk, st, U, sc) {
   const fr = st.fr;
   if (!fr || fr === "none") return;
   ctx.save();
-  if (fr === "reel") {
+  if (fr === "eyepiece") {
+    // the round field of a microscope: dark outside, a fine reticle, a scale bar
+    const R = Math.min(W, H) * 0.47;
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H / 2, R, 0, Math.PI * 2); ctx.fillStyle = "#020304"; ctx.fill("evenodd");
+    const vg = ctx.createRadialGradient(W / 2, H / 2, R * 0.7, W / 2, H / 2, R); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.6)"); ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(W / 2, H / 2, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = tk.a1; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W / 2 - R * 0.95, H / 2); ctx.lineTo(W / 2 + R * 0.95, H / 2); ctx.moveTo(W / 2, H / 2 - R * 0.95); ctx.lineTo(W / 2, H / 2 + R * 0.95); ctx.stroke();
+    ctx.globalAlpha = 0.9; ctx.fillStyle = tk.ink; ctx.fillRect(W / 2 + R * 0.35, H / 2 + R * 0.75, R * 0.3, Math.max(2, U * 0.006));
+  } else if (fr === "camcorder") {
+    // a home camera's viewfinder: a blinking REC, a running clock, corners, faint lines
+    const m = U * 0.05; ctx.font = vsGxFont(tk.body, U * 0.045); ctx.textBaseline = "top";
+    if (Math.floor(t * 2) % 2 === 0) { ctx.fillStyle = "#ff3030"; ctx.beginPath(); ctx.arc(m + U * 0.015, m + U * 0.022, U * 0.013, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "left"; ctx.fillText("REC", m + U * 0.04, m);
+    const tc = Math.floor(t); ctx.textAlign = "right"; ctx.fillText("00:" + String(Math.floor(tc / 60)).padStart(2, "0") + ":" + String(tc % 60).padStart(2, "0"), W - m, m);
+    ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = U * 0.003; const L = U * 0.06;
+    [[m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([x1, y1, dx, dy]) => { ctx.beginPath(); ctx.moveTo(x1 + dx * L, y1); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 + dy * L); ctx.stroke(); });
+    ctx.globalAlpha = 0.06; ctx.fillStyle = "#000000"; for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+  } else if (fr === "reel") {
     // the newsreel print: warm silver, a gentle flicker, sprocket holes down one edge
     ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = "#808080"; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "#efe7d6"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over";
