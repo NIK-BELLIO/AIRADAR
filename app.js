@@ -11645,7 +11645,7 @@ const VS_PRO_PACKS = {
            grade: "contrast(1.08) saturate(1.06) brightness(1.02)", warm: "rgba(255,190,130,0.05)", noBw: true, trans: ["wipe", "zoomblur", "wipe", "expo"] },
   // Copied from the handheld walk-and-talk reel: one word at a time in a
   // heavy white serif, at the chest.
-  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true }, line: true, maxWords: 1, maxLetters: 14, blockLines: 3,
+  serif: { hero: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true }, line: true, maxWords: 1, maxLetters: 14,
            small: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], enter: "flip", shade: true },
            single: { fam: "DM Serif Display", w: 400, size: 0.11, colors: ["#ffffff"], y: 0.5, enter: "flip", shade: true },
            grade: "contrast(1.06) saturate(1.08)", warm: "", noBw: true, trans: ["rack", "leak", "rack", "zoomblur"] },
@@ -11947,11 +11947,10 @@ const VS_PRO_PACE = {
 };
 const VS_PACE = {
   //        a phrase spans   breaks at a pause  commas  least on screen  after the last word  enter speed  fade out  cut every
-  // (lines: phrases a block builds up to; block: the longest it spans; read:
-  // the least time its last phrase stays once said)
-  calm:   { span: 2.8, gap: 0.5, comma: false, hold: 2.4, linger: 1.2, spd: 0.62, outT: 0.38, cutEvery: 4, bars: 0, energy: "medium", lines: 3, block: 5.2, read: 0.6 },
-  medium: { span: 2.1, gap: 0.4, comma: true, hold: 1.9, linger: 1.0, spd: 0.8, outT: 0.28, cutEvery: 3, bars: 2, energy: null, lines: 2, block: 4.2, read: 0.5 },
-  punchy: { span: 1.6, gap: 0.32, comma: true, hold: 1.5, linger: 0.85, spd: 1, outT: 0.2, cutEvery: 2, bars: 1, energy: "high", lines: 2, block: 3.2, read: 0.4 },
+  // (block: the longest stretch of a sentence one set of designed words stands for)
+  calm:   { span: 2.8, gap: 0.5, comma: false, hold: 2.4, linger: 1.2, spd: 0.62, outT: 0.38, cutEvery: 4, bars: 0, energy: "medium", block: 5.2 },
+  medium: { span: 2.1, gap: 0.4, comma: true, hold: 1.9, linger: 1.0, spd: 0.8, outT: 0.28, cutEvery: 3, bars: 2, energy: null, block: 4.2 },
+  punchy: { span: 1.6, gap: 0.32, comma: true, hold: 1.5, linger: 0.85, spd: 1, outT: 0.2, cutEvery: 2, bars: 1, energy: "high", block: 3.2 },
 };
 function vsProPace(id) { return VS_PACE[VS_PRO_PACE[id] || "medium"]; }
 function vsProGroups(s) {
@@ -11985,29 +11984,53 @@ function vsProGroups(s) {
     const endsSentence = /[.!?؟]["')”]*$/.test(ws[a[a.length - 1]].w);
     if (shown < P.hold && !endsSentence && a.length + b.length <= maxW + 1 && letters <= maxL + 6) { idx.splice(i, 2, a.concat(b)); i--; }
   }
-  // Blocks, the way the reference reels set their words: a phrase lands, the
-  // next is added under it while the first stays, and the block leaves
-  // together at the end of the sentence - not one phrase swapped for the next
-  // every second, which could not be read.
+  const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
+  const wordScore = (w) => { const c = key(w); return (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) ? 0 : 10) + c.length; };
+  // A caption look (one line of words) captions every phrase. Every other
+  // look is designed type, as in the reference reels - not subtitles: for
+  // each stretch of a sentence it sets the few words that carry it (the hero
+  // and its neighbours), each landing as it is said, and holds them, behind
+  // the speaker, until the next stretch's words come.
   const endsS = (ph) => /[.!?؟]["')”]*$/.test(ws[ph[ph.length - 1]].w);
-  const nLines = pk.blockLines || P.lines || 1;
   const blocks = [];
   idx.forEach((ph) => {
     const b = blocks[blocks.length - 1];
-    if (b) {
+    if (b && !pk.line) {
       const lastPh = b.ph[b.ph.length - 1];
       const gap = ws[ph[0]].t0 - ws[lastPh[lastPh.length - 1]].t1;
       const span = ws[ph[ph.length - 1]].t1 - ws[b.ph[0][0]].t0;
-      const words = b.ph.reduce((n, x) => n + x.length, 0) + ph.length;
-      const fits = b.ph.length < nLines && span <= P.block && words <= (pk.line ? maxW * nLines + 1 : maxW * 2 + 1);
-      // the short end of the sentence goes with it, one line more if need be
-      // ("next year." left alone was gone before it could be read)
-      const tail = ph.length <= 2 && endsS(ph) && span <= P.block + 0.9 && b.ph.length <= nLines;
-      if (!endsS(lastPh) && gap <= P.gap * 1.6 && (fits || tail)) { b.ph.push(ph); return; }
+      if (!endsS(lastPh) && gap <= P.gap * 1.6 && span <= P.block) { b.ph.push(ph); return; }
     }
     blocks.push({ ph: [ph] });
   });
-  const key = (x) => x.toLowerCase().replace(/[^\p{L}\p{N}$%]/gu, "");
+  if (!pk.line) blocks.forEach((b) => {
+    // the words the edit plan chose for this sentence, when it chose some
+    const all = [].concat(...b.ph), ki = all.findIndex((k) => ws[k].key);
+    if (ki >= 0) {
+      let e = ki;
+      while (e + 1 < all.length && ws[all[e + 1]].key && e - ki < maxW) e++;
+      b.ph = [all.slice(ki, e + 1)];
+      return;
+    }
+    // else one whole phrase of the stretch, as it was spoken ("price will drop",
+    // never "price will drop next"): the one whose words carry the most, the
+    // earlier the better - so it stays the longest. Its leading "and"/"the"
+    // are left out.
+    let pick = b.ph[0], best = -1e9;
+    b.ph.forEach((ph, i) => {
+      const words = ph.filter((k) => key(ws[k].w));
+      if (!words.length) return;
+      const strong = words.filter((k) => !VS_PRO_STOP.has(key(ws[k].w))).length;
+      const sc = words.reduce((m, k) => m + wordScore(ws[k].w), 0) / Math.sqrt(words.length) + strong * 4 - i * 7;
+      if (sc > best) { best = sc; pick = ph; }
+    });
+    let a = 0;
+    while (a < pick.length - 1 && VS_PRO_STOP.has(key(ws[pick[a]].w)) && /^(and|or|but|so|the|a|an|then)$/.test(key(ws[pick[a]].w))) a++;
+    // nor does it end on one ("expensive market like")
+    let e = pick.length;
+    while (e - 1 > a && !/[.!?؟]["')”]*$/.test(ws[pick[e - 1]].w) && (VS_PRO_STOP.has(key(ws[pick[e - 1]].w)) || /^(like|than|as|of|to)$/.test(key(ws[pick[e - 1]].w)))) e--;
+    b.ph = [pick.slice(a, e)];
+  });
   const shape = (g) => {
     // its lines: a phrase each (typed-in words: as many as fit a line)
     g.lines = [];
@@ -12025,8 +12048,7 @@ function vsProGroups(s) {
     }
     let hero = 0, best = -1;
     g.items.forEach((it, j) => {
-      const c = key(it.w);
-      const sc = (/\d/.test(c) ? 30 : 0) + (VS_PRO_STOP.has(c) ? 0 : 10) + c.length;
+      const sc = wordScore(it.w);
       if (sc > best) { best = sc; hero = j; }
     });
     g.hero = hero;
@@ -12055,21 +12077,14 @@ function vsProGroups(s) {
     g.items = nw.map((w, k) => ({ w, t0: a + k * lag, t1: a + (k + 1) * step }));
     shape(g);
   });
-  for (let i = 1; i < groups.length; i++) {
-    const pl = groups[i - 1].items[groups[i - 1].items.length - 1], g = groups[i];
-    const want = pl.t1 + (P.read || 0), lag = want - g.t0;
-    // (and only where it still has its own time before the block after it)
-    const nx = groups[i + 1];
-    if (lag <= 0 || lag > 0.6 || (nx && nx.t0 - want < P.hold * 0.8)) continue;
-    g.t0 = want;
-    g.items.forEach((it, k) => { if (it.t0 < want + k * 0.07) { it.t0 = want + k * 0.07; it.t1 = Math.max(it.t1, it.t0 + 0.1); } });
-  }
   groups.forEach((g, i) => {
     const last = g.items[g.items.length - 1];
     const next = groups[i + 1];
     // on screen until the next group, or a while after its last word when
-    // the speaker pauses - never less than the look's least time on screen
-    g.t1 = Math.min(dur, next ? Math.min(next.t0, Math.max(last.t1 + P.linger, g.t0 + P.hold)) : last.t1 + P.linger);
+    // the speaker pauses - never less than the look's least time on screen.
+    // Designed words stay through the rest of their sentence.
+    const stay = pk.line ? Math.max(last.t1 + P.linger, g.t0 + P.hold) : Math.max(last.t1 + 3, g.t0 + P.hold);
+    g.t1 = Math.min(dur, next ? Math.min(next.t0, stay) : Math.max(last.t1 + P.linger, pk.line ? 0 : g.t0 + P.hold));
   });
   s._proG = { n: ws.length, d: dur, e: s._proEditV || 0, p: s._pro, g: groups };
   return groups;
@@ -12142,11 +12157,8 @@ function vsProLayout(ctx, W, H, g, gi, pack, coverOf, face, avoid) {
   const capH = hero.st.upper || hero.st.fam === "Bebas Neue" ? 0.72 : 0.62;
   // (a look with pack.clear keeps them just clear of it instead, as the
   // Alight Motion reel does)
-  // (a long small line - a block of a phrase or two - keeps clear of the
-  // hero too: tucked into its edge it ran across the big letters)
-  const long = (L) => (L.js.length >= 3 || L.m.tw > hero.m.tw * 0.7);
-  const upOf = (L) => long(L) ? hero.px * 0.47 + L.px * 0.7 : hero.px * capH * 0.5 + L.px * (pack.clear ? 0.66 : L.st.fam === "Sacramento" ? 0.12 : 0.22);
-  const downOf = (L) => single ? L.px * 1.14 : long(L) ? hero.px * (hero.st.upper ? 0.42 : 0.66) + L.px * 0.56 : hero.px * capH * 0.5 + L.px * (pack.clear ? 0.74 : L.st.fam === "Sacramento" ? 0.32 : 0.5);
+  const upOf = (L) => hero.px * capH * 0.5 + L.px * (pack.clear ? 0.66 : L.st.fam === "Sacramento" ? 0.12 : 0.22);
+  const downOf = (L) => single ? L.px * 1.14 : hero.px * capH * 0.5 + L.px * (pack.clear ? 0.74 : L.st.fam === "Sacramento" ? 0.32 : 0.5);
   const others = lines.filter((L) => L !== hero);
   const stack = (mode) => {
     const ys = new Map([[hero, 0]]);
@@ -15179,7 +15191,9 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
       if (behind && g._front && !(ed && ed.front === false)) behind = false;
       // placed across the head to go behind it, and nothing to put in front
       // of it: not drawn this frame rather than drawn on the face
-      if (wantBehind && !behind && !(ed && ed.front === false)) heroes.length = 0;
+      // (a word moved in front because the speaker moved is drawn there - it
+      // was checked clear of the face; it used to vanish here instead)
+      if (wantBehind && !behind && !g._front && !(ed && ed.front === false)) heroes.length = 0;
     }
     // the customer's move and size, around the group's own centre
     const bx0 = Math.min(...lay.words.map((w) => w.x)), bx1 = Math.max(...lay.words.map((w) => w.x + w.w));
@@ -22393,6 +22407,21 @@ async function vsEditMyVideo(fileIn, o) {
       if (!p.teaser) seenSentence[k] = true;
       const dur = Math.round((p.end - p.start) * 100) / 100;
       const local = p.words.map((w) => ({ w: w.w, t0: Math.max(0, w.s - p.start), t1: Math.max(0.05, w.e - p.start) }));
+      // the words the plan chose to show for each sentence: the designed
+      // looks set those, not every word
+      if (ai) {
+        const nrm = (x) => String(x).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+        const bySent = {};
+        p.words.forEach((w, j) => { const k3 = sentOf(w.s); (bySent[k3] = bySent[k3] || []).push(j); });
+        Object.keys(bySent).forEach((k3) => {
+          const want = String((sPlan[k3] || {}).text || "").split(/\s+/).map(nrm).filter(Boolean);
+          const js = bySent[k3];
+          if (!want.length) return;
+          for (let a = 0; a + want.length <= js.length; a++) {
+            if (want.every((x, q) => nrm(local[js[a + q]].w) === x)) { for (let q = 0; q < want.length; q++) local[js[a + q]].key = 1; break; }
+          }
+        });
+      }
       const zoomed = o.zoom && (ai ? sp.zoom === "tight" || !!p.teaser : i % 3 === 2);
       const settings = Object.assign({}, base, { _mediaScale: 1, _mediaDX: 0 });
       const slide = {
