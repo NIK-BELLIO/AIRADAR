@@ -11621,6 +11621,15 @@ async function vsClipLuma(el) {
 //   pop   - rounded heavy sans in yellow and cyan with a bold serif italic (reel 4)
 const VS_PRO_FONT_CSS = "https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Space+Grotesk:wght@500;600&family=Poppins:wght@600;700;800;900&family=Montserrat:wght@300;600;700;800;900&family=Bebas+Neue&family=Sacramento&family=DM+Serif+Display:ital@0;1&family=Anton&family=Oswald:wght@500;700&family=Manrope:wght@600;700;800&family=Lilita+One&family=Archivo+Black&family=Outfit:wght@500;800&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Bodoni+Moda:ital,wght@1,600&display=swap";
 const VS_PRO_PACKS = {
+  // Copied from the "raw / finished" podcast reel (Comment "W"): one small
+  // white word at a time low on the speaker; on the words that carry it a
+  // cut to a full-screen card - white with black words, or navy with white -
+  // each word turning from grey to ink as it is said, an outline icon above
+  // when the edit plan gave one; back on the speaker out of a blur.
+  cards: { hero: { fam: "Manrope", w: 600, size: 0.04, colors: ["#ffffff"], enter: "ink", shade: true, halo: "rgba(0,0,0,0.6)" }, line: true, maxWords: 1, maxLetters: 16, cards: true,
+           small: { fam: "Manrope", w: 600, size: 0.04, colors: ["#ffffff"], enter: "ink", shade: true, halo: "rgba(0,0,0,0.6)" },
+           single: { fam: "Manrope", w: 600, size: 0.04, colors: ["#ffffff"], y: 0.86, enter: "ink", shade: true, halo: "rgba(0,0,0,0.6)" },
+           grade: "contrast(1.03) saturate(1.02)", warm: "", noBw: true, outT: 0.08, trans: ["rack", "rack", "rack", "rack"] },
   // Copied from the podcast-clip reels (the mic reel, the Estate interview):
   // plain bold white words with a soft dark shadow, two or three at a time,
   // over the chest; jump cuts that switch between a wide and a close framing;
@@ -12533,7 +12542,7 @@ function vsProLeak(ctx, W, H, a, seed) {
 }
 
 // One word, at its own moment, with its pack's entrance.
-const VS_PRO_EXIT = { rise: "up", slide: "up", bounce: "up", snap: "shrink", focus: "shrink", pop: "shrink", shine: "shrink", blur: "grow", glitch: "grow", fade: "spread", type: "soft", write: "soft", flicker: "soft", karaoke: "soft",
+const VS_PRO_EXIT = { rise: "up", slide: "up", bounce: "up", snap: "shrink", focus: "shrink", pop: "shrink", shine: "shrink", blur: "grow", glitch: "grow", fade: "spread", ink: "soft", type: "soft", write: "soft", flicker: "soft", karaoke: "soft",
   drop: "down", cascade: "down", mask: "down", elastic: "shrink", zoomin: "shrink", ripple: "shrink", slam: "grow", bloom: "grow", track: "grow", flip: "flip", unfold: "flip",
   wave: "up", roll: "up", spin: "spinout", stretch: "squash", sweep: "left", split: "left", skew: "left", glide: "left", kick: "right", draw: "soft" };
 function vsProWord(ctx, wd, local, out, F, W, H) {
@@ -12704,6 +12713,13 @@ function vsProWord(ctx, wd, local, out, F, W, H) {
     }
     ctx.globalAlpha = out * (since < 0 ? (st.dim || 0.55) : st.karaoke ? 1 : (st.dim || 0.55) + (1 - (st.dim || 0.55)) * Math.min(1, since / 0.12));
     ctx.fillStyle = fill; paint(wd.text, wd.x, cy);
+  } else if (st.enter === "ink") {
+    // there at once, grey, turning full white in a moment (the Word cards reel)
+    const p = Math.max(0, Math.min(1, since / 0.16));
+    ctx.globalAlpha = out * (0.45 + 0.55 * p);
+    ctx.fillStyle = p < 1 ? "rgba(190,190,190,1)" : fill;
+    paint(wd.text, wd.x, cy);
+    if (p < 1) { ctx.globalAlpha = out * p; ctx.fillStyle = fill; paint(wd.text, wd.x, cy); }
   } else if (st.enter === "rise") {
     // letters rise into place one after another, smeared on the way up
     wd.pieces.forEach((c, j) => {
@@ -15062,6 +15078,76 @@ function vsProBeatReframes(slides) {
 
 // The whole pro frame: graded picture, camera, words in front of and behind
 // the speaker, light.
+// The Word cards look's full-screen cards: the phrases (up to three words,
+// broken at punctuation and pauses) holding the words the edit plan chose -
+// or, with no plan, the strongest phrase of every other longer cut. A run of
+// card phrases alternates white and navy, as the reel does.
+function vsProCards(s) {
+  const v = s._voice;
+  if (!v || !v.words || !v.words.length) return [];
+  const dur = Number(s.duration) || 4;
+  if (s._cardsC && s._cardsC.n === v.words.length && s._cardsC.d === dur) return s._cardsC.c;
+  const ws = v.words, ph = [];
+  let cur = [];
+  ws.forEach((w, k) => {
+    if (w.t0 >= dur - 0.15) return;
+    if (cur.length) { const pw = ws[cur[cur.length - 1]]; if (cur.length >= 3 || /[.,!?;:،؟]["')”]*$/.test(pw.w) || w.t0 - pw.t1 > 0.35) { ph.push(cur); cur = []; } }
+    cur.push(k);
+  });
+  if (cur.length) ph.push(cur);
+  const keyed = ph.map((pp) => pp.some((k) => ws[k].key));
+  // a run, as the reel has them ("everything has been" - "flattened out"):
+  // the phrase after a card's, in the same sentence, is a card as well
+  for (let i = ph.length - 2; i >= 0; i--) if (keyed[i] && !keyed[i + 1] && !/[.!?؟]["')”]*$/.test(ws[ph[i][ph[i].length - 1]].w)) keyed[i + 1] = "run";
+  if (!keyed.some(Boolean) && dur > 2.6 && s._cardAlt && ph.length > 1) {
+    let bi = 0, bs = -1;
+    ph.forEach((pp, i) => { const sc = pp.reduce((m, k) => m + String(ws[k].w).replace(/[^\p{L}\p{N}]/gu, "").length + (/\d/.test(ws[k].w) ? 8 : 0), 0); if (i > 0 && sc > bs) { bs = sc; bi = i; } });
+    keyed[bi] = true;
+  }
+  const out = [];
+  let alt = s._cardBg || 0;
+  ph.forEach((pp, i) => {
+    if (!keyed[i]) return;
+    const t0 = Math.max(0, ws[pp[0]].t0 - 0.04), nextT = ph[i + 1] ? ws[ph[i + 1][0]].t0 : dur;
+    const t1 = Math.min(dur, keyed[i + 1] ? nextT : Math.max(ws[pp[pp.length - 1]].t1 + 0.25, t0 + 0.6));
+    // mostly white, navy every third card - as in the reel
+    const c = { t0, t1, items: pp.map((k) => ({ w: String(ws[k].w).replace(/^["'(“]+|["')”,;:.!?؟،]+$/g, ""), t0: ws[k].t0 })).filter((x) => x.w), navy: alt++ % 3 === 1, icon: pp.map((k) => ws[k].icon).find(Boolean) || "" };
+    if (c.icon) { c.navy = false; vsGxIcon(c.icon, "#111111").then((im) => { c.img = im; }).catch(() => {}); }
+    if (c.items.length) out.push(c);
+  });
+  s._cardsC = { n: v.words.length, d: dur, c: out };
+  return out;
+}
+function vsProCardDraw(ctx, W, H, c, local) {
+  const U = Math.min(W, H * 0.5625), px = U * 0.052;
+  const bg = c.navy ? "#0b1f4f" : "#ffffff", ink = c.navy ? "#ffffff" : "#111111", dim = c.navy ? [255, 255, 255, 0.28] : [17, 17, 17, 0.22];
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = "none";
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const shown = c.items.filter((it) => it.t0 <= local + 0.03);
+  if (!shown.length) shown.push(c.items[0]);
+  const rtl = shown.some((it) => /[؀-ۿ]/.test(it.w));
+  const br = c.navy && c.items.length === 1;
+  ctx.font = '600 ' + Math.round(px) + 'px "Manrope", "Vazirmatn", system-ui, sans-serif';
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  const toks = shown.map((it) => ({ t: br ? "[ " + it.w + " ]" : it.w, t0: it.t0 }));
+  const sp = px * 0.28, wds = toks.map((x) => ctx.measureText(x.t).width), tw = wds.reduce((m, v) => m + v, 0) + sp * (toks.length - 1);
+  const img = c.img && (c.img.naturalWidth || c.img.width) ? c.img : null;
+  const ty = img ? H * 0.545 : H * 0.5;
+  if (img) {
+    const isz = U * 0.17, a = Math.min(1, Math.max(0, (local - c.t0) / 0.25));
+    ctx.globalAlpha = a; ctx.drawImage(img, W / 2 - isz / 2, H * 0.43 - isz / 2, isz, isz); ctx.globalAlpha = 1;
+  }
+  let x = W / 2 - tw / 2;
+  const order = rtl ? toks.map((_, i) => toks.length - 1 - i) : toks.map((_, i) => i);
+  order.forEach((i) => {
+    const k = Math.min(1, Math.max(0, (local - toks[i].t0) / 0.18));
+    const col = c.navy ? "rgba(255,255,255," + (dim[3] + (1 - dim[3]) * k).toFixed(3) + ")" : "rgba(17,17,17," + (dim[3] + (1 - dim[3]) * k).toFixed(3) + ")";
+    ctx.fillStyle = k >= 1 ? ink : col;
+    ctx.fillText(toks[i].t, x, ty);
+    x += wds[i] + sp;
+  });
+  ctx.restore();
+}
 function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   const pack = VS_PRO_PACKS[s._pro] || VS_PRO_PACKS.clean;
   const media = s.mediaEl;
@@ -15310,8 +15396,26 @@ function vsProDrawFrame(ctx, W, H, s, idx, local, dur, off) {
   if (idx === 0 && !ins) { if (pack.badge) vsProBadge(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), F, pack); else vsProNameCard(ctx, W, H, local - 0.6, Math.min(3.6, dur - 0.8), pack); }
   if (idx === vstudio.slides.length - 1) vsProCta(ctx, W, H, local - Math.max(0, dur - 3.2), 3.2, pack);
   // the opening comes out of a light leak
-  if (idx === 0 && local < 0.8) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
+  if (idx === 0 && local < 0.8 && !pack.cards) vsProLeak(ctx, W, H, Math.pow(1 - local / 0.8, 1.5), 0.2);
   ctx.restore();
+  if (pack.cards && !s._broll && !ins) {
+    const cs = vsProCards(s), c = cs.find((x) => local >= x.t0 && local < x.t1);
+    if (c) vsProCardDraw(ctx, W, H, c, local);
+    else {
+      // back on the speaker out of a blur, a little bright
+      const prev = cs.find((x) => local >= x.t1 && local - x.t1 < 0.24);
+      if (prev) {
+        const k = 1 - (local - prev.t1) / 0.24;
+        const B = vstudio._cardBlurC || (vstudio._cardBlurC = document.createElement("canvas"));
+        if (B.width !== W || B.height !== H) { B.width = W; B.height = H; }
+        const bx = B.getContext("2d"); bx.setTransform(1, 0, 0, 1, 0, 0); bx.clearRect(0, 0, W, H); bx.drawImage(ctx.canvas, 0, 0);
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+        try { ctx.filter = "blur(" + (k * Math.min(W, H) * 0.03).toFixed(1) + "px) brightness(" + (1 + 0.25 * k).toFixed(2) + ")"; } catch (e) {}
+        const z = 1 + 0.04 * k; ctx.drawImage(B, (W - W * z) / 2, (H - H * z) / 2, W * z, H * z);
+        ctx.restore();
+      }
+    }
+  }
   return true;
 }
 
@@ -15717,6 +15821,7 @@ const VS_GX_PALETTES = [
   ["cyan", 1, "#07090f", "#10131c", "#f4f7ff", "#7f8aa3", "#25e0ff", "#ff3d9a", "#b6ff3b"],
   ["violet", 1, "#0a0614", "#151026", "#f5f0ff", "#8b81a8", "#a855f7", "#22d3ee", "#f472b6"],
   ["lime", 1, "#060a06", "#0f150f", "#f2fff0", "#7d9a7a", "#b6ff3b", "#39d0ff", "#ff8a00"],
+  ["arena", 1, "#040304", "#0a0f0a", "#ffffff", "#a7a8a4", "#78fc00", "#b8ff5c", "#3dff6e"],
   ["sunset", 1, "#0d0710", "#1a0f1d", "#fff3ec", "#a88a92", "#ff7a18", "#ff2e63", "#ffd166"],
   ["white", 0, "#f7f7f5", "#ffffff", "#111214", "#9a9ca1", "#ff3b1f", "#111214", "#2563ff"],
   ["bone", 0, "#ece8df", "#f6f3ec", "#141414", "#8e8a80", "#e4002b", "#141414", "#0057b8"],
@@ -15828,7 +15933,7 @@ const VS_GX_FONTS = [
   ["marker", "Permanent Marker", 400, 0, "Caveat", 600],
   ["chalk", "Cabin Sketch", 700, 0, "Gochi Hand", 400],
 ];
-const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Patrick+Hand&family=Cormorant:wght@600;700&family=Kalam:wght@400;700&family=Sacramento&family=Fredoka:wght@500;600;700&family=Marcellus&family=Shrikhand&family=Oleo+Script:wght@700&family=Bowlby+One&family=Alfa+Slab+One&family=Courier+Prime:wght@700&family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@700&family=EB+Garamond:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Grenze+Gotisch:wght@800&family=Grenze:wght@500&family=Barlow+Semi+Condensed:wght@600;800&family=Overpass:wght@600;800&family=Bodoni+Moda:wght@700&family=Pinyon+Script&family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@600&family=Caveat:wght@600;700&family=Jost:wght@500;600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@700;900" +
+const VS_GX_FONT_CSS = "https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Patrick+Hand&family=Cormorant:wght@600;700&family=Kalam:wght@400;700&family=Sacramento&family=Fredoka:wght@500;600;700&family=Marcellus&family=Shrikhand&family=Oleo+Script:wght@700&family=Bowlby+One&family=Alfa+Slab+One&family=Courier+Prime:wght@700&family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@700&family=EB+Garamond:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Grenze+Gotisch:wght@800&family=Grenze:wght@500&family=Barlow+Semi+Condensed:wght@600;800&family=Overpass:wght@600;800&family=Bodoni+Moda:wght@700&family=Pinyon+Script&family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@600&family=Caveat:wght@600;700&family=Jost:wght@500;600&family=Limelight&family=Josefin+Sans:wght@600;800&family=League+Gothic&family=League+Spartan:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;800&family=Share+Tech+Mono&family=IM+Fell+English+SC&family=Old+Standard+TT:wght@400;700&family=Archivo+Black&family=Archivo:wght@500;800&family=Space+Grotesk:wght@500;700&family=Arimo:ital,wght@0,400;0,700;1,400;1,700&family=Heebo:wght@300;400;700&family=Montserrat:wght@500;600;700;900" +
   "&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Unbounded:wght@800&family=Sora:wght@400;800&family=DM+Serif+Display" +
   "&family=Instrument+Serif:ital@0;1&family=Libre+Caslon+Text:wght@400;700&family=Fraunces:opsz,wght@9..144,800&family=Anton&family=Bebas+Neue" +
   "&family=Oswald:wght@700&family=JetBrains+Mono:wght@500;800&family=VT323&family=Lilita+One&family=Baloo+2:wght@600;700;800&family=Bangers" +
@@ -16077,6 +16182,12 @@ const VS_GX_STYLES = [
     el: ["flat", "ph-fill"], bg: "flat", al: "l", tt: "tape", ef: "tile", ec: "paper", ls: "number", de: "none", fr: "ticker", cp: "box", kd: "block", tr: ["wipe", "flash"] },
   { id: "neon", te: "none", n: ["Neon night", "شب نئون"], cat: "dark", pals: ["cyan", "violet", "lime", "sunset"], fonts: ["anton", "bebas", "unbounded", "mono"],
     el: ["ph-thin", "ph-light"], bg: "grain", al: "c", tt: "glow", ef: "glow", ec: "a1", ls: "glow", de: "orbs", fr: "none", cp: "glow", kd: "glowbox", tr: ["zoomblur", "flash"] },
+  // Copied from the athlete personal-brand reel (wscreations): black, one
+  // neon green, condensed capitals - the first line white, the rest green and
+  // glowing - small spaced capitals above, thin green line art, green flashes
+  // between scenes, no captions over it.
+  { id: "arena", arena: true, ownCuts: true, te: "rise", two: true, kickPlain: true, noCaps: true, n: ["Neon arena", "صحنهٔ نئون"], cat: "dark", pals: ["arena"], fonts: ["bebas", "anton"],
+    el: ["tb", "ph-thin"], bg: "grain", al: "c", tt: "glow", ef: "glow", ec: "paper", ls: "glow", de: "arena", fr: "none", cp: "glow", kd: "none", tr: ["flash", "zoomblur"] },
   { id: "swiss", te: "slideL", n: ["Swiss grid", "شبکهٔ سوئیسی"], cat: "clean", pals: ["white", "bone", "sand", "slate"], fonts: ["grotesk", "bricolage", "archivo"],
     el: ["ph-bold", "ph-fill"], bg: "swiss", al: "l", tt: "swiss", ef: "plain", ec: "ink", ls: "number", de: "none", fr: "index", cp: "plain", kd: "square", tr: ["whip", "wipe"] },
   { id: "cutout", n: ["Paper cut-out", "کاغذ بریده"], cat: "hand", pals: ["kraft", "cream", "pinkpop", "peach"], fonts: ["archivoblack", "kids", "shrik"],
@@ -16162,6 +16273,7 @@ function vsGxTheme(id) {
 // picks one of the styles and one of its palettes; words of the topic decide
 // when it cannot be asked.
 const VS_GX_TOPIC_WORDS = [
+  [/athlet|sport|football|soccer|basketball|training|workout|coach|personal brand|ورزش|فوتبال|بسکتبال|تمرین|مربی|برند شخصی/i, "arena"],
   [/money|financ|price|invest|stock|market|bank|tax|budget|econom|inflation|salary|crypto|bitcoin|dollar|پول|قیمت|سرمایه|بورس|دلار|اقتصاد|تورم|حقوق|مالیات|ارز/i, "dataviz"],
   [/real estate|house|home|property|rent|mortgage|apartment|ملک|مسکن|خانه|اجاره|آپارتمان|وام/i, "iso"],
   [/\bai\b|artificial intelligence|tech|software|app\b|startup|launch|phone|gadget|هوش مصنوعی|فناوری|تکنولوژی|اپلیکیشن|گوشی|استارتاپ/i, "keynote"],
@@ -16183,6 +16295,7 @@ const VS_GX_TOPIC_WORDS = [
 ];
 // what a style suits best, so the pick is made on meaning and not on name alone
 const VS_GX_FITS = {
+  arena: "sport, athletes, training, a personal brand, motivation",
   dataviz: "money, prices, rates, statistics, the economy", dataphysical: "numbers and growth told calmly", iso: "real estate, homes, cities, how systems fit together",
   keynote: "a product, app or tech launch", screencast: "software, coding, websites", glassproduct: "a physical product or gadget",
   newsreel: "history, the past, how things used to be", silent: "old stories, comedy", newspackage: "current news and politics", captionnews: "short news with the sound off",
@@ -17321,6 +17434,383 @@ function vsGxLeafCanvas() {
   vsGxLeaves = b;
   return b;
 }
+// ── Neon arena: the athlete personal-brand reel (wscreations), scene by scene ──
+// Black, one neon green (#78fc00), Anton capitals - white, then green and
+// glowing - Montserrat spaced capitals for the small lines, JetBrains Mono for
+// the camera readouts. Nine kinds of scene, as the reel has them: a clock
+// face, a spotlight question, a pitch, a list over a rising line, a camera
+// viewfinder, a phone counting followers, a search bar, rings, an end card.
+// Laid out on the reel's own 720x1280 grid and scaled to the frame.
+function vsArenaKind(sc) {
+  const i = sc._idx || 0, n = sc._n || 1, ty = sc.type, title = String(sc.title || "");
+  if (n > 1 && i === n - 1) return "rings";
+  if (i === 0) return "clock";
+  if (ty === "list" || ty === "compare" || ty === "timeline" || ty === "chart" || ty === "objects") return "list";
+  if (ty === "stat") return "phone";
+  if (ty === "photo") return "rec";
+  if (/[?؟]\s*$/.test(title)) return "spot";
+  if (n > 3 && i === n - 2) return "search";
+  return ["rec", "spot", "court"][i % 3];
+}
+function vsArenaScene(ctx, W, H, sc, t, dur, tk) {
+  // (a wide or square frame scales to the scenes' own height - the reel is
+  // vertical, and at its full 9:16 height they were a thin column)
+  const S = H > W * 1.3 ? Math.min(W / 720, H / 1280) : H / 1100, X = (x) => W / 2 + (x - 360) * S, Y = (y) => H / 2 + (y - 640) * S;
+  const G = tk.a1 || "#78fc00", WHITE = "#f3f3f0", GREY = "#a7a8a4";
+  const cl = (u) => Math.max(0, Math.min(1, u)), eo = (u) => 1 - Math.pow(1 - cl(u), 3);
+  const eio = (u) => { u = cl(u); return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; };
+  const hr = (n) => { const v = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
+  const ANTON = '"Anton", "Vazirmatn", sans-serif', MONT = '"Montserrat", "Vazirmatn", sans-serif', MONO = '"JetBrains Mono", monospace';
+  const font = (w, px, fam) => w + " " + Math.max(1, Math.round(px)) + "px " + fam;
+  const up = (s) => String(s || "").toUpperCase();
+  const words = (s) => up(s).split(/\s+/).filter(Boolean);
+  const idx = sc._idx || 0, kind = vsArenaKind(sc);
+  const handle = (vstudio._proCard && vstudio._proCard.name) || "";
+
+  // ── the ground: near black, two green glows breathing, streaks, dust ──
+  ctx.save();
+  ctx.fillStyle = "#040304"; ctx.fillRect(0, 0, W, H);
+  const blob = (x, y, r, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, vsHexA(G, a)); g.addColorStop(1, vsHexA(G, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); };
+  const T = t + idx * 3.1;
+  blob(W * 0.28 + Math.sin(T * 0.31) * W * 0.04, H * 0.2, Math.max(W, H) * 0.34, 0.15);
+  blob(W * 0.74, H * 0.8 + Math.cos(T * 0.27) * H * 0.02, Math.max(W, H) * 0.3, 0.12);
+  ctx.lineWidth = Math.max(1, S * 1.2);
+  for (let k = 0; k < 24; k++) {
+    const x = W * hr(k), len = H * (0.08 + 0.18 * hr(k + 40)), sp = H * (0.02 + 0.05 * hr(k + 80));
+    const y = ((T * sp + hr(k + 120) * H * 1.4) % (H * 1.4)) - len;
+    const g = ctx.createLinearGradient(0, y, 0, y + len); g.addColorStop(0, "rgba(190,255,170,0)"); g.addColorStop(0.5, "rgba(190,255,170," + (0.05 + 0.07 * hr(k + 160)).toFixed(3) + ")"); g.addColorStop(1, "rgba(190,255,170,0)");
+    ctx.strokeStyle = g; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + len); ctx.stroke();
+  }
+  ctx.fillStyle = "#ffffff";
+  for (let k = 0; k < 34; k++) {
+    ctx.globalAlpha = 0.12 + 0.25 * hr(k + 200);
+    const x = (W * hr(k + 240) + T * S * 4 * (hr(k + 280) - 0.5) * 6) % W, y = (H * hr(k + 320) - T * S * 6 * hr(k + 360) + H) % H;
+    ctx.fillRect(x, y, S * 2, S * 2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // ── type ──
+  const fit = (s, px, maxW, w, fam, sp) => {
+    ctx.font = font(w, px, fam);
+    const wd = ctx.measureText(s).width + (sp || 0) * px * Math.max(0, s.length - 1);
+    return wd > maxW ? px * maxW / wd : px;
+  };
+  // o: { w, fam, color, glow, outline, sp (letter spacing in em), align, alpha, dx, dy, skew, blur, scale }
+  const draw = (s, x, y, px, o) => {
+    o = o || {};
+    if (!s) return 0;
+    const a = o.alpha == null ? 1 : o.alpha;
+    if (a <= 0.004) return 0;
+    ctx.save();
+    ctx.globalAlpha = a;
+    const fam = o.fam || ANTON, w = o.w || 400, sp = (o.sp || 0) * px;
+    ctx.font = font(w, px, fam);
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    const chars = Array.from(s), widths = chars.map((c) => ctx.measureText(c).width);
+    const full = sp ? widths.reduce((m, v) => m + v, 0) + sp * (chars.length - 1) : ctx.measureText(s).width;
+    const x0 = o.align === "left" ? 0 : o.align === "right" ? -full : -full / 2;
+    ctx.translate(x + (o.dx || 0), y + (o.dy || 0));
+    if (o.skew) ctx.transform(1, 0, o.skew, 1, 0, 0);
+    if (o.scale && o.scale !== 1) ctx.scale(o.scale, o.scale);
+    if (o.blur > 0.3) { try { ctx.filter = "blur(" + o.blur.toFixed(1) + "px)"; } catch (e) {} }
+    const paint = (fn) => { if (!sp) { fn(s, x0); return; } let cx = x0; chars.forEach((c, i) => { fn(c, cx); cx += widths[i] + sp; }); };
+    if (o.outline) {
+      ctx.lineJoin = "round"; ctx.lineWidth = Math.max(1, px * o.outline); ctx.strokeStyle = o.color || WHITE;
+      if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = px * 0.25; }
+      paint((c, cx) => ctx.strokeText(c, cx, 0));
+    } else {
+      ctx.fillStyle = o.color || WHITE;
+      if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = px * 0.38; paint((c, cx) => ctx.fillText(c, cx, 0)); ctx.shadowBlur = px * 0.12; }
+      paint((c, cx) => ctx.fillText(c, cx, 0));
+    }
+    ctx.restore();
+    return full;
+  };
+  // the reel's entrances: in from the side, slanted and blurred, settling
+  const swipe = (u, from) => { const e = eo(u); return { dx: (from || -1) * (1 - e) * W * 0.32, skew: (from || -1) * 0.38 * (1 - e), blur: (1 - e) * 14 * S, alpha: cl(u * 2.2) }; };
+  const focus = (u) => { const e = eo(u); return { blur: (1 - e) * 18 * S, alpha: cl(u * 1.8), scale: 1 + 0.12 * (1 - e) }; };
+  const wrap = (str, px, maxW, w, fam, sp) => {
+    ctx.font = font(w || 400, px, fam || ANTON);
+    const out = []; let line = "";
+    words(str).forEach((wd) => { const tryL = line ? line + " " + wd : wd; if (line && ctx.measureText(tryL).width + (sp || 0) * px * tryL.length > maxW) { out.push(line); line = wd; } else line = tryL; });
+    if (line) out.push(line);
+    return out;
+  };
+  const kicker = (str, y, u, align, x) => {
+    const lines = wrap(str, 24 * S, 470 * S, 600, MONT, 0.34).slice(0, 2);
+    lines.forEach((ln, i) => draw(ln, x == null ? W / 2 : x, Y(y) + i * 22 * S, 24 * S, { fam: MONT, w: 600, color: GREY, sp: 0.34, alpha: eo(u), align }));
+  };
+  const line = (x0, y0, x1, y1, u, glow) => {
+    if (u <= 0) return;
+    ctx.save(); ctx.strokeStyle = G; ctx.lineWidth = 3 * S; ctx.lineCap = "round";
+    if (glow) { ctx.shadowColor = G; ctx.shadowBlur = 12 * S; }
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + (x1 - x0) * cl(u), y0 + (y1 - y0) * cl(u)); ctx.stroke(); ctx.restore();
+  };
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  const ws = words(sc.title);
+
+  if (kind === "clock") {
+    // a clock face: the ring drawn round, ticks outside, a glowing hand sweeping
+    const cx = X(360), cy = Y(575), R = 335 * S;
+    ctx.save();
+    ctx.strokeStyle = "rgba(200,200,200,0.55)"; ctx.lineWidth = 2.5 * S;
+    for (let k = 0; k < 12; k++) {
+      const an = (k / 12) * Math.PI * 2 + t * 0.04;
+      ctx.globalAlpha = eo(t / 0.5);
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * (R + 14 * S), cy + Math.sin(an) * (R + 14 * S)); ctx.lineTo(cx + Math.cos(an) * (R + 32 * S), cy + Math.sin(an) * (R + 32 * S)); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.8; ctx.strokeStyle = G; ctx.lineWidth = 3 * S; ctx.shadowColor = G; ctx.shadowBlur = 8 * S;
+    const ring = eio((t - 0.45) / 0.9);
+    if (ring > 0) { ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + ring * Math.PI * 2); ctx.stroke(); }
+    const an = -1.25 + t * 1.05;
+    ctx.globalAlpha = 1; ctx.lineWidth = 3.5 * S; ctx.shadowBlur = 16 * S;
+    ctx.beginPath(); ctx.moveTo(cx - Math.cos(an) * 40 * S, cy - Math.sin(an) * 40 * S); ctx.lineTo(cx + Math.cos(an) * 260 * S, cy + Math.sin(an) * 260 * S); ctx.stroke();
+    ctx.restore();
+    if (sc.kicker) kicker(sc.kicker, 398, t / 0.4);
+    const big = ws.length > 1 ? ws[0] : ws.join(" "), rest = ws.length > 1 ? ws.slice(1).join(" ") : "";
+    const bpx = fit(big, 190 * S, 600 * S, 400, ANTON);
+    const f1 = focus((t - 0.3) / 0.35);
+    draw(big, W / 2, Y(528), bpx, { outline: 0.016, color: WHITE, alpha: f1.alpha, scale: f1.scale, blur: f1.blur * 0.5 });
+    if (rest) {
+      const gl = wrap(rest, 92 * S, 600 * S).slice(0, 2);
+      gl.forEach((ln, i) => {
+        const u = (t - 0.9 - i * 0.25) / 0.35, e = eo(u), px = fit(ln, 92 * S, 600 * S, 400, ANTON);
+        draw(ln, W / 2, Y(655 + i * 92), px, { color: G, glow: G, alpha: cl(u * 2), dy: (1 - e) * 30 * S, blur: (1 - e) * 8 * S });
+      });
+    }
+    if (sc.labels && sc.labels[0]) kicker(sc.labels[0], 722 + (rest && wrap(rest, 92 * S, 600 * S).length > 1 ? 92 : 0), (t - 1.7) / 0.4);
+  } else if (kind === "spot") {
+    // a spotlight from the top; the question in white, its last words in big
+    // green dropping into the light; a profile chip coming and going
+    const lu = eo((t - 0.35) / 0.5);
+    if (t < 0.7) { ctx.save(); ctx.globalAlpha = 1 - cl((t - 0.45) / 0.25); line(X(250), Y(240), X(470), Y(240), t / 0.3, true); ctx.restore(); }
+    ctx.save(); ctx.globalAlpha = lu;
+    const g = ctx.createLinearGradient(0, Y(40), 0, Y(330));
+    g.addColorStop(0, "rgba(230,230,230,0.16)"); g.addColorStop(1, "rgba(230,230,230,0.02)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(X(300), Y(40)); ctx.lineTo(X(420), Y(40)); ctx.lineTo(X(480), Y(330)); ctx.lineTo(X(240), Y(330)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    const nG = ws.length > 3 ? 2 : Math.max(1, ws.length - 1), white = ws.slice(0, ws.length - nG).join(" "), green = ws.slice(ws.length - nG);
+    const wl = wrap(white, 44 * S, 300 * S).slice(0, 3);
+    wl.forEach((ln, i) => { const m = swipe((t - 0.6 - i * 0.2) / 0.35, i % 2 ? 1 : -1); draw(ln, W / 2, Y(150 + i * 44), fit(ln, 44 * S, 330 * S, 400, ANTON), Object.assign({ color: WHITE }, m)); });
+    const gy0 = 150 + wl.length * 44 + 40;
+    green.forEach((wd, i) => {
+      const u = (t - 1.2 - i * 0.3) / 0.35, e = eo(u), y = Y(gy0 + i * 100), px = fit(wd, 105 * S, 440 * S, 400, ANTON);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, y - px * 0.62, W, H); ctx.clip();
+      draw(wd, W / 2, y, px, { color: G, glow: G, dy: -(1 - e) * 110 * S, alpha: cl(u * 3) });
+      ctx.restore();
+    });
+    if (handle) {
+      const a = eo((t - 1.9) / 0.3) * (1 - cl((t - (dur - 0.7)) / 0.4)), cy = Y(gy0 + green.length * 100 + 120);
+      if (a > 0) {
+        ctx.save(); ctx.globalAlpha = a;
+        rr(W / 2 - 135 * S, cy - 27 * S, 270 * S, 54 * S, 27 * S); ctx.fillStyle = "rgba(18,18,18,0.92)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 1.5 * S; ctx.stroke();
+        ctx.beginPath(); ctx.arc(W / 2 - 100 * S, cy, 15 * S, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.stroke();
+        ctx.restore();
+        draw("@" + handle.replace(/^@/, "").toLowerCase().replace(/\s+/g, "."), W / 2 - 76 * S, cy - 8 * S, 17 * S, { fam: MONT, w: 600, align: "left", alpha: a });
+        draw("0 posts · 0 followers", W / 2 - 76 * S, cy + 11 * S, 12 * S, { fam: MONT, w: 500, color: GREY, align: "left", alpha: a });
+      }
+    }
+  } else if (kind === "court") {
+    // a pitch drawn in green line - the far half above, the near box below
+    const d = (k) => eio((t - k * 0.12) / 0.5);
+    ctx.save(); ctx.shadowColor = G; ctx.shadowBlur = 10 * S;
+    line(X(230), Y(245), X(490), Y(245), d(0)); line(X(230), Y(245), X(-20), Y(720), d(1)); line(X(490), Y(245), X(740), Y(720), d(1));
+    line(X(-20), Y(580), X(740), Y(580), d(2));
+    line(X(300), Y(245), X(300), Y(300), d(1)); line(X(300), Y(300), X(420), Y(300), d(2)); line(X(420), Y(300), X(420), Y(245), d(3));
+    const cu = d(3);
+    if (cu > 0) { ctx.strokeStyle = G; ctx.lineWidth = 3 * S; ctx.beginPath(); ctx.ellipse(X(360), Y(590), 95 * S, 82 * S, 0, -Math.PI / 2, -Math.PI / 2 + cu * Math.PI * 2); ctx.stroke(); }
+    line(X(120), Y(1010), X(600), Y(1010), d(4)); line(X(120), Y(1010), X(50), Y(1290), d(5)); line(X(600), Y(1010), X(670), Y(1290), d(5));
+    line(X(230), Y(1210), X(490), Y(1210), d(6)); line(X(230), Y(1210), X(230), Y(1290), d(6)); line(X(490), Y(1210), X(490), Y(1290), d(6));
+    ctx.restore();
+    if (sc.kicker) kicker(sc.kicker, 420, (t - 0.5) / 0.4);
+    // the plain words, then the ones set apart in outline - struck through
+    // when the sentence turns them down ("more than the court or field")
+    const ni = ws.findIndex((w) => /^(THAN|NOT|BEYOND|INSTEAD|NO)$/.test(w));
+    const cut = ni >= 0 && ni < ws.length - 1 ? ni + 1 : Math.max(1, Math.ceil(ws.length * 0.5));
+    // (the set-apart words in two even lines: "THE COURT / OR FIELD")
+    const ow = ws.slice(cut), oh = Math.ceil(ow.length / 2);
+    const white = ws.slice(0, cut).join(" "), outl = ow.length > 1 ? [ow.slice(0, oh).join(" "), ow.slice(oh).join(" ")] : [ow.join(" ")], strike = ni >= 0;
+    const f1 = focus((t - 0.9) / 0.35);
+    draw(white, W / 2, Y(500), fit(white, 62 * S, 640 * S, 400, ANTON), { color: WHITE, alpha: f1.alpha, blur: f1.blur });
+    outl.forEach((ln, i) => {
+      const m = swipe((t - 1.6 - i * 0.5) / 0.4, -1), y = Y(580 + i * 72), px = fit(ln, 82 * S, 600 * S, 400, ANTON);
+      const wd = draw(ln, W / 2, y, px, Object.assign({ outline: 0.022, color: "rgba(240,240,240,0.85)" }, m));
+      const su = eo((t - 2.4 - i * 0.35) / 0.4);
+      if (su > 0 && wd) { ctx.save(); ctx.strokeStyle = G; ctx.lineWidth = 5 * S; ctx.shadowColor = G; ctx.shadowBlur = 10 * S; const yy = strike ? y + 4 * S : y + px * 0.55; ctx.beginPath(); ctx.moveTo(W / 2 - wd / 2 - 8 * S, yy); ctx.lineTo(W / 2 - wd / 2 - 8 * S + (wd + 16 * S) * su, yy); ctx.stroke(); ctx.restore(); }
+    });
+  } else if (kind === "list") {
+    // a rising green line behind; the points come in one by one, each with
+    // its icon in a glowing rounded square - the first word white, the rest green
+    const P = [[0, 975], [105, 945], [215, 955], [325, 870], [430, 890], [545, 760], [650, 770], [720, 650]];
+    const lu = eio((t - 0.3) / Math.max(1.5, dur * 0.85)) * (P.length - 1);
+    ctx.save(); ctx.strokeStyle = G; ctx.lineWidth = 4 * S; ctx.lineJoin = "round"; ctx.shadowColor = G; ctx.shadowBlur = 14 * S;
+    ctx.beginPath(); ctx.moveTo(X(P[0][0]), Y(P[0][1]));
+    for (let k = 1; k <= Math.ceil(lu) && k < P.length; k++) { const f = Math.min(1, lu - (k - 1)); ctx.lineTo(X(P[k - 1][0] + (P[k][0] - P[k - 1][0]) * f), Y(P[k - 1][1] + (P[k][1] - P[k - 1][1]) * f)); }
+    ctx.stroke(); ctx.restore();
+    let items = sc.items && sc.items.length ? sc.items.slice() : [];
+    if (sc.type === "compare") items = [sc.left + (sc.left_value ? " " + sc.left_value : ""), sc.right + (sc.right_value ? " " + sc.right_value : "")];
+    if (sc.type === "timeline") items = (sc.years || []).map((y) => y.year + " " + y.label);
+    if (sc.type === "chart") items = (sc.bars || []).map((b) => b.label + " " + b.raw);
+    if (sc.type === "objects") items = sc.labels && sc.labels.filter(Boolean).length ? sc.labels.filter(Boolean) : sc.objects;
+    items = items.slice(0, 4);
+    const head = sc.kicker || (sc.type === "list" || sc.type === "chart" ? sc.title : "");
+    if (head) kicker(head, 355, (t - 0.3) / 0.4, "left", X(80));
+    const gap = Math.min(2.2, Math.max(0.6, (dur - 1.4) / Math.max(1, items.length)));
+    const icons = (sc.assets && sc.assets.icons) || [];
+    items.forEach((it, i) => {
+      const t0 = 0.8 + i * gap, u = (t - t0) / 0.4, y = 440 + i * 155;
+      if (u <= 0) return;
+      const pop = eo(u * 1.4);
+      ctx.save(); ctx.globalAlpha = cl(u * 2); ctx.translate(X(120), Y(y)); ctx.scale(0.7 + 0.3 * pop, 0.7 + 0.3 * pop);
+      rr(-40 * S, -40 * S, 80 * S, 80 * S, 12 * S); ctx.strokeStyle = G; ctx.lineWidth = 3 * S; ctx.shadowColor = G; ctx.shadowBlur = 12 * S; ctx.stroke();
+      ctx.shadowBlur = 0;
+      const im = icons[i];
+      if (im) ctx.drawImage(im, -22 * S, -22 * S, 44 * S, 44 * S);
+      ctx.restore();
+      const iw = words(it), lines = [];
+      ctx.font = font(400, 66 * S, ANTON);
+      let cur = "";
+      iw.forEach((w) => { const tr = cur ? cur + " " + w : w; if (cur && ctx.measureText(tr).width > 420 * S) { lines.push(cur); cur = w; } else cur = tr; });
+      if (cur) lines.push(cur);
+      const m = swipe(u, -1);
+      lines.slice(0, 2).forEach((ln, li) => {
+        const ly = Y(y - (lines.length > 1 ? 30 : 0) + li * 60), px = fit(ln, 66 * S, 440 * S, 400, ANTON);
+        if (li === 0 && iw.length > 1) {
+          const first = ln.split(" ")[0], restL = ln.slice(first.length + 1);
+          const fw = draw(first, X(185), ly, px, Object.assign({ align: "left", color: WHITE, glow: "rgba(255,255,255,0.35)" }, m));
+          if (restL) draw(restL, X(185) + fw + px * 0.22, ly, px, Object.assign({ align: "left", color: G, glow: G }, m));
+        } else draw(ln, X(185), ly, px, Object.assign({ align: "left", color: li === 0 ? WHITE : G, glow: li === 0 ? "rgba(255,255,255,0.35)" : G }, m));
+      });
+    });
+  } else if (kind === "phone") {
+    // a phone outline tilting up straight, a number counting up, hearts rising
+    if (sc.kicker) kicker(sc.kicker, 105, t / 0.35);
+    const e = eo(t / 0.45), cx = X(360), cy = Y(330);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.12 * (1 - e)); ctx.scale(0.86 + 0.14 * e, 0.86 + 0.14 * e); ctx.globalAlpha = cl(t * 3);
+    rr(-115 * S, -172 * S, 230 * S, 345 * S, 30 * S); ctx.strokeStyle = G; ctx.lineWidth = 4 * S; ctx.shadowColor = G; ctx.shadowBlur = 18 * S; ctx.stroke();
+    ctx.shadowBlur = 0; rr(-26 * S, -158 * S, 52 * S, 8 * S, 4 * S); ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -66 * S, 34 * S, 0, Math.PI * 2); ctx.strokeStyle = G; ctx.lineWidth = 3 * S; ctx.shadowColor = G; ctx.shadowBlur = 10 * S; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = WHITE; ctx.lineWidth = 3 * S; ctx.beginPath(); ctx.arc(0, -74 * S, 9 * S, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -46 * S, 16 * S, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    const nv = vsGxNum(sc.value) || { pre: "", n: 0, dec: 0, post: "" };
+    const cu = eo((t - 0.4) / Math.max(1.2, Math.min(3, dur - 1)));
+    const v = nv.n * cu, ab = Math.abs(nv.n);
+    const num = ab >= 1e6 ? (v / 1e6).toFixed(v / 1e6 < 100 ? 1 : 0) + "M" : ab >= 1000 ? (v / 1000).toFixed(v / 1000 < 100 ? 1 : 0).replace(/\.0$/, "") + "K" : v.toFixed(nv.dec);
+    ctx.restore();
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.12 * (1 - e)); ctx.scale(0.86 + 0.14 * e, 0.86 + 0.14 * e);
+    draw(nv.pre + num + nv.post, 0, 8 * S, fit(nv.pre + num + nv.post, 70 * S, 200 * S, 400, ANTON), { color: G, glow: G, alpha: cl(t * 3) });
+    draw(up(sc.title || "followers").slice(0, 22), 0, 52 * S, 12 * S, { fam: MONT, w: 600, color: GREY, sp: 0.25, alpha: cl(t * 3) });
+    rr(-80 * S, 70 * S, 160 * S, 5 * S, 2.5 * S); ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fill();
+    rr(-80 * S, 70 * S, 160 * S * cu, 5 * S, 2.5 * S); ctx.fillStyle = G; ctx.fill();
+    ctx.restore();
+    for (let k = 0; k < 14; k++) {
+      const s0 = 0.7 + k * 0.22, u = (t - s0) / 1.3;
+      if (u <= 0 || u >= 1) continue;
+      const hx = cx + (95 + 40 * hr(k + 400)) * S + Math.sin(u * 6 + k) * 8 * S, hy = cy + (60 - 170 * u) * S, hs = (9 + 6 * hr(k + 440)) * S;
+      ctx.save(); ctx.globalAlpha = Math.sin(u * Math.PI); ctx.fillStyle = k % 3 === 1 ? WHITE : G; ctx.translate(hx, hy); ctx.scale(hs / 10, hs / 10);
+      ctx.beginPath(); ctx.moveTo(0, 3); ctx.bezierCurveTo(-10, -4, -5, -11, 0, -5); ctx.bezierCurveTo(5, -11, 10, -4, 0, 3); ctx.fill(); ctx.restore();
+    }
+  } else if (kind === "rec") {
+    // a camera viewfinder: corners, REC blinking, the timecode running, a
+    // frame that grows and turns green; the words inside, the green ones big
+    ctx.save(); ctx.strokeStyle = WHITE; ctx.lineWidth = 3 * S;
+    const corner = (x, y, sx, sy) => { ctx.beginPath(); ctx.moveTo(X(x + sx * 46), Y(y)); ctx.lineTo(X(x), Y(y)); ctx.lineTo(X(x), Y(y + sy * 46)); ctx.stroke(); };
+    ctx.globalAlpha = eo(t / 0.3); corner(40, 160, 1, 1); corner(680, 160, -1, 1); corner(40, 1010, 1, -1); corner(680, 1010, -1, -1);
+    ctx.restore();
+    if (Math.floor(t * 1.6) % 2 === 0) { ctx.save(); ctx.fillStyle = "#ff3b3b"; ctx.beginPath(); ctx.arc(X(98), Y(196), 5 * S, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+    draw("REC", X(112), Y(196), 18 * S, { fam: MONO, w: 500, align: "left", color: WHITE, alpha: eo(t / 0.3) });
+    const fr = Math.floor(t * 30), tc = "00:00:" + String(Math.floor(fr / 30)).padStart(2, "0") + ":" + String(fr % 30).padStart(2, "0");
+    draw(tc, X(650), Y(196), 18 * S, { fam: MONO, w: 500, align: "right", color: WHITE, alpha: eo(t / 0.3) });
+    draw("4K · 60FPS", X(70), Y(972), 18 * S, { fam: MONO, w: 500, align: "left", color: G, alpha: eo(t / 0.3) });
+    draw("ISO 800 · 1/120", X(650), Y(972), 18 * S, { fam: MONO, w: 500, align: "right", color: WHITE, alpha: eo(t / 0.3) });
+    if (sc.kicker) kicker(sc.kicker, 340, (t - 0.2) / 0.4);
+    const bu = eo((t - 0.35) / 0.7), bw = (430 + 170 * bu) * S, bh = (230 + 92 * bu) * S, bcx = X(364), bcy = Y(577);
+    ctx.save(); ctx.globalAlpha = cl((t - 0.3) * 4);
+    ctx.strokeStyle = bu < 0.6 ? WHITE : G; ctx.lineWidth = (bu < 0.6 ? 2 : 3.5) * S;
+    if (bu >= 0.6) { ctx.shadowColor = G; ctx.shadowBlur = 16 * S; }
+    ctx.strokeRect(bcx - bw / 2, bcy - bh / 2, bw, bh);
+    ctx.restore();
+    const ph = sc.assets && sc.assets.photo;
+    if (ph && ph.naturalWidth) {
+      const pa = eo((t - 0.9) / 0.5); ctx.save(); ctx.globalAlpha = pa * 0.9; ctx.beginPath(); ctx.rect(bcx - bw / 2 + 4 * S, bcy - bh / 2 + 4 * S, bw - 8 * S, bh - 8 * S); ctx.clip();
+      const k = Math.max(bw / ph.naturalWidth, bh / ph.naturalHeight); ctx.drawImage(ph, bcx - ph.naturalWidth * k / 2, bcy - ph.naturalHeight * k / 2, ph.naturalWidth * k, ph.naturalHeight * k); ctx.restore();
+    }
+    const ci = ws.findIndex((w, i) => i > 0 && i < ws.length - 1 && /^(INTO|TO|FOR|AND|WITH|FROM|VS|THAN)$/.test(w));
+    const cut = ci > 0 ? ci : Math.max(1, Math.floor(ws.length / 2));
+    const white = wrap(ws.slice(0, cut).join(" "), 74 * S, 330 * S).slice(0, 2), conn = ci > 0 ? ws[ci] : "", green = wrap(ws.slice(ci > 0 ? ci + 1 : cut).join(" "), 95 * S, 520 * S).slice(0, 2);
+    const wy = ph ? 790 : 430;
+    white.forEach((ln, i) => { const f = focus((t - 1.2 - i * 0.12) / 0.4); draw(ln, W / 2, Y(wy + i * 78), fit(ln, 74 * S, 520 * S, 400, ANTON), Object.assign({ color: WHITE, glow: "rgba(255,255,255,0.3)" }, f)); });
+    const gy = wy + white.length * 78 + (conn ? 4 : 30);
+    if (conn) draw(conn, W / 2, Y(gy), 28 * S, { color: GREY, alpha: eo((t - 2) / 0.3) });
+    green.forEach((ln, i) => { const f = focus((t - 2.2 - i * 0.3) / 0.4); draw(ln, W / 2, Y(gy + (conn ? 82 : 50) + i * 108), fit(ln, 95 * S, 560 * S, 400, ANTON), Object.assign({ color: G, glow: G }, f)); });
+  } else if (kind === "search") {
+    // a search bar typing a name, nothing found - and the line that answers it
+    const q = String(handle || sc.kicker || ws.slice(0, 2).join(" ")).toLowerCase();
+    const ty = Math.floor(cl((t - 0.25) / 1.3) * q.length), shown = q.slice(0, ty);
+    ctx.save(); ctx.globalAlpha = eo(t / 0.3);
+    rr(X(90), Y(266), 554 * S, 84 * S, 42 * S); ctx.fillStyle = "rgba(20,24,20,0.85)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2 * S; ctx.stroke();
+    ctx.strokeStyle = WHITE; ctx.lineWidth = 3 * S; ctx.beginPath(); ctx.arc(X(140), Y(304), 11 * S, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(X(148), Y(312)); ctx.lineTo(X(158), Y(322)); ctx.stroke();
+    ctx.restore();
+    const tw = draw(shown, X(175), Y(308), 28 * S, { fam: MONT, w: 500, align: "left", color: WHITE });
+    if (Math.floor(t * 2.2) % 2 === 0) { ctx.save(); ctx.fillStyle = WHITE; ctx.fillRect(X(175) + tw + 3 * S, Y(292), 2 * S, 32 * S); ctx.restore(); }
+    if (/^(DON'?T|NO|NOBODY|NEVER|STOP)$/.test(ws[0] || "") || handle) draw("× No results found", X(380), Y(382), 18 * S, { fam: MONO, w: 500, color: "#ff5a5a", alpha: eo((t - 1.7) / 0.3) });
+    const n = ws.length, l1 = ws.slice(0, Math.min(2, n - 1)).join(" "), lo = n > 3 ? ws.slice(n - 2) : ws.slice(Math.min(2, n - 1)), mid = n > 4 ? ws.slice(2, n - 2).join(" ") : "";
+    const f1 = focus((t - 1.3) / 0.35);
+    draw(l1, W / 2, Y(530), fit(l1, 92 * S, 560 * S, 400, ANTON), Object.assign({ color: WHITE }, f1));
+    if (mid) draw(mid, W / 2, Y(612), fit(mid, 50 * S, 520 * S, 400, ANTON), { color: "#d9dbd5", alpha: eo((t - 2) / 0.4) });
+    lo.forEach((w, i) => {
+      const u = (t - 2.5 - i * 0.2) / 0.3, g = u > 0 && u < 1 ? (Math.floor(t * 40) % 3 - 1) * 6 * S : 0;
+      draw(w, W / 2 + g, Y((mid ? 712 : 640) + i * 100), fit(w, 108 * S, 600 * S, 400, ANTON), { outline: 0.02, color: G, glow: G, alpha: u > 0 ? (u < 1 ? (Math.floor(t * 30) % 2 ? 1 : 0.4) : 1) : 0 });
+    });
+  } else {
+    // rings: the last word - circles widening from the middle, the line in
+    // white, the rest in big green focusing in; then the end card
+    const endAt = (handle || vstudio._proCta) && dur > 4.6 ? dur - 2.6 : 1e9;
+    const out = cl((t - endAt) / 0.4);
+    ctx.save(); ctx.globalAlpha = 1 - out;
+    for (let k = 0; k < 3; k++) {
+      const u = ((t * 0.55 + k / 3) % 1), r = (0.08 + 0.85 * eo(u)) * Math.max(W, H) * 0.45;
+      ctx.strokeStyle = G; ctx.globalAlpha = (1 - out) * (1 - u) * 0.8; ctx.lineWidth = (14 - 10 * u) * S; ctx.shadowColor = G; ctx.shadowBlur = 16 * S;
+      ctx.beginPath(); ctx.arc(W / 2, Y(560), r, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+    const nW = Math.max(1, Math.ceil(ws.length * 0.45)), white = wrap(ws.slice(0, nW).join(" "), 54 * S, 360 * S).slice(0, 2), green = ws.slice(nW);
+    white.forEach((ln, i) => draw(ln, W / 2, Y(370 + i * 56), fit(ln, 54 * S, 420 * S, 400, ANTON), { color: WHITE, alpha: eo((t - 0.3) / 0.3) * (1 - out) }));
+    const last = green.length > 1 ? green.pop() : null, gl = green.join(" ");
+    const gy = 370 + white.length * 56 + 40;
+    if (gl) { const f = focus((t - 0.9) / 0.4); draw(gl, W / 2, Y(gy), fit(gl, 72 * S, 520 * S, 400, ANTON), Object.assign({ color: G, glow: G }, f, { alpha: f.alpha * (1 - out) })); }
+    if (last) { const f = focus((t - 1.5) / 0.4); draw(last, W / 2, Y(gy + 108), fit(last, 110 * S, 560 * S, 400, ANTON), Object.assign({ color: G, glow: G }, f, { alpha: f.alpha * (1 - out) })); }
+    if (out > 0) {
+      const name = handle || "", cta = up(vstudio._proCta || "Contact us today"), e = eo((t - endAt - 0.3) / 0.6);
+      if (name) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W / 2 - 240 * S + 480 * S * e, H); ctx.clip();
+        draw(name.replace(/^@/, "").toLowerCase(), W / 2, Y(470), fit(name, 46 * S, 480 * S, 700, MONT), { fam: MONT, w: 700, color: WHITE });
+        ctx.restore();
+      }
+      ctx.save(); ctx.globalAlpha = e; ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(W / 2 - 100 * S, Y(528), 200 * S, 1.5 * S);
+      const cw = Math.min(520 * S, (cta.length * 13 + 70) * S);
+      rr(W / 2 - cw / 2, Y(560), cw, 50 * S, 25 * S); ctx.strokeStyle = WHITE; ctx.lineWidth = 2 * S; ctx.stroke(); ctx.restore();
+      draw(cta, W / 2, Y(585), fit(cta, 18 * S, cw - 50 * S, 600, MONT, 0.3), { fam: MONT, w: 600, sp: 0.3, alpha: e });
+    }
+  }
+
+  // ── the reel's cuts, drawn as each scene opens: a full green flash, a green
+  // wedge wiping across, a grey glitch flash ──
+  const cutKind = idx === 0 || kind === "rings" ? "flash" : ["wedge", "glitch", "wedge"][idx % 3];
+  if (cutKind === "flash" && t < 0.5) {
+    ctx.save(); ctx.globalAlpha = 1 - eo(t / 0.5); ctx.fillStyle = G; ctx.fillRect(0, 0, W, H);
+    blob(W * 0.3, H * 0.25, Math.max(W, H) * 0.5, 0.0); ctx.restore();
+  } else if (cutKind === "wedge" && t < 0.3) {
+    const u = eio(t / 0.3);
+    ctx.save(); ctx.fillStyle = G; ctx.shadowColor = G; ctx.shadowBlur = 20 * S;
+    ctx.beginPath(); ctx.moveTo(W * (0.55 + 0.6 * u), -2); ctx.lineTo(W + 2, -2); ctx.lineTo(W + 2, H + 2); ctx.lineTo(W * (0.1 + 0.95 * u), H + 2); ctx.closePath(); ctx.fill(); ctx.restore();
+  } else if (cutKind === "glitch" && t < 0.28) {
+    ctx.save(); ctx.globalAlpha = 1 - t / 0.28; ctx.fillStyle = "#cfd2cf"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = vsHexA(G, 0.5); ctx.fillRect(0, H * (0.42 + 0.05 * Math.sin(t * 90)), W, H * 0.05); ctx.restore();
+  }
+}
+
 function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
   const U = Math.min(W, H * 0.62);
   if (!vsGxCineC) vsGxCineC = document.createElement("canvas");
@@ -17386,6 +17876,7 @@ function vsGxCine(ctx, W, H, sc, t, dur, tk, cap) {
   ctx.restore();
 }
 function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
+  if (tk.st && tk.st.arena) { vsArenaScene(ctx, W, H, sc, t, dur, tk); return; }
   if (tk.st && tk.st.cine && !tk._flat) { vsGxCine(ctx, W, H, sc, t, dur, tk, cap); return; }
   const st = tk.st || VS_GX_STYLES[0];
   const U = Math.min(W, H * 0.62), mv = vsGxMove(tk), a = sc.assets || { objs: [], icons: [] };
@@ -17513,6 +18004,11 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       const n0 = w0.lines.length;
       if (sp) { w0 = wrap(label, disp, px, mx * Math.max(0.3, 0.82 - g * 0.07), o.maxLines || 3); px = w0.px; }
       if (!sp || w0.lines.length === n0) { px *= Math.max(0.7, Math.min(0.95, mx / widest)); w0 = wrap(label, disp, px, mx, o.maxLines || 3); px = w0.px; }
+    }
+    // a two-tone title is always two lines - the white one, then the accent
+    if (st.two && tt === "glow" && w0.lines.length === 1 && (o.maxLines || 3) > 1) {
+      const ws2 = w0.lines[0].split(" ");
+      if (ws2.length >= 2) { const k = Math.floor(ws2.length / 2); w0 = { lines: [ws2.slice(0, k).join(" "), ws2.slice(k).join(" ")], px }; }
     }
     const lh = px * (tt === "swiss" ? 0.98 : tt === "tape" || tt === "block" || tt === "strip" || tt === "ransom" ? 1.28 : 1.1);
     const y0 = y - ((w0.lines.length - 1) * lh) / 2;
@@ -18107,7 +18603,9 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       if (tt === "glow") {
         // switched on: a flicker, then a steady glow
         const fl = t - tl < 0.3 ? (Math.floor((t - tl) * 30) % 3 ? 1 : 0.35) : 1;
-        ctx.globalAlpha = a2 * fl; ctx.shadowColor = acc; ctx.shadowBlur = px * 0.5; ctx.fillStyle = color; put(b, 0, 0, dy);
+        // (two-tone: the first line white, the lines after it in the accent)
+        const tone = st.two && w0.lines.length > 1 && i >= Math.ceil(w0.lines.length / 2) ? acc : color;
+        ctx.globalAlpha = a2 * fl; ctx.shadowColor = acc; ctx.shadowBlur = px * (st.two ? 0.32 : 0.5); ctx.fillStyle = tone; put(b, 0, 0, dy);
         ctx.shadowBlur = px * 0.15; put(b, 0, 0, dy);
       } else if (tt === "outline") {
         ctx.translate(b.x + b.w / 2, b.y + dy); ctx.rotate(-0.04); ctx.translate(-(b.x + b.w / 2), -(b.y + dy));
@@ -18538,7 +19036,7 @@ function vsGxDrawScene(ctx, W, H, sc, t, dur, tk, cap) {
       if (sc.kicker) {
         const ky = (r.boxes[0] ? r.boxes[0].y : ty0) - r.px * 0.62 - U * 0.08;
         if (st.tt === "blurword" && !st.kickPill) text(sc.kicker, st.kickSans ? { fam: disp.fam, w: 400, italic: true } : Object.assign({}, body, { italic: true }), U * 0.05, tx, ky, mw, al, ink, 0.05, { maxLines: 1 });
-        else if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif") text(sc.kicker.toUpperCase(), body, U * 0.04, tx, ky, mw, al, st.tt === "label" ? tk.muted : acc, 0.05, { maxLines: 1 });
+        else if (st.tt === "label" || st.tt === "spaced" || st.tt === "serif" || st.kickPlain) text(st.kickPlain ? sc.kicker.toUpperCase().split("").join(" ") : sc.kicker.toUpperCase(), body, U * (st.kickPlain ? 0.032 : 0.04), tx, ky, mw, al, st.tt === "label" || st.kickPlain ? tk.muted : acc, 0.05, { maxLines: 1 });
         else if (left) { ctx.save(); ctx.font = font(body, U * 0.042); const kw = ctx.measureText(sc.kicker).width + U * 0.042 * 1.6; ctx.restore(); pill(sc.kicker, tx + kw / 2, ky, acc, on(acc), 0.05); }
         else pill(sc.kicker, W / 2, ky, acc, on(acc), 0.05);
       }
@@ -18972,6 +19470,22 @@ function vsGxDeco(ctx, W, H, t, tk, st, U, mv, rnd) {
       ctx.strokeStyle = tk.a3; ctx.lineWidth = U * 0.008; ctx.strokeRect(-w / 2, -h / 2, w, h); ctx.lineWidth = U * 0.003; ctx.strokeRect(-w / 2 + U * 0.012, -h / 2 + U * 0.012, w - U * 0.024, h - U * 0.024);
       ctx.fillStyle = tk.a3; ctx.font = vsGxFont(tk.disp, U * 0.06); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(rtl ? "پرونده" : "FILE", 0, U * 0.004);
     }
+  } else if (de === "arena") {
+    // a green glow rising from below the frame, breathing slowly, and faint
+    // vertical streaks drifting down through the dark (the athlete reel)
+    const gy = H * 1.02, gr = Math.max(W, H) * 0.62, br = 0.85 + 0.15 * Math.sin(t * 1.3);
+    const g1 = ctx.createRadialGradient(W / 2, gy, 0, W / 2, gy, gr);
+    g1.addColorStop(0, vsHexA(tk.a1, 0.34 * br)); g1.addColorStop(0.45, vsHexA(tk.a1, 0.1 * br)); g1.addColorStop(1, vsHexA(tk.a1, 0));
+    ctx.globalAlpha = ap; ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = tk.a1; ctx.lineWidth = Math.max(1, U * 0.0016);
+    const hr = (n) => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
+    for (let k = 0; k < 26; k++) {
+      const x = W * hr(k * 3 + 1), len = H * (0.06 + 0.14 * hr(k * 3 + 2)), sp3 = H * (0.05 + 0.08 * hr(k * 3 + 3));
+      const y = ((t * sp3 + hr(k * 7) * H * 1.3) % (H * 1.3)) - len;
+      ctx.globalAlpha = ap * (0.05 + 0.08 * hr(k * 5));
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + len); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   } else if (de === "mist") {
     // long rounded mist bands drifting across
     ctx.fillStyle = tk.paper;
@@ -19383,6 +19897,7 @@ function vsGxOverlay(ctx, W, H, t, tk, st, U, sc) {
 // The words being said, small, at the foot, in the style's manner.
 function vsGxCaptions(ctx, W, H, cap, tk, U) {
   const ws = cap.words, lt = cap.t, st = tk.st || VS_GX_STYLES[0], cp = st.cp;
+  if (st.noCaps) return;
   let cur = -1;
   for (let k = 0; k < ws.length; k++) if (ws[k].t0 <= lt + 0.02) cur = k;
   if (cur < 0 || lt > ws[ws.length - 1].t1 + 0.4) return;
@@ -19571,6 +20086,7 @@ async function vsGxResolveAll(slides) {
   const tk = vsGxTokens(vsGxTheme(vstudio._gxTheme));
   const seen = new Set(), jobs = [];
   slides.forEach((s) => { if (s._gx && !seen.has(s._gx)) { seen.add(s._gx); s._gx._idx = jobs.length; jobs.push(s._gx); } });
+  jobs.forEach((sc) => { sc._n = jobs.length; });
   await Promise.all(jobs.map(async (sc) => { try { sc.assets = await vsGxResolve(sc, tk); } catch (e) { sc.assets = { objs: [], icons: [] }; } }));
   // A scene never comes out empty. A photo or a map that was not found turns
   // into a key word - and a scene planned as a photo or a map often has no
@@ -19595,6 +20111,8 @@ function vsGxCuts(slides) {
   const SOFT = { whip: "leak", wipe: "zoom", glitch: "flash", zoomblur: "zoom" };
   // One take: no cuts at all - the camera travels from scene to scene
   const list = vstudio._oneTake ? ["onetake"] : (vsGxTheme(vstudio._gxTheme).style.tr || ["leak"]).map((x) => SOFT[x] || x);
+  // (a style that draws its own cuts - the arena's green flash and wedge)
+  if (!vstudio._oneTake && vsGxTheme(vstudio._gxTheme).style.ownCuts) { slides.forEach((s) => { delete s._transIn; }); return; }
   let k = 0;
   slides.forEach((s, i) => {
     delete s._transIn;
@@ -19822,6 +20340,7 @@ function vsEditStudio(preset, filesIn) {
   // out of reach above the scroll
   ov.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;background:rgba(4,5,8,.78);backdrop-filter:blur(6px);padding:16px;overflow:auto";
   const STYLES = [
+    ["pro-cards", L("Word cards", "کارت کلمه"), L("From the raw/finished podcast reel · one white word at a time, the key words on white and navy cards, icons, cuts out of a blur", "از ریلز خام/نهایی پادکست · هر بار یک کلمهٔ سفید، کلمه‌های مهم روی کارت سفید و سرمه‌ای، آیکون، کات از دل بلور")],
     ["pro-suite", L("Lake office", "دفتر رو به دریاچه"), L("From the Utah realtor reel · the key word in pale glowing yellow behind you, small white words, cuts that burst into light, a new camera angle on every cut", "از ریلز مشاور یوتا · کلمهٔ اصلی زرد کم‌رنگ درخشان پشت سرت، کلمات ریز سفید، کات‌هایی که در نور باز می‌شوند، هر کات یک زاویهٔ تازه")],
     ["pro-trust", L("Purple serif", "سریف بنفش"), L("From the top-1% realtor reel · the key word in purple serif italic capitals, figures glowing pink to blue, bright cuts", "از ریلز مشاور یک درصد برتر · کلمهٔ اصلی با حروف سریف ایتالیک بنفش، عددها درخشان صورتی تا آبی، کات‌های روشن")],
     ["pro-walk", L("Walk & talk", "قدم و گفتگو"), L("From the bridge walk reel · bold white italic lines, light italic words over them, focus pulls between shots", "از ریلز قدم‌زدن روی پل · خطوط سفید ایتالیک پررنگ، کلمات ایتالیک نازک رویشان، فوکوس‌کشی بین نماها")],
@@ -22474,7 +22993,7 @@ async function vsEditMyVideo(fileIn, o) {
           const js = bySent[k3];
           if (!want.length) return;
           for (let a = 0; a + want.length <= js.length; a++) {
-            if (want.every((x, q) => nrm(local[js[a + q]].w) === x)) { for (let q = 0; q < want.length; q++) local[js[a + q]].key = 1; break; }
+            if (want.every((x, q) => nrm(local[js[a + q]].w) === x)) { for (let q = 0; q < want.length; q++) local[js[a + q]].key = 1; if ((sPlan[k3] || {}).icon) local[js[a]].icon = String(sPlan[k3].icon).slice(0, 30); break; }
           }
         });
       }
@@ -22655,6 +23174,7 @@ async function vsEditMyVideo(fileIn, o) {
           if (!sl._broll && ar >= 0.85 && (o.aspect || "9:16") === "9:16" && me.videoHeight < 900) sl._fit = "whole"; }
         sl._shot = sl._broll ? "" : "medium";
         sl._camDir = 1;
+        sl._cardAlt = i % 2 === 1; sl._cardBg = i; delete sl._cardsC;
         delete sl._emph; delete sl._hook; delete sl._sticker; delete sl._proG;
         // a moment and the clip either side of it are one continuous take:
         // the same framing and the camera carrying on, no cut to see
