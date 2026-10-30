@@ -2062,7 +2062,7 @@ function applyTheme(theme) {
   const bar = document.createElement("div");
   bar.id = "arCookie"; bar.dir = fa ? "rtl" : "ltr"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", fa ? "کوکی‌ها" : "Cookies");
   bar.innerHTML = "<span>" + (fa ? "برای بهتر شدن تجربهٔ شما از کوکی استفاده می‌کنیم." : "We use cookies to enhance your experience.") +
-    ' <a href="/privacy/' + (fa ? "?lang=fa" : "") + '">' + (fa ? "بیشتر بدانید" : "Learn more") + "</a></span>" +
+    ' <a href="/privacy/' + (fa ? "?lang=fa" : "") + '">' + (fa ? "حریم خصوصی" : "Privacy policy") + "</a></span>" +
     '<button type="button">' + (fa ? "باشه" : "OK") + "</button>";
   const css = document.createElement("style");
   css.textContent = "#arCookie{position:fixed;left:16px;right:16px;bottom:16px;margin:0 auto;max-width:520px;z-index:9000;display:flex;align-items:center;gap:14px;" +
@@ -47419,11 +47419,17 @@ function arSoonMark(root) {
     a.dataset.soon = "1";
     // the buttons that only sold credits or the model catalogue go
     if (a.matches(".hero-x-alt, .hero-x-go, .bn-more")) { a.hidden = true; return; }
-    a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); a.tabIndex = -1; a.classList.add("ar-soon");
     a.querySelectorAll(".arh-new").forEach((b) => b.remove());
     const b = document.createElement("span"); b.className = "ar-soon-b"; b.textContent = arSoonFa() ? "\u0628\u0647\u200c\u0632\u0648\u062f\u06cc" : "SOON";
     (a.querySelector(".ft-name, .mk-card-name, b") || a).appendChild(b);
-    a.addEventListener("click", (e) => e.preventDefault());
+    // A link that goes nowhere should not be an <a>: crawlers flag anchors
+    // without an href, and a span says the same thing to a screen reader.
+    const dead = document.createElement("span");
+    dead.className = a.className;
+    dead.classList.add("ar-soon");
+    dead.setAttribute("aria-disabled", "true");
+    dead.innerHTML = a.innerHTML;
+    a.replaceWith(dead);
   });
   // the credits banner on the home page
   (root || document).querySelectorAll(".bn-block").forEach((x) => { x.hidden = true; });

@@ -5332,13 +5332,15 @@ b, strong { font-weight: 600; }
   text-transform: uppercase;
 }
 .ft-brand span { display: block; }
-.ft-col h3 {
+.ft-col :is(h2, h3) {
   margin: 0 0 14px;
   font: 600 12.5px/1 var(--font-body);
   letter-spacing: 0;
-  color: rgba(8, 9, 12, .5);
+  /* .5 measured 3.27:1 on the cyan footer; .65 reads 5.08:1 */
+  color: rgba(8, 9, 12, .65);
 }
-.ft-col a {
+.ft-col a,
+.ft-col .ar-soon {
   display: block;
   margin-bottom: 10px;
   font-size: 14px;
@@ -5346,7 +5348,8 @@ b, strong { font-weight: 600; }
   color: #08090c;
   text-decoration: none;
 }
-.ft-col a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ft-col a:hover,
+.ft-col .ar-soon:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .ar-foot-note {
   display: flex; flex-wrap: wrap; gap: 14px;
@@ -5369,7 +5372,7 @@ b, strong { font-weight: 600; }
   display: flex; flex-wrap: wrap; gap: 12px;
   align-items: center; justify-content: space-between;
   background: var(--bg);
-  font-size: 12px; color: var(--muted-2);
+  font-size: 12px; color: #8a929e;
 }
 .ar-foot-links { display: flex; gap: 18px; }
 .ar-foot-links a { color: var(--muted); text-decoration: none; }

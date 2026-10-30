@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=v911" />
+    <link rel="stylesheet" href="/styles.css?v=v912" />
     <!-- Puter.js — browser-based AI (free, no backend; first use prompts a Puter sign-in) -->
     <!-- puter.js removed — all AI now runs on free Pollinations.ai (no login, no paid popups) -->
     <!-- ffmpeg.wasm v0.12 (MP4 export) is loaded lazily from vendor/ffmpeg/
@@ -656,6 +656,7 @@
           aria-label="Open menu" title="Menu">☰</button>
 
         <main id="top">
+          <h1 class="sr-only">AI Radar — compare AI tools on live GitHub data</h1>
 
         <!-- HERO — rebuilt: centered, cinematic, search-first (Higgsfield-style) -->
         <!-- ── SEARCH BAR ────────────────────────────────────────────────
@@ -716,7 +717,7 @@
                   <span class="tod-logo" id="todLogo"></span>
                 </div>
                 <div class="tod-info">
-                  <h3 class="tod-name" id="todName">Loading…</h3>
+                  <h2 class="tod-name" id="todName">Loading…</h2>
                   <span class="tod-category" id="todCategory"></span>
                 </div>
                 <span class="tod-price" id="todPrice"></span>
@@ -1704,7 +1705,7 @@ function arCredits(n){
       })();
     </script>
 
-    <script src="/app.js?v=v911"></script>
+    <script src="/app.js?v=v912"></script>
 
     <script>
       /* Hero search → drive the Tool Finder (#searchInput) and scroll to it */
